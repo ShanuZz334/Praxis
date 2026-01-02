@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 
 // Pages
-import Home from "./home";
+import Home from "./Home";
 import Fundamental from "./fundamental_analysis";
 import Technical from "./technical_analysis";
 import Options from "./options_analysis";
