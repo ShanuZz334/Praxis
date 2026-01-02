@@ -1,0 +1,89 @@
+/* src/index.css */
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rancho&display=swap');
+
+/* Tailwind + animation plugins */
+@import "tailwindcss"; 
+@import "tw-animate-css";
+
+/* ------------------------------
+   GLOBAL BASE STYLES
+-------------------------------- */
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+
+  font-family: "Poppins", sans-serif;
+  background-color: #000; /* Auth + dashboard base */
+  color: #fff;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Root container */
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* ------------------------------
+   SCROLLBAR (OPTIONAL CLEAN)
+-------------------------------- */
+
+.invisibleScroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.invisibleScroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.invisibleScroll::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+/* ------------------------------
+   ICON / UI MICRO-INTERACTIONS
+-------------------------------- */
+
+.navbar-icon {
+  transition: transform 0.25s ease;
+}
+
+.navbar-icon:hover {
+  transform: scale(1.12);
+}
+
+/* ------------------------------
+   LOGO / HERO ANIMATION
+-------------------------------- */
+
+@keyframes zoomInOut {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.07);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-zoomInOut {
+  animation: zoomInOut 3s ease-in-out infinite;
+}
+/* Stocky logo font */
+.font-stocky {
+  font-family: 'Rancho', cursive;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+}

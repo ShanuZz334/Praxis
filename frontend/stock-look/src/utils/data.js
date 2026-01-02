@@ -1,0 +1,77 @@
+import {
+  LuLayoutDashboard,
+  LuBookOpen,
+  LuTrendingUp,
+  LuSettings2,
+  LuCalendarDays,
+  LuWallet,
+  LuGlobe,
+  LuNotebook,
+  LuLogOut,
+} from "react-icons/lu";
+
+export const SIDE_MENU_DATA = [
+  {
+    id: "01",
+    key: "dashboard",
+    label: "DASHBOARD",
+    icon: LuLayoutDashboard,
+    path: "/dashboard/home",
+  },
+  {
+    id: "02",
+    key: "fundamental",
+    label: "FUNDAMENTAL ANALYSIS",
+    icon: LuBookOpen,
+    path: "/dashboard/fundamental",
+  },
+  {
+    id: "03",
+    key: "technical",
+    label: "TECHNICAL ANALYSIS",
+    icon: LuTrendingUp,
+    path: "/dashboard/technical",
+  },
+  {
+    id: "04",
+    key: "options",
+    label: "OPTIONS ANALYSIS",
+    icon: LuSettings2,
+    path: "/dashboard/options",
+  },
+  {
+    id: "05",
+    key: "events",
+    label: "MAJOR EVENTS",
+    icon: LuCalendarDays,
+    path: "/dashboard/events",
+  },
+  {
+    id: "06",
+    key: "pnl",
+    label: "PROFIT & LOSS",
+    icon: LuWallet,
+    path: "/dashboard/pnl",
+  },
+  {
+    id: "07",
+    key: "foreign",
+    label: "FOREIGN MARKETS",
+    icon: LuGlobe,
+    path: "/dashboard/foreign",
+  },
+  {
+    id: "08",
+    key: "journal",
+    label: "JOURNAL",
+    icon: LuNotebook,
+    path: "/dashboard/journal",
+  },
+  {
+    id: "09",
+    key: "logout",
+    label: "LOGOUT",
+    icon: LuLogOut,
+    path: "/logout",
+  },
+];
