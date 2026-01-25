@@ -1,5 +1,5 @@
 import express from 'express';
-import authenticateToken from '../middleware/authMiddleware.js';
+import { protect as authenticateToken } from '../middleware/authMiddleware.js';
 import {
     saveBrokerCredentials,
     getBrokerCredentials,
