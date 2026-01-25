@@ -52,6 +52,11 @@ app.use(express.json());
 // MongoDB Connect
 connectDB();
 
+// Health Check Route
+app.get("/", (req, res) => {
+    res.send("Stocky API v2.0 is running...");
+});
+
 // Routes
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
