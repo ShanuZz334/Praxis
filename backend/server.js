@@ -1,7 +1,7 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import path from "path";
-import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 
@@ -14,9 +14,10 @@ import fundamentalsRoutes from "./routes/fundamentalsRoutes.js";
 import optionsRoutes from "./routes/optionsRoutes.js";
 import pnlRoutes from "./routes/pnlRoutes.js";
 import technicalRoutes from "./routes/technicalRoutes.js";
-import upstoxRoutes from "./routes/upstoxRoutes.js";
-
-dotenv.config();
+import userRoutes from "./routes/userRoutes.js";
+import brokerRoutes from "./routes/brokerRoutes.js";
+import journalRoutes from "./routes/journalRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
 
 const app = express();
 
@@ -25,10 +26,25 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Middleware
+// Middleware
 app.use(cors({
-    origin: process.env.CLIENT_URL || "*",
+    origin: (origin, callback) => {
+        const allowedOrigins = process.env.CLIENT_URL
+            ? process.env.CLIENT_URL.split(",").map(url => url.trim())
+            : ["*"];
+
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "x-signup-token"]
 }));
 
 app.use(express.json());
@@ -45,7 +61,10 @@ app.use("/api/v1/fundamentals", fundamentalsRoutes);
 app.use("/api/v1/options", optionsRoutes);
 app.use("/api/v1/pnl", pnlRoutes);
 app.use("/api/v1/technical", technicalRoutes);
-app.use("/api/v1/upstox", upstoxRoutes);
+app.use("/api/v1/user", userRoutes);
+app.use("/api/broker", brokerRoutes);
+app.use("/api/v1/journal", journalRoutes);
+app.use("/api/v1/messages", messageRoutes);
 
 // Static Uploads Folder
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

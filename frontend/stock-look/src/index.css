@@ -1,89 +1,135 @@
-/* src/index.css */
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Rancho&display=swap');
+/* =========================================================
+   STOCKY – GLOBAL STYLESHEET (PREMIUM)
+   Purpose: App-wide theming, resets, and core UI behavior
+   Quality: Institutional / Production-grade
+========================================================= */
 
-/* Tailwind + animation plugins */
-@import "tailwindcss"; 
+/* ------------------------------
+   FONTS
+-------------------------------- */
+/* Inter for UI/Data (Clean, legible, modern) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Rancho for Brand Logo */
+@import url("https://fonts.googleapis.com/css2?family=Rancho&display=swap");
+
+/* ------------------------------
+   TAILWIND
+-------------------------------- */
+@import "tailwindcss";
 @import "tw-animate-css";
 
 /* ------------------------------
-   GLOBAL BASE STYLES
+   THEME VARIABLES
 -------------------------------- */
+:root {
+  /* Typography */
+  --font-primary: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-brand: "Rancho", cursive;
 
+  /* Colors - Deep Dark Blue Theme (Synced with Palette.js) */
+  --bg-app: #02050e;
+
+  /* State Colors (Synced with Palette.js) */
+  --success: #34d399;
+  /* Bullish/Emerald */
+  --warning: #fbbf24;
+  /* Warning/Amber */
+  --danger: #f87171;
+  /* Bearish/Red */
+  --neutral: #94a3b8;
+  /* Neutral/Slate */
+
+  --accent-primary: #3b82f6;
+  --accent-glow: rgba(59, 130, 246, 0.4);
+}
+
+/* ------------------------------
+   RESET & BASE
+-------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
 body {
   margin: 0;
   padding: 0;
   width: 100%;
-  min-height: 100vh;
-
-  font-family: "Poppins", sans-serif;
-  background-color: #000; /* Auth + dashboard base */
-  color: #fff;
-
+  min-height: 100%;
+  background-color: var(--bg-app);
+  color: #ffffff;
+  font-family: var(--font-primary);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
-/* Root container */
-#root {
-  width: 100%;
-  margin: 0;
-  padding: 0;
+/* Selection Highlight */
+::selection {
+  background: rgba(59, 130, 246, 0.3);
+  color: #ffffff;
 }
 
 /* ------------------------------
-   SCROLLBAR (OPTIONAL CLEAN)
+   CUSTOM SCROLLBARS (Premium)
 -------------------------------- */
+/* Webkit (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
 
-.invisibleScroll {
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* Utility to hide scrollbar but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-.invisibleScroll::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
-
-.invisibleScroll::-webkit-scrollbar-thumb {
-  background: transparent;
-}
-
 /* ------------------------------
-   ICON / UI MICRO-INTERACTIONS
+   UTILITY CLASSES (Stocky Specific)
 -------------------------------- */
 
+/* Navbar Icon Interaction */
 .navbar-icon {
-  transition: transform 0.25s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .navbar-icon:hover {
-  transform: scale(1.12);
+  transform: translateY(-2px);
+  color: white;
+  filter: drop-shadow(0 0 8px var(--accent-glow));
 }
 
 /* ------------------------------
-   LOGO / HERO ANIMATION
+   CHART & VISUALIZATIONS
 -------------------------------- */
-
-@keyframes zoomInOut {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.07);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.animate-zoomInOut {
-  animation: zoomInOut 3s ease-in-out infinite;
-}
-/* Stocky logo font */
-.font-stocky {
-  font-family: 'Rancho', cursive;
-  font-weight: 400;
-  letter-spacing: 0.05em;
+.recharts-tooltip-wrapper {
+  z-index: 9999 !important;
 }
