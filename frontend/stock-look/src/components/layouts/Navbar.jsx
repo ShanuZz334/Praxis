@@ -7,7 +7,7 @@ import {
   niftySeries,
   bankNiftySeries,
   accountOverview,
-} from "../../utils/fakefundData";
+} from "../../utils/fakeFundData";
 
 import TextType from "../ui/backgrounds/TextType";
 import marketNews from "../../constants/marketNews";
