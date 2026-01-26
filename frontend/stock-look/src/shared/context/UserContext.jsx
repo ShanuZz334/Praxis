@@ -5,8 +5,27 @@ import {
   useMemo,
 } from "react";
 import axiosInstance from "@/shared/utils/axiosInstance.js";
+import { BASE_URL } from "@/shared/utils/apiPaths.js";
 
 export const UserContext = createContext(null);
+
+// Helper to fix mixed content issues (localhost images in production)
+const sanitizeUser = (userData) => {
+  if (!userData) return null;
+
+  let sanitized = { ...userData };
+
+  if (sanitized.profileImageUrl && sanitized.profileImageUrl.includes("http://localhost:8000")) {
+    // Replace localhost origin with current environment's BASE_URL
+    sanitized.profileImageUrl = sanitized.profileImageUrl.replace("http://localhost:8000", BASE_URL);
+  }
+
+  if (sanitized.profileImage && typeof sanitized.profileImage === 'string' && sanitized.profileImage.includes("http://localhost:8000")) {
+    sanitized.profileImage = sanitized.profileImage.replace("http://localhost:8000", BASE_URL);
+  }
+
+  return sanitized;
+};
 
 const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -19,7 +38,8 @@ const UserProvider = ({ children }) => {
       const storedToken = localStorage.getItem("token");
 
       if (storedUser && storedToken) {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(sanitizeUser(parsedUser));
         setToken(storedToken);
       }
     } catch (err) {
@@ -42,9 +62,10 @@ const UserProvider = ({ children }) => {
   }, [token]);
 
   const updateUser = (userData, jwtToken) => {
-    setUser(userData);
+    const cleanUser = sanitizeUser(userData);
+    setUser(cleanUser);
     setToken(jwtToken);
-    localStorage.setItem("user", JSON.stringify(userData));
+    localStorage.setItem("user", JSON.stringify(cleanUser));
     localStorage.setItem("token", jwtToken);
   };
 
