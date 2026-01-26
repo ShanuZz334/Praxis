@@ -22,7 +22,8 @@ export const sendEmail = async ({ to, subject, html }) => {
       html: html,
     });
 
-    console.log('✅ Email sent successfully via Resend:', data.id);
+    console.log('✅ Email sent successfully via Resend');
+    console.log('📧 Full Resend response:', JSON.stringify(data, null, 2));
     return { success: true, messageId: data.id };
   } catch (error) {
     console.error('❌ Resend email send failed:');
