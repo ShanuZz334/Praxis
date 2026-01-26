@@ -1,4 +1,4 @@
-import { mailer } from '../utils/mailer.js';
+import { sendEmail } from '../utils/mailer.js';
 import { verifySync } from 'otplib';
 import crypto from 'crypto';
 
@@ -26,11 +26,7 @@ export const sendEmailOTP = async (email) => {
 
     otpStore.set(normalizedEmail, { otp, expiresAt });
 
-    const mailOptions = {
-        from: `"Stocky Security" <${process.env.EMAIL_USER || process.env.SMTP_USER}>`,
-        to: normalizedEmail,
-        subject: "Stocky Verification Code",
-        html: `
+    const htmlContent = `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; background-color: #0f172a; color: #e2e8f0; padding: 40px; border-radius: 12px; border: 1px solid #334155;">
         <div style="text-align: center; margin-bottom: 30px;">
           <h2 style="color: #6366f1; margin: 0; font-weight: 600; font-size: 24px;">STOCKY</h2>
@@ -49,11 +45,14 @@ export const sendEmailOTP = async (email) => {
           <p>&copy; ${new Date().getFullYear()} Stocky. All rights reserved.</p>
         </div>
       </div>
-    `,
-    };
+    `;
 
     try {
-        await mailer.sendMail(mailOptions);
+        await sendEmail({
+            to: normalizedEmail,
+            subject: 'Stocky Verification Code',
+            html: htmlContent
+        });
         return true;
     } catch (err) {
         throw err;

@@ -1,30 +1,22 @@
-import nodemailer from "nodemailer";
-import dotenv from "dotenv";
+import { Resend } from 'resend';
 
-dotenv.config();
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Use Port 587 (STARTTLS) - works on Render and all cloud platforms
-const host = process.env.EMAIL_HOST || process.env.SMTP_HOST || "smtp.gmail.com";
-const port = 587; // Force 587 for cloud compatibility
-const user = process.env.EMAIL_USER || process.env.SMTP_USER;
-const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
+export const sendEmail = async ({ to, subject, html }) => {
+  try {
+    const data = await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'Stocky <onboarding@resend.dev>',
+      to: [to],
+      subject: subject,
+      html: html,
+    });
 
-console.log(`[MAILER CONFIG] Initializing STARTTLS for ${host}:${port}`);
+    console.log('✅ Email sent successfully via Resend:', data.id);
+    return { success: true, messageId: data.id };
+  } catch (error) {
+    console.error('❌ Resend email send failed:', error);
+    throw error;
+  }
+};
 
-export const mailer = nodemailer.createTransport({
-  host: host,
-  port: port,
-  secure: false, // CRITICAL: false for port 587 (STARTTLS)
-  auth: {
-    user: user,
-    pass: pass,
-  },
-  tls: {
-    rejectUnauthorized: false // Bypass strict certificate validation
-  },
-  // Removed startup verification - let it fail only when actually sending
-  logger: false,
-  debug: false
-});
-
-console.log('✅ Mailer initialized (verification will happen on first send)');
+console.log('✅ Resend Email Service Initialized');
