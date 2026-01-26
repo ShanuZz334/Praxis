@@ -8,4 +8,10 @@ export const mailer = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  // Force IPv4 to avoid IPv6 timeouts on some cloud providers (like Render)
+  family: 4,
+  // Connection timeout settings
+  connectionTimeout: 10000,
+  greetingTimeout: 5000,
+  socketTimeout: 10000,
 });
