@@ -14,7 +14,7 @@ try {
     if (typeof res === 'object' && res !== null) console.log('   Keys:', Object.keys(res));
 } catch (e) {
     console.log('   Error:', e.message);
-}
+}n
 
 console.log('\n2. Testing TOTP class with INVALID token...');
 try {

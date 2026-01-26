@@ -50,7 +50,18 @@ app.use(cors({
 app.use(express.json());
 
 // MongoDB Connect
-connectDB();
+connectDB().then(() => {
+    // Verify SMTP Connection on Startup
+    import("./utils/mailer.js").then(({ mailer }) => {
+        mailer.verify((error, success) => {
+            if (error) {
+                console.error("❌ SMTP Connection Error:", error);
+            } else {
+                console.log("✅ SMTP Configuration Verified - Ready to send emails");
+            }
+        });
+    });
+});
 
 // Health Check Route
 app.get("/", (req, res) => {
