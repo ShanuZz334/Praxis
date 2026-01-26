@@ -1,27 +1,30 @@
 import nodemailer from "nodemailer";
 
-const port = 587; // Use 587 for STARTTLS by default
+const port = 465; // Use 465 for SSL (More reliable on Cloud)
 
 export const mailer = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: port,
-  secure: false, // true for 465, false for 587
+  secure: true, // true for 465
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  // Use Pooling to reduce handshake overhead and avoid rate limits
-  pool: true,
-  maxConnections: 1,
-  rateLimit: 5, // 5 messages per second max
+  // Disable pooling to avoid stale connection timeouts
+  pool: false,
 
   // Force IPv4
   family: 4,
 
+  // Loose TLS to avoid handshake hangs (Critical for some cloud envs)
+  tls: {
+    rejectUnauthorized: false
+  },
+
   // Debugging
   logger: true,
   debug: true,
-  connectionTimeout: 30000, // 30s
-  greetingTimeout: 15000,
-  socketTimeout: 30000,
+  connectionTimeout: 60000, // 60s
+  greetingTimeout: 30000,
+  socketTimeout: 60000,
 });
