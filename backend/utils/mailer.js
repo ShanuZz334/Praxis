@@ -1,19 +1,18 @@
 import nodemailer from "nodemailer";
 
-const port = Number(process.env.SMTP_PORT) || 465; // Default to 465 if not set
-
+// Use 'service: gmail' which automatically sets host to smtp.gmail.com and port to 465
 export const mailer = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: port,
-  secure: port === 465, // true for 465, false for other ports
+  service: "gmail",
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  // Force IPv4 to avoid IPv6 timeouts on some cloud providers (like Render)
+  // Force IPv4 is still important
   family: 4,
   // Connection timeout settings
-  connectionTimeout: 20000, // Increased to 20s
+  logger: true, // Log SMTP traffic to console for debugging
+  debug: true,  // Include debug info
+  connectionTimeout: 20000,
   greetingTimeout: 10000,
   socketTimeout: 20000,
 });
