@@ -26,6 +26,12 @@ export const sendEmailOTP = async (email) => {
 
     otpStore.set(normalizedEmail, { otp, expiresAt });
 
+    console.log(`[OTP DEBUG] Attempting to send OTP to: ${normalizedEmail}`);
+    console.log(`[OTP DEBUG] SMTP Configuration Check:`);
+    console.log(`- SMTP_USER Present: ${!!process.env.SMTP_USER}`);
+    console.log(`- SMTP_PASS Present: ${!!process.env.SMTP_PASS}`);
+    console.log(`- SMTP_HOST: ${process.env.SMTP_HOST}`);
+
     const mailOptions = {
         from: `"Stocky Security" <${process.env.SMTP_USER}>`,
         to: normalizedEmail,
@@ -53,10 +59,13 @@ export const sendEmailOTP = async (email) => {
     };
 
     try {
-        await mailer.sendMail(mailOptions);
+        const info = await mailer.sendMail(mailOptions);
+        console.log(`[OTP DEBUG] Email sent successfully! Message ID: ${info.messageId}`);
         return true;
     } catch (err) {
-        console.error('OTP SEND ERROR:', err.message);
+        console.error('❌ [OTP DEBUG] SEND FAIL:', err);
+        console.error('❌ [OTP DEBUG] Error Name:', err.name);
+        console.error('❌ [OTP DEBUG] Error Message:', err.message);
 
         // Fallback to console only if specifically requested or env vars missing entirely
         // But user wants REAL email, so if it fails, we let it throw or at least log clearly why.
