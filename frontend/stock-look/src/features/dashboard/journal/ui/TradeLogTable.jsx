@@ -65,14 +65,14 @@ export default function TradeLogTable({ trades, onSelectTrade }) {
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-[#0b1220] sticky top-0 z-10 shadow-sm">
                             <tr>
-                                <HeaderCell label="Time" sortKey="date" currentSort={sortConfig} onSort={handleSort} />
+                                <HeaderCell label="Time" sortKey="date" currentSort={sortConfig} onSort={handleSort} className="hidden md:table-cell" />
                                 <HeaderCell label="Instrument" sortKey="instrument" currentSort={sortConfig} onSort={handleSort} />
-                                <HeaderCell label="Setup" sortKey="strategy" currentSort={sortConfig} onSort={handleSort} />
+                                <HeaderCell label="Setup" sortKey="strategy" currentSort={sortConfig} onSort={handleSort} className="hidden md:table-cell" />
                                 <HeaderCell label="Side" sortKey="direction" currentSort={sortConfig} onSort={handleSort} />
-                                <HeaderCell label="Risk" sortKey="riskPct" currentSort={sortConfig} onSort={handleSort} />
-                                <HeaderCell label="R-Mult" sortKey="rMultiple" currentSort={sortConfig} onSort={handleSort} />
+                                <HeaderCell label="Risk" sortKey="riskPct" currentSort={sortConfig} onSort={handleSort} className="hidden md:table-cell" />
+                                <HeaderCell label="R-Mult" sortKey="rMultiple" currentSort={sortConfig} onSort={handleSort} className="hidden md:table-cell" />
                                 <HeaderCell label="Outcome" sortKey="outcome" currentSort={sortConfig} onSort={handleSort} />
-                                <th className="px-5 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-wider border-b border-white/5 whitespace-nowrap">Compliance</th>
+                                <th className="px-5 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-wider border-b border-white/5 whitespace-nowrap hidden md:table-cell">Compliance</th>
                                 <th className="p-3 w-10 border-b border-white/5"></th>
                             </tr>
                         </thead>
@@ -95,13 +95,14 @@ export default function TradeLogTable({ trades, onSelectTrade }) {
     );
 }
 
-function HeaderCell({ label, sortKey, currentSort, onSort }) {
+// 1. Update HeaderCell to accept className
+function HeaderCell({ label, sortKey, currentSort, onSort, className = "" }) {
     const isActive = currentSort.key === sortKey;
 
     return (
         <th
             onClick={() => onSort(sortKey)}
-            className="px-5 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-wider border-b border-white/5 whitespace-nowrap cursor-pointer hover:text-slate-300 transition-colors select-none group"
+            className={`px-5 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-wider border-b border-white/5 whitespace-nowrap cursor-pointer hover:text-slate-300 transition-colors select-none group ${className}`}
         >
             <div className="flex items-center gap-1.5">
                 {label}
@@ -115,6 +116,7 @@ function HeaderCell({ label, sortKey, currentSort, onSort }) {
     );
 }
 
+// 2. Update TableRow to hide columns on mobile
 function TableRow({ trade, onClick }) {
     const isWin = trade.outcome === 'Win';
     const hasError = trade.execution.errors.length > 0;
@@ -124,18 +126,18 @@ function TableRow({ trade, onClick }) {
             onClick={onClick}
             className="group hover:bg-white/[0.01] cursor-pointer transition-colors"
         >
-            {/* Time */}
-            <td className="px-5 py-3 text-[10px] font-mono text-slate-400">
+            {/* Time (Hidden on Mobile) */}
+            <td className="hidden md:table-cell px-5 py-3 text-[10px] font-mono text-slate-400">
                 {new Date(trade.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </td>
 
             {/* Instrument */}
-            <td className="px-5 py-3 font-medium text-slate-200 text-xs">
+            <td className="px-5 py-3 font-medium text-slate-200 text-xs text-left">
                 {trade.instrument}
             </td>
 
-            {/* Setup */}
-            <td className="px-5 py-3">
+            {/* Setup (Hidden on Mobile) */}
+            <td className="hidden md:table-cell px-5 py-3">
                 <span className="px-2 py-0.5 bg-black/40 rounded text-[9px] text-slate-400 font-medium">
                     {trade.strategy}
                 </span>
@@ -148,13 +150,13 @@ function TableRow({ trade, onClick }) {
                 </span>
             </td>
 
-            {/* Risk */}
-            <td className="px-5 py-3 text-[10px] font-mono text-slate-400">
+            {/* Risk (Hidden on Mobile) */}
+            <td className="hidden md:table-cell px-5 py-3 text-[10px] font-mono text-slate-400">
                 {trade.riskPct}%
             </td>
 
-            {/* R-Mult */}
-            <td className="px-5 py-3">
+            {/* R-Mult (Hidden on Mobile) */}
+            <td className="hidden md:table-cell px-5 py-3">
                 <span className={`text-[10px] font-mono font-bold ${isWin ? 'text-emerald-400' : 'text-red-400'}`}>
                     {trade.rMultiple}R
                 </span>
@@ -173,8 +175,8 @@ function TableRow({ trade, onClick }) {
                 )}
             </td>
 
-            {/* Compliance */}
-            <td className="px-5 py-3">
+            {/* Compliance (Hidden on Mobile) */}
+            <td className="hidden md:table-cell px-5 py-3">
                 {hasError ? (
                     <div className="flex gap-1">
                         {trade.execution.errors.slice(0, 1).map((err, i) => (

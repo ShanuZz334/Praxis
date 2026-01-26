@@ -190,11 +190,11 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                 initial={{ opacity: 0, scale: 0.99, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.99, y: -10 }}
-                className="bg-[#080d16] border border-white/[0.05] rounded-xl w-full max-w-[1600px] h-[85vh] flex overflow-hidden shadow-2xl"
+                className="bg-[#080d16] border border-white/[0.05] rounded-xl w-full max-w-[1600px] h-[90vh] md:h-[85vh] flex flex-col lg:flex-row overflow-hidden shadow-2xl"
             >
-                {/* LEFT: CALENDAR WORKSPACE */}
-                <div className="flex-1 bg-black/5 p-10 flex flex-col overflow-y-auto no-scrollbar">
-                    <div className="flex items-center justify-between mb-12">
+                {/* LEFT (TOP on Mobile): CALENDAR WORKSPACE */}
+                <div className="w-full h-1/2 lg:h-auto lg:flex-1 bg-black/5 p-4 lg:p-10 flex flex-col overflow-y-auto no-scrollbar order-1">
+                    <div className="flex items-center justify-between mb-6 lg:mb-12 shrink-0">
                         <div className="flex items-center gap-4">
                             <div className="bg-blue-500/5 p-2.5 rounded-lg border border-blue-500/10">
                                 <Calendar size={18} className="text-blue-500/80" />
@@ -205,24 +205,24 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-6 bg-black/20 px-5 py-2.5 rounded-lg border border-white/[0.03]">
+                        <div className="hidden md:flex items-center gap-6 bg-black/20 px-5 py-2.5 rounded-lg border border-white/[0.03]">
                             <LegendItem label="Profit" color="bg-emerald-500/60" />
                             <LegendItem label="Risk" color="bg-red-500/60" />
                             <LegendItem label="Idle" color="bg-slate-800" symbol="×" />
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-x-12 gap-y-12 items-start justify-center max-w-5xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-12 items-start justify-center max-w-5xl mx-auto pb-10">
                         {Array.from({ length: 12 }).map((_, i) => (
-                            <div key={i} className="flex justify-center">
+                            <div key={i} className="flex justify-center w-full">
                                 {renderMiniMonth(i)}
                             </div>
                         ))}
                     </div>
                 </div>
 
-                {/* RIGHT: TERMINAL PANEL */}
-                <div className="w-[440px] border-l border-white/[0.03] bg-[#0b1220]/20 flex flex-col">
+                {/* RIGHT (BOTTOM on Mobile): TERMINAL PANEL */}
+                <div className="w-full h-1/2 lg:h-auto lg:w-[440px] border-t lg:border-t-0 lg:border-l border-white/[0.03] bg-[#0b1220]/20 flex flex-col order-2">
                     <div className="px-8 py-8 border-b border-white/[0.03] flex items-center justify-between">
                         <div>
                             <div className="text-[9px] font-bold text-blue-500/70 uppercase tracking-[0.3em] mb-1">{dayjs(selectedDate).format("dddd")} log</div>

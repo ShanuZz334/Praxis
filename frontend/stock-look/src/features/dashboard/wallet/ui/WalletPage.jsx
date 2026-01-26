@@ -57,64 +57,122 @@ function SummaryStrip({ summary }) {
             <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/4" />
 
-            <div className="relative z-10 flex flex-wrap items-center justify-between px-8 py-6 gap-6">
-
-                {/* Available Capital */}
-                <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                        <Wallet className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <div className="text-[11px] font-bold text-blue-300/60 uppercase tracking-widest mb-0.5">Available Capital</div>
-                        <div className="text-3xl font-bold text-white tracking-tight font-mono">
-                            ₹{summary.availableCapital.toLocaleString()}
+            <div className="relative z-10">
+                {/* === DESKTOP LAYOUT (Hidden on Mobile) === */}
+                <div className="hidden md:flex flex-wrap items-center justify-between px-8 py-6 gap-6">
+                    {/* Available Capital */}
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                            <Wallet className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <div className="text-[11px] font-bold text-blue-300/60 uppercase tracking-widest mb-0.5">Available Capital</div>
+                            <div className="text-3xl font-bold text-white tracking-tight font-mono">
+                                ₹{summary.availableCapital.toLocaleString()}
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Vertical Divider */}
-                <div className="hidden md:block w-px h-12 bg-white/5" />
+                    {/* Vertical Divider */}
+                    <div className="w-px h-12 bg-white/5" />
 
-                {/* P&L Hero */}
-                <div className="flex flex-col">
-                    <div className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1">Today's P&L</div>
-                    <div className="flex items-baseline gap-3">
-                        <span className={`text-4xl font-bold tracking-tighter ${isPnLPositive ? "text-emerald-400" : "text-red-400"}`}>
-                            {isPnLPositive ? "+" : ""}₹{summary.todayPnL.toLocaleString()}
-                        </span>
-                        <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${isPnLPositive ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
-                            {summary.todayPnLPct}%
+                    {/* P&L Hero */}
+                    <div className="flex flex-col">
+                        <div className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1">Today's P&L</div>
+                        <div className="flex items-baseline gap-3">
+                            <span className={`text-4xl font-bold tracking-tighter ${isPnLPositive ? "text-emerald-400" : "text-red-400"}`}>
+                                {isPnLPositive ? "+" : ""}₹{summary.todayPnL.toLocaleString()}
+                            </span>
+                            <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${isPnLPositive ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
+                                {summary.todayPnLPct}%
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Risk Stats */}
+                    <div className="flex gap-8">
+                        <MetricItem
+                            label="Open Risk"
+                            value={`${summary.openRiskPct}%`}
+                            valueClass="text-orange-400"
+                        />
+                        <MetricItem
+                            label="Max Risk"
+                            value={`${summary.maxRiskAllowedPct}%`}
+                            valueClass="text-white/60"
+                            subtext="Per Day"
+                        />
+                    </div>
+
+                    {/* Mode Tag */}
+                    <div className="pl-6 border-l border-white/5">
+                        <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wider ${summary.activeMode === 'Aggressive' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
+                            summary.activeMode === 'Conservative' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                                'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                            }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${summary.activeMode === 'Aggressive' ? 'bg-red-500' :
+                                summary.activeMode === 'Conservative' ? 'bg-emerald-500' :
+                                    'bg-blue-500'
+                                }`} />
+                            {summary.activeMode}
                         </span>
                     </div>
                 </div>
 
-                {/* Risk Stats */}
-                <div className="flex gap-8">
-                    <MetricItem
-                        label="Open Risk"
-                        value={`${summary.openRiskPct}%`}
-                        valueClass="text-orange-400"
-                    />
-                    <MetricItem
-                        label="Max Risk"
-                        value={`${summary.maxRiskAllowedPct}%`}
-                        valueClass="text-white/60"
-                        subtext="Per Day"
-                    />
-                </div>
+                {/* === MOBILE LAYOUT (Visible only on Mobile) === */}
+                <div className="md:hidden p-6 flex flex-col gap-6">
+                    {/* Top Row: Icon + Capital */}
+                    <div className="flex items-start gap-4">
+                        <div className="p-3 rounded-2xl bg-[#111927] border border-blue-500/20 text-blue-400 shadow-lg shadow-blue-500/5">
+                            <Wallet className="w-6 h-6" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Available Capital</div>
+                            <div className="text-3xl font-bold text-white tracking-tight font-mono">
+                                ₹{summary.availableCapital.toLocaleString()}
+                            </div>
+                        </div>
+                    </div>
 
-                {/* Mode Tag */}
-                <div className="pl-6 border-l border-white/5">
-                    <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wider ${summary.activeMode === 'Aggressive' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
-                        summary.activeMode === 'Conservative' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
-                            'bg-blue-500/10 border-blue-500/20 text-blue-400'
-                        }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${summary.activeMode === 'Aggressive' ? 'bg-red-500' :
-                            summary.activeMode === 'Conservative' ? 'bg-emerald-500' :
-                                'bg-blue-500'
-                            }`} />
-                        {summary.activeMode}
-                    </span>
+                    {/* P&L Section */}
+                    <div>
+                        <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Today's P&L</div>
+                        <div className="flex items-center gap-3">
+                            <span className={`text-4xl font-bold tracking-tighter ${isPnLPositive ? "text-emerald-400" : "text-red-400"}`}>
+                                {isPnLPositive ? "+" : ""}₹{summary.todayPnL.toLocaleString()}
+                            </span>
+                            <span className={`text-xs font-bold px-2 py-1 rounded-md bg-[#111927] border border-white/5 ${isPnLPositive ? "text-emerald-400" : "text-red-400"}`}>
+                                {summary.todayPnLPct}%
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Risk Stats Grid */}
+                    <div className="grid grid-cols-2 gap-8">
+                        <div>
+                            <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">Open Risk</div>
+                            <div className="text-2xl font-bold tex-orange-400 text-[#f97316] font-mono">{summary.openRiskPct}%</div>
+                        </div>
+                        <div>
+                            <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">Max Risk</div>
+                            <div className="text-2xl font-bold text-white font-mono">{summary.maxRiskAllowedPct}%</div>
+                            <div className="text-[9px] text-white/20 mt-0.5">Per Day</div>
+                        </div>
+                    </div>
+
+                    {/* Mode Button */}
+                    <div className="pt-2">
+                        <button className={`w-auto inline-flex items-center gap-2 px-5 py-2 rounded-xl border text-xs font-bold uppercase tracking-widest shadow-lg ${summary.activeMode === 'Aggressive' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
+                            summary.activeMode === 'Conservative' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                                'bg-[#1e293b] border-blue-500/20 text-blue-400'
+                            }`}>
+                            <span className={`w-2 h-2 rounded-full animate-pulse ${summary.activeMode === 'Aggressive' ? 'bg-red-500' :
+                                summary.activeMode === 'Conservative' ? 'bg-emerald-500' :
+                                    'bg-blue-500'
+                                }`} />
+                            {summary.activeMode}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

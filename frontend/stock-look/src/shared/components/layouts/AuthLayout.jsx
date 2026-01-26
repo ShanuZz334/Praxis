@@ -19,13 +19,8 @@ const AuthLayout = ({ children }) => {
   const isSignup = location.pathname === "/signup";
   const isLogin = location.pathname === "/login";
 
-  // Get email from form if possible, but context might be better. 
-  // For now, let's assume we can get it or just pass it through.
-  // Actually, SignUp.js is a child, so we can't easily get its state here.
-  // We should have email in VerificationContext if we want it here.
-
   return (
-    <div className="fixed inset-0 w-full bg-black overflow-hidden">
+    <div className="fixed inset-0 w-full bg-black overflow-hidden sm:overflow-auto md:overflow-hidden">
       {/* 🌈 BACKGROUND */}
       <AuthBackground />
 
@@ -33,18 +28,17 @@ const AuthLayout = ({ children }) => {
       <div className="absolute inset-0 bg-black/10 pointer-events-none" />
 
       {/* CONTENT */}
-      <div className="relative z-10 h-full flex items-center justify-center">
-        <div className="w-[92%] max-w-[1150px] mx-auto rounded-4xl overflow-hidden shadow-3xl backdrop-blur border border-white/30">
+      <div className="relative z-10 h-full flex items-center justify-center overflow-y-auto md:overflow-visible">
+        <div className="w-[95%] md:w-[92%] max-w-[1150px] mx-auto rounded-3xl md:rounded-4xl overflow-hidden shadow-3xl backdrop-blur border border-white/30 my-4 md:my-0">
           <div className="flex flex-col md:flex-row w-full">
 
             {/* LEFT SIDE */}
             <div
-              className={`w-full md:w-1/2 p-6 md:p-10 transition-all duration-500
+              className={`md:w-1/2 p-6 md:p-10 transition-all duration-500
               bg-linear-to-br from-white/10 to-white/10.5
-              ${isLogin ? "rounded-t-[30px] md:rounded-r-[180px] md:rounded-tl-4xl" : "rounded-t-[30px] md:rounded-r-[90px] md:rounded-tl-4xl"}
-              order-first`}
+              ${isLogin ? "rounded-b-[60px] md:rounded-r-[180px] md:rounded-bl-none" : "rounded-b-[60px] md:rounded-r-[90px] md:rounded-bl-none"}`}
             >
-              <div className="flex flex-col items-center justify-center h-full text-center min-h-[200px] md:min-h-0">
+              <div className="flex flex-col items-center justify-center h-full text-center py-6 md:py-0">
                 {isVerifying && isSignup ? (
                   <div className="w-full max-w-[320px] space-y-4 animate-in fade-in slide-in-from-left duration-500">
                     <div className="text-center">
@@ -157,7 +151,7 @@ const AuthLayout = ({ children }) => {
             </div>
 
             {/* RIGHT SIDE */}
-            <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col items-center justify-center">
+            <div className={`md:w-1/2 p-6 md:p-10 flex-col items-center justify-center ${isVerifying ? "hidden md:flex" : "flex"}`}>
 
               {/* Login / Signup buttons */}
               <div className="flex items-center justify-end w-full mb-6 gap-3">
@@ -189,7 +183,58 @@ const AuthLayout = ({ children }) => {
                 {children}
               </div>
 
-
+              {/* SOCIAL ICONS */}
+              <div className="mt-6 flex justify-center gap-5">
+                {[
+                  {
+                    icon: "instagram",
+                    link: "https://www.instagram.com/stock._y",
+                  },
+                  {
+                    icon: "x",
+                    link: "https://x.com/@StockyProp",
+                  },
+                  {
+                    icon: "telegram",
+                    link: "https://t.me/+bzO4XSrXfgsyYTY1",
+                  },
+                  {
+                    icon: "youtube",
+                    link: "https://www.youtube.com/@Stocky-s6v",
+                  },
+                ].map(({ icon, link }) => (
+                  <a
+                    key={icon}
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="
+                      w-10 h-10
+                      bg-white/10
+                      rounded-full
+                      flex items-center justify-center
+                      text-white/80
+                      backdrop-blur-md
+                      hover:bg-white/20
+                      hover:scale-110
+                      transition
+                    "
+                  >
+                    {icon === "x" ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        className="w-5 h-5"
+                      >
+                        <path d="M18.244 2H21.552L14.168 10.42L22.85 22H16.02L10.655 14.965L4.57 22H1.26L9.16 13.01L0.85 2H7.85L12.73 8.53L18.244 2ZM17.13 20.13H18.96L6.86 3.78H4.9L17.13 20.13Z" />
+                      </svg>
+                    ) : (
+                      <i className={`bx bxl-${icon} text-xl`} />
+                    )}
+                  </a>
+                ))}
+              </div>
 
             </div>
           </div>

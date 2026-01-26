@@ -10,14 +10,12 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const { updateUser } = useContext(UserContext);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (loading) return;
     setError("");
 
     if (!validateEmail(email)) {
@@ -27,8 +25,6 @@ const Login = () => {
     if (!password) {
       return setError("Please enter your password.");
     }
-
-    setLoading(true);
 
     try {
       const res = await axiosInstance.post(API_PATHS.AUTH.LOGIN, {
@@ -47,8 +43,6 @@ const Login = () => {
         err.response?.data?.message ||
         "Unable to login. Please try again."
       );
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -67,7 +61,7 @@ const Login = () => {
           <label className="text-xs text-white/70 block mb-2">
             Email
           </label>
-          <div className="bg-white/10 border border-white/20 rounded-md px-3 py-2 flex items-center">
+          <div className="bg-white/10 border border-white/20 rounded-md px-3 py-3 flex items-center">
             <input
               type="email"
               value={email}
@@ -83,7 +77,7 @@ const Login = () => {
           <label className="text-xs text-white/70 block mb-2">
             Password
           </label>
-          <div className="bg-white/10 border border-white/20 rounded-md px-3 py-2 flex items-center">
+          <div className="bg-white/10 border border-white/20 rounded-md px-3 py-3 flex items-center">
             <input
               type="password"
               value={password}
@@ -100,10 +94,9 @@ const Login = () => {
 
         <button
           type="submit"
-          disabled={loading}
-          className={`w-full py-3 rounded-md text-white font-medium shadow-md transition ${loading ? 'bg-indigo-800 cursor-not-allowed' : 'bg-[#1E1BFF] hover:bg-[#1720cc]'}`}
+          className="w-full py-3 rounded-md bg-[#1E1BFF] text-white font-medium shadow-md hover:bg-[#1720cc] transition"
         >
-          {loading ? "Logging in..." : "Login"}
+          Login
         </button>
 
         <p className="text-center text-white/60 text-sm">

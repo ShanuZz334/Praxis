@@ -87,13 +87,53 @@ const SignUp = () => {
 
       <form onSubmit={handleSubmit} className="space-y-3">
 
+        {/* PROFILE IMAGE (Desktop Only) */}
+        <div className="hidden md:flex justify-center mb-4">
+          <div className="relative group">
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-white/5 border-2 border-dashed border-white/20 flex items-center justify-center group-hover:border-indigo-400 transition-colors cursor-pointer">
+              {previewPic ? (
+                <img
+                  src={previewPic}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <i className="bx bx-camera text-2xl text-white/40 group-hover:text-white/80 transition-colors" />
+              )}
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  setProfilePic(file);
+                  setPreviewPic(URL.createObjectURL(file));
+                }
+              }}
+            />
+            {previewPic && (
+              <button
+                type="button"
+                className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-red-600 transition"
+                onClick={() => {
+                  setProfilePic(null);
+                  setPreviewPic(null);
+                }}
+              >
+                <i className="bx bx-x text-sm" />
+              </button>
+            )}
+          </div>
+        </div>
 
         {/* FULL NAME */}
         <div>
           <label className="text-xs text-white/70 block mb-1">
             Full Name
           </label>
-          <div className="bg-white/10 rounded-md border border-white/20 px-3 py-2 flex items-center">
+          <div className="bg-white/10 rounded-md border border-white/20 px-3 py-3 flex items-center">
             <input
               type="text"
               className="w-full bg-transparent text-white text-sm outline-none placeholder:text-white/40"
@@ -109,7 +149,7 @@ const SignUp = () => {
           <label className="text-xs text-white/70 block mb-1">
             Email
           </label>
-          <div className="bg-white/10 rounded-md border border-white/20 px-3 py-2 flex items-center justify-between">
+          <div className="bg-white/10 rounded-md border border-white/20 px-3 py-3 flex items-center justify-between">
             <input
               type="email"
               className="w-full bg-transparent text-white text-sm outline-none placeholder:text-white/40"
@@ -140,7 +180,7 @@ const SignUp = () => {
           <label className="text-xs text-white/70 block mb-1">
             Password
           </label>
-          <div className="bg-white/10 rounded-md border border-white/20 px-3 py-2 flex items-center">
+          <div className="bg-white/10 rounded-md border border-white/20 px-3 py-3 flex items-center">
             <input
               type="password"
               className="w-full bg-transparent text-white text-sm outline-none placeholder:text-white/40"
