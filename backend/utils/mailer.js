@@ -3,14 +3,19 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Use suggested naming or fallback to existing names
+// Force Port 465 (SSL) for production reliability, especially on Render
 const host = process.env.EMAIL_HOST || process.env.SMTP_HOST || "smtp.gmail.com";
-const port = Number(process.env.EMAIL_PORT) || Number(process.env.SMTP_PORT) || 465;
+const envPort = Number(process.env.EMAIL_PORT) || Number(process.env.SMTP_PORT);
+
+// If host is Gmail and we are on Render, Port 465 is the only one we trust
+const isGmail = host.includes("gmail") || host.includes("googlemail");
+const port = (isGmail && process.env.NODE_ENV === "production") ? 465 : (envPort || 465);
+const secure = port === 465;
+
 const user = process.env.EMAIL_USER || process.env.SMTP_USER;
 const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
-const secure = process.env.EMAIL_SECURE === "true" || port === 465;
 
-console.log(`[MAILER CONFIG] Initializing for ${host}:${port} (Secure: ${secure})`);
+console.log(`[MAILER CONFIG] Forced Init for ${host}:${port} (Secure: ${secure})`);
 
 export const mailer = nodemailer.createTransport({
   host: host,
