@@ -36,19 +36,28 @@ const generateSignupToken = (email) => {
 export const requestOTP = async (req, res) => {
   const { email } = req.body;
 
-  if (!email)
+  if (!email) {
     return res.status(400).json({ message: "Email is required" });
+  }
 
   try {
+    console.log(`[AUTH] Requesting OTP for ${email}`);
     await sendEmailOTP(email);
 
     res.status(200).json({
+      success: true,
       message: "OTP sent successfully to email",
     });
   } catch (err) {
-    console.error("❌ OTP SENDING FAILED:", err);
+    // Explicit Harden Logging
+    console.error("❌ CRITICAL OTP FAILURE:");
+    console.error("- Error Name:", err.name);
+    console.error("- Error Message:", err.message);
+    console.error("- Stack:", err.stack);
+
     res.status(500).json({
-      message: "Failed to send OTP",
+      success: false,
+      message: "Failed to send OTP. Service may be temporarily unavailable.",
       error: err.message,
     });
   }
