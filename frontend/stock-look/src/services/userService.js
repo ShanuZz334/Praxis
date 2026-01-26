@@ -1,9 +1,27 @@
 import axiosInstance from "@/shared/utils/axiosInstance";
+import { BASE_URL } from "@/shared/utils/apiPaths";
+
+// Helper to fix mixed content issues (localhost images in production)
+const sanitizeUser = (userData) => {
+    if (!userData) return null;
+
+    let sanitized = { ...userData };
+
+    if (sanitized.profileImageUrl && sanitized.profileImageUrl.includes("http://localhost:8000")) {
+        sanitized.profileImageUrl = sanitized.profileImageUrl.replace("http://localhost:8000", BASE_URL);
+    }
+
+    if (sanitized.profileImage && typeof sanitized.profileImage === 'string' && sanitized.profileImage.includes("http://localhost:8000")) {
+        sanitized.profileImage = sanitized.profileImage.replace("http://localhost:8000", BASE_URL);
+    }
+
+    return sanitized;
+};
 
 export const getUserProfile = async () => {
     try {
         const response = await axiosInstance.get("/api/v1/auth/getUser");
-        return response.data;
+        return sanitizeUser(response.data);
     } catch (error) {
         console.error('Error fetching user profile:', error);
         throw error;
@@ -13,7 +31,7 @@ export const getUserProfile = async () => {
 export const updateUserProfile = async (profileData) => {
     try {
         const response = await axiosInstance.put("/api/v1/user/profile", profileData);
-        return response.data;
+        return sanitizeUser(response.data);
     } catch (error) {
         console.error('Error updating profile:', error);
         throw error;
@@ -50,7 +68,13 @@ export const uploadProfilePicture = async (imageFile) => {
                 "Content-Type": "multipart/form-data",
             }
         });
-        return response.data.imageUrl;
+
+        let imageUrl = response.data.imageUrl;
+        if (imageUrl && imageUrl.includes("http://localhost:8000")) {
+            imageUrl = imageUrl.replace("http://localhost:8000", BASE_URL);
+        }
+
+        return imageUrl;
     } catch (error) {
         console.error("Error uploading image:", error);
         throw error;

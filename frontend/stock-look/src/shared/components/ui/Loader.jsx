@@ -3,6 +3,8 @@ import './Loader.css';
 
 const Loader = ({ size = 'md', color = 'indigo' }) => {
     const sizeClasses = {
+        xxs: 'w-5 h-5',
+        xs: 'w-6 h-6',
         sm: 'w-12 h-12',
         md: 'w-20 h-20',
         lg: 'w-28 h-28'

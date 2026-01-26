@@ -6,10 +6,14 @@ import { API_PATHS } from "@/shared/utils/apiPaths";
 import { UserContext } from "@/shared/context/UserContext";
 import { validateEmail } from "@/shared/utils/helper";
 
+import Loader from "@/shared/components/ui/Loader";
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  const [isLoading, setIsLoading] = useState(false);
 
   const { updateUser } = useContext(UserContext);
   const navigate = useNavigate();
@@ -17,12 +21,15 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
     if (!validateEmail(email)) {
+      setIsLoading(false);
       return setError("Invalid email.");
     }
 
     if (!password) {
+      setIsLoading(false);
       return setError("Please enter your password.");
     }
 
@@ -43,6 +50,8 @@ const Login = () => {
         err.response?.data?.message ||
         "Unable to login. Please try again."
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -94,9 +103,14 @@ const Login = () => {
 
         <button
           type="submit"
-          className="w-full py-3 rounded-md bg-[#1E1BFF] text-white font-medium shadow-md hover:bg-[#1720cc] transition"
+          disabled={isLoading}
+          className="w-full py-3 rounded-md bg-[#1E1BFF] text-white font-medium shadow-md hover:bg-[#1720cc] transition disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
         >
-          Login
+          {isLoading ? (
+            <Loader size="xxs" color="white" />
+          ) : (
+            "Login"
+          )}
         </button>
 
         <p className="text-center text-white/60 text-sm">

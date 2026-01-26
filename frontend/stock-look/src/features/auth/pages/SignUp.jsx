@@ -8,6 +8,8 @@ import uploadImage from "@/shared/utils/uploadImage";
 import { validateEmail } from "@/shared/utils/helper";
 import { VerificationContext } from "@/shared/context/VerificationContext";
 
+import Loader from "@/shared/components/ui/Loader";
+
 const SignUp = () => {
   const [profilePic, setProfilePic] = useState(null);
   const [previewPic, setPreviewPic] = useState(null);
@@ -17,9 +19,10 @@ const SignUp = () => {
   const [password, setPassword] = useState("");
 
   const [error, setError] = useState("");
+  const [isSigningUp, setIsSigningUp] = useState(false);
 
   const { updateUser } = useContext(UserContext);
-  const { isVerified, requestOTP, error: verifyError, signupToken, resetVerification } = useContext(VerificationContext);
+  const { isVerified, requestOTP, error: verifyError, signupToken, resetVerification, loading: otpLoading } = useContext(VerificationContext);
   const navigate = useNavigate();
 
   // Reset verification state when entering the page
@@ -36,6 +39,7 @@ const SignUp = () => {
     if (!isVerified) return setError("Verification required.");
     if (!password) return setError("Enter password.");
 
+    setIsSigningUp(true);
     let profileImageUrl = "";
 
     try {
@@ -71,6 +75,8 @@ const SignUp = () => {
         err.response?.data?.message ||
         "Unable to create account. Please try again."
       );
+    } finally {
+      setIsSigningUp(false);
     }
   };
 
@@ -165,10 +171,11 @@ const SignUp = () => {
                 <button
                   type="button"
                   onClick={() => requestOTP(email)}
-                  className="p-1 hover:bg-white/10 rounded-full transition text-indigo-300"
+                  className="p-1 hover:bg-white/10 rounded-full transition text-indigo-300 flex items-center justify-center"
                   title="Verify Email"
+                  disabled={otpLoading}
                 >
-                  <i className="bx bx-shield-quarter text-xl" />
+                  {otpLoading ? <Loader size="xxs" color="indigo" /> : <i className="bx bx-shield-quarter text-xl" />}
                 </button>
               )
             )}
@@ -197,14 +204,14 @@ const SignUp = () => {
 
         <button
           type="submit"
-          disabled={!isVerified}
-          className={`w-full py-3 rounded-md text-white font-medium shadow-md transition
+          disabled={!isVerified || isSigningUp}
+          className={`w-full py-3 rounded-md text-white font-medium shadow-md transition flex items-center justify-center
             ${isVerified
               ? "bg-[#1E1BFF] hover:bg-[#1720cc]"
               : "bg-gray-600 cursor-not-allowed opacity-50"
             }`}
         >
-          Sign Up
+          {isSigningUp ? <Loader size="xxs" color="white" /> : "Sign Up"}
         </button>
 
         <p className="text-center text-white/60 text-sm">
