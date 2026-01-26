@@ -12,11 +12,14 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendEmail = async ({ to, subject, html }) => {
   try {
+    const fromAddress = process.env.EMAIL_FROM || 'Stocky <onboarding@resend.dev>';
+
     console.log(`[RESEND] Attempting to send email to: ${to}`);
+    console.log(`[RESEND] From address: ${fromAddress}`);
     console.log(`[RESEND] Subject: ${subject}`);
 
     const data = await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'Stocky <onboarding@resend.dev>',
+      from: fromAddress,
       to: [to],
       subject: subject,
       html: html,
