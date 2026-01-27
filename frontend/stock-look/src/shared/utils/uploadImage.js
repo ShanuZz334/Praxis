@@ -14,7 +14,21 @@ const uploadImage = async (imageFile, isPublic = false) => {
         'Content-Type': 'multipart/form-data', // Set header for file upload
       },
     });
-    return response.data; // Return response data
+
+    let data = response.data;
+    if (data && data.imageUrl) {
+      // Fix Localhost
+      if (data.imageUrl.includes("http://localhost:8000")) {
+        data.imageUrl = data.imageUrl.replace("http://localhost:8000", BASE_URL);
+      }
+      // Enforce HTTPS
+      const isPageHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+      if ((isPageHttps || BASE_URL.startsWith("https://")) && data.imageUrl.startsWith("http://")) {
+        data.imageUrl = data.imageUrl.replace("http://", "https://");
+      }
+    }
+
+    return data; // Return response data
   } catch (error) {
     console.error('Error uploading the image:', error);
     throw error; // Rethrow error for handling
