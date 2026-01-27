@@ -7,12 +7,24 @@ const sanitizeUser = (userData) => {
 
     let sanitized = { ...userData };
 
+    // 1. Fix Localhost issues
     if (sanitized.profileImageUrl && sanitized.profileImageUrl.includes("http://localhost:8000")) {
         sanitized.profileImageUrl = sanitized.profileImageUrl.replace("http://localhost:8000", BASE_URL);
     }
 
     if (sanitized.profileImage && typeof sanitized.profileImage === 'string' && sanitized.profileImage.includes("http://localhost:8000")) {
         sanitized.profileImage = sanitized.profileImage.replace("http://localhost:8000", BASE_URL);
+    }
+
+    // 2. Fix Mixed Content issues (Ensuring HTTPS)
+    const isPageHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+    if (isPageHttps || BASE_URL.startsWith("https://")) {
+        if (sanitized.profileImageUrl && sanitized.profileImageUrl.startsWith("http://")) {
+            sanitized.profileImageUrl = sanitized.profileImageUrl.replace("http://", "https://");
+        }
+        if (sanitized.profileImage && typeof sanitized.profileImage === 'string' && sanitized.profileImage.startsWith("http://")) {
+            sanitized.profileImage = sanitized.profileImage.replace("http://", "https://");
+        }
     }
 
     return sanitized;
@@ -72,6 +84,12 @@ export const uploadProfilePicture = async (imageFile) => {
         let imageUrl = response.data.imageUrl;
         if (imageUrl && imageUrl.includes("http://localhost:8000")) {
             imageUrl = imageUrl.replace("http://localhost:8000", BASE_URL);
+        }
+
+        // Enforce HTTPS
+        const isPageHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+        if ((isPageHttps || BASE_URL.startsWith("https://")) && imageUrl && imageUrl.startsWith("http://")) {
+            imageUrl = imageUrl.replace("http://", "https://");
         }
 
         return imageUrl;
