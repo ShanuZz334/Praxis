@@ -94,7 +94,7 @@ export const verifyCredentials = async (req, res) => {
     }
 
     // 3. Both valid - Now consume the Email OTP
-    verifyEmailOTP(email, otp, false);
+    await verifyEmailOTP(email, otp, false);
 
     // Issue short-lived signup token
     const signupToken = generateSignupToken(email);

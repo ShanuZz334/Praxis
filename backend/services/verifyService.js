@@ -1,93 +1,115 @@
-import { mailer } from '../utils/mailer.js';
+import { sendOTP } from '../utils/resendMailer.js';
 import { verifySync } from 'otplib';
 import crypto from 'crypto';
+import EmailOtp from '../models/EmailOtp.js';
 
-// Polyfill for Node versions that don't have globalThis.crypto.getRandomValues
-if (!globalThis.crypto) {
-    globalThis.crypto = crypto;
-}
-
-const otpStore = new Map(); // Use Redis in production
-
-// Cleanup expired OTPs every 5 minutes
-setInterval(() => {
-    const now = Date.now();
-    for (const [email, record] of otpStore.entries()) {
-        if (now > record.expiresAt) {
-            otpStore.delete(email);
-        }
-    }
-}, 5 * 60 * 1000);
-
-export const sendEmailOTP = async (email) => {
-    const normalizedEmail = email.toLowerCase();
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 mins
-
-    otpStore.set(normalizedEmail, { otp, expiresAt });
-
-    const mailOptions = {
-        from: process.env.SMTP_USER,
-        to: normalizedEmail,
-        subject: "Stocky Verification Code",
-        html: `
-      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; background-color: #0f172a; color: #e2e8f0; padding: 40px; border-radius: 12px; border: 1px solid #334155;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h2 style="color: #6366f1; margin: 0; font-weight: 600; font-size: 24px;">STOCKY</h2>
-          <p style="color: #94a3b8; font-size: 14px; margin-top: 5px;">Institutional Grade Intelligence</p>
-        </div>
-        
-        <div style="background-color: #1e293b; padding: 30px; border-radius: 8px; text-align: center; border: 1px solid #334155;">
-          <p style="color: #cbd5e1; font-size: 16px; margin-bottom: 20px;">Use the code below to verify your email address:</p>
-          <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #818cf8; margin: 20px 0; background-color: #0f172a; padding: 15px; border-radius: 6px; display: inline-block; border: 1px solid #4f46e5;">
-            ${otp}
-          </div>
-          <p style="color: #64748b; font-size: 12px; margin-top: 20px;">Valid for 5 minutes. Do not share this code.</p>
-        </div>
-
-        <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #475569;">
-          <p>&copy; ${new Date().getFullYear()} Stocky. All rights reserved.</p>
-        </div>
-      </div>
-    `,
-    };
-
-    try {
-        console.log(`[OTP] Attempting to send email to ${normalizedEmail} using ${process.env.SMTP_USER}`);
-        const info = await mailer.sendMail(mailOptions);
-        console.log(`[OTP] Email sent successfully! Message ID: ${info.messageId}`);
-        console.log(`[OTP] Response: ${info.response}`);
-        return true;
-    } catch (err) {
-        console.error(`[OTP] FAILED to send email to ${normalizedEmail}:`, err);
-        throw err;
-    }
+/**
+ * Hashing helper for OTPs (SHA-256)
+ * @param {string} otp 
+ * @returns {string} - Hex digest
+ */
+const hashOtp = (otp) => {
+    return crypto.createHash('sha256').update(otp).digest('hex');
 };
 
-export const verifyEmailOTP = (email, otp, keep = false) => {
+/**
+ * Sends a production-ready OTP with rate limiting and secure storage
+ */
+export const sendEmailOTP = async (email) => {
     const normalizedEmail = email.toLowerCase();
-    const record = otpStore.get(normalizedEmail);
+    const now = new Date();
+    const expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES) || 5;
+    const expiresAt = new Date(now.getTime() + expiryMinutes * 60000);
 
-    if (!record) {
-        console.log(`[OTP] No record found for ${normalizedEmail}`);
+    // 1. Rate Limiting Check (Max 3 requests per hour)
+    const oneHourAgo = new Date(now.getTime() - 60 * 60000);
+    const existingOtp = await EmailOtp.findOne({ email: normalizedEmail });
+
+    if (existingOtp) {
+        // Reset count if last request was > 1 hour ago
+        if (existingOtp.lastRequested < oneHourAgo) {
+            existingOtp.requestCount = 0;
+        }
+
+        if (existingOtp.requestCount >= 3) {
+            throw new Error("Too many OTP requests. Please try again in an hour.");
+        }
+    }
+
+    // 2. Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpHash = hashOtp(otp);
+
+    // 3. Store Hashed OTP securely
+    await EmailOtp.findOneAndUpdate(
+        { email: normalizedEmail },
+        {
+            otpHash,
+            expiresAt,
+            attempts: 0,
+            $inc: { requestCount: 1 },
+            lastRequested: now
+        },
+        { upsert: true, new: true }
+    );
+
+    // 4. Send Email via Resend
+    const result = await sendOTP(normalizedEmail, otp);
+
+    if (!result.success) {
+        throw new Error(result.error || "Failed to send email");
+    }
+
+    console.log(`[OTP] Securely sent to ${normalizedEmail}`);
+    return true;
+};
+
+/**
+ * Verifies OTP with attempt limits and secure hashing
+ */
+export const verifyEmailOTP = async (email, otp, keep = false) => {
+    const normalizedEmail = email.toLowerCase();
+    const otpRecord = await EmailOtp.findOne({ email: normalizedEmail });
+
+    if (!otpRecord) return false;
+
+    // 1. Expiry Check
+    if (new Date() > otpRecord.expiresAt) {
+        await EmailOtp.deleteOne({ email: normalizedEmail });
         return false;
     }
 
-    if (Date.now() > record.expiresAt) {
-        console.log(`[OTP] Record expired for ${normalizedEmail}`);
-        otpStore.delete(normalizedEmail);
+    // 2. Max Attempts Check (Max 5 attempts)
+    if (otpRecord.attempts >= 5) {
+        await EmailOtp.deleteOne({ email: normalizedEmail }); // Lockout: delete OTP
         return false;
     }
 
-    const isValid = String(record.otp) === String(otp);
+    // 3. Constant-time comparison for safety
+    const hashedInput = hashOtp(otp);
+    const isValid = crypto.timingSafeEqual(
+        Buffer.from(otpRecord.otpHash),
+        Buffer.from(hashedInput)
+    );
 
-    if (isValid && !keep) {
-        otpStore.delete(normalizedEmail);
+    if (isValid) {
+        if (!keep) {
+            await EmailOtp.deleteOne({ email: normalizedEmail });
+        }
+    } else {
+        // Increment attempts on failure
+        await EmailOtp.updateOne(
+            { email: normalizedEmail },
+            { $inc: { attempts: 1 } }
+        );
     }
 
     return isValid;
 };
 
+/**
+ * Master TOTP Verification (Legacy/Admin)
+ */
 export const verifyMasterTOTP = (token) => {
     const secret = process.env.TOTP_MASTER_SECRET ? process.env.TOTP_MASTER_SECRET.trim() : null;
 
@@ -98,13 +120,9 @@ export const verifyMasterTOTP = (token) => {
 
     try {
         const result = verifySync({ token, secret });
-
-        // Handle object return types from different otplib versions
         if (typeof result === 'object' && result !== null) {
-            // Based on logs, it returns { valid: true, delta: 0, ... }
             return result.valid === true;
         }
-
         return !!result;
     } catch (err) {
         console.error("[DEBUG] TOTP Verification Error:", err);

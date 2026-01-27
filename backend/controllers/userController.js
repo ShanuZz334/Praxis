@@ -232,7 +232,7 @@ export const updateEmail = async (req, res) => {
     const { newEmail, otp } = req.body;
     if (!newEmail || !otp) return res.status(400).json({ message: "Email and OTP required" });
 
-    const isValid = verifyEmailOTP(newEmail, otp); // consumes OTP
+    const isValid = await verifyEmailOTP(newEmail, otp); // consumes OTP
     if (!isValid) {
         return res.status(400).json({ message: "Invalid or expired OTP" });
     }
