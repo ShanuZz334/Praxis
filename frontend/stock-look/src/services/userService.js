@@ -50,22 +50,22 @@ export const updateUserProfile = async (profileData) => {
     }
 };
 
-export const updateBrokerSettings = async (brokerData) => {
+export const updateBrokerSettings = async () => {
     // Mock implementation as per original
     return { success: true };
 };
 
-export const testBrokerConnection = async (brokerData) => {
+export const testBrokerConnection = async () => {
     // Mock implementation as per original
     return { success: true };
 };
 
-export const updateNotificationSettings = async (notificationData) => {
+export const updateNotificationSettings = async () => {
     // Mock implementation as per original
     return { success: true };
 };
 
-export const updatePreferences = async (preferencesData) => {
+export const updatePreferences = async () => {
     // Mock implementation as per original
     return { success: true };
 };
@@ -135,6 +135,26 @@ export const deleteUserProfile = async () => {
         return response.data;
     } catch (error) {
         console.error('Error deleting account:', error);
+        throw error;
+    }
+};
+
+export const requestCurrentEmailVerificationOTP = async () => {
+    try {
+        const response = await axiosInstance.post("/api/v1/user/request-verification-otp");
+        return response.data;
+    } catch (error) {
+        console.error('Error requesting verification OTP:', error);
+        throw error;
+    }
+};
+
+export const verifyCurrentEmail = async (otp) => {
+    try {
+        const response = await axiosInstance.put("/api/v1/user/verify-email", { otp });
+        return response.data;
+    } catch (error) {
+        console.error('Error verifying email:', error);
         throw error;
     }
 };

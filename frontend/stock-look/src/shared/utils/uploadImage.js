@@ -1,4 +1,4 @@
-import { API_PATHS } from './apiPaths';
+import { API_PATHS, BASE_URL } from './apiPaths';
 import axiosInstance from './axiosInstance.js';
 
 const uploadImage = async (imageFile, isPublic = false) => {

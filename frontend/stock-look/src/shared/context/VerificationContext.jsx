@@ -1,8 +1,7 @@
-import React, { createContext, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { API_PATHS } from '@/shared/utils/apiPaths';
-
-export const VerificationContext = createContext(null);
+import { VerificationContext } from './VerificationContextInstance';
 
 export const VerificationProvider = ({ children }) => {
     const [isVerifying, setIsVerifying] = useState(false);
@@ -13,34 +12,25 @@ export const VerificationProvider = ({ children }) => {
 
     const [signupToken, setSignupToken] = useState(null);
 
-    const requestOTP = useCallback(async (userEmail) => {
-        setLoading(true);
+    const initiateVerification = useCallback((userEmail) => {
+        setEmail(userEmail);
+        setIsVerifying(true);
         setError('');
-        try {
-            await axiosInstance.post(API_PATHS.AUTH.REQUEST_OTP, { email: userEmail });
-            setEmail(userEmail);
-            setIsVerifying(true);
-            return true;
-        } catch (err) {
-            setError(err.response?.data?.message || 'Failed to send OTP');
-            return false;
-        } finally {
-            setLoading(false);
-        }
     }, []);
 
-    const verifyCredentials = useCallback(async (email, otp, totp) => {
+
+    const verifyCredentials = useCallback(async (email, totp) => {
         setLoading(true);
         setError('');
 
-        if (!email || !otp || !totp) {
+        if (!email || !totp) {
             setError("Missing required verification details");
             setLoading(false);
             return false;
         }
 
         try {
-            const res = await axiosInstance.post(API_PATHS.AUTH.VERIFY_CREDENTIALS, { email, otp, totp });
+            const res = await axiosInstance.post(API_PATHS.AUTH.VERIFY_CREDENTIALS, { email, totp });
             setSignupToken(res.data.signupToken); // Store the token
             setIsVerified(true);
             setIsVerifying(false);
@@ -68,7 +58,7 @@ export const VerificationProvider = ({ children }) => {
             email,
             loading,
             error,
-            requestOTP,
+            initiateVerification,
             verifyCredentials,
             resetVerification
         }}>

@@ -1,8 +1,6 @@
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 import {
-  sendEmailOTP,
-  verifyEmailOTP,
   verifyMasterTOTP,
 } from "../services/verifyService.js";
 
@@ -29,71 +27,28 @@ const generateSignupToken = (email) => {
   );
 };
 
-/* ============================================================
-   REQUEST EMAIL OTP
-============================================================ */
-
-export const requestOTP = async (req, res) => {
-  const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ message: "Email is required" });
-  }
-
-  try {
-    await sendEmailOTP(email);
-
-    res.status(200).json({
-      success: true,
-      message: "OTP sent successfully to email",
-    });
-  } catch (err) {
-    // Explicit Harden Logging
-    console.error("❌ CRITICAL OTP FAILURE:");
-    console.error("- Error Name:", err.name);
-    console.error("- Error Message:", err.message);
-    console.error("- Stack:", err.stack);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to send OTP. Service may be temporarily unavailable.",
-      error: err.message,
-    });
-  }
-};
 
 /* ============================================================
    VERIFY EMAIL OTP + MASTER TOTP
 ============================================================ */
 
 export const verifyCredentials = async (req, res) => {
-  const { email, otp, totp } = req.body;
+  const { email, totp } = req.body;
 
-  if (!email || !otp || !totp) {
+  if (!email || !totp) {
     return res.status(400).json({
-      message: "Email, OTP and TOTP are required",
+      message: "Email and TOTP are required",
     });
   }
 
   try {
-    // 1. Check Email OTP (Keep it for now, in case TOTP fails)
-    const emailOtpValid = await verifyEmailOTP(email, otp, true);
-    if (!emailOtpValid) {
-      return res.status(400).json({
-        message: "Invalid or expired email OTP",
-      });
-    }
-
-    // 2. Check TOTP
+    // 1. Check TOTP
     const totpValid = verifyMasterTOTP(totp);
     if (!totpValid) {
       return res.status(400).json({
         message: "Invalid TOTP code",
       });
     }
-
-    // 3. Both valid - Now consume the Email OTP
-    await verifyEmailOTP(email, otp, false);
 
     // Issue short-lived signup token
     const signupToken = generateSignupToken(email);

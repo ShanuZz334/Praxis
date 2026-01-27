@@ -27,6 +27,8 @@ import {
     changePassword,
     requestEmailUpdateOTP,
     updateEmail,
+    requestCurrentEmailVerificationOTP,
+    verifyCurrentEmail,
     deleteUserProfile,
 } from "../../../../services/userService";
 import Loader from "../../../../shared/components/ui/Loader";
@@ -50,6 +52,9 @@ const SettingsPage = () => {
     const [otpTimer, setOtpTimer] = useState(0);
     const [testingConnection, setTestingConnection] = useState(false);
     const [connectionStatus, setConnectionStatus] = useState(null);
+    const [showVerifyEmailOtpModal, setShowVerifyEmailOtpModal] = useState(false);
+    const [isEmailVerified, setIsEmailVerified] = useState(false);
+    const [verifyingEmail, setVerifyingEmail] = useState(false);
 
     // Data State
     const [formData, setFormData] = useState({
@@ -136,8 +141,9 @@ const SettingsPage = () => {
                 setSettings(loadedSettings);
                 setInitialSettings(loadedSettings);
 
-            } catch (error) {
-                console.error("Failed to load user settings", error);
+                setIsEmailVerified(userData.isEmailVerified || user?.isEmailVerified || false);
+            } catch {
+                console.error("Failed to load user settings");
                 // Fallback or error toast could be here
             } finally {
                 setLoading(false);
@@ -175,7 +181,6 @@ const SettingsPage = () => {
     };
 
     // -- Email OTP Flow --
-    // -- Email OTP Flow --
     const initiateEmailChange = async (newEmail) => {
         if (!newEmail || newEmail === initialFormData.email) return;
 
@@ -191,12 +196,13 @@ const SettingsPage = () => {
             setLoading(true);
             await requestEmailUpdateOTP(newEmail);
             setPendingEmail(newEmail);
+            setEmailOtp(""); // Clear any old OTP
             setShowEmailOtpModal(true);
             setOtpTimer(300); // 5 mins
             setSaveStatus(null);
-        } catch (error) {
-            console.error("Failed to request OTP", error);
-            alert(error.response?.data?.message || "Failed to send OTP. Please try again.");
+        } catch {
+            console.error("Failed to request OTP");
+            alert("Failed to send OTP. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -234,15 +240,57 @@ const SettingsPage = () => {
             setPendingEmail("");
             setSaveStatus("success");
             setTimeout(() => setSaveStatus(null), 3000);
-        } catch (error) {
-            console.error("Failed to verify OTP", error);
-            alert(error.response?.data?.message || "Invalid OTP. Please try again.");
+        } catch {
+            console.error("Failed to verify OTP");
+            alert("Invalid OTP. Please try again.");
         } finally {
             setLoading(false);
         }
     };
 
-    // -- Trading Mode Logic --
+    const handleInitiateVerification = async () => {
+        try {
+            setVerifyingEmail(true);
+            await requestCurrentEmailVerificationOTP();
+            setEmailOtp(""); // Clear any old OTP
+            setShowVerifyEmailOtpModal(true);
+            setOtpTimer(300);
+        } catch {
+            console.error("Failed to request verification OTP");
+            alert("Failed to send verification OTP");
+        } finally {
+            setVerifyingEmail(false);
+        }
+    };
+
+    const handleVerifyEmail = async () => {
+        if (emailOtp.length !== 6) {
+            alert("Please enter a valid 6-digit OTP");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await verifyCurrentEmail(emailOtp);
+
+            setIsEmailVerified(true);
+            setShowVerifyEmailOtpModal(false);
+            setEmailOtp("");
+            setSaveStatus("success");
+            setTimeout(() => setSaveStatus(null), 3000);
+
+            // Update Context
+            if (updateUser && token) {
+                updateUser({ ...user, isEmailVerified: true }, token);
+            }
+        } catch {
+            console.error("Failed to verify email");
+            alert("Invalid OTP. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // -- Trading Mode Logic --
     const handleTradingModeSelect = (mode) => {
         if (mode === "aggressive") {
@@ -287,11 +335,11 @@ const SettingsPage = () => {
             setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
             setPasswordChangeStatus({ type: 'success', message: "Password updated successfully!" });
             setTimeout(() => setPasswordChangeStatus(null), 5000);
-        } catch (error) {
-            console.error("Failed to update password", error);
+        } catch {
+            console.error("Failed to update password");
             setPasswordChangeStatus({
                 type: 'error',
-                message: error.response?.data?.message || "Failed to update password. Check your current password."
+                message: "Failed to update password. Check your current password."
             });
         } finally {
             setIsUpdatingPassword(false);
@@ -333,7 +381,7 @@ const SettingsPage = () => {
                     message: data.message || 'Connection failed. Please check your credentials.'
                 });
             }
-        } catch (error) {
+        } catch {
             setConnectionStatus({
                 success: false,
                 message: 'Failed to test connection. Please try again.'
@@ -361,9 +409,9 @@ const SettingsPage = () => {
             localStorage.clear();
             contextClearUser();
             navigate("/login", { replace: true });
-        } catch (error) {
-            console.error("Failed to delete account", error);
-            alert(error.response?.data?.message || "Failed to delete account. Please try again later.");
+        } catch {
+            console.error("Failed to delete account");
+            alert("Failed to delete account. Please try again later.");
         } finally {
             setIsDeleting(false);
             setShowDeleteModal(false);
@@ -419,8 +467,8 @@ const SettingsPage = () => {
 
             setSaveStatus("success");
             setTimeout(() => setSaveStatus(null), 3000);
-        } catch (error) {
-            console.error("Save failed", error);
+        } catch {
+            console.error("Save failed");
             setSaveStatus("error");
             setTimeout(() => setSaveStatus(null), 3000);
         }
@@ -491,7 +539,7 @@ const SettingsPage = () => {
 
             // Note: We don't save the profile update (PUT /profile) yet, user must click Save Changes
             // But we display the new image immediately
-        } catch (error) {
+        } catch {
             alert("Failed to upload image.");
         }
     };
@@ -610,7 +658,18 @@ const SettingsPage = () => {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-gray-300">Email Address</label>
+                                        <label className="text-sm font-medium text-gray-300 flex items-center justify-between">
+                                            Email Address
+                                            {isEmailVerified ? (
+                                                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">
+                                                    <FiCheck className="text-[10px]" /> Verified
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded-full border border-yellow-500/20 flex items-center gap-1">
+                                                    <FiAlertCircle className="text-[10px]" /> Unverified
+                                                </span>
+                                            )}
+                                        </label>
                                         <div className="flex gap-2">
                                             <input
                                                 type="email"
@@ -625,6 +684,37 @@ const SettingsPage = () => {
                                                 Change
                                             </button>
                                         </div>
+
+                                        {!isEmailVerified && (
+                                            <div className="mt-3 p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 animate-in fade-in slide-in-from-top-2 duration-500">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="h-10 w-10 shrink-0 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                                                        <FiShield className="text-blue-400 text-lg" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-sm font-semibold text-white">Verify your mail</p>
+                                                        <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                                                            Verifying your email allows us to send you clean trade alerts and critical security notifications.
+                                                        </p>
+                                                        <button
+                                                            onClick={handleInitiateVerification}
+                                                            disabled={verifyingEmail}
+                                                            className="mt-3 text-sm font-bold text-blue-400 hover:text-blue-300 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                                                        >
+                                                            {verifyingEmail ? (
+                                                                <>
+                                                                    <Loader size="xxs" color="blue" /> Requesting...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    Verify Now <i className="bx bx-right-arrow-alt text-lg"></i>
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1050,6 +1140,61 @@ const SettingsPage = () => {
                                     </button>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Verify Current Email OTP Modal */}
+            {
+                showVerifyEmailOtpModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0d1226] p-6 shadow-2xl">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-bold text-white uppercase tracking-tight">Verify Email</h3>
+                                <button onClick={() => setShowVerifyEmailOtpModal(false)}><FiX className="text-gray-400 hover:text-white shadow-sm" /></button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <p className="text-sm text-gray-400">
+                                    Enter the 6-digit code sent to your email to enable trade alerts.
+                                </p>
+                                <div className="relative group">
+                                    <input
+                                        type="text"
+                                        value={emailOtp}
+                                        maxLength={6}
+                                        onChange={(e) => setEmailOtp(e.target.value)}
+                                        placeholder="000 000"
+                                        className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-4 text-center text-2xl font-bold tracking-[0.5em] text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-white/5"
+                                    />
+                                </div>
+                                <div className="flex justify-between text-[10px] text-gray-500 uppercase font-medium tracking-wider">
+                                    <span>5:00 MINUTES UNTIL EXPIRE</span>
+                                    {otpTimer > 0 ? (
+                                        <span>RESEND IN {otpTimer}S</span>
+                                    ) : (
+                                        <button onClick={handleInitiateVerification} className="text-blue-400 hover:underline">RESEND NOW</button>
+                                    )}
+                                </div>
+                                <button
+                                    className="w-full rounded-lg bg-[#1E1BFF] py-3.5 font-bold text-white hover:bg-[#1720cc] disabled:opacity-50 shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                    disabled={loading || emailOtp.length !== 6}
+                                    onClick={handleVerifyEmail}
+                                >
+                                    {loading ? (
+                                        <>
+                                            <i className="bx bx-loader-alt animate-spin text-lg"></i>
+                                            <span>VERIFYING...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>VERIFY & ENABLE ALERTS</span>
+                                            <i className="bx bx-check-shield text-lg"></i>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )

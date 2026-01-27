@@ -10,6 +10,8 @@ import {
     changePassword,
     requestEmailUpdateOTP,
     updateEmail,
+    requestCurrentEmailVerificationOTP,
+    verifyCurrentEmail,
     deleteUserProfile,
 } from "../controllers/userController.js";
 
@@ -22,6 +24,10 @@ router.post("/broker/test", protect, testBrokerConnection);
 router.put("/notifications", protect, updateNotificationSettings);
 router.put("/preferences", protect, updatePreferences);
 router.put("/password", protect, changePassword);
+
+// Email verification routes (Settings Page)
+router.post("/request-verification-otp", protect, requestCurrentEmailVerificationOTP);
+router.put("/verify-email", protect, verifyCurrentEmail);
 
 // Email update routes
 router.post("/request-email-update-otp", protect, requestEmailUpdateOTP);

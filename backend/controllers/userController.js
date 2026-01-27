@@ -29,6 +29,7 @@ export const updateUserProfile = async (req, res) => {
             fullName: updatedUser.fullName,
             email: updatedUser.email,
             profileImage: updatedUser.profileImage,
+            isEmailVerified: updatedUser.isEmailVerified,
         });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
@@ -253,6 +254,47 @@ export const updateEmail = async (req, res) => {
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
+
+// @desc    Request OTP for current email verification
+// @route   POST /api/user/request-verification-otp
+// @access  Private
+export const requestCurrentEmailVerificationOTP = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        await sendEmailOTP(user.email);
+        res.status(200).json({ message: "Verification OTP sent to your email" });
+    } catch (error) {
+        res.status(500).json({ message: "Failed to send OTP", error: error.message });
+    }
+};
+
+// @desc    Verify current email with OTP
+// @route   PUT /api/user/verify-email
+// @access  Private
+export const verifyCurrentEmail = async (req, res) => {
+    const { otp } = req.body;
+    if (!otp) return res.status(400).json({ message: "OTP required" });
+
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        const isValid = await verifyEmailOTP(user.email, otp);
+        if (!isValid) {
+            return res.status(400).json({ message: "Invalid or expired OTP" });
+        }
+
+        user.isEmailVerified = true;
+        await user.save();
+
+        res.json({ message: "Email verified successfully", isEmailVerified: true });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
 // @desc    Delete user account
 // @route   DELETE /api/user/profile
 // @access  Private

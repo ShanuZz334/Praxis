@@ -6,7 +6,7 @@ import { API_PATHS } from "@/shared/utils/apiPaths";
 import { UserContext } from "@/shared/context/UserContext";
 import uploadImage from "@/shared/utils/uploadImage";
 import { validateEmail } from "@/shared/utils/helper";
-import { VerificationContext } from "@/shared/context/VerificationContext";
+import { VerificationContext } from "@/shared/context/VerificationContextInstance";
 
 import Loader from "@/shared/components/ui/Loader";
 
@@ -22,7 +22,7 @@ const SignUp = () => {
   const [isSigningUp, setIsSigningUp] = useState(false);
 
   const { updateUser } = useContext(UserContext);
-  const { isVerified, requestOTP, error: verifyError, signupToken, resetVerification, loading: otpLoading } = useContext(VerificationContext);
+  const { isVerified, initiateVerification, error: verifyError, signupToken, resetVerification, loading: otpLoading } = useContext(VerificationContext);
   const navigate = useNavigate();
 
   // Reset verification state when entering the page
@@ -36,8 +36,8 @@ const SignUp = () => {
 
     if (!fullName) return setError("Enter full name.");
     if (!validateEmail(email)) return setError("Invalid email.");
-    if (!isVerified) return setError("Verification required.");
     if (!password) return setError("Enter password.");
+    if (!isVerified) return setError("Please verify with Admin TOTP first.");
 
     setIsSigningUp(true);
     let profileImageUrl = "";
@@ -162,7 +162,6 @@ const SignUp = () => {
               placeholder="john@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              readOnly={isVerified}
             />
             {isVerified ? (
               <i className="bx bxs-check-circle text-green-400 text-xl" />
@@ -170,12 +169,12 @@ const SignUp = () => {
               validateEmail(email) && (
                 <button
                   type="button"
-                  onClick={() => requestOTP(email)}
-                  className="p-1 hover:bg-white/10 rounded-full transition text-indigo-300 flex items-center justify-center"
-                  title="Verify Email"
+                  onClick={() => initiateVerification(email)}
+                  className="p-1 hover:bg-white/10 rounded-full transition text-indigo-300 flex items-center justify-center shadow-lg"
+                  title="Verify Admin TOTP"
                   disabled={otpLoading}
                 >
-                  {otpLoading ? <Loader size="xxs" color="indigo" /> : <i className="bx bx-shield-quarter text-xl" />}
+                  <i className="bx bx-shield-quarter text-xl" />
                 </button>
               )
             )}
@@ -198,15 +197,17 @@ const SignUp = () => {
           </div>
         </div>
 
-        {(error || verifyError) && (
-          <p className="text-red-400 text-sm">{error || verifyError}</p>
-        )}
+        {
+          (error || verifyError) && (
+            <p className="text-red-400 text-sm">{error || verifyError}</p>
+          )
+        }
 
         <button
           type="submit"
-          disabled={!isVerified || isSigningUp}
+          disabled={isSigningUp}
           className={`w-full py-3 rounded-md text-white font-medium shadow-md transition flex items-center justify-center
-            ${isVerified
+            ${!isSigningUp && isVerified
               ? "bg-[#1E1BFF] hover:bg-[#1720cc]"
               : "bg-gray-600 cursor-not-allowed opacity-50"
             }`}
@@ -224,8 +225,8 @@ const SignUp = () => {
             Login
           </button>
         </p>
-      </form>
-    </div>
+      </form >
+    </div >
   );
 };
 

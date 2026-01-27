@@ -1,6 +1,6 @@
 import React, { useContext, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { VerificationContext } from "@/shared/context/VerificationContext";
+import { VerificationContext } from "@/shared/context/VerificationContextInstance";
 
 import AuthBackground from "@/features/auth/components/AuthBackground";
 import GlitchText from "@/shared/components/backgrounds/GlitchText";
@@ -13,7 +13,6 @@ const AuthLayout = ({ children }) => {
   const navigate = useNavigate();
   const { isVerifying, verifyCredentials, loading, error, resetVerification, email } = useContext(VerificationContext);
 
-  const [otp, setOtp] = useState("");
   const [totp, setTotp] = useState("");
 
   const isSignup = location.pathname === "/signup";
@@ -53,23 +52,6 @@ const AuthLayout = ({ children }) => {
 
                     <div className="space-y-3">
                       <div className="group">
-                        <label className="text-[10px] font-medium text-indigo-300/80 block mb-1 ml-1 uppercase tracking-wider">Email OTP</label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            maxLength="6"
-                            placeholder="000000"
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white text-center text-lg tracking-[0.5em] outline-none group-hover:border-indigo-500/50 focus:border-indigo-500 focus:bg-slate-900/80 focus:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all placeholder:text-white/10 font-mono"
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                          />
-                          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                            {otp.length === 6 && <i className="bx bxs-check-circle text-green-500 text-base animate-in zoom-in spin-in-90 duration-300"></i>}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="group">
                         <label className="text-[10px] font-medium text-indigo-300/80 block mb-1 ml-1 uppercase tracking-wider">Admin TOTP</label>
                         <div className="relative">
                           <input
@@ -96,9 +78,9 @@ const AuthLayout = ({ children }) => {
 
                     <div className="flex flex-col gap-2 pt-1">
                       <button
-                        onClick={() => verifyCredentials(email, otp, totp)}
+                        onClick={() => verifyCredentials(email, totp)}
                         className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-lg shadow-indigo-600/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 text-sm"
-                        disabled={loading || otp.length !== 6 || totp.length !== 6}
+                        disabled={loading || totp.length !== 6}
                         id="verify-button-left"
                       >
                         {loading ? (

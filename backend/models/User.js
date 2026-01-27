@@ -21,6 +21,7 @@ const UserSchema = new mongoose.Schema(
             deliveryApp: { type: Boolean, default: true },
             deliveryEmail: { type: Boolean, default: false },
         },
+        isEmailVerified: { type: Boolean, default: false },
         preferences: {
             tradingMode: { type: String, default: "balanced" },
             theme: { type: String, default: "dark" },
