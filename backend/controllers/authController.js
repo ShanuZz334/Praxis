@@ -41,7 +41,6 @@ export const requestOTP = async (req, res) => {
   }
 
   try {
-    console.log(`[AUTH] Requesting OTP for ${email}`);
     await sendEmailOTP(email);
 
     res.status(200).json({

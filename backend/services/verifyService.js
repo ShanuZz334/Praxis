@@ -1,4 +1,4 @@
-import { sendOTP } from '../utils/resendMailer.js';
+import { sendOTPEmail } from '../utils/mailer.js';
 import { verifySync } from 'otplib';
 import crypto from 'crypto';
 import EmailOtp from '../models/EmailOtp.js';
@@ -53,14 +53,13 @@ export const sendEmailOTP = async (email) => {
         { upsert: true, new: true }
     );
 
-    // 4. Send Email via Resend
-    const result = await sendOTP(normalizedEmail, otp);
+    // 4. Send Email via SMTP
+    const result = await sendOTPEmail(normalizedEmail, otp);
 
     if (!result.success) {
         throw new Error(result.error || "Failed to send email");
     }
 
-    console.log(`[OTP] Securely sent to ${normalizedEmail}`);
     return true;
 };
 
