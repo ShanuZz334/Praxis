@@ -25,7 +25,9 @@ const sanitizeUser = (userData) => {
   }
 
   // 2. Fix Mixed Content issues (Ensuring HTTPS)
-  if (BASE_URL.startsWith("https://")) {
+  // Ensure we use HTTPS if the current page is HTTPS or if BASE_URL specifies it
+  const isPageHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+  if (isPageHttps || BASE_URL.startsWith("https://")) {
     if (sanitized.profileImageUrl && sanitized.profileImageUrl.startsWith("http://")) {
       sanitized.profileImageUrl = sanitized.profileImageUrl.replace("http://", "https://");
     }
