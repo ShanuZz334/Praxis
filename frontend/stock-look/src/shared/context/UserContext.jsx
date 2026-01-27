@@ -15,13 +15,23 @@ const sanitizeUser = (userData) => {
 
   let sanitized = { ...userData };
 
+  // 1. Fix Localhost issues
   if (sanitized.profileImageUrl && sanitized.profileImageUrl.includes("http://localhost:8000")) {
-    // Replace localhost origin with current environment's BASE_URL
     sanitized.profileImageUrl = sanitized.profileImageUrl.replace("http://localhost:8000", BASE_URL);
   }
 
   if (sanitized.profileImage && typeof sanitized.profileImage === 'string' && sanitized.profileImage.includes("http://localhost:8000")) {
     sanitized.profileImage = sanitized.profileImage.replace("http://localhost:8000", BASE_URL);
+  }
+
+  // 2. Fix Mixed Content issues (Ensuring HTTPS)
+  if (BASE_URL.startsWith("https://")) {
+    if (sanitized.profileImageUrl && sanitized.profileImageUrl.startsWith("http://")) {
+      sanitized.profileImageUrl = sanitized.profileImageUrl.replace("http://", "https://");
+    }
+    if (sanitized.profileImage && typeof sanitized.profileImage === 'string' && sanitized.profileImage.startsWith("http://")) {
+      sanitized.profileImage = sanitized.profileImage.replace("http://", "https://");
+    }
   }
 
   return sanitized;

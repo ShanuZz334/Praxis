@@ -20,6 +20,7 @@ import journalRoutes from "./routes/journalRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 
 const app = express();
+app.set("trust proxy", 1);
 
 // Fix dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);

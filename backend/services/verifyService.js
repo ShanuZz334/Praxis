@@ -27,7 +27,7 @@ export const sendEmailOTP = async (email) => {
     otpStore.set(normalizedEmail, { otp, expiresAt });
 
     const mailOptions = {
-        from: `"Stocky Security" <${process.env.SMTP_USER}>`,
+        from: process.env.SMTP_USER,
         to: normalizedEmail,
         subject: "Stocky Verification Code",
         html: `
@@ -53,9 +53,13 @@ export const sendEmailOTP = async (email) => {
     };
 
     try {
-        await mailer.sendMail(mailOptions);
+        console.log(`[OTP] Attempting to send email to ${normalizedEmail} using ${process.env.SMTP_USER}`);
+        const info = await mailer.sendMail(mailOptions);
+        console.log(`[OTP] Email sent successfully! Message ID: ${info.messageId}`);
+        console.log(`[OTP] Response: ${info.response}`);
         return true;
     } catch (err) {
+        console.error(`[OTP] FAILED to send email to ${normalizedEmail}:`, err);
         throw err;
     }
 };
