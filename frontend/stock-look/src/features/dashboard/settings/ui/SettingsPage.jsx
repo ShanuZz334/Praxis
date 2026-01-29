@@ -390,6 +390,37 @@ const SettingsPage = () => {
         }
     };
 
+    const handleInstantConnect = async (brokerData) => {
+        setTestingConnection(true);
+        setConnectionStatus(null);
+        try {
+            const response = await fetch('/api/broker/test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(brokerData)
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                setConnectionStatus({
+                    success: true,
+                    message: `Successfully connected to ${brokerData.broker || 'broker'}!`
+                });
+                setSaveStatus("success");
+                setTimeout(() => setSaveStatus(null), 3000);
+            } else {
+                setConnectionStatus({ success: false, message: data.message || 'Connection failed.' });
+            }
+        } catch {
+            setConnectionStatus({ success: false, message: 'Failed to connect. Please try again.' });
+        } finally {
+            setTestingConnection(false);
+        }
+    };
+
     // -- Delete Account Logic --
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -841,7 +872,7 @@ const SettingsPage = () => {
                                         </div>
 
                                         {/* Right Side: Connected Brokers Display */}
-                                        <div className="w-full lg:w-72 shrink-0 border-l border-white/5 lg:pl-10">
+                                        <div className="w-full lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l border-white/5 pt-10 lg:pt-0 lg:pl-10">
                                             <div className="sticky top-6">
                                                 <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-6 flex items-center gap-2">
                                                     <div className="h-px flex-1 bg-white/5"></div>
@@ -854,6 +885,13 @@ const SettingsPage = () => {
                                                         <ConnectedBrokerCard
                                                             broker={initialFormData.broker}
                                                             clientId={initialFormData.clientId}
+                                                            onClick={() => handleInstantConnect({
+                                                                broker: initialFormData.broker,
+                                                                apiKey: initialFormData.apiKey,
+                                                                apiSecret: initialFormData.apiSecret,
+                                                                clientId: initialFormData.clientId
+                                                            })}
+                                                            loading={testingConnection}
                                                         />
                                                     ) : (
                                                         <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center bg-white/[0.01]">
@@ -1374,30 +1412,41 @@ const AVAILABLE_BROKERS = [
     { value: "motilal", label: "Motilal Oswal", icon: "🔵" }
 ];
 
-const ConnectedBrokerCard = ({ broker, clientId }) => {
+const ConnectedBrokerCard = ({ broker, clientId, onClick, loading }) => {
     const brokerInfo = AVAILABLE_BROKERS.find(b => b.value === broker) || { label: broker, icon: "🏦" };
     return (
-        <div className="group relative flex items-center gap-4 rounded-2xl border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent p-4 transition-all hover:border-blue-500/30 hover:bg-white/[0.05]">
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={loading}
+            className="w-full text-left group relative flex items-center gap-4 rounded-2xl border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent p-4 transition-all hover:border-blue-500/30 hover:bg-white/[0.05] active:scale-[0.98] disabled:cursor-wait"
+        >
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 group-hover:border-blue-500/20 transition-all">
-                {brokerInfo.image ? (
-                    <img src={brokerInfo.image} alt={brokerInfo.label} className="h-7 w-7 object-contain group-hover:scale-110 transition-transform" />
+                {loading ? (
+                    <div className="animate-spin text-blue-400">
+                        <i className="bx bx-loader-alt text-xl"></i>
+                    </div>
                 ) : (
-                    <span className="text-2xl">{brokerInfo.icon}</span>
+                    brokerInfo.image ? (
+                        <img src={brokerInfo.image} alt={brokerInfo.label} className="h-7 w-7 object-contain group-hover:scale-110 transition-transform" />
+                    ) : (
+                        <span className="text-2xl">{brokerInfo.icon}</span>
+                    )
                 )}
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                     <p className="font-semibold text-white truncate">{brokerInfo.label}</p>
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'bg-blue-400' : 'bg-emerald-500'} shadow-[0_0_8px_rgba(16,185,129,0.5)]`}></span>
                 </div>
                 <p className="text-[10px] text-gray-400 font-mono mt-0.5 truncate uppercase tracking-tighter">ID: {clientId || 'ID_UNKNOWN'}</p>
             </div>
             <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20">
-                    ACTIVE
+                <div className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20 whitespace-nowrap">
+                    {loading ? 'CONNECTING' : 'CONNECT'}
                 </div>
             </div>
-        </div>
+        </button>
     );
 };
 
