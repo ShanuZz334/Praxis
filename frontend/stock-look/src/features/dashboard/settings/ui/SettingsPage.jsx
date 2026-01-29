@@ -101,7 +101,7 @@ const SettingsPage = () => {
                     const baseData = {
                         fullName: user.fullName || "",
                         email: user.email || "",
-                        profileImage: user.profileImageUrl || null,
+                        profileImage: user.profileImage || null,
                         broker: "", // Default until API load
                         apiKey: "",
                         apiSecret: "",
@@ -117,12 +117,11 @@ const SettingsPage = () => {
                 const loadedFormData = {
                     fullName: userData.fullName || user?.fullName || "",
                     email: userData.email || user?.email || "",
-                    profileImage: userData.profileImageUrl || user?.profileImageUrl || null,
+                    profileImage: userData.profileImage || user?.profileImage || null,
                     broker: userData.brokerSettings?.broker || "",
                     apiKey: userData.brokerSettings?.apiKey || "",
                     apiSecret: userData.brokerSettings?.apiSecret || "",
                     clientId: userData.brokerSettings?.clientId || "",
-                    // Add profileImageUrl to profileImage if missing
                 };
 
                 const loadedSettings = {
@@ -456,7 +455,6 @@ const SettingsPage = () => {
                     fullName: formData.fullName,
                     email: formData.email,
                     profileImage: formData.profileImage,
-                    profileImageUrl: formData.profileImage // Synchronize for SideMenu
                 };
                 updateUser(updatedUser, token);
             }

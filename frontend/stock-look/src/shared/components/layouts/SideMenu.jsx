@@ -89,10 +89,10 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
             transition
           `}
         >
-          {user?.profileImageUrl ? (
+          {user?.profileImage ? (
             <div className="w-9 h-9 rounded-full overflow-hidden">
               <img
-                src={user.profileImageUrl}
+                src={user.profileImage}
                 alt="Profile"
                 className="w-full h-full object-cover"
               />

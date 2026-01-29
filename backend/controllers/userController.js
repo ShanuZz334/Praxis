@@ -19,7 +19,6 @@ export const updateUserProfile = async (req, res) => {
         if (email) user.email = email;
         if (profileImage !== undefined) {
             user.profileImage = profileImage;
-            user.profileImageUrl = profileImage; // Keep sync
         }
 
         const updatedUser = await user.save();

@@ -7,7 +7,6 @@ const UserSchema = new mongoose.Schema(
         email: { type: String, required: true, unique: true },
         password: { type: String, required: true },
         profileImage: { type: String, default: null },
-        profileImageUrl: { type: String, default: null },
         brokerSettings: {
             broker: { type: String, default: "" },
             apiKey: { type: String, default: "" },

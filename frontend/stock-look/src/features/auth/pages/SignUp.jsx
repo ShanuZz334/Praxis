@@ -40,13 +40,13 @@ const SignUp = () => {
     if (!isVerified) return setError("Please verify with Admin TOTP first.");
 
     setIsSigningUp(true);
-    let profileImageUrl = "";
+    let profileImage = "";
 
     try {
       // Upload profile image if provided
       if (profilePic) {
         const uploadRes = await uploadImage(profilePic, true);
-        profileImageUrl = uploadRes?.imageUrl || "";
+        profileImage = uploadRes?.imageUrl || "";
       }
 
       const res = await axiosInstance.post(
@@ -55,7 +55,7 @@ const SignUp = () => {
           fullName,
           email,
           password,
-          profileImage: profileImageUrl || undefined,
+          profileImage: profileImage || undefined,
         },
         {
           headers: {

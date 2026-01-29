@@ -47,7 +47,7 @@ router.post("/upload-image", protect, upload.single("image"), (req, res) => {
         return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    const imageUrl = req.file.path;
     res.status(200).json({ imageUrl });
 });
 
@@ -57,7 +57,7 @@ router.post("/upload-image-public", upload.single("image"), (req, res) => {
         return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    const imageUrl = req.file.path;
     res.status(200).json({ imageUrl });
 });
 

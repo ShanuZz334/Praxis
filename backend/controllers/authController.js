@@ -117,7 +117,6 @@ export const registerUser = async (req, res) => {
       email,
       password,
       profileImage,
-      profileImageUrl: profileImage, // Sync both fields
     });
 
     res.status(201).json({
