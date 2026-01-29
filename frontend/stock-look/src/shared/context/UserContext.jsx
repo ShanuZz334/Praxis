@@ -6,6 +6,7 @@ import {
 } from "react";
 import axiosInstance from "@/shared/utils/axiosInstance.js";
 import { BASE_URL } from "@/shared/utils/apiPaths.js";
+import SessionConflictModal from "@/shared/components/modals/SessionConflictModal";
 
 export const UserContext = createContext(null);
 
@@ -36,6 +37,32 @@ const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showConflictModal, setShowConflictModal] = useState(false);
+
+  useEffect(() => {
+    const handleConflict = () => {
+      setShowConflictModal(true);
+    };
+
+    window.addEventListener('session-conflict', handleConflict);
+    return () => window.removeEventListener('session-conflict', handleConflict);
+  }, []);
+
+  // Background Session Monitoring (Polls every 20s)
+  useEffect(() => {
+    let interval;
+    if (token && !showConflictModal) {
+      interval = setInterval(async () => {
+        try {
+          await axiosInstance.get('/api/v1/user/session-check');
+        } catch (err) {
+          // axiosInstance interceptor will dispatch 'session-conflict' on 401
+          console.debug("Session check failed, handling via interceptor");
+        }
+      }, 20000); // 20 seconds
+    }
+    return () => clearInterval(interval);
+  }, [token, showConflictModal]);
 
   useEffect(() => {
     try {
@@ -96,6 +123,13 @@ const UserProvider = ({ children }) => {
   return (
     <UserContext.Provider value={contextValue}>
       {children}
+      <SessionConflictModal
+        isOpen={showConflictModal}
+        onConfirm={() => {
+          clearUser();
+          window.location.replace("/login");
+        }}
+      />
     </UserContext.Provider>
   );
 };

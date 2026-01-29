@@ -38,6 +38,15 @@ axiosInstance.interceptors.response.use(
     const { status } = error.response;
 
     if (status === 401) {
+      const message = error.response.data?.message || "";
+
+      // If it's a session conflict, don't redirect yet. 
+      // Let the UI handle it via an event.
+      if (message.includes("Internal Session Conflict")) {
+        window.dispatchEvent(new CustomEvent('session-conflict', { detail: message }));
+        return Promise.reject(error);
+      }
+
       localStorage.removeItem("user");
       localStorage.removeItem("token");
 

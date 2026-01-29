@@ -37,6 +37,9 @@ router.put("/update-email", protect, updateEmail);
 // Logout route
 router.post("/logout", protect, logoutUser);
 
+// Session check route (used for background monitoring)
+router.get("/session-check", protect, (req, res) => res.json({ active: true }));
+
 // Delete account route
 router.delete("/profile", protect, deleteUserProfile);
 

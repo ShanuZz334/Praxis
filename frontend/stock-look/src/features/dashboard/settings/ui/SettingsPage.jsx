@@ -754,14 +754,35 @@ const SettingsPage = () => {
                                     <div className="flex flex-col lg:flex-row gap-10">
                                         {/* Left Side: Configuration Form */}
                                         <div className="flex-1 space-y-6">
-                                            <div className="grid gap-6 md:grid-cols-2">
-                                                <div className="space-y-2">
-                                                    <label className="text-sm font-medium text-gray-300">Broker</label>
-                                                    <BrokerDropdown
-                                                        value={formData.broker}
-                                                        onChange={(value) => handleInputChange("broker", value)}
-                                                    />
+                                            <div className="space-y-3">
+                                                <label className="text-sm font-medium text-gray-300">Select Broker</label>
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                                                    {AVAILABLE_BROKERS.map((broker) => (
+                                                        <button
+                                                            key={broker.value}
+                                                            type="button"
+                                                            onClick={() => handleInputChange("broker", broker.value)}
+                                                            className={`flex flex-col items-center gap-2 rounded-xl p-3 transition-all border ${formData.broker === broker.value
+                                                                ? 'bg-blue-500/10 border-blue-500/40 shadow-lg shadow-blue-500/10'
+                                                                : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05] hover:border-white/10'
+                                                                }`}
+                                                        >
+                                                            <div className="h-10 w-10 flex items-center justify-center p-1">
+                                                                {broker.image ? (
+                                                                    <img src={broker.image} alt={broker.label} className="h-full w-full object-contain filter drop-shadow-md" />
+                                                                ) : (
+                                                                    <span className="text-xl">{broker.icon}</span>
+                                                                )}
+                                                            </div>
+                                                            <span className={`text-[10px] font-bold tracking-tight text-center transition-colors uppercase ${formData.broker === broker.value ? 'text-blue-400' : 'text-gray-500'}`}>
+                                                                {broker.label}
+                                                            </span>
+                                                        </button>
+                                                    ))}
                                                 </div>
+                                            </div>
+
+                                            <div className="grid gap-6 md:grid-cols-2">
                                                 {formData.broker && (
                                                     <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-300">
                                                         <label className="text-sm font-medium text-gray-300">API Key</label>
@@ -903,18 +924,7 @@ const SettingsPage = () => {
                                                         </div>
                                                     )}
 
-                                                    {/* Quick Info / Hints */}
-                                                    <div className="mt-8 rounded-xl bg-blue-500/5 border border-blue-500/10 p-4">
-                                                        <div className="flex gap-3">
-                                                            <FiInfo className="text-blue-400 shrink-0 mt-0.5" />
-                                                            <div>
-                                                                <p className="text-[11px] font-semibold text-blue-300">Pro Tip</p>
-                                                                <p className="text-[10px] text-blue-200/60 mt-1 leading-relaxed">
-                                                                    You can only connect one active broker for trade execution at a time.
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+
                                                 </div>
                                             </div>
                                         </div>
@@ -1399,17 +1409,11 @@ const SettingsPage = () => {
 
 // Broker List Data
 const AVAILABLE_BROKERS = [
-    { value: "", label: "Select Broker", icon: "📊" },
     { value: "zerodha", label: "Zerodha", icon: "🟦", image: "/src/assets/images/zerodha.png" },
-    { value: "upstox", label: "Upstox", icon: "🟪", image: "https://stocky-logos.s3.amazonaws.com/upstox.png" },
-    { value: "angelone", label: "Angel One", icon: "🔴", image: "https://stocky-logos.s3.amazonaws.com/angelone.png" },
-    { value: "icicidirect", label: "ICICI Direct", icon: "🟠" },
-    { value: "hdfcsec", label: "HDFC Securities", icon: "🔵" },
-    { value: "kotaksec", label: "Kotak Securities", icon: "🔴" },
-    { value: "5paisa", label: "5Paisa", icon: "🟡" },
-    { value: "groww", label: "Groww", icon: "🟢" },
-    { value: "sharekhan", label: "Sharekhan", icon: "🟠" },
-    { value: "motilal", label: "Motilal Oswal", icon: "🔵" }
+    { value: "upstox", label: "Upstox", icon: "🟪", image: "/src/assets/images/Upstox.png" },
+    { value: "angelone", label: "Angel One", icon: "🔴", image: "/src/assets/images/angle one.png" },
+    { value: "kotaksec", label: "Kotak Securities", icon: "🔴", image: "/src/assets/images/kotak.png" },
+    { value: "groww", label: "Groww", icon: "🟢", image: "/src/assets/images/groww.png" }
 ];
 
 const ConnectedBrokerCard = ({ broker, clientId, onClick, loading }) => {
@@ -1447,70 +1451,6 @@ const ConnectedBrokerCard = ({ broker, clientId, onClick, loading }) => {
                 </div>
             </div>
         </button>
-    );
-};
-
-// Custom Broker Dropdown Component with Glassmorphism
-const BrokerDropdown = ({ value, onChange }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const brokers = AVAILABLE_BROKERS;
-
-    const selectedBroker = brokers.find(b => b.value === value) || brokers[0];
-
-    return (
-        <div className="relative">
-            <button
-                type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full appearance-none rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-3 pr-10 text-white text-sm text-left focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 cursor-pointer transition-all hover:border-white/20"
-            >
-                <span className={`flex items-center gap-2 ${value ? "text-white" : "text-gray-400"}`}>
-                    {selectedBroker.image ? (
-                        <img src={selectedBroker.image} alt={selectedBroker.label} className="w-5 h-5 object-contain" />
-                    ) : (
-                        selectedBroker.icon && <span className="text-lg">{selectedBroker.icon}</span>
-                    )}
-                    {selectedBroker.label}
-                </span>
-                <FiChevronDown
-                    className={`absolute right-3 top-1/2 -translate-y-1/2 text-white transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                />
-            </button>
-
-            {isOpen && (
-                <>
-                    <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setIsOpen(false)}
-                    />
-                    <div className="absolute z-20 w-full mt-2 rounded-lg border border-white/10 bg-[#0a0f1e]/80 backdrop-blur-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 max-h-[192px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                        {brokers.map((broker) => (
-                            <button
-                                key={broker.value}
-                                type="button"
-                                onClick={() => {
-                                    onChange(broker.value);
-                                    setIsOpen(false);
-                                }}
-                                className={`w-full px-4 py-3 text-left text-sm transition-all duration-150 flex items-center gap-2 ${broker.value === value
-                                    ? 'bg-blue-500/20 text-white font-medium'
-                                    : broker.value === ""
-                                        ? 'text-gray-400 hover:bg-white/5 hover:text-gray-300'
-                                        : 'text-white hover:bg-white/5'
-                                    }`}
-                            >
-                                {broker.image ? (
-                                    <img src={broker.image} alt={broker.label} className="w-5 h-5 object-contain" />
-                                ) : (
-                                    broker.icon && <span className="text-lg">{broker.icon}</span>
-                                )}
-                                {broker.label}
-                            </button>
-                        ))}
-                    </div>
-                </>
-            )}
-        </div>
     );
 };
 
