@@ -1,66 +1,66 @@
 /* --------------------------------------------------------------------------
    GLOBAL PALETTE
    The single source of truth for all colors in the application.
-   Do strictly use these constants or their Tailwind equivalents.
+   Uses CSS variables for dynamic theme adaptation.
 -------------------------------------------------------------------------- */
 
 export const colors = {
     // Backgrounds
     background: {
-        app: "#02050e",
-        card: "#0b1220",   // Darker card background
-        elevated: "#101a33",
-        surface: "rgba(255, 255, 255, 0.02)",
+        app: "var(--bg-app)",
+        card: "var(--bg-card)",
+        elevated: "var(--bg-surface)",
+        surface: "var(--glass-bg)",
     },
 
     // Borders
     border: {
-        default: "rgba(255, 255, 255, 0.05)", // 5% (Matches Card)
-        subtle: "rgba(255, 255, 255, 0.02)",  // 2% (Ultra-thin internal)
-        hover: "rgba(255, 255, 255, 0.10)",   // 10%
-        active: "rgba(59, 130, 246, 0.5)",
+        default: "var(--border-main)",
+        subtle: "var(--border-main)",
+        hover: "var(--border-hover)",
+        active: "var(--accent-primary)",
     },
 
-    // Text (Opacity based on white)
+    // Text
     text: {
-        primary: "rgba(255, 255, 255, 0.9)",
-        secondary: "rgba(255, 255, 255, 0.6)",
-        tertiary: "rgba(255, 255, 255, 0.4)",
-        brand: "#60a5fa", // blue-400
+        primary: "var(--text-primary)",
+        secondary: "var(--text-secondary)",
+        tertiary: "var(--text-muted)",
+        brand: "var(--accent-primary)",
     },
 
     // Semantic States
     state: {
         bullish: {
-            main: "#10b981", // emerald-500
-            text: "#34d399", // emerald-400
+            main: "var(--success)",
+            text: "var(--success)",
             surface: "rgba(16, 185, 129, 0.1)",
-            border: "rgba(16, 185, 129, 0.3)",
+            border: "var(--border-main)",
         },
         bearish: {
-            main: "#ef4444", // red-500
-            text: "#f87171", // red-400
+            main: "var(--danger)",
+            text: "var(--danger)",
             surface: "rgba(239, 68, 68, 0.1)",
-            border: "rgba(239, 68, 68, 0.3)",
+            border: "var(--border-main)",
         },
         neutral: {
-            main: "#64748b", // slate-500
-            text: "#e2e8f0", // slate-200
+            main: "var(--neutral)",
+            text: "var(--text-secondary)",
             surface: "rgba(100, 116, 139, 0.1)",
-            border: "rgba(100, 116, 139, 0.3)",
+            border: "var(--border-main)",
         },
         warning: {
-            main: "#f59e0b", // amber-500
-            text: "#fbbf24", // amber-400
+            main: "var(--warning)",
+            text: "var(--warning)",
             surface: "rgba(245, 158, 11, 0.1)",
         }
     },
 
     // Reliability Tiers (Colors Only)
     reliability: {
-        high: "#10b981",
+        high: "var(--success)",
         med: "#facc15", // yellow-400
-        low: "#94a3b8", // slate-400
+        low: "var(--text-muted)",
     }
 };
 

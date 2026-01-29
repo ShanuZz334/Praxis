@@ -12,10 +12,10 @@ import { typography } from "@/shared/global/styles/typography";
 -------------------------------------------------------------------------- */
 
 const STYLES = {
-    BORDER_OUTER: "border-white/15",       // 5% (Matches Card)
-    BORDER_INNER: "border-white/15",  // 5% (Badges, Inputs, Hovers)
-    DIVIDE: "divide-white/[0.05]",        // 2% (Grid Dividers)
-    BORDER_DIVIDER: "border-white/[0.05]" // 2% (Section Separators)
+    BORDER_OUTER: "border-[var(--border-main)]",
+    BORDER_INNER: "border-[var(--border-hover)]",
+    DIVIDE: "divide-[var(--border-main)]",
+    BORDER_DIVIDER: "border-[var(--border-main)]"
 };
 
 export default function GlobalHeader({
@@ -35,11 +35,11 @@ export default function GlobalHeader({
 
     // Info / Manual
     infoContent = (
-        <div className="w-80 p-4 bg-[#0b1220] border border-white/10 rounded-xl shadow-2xl">
-            <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-2">
-                <span className="text-xs font-bold text-white uppercase tracking-wider">System Composite</span>
+        <div className="w-80 p-4 bg-[var(--bg-surface)] border border-[var(--border-hover)] rounded-xl shadow-2xl">
+            <div className="flex items-center gap-2 mb-2 border-b border-[var(--border-main)] pb-2">
+                <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">System Composite</span>
             </div>
-            <p className="text-xs text-white/70 leading-relaxed">
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 The Stocky Composite Score aggregates real-time data from Technical (30%), Options (25%), Fundamental (20%), Global Macro (15%), and Events (10%) engines into a single directional signal.
             </p>
             <div className="mt-3 pt-2 border-t border-white/5 flex items-center gap-1.5 text-[10px] text-blue-400 font-bold uppercase tracking-wide">
@@ -109,10 +109,10 @@ export default function GlobalHeader({
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* MAIN BLOCK */}
-            <div className={`relative rounded-2xl border ${STYLES.BORDER_OUTER} shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden bg-background-card`}>
+            <div className={`relative rounded-2xl border ${STYLES.BORDER_OUTER} shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden bg-[var(--bg-card)] backdrop-blur-md`}>
 
                 {/* TOP ROW: GAUGE | REGIME | INTEGRITY */}
-                <div className={`grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x ${STYLES.DIVIDE} border-b ${STYLES.BORDER_DIVIDER} bg-background-surface min-h-[220px]`}>
+                <div className={`grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x ${STYLES.DIVIDE} border-b ${STYLES.BORDER_DIVIDER} bg-[var(--bg-surface)]/50 min-h-[220px]`}>
 
                     {/* A. GAUGE */}
                     <div className="p-4 md:p-6 group relative flex flex-col md:block">
@@ -167,7 +167,7 @@ export default function GlobalHeader({
                         {/* Simple Linear Scale */}
                         <div className="relative h-2 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 opacity-80">
                             <div
-                                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-background-app rounded-full shadow-lg transition-all duration-1000"
+                                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-[var(--text-primary)] border-2 border-[var(--bg-app)] rounded-full shadow-lg transition-all duration-1000"
                                 style={{ left: `${Math.max(5, Math.min(95, score))}%` }}
                             />
                         </div>
@@ -203,7 +203,7 @@ export default function GlobalHeader({
                                 <StatBlock
                                     label={creditLabel}
                                     value={totalCredits}
-                                    color="text-white/90"
+                                    color="text-[var(--text-primary)]"
                                     breakdown={enableBreakdown ? creditBreakdown : null}
                                 />
                                 <StatBlock
@@ -265,8 +265,8 @@ function StatBlock({ label, value, color, breakdown }) {
     return (
         <PortalTooltip
             content={
-                <div className="w-48 bg-[#0b1220] border border-white/10 rounded-lg shadow-xl p-3">
-                    <div className="text-[10px] font-bold text-white/50 uppercase border-b border-white/5 pb-1 mb-2 tracking-wider">
+                <div className="w-48 bg-[var(--bg-surface)] border border-[var(--border-hover)] rounded-lg shadow-xl p-3">
+                    <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase border-b border-[var(--border-main)] pb-1 mb-2 tracking-wider">
                         {label} Breakdown
                     </div>
                     <div className="space-y-1.5">
@@ -298,13 +298,13 @@ function SectionBar({ sections }) {
 
                 return (
                     <div key={s.id} className="relative flex flex-col items-center justify-end h-full group">
-                        <div className={`w-2 rounded-full bg-background-surface h-full relative overflow-hidden border ${STYLES.BORDER_INNER}`}>
+                        <div className={`w-2 rounded-full bg-[var(--bg-app)] h-full relative overflow-hidden border ${STYLES.BORDER_INNER}`}>
                             <div
                                 className={`absolute bottom-0 w-full ${barColor} transition-all duration-500`}
                                 style={{ height: `${heightPct}%` }}
                             />
                         </div>
-                        <div className="mt-2 text-[9px] uppercase font-bold text-text-tertiary">{s.label}</div>
+                        <div className="mt-2 text-[9px] uppercase font-bold text-[var(--text-muted)]">{s.label}</div>
                     </div>
                 );
             })}
@@ -314,10 +314,10 @@ function SectionBar({ sections }) {
 
 function ImpactList({ title, items, type }) {
     const isBull = type === 'bull';
-    const colorClass = isBull ? "text-green-500" : "text-red-500";
-    const bgClass = isBull ? "bg-state-bullish-surface" : "bg-state-bearish-surface";
+    const colorClass = isBull ? "text-emerald-500" : "text-red-500";
+    const bgClass = isBull ? "bg-emerald-500/5" : "bg-red-500/5";
     const badgeText = isBull ? "BULLISH DRIVERS" : "BEARISH DRIVERS";
-    const valColor = isBull ? "text-green-400" : "text-red-400";
+    const valColor = isBull ? "text-emerald-500" : "text-red-500";
 
     return (
         <div className={`p-5 ${bgClass} h-[240px] flex flex-col`}>
@@ -329,10 +329,10 @@ function ImpactList({ title, items, type }) {
             </div>
             <div className="space-y-2">
                 {items.length > 0 ? items.map((item, i) => (
-                    <div key={item.id || i} className={`flex items-center justify-between p-2 rounded hover:bg-background-surface transition-colors border border-transparent hover:${STYLES.BORDER_INNER}`}>
+                    <div key={item.id || i} className={`flex items-center justify-between p-2 rounded hover:bg-[var(--bg-app)] transition-colors border border-transparent hover:${STYLES.BORDER_INNER}`}>
                         <div>
-                            <div className="text-sm text-text-primary font-medium leading-none mb-1">{item.label}</div>
-                            <div className="text-[10px] text-text-tertiary">{item.sub || "High Impact"}</div>
+                            <div className="text-sm text-[var(--text-primary)] font-medium leading-none mb-1">{item.label}</div>
+                            <div className="text-[10px] text-[var(--text-muted)]">{item.sub || "High Impact"}</div>
                         </div>
                         <div className={`text-xs font-bold ${valColor} font-mono`}>
                             {type === 'bull' ? '+' : ''}{item.value}%
@@ -348,7 +348,7 @@ function ImpactList({ title, items, type }) {
 
 function HeaderControls({ controls }) {
     return (
-        <div className={`flex flex-col md:flex-row justify-between items-center border-t ${STYLES.BORDER_DIVIDER} pt-4 p-4 text-text-primary bg-background-card`}>
+        <div className={`flex flex-col md:flex-row justify-between items-center border-t ${STYLES.BORDER_DIVIDER} pt-4 p-4 text-[var(--text-primary)] bg-[var(--bg-surface)]`}>
             {/* LEFT: Search */}
             <div className="relative group w-full md:w-64 transition-all focus-within:md:w-80 mb-4 md:mb-0">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-tertiary">

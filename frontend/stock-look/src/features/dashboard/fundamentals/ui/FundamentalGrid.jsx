@@ -57,7 +57,7 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
           />
         ))}
         {cards.length === 0 && (
-          <div className="col-span-full text-center py-12 text-white/30 italic">
+          <div className="col-span-full text-center py-12 text-[var(--text-muted)] italic">
             No metrics match your search.
           </div>
         )}
@@ -80,14 +80,14 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
           <div key={section.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Section Header */}
             <div className="flex items-center gap-4 mb-6">
-              <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+              <div className="h-px flex-1 bg-gradient-to-r from-[var(--border-main)] to-transparent" />
               <div className="flex items-center gap-3">
-                <span className="text-sm font-bold text-white/90 uppercase tracking-widest">{section.label}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-white/40 font-mono">
+                <span className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">{section.label}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg-card)] text-[var(--text-muted)] font-mono border border-[var(--border-main)]">
                   {sectionCards.length}
                 </span>
               </div>
-              <div className="h-px flex-1 bg-gradient-to-l from-white/10 to-transparent" />
+              <div className="h-px flex-1 bg-gradient-to-l from-[var(--border-main)] to-transparent" />
             </div>
 
             {/* Grid */}

@@ -20,7 +20,7 @@ const MobileHeader = ({ onMenuClick }) => {
             </button>
 
             {/* Center: Brand (Optional, maybe small logo) */}
-            <div className="text-lg font-brand font-bold text-blue-500 tracking-wide">
+            <div className="text-lg font-brand font-bold text-[var(--accent-primary)] tracking-wide">
                 Stocky
             </div>
 

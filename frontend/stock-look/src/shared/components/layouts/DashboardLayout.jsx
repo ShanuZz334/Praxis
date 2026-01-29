@@ -66,10 +66,14 @@ const DashboardLayout = () => {
 `} onClick={() => setShowMobileMenu(false)} />
 
       <div className={`
-        fixed inset-y-0 left-0 z-[61] w-[280px] bg-[var(--bg-surface)] md:bg-black/20 backdrop-blur-2xl border-r border-[var(--border-main)] shadow-2xl transform transition-transform duration-300 md:hidden
+        fixed inset-y-0 left-0 z-[61] w-[280px] bg-[var(--bg-surface)] md:bg-[var(--bg-card)] backdrop-blur-2xl border-r border-[var(--border-main)] shadow-2xl transform transition-transform duration-300 md:hidden
         ${showMobileMenu ? "translate-x-0" : "-translate-x-full"}
 `}>
         <div className="h-full pt-safe-area-top pb-safe-area-bottom">
+          {/* Center: Brand (Optional, maybe small logo) */}
+          <div className="text-lg font-brand font-bold text-[var(--accent-primary)] tracking-wide p-4">
+            Stocky
+          </div>
           <SideMenu
             collapsed={false}
             activeMenu={activeMenu}

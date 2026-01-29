@@ -35,7 +35,7 @@ export function getSignalState(normalized = 0) {
     return {
         label: "Neutral",
         color: colors.state.neutral.main,
-        className: "text-slate-400"
+        className: "text-[var(--text-muted)]"
     };
 }
 
@@ -46,7 +46,7 @@ export function getSignalState(normalized = 0) {
 export function getCompositeState(score = 0) {
     if (score >= 70) return { label: "Bullish", className: "text-emerald-400", color: colors.state.bullish.main };
     if (score >= 55) return { label: "Neutral-Positive", className: "text-emerald-400/80", color: colors.state.bullish.main };
-    if (score >= 45) return { label: "Neutral", className: "text-slate-200", color: colors.state.neutral.main };
+    if (score >= 45) return { label: "Neutral", className: "text-[var(--text-secondary)]", color: colors.state.neutral.main };
     if (score >= 30) return { label: "Neutral-Negative", className: "text-orange-400", color: colors.state.warning.main };
     return { label: "Bearish", className: "text-red-500", color: colors.state.bearish.main };
 }

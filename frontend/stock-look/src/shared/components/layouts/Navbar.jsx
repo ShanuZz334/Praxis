@@ -42,7 +42,7 @@ const Navbar = ({ onToggleSidebar }) => {
           <img
             src={logoBgless}
             alt="Menu"
-            className="w-17 h-17 transition-transform hover:scale-110"
+            className="w-17 h-17 transition-transform hover:scale-110 theme-invert"
           />
         </button>
       </div>
@@ -76,7 +76,7 @@ const Navbar = ({ onToggleSidebar }) => {
       {/* CENTER — STOCKY LOGO */}
       <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
         {/* Mobile: Blue Text */}
-        <span className="md:hidden text-2xl font-bold text-blue-500 tracking-tight">
+        <span className="md:hidden text-2xl font-bold text-[var(--accent-primary)] tracking-tight">
           Stocky
         </span>
         {/* Desktop: Image Logo */}

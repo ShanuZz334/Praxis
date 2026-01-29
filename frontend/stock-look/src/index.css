@@ -159,3 +159,13 @@ body {
 .recharts-tooltip-wrapper {
   z-index: 9999 !important;
 }
+
+/* Light Mode specific adjustments */
+[data-theme='light'] .theme-invert {
+  filter: invert(0.8) brightness(0.2);
+}
+
+[data-theme='light'] .recharts-cartesian-grid-horizontal line,
+[data-theme='light'] .recharts-cartesian-grid-vertical line {
+  stroke: var(--border-main);
+}
