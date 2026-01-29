@@ -33,6 +33,13 @@ import {
 } from "../../../../services/userService";
 import Loader from "../../../../shared/components/ui/Loader";
 
+// Broker Logos
+import zerodhaLogo from "../../../../assets/images/zerodha.png";
+import upstoxLogo from "../../../../assets/images/Upstox.png";
+import angelOneLogo from "../../../../assets/images/angel_one.png";
+import kotakLogo from "../../../../assets/images/kotak.png";
+import growwLogo from "../../../../assets/images/groww.png";
+
 const SettingsPage = () => {
     // Context
     const { user, updateUser, token, theme, setTheme } = useContext(UserContext);
@@ -626,19 +633,19 @@ const SettingsPage = () => {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition-all ${activeTab === tab.id
-                                    ? "bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 text-[var(--text-primary)] shadow-lg shadow-blue-500/10"
-                                    : "text-[var(--text-secondary)] hover:bg-[var(--glass-bg)] hover:text-[var(--text-primary)] border border-transparent"
+                                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition-all duration-300 ${activeTab === tab.id
+                                    ? "bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 text-[var(--text-primary)] shadow-[0_0_24px_rgba(59,130,246,0.15)]"
+                                    : "text-[var(--text-secondary)] hover:bg-[#0a0f1e]/70 hover:text-[var(--text-primary)] border border-transparent hover:border-white/[0.1] hover:shadow-lg hover:-translate-y-0.5"
                                     }`}
                             >
-                                <tab.icon className={`h-5 w-5 ${activeTab === tab.id ? "text-blue-400" : ""}`} />
+                                <tab.icon className={`h-5 w-5 transition-colors duration-300 ${activeTab === tab.id ? "text-blue-400" : "group-hover:text-blue-400"}`} />
                                 {tab.label}
                             </button>
                         ))}
                     </nav>
 
                     {/* Main Content Area */}
-                    <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-surface)] p-6 lg:p-8 shadow-xl shadow-black/5">
+                    <div className="rounded-2xl border border-white/[0.07] bg-[var(--bg-surface)] p-6 lg:p-8 shadow-xl shadow-black/5 backdrop-blur-sm">
 
                         {/* --- ACCOUNT TAB --- */}
                         {activeTab === "account" && (
@@ -683,7 +690,7 @@ const SettingsPage = () => {
                                             type="text"
                                             value={formData.fullName}
                                             onChange={(e) => handleInputChange("fullName", e.target.value)}
-                                            className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-2.5 text-[var(--text-primary)] focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            className="w-full rounded-lg border border-white/[0.07] bg-[var(--input-bg)] px-4 py-2.5 text-[var(--text-primary)] focus:border-blue-500/50 focus:outline-none focus:bg-[#0a0f1e]/80 focus:shadow-[0_0_20px_rgba(59,130,246,0.1)] transition-all duration-200"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -704,11 +711,11 @@ const SettingsPage = () => {
                                                 type="email"
                                                 value={formData.email}
                                                 disabled // Not directly editable needs OTP flow trigger
-                                                className="w-full cursor-not-allowed rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)]/50 px-4 py-2.5 text-[var(--text-secondary)]"
+                                                className="w-full cursor-not-allowed rounded-lg border border-white/[0.07] bg-[var(--input-bg)]/50 px-4 py-2.5 text-[var(--text-secondary)]"
                                             />
                                             <button
                                                 onClick={() => setShowEmailChangeModal(true)}
-                                                className="shrink-0 rounded-lg border border-[var(--border-main)] px-4 py-2 text-sm font-medium hover:bg-white/5"
+                                                className="shrink-0 rounded-lg border border-white/[0.07] px-4 py-2 text-sm font-medium hover:bg-white/5 hover:border-white/[0.15] transition-all active:scale-95"
                                             >
                                                 Change
                                             </button>
@@ -747,7 +754,7 @@ const SettingsPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="border-t border-[var(--border-main)] pt-8">
+                                <div className="border-t border-white/[0.07] pt-8">
                                     <h3 className="mb-4 flex items-center gap-2 text-lg font-medium">
                                         <FiLink2 className="text-blue-400" /> Broker Integration
                                     </h3>
@@ -764,7 +771,7 @@ const SettingsPage = () => {
                                                             onClick={() => handleInputChange("broker", broker.value)}
                                                             className={`flex flex-col items-center gap-2 rounded-xl p-3 transition-all border ${formData.broker === broker.value
                                                                 ? 'bg-blue-500/10 border-blue-500/40 shadow-lg shadow-blue-500/10'
-                                                                : 'bg-[var(--glass-bg)] border-[var(--border-main)] hover:bg-white/[0.05] hover:border-[var(--border-main)]'
+                                                                : 'bg-[#0a0f1e]/50 border-white/[0.07] hover:bg-[#0a0f1e]/70 hover:border-white/[0.15] hover:shadow-lg hover:-translate-y-0.5'
                                                                 }`}
                                                         >
                                                             <div className="h-10 w-10 flex items-center justify-center p-1">
@@ -791,7 +798,7 @@ const SettingsPage = () => {
                                                             value={formData.apiKey}
                                                             onChange={(e) => handleInputChange("apiKey", e.target.value)}
                                                             placeholder="Enter your broker API key"
-                                                            className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-2.5 text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
+                                                            className="w-full rounded-lg border border-white/[0.07] bg-[var(--input-bg)] px-4 py-2.5 text-[var(--text-primary)] focus:border-blue-500/50 focus:outline-none focus:shadow-[0_0_20px_rgba(59,130,246,0.1)] transition-all duration-200"
                                                         />
                                                     </div>
                                                 )}
@@ -806,7 +813,7 @@ const SettingsPage = () => {
                                                             value={formData.apiSecret}
                                                             onChange={(e) => handleInputChange("apiSecret", e.target.value)}
                                                             placeholder="Enter your broker API secret"
-                                                            className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-2.5 text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
+                                                            className="w-full rounded-lg border border-white/[0.07] bg-[var(--input-bg)] px-4 py-2.5 text-[var(--text-primary)] focus:border-blue-500/50 focus:outline-none focus:shadow-[0_0_20px_rgba(59,130,246,0.1)] transition-all duration-200"
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
@@ -816,7 +823,7 @@ const SettingsPage = () => {
                                                             value={formData.clientId}
                                                             onChange={(e) => handleInputChange("clientId", e.target.value)}
                                                             placeholder="Your broker client ID"
-                                                            className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-2.5 text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
+                                                            className="w-full rounded-lg border border-white/[0.07] bg-[var(--input-bg)] px-4 py-2.5 text-[var(--text-primary)] focus:border-blue-500/50 focus:outline-none focus:shadow-[0_0_20px_rgba(59,130,246,0.1)] transition-all duration-200"
                                                         />
                                                     </div>
                                                 </div>
@@ -931,7 +938,7 @@ const SettingsPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="border-t border-[var(--border-main)] pt-8">
+                                <div className="border-t border-white/[0.07] pt-8">
                                     <h3 className="mb-4 flex items-center gap-2 text-lg font-medium text-red-500">
                                         <FiAlertCircle className="text-red-500" /> Danger Zone
                                     </h3>
@@ -964,7 +971,7 @@ const SettingsPage = () => {
                                         { id: "portfolioAlerts", label: "Portfolio Updates", desc: "Daily P&L and position summaries" },
                                         { id: "systemMessages", label: "System Messages", desc: "Maintenance and platform updates" },
                                     ].map(item => (
-                                        <div key={item.id} className="flex items-center justify-between rounded-lg border border-[var(--border-main)] bg-[var(--glass-bg)] p-4">
+                                        <div key={item.id} className="flex items-center justify-between rounded-lg border border-white/[0.07] bg-[var(--glass-bg)] p-4 transition-all hover:border-white/[0.15] hover:bg-white/[0.05]">
                                             <div>
                                                 <p className="font-medium">{item.label}</p>
                                                 <p className="text-sm text-[var(--text-secondary)]">{item.desc}</p>
@@ -985,7 +992,7 @@ const SettingsPage = () => {
                                         { id: "deliveryApp", label: "In-App Push", icon: FiBell },
                                         { id: "deliveryEmail", label: "Email Digest", icon: FiUser }, // Using user icon as placeholder for email or generically
                                     ].map(item => (
-                                        <div key={item.id} className="flex items-center justify-between rounded-lg border border-[var(--border-main)] bg-[var(--glass-bg)] p-4">
+                                        <div key={item.id} className="flex items-center justify-between rounded-lg border border-white/[0.07] bg-[var(--glass-bg)] p-4 transition-all hover:border-white/[0.15] hover:bg-white/[0.05]">
                                             <div className="flex items-center gap-3">
                                                 <item.icon className="text-[var(--text-secondary)]" />
                                                 <span className="font-medium">{item.label}</span>
@@ -1010,7 +1017,7 @@ const SettingsPage = () => {
                                     <p className="text-sm text-[var(--text-secondary)]">Manage your password and account security</p>
                                 </div>
 
-                                <div className="rounded-xl border border-[var(--border-main)] bg-[var(--input-bg)]/50 p-6">
+                                <div className="rounded-xl border border-white/[0.07] bg-[var(--input-bg)]/50 p-6">
                                     <h3 className="mb-4 text-lg font-medium">Update Password</h3>
                                     <div className="grid gap-4 md:grid-cols-2">
                                         <div className="space-y-2 md:col-span-2">
@@ -1019,7 +1026,7 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.currentPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                                                className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-2.5 focus:border-blue-500 focus:outline-none"
+                                                className="w-full rounded-lg border border-white/[0.07] bg-[var(--input-bg)] px-4 py-2.5 focus:border-blue-500/50 focus:outline-none focus:shadow-[0_0_20px_rgba(59,130,246,0.1)] transition-all"
                                             />
                                         </div>
 
@@ -1029,7 +1036,7 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.newPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                                                className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-2.5 focus:border-blue-500 focus:outline-none"
+                                                className="w-full rounded-lg border border-white/[0.07] bg-[var(--input-bg)] px-4 py-2.5 focus:border-blue-500/50 focus:outline-none focus:shadow-[0_0_20px_rgba(59,130,246,0.1)] transition-all"
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -1038,7 +1045,7 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.confirmPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                                                className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-2.5 focus:border-blue-500 focus:outline-none"
+                                                className="w-full rounded-lg border border-white/[0.07] bg-[var(--input-bg)] px-4 py-2.5 focus:border-blue-500/50 focus:outline-none focus:shadow-[0_0_20px_rgba(59,130,246,0.1)] transition-all"
                                             />
                                         </div>
                                     </div>
@@ -1090,8 +1097,8 @@ const SettingsPage = () => {
                                                     key={mode.id}
                                                     onClick={() => handleTradingModeSelect(mode.id)}
                                                     className={`group relative flex flex-col items-center gap-3 rounded-xl border p-6 text-center transition-all duration-300 ${isActive
-                                                        ? `${getModeColor(mode.id)} border-transparent bg-gradient-to-b ${getModeGradient(mode.id)} ring-1 ring-white/10 shadow-xl`
-                                                        : "border-[var(--border-main)] bg-[var(--input-bg)]/50 hover:border-[var(--border-main)] hover:bg-[var(--glass-bg)]"
+                                                        ? `${getModeColor(mode.id)} border-transparent bg-gradient-to-b ${getModeGradient(mode.id)} ring-1 ring-white/10 shadow-[0_0_24px_rgba(59,130,246,0.15)]`
+                                                        : "border-white/[0.07] bg-[var(--input-bg)]/50 hover:border-white/[0.15] hover:bg-white/[0.05] hover:shadow-lg hover:-translate-y-0.5"
                                                         }`}
                                                 >
                                                     <mode.icon className={`h-8 w-8 transition-colors duration-300 ${isActive ? "text-[var(--text-primary)]" : "text-gray-500 group-hover:text-[var(--text-secondary)]"}`} />
@@ -1108,7 +1115,7 @@ const SettingsPage = () => {
                                 {/* Theme Toggle */}
                                 <div className="pt-4">
                                     <h3 className="mb-4 text-sm font-medium text-[var(--text-secondary)]">Appearance</h3>
-                                    <div className="flex items-center justify-between rounded-lg border border-[var(--border-main)] bg-[var(--glass-bg)] p-4">
+                                    <div className="flex items-center justify-between rounded-lg border border-white/[0.07] bg-[var(--glass-bg)] p-4">
                                         <div>
                                             <p className="font-medium text-[var(--text-primary)]">Theme Preference</p>
                                             <div className="mt-1 flex items-center gap-2 text-sm text-[var(--text-muted)]">
@@ -1116,7 +1123,7 @@ const SettingsPage = () => {
                                                 {theme === 'dark' ? 'Dark mode is recommended for focus & reduced eye strain' : 'Light mode provides better readability in bright environments'}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 bg-[var(--input-bg)] p-1 rounded-lg border border-[var(--border-main)]">
+                                        <div className="flex items-center gap-2 bg-[var(--input-bg)] p-1 rounded-lg border border-white/[0.07]">
                                             <button
                                                 onClick={() => setTheme('light')}
                                                 className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all ${theme === 'light' ? "bg-blue-600 text-[var(--text-primary)] font-medium shadow-md shadow-blue-500/20" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -1155,7 +1162,7 @@ const SettingsPage = () => {
                             <div className="mt-8 flex gap-3">
                                 <button
                                     onClick={() => setShowAggressiveWarning(false)}
-                                    className="flex-1 rounded-lg border border-[var(--border-main)] py-2.5 font-medium text-gray-300 hover:bg-white/5"
+                                    className="flex-1 rounded-lg border border-white/[0.07] py-2.5 font-medium text-gray-300 hover:bg-white/5 hover:border-white/[0.15] transition-all"
                                 >
                                     Cancel
                                 </button>
@@ -1175,7 +1182,7 @@ const SettingsPage = () => {
             {
                 showEmailOtpModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                        <div className="w-full max-w-md rounded-2xl border border-[var(--border-main)] bg-[#0d1226] p-6 shadow-2xl">
+                        <div className="w-full max-w-md rounded-2xl border border-white/[0.07] bg-[#0d1226] p-6 shadow-2xl">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-lg font-bold text-[var(--text-primary)]">Change Email Address</h3>
                                 <button onClick={() => setShowEmailOtpModal(false)}><FiX className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]" /></button>
@@ -1187,7 +1194,7 @@ const SettingsPage = () => {
                                     <input
                                         type="email"
                                         placeholder="New Email Address"
-                                        className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-3 text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
+                                        className="w-full rounded-lg border border-white/[0.07] bg-[var(--input-bg)] px-4 py-3 text-[var(--text-primary)] focus:border-blue-500/50 focus:outline-none focus:shadow-[0_0_20px_rgba(59,130,246,0.1)] transition-all"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') initiateEmailChange(e.currentTarget.value)
                                         }}
@@ -1213,7 +1220,7 @@ const SettingsPage = () => {
                                         maxLength={6}
                                         onChange={(e) => setEmailOtp(e.target.value)}
                                         placeholder="000 000"
-                                        className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-3 text-center text-xl tracking-widest text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
+                                        className="w-full rounded-lg border border-white/[0.07] bg-[var(--input-bg)] px-4 py-3 text-center text-xl tracking-widest text-[var(--text-primary)] focus:border-blue-500/50 focus:outline-none focus:shadow-[0_0_20px_rgba(59,130,246,0.1)]"
                                     />
                                     <div className="flex justify-between text-xs text-gray-500">
                                         <span>Expires in 5:00</span>
@@ -1247,7 +1254,7 @@ const SettingsPage = () => {
             {
                 showVerifyEmailOtpModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                        <div className="w-full max-w-md rounded-2xl border border-[var(--border-main)] bg-[#0d1226] p-6 shadow-2xl">
+                        <div className="w-full max-w-md rounded-2xl border border-white/[0.07] bg-[#0d1226] p-6 shadow-2xl">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-bold text-[var(--text-primary)] uppercase tracking-tight">Verify Email</h3>
                                 <button onClick={() => setShowVerifyEmailOtpModal(false)}><FiX className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] shadow-sm" /></button>
@@ -1264,7 +1271,7 @@ const SettingsPage = () => {
                                         maxLength={6}
                                         onChange={(e) => setEmailOtp(e.target.value)}
                                         placeholder="000 000"
-                                        className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-4 text-center text-2xl font-bold tracking-[0.5em] text-[var(--text-primary)] focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-[var(--text-primary)]/5"
+                                        className="w-full rounded-lg border border-white/[0.07] bg-[var(--input-bg)] px-4 py-4 text-center text-2xl font-bold tracking-[0.5em] text-[var(--text-primary)] focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-[var(--text-primary)]/5"
                                     />
                                 </div>
                                 <div className="flex justify-between text-[10px] text-gray-500 uppercase font-medium tracking-wider">
@@ -1319,7 +1326,7 @@ const SettingsPage = () => {
                                         value={pendingEmail}
                                         onChange={(e) => setPendingEmail(e.target.value)}
                                         placeholder="your.email@example.com"
-                                        className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-3 text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
+                                        className="w-full rounded-lg border border-white/[0.07] bg-[var(--input-bg)] px-4 py-3 text-[var(--text-primary)] focus:border-blue-500/50 focus:outline-none focus:shadow-[0_0_20px_rgba(59,130,246,0.1)]"
                                     />
                                 </div>
 
@@ -1329,7 +1336,7 @@ const SettingsPage = () => {
                                             setShowEmailChangeModal(false);
                                             setPendingEmail("");
                                         }}
-                                        className="flex-1 rounded-lg border border-[var(--border-main)] py-3 text-sm font-medium text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]"
+                                        className="flex-1 rounded-lg border border-white/[0.07] py-3 text-sm font-medium text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)] transition-all hover:border-white/[0.15]"
                                     >
                                         Cancel
                                     </button>
@@ -1376,7 +1383,7 @@ const SettingsPage = () => {
                                     value={deleteConfirmText}
                                     onChange={(e) => setDeleteConfirmText(e.target.value)}
                                     placeholder="Type DELETE here"
-                                    className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-3 text-center text-[var(--text-primary)] focus:border-red-500 focus:outline-none"
+                                    className="w-full rounded-lg border border-white/[0.07] bg-[var(--input-bg)] px-4 py-3 text-center text-[var(--text-primary)] focus:border-red-500/50 focus:outline-none focus:shadow-[0_0_20px_rgba(239,68,68,0.1)]"
                                 />
 
                                 <div className="flex gap-3 pt-2">
@@ -1386,7 +1393,7 @@ const SettingsPage = () => {
                                             setDeleteConfirmText("");
                                         }}
                                         disabled={isDeleting}
-                                        className="flex-1 rounded-lg border border-[var(--border-main)] py-3 text-sm font-medium text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]"
+                                        className="flex-1 rounded-lg border border-white/[0.07] py-3 text-sm font-medium text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)] transition-all hover:border-white/[0.15]"
                                     >
                                         Cancel
                                     </button>
@@ -1409,11 +1416,11 @@ const SettingsPage = () => {
 
 // Broker List Data
 const AVAILABLE_BROKERS = [
-    { value: "zerodha", label: "Zerodha", icon: "🟦", image: "/src/assets/images/zerodha.png" },
-    { value: "upstox", label: "Upstox", icon: "🟪", image: "/src/assets/images/Upstox.png" },
-    { value: "angelone", label: "Angel One", icon: "🔴", image: "/src/assets/images/angle one.png" },
-    { value: "kotaksec", label: "Kotak Securities", icon: "🔴", image: "/src/assets/images/kotak.png" },
-    { value: "groww", label: "Groww", icon: "🟢", image: "/src/assets/images/groww.png" }
+    { value: "zerodha", label: "Zerodha", icon: "🟦", image: zerodhaLogo },
+    { value: "upstox", label: "Upstox", icon: "🟪", image: upstoxLogo },
+    { value: "angelone", label: "Angel One", icon: "🔴", image: angelOneLogo },
+    { value: "kotaksec", label: "Kotak Securities", icon: "🔴", image: kotakLogo },
+    { value: "groww", label: "Groww", icon: "🟢", image: growwLogo }
 ];
 
 const ConnectedBrokerCard = ({ broker, clientId, onClick, loading }) => {
@@ -1423,9 +1430,9 @@ const ConnectedBrokerCard = ({ broker, clientId, onClick, loading }) => {
             type="button"
             onClick={onClick}
             disabled={loading}
-            className="w-full text-left group relative flex items-center gap-4 rounded-2xl border border-[var(--border-main)] bg-gradient-to-br from-white/[0.03] to-transparent p-4 transition-all hover:border-blue-500/30 hover:bg-white/[0.05] active:scale-[0.98] disabled:cursor-wait"
+            className="w-full text-left group relative flex items-center gap-4 rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.03] to-transparent p-4 transition-all duration-300 hover:border-blue-500/30 hover:bg-white/[0.05] hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-wait"
         >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-[var(--border-main)] group-hover:border-blue-500/20 transition-all">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/[0.07] group-hover:border-blue-500/20 transition-all">
                 {loading ? (
                     <div className="animate-spin text-blue-400">
                         <i className="bx bx-loader-alt text-xl"></i>

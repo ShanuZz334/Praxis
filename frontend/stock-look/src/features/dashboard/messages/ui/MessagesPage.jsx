@@ -332,11 +332,11 @@ const MessagesPage = () => {
                     {/* Left Sidebar */}
                     <div className="lg:col-span-1 space-y-5">
                         {/* Categories */}
-                        <div className="bg-[#0a0f1e]/50 backdrop-blur-xl rounded-xl border border-white/[0.07] p-3.5 shadow-lg">
-                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3.5 px-2">
+                        <div className="space-y-2">
+                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
                                 Categories
                             </h3>
-                            <div className="space-y-1.5">
+                            <div className="space-y-1">
                                 {categories.map((cat) => {
                                     const Icon = cat.icon;
                                     const isActive = activeCategory === cat.id;
@@ -345,27 +345,27 @@ const MessagesPage = () => {
                                             key={cat.id}
                                             onClick={() => setActiveCategory(cat.id)}
                                             className={`
-                        w-full flex items-center justify-between px-3.5 py-3 rounded-lg
-                        transition-all duration-300 group
-                        ${isActive
-                                                    ? "bg-gradient-to-r from-blue-600/25 to-purple-600/25 text-white shadow-[0_0_24px_rgba(59,130,246,0.2)] border border-blue-500/30"
-                                                    : "text-gray-400 hover:text-white hover:bg-white/[0.07] border border-transparent hover:border-white/10"
+                                                w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium
+                                                transition-all duration-300 group
+                                                ${isActive
+                                                    ? "bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 text-white shadow-[0_0_24px_rgba(59,130,246,0.15)]"
+                                                    : "text-gray-400 hover:bg-[#0a0f1e]/70 hover:text-white border border-transparent hover:border-white/[0.1] hover:shadow-lg hover:-translate-y-0.5"
                                                 }
-                      `}
+                                            `}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <Icon className={`text-base transition-colors duration-300 ${isActive ? "text-blue-400" : "group-hover:text-blue-400"}`} />
-                                                <span className="text-sm font-medium">{cat.label}</span>
+                                                <span>{cat.label}</span>
                                             </div>
                                             {cat.count > 0 && (
                                                 <span
                                                     className={`
-                          px-2.5 py-1 rounded-md text-xs font-semibold transition-all duration-300
-                          ${isActive
-                                                            ? "bg-blue-500/30 text-blue-200"
-                                                            : "bg-white/[0.07] text-gray-500 group-hover:bg-white/10 group-hover:text-gray-400"
+                                                        px-2 py-0.5 rounded text-[10px] font-bold transition-all duration-300
+                                                        ${isActive
+                                                            ? "bg-blue-500/20 text-blue-200"
+                                                            : "bg-white/[0.05] text-gray-500 group-hover:bg-white/10 group-hover:text-gray-300"
                                                         }
-                        `}
+                                                    `}
                                                 >
                                                     {cat.count}
                                                 </span>
@@ -377,27 +377,30 @@ const MessagesPage = () => {
                         </div>
 
                         {/* Quick Filters */}
-                        <div className="bg-[#0a0f1e]/50 backdrop-blur-xl rounded-xl border border-white/[0.07] p-3.5 shadow-lg">
-                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3.5 px-2">
+                        <div className="space-y-2 mt-8">
+                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
                                 Quick Filters
                             </h3>
-                            <div className="space-y-1.5">
-                                {quickFilters.map((filter) => (
-                                    <button
-                                        key={filter.id}
-                                        onClick={() => setActiveFilter(filter.id)}
-                                        className={`
-                      w-full text-left px-3.5 py-2.5 rounded-lg text-sm
-                      transition-all duration-300
-                      ${activeFilter === filter.id
-                                                ? "bg-white/[0.12] text-white font-medium shadow-sm"
-                                                : "text-gray-400 hover:text-white hover:bg-white/[0.07]"
-                                            }
-                    `}
-                                    >
-                                        {filter.label}
-                                    </button>
-                                ))}
+                            <div className="space-y-1">
+                                {quickFilters.map((filter) => {
+                                    const isActive = activeFilter === filter.id;
+                                    return (
+                                        <button
+                                            key={filter.id}
+                                            onClick={() => setActiveFilter(filter.id)}
+                                            className={`
+                                                w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium
+                                                transition-all duration-300 group
+                                                ${isActive
+                                                    ? "bg-white/[0.1] text-white border border-white/10 shadow-lg"
+                                                    : "text-gray-400 hover:text-white hover:bg-[#0a0f1e]/70 border border-transparent hover:border-white/[0.1] hover:-translate-y-0.5"
+                                                }
+                                            `}
+                                        >
+                                            {filter.label}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
