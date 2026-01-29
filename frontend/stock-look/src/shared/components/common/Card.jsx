@@ -25,11 +25,11 @@ const Card = ({
         borderless
           ? "bg-transparent shadow-none"
           : `
-            bg-[var(--bg-card)]
-            border border-[var(--border-main)]
-            shadow-[0_8px_24px_rgba(0,0,0,0.15)]
-            hover:border-[var(--accent-primary)]/40
-            hover:shadow-[0_12px_32px_var(--accent-glow)]
+            bg-[#070e1b]
+            border border-white/5
+            shadow-[0_8px_24px_rgba(0,0,0,0.45)]
+            hover:border-[#3005f1]/40
+            hover:shadow-[0_12px_32px_rgba(48,5,241,0.18)]
           `,
         spanMap[span],
         className

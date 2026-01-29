@@ -13,21 +13,21 @@ const MobileHeader = ({ onMenuClick }) => {
             {/* Left: Hamburger (Menu) */}
             <button
                 onClick={onMenuClick}
-                className="p-2 -ml-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="p-2 -ml-2 text-white/80 hover:text-white transition-colors"
                 aria-label="Menu"
             >
                 <FiMenu className="text-2xl" />
             </button>
 
             {/* Center: Brand (Optional, maybe small logo) */}
-            <div className="text-lg font-brand font-bold text-[var(--accent-primary)] tracking-wide">
+            <div className="text-lg font-brand font-bold text-blue-500 tracking-wide">
                 Stocky
             </div>
 
             {/* Right: Settings Switch */}
             <button
                 onClick={() => navigate("/dashboard/settings")}
-                className="p-2 -mr-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="p-2 -mr-2 text-white/60 hover:text-white transition-colors"
                 aria-label="Settings"
             >
                 <FiSettings className="text-xl" />

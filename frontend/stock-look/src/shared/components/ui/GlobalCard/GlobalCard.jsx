@@ -82,13 +82,13 @@ export function GlobalCard({
                         </div>
 
                         {/* RIGHT: Credit Score Badge */}
-                        <div className="shrink-0 text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded border border-[var(--border-hover)] bg-[var(--bg-card)] text-[var(--text-secondary)]">
+                        <div className="shrink-0 text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded border border-border-hover bg-background-surface text-text-secondary">
                             {creditAllocation || '?'}
                         </div>
                     </div>
 
                     {/* BAR */}
-                    <div className="h-1.5 bg-[var(--bg-app)] rounded-full overflow-hidden mb-2 mt-2 border border-[var(--border-main)]">
+                    <div className="h-1.5 bg-background-surface rounded-full overflow-hidden mb-2 mt-2 border border-white/10">
                         <div
                             className="h-full rounded-full transition-all duration-500 ease-out"
                             style={{
@@ -102,7 +102,7 @@ export function GlobalCard({
                 {/* FOOTER: Signal & Score */}
                 <div className="flex justify-between items-center text-xs mt-auto">
                     <div className="font-medium" style={{ color: derivedColor }}>{derivedSignal}</div>
-                    <div className="text-[var(--text-muted)] font-mono">{derivedScore}/100</div>
+                    <div className="text-text-tertiary font-mono">{derivedScore}/100</div>
                 </div>
             </div>
         </Card>

@@ -60,8 +60,8 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
                 className={`
                   text-[20px] transition-all duration-300 ease-out transform
                   ${isActive
-                    ? "text-blue-500 drop-shadow-[0_0_6px_rgba(59,130,246,0.5)] scale-110"
-                    : "text-[var(--text-muted)] group-hover:text-blue-400 group-hover:scale-110 group-hover:-rotate-6"
+                    ? "text-blue-700 scale-110"
+                    : "text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] group-hover:scale-110 group-hover:-rotate-6"
                   }
                 `}
               />

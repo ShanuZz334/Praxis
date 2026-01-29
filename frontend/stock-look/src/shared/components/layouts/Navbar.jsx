@@ -42,7 +42,7 @@ const Navbar = ({ onToggleSidebar }) => {
           <img
             src={logoBgless}
             alt="Menu"
-            className="w-17 h-17 transition-transform hover:scale-110 theme-invert"
+            className="w-17 h-17 transition-transform hover:scale-110"
           />
         </button>
       </div>
@@ -50,24 +50,24 @@ const Navbar = ({ onToggleSidebar }) => {
       {/* LEFT CONTENT — MARKET DATA */}
       <div className="flex items-center gap-6 px-4">
         <div className="hidden sm:flex flex-col text-xs leading-tight">
-          <span className="text-[var(--text-muted)] font-medium">NIFTY 50</span>
-          <span className="text-[var(--success)] font-bold">
+          <span className="text-(--text-muted)">NIFTY 50</span>
+          <span className="text-(--success) font-semibold">
             ₹{niftySeries.latest} +{niftySeries.change}%
           </span>
         </div>
 
         <div className="hidden md:flex flex-col text-xs leading-tight">
-          <span className="text-[var(--text-muted)] font-medium">BANK NIFTY</span>
-          <span className="text-[var(--danger)] font-bold">
+          <span className="text-(--text-muted)">BANK NIFTY</span>
+          <span className="text-(--danger) font-semibold">
             ₹{bankNiftySeries.latest} {bankNiftySeries.change}%
           </span>
         </div>
 
         <div className="hidden lg:flex flex-col text-xs leading-tight">
-          <span className="text-[var(--text-muted)] font-medium">
+          <span className="text-(--text-muted)">
             Balance: ₹{accountOverview.closing_balance.toLocaleString()}
           </span>
-          <span className="text-[var(--success)] font-bold">
+          <span className="text-(--success) font-semibold">
             Today +₹{accountOverview.profitToday}
           </span>
         </div>
@@ -76,7 +76,7 @@ const Navbar = ({ onToggleSidebar }) => {
       {/* CENTER — STOCKY LOGO */}
       <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
         {/* Mobile: Blue Text */}
-        <span className="md:hidden text-2xl font-bold text-[var(--accent-primary)] tracking-tight">
+        <span className="md:hidden text-2xl font-bold text-blue-500 tracking-tight">
           Stocky
         </span>
         {/* Desktop: Image Logo */}
@@ -112,12 +112,13 @@ const Navbar = ({ onToggleSidebar }) => {
 
         <div className="w-5" />
 
+        {/* Notifications */}
         <button
           onClick={() => navigate("/dashboard/messages")}
           className="
-            text-[var(--text-muted)]
+            text-(--text-muted)
             transition-colors
-            hover:text-[var(--text-primary)]
+            hover:text-(--hover-primary)
           "
         >
           <FiBell className="text-xl transition-transform hover:scale-110" />
@@ -127,9 +128,9 @@ const Navbar = ({ onToggleSidebar }) => {
         <button
           onClick={() => navigate("/dashboard/settings")}
           className="
-            text-[var(--text-muted)]
+            text-(--text-muted)
             transition-colors
-            hover:text-[var(--text-primary)]
+            hover:text-(--hover-primary)
           "
         >
           <FiSettings className="text-xl transition-transform hover:scale-110" />
