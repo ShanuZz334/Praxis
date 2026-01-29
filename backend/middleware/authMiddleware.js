@@ -18,11 +18,21 @@ export const protect = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        req.user = await User.findById(decoded.id).select("-password");
+        const user = await User.findById(decoded.id).select("-password");
 
+        if (!user) {
+            return res.status(401).json({ message: "User no longer exists" });
+        }
+
+        // Single Session Check
+        if (user.activeToken !== token) {
+            return res.status(401).json({ message: "Internal Session Conflict: This account is logged in on another device. Please log in again." });
+        }
+
+        req.user = user;
         next();
     } catch (err) {
         console.error("JWT Error:", err.message);
-        res.status(401).json({ message: "Not authorized, token failed" });
+        res.status(401).json({ message: "Session expired or invalid. Please log in again." });
     }
 };

@@ -3,13 +3,19 @@ import { useNavigate } from "react-router-dom";
 
 import { SIDE_MENU_DATA } from "../../utils/data";
 import { UserContext } from "../../context/UserContext";
+import { logoutUser } from "../../../services/userService";
 
 const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) => {
   const { user, clearUser } = useContext(UserContext);
   const navigate = useNavigate();
 
-  const handleClick = (route) => {
+  const handleClick = async (route) => {
     if (route === "/logout") {
+      try {
+        await logoutUser();
+      } catch (err) {
+        console.error("Logout API failed:", err);
+      }
       localStorage.clear();
       clearUser();
       navigate("/login", { replace: true });
@@ -80,17 +86,17 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
       </div>
 
       {/* ================= USER PROFILE ================= */}
-      <div className="px-3 pb-5">
+      <div className="px-1 pb-5">
         <div
           className={`
-            flex items-center
-            ${collapsed && !isMobileDrawer ? "justify-center" : "gap-3"}
-            p-3 rounded-xl
+            w-full flex items-center
+            ${collapsed && !isMobileDrawer ? "justify-center" : "gap-4 px-4"}
+            py-3 rounded-xl
             transition
           `}
         >
           {user?.profileImage ? (
-            <div className="w-9 h-9 rounded-full overflow-hidden">
+            <div className="w-8 h-8 flex-shrink-0 rounded-full overflow-hidden border-2 border-white/10">
               <img
                 src={user.profileImage}
                 alt="Profile"
@@ -98,8 +104,8 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
               />
             </div>
           ) : (
-            <div className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center">
-              ?
+            <div className="w-8 h-8 flex-shrink-0 rounded-full bg-white/10 flex items-center justify-center border-2 border-dashed border-white/20 text-white/40">
+              <i className="bx bx-user text-lg" />
             </div>
           )}
 
@@ -122,16 +128,19 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
             key={item.id}
             onClick={() => handleClick(item.path)}
             className={`
-              mt-2 flex items-center
-              ${collapsed && !isMobileDrawer ? "justify-center" : "gap-4"}
-              px-4 py-3 rounded-xl
-              text-sm text-red-400
-              transition-colors
-              hover:text-red-300
+              w-full mt-2 flex items-center
+              ${collapsed && !isMobileDrawer ? "justify-center" : "gap-4 px-4"}
+              py-3 rounded-xl
+              text-sm text-red-500/80
+              transition-all
+              hover:text-red-400
+              hover:bg-red-500/5
             `}
           >
-            <item.icon className="text-[18px]" />
-            {(!collapsed || isMobileDrawer) && <span>{item.label}</span>}
+            <item.icon className="text-[20px]" />
+            {(!collapsed || isMobileDrawer) && (
+              <span className="font-medium">{item.label}</span>
+            )}
           </button>
         ))}
       </div>

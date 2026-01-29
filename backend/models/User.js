@@ -38,6 +38,7 @@ const UserSchema = new mongoose.Schema(
         brokerAccessToken: { type: String, select: false },
         brokerRefreshToken: { type: String, select: false },
         brokerTokenExpiry: { type: Date },
+        activeToken: { type: String, default: null },
     },
     { timestamps: true }
 );

@@ -720,45 +720,58 @@ const SettingsPage = () => {
                                     <h3 className="mb-4 flex items-center gap-2 text-lg font-medium">
                                         <FiLink2 className="text-blue-400" /> Broker Integration
                                     </h3>
-                                    <div className="grid gap-6 md:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium text-gray-300">Broker</label>
-                                            <BrokerDropdown
-                                                value={formData.broker}
-                                                onChange={(value) => handleInputChange("broker", value)}
-                                            />
-                                        </div>
-                                        {formData.broker && (
-                                            <>
+                                    <div className="flex flex-col lg:flex-row gap-10">
+                                        {/* Left Side: Configuration Form */}
+                                        <div className="flex-1 space-y-6">
+                                            <div className="grid gap-6 md:grid-cols-2">
                                                 <div className="space-y-2">
-                                                    <label className="text-sm font-medium text-gray-300">API Key</label>
-                                                    <input
-                                                        type="password"
-                                                        value={formData.apiKey}
-                                                        onChange={(e) => handleInputChange("apiKey", e.target.value)}
-                                                        placeholder="Enter your broker API key"
-                                                        className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-2.5 text-white focus:border-blue-500 focus:outline-none"
+                                                    <label className="text-sm font-medium text-gray-300">Broker</label>
+                                                    <BrokerDropdown
+                                                        value={formData.broker}
+                                                        onChange={(value) => handleInputChange("broker", value)}
                                                     />
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-sm font-medium text-gray-300">API Secret</label>
-                                                    <input
-                                                        type="password"
-                                                        value={formData.apiSecret}
-                                                        onChange={(e) => handleInputChange("apiSecret", e.target.value)}
-                                                        placeholder="Enter your broker API secret"
-                                                        className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-2.5 text-white focus:border-blue-500 focus:outline-none"
-                                                    />
+                                                {formData.broker && (
+                                                    <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-300">
+                                                        <label className="text-sm font-medium text-gray-300">API Key</label>
+                                                        <input
+                                                            type="password"
+                                                            value={formData.apiKey}
+                                                            onChange={(e) => handleInputChange("apiKey", e.target.value)}
+                                                            placeholder="Enter your broker API key"
+                                                            className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-2.5 text-white focus:border-blue-500 focus:outline-none"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {formData.broker && (
+                                                <div className="grid gap-6 md:grid-cols-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-medium text-gray-300">API Secret</label>
+                                                        <input
+                                                            type="password"
+                                                            value={formData.apiSecret}
+                                                            onChange={(e) => handleInputChange("apiSecret", e.target.value)}
+                                                            placeholder="Enter your broker API secret"
+                                                            className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-2.5 text-white focus:border-blue-500 focus:outline-none"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-medium text-gray-300">Client ID</label>
+                                                        <input
+                                                            type="text"
+                                                            value={formData.clientId}
+                                                            onChange={(e) => handleInputChange("clientId", e.target.value)}
+                                                            placeholder="Your broker client ID"
+                                                            className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-2.5 text-white focus:border-blue-500 focus:outline-none"
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-sm font-medium text-gray-300">Client ID</label>
-                                                    <input
-                                                        type="text"
-                                                        value={formData.clientId}
-                                                        onChange={(e) => handleInputChange("clientId", e.target.value)}
-                                                        placeholder="Your broker client ID"
-                                                        className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-2.5 text-white focus:border-blue-500 focus:outline-none"
-                                                    />
+                                            )}
+
+                                            {formData.broker && (
+                                                <div className="space-y-4">
                                                     <p className="text-xs text-gray-400">
                                                         {formData.broker === 'zerodha' && (
                                                             <a href="https://kite.trade/docs/connect/v3/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
@@ -776,10 +789,8 @@ const SettingsPage = () => {
                                                             </a>
                                                         )}
                                                     </p>
-                                                </div>
 
-                                                {/* Test Connection Button */}
-                                                <div className="pt-4">
+                                                    {/* Test Connection Button */}
                                                     <button
                                                         type="button"
                                                         onClick={testBrokerConnection}
@@ -795,39 +806,80 @@ const SettingsPage = () => {
                                                             'Test Connection'
                                                         )}
                                                     </button>
-                                                </div>
 
-                                                {/* Connection Status */}
-                                                {connectionStatus && (
-                                                    <div className={`p-4 rounded-lg border ${connectionStatus.success
-                                                        ? 'bg-green-500/10 border-green-500/20'
-                                                        : 'bg-red-500/10 border-red-500/20'
-                                                        }`}>
-                                                        <div className="flex items-start gap-3">
-                                                            {connectionStatus.success ? (
-                                                                <FiCheck className="text-green-400 text-xl flex-shrink-0 mt-0.5" />
-                                                            ) : (
-                                                                <FiAlertCircle className="text-red-400 text-xl flex-shrink-0 mt-0.5" />
-                                                            )}
-                                                            <div className="flex-1">
-                                                                <p className={`text-sm font-medium ${connectionStatus.success ? 'text-green-400' : 'text-red-400'
-                                                                    }`}>
-                                                                    {connectionStatus.message}
-                                                                </p>
-                                                                {connectionStatus.requiresOAuth && (
-                                                                    <button
-                                                                        onClick={() => window.open(connectionStatus.loginUrl, '_blank')}
-                                                                        className="mt-2 text-xs text-blue-400 hover:underline"
-                                                                    >
-                                                                        Complete OAuth Login →
-                                                                    </button>
+                                                    {/* Connection Status */}
+                                                    {connectionStatus && (
+                                                        <div className={`p-4 rounded-lg border ${connectionStatus.success
+                                                            ? 'bg-green-500/10 border-green-500/20'
+                                                            : 'bg-red-500/10 border-red-500/20'
+                                                            }`}>
+                                                            <div className="flex items-start gap-3">
+                                                                {connectionStatus.success ? (
+                                                                    <FiCheck className="text-green-400 text-xl flex-shrink-0 mt-0.5" />
+                                                                ) : (
+                                                                    <FiAlertCircle className="text-red-400 text-xl flex-shrink-0 mt-0.5" />
                                                                 )}
+                                                                <div className="flex-1">
+                                                                    <p className={`text-sm font-medium ${connectionStatus.success ? 'text-green-400' : 'text-red-400'
+                                                                        }`}>
+                                                                        {connectionStatus.message}
+                                                                    </p>
+                                                                    {connectionStatus.requiresOAuth && (
+                                                                        <button
+                                                                            onClick={() => window.open(connectionStatus.loginUrl, '_blank')}
+                                                                            className="mt-2 text-xs text-blue-400 hover:underline"
+                                                                        >
+                                                                            Complete OAuth Login →
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Right Side: Connected Brokers Display */}
+                                        <div className="w-full lg:w-72 shrink-0 border-l border-white/5 lg:pl-10">
+                                            <div className="sticky top-6">
+                                                <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-6 flex items-center gap-2">
+                                                    <div className="h-px flex-1 bg-white/5"></div>
+                                                    Active Connections
+                                                    <div className="h-px flex-1 bg-white/5"></div>
+                                                </h4>
+
+                                                <div className="space-y-4">
+                                                    {initialFormData.broker ? (
+                                                        <ConnectedBrokerCard
+                                                            broker={initialFormData.broker}
+                                                            clientId={initialFormData.clientId}
+                                                        />
+                                                    ) : (
+                                                        <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center bg-white/[0.01]">
+                                                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/5 mb-3">
+                                                                <FiLink2 className="text-gray-600 text-xl" />
+                                                            </div>
+                                                            <p className="text-xs text-gray-500 font-medium">No brokers connected yet</p>
+                                                            <p className="text-[10px] text-gray-600 mt-1">Configure your broker on the left to start trading</p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Quick Info / Hints */}
+                                                    <div className="mt-8 rounded-xl bg-blue-500/5 border border-blue-500/10 p-4">
+                                                        <div className="flex gap-3">
+                                                            <FiInfo className="text-blue-400 shrink-0 mt-0.5" />
+                                                            <div>
+                                                                <p className="text-[11px] font-semibold text-blue-300">Pro Tip</p>
+                                                                <p className="text-[10px] text-blue-200/60 mt-1 leading-relaxed">
+                                                                    You can only connect one active broker for trade execution at a time.
+                                                                </p>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                )}
-                                            </>
-                                        )}
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1307,23 +1359,52 @@ const SettingsPage = () => {
     );
 };
 
+// Broker List Data
+const AVAILABLE_BROKERS = [
+    { value: "", label: "Select Broker", icon: "📊" },
+    { value: "zerodha", label: "Zerodha", icon: "🟦", image: "/src/assets/images/zerodha.png" },
+    { value: "upstox", label: "Upstox", icon: "🟪", image: "https://stocky-logos.s3.amazonaws.com/upstox.png" },
+    { value: "angelone", label: "Angel One", icon: "🔴", image: "https://stocky-logos.s3.amazonaws.com/angelone.png" },
+    { value: "icicidirect", label: "ICICI Direct", icon: "🟠" },
+    { value: "hdfcsec", label: "HDFC Securities", icon: "🔵" },
+    { value: "kotaksec", label: "Kotak Securities", icon: "🔴" },
+    { value: "5paisa", label: "5Paisa", icon: "🟡" },
+    { value: "groww", label: "Groww", icon: "🟢" },
+    { value: "sharekhan", label: "Sharekhan", icon: "🟠" },
+    { value: "motilal", label: "Motilal Oswal", icon: "🔵" }
+];
+
+const ConnectedBrokerCard = ({ broker, clientId }) => {
+    const brokerInfo = AVAILABLE_BROKERS.find(b => b.value === broker) || { label: broker, icon: "🏦" };
+    return (
+        <div className="group relative flex items-center gap-4 rounded-2xl border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent p-4 transition-all hover:border-blue-500/30 hover:bg-white/[0.05]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 group-hover:border-blue-500/20 transition-all">
+                {brokerInfo.image ? (
+                    <img src={brokerInfo.image} alt={brokerInfo.label} className="h-7 w-7 object-contain group-hover:scale-110 transition-transform" />
+                ) : (
+                    <span className="text-2xl">{brokerInfo.icon}</span>
+                )}
+            </div>
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                    <p className="font-semibold text-white truncate">{brokerInfo.label}</p>
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                </div>
+                <p className="text-[10px] text-gray-400 font-mono mt-0.5 truncate uppercase tracking-tighter">ID: {clientId || 'ID_UNKNOWN'}</p>
+            </div>
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20">
+                    ACTIVE
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // Custom Broker Dropdown Component with Glassmorphism
 const BrokerDropdown = ({ value, onChange }) => {
     const [isOpen, setIsOpen] = useState(false);
-
-    const brokers = [
-        { value: "", label: "Select Broker", icon: "📊" },
-        { value: "zerodha", label: "Zerodha", icon: "🟦" },
-        { value: "upstox", label: "Upstox", icon: "🟪" },
-        { value: "angelone", label: "Angel One", icon: "🔴" },
-        { value: "icicidirect", label: "ICICI Direct", icon: "🟠" },
-        { value: "hdfcsec", label: "HDFC Securities", icon: "🔵" },
-        { value: "kotaksec", label: "Kotak Securities", icon: "🔴" },
-        { value: "5paisa", label: "5Paisa", icon: "🟡" },
-        { value: "groww", label: "Groww", icon: "🟢" },
-        { value: "sharekhan", label: "Sharekhan", icon: "🟠" },
-        { value: "motilal", label: "Motilal Oswal", icon: "🔵" }
-    ];
+    const brokers = AVAILABLE_BROKERS;
 
     const selectedBroker = brokers.find(b => b.value === value) || brokers[0];
 
@@ -1335,7 +1416,11 @@ const BrokerDropdown = ({ value, onChange }) => {
                 className="w-full appearance-none rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-3 pr-10 text-white text-sm text-left focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 cursor-pointer transition-all hover:border-white/20"
             >
                 <span className={`flex items-center gap-2 ${value ? "text-white" : "text-gray-400"}`}>
-                    {selectedBroker.icon && <span className="text-lg">{selectedBroker.icon}</span>}
+                    {selectedBroker.image ? (
+                        <img src={selectedBroker.image} alt={selectedBroker.label} className="w-5 h-5 object-contain" />
+                    ) : (
+                        selectedBroker.icon && <span className="text-lg">{selectedBroker.icon}</span>
+                    )}
                     {selectedBroker.label}
                 </span>
                 <FiChevronDown
@@ -1365,7 +1450,11 @@ const BrokerDropdown = ({ value, onChange }) => {
                                         : 'text-white hover:bg-white/5'
                                     }`}
                             >
-                                {broker.icon && <span className="text-lg">{broker.icon}</span>}
+                                {broker.image ? (
+                                    <img src={broker.image} alt={broker.label} className="w-5 h-5 object-contain" />
+                                ) : (
+                                    broker.icon && <span className="text-lg">{broker.icon}</span>
+                                )}
                                 {broker.label}
                             </button>
                         ))}

@@ -151,3 +151,13 @@ export const verifyCurrentEmail = async (otp) => {
         throw error;
     }
 };
+
+export const logoutUser = async () => {
+    try {
+        const response = await axiosInstance.post("/api/v1/user/logout");
+        return response.data;
+    } catch (error) {
+        console.error('Error logging out:', error);
+        throw error;
+    }
+};

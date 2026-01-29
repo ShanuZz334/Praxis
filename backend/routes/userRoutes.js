@@ -12,6 +12,7 @@ import {
     updateEmail,
     requestCurrentEmailVerificationOTP,
     verifyCurrentEmail,
+    logoutUser,
     deleteUserProfile,
 } from "../controllers/userController.js";
 
@@ -32,6 +33,9 @@ router.put("/verify-email", protect, verifyCurrentEmail);
 // Email update routes
 router.post("/request-email-update-otp", protect, requestEmailUpdateOTP);
 router.put("/update-email", protect, updateEmail);
+
+// Logout route
+router.post("/logout", protect, logoutUser);
 
 // Delete account route
 router.delete("/profile", protect, deleteUserProfile);

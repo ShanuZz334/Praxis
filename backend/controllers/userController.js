@@ -297,6 +297,22 @@ export const verifyCurrentEmail = async (req, res) => {
 // @desc    Delete user account
 // @route   DELETE /api/user/profile
 // @access  Private
+// @desc    Logout user (clear activeToken)
+// @route   POST /api/user/logout
+// @access  Private
+export const logoutUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (user) {
+            user.activeToken = null;
+            await user.save();
+        }
+        res.json({ message: "Logged out successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
 export const deleteUserProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);

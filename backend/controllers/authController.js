@@ -119,10 +119,14 @@ export const registerUser = async (req, res) => {
       profileImage,
     });
 
+    const token = generateAuthToken(user._id);
+    user.activeToken = token;
+    await user.save();
+
     res.status(201).json({
       id: user._id,
       user,
-      token: generateAuthToken(user._id),
+      token,
     });
   } catch (err) {
     res.status(500).json({
@@ -154,10 +158,14 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    const token = generateAuthToken(user._id);
+    user.activeToken = token;
+    await user.save();
+
     res.status(200).json({
       id: user._id,
       user,
-      token: generateAuthToken(user._id),
+      token,
     });
   } catch (err) {
     res.status(500).json({
