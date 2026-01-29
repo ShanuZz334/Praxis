@@ -13,7 +13,7 @@ const MobileHeader = ({ onMenuClick }) => {
             {/* Left: Hamburger (Menu) */}
             <button
                 onClick={onMenuClick}
-                className="p-2 -ml-2 text-white/80 hover:text-white transition-colors"
+                className="p-2 -ml-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                 aria-label="Menu"
             >
                 <FiMenu className="text-2xl" />
@@ -27,7 +27,7 @@ const MobileHeader = ({ onMenuClick }) => {
             {/* Right: Settings Switch */}
             <button
                 onClick={() => navigate("/dashboard/settings")}
-                className="p-2 -mr-2 text-white/60 hover:text-white transition-colors"
+                className="p-2 -mr-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                 aria-label="Settings"
             >
                 <FiSettings className="text-xl" />

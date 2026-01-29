@@ -38,6 +38,13 @@ const UserProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showConflictModal, setShowConflictModal] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem("theme") || "dark");
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     const handleConflict = () => {
@@ -116,8 +123,10 @@ const UserProvider = ({ children }) => {
       loading,
       updateUser,
       clearUser,
+      theme,
+      setTheme,
     }),
-    [user, token, loading]
+    [user, token, loading, theme]
   );
 
   return (

@@ -26,21 +26,46 @@
   --font-primary: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-brand: "Rancho", cursive;
 
-  /* Colors - Deep Dark Blue Theme (Synced with Palette.js) */
-  --bg-app: #02050e;
-
-  /* State Colors (Synced with Palette.js) */
+  /* State Colors (Fixed) */
   --success: #34d399;
-  /* Bullish/Emerald */
   --warning: #fbbf24;
-  /* Warning/Amber */
   --danger: #f87171;
-  /* Bearish/Red */
   --neutral: #94a3b8;
-  /* Neutral/Slate */
-
   --accent-primary: #3b82f6;
+
+  /* --- DARK THEME (DEFAULT) --- */
+  --bg-app: #02050e;
+  --bg-surface: #0d1226;
+  --bg-card: rgba(13, 18, 38, 0.7);
+  --border-main: rgba(255, 255, 255, 0.05);
+  --border-hover: rgba(255, 255, 255, 0.1);
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
   --accent-glow: rgba(59, 130, 246, 0.4);
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --input-bg: #0a0f1e;
+  --vfx-blue: rgba(59, 130, 246, 0.16);
+  --vfx-purple: rgba(147, 51, 234, 0.12);
+  --vfx-emerald: rgba(16, 185, 129, 0.12);
+}
+
+/* --- LIGHT THEME --- */
+[data-theme='light'] {
+  --bg-app: #f1f5f9;
+  --bg-surface: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.7);
+  --border-main: rgba(0, 0, 0, 0.04);
+  --border-hover: rgba(0, 0, 0, 0.08);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent-glow: rgba(59, 130, 246, 0.2);
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --input-bg: #ffffff;
+  --vfx-blue: rgba(59, 130, 246, 0.08);
+  --vfx-purple: rgba(147, 51, 234, 0.06);
+  --vfx-emerald: rgba(16, 185, 129, 0.06);
 }
 
 /* ------------------------------
@@ -59,18 +84,19 @@ body {
   width: 100%;
   min-height: 100%;
   background-color: var(--bg-app);
-  color: #ffffff;
+  color: var(--text-primary);
   font-family: var(--font-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Selection Highlight */
 ::selection {
-  background: rgba(59, 130, 246, 0.3);
-  color: #ffffff;
+  background: var(--accent-glow);
+  color: var(--text-primary);
 }
 
 /* ------------------------------
@@ -87,19 +113,19 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--border-hover);
   border-radius: 99px;
   transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--text-muted);
 }
 
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: var(--border-hover) transparent;
 }
 
 /* Utility to hide scrollbar but keep functionality */

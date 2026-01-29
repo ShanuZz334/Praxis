@@ -60,8 +60,8 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
                 className={`
                   text-[20px] transition-all duration-300 ease-out transform
                   ${isActive
-                    ? "text-[#3005f1] drop-shadow-[0_0_6px_rgba(48,5,241,0.5)] scale-110"
-                    : "text-white/60 group-hover:text-[#5f7cff] group-hover:scale-110 group-hover:-rotate-6"
+                    ? "text-blue-500 drop-shadow-[0_0_6px_rgba(59,130,246,0.5)] scale-110"
+                    : "text-[var(--text-muted)] group-hover:text-blue-400 group-hover:scale-110 group-hover:-rotate-6"
                   }
                 `}
               />
@@ -72,8 +72,8 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
                   className={`
                     text-sm font-medium transition-colors
                     ${isActive
-                      ? "text-white"
-                      : "text-white/70 group-hover:text-[#8fa2ff]"
+                      ? "text-[var(--text-primary)]"
+                      : "text-[var(--text-secondary)] group-hover:text-blue-500"
                     }
                   `}
                 >
@@ -96,7 +96,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
           `}
         >
           {user?.profileImage ? (
-            <div className="w-8 h-8 flex-shrink-0 rounded-full overflow-hidden border-2 border-white/10">
+            <div className="w-8 h-8 flex-shrink-0 rounded-full overflow-hidden border-2 border-[var(--border-main)]">
               <img
                 src={user.profileImage}
                 alt="Profile"
@@ -104,7 +104,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
               />
             </div>
           ) : (
-            <div className="w-8 h-8 flex-shrink-0 rounded-full bg-white/10 flex items-center justify-center border-2 border-dashed border-white/20 text-white/40">
+            <div className="w-8 h-8 flex-shrink-0 rounded-full bg-[var(--border-main)] flex items-center justify-center border-2 border-dashed border-[var(--border-hover)] text-[var(--text-muted)]">
               <i className="bx bx-user text-lg" />
             </div>
           )}
@@ -112,10 +112,10 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
 
           {(!collapsed || isMobileDrawer) && (
             <div className="leading-tight">
-              <p className="text-sm font-medium text-white">
+              <p className="text-sm font-medium text-[var(--text-primary)]">
                 {user?.fullName || "Trader"}
               </p>
-              <p className="text-xs text-white/60">
+              <p className="text-xs text-[var(--text-muted)]">
                 {user?.email || "Active"}
               </p>
             </div>

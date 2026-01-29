@@ -27,13 +27,13 @@ const DashboardLayout = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-[#02050e] text-white relative overflow-hidden flex flex-col md:block">
+    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] relative overflow-hidden flex flex-col md:block transition-colors duration-300">
 
       {/* GLOBAL BACKGROUND VFX */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/15 md:bg-blue-600/[0.16] rounded-full blur-[120px]" />
-        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] bg-purple-600/10 md:bg-purple-600/[0.12] rounded-full blur-[100px]" />
-        <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-emerald-600/10 md:bg-emerald-600/[0.12] rounded-full blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[var(--vfx-blue)] rounded-full blur-[120px] transition-colors duration-500" />
+        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] bg-[var(--vfx-purple)] rounded-full blur-[100px] transition-colors duration-500" />
+        <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-[var(--vfx-emerald)] rounded-full blur-[120px] transition-colors duration-500" />
       </div>
 
       {/* --- DESKTOP LAYOUT COMPONENTS --- */}
@@ -66,7 +66,7 @@ const DashboardLayout = () => {
 `} onClick={() => setShowMobileMenu(false)} />
 
       <div className={`
-        fixed inset-y-0 left-0 z-[61] w-[280px] bg-black/20 backdrop-blur-2xl border-r border-white/5 shadow-2xl transform transition-transform duration-300 md:hidden
+        fixed inset-y-0 left-0 z-[61] w-[280px] bg-[var(--bg-surface)] md:bg-black/20 backdrop-blur-2xl border-r border-[var(--border-main)] shadow-2xl transform transition-transform duration-300 md:hidden
         ${showMobileMenu ? "translate-x-0" : "-translate-x-full"}
 `}>
         <div className="h-full pt-safe-area-top pb-safe-area-bottom">

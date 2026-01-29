@@ -50,24 +50,24 @@ const Navbar = ({ onToggleSidebar }) => {
       {/* LEFT CONTENT — MARKET DATA */}
       <div className="flex items-center gap-6 px-4">
         <div className="hidden sm:flex flex-col text-xs leading-tight">
-          <span className="text-(--text-muted)">NIFTY 50</span>
-          <span className="text-(--success) font-semibold">
+          <span className="text-[var(--text-muted)] font-medium">NIFTY 50</span>
+          <span className="text-[var(--success)] font-bold">
             ₹{niftySeries.latest} +{niftySeries.change}%
           </span>
         </div>
 
         <div className="hidden md:flex flex-col text-xs leading-tight">
-          <span className="text-(--text-muted)">BANK NIFTY</span>
-          <span className="text-(--danger) font-semibold">
+          <span className="text-[var(--text-muted)] font-medium">BANK NIFTY</span>
+          <span className="text-[var(--danger)] font-bold">
             ₹{bankNiftySeries.latest} {bankNiftySeries.change}%
           </span>
         </div>
 
         <div className="hidden lg:flex flex-col text-xs leading-tight">
-          <span className="text-(--text-muted)">
+          <span className="text-[var(--text-muted)] font-medium">
             Balance: ₹{accountOverview.closing_balance.toLocaleString()}
           </span>
-          <span className="text-(--success) font-semibold">
+          <span className="text-[var(--success)] font-bold">
             Today +₹{accountOverview.profitToday}
           </span>
         </div>
@@ -112,13 +112,12 @@ const Navbar = ({ onToggleSidebar }) => {
 
         <div className="w-5" />
 
-        {/* Notifications */}
         <button
           onClick={() => navigate("/dashboard/messages")}
           className="
-            text-(--text-muted)
+            text-[var(--text-muted)]
             transition-colors
-            hover:text-(--hover-primary)
+            hover:text-[var(--text-primary)]
           "
         >
           <FiBell className="text-xl transition-transform hover:scale-110" />
@@ -128,9 +127,9 @@ const Navbar = ({ onToggleSidebar }) => {
         <button
           onClick={() => navigate("/dashboard/settings")}
           className="
-            text-(--text-muted)
+            text-[var(--text-muted)]
             transition-colors
-            hover:text-(--hover-primary)
+            hover:text-[var(--text-primary)]
           "
         >
           <FiSettings className="text-xl transition-transform hover:scale-110" />

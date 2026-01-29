@@ -35,7 +35,7 @@ import Loader from "../../../../shared/components/ui/Loader";
 
 const SettingsPage = () => {
     // Context
-    const { user, updateUser, token } = useContext(UserContext);
+    const { user, updateUser, token, theme, setTheme } = useContext(UserContext);
 
     // UI State
     const [activeTab, setActiveTab] = useState("account");
@@ -516,7 +516,7 @@ const SettingsPage = () => {
             case "conservative": return "border-blue-500 text-blue-400";
             case "balanced": return "border-purple-500 text-purple-400";
             case "aggressive": return "border-red-500 text-red-500";
-            default: return "border-gray-700 text-gray-400";
+            default: return "border-gray-700 text-[var(--text-secondary)]";
         }
     };
 
@@ -538,10 +538,10 @@ const SettingsPage = () => {
 
     if (loading) {
         return (
-            <div className="flex h-screen items-center justify-center text-white">
+            <div className="flex h-screen items-center justify-center text-[var(--text-primary)]">
                 <div className="flex min-h-screen flex-col items-center justify-center gap-4">
                     <Loader size="md" color="indigo" />
-                    <p className="text-sm text-gray-400">Loading settings...</p>
+                    <p className="text-sm text-[var(--text-secondary)]">Loading settings...</p>
                 </div>
             </div>
         );
@@ -574,14 +574,14 @@ const SettingsPage = () => {
     };
 
     return (
-        <div className="min-h-screen p-4 text-white md:p-8 font-sans">
+        <div className="min-h-screen p-4 text-[var(--text-primary)] md:p-8 font-sans">
             <div className="mx-auto max-w-6xl">
 
                 {/* Header */}
                 <div className="mb-8 flex items-end justify-between">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-                        <p className="mt-1 text-gray-400">Manage your account and preferences</p>
+                        <p className="mt-1 text-[var(--text-secondary)]">Manage your account and preferences</p>
                     </div>
                 </div>
 
@@ -593,7 +593,7 @@ const SettingsPage = () => {
                             <span className="text-sm font-medium text-yellow-200">You have unsaved changes</span>
                         </div>
                         <div className="flex gap-3">
-                            <button onClick={discardChanges} className="text-sm font-medium text-gray-400 hover:text-white">Discard</button>
+                            <button onClick={discardChanges} className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Discard</button>
                             <button
                                 onClick={saveAllChanges}
                                 disabled={saveStatus === "saving"}
@@ -627,8 +627,8 @@ const SettingsPage = () => {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition-all ${activeTab === tab.id
-                                    ? "bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 text-white shadow-lg shadow-blue-500/10"
-                                    : "text-gray-400 hover:bg-white/5 hover:text-white border border-transparent"
+                                    ? "bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 text-[var(--text-primary)] shadow-lg shadow-blue-500/10"
+                                    : "text-[var(--text-secondary)] hover:bg-[var(--glass-bg)] hover:text-[var(--text-primary)] border border-transparent"
                                     }`}
                             >
                                 <tab.icon className={`h-5 w-5 ${activeTab === tab.id ? "text-blue-400" : ""}`} />
@@ -638,14 +638,14 @@ const SettingsPage = () => {
                     </nav>
 
                     {/* Main Content Area */}
-                    <div className="rounded-2xl border border-white/5 bg-[#0d1226] p-6 lg:p-8">
+                    <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-surface)] p-6 lg:p-8 shadow-xl shadow-black/5">
 
                         {/* --- ACCOUNT TAB --- */}
                         {activeTab === "account" && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div>
                                     <h2 className="text-xl font-semibold">Profile Information</h2>
-                                    <p className="text-sm text-gray-400">Update your public profile and details</p>
+                                    <p className="text-sm text-[var(--text-secondary)]">Update your public profile and details</p>
                                 </div>
 
                                 <div className="flex items-center gap-6">
@@ -683,7 +683,7 @@ const SettingsPage = () => {
                                             type="text"
                                             value={formData.fullName}
                                             onChange={(e) => handleInputChange("fullName", e.target.value)}
-                                            className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-2.5 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-2.5 text-[var(--text-primary)] focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -704,11 +704,11 @@ const SettingsPage = () => {
                                                 type="email"
                                                 value={formData.email}
                                                 disabled // Not directly editable needs OTP flow trigger
-                                                className="w-full cursor-not-allowed rounded-lg border border-white/10 bg-[#0a0f1e]/50 px-4 py-2.5 text-gray-400"
+                                                className="w-full cursor-not-allowed rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)]/50 px-4 py-2.5 text-[var(--text-secondary)]"
                                             />
                                             <button
                                                 onClick={() => setShowEmailChangeModal(true)}
-                                                className="shrink-0 rounded-lg border border-white/10 px-4 py-2 text-sm font-medium hover:bg-white/5"
+                                                className="shrink-0 rounded-lg border border-[var(--border-main)] px-4 py-2 text-sm font-medium hover:bg-white/5"
                                             >
                                                 Change
                                             </button>
@@ -721,8 +721,8 @@ const SettingsPage = () => {
                                                         <FiShield className="text-blue-400 text-lg" />
                                                     </div>
                                                     <div className="flex-1">
-                                                        <p className="text-sm font-semibold text-white">Verify your mail</p>
-                                                        <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                                                        <p className="text-sm font-semibold text-[var(--text-primary)]">Verify your mail</p>
+                                                        <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
                                                             Verifying your email allows us to send you clean trade alerts and critical security notifications.
                                                         </p>
                                                         <button
@@ -747,7 +747,7 @@ const SettingsPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="border-t border-white/5 pt-8">
+                                <div className="border-t border-[var(--border-main)] pt-8">
                                     <h3 className="mb-4 flex items-center gap-2 text-lg font-medium">
                                         <FiLink2 className="text-blue-400" /> Broker Integration
                                     </h3>
@@ -764,7 +764,7 @@ const SettingsPage = () => {
                                                             onClick={() => handleInputChange("broker", broker.value)}
                                                             className={`flex flex-col items-center gap-2 rounded-xl p-3 transition-all border ${formData.broker === broker.value
                                                                 ? 'bg-blue-500/10 border-blue-500/40 shadow-lg shadow-blue-500/10'
-                                                                : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05] hover:border-white/10'
+                                                                : 'bg-[var(--glass-bg)] border-[var(--border-main)] hover:bg-white/[0.05] hover:border-[var(--border-main)]'
                                                                 }`}
                                                         >
                                                             <div className="h-10 w-10 flex items-center justify-center p-1">
@@ -791,7 +791,7 @@ const SettingsPage = () => {
                                                             value={formData.apiKey}
                                                             onChange={(e) => handleInputChange("apiKey", e.target.value)}
                                                             placeholder="Enter your broker API key"
-                                                            className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-2.5 text-white focus:border-blue-500 focus:outline-none"
+                                                            className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-2.5 text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
                                                         />
                                                     </div>
                                                 )}
@@ -806,7 +806,7 @@ const SettingsPage = () => {
                                                             value={formData.apiSecret}
                                                             onChange={(e) => handleInputChange("apiSecret", e.target.value)}
                                                             placeholder="Enter your broker API secret"
-                                                            className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-2.5 text-white focus:border-blue-500 focus:outline-none"
+                                                            className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-2.5 text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
@@ -816,7 +816,7 @@ const SettingsPage = () => {
                                                             value={formData.clientId}
                                                             onChange={(e) => handleInputChange("clientId", e.target.value)}
                                                             placeholder="Your broker client ID"
-                                                            className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-2.5 text-white focus:border-blue-500 focus:outline-none"
+                                                            className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-2.5 text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
                                                         />
                                                     </div>
                                                 </div>
@@ -824,7 +824,7 @@ const SettingsPage = () => {
 
                                             {formData.broker && (
                                                 <div className="space-y-4">
-                                                    <p className="text-xs text-gray-400">
+                                                    <p className="text-xs text-[var(--text-secondary)]">
                                                         {formData.broker === 'zerodha' && (
                                                             <a href="https://kite.trade/docs/connect/v3/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
                                                                 How to get Zerodha API credentials →
@@ -847,7 +847,7 @@ const SettingsPage = () => {
                                                         type="button"
                                                         onClick={testBrokerConnection}
                                                         disabled={!formData.broker || !formData.apiKey || !formData.apiSecret || testingConnection}
-                                                        className="w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/20"
+                                                        className="w-full rounded-lg bg-blue-600 py-3 font-medium text-[var(--text-primary)] hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/20"
                                                     >
                                                         {testingConnection ? (
                                                             <span className="flex items-center justify-center gap-2">
@@ -893,7 +893,7 @@ const SettingsPage = () => {
                                         </div>
 
                                         {/* Right Side: Connected Brokers Display */}
-                                        <div className="w-full lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l border-white/5 pt-10 lg:pt-0 lg:pl-10">
+                                        <div className="w-full lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l border-[var(--border-main)] pt-10 lg:pt-0 lg:pl-10">
                                             <div className="sticky top-6">
                                                 <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-6 flex items-center gap-2">
                                                     <div className="h-px flex-1 bg-white/5"></div>
@@ -915,7 +915,7 @@ const SettingsPage = () => {
                                                             loading={testingConnection}
                                                         />
                                                     ) : (
-                                                        <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center bg-white/[0.01]">
+                                                        <div className="rounded-2xl border border-dashed border-[var(--border-main)] p-8 text-center bg-white/[0.01]">
                                                             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/5 mb-3">
                                                                 <FiLink2 className="text-gray-600 text-xl" />
                                                             </div>
@@ -931,19 +931,19 @@ const SettingsPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="border-t border-white/5 pt-8">
+                                <div className="border-t border-[var(--border-main)] pt-8">
                                     <h3 className="mb-4 flex items-center gap-2 text-lg font-medium text-red-500">
                                         <FiAlertCircle className="text-red-500" /> Danger Zone
                                     </h3>
                                     <div className="rounded-xl border border-red-500/10 bg-red-500/5 p-6">
                                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                             <div>
-                                                <p className="font-semibold text-white">Delete Account</p>
-                                                <p className="text-sm text-gray-400">Permanently remove your account and all associated data. This action cannot be undone.</p>
+                                                <p className="font-semibold text-[var(--text-primary)]">Delete Account</p>
+                                                <p className="text-sm text-[var(--text-secondary)]">Permanently remove your account and all associated data. This action cannot be undone.</p>
                                             </div>
                                             <button
                                                 onClick={() => setShowDeleteModal(true)}
-                                                className="shrink-0 rounded-lg bg-red-600/10 border border-red-500/20 px-4 py-2 text-sm font-medium text-red-500 hover:bg-red-600 hover:text-white transition-all shadow-lg shadow-red-500/5"
+                                                className="shrink-0 rounded-lg bg-red-600/10 border border-red-500/20 px-4 py-2 text-sm font-medium text-red-500 hover:bg-red-600 hover:text-[var(--text-primary)] transition-all shadow-lg shadow-red-500/5"
                                             >
                                                 Delete Account
                                             </button>
@@ -964,10 +964,10 @@ const SettingsPage = () => {
                                         { id: "portfolioAlerts", label: "Portfolio Updates", desc: "Daily P&L and position summaries" },
                                         { id: "systemMessages", label: "System Messages", desc: "Maintenance and platform updates" },
                                     ].map(item => (
-                                        <div key={item.id} className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] p-4">
+                                        <div key={item.id} className="flex items-center justify-between rounded-lg border border-[var(--border-main)] bg-[var(--glass-bg)] p-4">
                                             <div>
                                                 <p className="font-medium">{item.label}</p>
-                                                <p className="text-sm text-gray-400">{item.desc}</p>
+                                                <p className="text-sm text-[var(--text-secondary)]">{item.desc}</p>
                                             </div>
                                             <button
                                                 onClick={() => handleSettingToggle(item.id)}
@@ -979,15 +979,15 @@ const SettingsPage = () => {
                                     ))}
                                 </div>
 
-                                <h3 className="mt-8 text-sm font-semibold uppercase tracking-wider text-gray-400">Delivery Channels</h3>
+                                <h3 className="mt-8 text-sm font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Delivery Channels</h3>
                                 <div className="space-y-4">
                                     {[
                                         { id: "deliveryApp", label: "In-App Push", icon: FiBell },
                                         { id: "deliveryEmail", label: "Email Digest", icon: FiUser }, // Using user icon as placeholder for email or generically
                                     ].map(item => (
-                                        <div key={item.id} className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] p-4">
+                                        <div key={item.id} className="flex items-center justify-between rounded-lg border border-[var(--border-main)] bg-[var(--glass-bg)] p-4">
                                             <div className="flex items-center gap-3">
-                                                <item.icon className="text-gray-400" />
+                                                <item.icon className="text-[var(--text-secondary)]" />
                                                 <span className="font-medium">{item.label}</span>
                                             </div>
                                             <button
@@ -1007,10 +1007,10 @@ const SettingsPage = () => {
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div>
                                     <h2 className="text-xl font-semibold">Security Settings</h2>
-                                    <p className="text-sm text-gray-400">Manage your password and account security</p>
+                                    <p className="text-sm text-[var(--text-secondary)]">Manage your password and account security</p>
                                 </div>
 
-                                <div className="rounded-xl border border-white/10 bg-[#0a0f1e]/50 p-6">
+                                <div className="rounded-xl border border-[var(--border-main)] bg-[var(--input-bg)]/50 p-6">
                                     <h3 className="mb-4 text-lg font-medium">Update Password</h3>
                                     <div className="grid gap-4 md:grid-cols-2">
                                         <div className="space-y-2 md:col-span-2">
@@ -1019,7 +1019,7 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.currentPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                                                className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-2.5 focus:border-blue-500 focus:outline-none"
+                                                className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-2.5 focus:border-blue-500 focus:outline-none"
                                             />
                                         </div>
 
@@ -1029,7 +1029,7 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.newPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                                                className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-2.5 focus:border-blue-500 focus:outline-none"
+                                                className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-2.5 focus:border-blue-500 focus:outline-none"
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -1038,7 +1038,7 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.confirmPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                                                className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-2.5 focus:border-blue-500 focus:outline-none"
+                                                className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-2.5 focus:border-blue-500 focus:outline-none"
                                             />
                                         </div>
                                     </div>
@@ -1057,7 +1057,7 @@ const SettingsPage = () => {
                                         <button
                                             onClick={handleUpdatePassword}
                                             disabled={isUpdatingPassword}
-                                            className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+                                            className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:bg-blue-500 disabled:opacity-50"
                                         >
                                             {isUpdatingPassword ? "Updating..." : "Update Password"}
                                         </button>
@@ -1072,7 +1072,7 @@ const SettingsPage = () => {
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div>
                                     <h2 className="text-xl font-semibold">User Preferences</h2>
-                                    <p className="text-sm text-gray-400">Customize your trading experience</p>
+                                    <p className="text-sm text-[var(--text-secondary)]">Customize your trading experience</p>
                                 </div>
 
                                 {/* Trading Mode */}
@@ -1091,12 +1091,12 @@ const SettingsPage = () => {
                                                     onClick={() => handleTradingModeSelect(mode.id)}
                                                     className={`group relative flex flex-col items-center gap-3 rounded-xl border p-6 text-center transition-all duration-300 ${isActive
                                                         ? `${getModeColor(mode.id)} border-transparent bg-gradient-to-b ${getModeGradient(mode.id)} ring-1 ring-white/10 shadow-xl`
-                                                        : "border-white/5 bg-[#0a0f1e]/50 hover:border-white/10 hover:bg-white/[0.02]"
+                                                        : "border-[var(--border-main)] bg-[var(--input-bg)]/50 hover:border-[var(--border-main)] hover:bg-[var(--glass-bg)]"
                                                         }`}
                                                 >
-                                                    <mode.icon className={`h-8 w-8 transition-colors duration-300 ${isActive ? "text-white" : "text-gray-500 group-hover:text-gray-400"}`} />
+                                                    <mode.icon className={`h-8 w-8 transition-colors duration-300 ${isActive ? "text-[var(--text-primary)]" : "text-gray-500 group-hover:text-[var(--text-secondary)]"}`} />
                                                     <div>
-                                                        <p className={`font-semibold transition-colors duration-300 ${isActive ? "text-white" : "text-gray-300"}`}>{mode.label}</p>
+                                                        <p className={`font-semibold transition-colors duration-300 ${isActive ? "text-[var(--text-primary)]" : "text-gray-300"}`}>{mode.label}</p>
                                                         <p className="mt-1.5 text-xs text-gray-500 leading-relaxed">{mode.desc}</p>
                                                     </div>
                                                 </button>
@@ -1107,26 +1107,26 @@ const SettingsPage = () => {
 
                                 {/* Theme Toggle */}
                                 <div className="pt-4">
-                                    <h3 className="mb-4 text-sm font-medium text-gray-300">Appearance</h3>
-                                    <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] p-4">
+                                    <h3 className="mb-4 text-sm font-medium text-[var(--text-secondary)]">Appearance</h3>
+                                    <div className="flex items-center justify-between rounded-lg border border-[var(--border-main)] bg-[var(--glass-bg)] p-4">
                                         <div>
-                                            <p className="font-medium">Theme Preference</p>
-                                            <div className="mt-1 flex items-center gap-2 text-sm text-gray-400">
+                                            <p className="font-medium text-[var(--text-primary)]">Theme Preference</p>
+                                            <div className="mt-1 flex items-center gap-2 text-sm text-[var(--text-muted)]">
                                                 <FiInfo className="text-blue-400" />
-                                                Dark mode is recommended for focus & reduced eye strain
+                                                {theme === 'dark' ? 'Dark mode is recommended for focus & reduced eye strain' : 'Light mode provides better readability in bright environments'}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 bg-[#0a0f1e] p-1 rounded-lg border border-white/10">
+                                        <div className="flex items-center gap-2 bg-[var(--input-bg)] p-1 rounded-lg border border-[var(--border-main)]">
                                             <button
-                                                onClick={() => setSettings(prev => ({ ...prev, theme: 'light' }))}
-                                                className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all ${settings.theme === 'light' ? "bg-white text-black font-medium" : "text-gray-400 hover:text-white"
+                                                onClick={() => setTheme('light')}
+                                                className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all ${theme === 'light' ? "bg-blue-600 text-[var(--text-primary)] font-medium shadow-md shadow-blue-500/20" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                                                     }`}
                                             >
                                                 <FiSun /> Light
                                             </button>
                                             <button
-                                                onClick={() => setSettings(prev => ({ ...prev, theme: 'dark' }))}
-                                                className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all ${settings.theme === 'dark' ? "bg-[#1e293b] text-white font-medium shadow-sm" : "text-gray-400 hover:text-white"
+                                                onClick={() => setTheme('dark')}
+                                                className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all ${theme === 'dark' ? "bg-[#1e293b] text-[var(--text-primary)] font-medium shadow-sm" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                                                     }`}
                                             >
                                                 <FiMoon /> Dark
@@ -1148,20 +1148,20 @@ const SettingsPage = () => {
                             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 mb-4">
                                 <FiAlertCircle className="h-8 w-8 text-red-500" />
                             </div>
-                            <h3 className="text-center text-xl font-bold text-white">Aggressive Mode Warning</h3>
-                            <p className="mt-2 text-center text-gray-400">
+                            <h3 className="text-center text-xl font-bold text-[var(--text-primary)]">Aggressive Mode Warning</h3>
+                            <p className="mt-2 text-center text-[var(--text-secondary)]">
                                 This mode increases trading risk significantly and is recommended only for experienced traders. Are you sure you want to proceed?
                             </p>
                             <div className="mt-8 flex gap-3">
                                 <button
                                     onClick={() => setShowAggressiveWarning(false)}
-                                    className="flex-1 rounded-lg border border-white/10 py-2.5 font-medium text-gray-300 hover:bg-white/5"
+                                    className="flex-1 rounded-lg border border-[var(--border-main)] py-2.5 font-medium text-gray-300 hover:bg-white/5"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={confirmAggressiveMode}
-                                    className="flex-1 rounded-lg bg-red-600 py-2.5 font-medium text-white hover:bg-red-500"
+                                    className="flex-1 rounded-lg bg-red-600 py-2.5 font-medium text-[var(--text-primary)] hover:bg-red-500"
                                 >
                                     Proceed
                                 </button>
@@ -1175,25 +1175,25 @@ const SettingsPage = () => {
             {
                 showEmailOtpModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0d1226] p-6 shadow-2xl">
+                        <div className="w-full max-w-md rounded-2xl border border-[var(--border-main)] bg-[#0d1226] p-6 shadow-2xl">
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-lg font-bold text-white">Change Email Address</h3>
-                                <button onClick={() => setShowEmailOtpModal(false)}><FiX className="text-gray-400 hover:text-white" /></button>
+                                <h3 className="text-lg font-bold text-[var(--text-primary)]">Change Email Address</h3>
+                                <button onClick={() => setShowEmailOtpModal(false)}><FiX className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]" /></button>
                             </div>
 
                             {!pendingEmail ? (
                                 <div className="space-y-4">
-                                    <p className="text-sm text-gray-400">Enter your new email address. We will send a verification code.</p>
+                                    <p className="text-sm text-[var(--text-secondary)]">Enter your new email address. We will send a verification code.</p>
                                     <input
                                         type="email"
                                         placeholder="New Email Address"
-                                        className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-3 text-white focus:border-blue-500 focus:outline-none"
+                                        className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-3 text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') initiateEmailChange(e.currentTarget.value)
                                         }}
                                     />
                                     <button
-                                        className="w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-500"
+                                        className="w-full rounded-lg bg-blue-600 py-3 font-medium text-[var(--text-primary)] hover:bg-blue-500"
                                         onClick={(e) => {
                                             const input = e.currentTarget.previousElementSibling;
                                             initiateEmailChange(input.value);
@@ -1204,8 +1204,8 @@ const SettingsPage = () => {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <p className="text-sm text-gray-400">
-                                        Enter the 6-digit code sent to <span className="text-white font-medium">{pendingEmail}</span>
+                                    <p className="text-sm text-[var(--text-secondary)]">
+                                        Enter the 6-digit code sent to <span className="text-[var(--text-primary)] font-medium">{pendingEmail}</span>
                                     </p>
                                     <input
                                         type="text"
@@ -1213,7 +1213,7 @@ const SettingsPage = () => {
                                         maxLength={6}
                                         onChange={(e) => setEmailOtp(e.target.value)}
                                         placeholder="000 000"
-                                        className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-3 text-center text-xl tracking-widest text-white focus:border-blue-500 focus:outline-none"
+                                        className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-3 text-center text-xl tracking-widest text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
                                     />
                                     <div className="flex justify-between text-xs text-gray-500">
                                         <span>Expires in 5:00</span>
@@ -1224,7 +1224,7 @@ const SettingsPage = () => {
                                         )}
                                     </div>
                                     <button
-                                        className="w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                                        className="w-full rounded-lg bg-blue-600 py-3 font-medium text-[var(--text-primary)] hover:bg-blue-500 disabled:opacity-50"
                                         disabled={emailOtp.length !== 6}
                                         onClick={verifyEmailChange}
                                     >
@@ -1232,7 +1232,7 @@ const SettingsPage = () => {
                                     </button>
                                     <button
                                         onClick={() => setPendingEmail("")}
-                                        className="w-full text-sm text-gray-400 hover:text-white"
+                                        className="w-full text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                                     >
                                         Change Email Address
                                     </button>
@@ -1247,14 +1247,14 @@ const SettingsPage = () => {
             {
                 showVerifyEmailOtpModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0d1226] p-6 shadow-2xl">
+                        <div className="w-full max-w-md rounded-2xl border border-[var(--border-main)] bg-[#0d1226] p-6 shadow-2xl">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-bold text-white uppercase tracking-tight">Verify Email</h3>
-                                <button onClick={() => setShowVerifyEmailOtpModal(false)}><FiX className="text-gray-400 hover:text-white shadow-sm" /></button>
+                                <h3 className="text-lg font-bold text-[var(--text-primary)] uppercase tracking-tight">Verify Email</h3>
+                                <button onClick={() => setShowVerifyEmailOtpModal(false)}><FiX className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] shadow-sm" /></button>
                             </div>
 
                             <div className="space-y-4">
-                                <p className="text-sm text-gray-400">
+                                <p className="text-sm text-[var(--text-secondary)]">
                                     Enter the 6-digit code sent to your email to enable trade alerts.
                                 </p>
                                 <div className="relative group">
@@ -1264,7 +1264,7 @@ const SettingsPage = () => {
                                         maxLength={6}
                                         onChange={(e) => setEmailOtp(e.target.value)}
                                         placeholder="000 000"
-                                        className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-4 text-center text-2xl font-bold tracking-[0.5em] text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-white/5"
+                                        className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-4 text-center text-2xl font-bold tracking-[0.5em] text-[var(--text-primary)] focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-[var(--text-primary)]/5"
                                     />
                                 </div>
                                 <div className="flex justify-between text-[10px] text-gray-500 uppercase font-medium tracking-wider">
@@ -1276,7 +1276,7 @@ const SettingsPage = () => {
                                     )}
                                 </div>
                                 <button
-                                    className="w-full rounded-lg bg-[#1E1BFF] py-3.5 font-bold text-white hover:bg-[#1720cc] disabled:opacity-50 shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                    className="w-full rounded-lg bg-[#1E1BFF] py-3.5 font-bold text-[var(--text-primary)] hover:bg-[#1720cc] disabled:opacity-50 shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                                     disabled={loading || emailOtp.length !== 6}
                                     onClick={handleVerifyEmail}
                                 >
@@ -1306,8 +1306,8 @@ const SettingsPage = () => {
                             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 mb-4">
                                 <FiAlertCircle className="h-8 w-8 text-blue-500" />
                             </div>
-                            <h3 className="text-center text-xl font-bold text-white">Change Email Address</h3>
-                            <p className="mt-2 text-center text-gray-400 text-sm">
+                            <h3 className="text-center text-xl font-bold text-[var(--text-primary)]">Change Email Address</h3>
+                            <p className="mt-2 text-center text-[var(--text-secondary)] text-sm">
                                 Enter your new email address. We'll send you a verification code to confirm the change.
                             </p>
 
@@ -1319,7 +1319,7 @@ const SettingsPage = () => {
                                         value={pendingEmail}
                                         onChange={(e) => setPendingEmail(e.target.value)}
                                         placeholder="your.email@example.com"
-                                        className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-3 text-white focus:border-blue-500 focus:outline-none"
+                                        className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-3 text-[var(--text-primary)] focus:border-blue-500 focus:outline-none"
                                     />
                                 </div>
 
@@ -1329,7 +1329,7 @@ const SettingsPage = () => {
                                             setShowEmailChangeModal(false);
                                             setPendingEmail("");
                                         }}
-                                        className="flex-1 rounded-lg border border-white/10 py-3 text-sm font-medium text-gray-400 hover:bg-white/5 hover:text-white"
+                                        className="flex-1 rounded-lg border border-[var(--border-main)] py-3 text-sm font-medium text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]"
                                     >
                                         Cancel
                                     </button>
@@ -1343,7 +1343,7 @@ const SettingsPage = () => {
                                             }
                                         }}
                                         disabled={!pendingEmail || !pendingEmail.includes("@")}
-                                        className="flex-1 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50 shadow-lg shadow-blue-600/20"
+                                        className="flex-1 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-[var(--text-primary)] hover:bg-blue-500 disabled:opacity-50 shadow-lg shadow-blue-600/20"
                                     >
                                         Send Verification Code
                                     </button>
@@ -1362,21 +1362,21 @@ const SettingsPage = () => {
                             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 mb-4">
                                 <FiAlertCircle className="h-8 w-8 text-red-500" />
                             </div>
-                            <h3 className="text-center text-xl font-bold text-white">Delete your account?</h3>
-                            <p className="mt-2 text-center text-gray-400">
+                            <h3 className="text-center text-xl font-bold text-[var(--text-primary)]">Delete your account?</h3>
+                            <p className="mt-2 text-center text-[var(--text-secondary)]">
                                 This action is permanent and cannot be undone. All your trades, settings, and profile data will be forever lost.
                             </p>
 
                             <div className="mt-6 space-y-4">
                                 <p className="text-sm text-center text-gray-300">
-                                    Please type <span className="font-bold text-white tracking-widest">DELETE</span> to confirm
+                                    Please type <span className="font-bold text-[var(--text-primary)] tracking-widest">DELETE</span> to confirm
                                 </p>
                                 <input
                                     type="text"
                                     value={deleteConfirmText}
                                     onChange={(e) => setDeleteConfirmText(e.target.value)}
                                     placeholder="Type DELETE here"
-                                    className="w-full rounded-lg border border-white/10 bg-[#0a0f1e] px-4 py-3 text-center text-white focus:border-red-500 focus:outline-none"
+                                    className="w-full rounded-lg border border-[var(--border-main)] bg-[var(--input-bg)] px-4 py-3 text-center text-[var(--text-primary)] focus:border-red-500 focus:outline-none"
                                 />
 
                                 <div className="flex gap-3 pt-2">
@@ -1386,14 +1386,14 @@ const SettingsPage = () => {
                                             setDeleteConfirmText("");
                                         }}
                                         disabled={isDeleting}
-                                        className="flex-1 rounded-lg border border-white/10 py-3 text-sm font-medium text-gray-400 hover:bg-white/5 hover:text-white"
+                                        className="flex-1 rounded-lg border border-[var(--border-main)] py-3 text-sm font-medium text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={handleDeleteAccount}
                                         disabled={deleteConfirmText !== "DELETE" || isDeleting}
-                                        className="flex-1 rounded-lg bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50 shadow-lg shadow-red-600/20"
+                                        className="flex-1 rounded-lg bg-red-600 py-3 text-sm font-semibold text-[var(--text-primary)] hover:bg-red-500 disabled:opacity-50 shadow-lg shadow-red-600/20"
                                     >
                                         {isDeleting ? "Deleting..." : "Delete Permanently"}
                                     </button>
@@ -1423,9 +1423,9 @@ const ConnectedBrokerCard = ({ broker, clientId, onClick, loading }) => {
             type="button"
             onClick={onClick}
             disabled={loading}
-            className="w-full text-left group relative flex items-center gap-4 rounded-2xl border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent p-4 transition-all hover:border-blue-500/30 hover:bg-white/[0.05] active:scale-[0.98] disabled:cursor-wait"
+            className="w-full text-left group relative flex items-center gap-4 rounded-2xl border border-[var(--border-main)] bg-gradient-to-br from-white/[0.03] to-transparent p-4 transition-all hover:border-blue-500/30 hover:bg-white/[0.05] active:scale-[0.98] disabled:cursor-wait"
         >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 group-hover:border-blue-500/20 transition-all">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-[var(--border-main)] group-hover:border-blue-500/20 transition-all">
                 {loading ? (
                     <div className="animate-spin text-blue-400">
                         <i className="bx bx-loader-alt text-xl"></i>
@@ -1440,10 +1440,10 @@ const ConnectedBrokerCard = ({ broker, clientId, onClick, loading }) => {
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                    <p className="font-semibold text-white truncate">{brokerInfo.label}</p>
+                    <p className="font-semibold text-[var(--text-primary)] truncate">{brokerInfo.label}</p>
                     <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'bg-blue-400' : 'bg-emerald-500'} shadow-[0_0_8px_rgba(16,185,129,0.5)]`}></span>
                 </div>
-                <p className="text-[10px] text-gray-400 font-mono mt-0.5 truncate uppercase tracking-tighter">ID: {clientId || 'ID_UNKNOWN'}</p>
+                <p className="text-[10px] text-[var(--text-secondary)] font-mono mt-0.5 truncate uppercase tracking-tighter">ID: {clientId || 'ID_UNKNOWN'}</p>
             </div>
             <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20 whitespace-nowrap">
