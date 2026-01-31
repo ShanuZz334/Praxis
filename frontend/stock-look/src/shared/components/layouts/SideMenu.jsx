@@ -51,8 +51,10 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
                 group flex items-center
                 ${collapsed && !isMobileDrawer ? "justify-center" : "gap-4"}
                 px-4 py-3 rounded-xl
-                transition-all duration-200
-                ${isMobileDrawer && isActive ? "bg-white/5" : ""}
+                transition-all duration-300
+                hover:bg-background-surface
+                relative
+                ${isActive ? "bg-accent-glow/10" : ""}
               `}
             >
               {/* ICON */}
@@ -61,7 +63,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
                   text-[20px] transition-all duration-300 ease-out transform
                   ${isActive
                     ? "text-blue-700 scale-110"
-                    : "text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] group-hover:scale-110 group-hover:-rotate-6"
+                    : "text-text-tertiary group-hover:text-blue-400 group-hover:scale-110"
                   }
                 `}
               />
@@ -70,10 +72,10 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
               {(!collapsed || isMobileDrawer) && (
                 <span
                   className={`
-                    text-sm font-medium transition-colors
+                    text-sm font-semibold transition-all duration-300
                     ${isActive
-                      ? "text-[var(--text-primary)]"
-                      : "text-[var(--text-secondary)] group-hover:text-blue-500"
+                      ? "text-blue-700"
+                      : "text-text-secondary group-hover:text-blue-400 group-hover:translate-x-1"
                     }
                   `}
                 >
@@ -96,7 +98,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
           `}
         >
           {user?.profileImage ? (
-            <div className="w-8 h-8 flex-shrink-0 rounded-full overflow-hidden border-2 border-[var(--border-main)]">
+            <div className="w-8 h-8 flex-shrink-0 rounded-full overflow-hidden border-2 border-border-default transition-transform duration-300 hover:scale-110">
               <img
                 src={user.profileImage}
                 alt="Profile"
@@ -104,7 +106,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
               />
             </div>
           ) : (
-            <div className="w-8 h-8 flex-shrink-0 rounded-full bg-[var(--border-main)] flex items-center justify-center border-2 border-dashed border-[var(--border-hover)] text-[var(--text-muted)]">
+            <div className="w-8 h-8 flex-shrink-0 rounded-full bg-background-surface flex items-center justify-center border-2 border-dashed border-border-subtle text-text-tertiary transition-transform duration-300 hover:scale-110">
               <i className="bx bx-user text-lg" />
             </div>
           )}
@@ -112,10 +114,10 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
 
           {(!collapsed || isMobileDrawer) && (
             <div className="leading-tight">
-              <p className="text-sm font-medium text-[var(--text-primary)]">
+              <p className="text-sm font-medium text-text-primary">
                 {user?.fullName || "Trader"}
               </p>
-              <p className="text-xs text-[var(--text-muted)]">
+              <p className="text-xs text-text-tertiary">
                 {user?.email || "Active"}
               </p>
             </div>
@@ -129,17 +131,18 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
             onClick={() => handleClick(item.path)}
             className={`
               w-full mt-2 flex items-center
+              group
               ${collapsed && !isMobileDrawer ? "justify-center" : "gap-4 px-4"}
               py-3 rounded-xl
               text-sm text-red-500/80
-              transition-all
-              hover:text-red-400
-              hover:bg-red-500/5
+              transition-all duration-300
+              hover:text-red-500
+              hover:bg-red-500/[0.08]
             `}
           >
-            <item.icon className="text-[20px]" />
+            <item.icon className="text-[20px] transition-transform duration-300 group-hover:scale-125 group-hover:rotate-12" />
             {(!collapsed || isMobileDrawer) && (
-              <span className="font-medium">{item.label}</span>
+              <span className="font-semibold transition-transform duration-300 group-hover:translate-x-1">{item.label}</span>
             )}
           </button>
         ))}

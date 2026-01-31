@@ -19,8 +19,8 @@ export default function CardSegmented({
       className="
         inline-flex
         rounded-xl
-        bg-white/5
-        border border-white/10
+        bg-background-surface
+        border border-border-default
         backdrop-blur
         p-1
       "
@@ -37,10 +37,9 @@ export default function CardSegmented({
               ${size === "sm" ? "py-1 text-xs" : "py-2 text-sm"}
               rounded-lg
               transition-all
-              ${
-                active
-                  ? "bg-white/15 text-white shadow-sm"
-                  : "text-white/60 hover:text-white hover:bg-white/10"
+              ${active
+                ? "bg-background-card text-text-primary shadow-sm ring-1 ring-border-default"
+                : "text-text-tertiary hover:text-text-primary hover:bg-background-card/50"
               }
             `}
           >

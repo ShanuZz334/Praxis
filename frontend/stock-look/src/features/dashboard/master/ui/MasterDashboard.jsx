@@ -6,7 +6,7 @@ import SignalAlignmentMatrix from "./SignalAlignmentMatrix";
 import ProDeskPicks from "./ProDeskPicks";
 
 import { MOCK_MASTER_DATA } from "../data/masterData";
-import { calculateStockyScore, deriveMasterRegime } from "../engine/stockyEngine";
+import { calculateStockyScore, deriveMasterRegime, getRegimeColor } from "../engine/stockyEngine";
 
 // --- DATA SOURCE COMPOSITION ---
 // --- DATA SOURCE COMPOSITION ---
@@ -163,7 +163,7 @@ export default function MasterDashboard() {
                 regime={{
                     label: masterRegime,
                     desc: "Algorithmically determined market phase",
-                    color: masterRegime.includes("Risk-On") ? "text-emerald-400" : "text-slate-200",
+                    color: getRegimeColor(masterRegime),
                     confidence: 89
                 }}
                 integrity={{ coverage: "5/5 Engines", source: "Cross-Asset", freshness: "Realtime" }}

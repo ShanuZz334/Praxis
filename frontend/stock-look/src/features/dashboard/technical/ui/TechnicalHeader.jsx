@@ -29,11 +29,11 @@ export default function TechnicalHeader({
 
     /* ================= COMPOSITE STATE LOGIC ================= */
     function getCompositeState(s) {
-        if (s >= 70) return { label: "Bullish", color: "text-emerald-400" };
-        if (s >= 55) return { label: "Neutral-Positive", color: "text-emerald-400/80" };
-        if (s >= 45) return { label: "Neutral", color: "text-slate-200" };
-        if (s >= 30) return { label: "Neutral-Negative", color: "text-orange-400" };
-        return { label: "Bearish", color: "text-red-500" };
+        if (s >= 70) return { label: "Bullish", color: "text-state-bullish-text" };
+        if (s >= 55) return { label: "Neutral-Positive", color: "text-state-bullish-text opacity-80" };
+        if (s >= 45) return { label: "Neutral", color: "text-state-neutral-text" };
+        if (s >= 30) return { label: "Neutral-Negative", color: "text-state-bearish-text opacity-80" };
+        return { label: "Bearish", color: "text-state-bearish-text" };
     }
 
     const compositeState = getCompositeState(score || 0);
@@ -44,10 +44,10 @@ export default function TechnicalHeader({
         const mockPrev = score - 2.5; // Simulate slight uptrend
         const d = score - mockPrev;
         const pct = ((d / mockPrev) * 100).toFixed(1);
-        let c = "text-slate-400";
+        let c = "text-text-tertiary";
         let sign = "";
-        if (d > 0.1) { c = "text-emerald-400"; sign = "+"; }
-        else if (d < -0.1) { c = "text-red-400"; sign = ""; }
+        if (d > 0.1) { c = "text-emerald-600 dark:text-emerald-400 font-bold"; sign = "+"; }
+        else if (d < -0.1) { c = "text-red-600 dark:text-red-400 font-bold"; sign = ""; }
         return { delta: pct, prevScore: mockPrev.toFixed(1), deltaColor: c, deltaSign: sign };
     }, [score]);
 
@@ -89,10 +89,10 @@ export default function TechnicalHeader({
     return (
         <div className="space-y-6">
             {/* ================= UNIFIED HEADER BLOCK ================= */}
-            <div className="rounded-2xl bg-[#0b1220] border border-white/10 overflow-hidden shadow-2xl">
+            <div className="rounded-2xl bg-background-card-primary border border-border-subtle-translucent overflow-hidden shadow-2xl">
 
                 {/* ROW 1: GAUGE, REGIME, INTEGRITY */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-white/10 border-b border-white/10 bg-white/[0.02]">
+                <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-border-subtle-translucent border-b border-border-subtle-translucent bg-white/[0.02]">
 
                     {/* 1. COMPOSITE SCORE CARD (Identical to Fundamental) */}
                     <div className="group relative p-6">
@@ -101,14 +101,14 @@ export default function TechnicalHeader({
                                 Technical Composite
                                 <PortalTooltip
                                     content={
-                                        <div className="w-80 p-4 bg-[#0b1220] border border-white/10 rounded-xl shadow-2xl">
-                                            <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-2">
-                                                <span className="text-xs font-bold text-white uppercase tracking-wider">Technical Module</span>
+                                        <div className="w-80">
+                                            <div className="flex items-center gap-2 mb-2 border-b border-border-default pb-2">
+                                                <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Technical Module</span>
                                             </div>
-                                            <p className="text-xs text-white/70 leading-relaxed">
+                                            <p className="text-xs text-text-secondary leading-relaxed">
                                                 The Technical module aggregates price action, momentum, volatility, and volume indicators to determine the structural health of the trend.
                                             </p>
-                                            <div className="mt-3 pt-2 border-t border-white/5 flex items-center gap-1.5 text-[10px] text-blue-400 font-bold uppercase tracking-wide">
+                                            <div className="mt-3 pt-2 border-t border-border-default flex items-center gap-1.5 text-[10px] text-blue-400 font-bold uppercase tracking-wide">
                                                 <span>Click to read full manual</span>
                                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                                             </div>
@@ -127,14 +127,14 @@ export default function TechnicalHeader({
                             {/* 7D CHANGE */}
                             <PortalTooltip
                                 content={
-                                    <div className="w-48 p-2 bg-black border border-white/10 rounded text-[10px] text-white/60">
+                                    <div className="w-48 text-[10px] text-text-secondary">
                                         Change in technical strength vs 24h ago ({prevScore})
                                     </div>
                                 }
                             >
                                 <div className={`flex items-center gap-1 ${deltaColor} bg-white/5 px-2 py-1 rounded text-[10px] font-mono border border-white/5`}>
                                     <span className="font-bold">{deltaSign}{delta}%</span>
-                                    <span className="text-white/30 ml-1">vs 24h</span>
+                                    <span className="opacity-60 ml-1 lowercase">vs 24h</span>
                                 </div>
                             </PortalTooltip>
                         </div>
@@ -167,14 +167,14 @@ export default function TechnicalHeader({
                                         key={s.id}
                                         className="group/item relative flex flex-col items-center justify-between h-full w-full"
                                         content={
-                                            <div className="min-w-[120px] bg-[#0b1220] border border-white/20 p-3 rounded-xl shadow-2xl text-left">
-                                                <div className="flex justify-between items-baseline border-b border-white/10 pb-2 mb-2">
-                                                    <span className="text-xs font-bold text-white">{s.id}</span>
-                                                    <span className="text-[10px] text-white/50">{s.normalizedScore}/100</span>
+                                            <div className="min-w-[120px] text-left">
+                                                <div className="flex justify-between items-baseline border-b border-border-default pb-2 mb-2">
+                                                    <span className="text-xs font-bold text-text-primary">{s.id}</span>
+                                                    <span className="text-[10px] text-text-tertiary">{s.normalizedScore}/100</span>
                                                 </div>
                                                 <div className="flex justify-between text-[10px]">
-                                                    <span className="text-white/40">Contrib</span>
-                                                    <span className={`font-mono ${isPos ? 'text-emerald-400' : isNeg ? 'text-red-400' : 'text-white/60'}`}>
+                                                    <span className="text-text-tertiary">Contrib</span>
+                                                    <span className={`font-mono ${isPos ? 'text-emerald-400' : isNeg ? 'text-red-400' : 'text-text-secondary'}`}>
                                                         {displayVal} pts
                                                     </span>
                                                 </div>
@@ -223,7 +223,7 @@ export default function TechnicalHeader({
 
                         <div className="relative h-2 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 opacity-80">
                             <div
-                                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-[#0b1220] rounded-full shadow-lg transition-all duration-1000"
+                                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-background-card-primary rounded-full shadow-lg transition-all duration-1000"
                                 style={{ left: `${Math.max(5, Math.min(95, score || 50))}%` }}
                             />
                         </div>
@@ -329,7 +329,7 @@ export default function TechnicalHeader({
                 </div>
 
                 {/* CONTROLS (Matched) */}
-                <div className="flex justify-between items-center border-t border-white/5 pt-4 bg-[#0b1220] p-4 text-white">
+                <div className="flex justify-between items-center border-t border-border-subtle-faint pt-4 bg-background-card-primary p-4 text-white">
                     {/* LEFT: SEARCH */}
                     <div className="relative group w-64 transition-all focus-within:w-80">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white/20 group-focus-within:text-blue-400 transition-colors">
@@ -340,7 +340,7 @@ export default function TechnicalHeader({
                             value={searchQuery}
                             onChange={(e) => onSearchChange(e.target.value)}
                             placeholder="Find indicators (e.g. RSI, MACD)..."
-                            className="w-full pl-9 pr-20 py-2 bg-[#0b1220] border border-white/10 rounded-lg text-sm text-white placeholder-white/20 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all shadow-inner"
+                            className="w-full pl-9 pr-20 py-2 bg-background-card-primary border border-border-subtle-translucent rounded-lg text-sm text-white placeholder-white/20 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all shadow-inner"
                         />
 
                         {/* RIGHT ACTIONS Inside Input */}

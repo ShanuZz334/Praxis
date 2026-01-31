@@ -79,7 +79,7 @@ const AuthLayout = ({ children }) => {
                     <div className="flex flex-col gap-2 pt-1">
                       <button
                         onClick={() => verifyCredentials(email, totp)}
-                        className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-lg shadow-indigo-600/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 text-sm"
+                        className="w-full py-3 rounded-xl bg-[#1E1BFF] hover:bg-[#1720cc] text-white font-bold shadow-lg shadow-[#1E1BFF]/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 text-sm"
                         disabled={loading || totp.length !== 6}
                         id="verify-button-left"
                       >
@@ -113,7 +113,7 @@ const AuthLayout = ({ children }) => {
                       speed={0.6}
                       enableShadows
                       enableOnHover
-                      className="text-[3rem] md:text-[clamp(5rem,10vw,12rem)] font-extrabold text-[#4828ff]"
+                      className="text-[3rem] md:text-[clamp(5rem,10vw,12rem)] font-extrabold text-[#1E1BFF]"
                     >
                       Stocky
                     </GlitchText>
@@ -141,8 +141,8 @@ const AuthLayout = ({ children }) => {
                   onClick={() => navigate("/login")}
                   className={`px-5 py-2 rounded-full text-sm transition-all
                     ${isLogin
-                      ? "bg-white text-slate-900"
-                      : "bg-slate-700/40 text-white/80"
+                      ? "bg-[#1E1BFF] text-white shadow-[0_0_15px_rgba(30,27,255,0.4)]"
+                      : "bg-white/5 text-white/60 hover:bg-white/10"
                     }`}
                 >
                   Login
@@ -150,10 +150,10 @@ const AuthLayout = ({ children }) => {
 
                 <button
                   onClick={() => navigate("/signup")}
-                  className={`px-5 py-2 rounded-full text-sm transition-all
+                  className={`px-5 py-2 rounded-full text-sm font-bold transition-all
                     ${!isLogin
-                      ? "bg-white text-slate-900"
-                      : "bg-slate-700/40 text-white/80"
+                      ? "bg-[#1E1BFF] text-white shadow-[0_0_15px_rgba(30,27,255,0.4)]"
+                      : "bg-white/5 text-white/60 hover:bg-white/10"
                     }`}
                 >
                   Sign Up

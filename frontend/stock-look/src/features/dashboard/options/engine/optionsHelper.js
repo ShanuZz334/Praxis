@@ -73,16 +73,15 @@ export function getOptionsRegime(score, metrics) {
     // Logic: Gamma and IV determine "Stability" vs "Explosion"
     // Score determines "Bullish" vs "Bearish" bias
 
-    let regime = { label: "Neutral Range", desc: "Markets well bracketed by OI walls.", color: "text-slate-200" };
-
+    let regime = { label: "Neutral Range", desc: "Markets well bracketed by OI walls.", color: "text-state-neutral-text" };
     if (score > 65) {
-        regime = { label: "Bullish Control", desc: "Call writers unwinding, Puts supporting.", color: "text-emerald-400" };
+        regime = { label: "Bullish Control", desc: "Call writers unwinding, Puts supporting.", color: "text-state-bullish-text" };
     } else if (score < 35) {
-        regime = { label: "Bearish Drag", desc: "Call writing heavy, resistance holding.", color: "text-red-400" };
+        regime = { label: "Bearish Drag", desc: "Call writing heavy, resistance holding.", color: "text-state-bearish-text" };
     } else {
         // Neutral nuances based on pseudo-Greeks (using PCR as proxy if metrics available)
         if (metrics && metrics.pcr > 1.2) {
-            regime = { label: "Neutral-Bullish", desc: "Base building with strong Put support.", color: "text-emerald-300" };
+            regime = { label: "Neutral-Bullish", desc: "Base building with strong Put support.", color: "text-state-bullish-text" };
         }
     }
 

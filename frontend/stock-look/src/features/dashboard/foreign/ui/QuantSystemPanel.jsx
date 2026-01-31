@@ -6,7 +6,7 @@ export default function QuantSystemPanel({ system }) {
     const { primaryBias, invalidation, positioning, timeHorizon, confidence, crossFactor, scenarios } = system;
 
     return (
-        <div className="w-full h-full bg-[#101a33] border border-white/5 rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col justify-between">
+        <div className="w-full h-full bg-background-card-secondary border border-border-subtle-faint rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col justify-between">
 
             {/* HEADER */}
             <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-3">

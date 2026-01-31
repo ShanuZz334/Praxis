@@ -170,7 +170,7 @@ const SignUp = () => {
                 <button
                   type="button"
                   onClick={() => initiateVerification(email)}
-                  className="p-1 hover:bg-white/10 rounded-full transition text-indigo-300 flex items-center justify-center shadow-lg"
+                  className="p-1 hover:bg-white/10 rounded-full transition text-[#1E1BFF] flex items-center justify-center shadow-lg shadow-[#1E1BFF]/20"
                   title="Verify Admin TOTP"
                   disabled={otpLoading}
                 >
@@ -219,7 +219,7 @@ const SignUp = () => {
           Already have an account?{" "}
           <button
             type="button"
-            className="text-indigo-300 underline"
+            className="text-[#1E1BFF] font-bold hover:underline"
             onClick={() => navigate("/login")}
           >
             Login

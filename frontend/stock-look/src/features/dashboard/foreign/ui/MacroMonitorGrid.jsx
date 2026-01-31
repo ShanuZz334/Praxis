@@ -44,7 +44,7 @@ function FactorCard({ data, icon, accent }) {
     const { headline, metric, subMetric, state, impact, affected, confidence, explanation } = data;
 
     return (
-        <div className="bg-[#101a33] border border-white/5 rounded-xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.45)] hover:border-white/10 transition-colors flex flex-col h-full group relative overflow-hidden">
+        <div className="bg-background-card-secondary border border-border-subtle-faint rounded-xl p-5 shadow-md hover:border-white/10 transition-all duration-300 flex flex-col h-full group relative overflow-hidden hover:shadow-2xl hover:-translate-y-1">
 
             {/* Header */}
             <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-2">

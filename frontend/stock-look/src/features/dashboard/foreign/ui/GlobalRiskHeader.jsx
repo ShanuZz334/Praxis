@@ -6,7 +6,7 @@ export default function GlobalRiskHeader({ riskData }) {
     const { index, state, regime, tactical, conditions, helper, lastUpdated } = riskData;
 
     return (
-        <div className="w-full bg-[#101a33] border border-white/5 rounded-xl overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-white/5">
+        <div className="w-full bg-background-card-secondary border border-border-subtle-faint rounded-xl overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-white/5">
 
             {/* 1. RISK GAUGE (Visual Anchor) */}
             <div className="p-6 w-full lg:w-[320px] flex flex-col justify-center items-center bg-black/20 shrink-0">

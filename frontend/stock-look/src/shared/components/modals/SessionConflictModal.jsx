@@ -6,7 +6,7 @@ const SessionConflictModal = ({ isOpen, onConfirm }) => {
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-            <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-[#0d1226] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-background-card-primary p-8 shadow-2xl animate-in zoom-in-95 duration-300">
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10 mb-6">
                     <FiAlertTriangle className="h-10 w-10 text-red-500" />
                 </div>

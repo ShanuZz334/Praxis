@@ -7,7 +7,7 @@ export default function LivePnLCard({ pnl }) {
     const color = isProfit ? "#10b981" : "#ef4444";
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 bg-[#0b1220] border border-white/5 rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 bg-background-card-primary border border-border-subtle-faint rounded-2xl overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
 
             {/* LEFT: DETAILED P&L BREAKDOWN */}
             <div className="p-6 border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col justify-between">

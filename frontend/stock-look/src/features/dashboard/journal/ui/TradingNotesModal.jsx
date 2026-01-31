@@ -91,26 +91,29 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
             const isSelected = selectedDate === dateStr;
             const isTodayDate = today === dateStr;
 
-            let bgColor = "bg-slate-900/30";
-            let textColor = "text-slate-600";
+            let bgColor = "bg-background-elevated";
+            let textColor = "text-text-secondary";
             let content = d;
+            let opacity = "opacity-100";
 
             if (data) {
                 if (data.pnl > 0) {
-                    bgColor = "bg-emerald-500/70";
-                    textColor = "text-emerald-950";
+                    bgColor = "bg-emerald-500/80";
+                    textColor = "text-white";
                 } else if (data.pnl < 0) {
-                    bgColor = "bg-red-500/70";
+                    bgColor = "bg-red-500/80";
                     textColor = "text-white";
                 }
             } else if (date.isBefore(dayjs(), 'day')) {
                 content = "×";
-                textColor = "text-slate-700";
+                textColor = "text-text-tertiary";
+                opacity = "opacity-60";
             }
 
             if (isFuture) {
-                bgColor = "bg-slate-950/10";
-                textColor = "text-slate-800";
+                bgColor = "bg-background-elevated/40";
+                textColor = "text-text-tertiary";
+                opacity = "opacity-30";
             }
 
             days.push(
@@ -123,11 +126,11 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                     <button
                         onClick={() => handleDateSelect(dateStr)}
                         disabled={isFuture}
-                        className={`w-5 h-5 flex items-center justify-center text-[8px] font-bold rounded-sm transition-all
-                            ${bgColor} ${textColor}
-                            ${isSelected ? 'ring-1 ring-blue-500 ring-offset-1 ring-offset-[#0b1220] z-20 scale-110 shadow-lg' : ''}
-                            ${isTodayDate && !isSelected ? 'ring-1 ring-white/20' : ''}
-                            ${!isFuture ? 'hover:scale-125 hover:z-30 cursor-pointer active:scale-95' : 'cursor-default'}
+                        className={`w-5 h-5 flex items-center justify-center text-[9px] font-black rounded-sm transition-all shadow-sm
+                            ${bgColor} ${textColor} ${opacity}
+                            ${isSelected ? 'ring-2 ring-accent-primary ring-offset-2 ring-offset-background-card z-20 scale-125 shadow-xl !opacity-100' : ''}
+                            ${isTodayDate && !isSelected ? 'ring-2 ring-accent-primary/50 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : ''}
+                            ${!isFuture ? 'hover:scale-125 hover:z-30 cursor-pointer active:scale-95 hover:!opacity-100' : 'cursor-default'}
                         `}
                     >
                         {content}
@@ -136,19 +139,19 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                     <AnimatePresence>
                         {hoveredDate === dateStr && data && (
                             <motion.div
-                                initial={{ opacity: 0, y: 5 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[100] pointer-events-none"
+                                initial={{ opacity: 0, scale: 0.95, y: 5 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[101] pointer-events-none"
                             >
-                                <div className="bg-[#121826] border border-white/10 px-2 py-1.5 rounded shadow-2xl backdrop-blur-md">
-                                    <div className="text-[9px] font-bold text-white mb-1 uppercase tracking-tight">{date.format("MMM D")}</div>
-                                    <div className="flex items-center gap-3">
-                                        <div className={`text-[10px] font-mono font-bold ${data.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                <div className="bg-white border border-border-default px-4 py-2.5 rounded-xl shadow-[0_15px_35px_rgba(0,0,0,0.15)] min-w-[110px]">
+                                    <div className="text-[10px] font-black text-accent-primary mb-1.5 uppercase tracking-[0.2em] border-b border-border-subtle pb-1.5">{date.format("D MMMM")}</div>
+                                    <div className="space-y-1.5">
+                                        <div className={`text-sm font-black tracking-tight ${data.pnl >= 0 ? 'text-state-bullish-text' : 'text-state-bearish-text'}`}>
                                             {data.pnl >= 0 ? '+' : ''}₹{data.pnl.toLocaleString()}
                                         </div>
-                                        <div className="text-[8px] text-slate-500 font-mono">
-                                            {data.win}W/{data.loss}L
+                                        <div className="text-[9px] text-text-tertiary font-black uppercase tracking-widest opacity-80">
+                                            {data.win}W / {data.loss}L • {data.rMult.toFixed(1)}R
                                         </div>
                                     </div>
                                 </div>
@@ -160,11 +163,11 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
         }
 
         return (
-            <div className="flex flex-col gap-1.5">
-                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.2em] text-center mb-1">{firstDayOfMonth.format("MMMM")}</span>
-                <div className="grid grid-cols-7 gap-[2px]">
+            <div className="flex flex-col gap-4">
+                <span className="text-[11px] font-black text-text-primary uppercase tracking-[0.25em] text-center border-b border-border-subtle/30 pb-2">{firstDayOfMonth.format("MMMM")}</span>
+                <div className="grid grid-cols-7 gap-[4px]">
                     {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(d => (
-                        <div key={d} className="w-5 h-5 flex items-center justify-center text-[7px] font-bold text-slate-800">{d}</div>
+                        <div key={d} className="w-5 h-5 flex items-center justify-center text-[7px] font-black text-text-tertiary opacity-60 tracking-tighter">{d}</div>
                     ))}
                     {days}
                 </div>
@@ -183,36 +186,46 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
     const showEditor = isTodaySelected && isEditingToday;
 
     return (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm overflow-hidden">
+        <div
+            className="fixed z-50 flex items-center justify-center p-4 overflow-hidden"
+            style={{
+                top: "var(--navbar-height)",
+                left: "var(--sidebar-width)",
+                right: 0,
+                bottom: 0,
+                width: "calc(100% - var(--sidebar-width))",
+                height: "calc(100vh - var(--navbar-height))"
+            }}
+        >
             <Toaster position="top-right" />
 
             <motion.div
                 initial={{ opacity: 0, scale: 0.99, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.99, y: -10 }}
-                className="bg-[#080d16] border border-white/[0.05] rounded-xl w-full max-w-[1600px] h-[90vh] md:h-[85vh] flex flex-col lg:flex-row overflow-hidden shadow-2xl"
+                className="bg-background-card/98 backdrop-blur-3xl border border-border-default rounded-2xl w-full max-w-[1600px] h-[90vh] md:h-[85vh] flex flex-col lg:flex-row overflow-hidden shadow-2xl"
             >
                 {/* LEFT (TOP on Mobile): CALENDAR WORKSPACE */}
-                <div className="w-full h-1/2 lg:h-auto lg:flex-1 bg-black/5 p-4 lg:p-10 flex flex-col overflow-y-auto no-scrollbar order-1">
+                <div className="w-full h-1/2 lg:h-auto lg:flex-1 bg-background-subtle p-6 lg:p-12 flex flex-col overflow-y-auto no-scrollbar order-1 border-r border-border-subtle">
                     <div className="flex items-center justify-between mb-6 lg:mb-12 shrink-0">
                         <div className="flex items-center gap-4">
-                            <div className="bg-blue-500/5 p-2.5 rounded-lg border border-blue-500/10">
-                                <Calendar size={18} className="text-blue-500/80" />
+                            <div className="bg-accent-primary/10 p-2.5 rounded-lg border border-accent-primary/20 shadow-sm">
+                                <Calendar size={18} className="text-accent-primary" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-bold text-white tracking-tight uppercase">Performance Map</h2>
-                                <p className="text-[9px] text-slate-500 font-bold tracking-[0.3em] uppercase opacity-50">{viewYear} Annual Discipline Matrix</p>
+                                <h2 className="text-lg font-bold text-text-primary tracking-tight uppercase">Performance Map</h2>
+                                <p className="text-[9px] text-text-tertiary font-black tracking-[0.3em] uppercase opacity-50">{viewYear} Annual Discipline Matrix</p>
                             </div>
                         </div>
 
-                        <div className="hidden md:flex items-center gap-6 bg-black/20 px-5 py-2.5 rounded-lg border border-white/[0.03]">
-                            <LegendItem label="Profit" color="bg-emerald-500/60" />
-                            <LegendItem label="Risk" color="bg-red-500/60" />
-                            <LegendItem label="Idle" color="bg-slate-800" symbol="×" />
+                        <div className="hidden md:flex items-center gap-6 bg-background-elevated px-6 py-3 rounded-2xl border border-border-default shadow-lg">
+                            <LegendItem label="Profit" color="bg-emerald-600" />
+                            <LegendItem label="Risk" color="bg-red-600" />
+                            <LegendItem label="Idle" color="bg-background-card" symbol="×" border="border-border-default" />
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-12 items-start justify-center max-w-5xl mx-auto pb-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-12 gap-y-12 items-start justify-center max-w-5xl mx-auto pb-10">
                         {Array.from({ length: 12 }).map((_, i) => (
                             <div key={i} className="flex justify-center w-full">
                                 {renderMiniMonth(i)}
@@ -222,13 +235,13 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                 </div>
 
                 {/* RIGHT (BOTTOM on Mobile): TERMINAL PANEL */}
-                <div className="w-full h-1/2 lg:h-auto lg:w-[440px] border-t lg:border-t-0 lg:border-l border-white/[0.03] bg-[#0b1220]/20 flex flex-col order-2">
-                    <div className="px-8 py-8 border-b border-white/[0.03] flex items-center justify-between">
+                <div className="w-full h-1/2 lg:h-auto lg:w-[460px] bg-background-card flex flex-col order-2">
+                    <div className="px-8 py-10 border-b border-border-subtle flex items-center justify-between">
                         <div>
-                            <div className="text-[9px] font-bold text-blue-500/70 uppercase tracking-[0.3em] mb-1">{dayjs(selectedDate).format("dddd")} log</div>
-                            <div className="text-2xl font-bold text-white tracking-tight">{dayjs(selectedDate).format("DD MMM, YYYY")}</div>
+                            <div className="text-[10px] font-black text-accent-primary uppercase tracking-[0.3em] mb-1.5 opacity-60">{dayjs(selectedDate).format("dddd")} log</div>
+                            <div className="text-3xl font-black text-text-primary tracking-tighter">{dayjs(selectedDate).format("DD MMM, YYYY")}</div>
                         </div>
-                        <button onClick={onClose} className="p-2.5 rounded-lg hover:bg-white/[0.03] text-slate-600 transition-all hover:text-white">
+                        <button onClick={onClose} className="p-3 rounded-xl bg-background-elevated text-text-tertiary hover:text-accent-primary hover:bg-background-subtle transition-all border border-border-default active:scale-95 shadow-sm">
                             <X size={20} />
                         </button>
                     </div>
@@ -236,42 +249,42 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                     <div className="flex-1 overflow-y-auto p-8 space-y-10 no-scrollbar">
                         {/* Metrics Grid */}
                         <div className="grid grid-cols-2 gap-3">
-                            <MetricBox label="Net P&L" value={`₹${(selectedData?.pnl || 0).toLocaleString()}`} color={selectedData?.pnl >= 0 ? "text-emerald-400" : "text-red-400"} />
-                            <MetricBox label="Edge Score" value={`${(selectedData?.rMult || 0).toFixed(1)}R`} color="text-blue-400/80" />
-                            <MetricBox label="Efficiency" value={selectedData ? (selectedData.win >= selectedData.loss ? "Optimal" : "Subpar") : "-"} color={selectedData && selectedData.win >= selectedData.loss ? "text-emerald-500/80" : "text-amber-500/70"} />
+                            <MetricBox label="Net P&L" value={`₹${(selectedData?.pnl || 0).toLocaleString()}`} color={selectedData?.pnl >= 0 ? "text-emerald-600" : "text-red-600"} />
+                            <MetricBox label="Edge Score" value={`${(selectedData?.rMult || 0).toFixed(1)}R`} color="text-accent-primary" />
+                            <MetricBox label="Efficiency" value={selectedData ? (selectedData.win >= selectedData.loss ? "Optimal" : "Subpar") : "-"} color={selectedData && selectedData.win >= selectedData.loss ? "text-emerald-600" : "text-amber-600"} />
                             <MetricBox label="Win Rate" value={`${selectedData ? Math.round((selectedData.win / selectedData.count) * 100) : 0}%`} sub={`${selectedData?.win || 0}W / ${selectedData?.loss || 0}L`} />
                         </div>
 
                         {/* Recent History */}
                         <section>
-                            <div className="flex items-center justify-between mb-5 border-b border-white/[0.03] pb-2">
-                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                    <Signal size={12} className="text-slate-700" /> Execution
+                            <div className="flex items-center justify-between mb-5 border-b border-border-subtle pb-2">
+                                <div className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest flex items-center gap-2">
+                                    <Signal size={12} className="text-text-tertiary opacity-40" /> Execution
                                 </div>
-                                <span className="text-[9px] font-mono text-slate-700 uppercase">Real-time</span>
+                                <span className="text-[9px] font-mono text-text-tertiary opacity-30 uppercase">Real-time</span>
                             </div>
 
                             <div className="space-y-2">
                                 {selectedTrades.length > 0 ? selectedTrades.map(trade => (
-                                    <div key={trade.id} className="p-3.5 rounded-lg bg-white/[0.01] border border-white/[0.03] flex items-center justify-between group">
+                                    <div key={trade.id} className="p-3.5 rounded-lg bg-background-elevated border border-border-subtle flex items-center justify-between group transition-all">
                                         <div className="flex items-center gap-3">
                                             <div className="flex flex-col">
-                                                <span className="text-xs font-bold text-slate-300">{trade.instrument}</span>
-                                                <span className="text-[9px] text-slate-600 font-mono uppercase">{trade.strategy}</span>
+                                                <span className="text-xs font-bold text-text-primary">{trade.instrument}</span>
+                                                <span className="text-[9px] text-text-tertiary font-mono uppercase opacity-70">{trade.strategy}</span>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <div className={`text-xs font-mono font-bold ${trade.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                            <div className={`text-xs font-mono font-bold ${trade.pnl >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                                                 {trade.pnl >= 0 ? '+' : ''}{trade.pnl}
                                             </div>
-                                            <div className="text-[10px] text-slate-700 font-mono">{trade.rMultiple}R</div>
+                                            <div className="text-[10px] text-text-tertiary font-mono opacity-60">{trade.rMultiple}R</div>
                                         </div>
                                     </div>
                                 )) : (
-                                    <div className="py-12 border border-dashed border-white/[0.03] rounded-lg text-center flex flex-col items-center justify-center gap-2 bg-black/5">
-                                        <Minus size={18} className="text-slate-800" />
-                                        <p className="text-[10px] text-slate-700 uppercase font-bold tracking-[0.2em]">Terminal Idle</p>
-                                        <p className="text-[8px] text-slate-800 font-medium px-10 leading-relaxed uppercase tracking-widest">No market exposure identified during this terminal session.</p>
+                                    <div className="py-12 border border-dashed border-border-subtle rounded-xl text-center flex flex-col items-center justify-center gap-2 bg-background-elevated/20">
+                                        <Minus size={18} className="text-text-tertiary opacity-20" />
+                                        <p className="text-[10px] text-text-tertiary uppercase font-bold tracking-[0.2em] opacity-40">Terminal Idle</p>
+                                        <p className="text-[8px] text-text-tertiary font-medium px-10 leading-relaxed uppercase tracking-widest opacity-20">No market exposure identified during this terminal session.</p>
                                     </div>
                                 )}
                             </div>
@@ -279,19 +292,19 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
 
                         {/* Analysis Section */}
                         <section className="flex flex-col gap-4">
-                            <div className="flex items-center justify-between border-b border-white/[0.03] pb-2">
-                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                    <Edit3 size={12} className="text-slate-700" /> Commentary
+                            <div className="flex items-center justify-between border-b border-border-subtle pb-2">
+                                <div className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest flex items-center gap-2">
+                                    <Edit3 size={12} className="text-text-tertiary opacity-40" /> Commentary
                                 </div>
                                 {showEditor && (
                                     <div className="flex items-center gap-2">
-                                        <button onMouseDown={(e) => { e.preventDefault(); applyColor('#94a3b8'); }} className="w-5 h-5 rounded-md bg-slate-500/10 text-slate-400 flex items-center justify-center hover:bg-slate-500/20" title="Back to Default Pen">
+                                        <button onMouseDown={(e) => { e.preventDefault(); applyColor('var(--text-text-secondary)'); }} className="w-5 h-5 rounded-md bg-background-elevated text-text-tertiary flex items-center justify-center hover:bg-background-subtle border border-border-subtle shadow-sm" title="Back to Default Pen">
                                             <RotateCcw size={10} />
                                         </button>
-                                        <button onMouseDown={(e) => { e.preventDefault(); applyColor('#ef4444'); }} className="w-5 h-5 rounded-md bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500/20" title="Negative Note">
+                                        <button onMouseDown={(e) => { e.preventDefault(); applyColor('#dc2626'); }} className="w-5 h-5 rounded-md bg-red-500/10 text-red-600 flex items-center justify-center hover:bg-red-500/20 border border-red-500/20 shadow-sm" title="Negative Note">
                                             <Palette size={10} />
                                         </button>
-                                        <button onMouseDown={(e) => { e.preventDefault(); applyColor('#10b981'); }} className="w-5 h-5 rounded-md bg-emerald-500/10 text-emerald-500 flex items-center justify-center hover:bg-emerald-500/20" title="Positive Note">
+                                        <button onMouseDown={(e) => { e.preventDefault(); applyColor('#059669'); }} className="w-5 h-5 rounded-md bg-emerald-500/10 text-emerald-600 flex items-center justify-center hover:bg-emerald-500/20 border border-emerald-500/20 shadow-sm" title="Positive Note">
                                             <Palette size={10} />
                                         </button>
                                     </div>
@@ -299,13 +312,13 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                                 {!showEditor && isTodaySelected && (
                                     <button
                                         onClick={() => setIsEditingToday(true)}
-                                        className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-[8px] font-bold text-blue-400 uppercase tracking-[0.2em] hover:bg-blue-500/20 transition-all active:scale-95"
+                                        className="px-2 py-0.5 rounded-md bg-accent-primary/10 border border-accent-primary/20 text-[8px] font-black text-accent-primary uppercase tracking-[0.2em] hover:bg-accent-primary/20 transition-all active:scale-95 shadow-sm"
                                     >
                                         Edit Entry
                                     </button>
                                 )}
                                 {isPastDate && (
-                                    <div className="px-2 py-0.5 rounded bg-white/[0.03] text-[8px] font-bold text-slate-600 uppercase tracking-tight">Immutable Archive</div>
+                                    <div className="px-2 py-0.5 rounded-md bg-background-elevated text-[8px] font-black text-text-tertiary uppercase tracking-tight border border-border-subtle opacity-60">Immutable Archive</div>
                                 )}
                             </div>
 
@@ -314,8 +327,8 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                                     [contenteditable]:empty:before {
                                         content: attr(placeholder);
                                         pointer-events: none;
-                                        color: #475569;
-                                        opacity: 0.5;
+                                        color: var(--text-tertiary);
+                                        opacity: 0.4;
                                         font-style: italic;
                                     }
                                 `}</style>
@@ -325,11 +338,11 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                                         ref={editorRef}
                                         contentEditable={true}
                                         placeholder="Enter session analysis..."
-                                        className="w-full min-h-[180px] p-5 bg-black/20 border border-white/[0.01] rounded-xl text-[11px] leading-relaxed text-slate-400 focus:outline-none transition-all hover:bg-black/30 outline-none"
+                                        className="w-full min-h-[180px] p-5 bg-background-elevated/40 border border-border-default rounded-xl text-[11px] leading-relaxed text-text-primary focus:outline-none transition-all hover:bg-background-elevated/60 outline-none"
                                     />
                                 ) : (
                                     <div
-                                        className={`w-full min-h-[180px] p-5 bg-black/10 border border-white/[0.005] rounded-xl text-[11px] leading-relaxed text-slate-500/80 transition-all ${isPastDate ? 'opacity-40' : 'opacity-70'}`}
+                                        className={`w-full min-h-[180px] p-5 bg-background-elevated/20 border border-border-subtle rounded-xl text-[11px] leading-relaxed text-text-secondary transition-all ${isPastDate ? 'opacity-60' : 'opacity-90'}`}
                                         dangerouslySetInnerHTML={{ __html: localNotes[selectedDate] || (isPastDate ? "No entry recorded for this session." : "Waiting for commitment...") }}
                                     />
                                 )}
@@ -338,7 +351,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                                     <div className="flex justify-end mt-4">
                                         <button
                                             onClick={handleSaveNote}
-                                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-[9px] font-bold text-white uppercase tracking-[0.2em] rounded-lg transition-all shadow-xl shadow-blue-900/10 active:scale-95 flex items-center gap-3"
+                                            className="px-6 py-2.5 bg-accent-primary hover:bg-accent-primary/90 text-[9px] font-black text-white uppercase tracking-[0.2em] rounded-lg transition-all shadow-lg active:scale-95 flex items-center gap-3"
                                         >
                                             <Save size={12} /> Commit Record
                                         </button>
@@ -347,9 +360,9 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                             </div>
 
                             {!showEditor && (
-                                <div className="flex gap-2 p-3.5 bg-blue-500/[0.02] border border-blue-500/[0.05] rounded-lg">
-                                    <Info size={12} className="text-blue-500/40 shrink-0" />
-                                    <p className="text-[10px] text-slate-600 leading-normal italic">
+                                <div className="flex gap-2 p-3.5 bg-background-elevated/50 border border-border-subtle rounded-xl shadow-sm italic">
+                                    <Info size={12} className="text-accent-primary shrink-0" />
+                                    <p className="text-[10px] text-text-tertiary leading-normal">
                                         {isPastDate ? "Historical performance is locked to prevent bias." : "Session entry confirmed. Use the 'Edit' toggle above for modifications."}
                                     </p>
                                 </div>
@@ -362,23 +375,23 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
     );
 }
 
-function LegendItem({ label, color, symbol }) {
+function LegendItem({ label, color, symbol, border = "" }) {
     return (
-        <div className="flex items-center gap-2">
-            <div className={`w-2.5 h-2.5 rounded-sm ${color} flex items-center justify-center text-[7px] font-bold`}>
+        <div className="flex items-center gap-2.5">
+            <div className={`w-3 h-3 rounded-md ${color} ${border} flex items-center justify-center text-[8px] font-black text-text-primary shadow-sm border`}>
                 {symbol}
             </div>
-            <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">{label}</span>
+            <span className="text-[10px] font-black text-text-tertiary uppercase tracking-widest opacity-80">{label}</span>
         </div>
     );
 }
 
-function MetricBox({ label, value, color = "text-white", sub }) {
+function MetricBox({ label, value, color = "text-text-primary", sub }) {
     return (
-        <div className="p-4 bg-white/[0.01] border border-white/[0.03] rounded-lg flex flex-col justify-center">
-            <div className="text-[8px] font-bold text-slate-600 uppercase tracking-widest mb-1">{label}</div>
-            <div className={`text-sm font-mono font-bold ${color}`}>{value}</div>
-            {sub && <div className="text-[8px] text-slate-700 font-bold uppercase mt-1">{sub}</div>}
+        <div className="p-4 bg-background-elevated border border-border-subtle rounded-xl flex flex-col justify-center transition-colors">
+            <div className="text-[8px] font-bold text-text-tertiary uppercase tracking-widest mb-1 opacity-60">{label}</div>
+            <div className={`text-sm font-mono font-black ${color}`}>{value}</div>
+            {sub && <div className="text-[8px] text-text-tertiary font-bold uppercase mt-1 opacity-40">{sub}</div>}
         </div>
     );
 }

@@ -3,7 +3,7 @@ import { GlobalCard } from "@/shared/components/ui/GlobalCard";
 
 export default function AllocationMap({ allocation }) {
     return (
-        <div className="bg-[#0b1220] border border-white/5 rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
+        <div className="bg-background-card-primary border border-border-subtle-faint rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
             <div className="flex items-center justify-between mb-6">
                 <div className="text-xs font-bold text-white/40 uppercase tracking-widest">Capital Allocation Strategy</div>
                 <div className="text-[10px] font-mono text-white/30">Auto-Rebalance: ON</div>

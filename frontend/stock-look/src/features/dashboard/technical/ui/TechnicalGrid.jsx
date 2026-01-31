@@ -46,7 +46,7 @@ export default function TechnicalGrid({
             {viewMode === "flat" ? (
                 <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
                     {cards.length === 0 && searchQuery ? (
-                        <div className="col-span-4 p-12 text-center text-white/30 italic">No technicals found for "{searchQuery}"</div>
+                        <div className="col-span-4 p-12 text-center text-text-tertiary italic">No technicals found for "{searchQuery}"</div>
                     ) : (
                         sortCards(cards, sortMode).map((card) => (
                             <TechnicalCard
@@ -70,14 +70,14 @@ export default function TechnicalGrid({
                             <div key={section} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 {/* Section Header (Matched to Fundamental) */}
                                 <div className="flex items-center gap-4 mb-6">
-                                    <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+                                    <div className="h-px flex-1 bg-gradient-to-r from-border-default to-transparent" />
                                     <div className="flex items-center gap-3">
-                                        <span className="text-sm font-bold text-white/90 uppercase tracking-widest">{section}</span>
-                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-white/40 font-mono">
+                                        <span className="text-sm font-bold text-text-primary uppercase tracking-widest">{section}</span>
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded border border-border-default bg-background-surface text-text-tertiary font-mono shadow-sm">
                                             {sectionCards.length}
                                         </span>
                                     </div>
-                                    <div className="h-px flex-1 bg-gradient-to-l from-white/10 to-transparent" />
+                                    <div className="h-px flex-1 bg-gradient-to-l from-border-default to-transparent" />
                                 </div>
 
                                 {/* Cards */}

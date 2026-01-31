@@ -8,7 +8,7 @@ export default function OptionsMarginCard({ optionsStats, scenarios }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
             {/* 1. OPTIONS EXPOSURE */}
-            <div className="bg-[#0b1220] border border-white/5 rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
+            <div className="bg-background-card-primary border border-border-subtle-faint rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
                 <div className="flex justify-between items-start mb-6">
                     <div className="text-xs font-bold text-white/40 uppercase tracking-widest">Options Exposure Map</div>
                     <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border 
@@ -53,7 +53,7 @@ export default function OptionsMarginCard({ optionsStats, scenarios }) {
             </div>
 
             {/* 2. MARGIN STRESS SIMULATION */}
-            <div className="bg-[#0b1220] border border-white/5 rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col">
+            <div className="bg-background-card-primary border border-border-subtle-faint rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col">
                 <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-6">Margin Stress Simulation</div>
 
                 <div className="flex-1 overflow-x-auto">

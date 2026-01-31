@@ -5,7 +5,7 @@ export default function EventsGrid({ newsItems, onNewsClick }) {
 
     if (!newsItems || newsItems.length === 0) {
         return (
-            <div className="text-center py-12 text-white/40">
+            <div className="text-center py-12 text-text-tertiary">
                 No events or news intelligence available
             </div>
         );

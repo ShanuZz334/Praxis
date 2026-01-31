@@ -115,21 +115,21 @@ export function getGlobalRegime(score) {
         return {
             label: "Risk-On",
             desc: "Favorable global conditions",
-            color: "text-emerald-400",
+            color: "text-state-bullish-text",
             confidence: 85
         };
     } else if (score <= 35) {
         return {
             label: "Risk-Off",
             desc: "Defensive positioning recommended",
-            color: "text-red-400",
+            color: "text-state-bearish-text",
             confidence: 82
         };
     } else {
         return {
             label: "Mixed",
             desc: "Rotational environment",
-            color: "text-yellow-400",
+            color: "text-state-neutral-text",
             confidence: 70
         };
     }

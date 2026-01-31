@@ -5,26 +5,26 @@
 
 export const typography = {
     // Headers
-    h1: "text-3xl font-bold tracking-tight text-white",
-    h2: "text-lg font-bold text-white tracking-tight",
+    h1: "text-3xl font-bold tracking-tight text-text-primary",
+    h2: "text-lg font-bold text-text-primary tracking-tight",
 
     // Labels (The "Uppercased Small" look)
     label: {
-        sm: "text-xs font-semibold uppercase tracking-wider text-white/40",
-        xs: "text-[10px] font-bold uppercase tracking-widest text-white/40",
+        sm: "text-xs font-semibold uppercase tracking-wider text-text-tertiary",
+        xs: "text-[10px] font-bold uppercase tracking-widest text-text-tertiary",
     },
 
     // Values
     number: {
-        giant: "text-6xl font-bold text-white tracking-tighter",
-        large: "text-3xl font-bold text-white tracking-tighter",
-        medium: "text-xl font-bold text-white tracking-tight",
+        giant: "text-6xl font-bold text-text-primary tracking-tighter",
+        large: "text-3xl font-bold text-text-primary tracking-tighter",
+        medium: "text-xl font-bold text-text-primary tracking-tight",
     },
 
     // Body
     body: {
-        default: "text-sm text-white/90 leading-relaxed",
-        subtle: "text-xs text-white/60",
+        default: "text-sm text-text-primary leading-relaxed",
+        subtle: "text-xs text-text-secondary",
     },
 
     // Data/Tech

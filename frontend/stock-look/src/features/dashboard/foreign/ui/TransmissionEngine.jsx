@@ -5,7 +5,7 @@ export default function TransmissionEngine({ transmission }) {
     if (!transmission) return null;
 
     return (
-        <div className="bg-[#101a33] border border-white/5 rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] h-full flex flex-col">
+        <div className="bg-background-card-secondary border border-border-subtle-faint rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] h-full flex flex-col">
 
             {/* Header */}
             <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 border-b border-white/5 pb-3 flex justify-between items-center">

@@ -51,9 +51,7 @@ export default function ModuleSnapshotGrid({ snapshots }) {
             {/* 5. Global */}
             {renderCard("glob", "Global", snapshots.global, "usTrend", null, TOTAL_GLOBAL_CREDITS)}
 
-            {/* 6. Journal (Optional/Mock) */}
-            {/* Journal doesn't have a configured total credits constant yet, defaulting to 100 or hiding credits */}
-            {renderCard("jrn", "Journal", snapshots.journal, "alert", null, 100)}
+
 
         </div>
     );

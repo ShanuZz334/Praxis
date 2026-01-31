@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useTheme } from "@/shared/context/ThemeContext";
 
 /**
  * PortalTooltip
@@ -7,10 +8,8 @@ import { createPortal } from 'react-dom';
  * Renders tooltip content into a portal (document.body) to avoid
  * distinct stacking contexts and overflow clipping.
  * 
- * Features:
- * - Auto-flip (top/bottom) based on viewport space
- * - Horizontal clamping (stays within viewport)
- * - Fade in/out transition
+ * Uses direct ThemeContext access to ensure correct styling (light/dark)
+ * even when rendered outside the main app root.
  */
 export default function PortalTooltip({
     content,
@@ -18,16 +17,22 @@ export default function PortalTooltip({
     className = "",
     offset = 8
 }) {
+    const { theme } = useTheme(); // 'light' or 'dark'
     const [isVisible, setIsVisible] = useState(false);
     const [coords, setCoords] = useState({ top: 0, left: 0 });
-    const [placement, setPlacement] = useState('top'); // top | bottom
+    const [placement, setPlacement] = useState('top');
+
+    // Refs
     const triggerRef = useRef(null);
     const tooltipRef = useRef(null);
+    const hoverTimeout = useRef(null);
 
+    // Positioning Logic
     const updatePosition = () => {
         if (!triggerRef.current || !isVisible) return;
 
         const triggerRect = triggerRef.current.getBoundingClientRect();
+        // Use optional chaining for safety if ref not attached yet
         const tooltipRect = tooltipRef.current?.getBoundingClientRect() || { width: 200, height: 100 };
 
         // Default: Top Center
@@ -37,7 +42,6 @@ export default function PortalTooltip({
 
         // 1. Vertical Flip Check
         if (top < 10) {
-            // Not enough space on top, flip to bottom
             top = triggerRect.bottom + offset;
             newPlacement = 'bottom';
         }
@@ -53,8 +57,7 @@ export default function PortalTooltip({
         setPlacement(newPlacement);
     };
 
-    const hoverTimeout = useRef(null);
-
+    // Events
     const show = () => {
         if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
         setIsVisible(true);
@@ -63,10 +66,10 @@ export default function PortalTooltip({
     const hide = () => {
         hoverTimeout.current = setTimeout(() => {
             setIsVisible(false);
-        }, 300); // 300ms grace period
+        }, 300);
     };
 
-    // Re-calculate on scroll or resize
+    // Effects
     useEffect(() => {
         if (isVisible) {
             updatePosition();
@@ -79,13 +82,17 @@ export default function PortalTooltip({
         };
     }, [isVisible]);
 
-    // Initial calculation when becoming visible
     useEffect(() => {
         if (isVisible) {
-            // Small timeout to allow render and measuring
             requestAnimationFrame(updatePosition);
         }
     }, [isVisible]);
+
+    // Simplified Styling: Relies on CSS keys in index.css
+    // --bg-tooltip resolves to Solid Grey in Light Mode, Solid Dark Blue in Dark Mode
+    const bgClass = 'bg-[var(--bg-tooltip)]';
+    const textClass = 'text-text-primary';
+    const borderClass = 'border-border-default';
 
     return (
         <>
@@ -101,7 +108,8 @@ export default function PortalTooltip({
             {isVisible && createPortal(
                 <div
                     ref={tooltipRef}
-                    className="fixed z-[9999] pointer-events-auto transition-opacity duration-200"
+                    // Apply theme class to wrapper to ensure inner variables (text colors) resolve correctly
+                    className={`fixed z-[9999] pointer-events-auto transition-opacity duration-200 ${theme}`}
                     style={{
                         top: coords.top,
                         left: coords.left,
@@ -110,7 +118,9 @@ export default function PortalTooltip({
                     onMouseEnter={show}
                     onMouseLeave={hide}
                 >
-                    {content}
+                    <div className={`${bgClass} ${textClass} border ${borderClass} rounded-xl shadow-xl p-4 overflow-hidden`}>
+                        {content}
+                    </div>
                 </div>,
                 document.body
             )}

@@ -88,7 +88,7 @@ export function GlobalCard({
                     </div>
 
                     {/* BAR */}
-                    <div className="h-1.5 bg-background-surface rounded-full overflow-hidden mb-2 mt-2 border border-white/10">
+                    <div className="h-1.5 bg-background-surface rounded-full overflow-hidden mb-2 mt-2 border border-border-default">
                         <div
                             className="h-full rounded-full transition-all duration-500 ease-out"
                             style={{

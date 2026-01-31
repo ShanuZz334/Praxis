@@ -8,15 +8,15 @@ export default function MarketContextBar({ context }) {
 
             {/* DATE */}
             <div className="flex items-center gap-2">
-                <div className="h-1 w-1 bg-slate-500 rounded-full" />
-                <div className="font-mono text-slate-500 uppercase tracking-widest text-[10px] font-bold">
+                <div className="h-1 w-1 bg-text-tertiary rounded-full" />
+                <div className="font-mono text-text-tertiary uppercase tracking-widest text-[10px] font-bold">
                     {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}
                 </div>
             </div>
 
             {/* CONTEXT DATA */}
             <div className="hidden md:flex items-center gap-4">
-                <ContextItem label="Market Regime" value={context.regime} color="text-slate-300" />
+                <ContextItem label="Market Regime" value={context.regime} color="text-text-secondary" />
                 <ContextItem label="Options Flow" value={context.optionsRegime} color="text-blue-400" />
                 <ContextItem label="Global Risk" value={context.globalRisk} color="text-emerald-400" />
                 <ContextItem label="Vol Bias" value={context.volBias} color="text-amber-400" />
@@ -28,9 +28,9 @@ export default function MarketContextBar({ context }) {
 
 function ContextItem({ label, value, color }) {
     return (
-        <div className="flex items-center gap-2 bg-[#0b1220] border border-white/5 pl-2 pr-1 py-1 rounded-lg shadow-sm">
-            <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wide">{label}</span>
-            <div className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/5 border border-white/5 ${color}`}>
+        <div className="flex items-center gap-2 bg-background-card border border-border-default pl-2 pr-1 py-1 rounded-lg shadow-sm">
+            <span className="text-[9px] uppercase font-bold text-text-tertiary tracking-wide">{label}</span>
+            <div className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-background-surface border border-border-default ${color}`}>
                 {value}
             </div>
         </div>

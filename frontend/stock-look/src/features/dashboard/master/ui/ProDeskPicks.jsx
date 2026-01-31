@@ -8,7 +8,7 @@ export default function ProDeskPicks({ data }) {
     return (
         <Card className="h-full flex flex-col">
 
-            <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-6 border-b border-white/5 pb-3">
+            <div className="text-xs font-bold text-text-tertiary uppercase tracking-widest mb-6 border-b border-border-subtle pb-3">
                 Pro Desk Picks
             </div>
 
@@ -16,7 +16,7 @@ export default function ProDeskPicks({ data }) {
 
                 {/* CALLS SECTION */}
                 <div>
-                    <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Top Calls (Bullish)</div>
+                    <div className="text-[10px] font-bold text-state-bullish-text uppercase tracking-wider mb-2">Top Calls (Bullish)</div>
                     <div className="space-y-2">
                         {calls.map((item, i) => (
                             <OptionRow key={i} item={item} type="call" />
@@ -26,7 +26,7 @@ export default function ProDeskPicks({ data }) {
 
                 {/* PUTS SECTION */}
                 <div>
-                    <div className="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-2">Top Puts (Bearish)</div>
+                    <div className="text-[10px] font-bold text-state-bearish-text uppercase tracking-wider mb-2">Top Puts (Bearish)</div>
                     <div className="space-y-2">
                         {puts.map((item, i) => (
                             <OptionRow key={i} item={item} type="put" />
@@ -41,24 +41,24 @@ export default function ProDeskPicks({ data }) {
 
 function OptionRow({ item, type }) {
     const isCall = type === 'call';
-    const accent = isCall ? 'text-emerald-400' : 'text-red-400';
+    const accent = isCall ? 'text-state-bullish-text' : 'text-state-bearish-text';
     const border = isCall ? 'border-emerald-500/20' : 'border-red-500/20';
-    const bg = isCall ? 'bg-emerald-500/[0.02]' : 'bg-red-500/[0.02]';
+    const bg = isCall ? 'bg-emerald-500/[0.10]' : 'bg-red-500/[0.10]';
 
     return (
-        <div className={`p-3 rounded-lg border ${border} ${bg} hover:bg-white/[0.02] transition-colors flex justify-between items-center group`}>
+        <div className={`p-3 rounded-lg border ${border} ${bg} hover:bg-background-subtle transition-colors flex justify-between items-center group`}>
 
             {/* Left: Strike & DTE */}
             <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-white tracking-tight">{item.strike}</span>
-                <span className="text-[9px] font-bold text-slate-500 bg-white/5 px-1.5 py-0.5 rounded border border-white/5">{item.dte}</span>
+                <span className="text-sm font-bold text-text-primary tracking-tight">{item.strike}</span>
+                <span className="text-[9px] font-bold text-text-tertiary bg-background-elevated px-1.5 py-0.5 rounded border border-border-subtle">{item.dte}</span>
             </div>
 
             {/* Right: Data */}
             <div className="text-right">
                 <div className={`text-sm font-mono font-bold ${accent}`}>₹{item.price}</div>
-                <div className="flex items-center justify-end gap-3 text-[9px] font-medium text-slate-500">
-                    <span className={item.change.startsWith('+') ? 'text-emerald-400' : 'text-red-400'}>
+                <div className="flex items-center justify-end gap-3 text-[9px] font-medium text-text-secondary">
+                    <span className={item.change.startsWith('+') ? 'text-state-bullish-text' : 'text-state-bearish-text'}>
                         Δ {item.change}
                     </span>
                     <span>OI {item.oi}</span>

@@ -28,7 +28,7 @@ export default function EventsHeader({
     }
 
     return (
-        <div className="rounded-2xl bg-[#0b1220] border border-white/10 overflow-hidden shadow-2xl space-y-0">
+        <div className="rounded-2xl bg-background-card-primary border border-border-subtle-translucent overflow-hidden shadow-2xl space-y-0">
             <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-white/10">
 
                 {/* 1. SENTIMENT GAUGE */}
@@ -36,8 +36,8 @@ export default function EventsHeader({
                     <div className="flex justify-between items-start mb-2">
                         <div className="text-xs font-semibold uppercase tracking-wider text-white/40 flex items-center gap-2">
                             Net Market Sentiment
-                            <PortalTooltip content={<div className="p-2 bg-black border border-white/10 text-xs">AI-derived aggregate score of news sentiment (-100 to +100).</div>}>
-                                <span className="cursor-help text-white/20 hover:text-white/60">ⓘ</span>
+                            <PortalTooltip content={<div className="w-48 text-[10px] text-text-secondary">AI-derived aggregate score of news sentiment (-100 to +100).</div>}>
+                                <span className="cursor-help text-text-tertiary hover:text-text-primary">ⓘ</span>
                             </PortalTooltip>
                         </div>
                         {cluster?.detected && (
@@ -111,7 +111,7 @@ export default function EventsHeader({
                             <span>Coverage</span>
                             <span>Global & Domestic</span>
                         </div>
-                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-background-surface/50 border border-border-subtle rounded-full overflow-hidden">
                             <div className="h-full bg-blue-500 w-full rounded-full" />
                         </div>
                     </div>

@@ -9,7 +9,7 @@ import { UserContext } from "@/shared/context/UserContext";
 
 const COLLAPSED_WIDTH = 64;
 const EXPANDED_WIDTH = 200;
-const NAVBAR_HEIGHT = 60;
+const NAVBAR_HEIGHT = 73;
 const MOBILE_HEADER_HEIGHT = 56; // 14 * 4px = 56px
 
 const DashboardLayout = () => {
@@ -27,13 +27,13 @@ const DashboardLayout = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-[#02050e] text-white relative overflow-hidden flex flex-col md:block">
+    <div className="min-h-screen bg-background-app text-text-primary relative overflow-hidden flex flex-col md:block">
 
       {/* GLOBAL BACKGROUND VFX */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/15 md:bg-blue-600/[0.16] rounded-full blur-[120px]" />
-        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] bg-purple-600/10 md:bg-purple-600/[0.12] rounded-full blur-[100px]" />
-        <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-emerald-600/10 md:bg-emerald-600/[0.12] rounded-full blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/15 md:bg-blue-600/[0.16] rounded-full blur-[120px] dark:opacity-100 opacity-30" />
+        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] bg-purple-600/10 md:bg-purple-600/[0.12] rounded-full blur-[100px] dark:opacity-100 opacity-30" />
+        <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-emerald-600/10 md:bg-emerald-600/[0.12] rounded-full blur-[120px] dark:opacity-100 opacity-30" />
       </div>
 
       {/* --- DESKTOP LAYOUT COMPONENTS --- */}
@@ -66,7 +66,7 @@ const DashboardLayout = () => {
 `} onClick={() => setShowMobileMenu(false)} />
 
       <div className={`
-        fixed inset-y-0 left-0 z-[61] w-[280px] bg-black/20 backdrop-blur-2xl border-r border-white/5 shadow-2xl transform transition-transform duration-300 md:hidden
+        fixed inset-y-0 left-0 z-[61] w-[280px] bg-background-surface/95 backdrop-blur-xl border-r border-border-default shadow-2xl transform transition-transform duration-300 md:hidden
         ${showMobileMenu ? "translate-x-0" : "-translate-x-full"}
 `}>
         <div className="h-full pt-safe-area-top pb-safe-area-bottom">
@@ -89,6 +89,8 @@ const DashboardLayout = () => {
         "
         style={{
           marginLeft: window.innerWidth >= 768 ? sidebarWidth : 0,
+          "--sidebar-width": window.innerWidth >= 768 ? `${sidebarWidth}px` : "0px",
+          "--navbar-height": `${NAVBAR_HEIGHT}px`,
         }}
       >
         <DashboardRoutes setActiveMenu={setActiveMenu} />

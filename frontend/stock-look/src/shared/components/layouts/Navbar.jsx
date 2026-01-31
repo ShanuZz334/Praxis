@@ -1,6 +1,7 @@
-import React from "react";
-import { FiBell, FiSettings } from "react-icons/fi";
+import React, { useContext } from "react";
+import { FiBell, FiSettings, FiSun, FiMoon } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import { UserContext } from "@/shared/context/UserContext";
 
 import {
   niftySeries,
@@ -15,6 +16,11 @@ import logoBgless from "@/assets/icons/logo_bgless.png";
 
 const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
+  const { theme, setTheme } = useContext(UserContext);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   return (
     <header
@@ -50,24 +56,24 @@ const Navbar = ({ onToggleSidebar }) => {
       {/* LEFT CONTENT — MARKET DATA */}
       <div className="flex items-center gap-6 px-4">
         <div className="hidden sm:flex flex-col text-xs leading-tight">
-          <span className="text-(--text-muted)">NIFTY 50</span>
-          <span className="text-(--success) font-semibold">
+          <span className="text-text-secondary">NIFTY 50</span>
+          <span className="text-emerald-500 font-semibold">
             ₹{niftySeries.latest} +{niftySeries.change}%
           </span>
         </div>
 
         <div className="hidden md:flex flex-col text-xs leading-tight">
-          <span className="text-(--text-muted)">BANK NIFTY</span>
-          <span className="text-(--danger) font-semibold">
+          <span className="text-text-secondary">BANK NIFTY</span>
+          <span className="text-red-500 font-semibold">
             ₹{bankNiftySeries.latest} {bankNiftySeries.change}%
           </span>
         </div>
 
         <div className="hidden lg:flex flex-col text-xs leading-tight">
-          <span className="text-(--text-muted)">
+          <span className="text-text-secondary">
             Balance: ₹{accountOverview.closing_balance.toLocaleString()}
           </span>
-          <span className="text-(--success) font-semibold">
+          <span className="text-emerald-500 font-semibold">
             Today +₹{accountOverview.profitToday}
           </span>
         </div>
@@ -92,33 +98,50 @@ const Navbar = ({ onToggleSidebar }) => {
 
         {/* NSE */}
         <button
-          className="w-8 h-8 rounded-md transition navbar-icon"
+          className="w-10 h-10 flex items-center justify-center rounded-lg bg-background-glass backdrop-blur-md border border-border-subtle-translucent transition navbar-icon shadow-sm hover:border-accent-primary/50"
           onClick={() => window.open("https://www.nseindia.com", "_blank")}
         >
-          <img src={nseLogo} alt="NSE" className="w-8 h-8 rounded-md" />
+          <img src={nseLogo} alt="NSE" className="w-8 h-8 object-contain" />
         </button>
 
         {/* Zerodha */}
         <button
-          className="w-8 h-8 rounded-md transition navbar-icon"
+          className="w-10 h-10 flex items-center justify-center rounded-lg bg-background-glass backdrop-blur-md border border-border-subtle-translucent transition navbar-icon shadow-sm hover:border-accent-primary/50"
           onClick={() => window.open("https://kite.zerodha.com", "_blank")}
         >
           <img
             src={zerodhaLogo}
             alt="Zerodha"
-            className="w-8 h-8 rounded-md"
+            className="w-8 h-8 object-contain"
           />
         </button>
 
         <div className="w-5" />
 
+        {/* Temporary Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          className="
+            text-text-tertiary
+            transition-colors
+            hover:text-amber-500
+          "
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+        >
+          {theme === 'dark' ? (
+            <FiSun className="text-xl transition-transform hover:rotate-90 hover:scale-110" />
+          ) : (
+            <FiMoon className="text-xl transition-transform hover:-rotate-12 hover:scale-110" />
+          )}
+        </button>
+
         {/* Notifications */}
         <button
           onClick={() => navigate("/dashboard/messages")}
           className="
-            text-(--text-muted)
+            text-text-tertiary
             transition-colors
-            hover:text-(--hover-primary)
+            hover:text-accent-primary
           "
         >
           <FiBell className="text-xl transition-transform hover:scale-110" />
@@ -128,9 +151,9 @@ const Navbar = ({ onToggleSidebar }) => {
         <button
           onClick={() => navigate("/dashboard/settings")}
           className="
-            text-(--text-muted)
+            text-text-tertiary
             transition-colors
-            hover:text-(--hover-primary)
+            hover:text-accent-primary
           "
         >
           <FiSettings className="text-xl transition-transform hover:scale-110" />

@@ -22,20 +22,20 @@ export function getSignalState(normalized = 0) {
         return {
             label: "Bullish",
             color: colors.state.bullish.main,
-            className: "text-emerald-400"
+            className: "text-state-bullish-text font-bold"
         };
     }
     if (normalized < -0.2) {
         return {
             label: "Bearish",
             color: colors.state.bearish.main,
-            className: "text-red-400"
+            className: "text-state-bearish-text font-bold"
         };
     }
     return {
         label: "Neutral",
         color: colors.state.neutral.main,
-        className: "text-slate-400"
+        className: "text-state-neutral-text font-medium"
     };
 }
 
@@ -44,11 +44,11 @@ export function getSignalState(normalized = 0) {
  * Used for Main Gauge / Composite Scores
  */
 export function getCompositeState(score = 0) {
-    if (score >= 70) return { label: "Bullish", className: "text-emerald-400", color: colors.state.bullish.main };
-    if (score >= 55) return { label: "Neutral-Positive", className: "text-emerald-400/80", color: colors.state.bullish.main };
-    if (score >= 45) return { label: "Neutral", className: "text-slate-200", color: colors.state.neutral.main };
-    if (score >= 30) return { label: "Neutral-Negative", className: "text-orange-400", color: colors.state.warning.main };
-    return { label: "Bearish", className: "text-red-500", color: colors.state.bearish.main };
+    if (score >= 75) return { label: "Bullish", className: "text-state-bullish-text font-bold", color: colors.state.bullish.main };
+    if (score >= 60) return { label: "Neutral-Positive", className: "text-state-bullish-text font-bold opacity-80", color: colors.state.bullish.main };
+    if (score >= 40) return { label: "Neutral", className: "text-state-neutral-text font-bold", color: colors.state.neutral.main };
+    if (score >= 25) return { label: "Neutral-Negative", className: "text-state-bearish-text font-bold opacity-80", color: colors.state.warning.main };
+    return { label: "Bearish", className: "text-state-bearish-text font-bold", color: colors.state.bearish.main };
 }
 
 /**
@@ -56,7 +56,7 @@ export function getCompositeState(score = 0) {
  */
 export function getTrendColorClass(trend) {
     const t = (trend || "").toLowerCase();
-    if (t.includes('bull') || t.includes('up') || t.includes('accel')) return "bg-emerald-500";
-    if (t.includes('bear') || t.includes('down') || t.includes('fad')) return "bg-red-500";
-    return "bg-blue-400";
+    if (t.includes('bull') || t.includes('up') || t.includes('accel')) return "bg-emerald-600 dark:bg-emerald-500";
+    if (t.includes('bear') || t.includes('down') || t.includes('fad')) return "bg-red-600 dark:bg-red-500";
+    return "bg-blue-600 dark:bg-blue-500";
 }

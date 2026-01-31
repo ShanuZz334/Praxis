@@ -4,7 +4,7 @@ export default function WalletHistory({ history }) {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className="bg-[#0b1220] border border-white/10 rounded-2xl overflow-hidden shadow-lg">
+        <div className="bg-background-card-primary border border-border-subtle-translucent rounded-2xl overflow-hidden shadow-lg">
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full p-4 flex justify-between items-center hover:bg-white/5 transition-colors"

@@ -10,7 +10,7 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
         <div className="w-full flex flex-col lg:flex-row gap-4 mt-6 mb-6">
 
             {/* LEFT SIDEBAR: MARKET CONTEXT vs SELECTED OPTION */}
-            <div className="w-full lg:w-64 shrink-0 bg-[#0b1220] rounded-xl border border-white/10 p-4 flex flex-col gap-4 min-h-[300px] lg:h-[600px]">
+            <div className="w-full lg:w-64 shrink-0 bg-background-card rounded-xl border border-border-default p-4 flex flex-col gap-4 min-h-[300px] lg:h-[600px]">
 
                 {/* 
                     MOBILE LOGIC: 
@@ -19,15 +19,15 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                 */}
                 {selectedOption ? (
                     <div className="animate-in fade-in slide-in-from-right duration-300 h-full flex flex-col">
-                        <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-3">
+                        <div className="flex items-center justify-between border-b border-border-default pb-3 mb-3">
                             <div className="flex items-center gap-2">
-                                <span className={`text-lg font-bold font-mono ${selectedOption.type === 'call' ? 'text-green-400' : 'text-red-400'}`}>
+                                <span className={`text-lg font-bold font-mono ${selectedOption.type === 'call' ? 'text-emerald-600' : 'text-red-600'}`}>
                                     {selectedOption.strike} {selectedOption.type === 'call' ? 'CE' : 'PE'}
                                 </span>
                             </div>
                             <button
                                 onClick={() => setSelectedOption(null)}
-                                className="p-1 hover:bg-white/10 rounded-full transition-colors text-white/50"
+                                className="p-1 hover:bg-background-surface rounded-full transition-colors text-text-tertiary"
                             >
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
@@ -36,49 +36,49 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                         <div className="space-y-4 flex-1 overflow-y-auto no-scrollbar">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <div className="text-[10px] text-white/40 uppercase mb-1">LTP</div>
-                                    <div className="text-xl font-bold text-white">₹{selectedOption.data.ltp}</div>
+                                    <div className="text-[10px] text-text-tertiary uppercase mb-1">LTP</div>
+                                    <div className="text-xl font-bold text-text-primary">₹{selectedOption.data.ltp}</div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-[10px] text-white/40 uppercase mb-1">Change</div>
-                                    <div className={`text-sm font-bold ${selectedOption.data.oiChg >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    <div className="text-[10px] text-text-tertiary uppercase mb-1">Change</div>
+                                    <div className={`text-sm font-bold ${selectedOption.data.oiChg >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                                         {selectedOption.data.oiChg}%
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="p-3 bg-white/5 rounded-lg space-y-2 border border-white/5">
+                            <div className="p-3 bg-background-surface rounded-lg space-y-2 border border-border-default">
                                 <div className="flex justify-between text-xs">
-                                    <span className="text-white/50">OI (Open Interest)</span>
-                                    <span className="text-white font-mono">{(selectedOption.data.oi / 1000).toFixed(1)}k</span>
+                                    <span className="text-text-tertiary">OI (Open Interest)</span>
+                                    <span className="text-text-primary font-mono">{(selectedOption.data.oi / 1000).toFixed(1)}k</span>
                                 </div>
                                 <div className="flex justify-between text-xs">
-                                    <span className="text-white/50">Volume</span>
-                                    <span className="text-white font-mono">{selectedOption.data.vol}</span>
+                                    <span className="text-text-tertiary">Volume</span>
+                                    <span className="text-text-primary font-mono">{selectedOption.data.vol}</span>
                                 </div>
                                 <div className="flex justify-between text-xs">
-                                    <span className="text-white/50">IV (Implied Vol)</span>
-                                    <span className="text-yellow-400/80 font-mono">{selectedOption.data.iv}%</span>
+                                    <span className="text-text-tertiary">IV (Implied Vol)</span>
+                                    <span className="text-orange-600 font-mono font-bold">{selectedOption.data.iv}%</span>
                                 </div>
                             </div>
 
                             <div>
-                                <div className="text-[10px] text-white/40 uppercase mb-2 border-b border-white/5 pb-1">Greeks</div>
+                                <div className="text-[10px] text-text-tertiary uppercase mb-2 border-b border-border-default pb-1">Greeks</div>
                                 <div className="grid grid-cols-2 gap-2 text-xs">
-                                    <div className="bg-blue-500/10 p-2 rounded border border-blue-500/20 flex justify-between">
-                                        <span className="text-blue-300">Delta</span>
+                                    <div className="bg-blue-500/10 p-2 rounded border border-blue-500/20 flex justify-between text-blue-600 font-bold">
+                                        <span>Delta</span>
                                         <span className="font-mono">{(selectedOption.data.delta || 0).toFixed(3)}</span>
                                     </div>
-                                    <div className="bg-purple-500/10 p-2 rounded border border-purple-500/20 flex justify-between">
-                                        <span className="text-purple-300">Gamma</span>
+                                    <div className="bg-purple-500/10 p-2 rounded border border-purple-500/20 flex justify-between text-purple-600 font-bold">
+                                        <span>Gamma</span>
                                         <span className="font-mono">{(selectedOption.data.gamma || 0).toFixed(3)}</span>
                                     </div>
-                                    <div className="bg-orange-500/10 p-2 rounded border border-orange-500/20 flex justify-between">
-                                        <span className="text-orange-300">Theta</span>
+                                    <div className="bg-orange-500/10 p-2 rounded border border-orange-500/20 flex justify-between text-orange-600 font-bold">
+                                        <span>Theta</span>
                                         <span className="font-mono">{(selectedOption.data.theta || 0).toFixed(2)}</span>
                                     </div>
-                                    <div className="bg-teal-500/10 p-2 rounded border border-teal-500/20 flex justify-between">
-                                        <span className="text-teal-300">Vega</span>
+                                    <div className="bg-teal-500/10 p-2 rounded border border-teal-500/20 flex justify-between text-teal-600 font-bold">
+                                        <span>Vega</span>
                                         <span className="font-mono">{(selectedOption.data.vega || 0).toFixed(2)}</span>
                                     </div>
                                 </div>
@@ -87,7 +87,7 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                     </div>
                 ) : (
                     <>
-                        <div className="text-xs font-bold text-white/40 uppercase tracking-widest border-b border-white/10 pb-2">
+                        <div className="text-xs font-bold text-text-tertiary uppercase tracking-widest border-b border-border-default pb-2">
                             Market Context
                         </div>
 
@@ -96,31 +96,31 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                             {/* SPOT */}
                             <div>
                                 <div className="flex items-center gap-1.5 mb-0.5">
-                                    <span className="text-[10px] text-white/50 uppercase">Spot Price</span>
-                                    <PortalTooltip content={<div className="text-xs text-white/80 p-2">Current underlying index price.</div>}>
-                                        <div className="p-0.5 rounded-full hover:bg-white/10 cursor-help transition-colors">
-                                            <svg className="w-2.5 h-2.5 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <span className="text-[10px] text-text-tertiary uppercase">Spot Price</span>
+                                    <PortalTooltip content={<div className="text-xs text-text-secondary">Current underlying index price.</div>}>
+                                        <div className="p-0.5 rounded-full hover:bg-background-surface cursor-help transition-colors">
+                                            <svg className="w-2.5 h-2.5 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                         </div>
                                     </PortalTooltip>
                                 </div>
-                                <div className="text-2xl font-bold text-white tracking-tight">{spotPrice.toLocaleString()}</div>
+                                <div className="text-2xl font-bold text-text-primary tracking-tight">{spotPrice.toLocaleString()}</div>
                             </div>
 
                             {/* PCR (Volume) */}
                             <div>
                                 <div className="flex items-center gap-1.5 mb-0.5">
-                                    <span className="text-[10px] text-white/50 uppercase">PCR (Volume)</span>
-                                    <PortalTooltip content={<div className="text-xs text-white/80 p-2">Put-Call Ratio.<br /><span className="text-emerald-300">{' > 1.0'}</span>: Bullish Support (Oversold)<br /><span className="text-red-300">{' < 0.7'}</span>: Bearish Resistance</div>}>
-                                        <div className="p-0.5 rounded-full hover:bg-white/10 cursor-help transition-colors">
-                                            <svg className="w-2.5 h-2.5 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <span className="text-[10px] text-text-tertiary uppercase">PCR (Volume)</span>
+                                    <PortalTooltip content={<div className="text-xs text-text-secondary">Put-Call Ratio.<br /><span className="text-emerald-500">{' > 1.0'}</span>: Bullish Support (Oversold)<br /><span className="text-red-500">{' < 0.7'}</span>: Bearish Resistance</div>}>
+                                        <div className="p-0.5 rounded-full hover:bg-background-surface cursor-help transition-colors">
+                                            <svg className="w-2.5 h-2.5 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                         </div>
                                     </PortalTooltip>
                                 </div>
-                                <div className={`text-xl font-mono font-bold ${(metrics.pcr || 1) > 1.5 ? 'text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]' :
-                                    (metrics.pcr || 1) > 1.1 ? 'text-emerald-300' :
-                                        (metrics.pcr || 1) > 0.9 ? 'text-white/90' :
-                                            (metrics.pcr || 1) < 0.6 ? 'text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.3)]' :
-                                                'text-red-400'
+                                <div className={`text-xl font-mono font-bold ${(metrics.pcr || 1) > 1.5 ? 'text-emerald-600' :
+                                    (metrics.pcr || 1) > 1.1 ? 'text-emerald-600' :
+                                        (metrics.pcr || 1) > 0.9 ? 'text-text-primary' :
+                                            (metrics.pcr || 1) < 0.6 ? 'text-red-700' :
+                                                'text-red-600'
                                     }`}>
                                     {metrics.pcr?.toFixed(2)}
                                 </div>
@@ -129,14 +129,14 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                             {/* MAX PAIN */}
                             <div>
                                 <div className="flex items-center gap-1.5 mb-0.5">
-                                    <span className="text-[10px] text-white/50 uppercase">Max Pain</span>
-                                    <PortalTooltip content={<div className="text-xs text-white/80 p-2">Strike price where option writers lose the least.<br />Functions as a market magnet.</div>}>
-                                        <div className="p-0.5 rounded-full hover:bg-white/10 cursor-help transition-colors">
-                                            <svg className="w-2.5 h-2.5 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <span className="text-[10px] text-text-tertiary uppercase">Max Pain</span>
+                                    <PortalTooltip content={<div className="text-xs text-text-secondary">Strike price where option writers lose the least.<br />Functions as a market magnet.</div>}>
+                                        <div className="p-0.5 rounded-full hover:bg-background-surface cursor-help transition-colors">
+                                            <svg className="w-2.5 h-2.5 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                         </div>
                                     </PortalTooltip>
                                 </div>
-                                <div className="text-xl font-mono font-bold text-yellow-500/90">
+                                <div className="text-xl font-mono font-bold text-orange-600">
                                     {metrics.maxPain}
                                 </div>
                             </div>
@@ -144,19 +144,19 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                             {/* IV RANK (New) */}
                             <div>
                                 <div className="flex items-center gap-1.5 mb-0.5">
-                                    <span className="text-[10px] text-white/50 uppercase">IV Rank</span>
-                                    <PortalTooltip content={<div className="text-xs text-white/80 p-2">Current Implied Volatility vs 1-Year Range.<br /><span className="text-red-300">High (&gt;60)</span>: Options Expensive<br /><span className="text-green-300">Low (&lt;30)</span>: Options Cheap</div>}>
-                                        <div className="p-0.5 rounded-full hover:bg-white/10 cursor-help transition-colors">
-                                            <svg className="w-2.5 h-2.5 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <span className="text-[10px] text-text-tertiary uppercase">IV Rank</span>
+                                    <PortalTooltip content={<div className="text-xs text-text-secondary">Current Implied Volatility vs 1-Year Range.<br /><span className="text-red-600">High (&gt;60)</span>: Options Expensive<br /><span className="text-emerald-600">Low (&lt;30)</span>: Options Cheap</div>}>
+                                        <div className="p-0.5 rounded-full hover:bg-background-surface cursor-help transition-colors">
+                                            <svg className="w-2.5 h-2.5 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                         </div>
                                     </PortalTooltip>
                                 </div>
                                 {/* Mocking IV Rank as we don't assume metrics has it fully populated yet, or use metrics.ivRank */}
-                                <div className={`text-xl font-mono font-bold ${(metrics.ivRank || 34) > 60 ? 'text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.4)]' :
-                                    (metrics.ivRank || 34) < 30 ? 'text-emerald-400' :
-                                        'text-amber-400/90' // Neutral - Reduced glow
+                                <div className={`text-xl font-mono font-bold ${(metrics.ivRank || 34) > 60 ? 'text-red-600' :
+                                    (metrics.ivRank || 34) < 30 ? 'text-emerald-600' :
+                                        'text-amber-600'
                                     }`}>
-                                    {metrics.ivRank || 34} <span className="text-[10px] text-white/30 font-normal align-top">%</span>
+                                    {metrics.ivRank || 34} <span className="text-[10px] text-text-tertiary font-normal align-top">%</span>
                                 </div>
                             </div>
                         </div>
@@ -186,8 +186,8 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
             </div>
 
             {/* RIGHT SIDEBAR: PRO PICKS */}
-            <div className="w-full lg:w-64 shrink-0 bg-[#0b1220] rounded-xl border border-white/10 p-0 flex flex-col overflow-hidden max-h-[400px] lg:max-h-full lg:h-[600px]">
-                <div className="p-4 border-b border-white/10 bg-[#05080f]">
+            <div className="w-full lg:w-64 shrink-0 bg-background-card rounded-xl border border-border-default p-0 flex flex-col overflow-hidden max-h-[400px] lg:max-h-full lg:h-[600px]">
+                <div className="p-4 border-b border-border-default bg-background-surface">
                     <div className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-widest">
                         Pro Desk Picks
                     </div>
@@ -196,19 +196,19 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                 <div className="flex-1 overflow-y-auto space-y-3 p-3 no-scrollbar">
                     {/* Calls */}
                     <div className="space-y-2">
-                        <div className="text-[10px] text-green-400 font-bold uppercase">Top Calls (Bullish)</div>
+                        <div className="text-[10px] text-emerald-600 font-bold uppercase">Top Calls (Bullish)</div>
                         {picks.ce.map((pick, i) => (
-                            <div key={i} className="group p-3 bg-green-500/[0.02] border border-green-500/10 hover:border-green-500/30 rounded-lg transition-colors cursor-pointer">
+                            <div key={i} className="group p-3 bg-emerald-500/[0.12] border border-emerald-500/20 hover:border-emerald-500/40 rounded-lg transition-colors cursor-pointer">
                                 <div className="flex justify-between items-center mb-1">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-bold text-white text-sm">{pick.strike} CE</span>
-                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white/60 font-mono">{pick.dte}</span>
+                                        <span className="font-bold text-text-primary text-sm">{pick.strike} CE</span>
+                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-background-surface text-text-secondary font-mono border border-border-default">{pick.dte}</span>
                                     </div>
-                                    <span className="text-xs font-mono text-green-300">₹{pick.ltp}</span>
+                                    <span className="text-xs font-mono text-emerald-600 font-bold">₹{pick.ltp}</span>
                                 </div>
-                                <div className="flex justify-between text-[10px] text-white/40">
+                                <div className="flex justify-between text-[10px] text-text-secondary font-medium">
                                     <span>Δ {pick.delta.toFixed(2)}</span>
-                                    <span>OI {pick.oiChg > 0 ? '+' : ''}{pick.oiChg}</span>
+                                    <span className="text-text-primary">OI {pick.oiChg > 0 ? '+' : ''}{pick.oiChg}%</span>
                                 </div>
                             </div>
                         ))}
@@ -216,19 +216,19 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
 
                     {/* Puts */}
                     <div className="space-y-2 mt-4">
-                        <div className="text-[10px] text-red-400 font-bold uppercase">Top Puts (Bearish)</div>
+                        <div className="text-[10px] text-red-600 font-bold uppercase">Top Puts (Bearish)</div>
                         {picks.pe.map((pick, i) => (
-                            <div key={i} className="group p-3 bg-red-500/[0.02] border border-red-500/10 hover:border-red-500/30 rounded-lg transition-colors cursor-pointer">
+                            <div key={i} className="group p-3 bg-red-500/[0.12] border border-red-500/20 hover:border-red-500/40 rounded-lg transition-colors cursor-pointer">
                                 <div className="flex justify-between items-center mb-1">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-bold text-white text-sm">{pick.strike} PE</span>
-                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white/60 font-mono">{pick.dte}</span>
+                                        <span className="font-bold text-text-primary text-sm">{pick.strike} PE</span>
+                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-background-surface text-text-secondary font-mono border border-border-default">{pick.dte}</span>
                                     </div>
-                                    <span className="text-xs font-mono text-red-300">₹{pick.ltp}</span>
+                                    <span className="text-xs font-mono text-red-600 font-bold">₹{pick.ltp}</span>
                                 </div>
-                                <div className="flex justify-between text-[10px] text-white/40">
+                                <div className="flex justify-between text-[10px] text-text-secondary font-medium">
                                     <span>Δ {pick.delta.toFixed(2)}</span>
-                                    <span>OI {pick.oiChg > 0 ? '+' : ''}{pick.oiChg}</span>
+                                    <span className="text-text-primary">OI {pick.oiChg > 0 ? '+' : ''}{pick.oiChg}%</span>
                                 </div>
                             </div>
                         ))}

@@ -25,19 +25,21 @@ const Card = ({
         borderless
           ? "bg-transparent shadow-none"
           : `
-            bg-[#070e1b]
-            border border-white/5
-            shadow-[0_8px_24px_rgba(0,0,0,0.45)]
-            hover:border-[#3005f1]/40
-            hover:shadow-[0_12px_32px_rgba(48,5,241,0.18)]
+            bg-background-card
+            border border-border-default dark:border-border-subtle-faint
+            shadow-md
+            hover:border-border-hover dark:hover:border-border-subtle-translucent
+            hover:shadow-2xl
+            hover:-translate-y-1
+            duration-300
           `,
         spanMap[span],
         className
       )}
     >
-      {/* subtle inner glow only for normal cards */}
+      {/* subtle inner glow (Manual-like sheen) */}
       {!borderless && (
-        <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-white/3 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-background-surface to-transparent opacity-50" />
       )}
 
       <div className="relative z-10 flex-1 min-h-0 flex flex-col">

@@ -21,7 +21,11 @@ export default function StockyGaugeSection({ score, regime, risk, readiness }) {
                         <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800/50" />
                         {/* Value Circle */}
                         <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="8" fill="transparent"
-                            className={`${score > 60 ? 'text-emerald-500' : score > 40 ? 'text-amber-500' : 'text-red-500'} transition-all duration-1000 shadow-[0_0_20px_currentColor]`}
+                            className={`${score >= 75 ? 'text-emerald-500' :
+                                score >= 60 ? 'text-lime-500' :
+                                    score >= 40 ? 'text-yellow-500' :
+                                        score >= 25 ? 'text-amber-500' :
+                                            'text-red-500'} transition-all duration-1000 shadow-[0_0_20px_currentColor]`}
                             strokeDasharray={440}
                             strokeDashoffset={440 - (440 * score) / 100}
                             strokeLinecap="round"
@@ -29,9 +33,11 @@ export default function StockyGaugeSection({ score, regime, risk, readiness }) {
                     </svg>
                     <div className="absolute flex flex-col items-center">
                         <span className="text-5xl font-bold text-white tracking-tighter leading-none">{score}</span>
-                        <div className={`mt-1 text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${score > 60 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                            score > 40 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                'bg-red-500/10 text-red-400 border-red-500/20'
+                        <div className={`mt-1 text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${score >= 75 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                            score >= 60 ? 'bg-lime-500/10 text-lime-400 border-lime-500/20' :
+                                score >= 40 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                    score >= 25 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                        'bg-red-500/10 text-red-400 border-red-500/20'
                             }`}>
                             {readiness.bias} Bias
                         </div>
@@ -56,9 +62,15 @@ export default function StockyGaugeSection({ score, regime, risk, readiness }) {
                     <h2 className={`text-4xl font-bold mb-2 tracking-tight ${regimeColor}`}>{regime}</h2>
                     <p className="text-sm text-slate-400 font-medium max-w-lg mb-6">
                         {regime === "Risk-On Trend" ? "Broad participation with low volatility. Deploy capital aggressively." :
-                            regime === "Volatile Breakout" ? "Fast moves with expanding ranges. Focus on momentum." :
-                                regime === "Defensive" ? "Capital preservation mode. Favor quality and low-beta assets." :
-                                    "Current structure implies mixed signals. Reduce position sizing."}
+                            regime === "Volatile Breakout" ? "Fast moves with expanding ranges. Focus on momentum and tight stops." :
+                                regime === "Selective Bullish" ? "Market is rising but breadth is thinning. Focus on high-quality setups." :
+                                    regime === "Emotional Rally" ? "FOMO-driven moves with high volatility. Be wary of sharp reversals." :
+                                        regime === "Neutral / Range" ? "Mean reversion dominant. Sell resistance and buy support." :
+                                            regime === "Choppy / Uncertain" ? "Unpredictable price action with whipsaws. Stay on the sidelines." :
+                                                regime === "Defensive / Hedge" ? "Risk-off environment. Protect capital and consider hedging." :
+                                                    regime === "Liquidation Risk" ? "Heavy selling with high volatility. Exit weak positions immediately." :
+                                                        regime === "Capital Protection" ? "Extreme risk. Sit in cash and wait for stability." :
+                                                            "Current structure implies mixed signals. Reduce position sizing."}
                     </p>
                 </div>
 

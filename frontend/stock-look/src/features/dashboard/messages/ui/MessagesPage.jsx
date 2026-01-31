@@ -270,15 +270,15 @@ const MessagesPage = () => {
                 <div className="mb-8">
                     <div className="flex items-start justify-between mb-5">
                         <div>
-                            <h1 className="text-2xl font-semibold text-white mb-2 tracking-tight">Messages</h1>
-                            <p className="text-sm text-gray-400">
+                            <h1 className="text-2xl font-semibold text-text-primary mb-2 tracking-tight">Messages</h1>
+                            <p className="text-sm text-text-secondary">
                                 {unreadCount > 0 ? (
                                     <>
-                                        <span className="text-blue-400 font-medium">{unreadCount} unread</span>
+                                        <span className="text-blue-500 font-medium">{unreadCount} unread</span>
                                         {criticalCount > 0 && (
                                             <>
                                                 {" · "}
-                                                <span className="text-red-400 font-medium">
+                                                <span className="text-red-500 font-medium">
                                                     {criticalCount} need attention
                                                 </span>
                                             </>
@@ -289,7 +289,7 @@ const MessagesPage = () => {
                                 )}
                             </p>
                         </div>
-                        <button className="px-4 py-2.5 text-xs text-gray-400 hover:text-white transition-all duration-200 flex items-center gap-2 border border-white/10 rounded-lg hover:bg-white/[0.07] hover:border-white/20 active:scale-95">
+                        <button className="px-4 py-2.5 text-xs text-text-secondary hover:text-text-primary transition-all duration-200 flex items-center gap-2 border border-border-default rounded-lg hover:bg-background-surface hover:border-border-default active:scale-95">
                             <FiCheckCircle className="text-sm" />
                             Mark all as read
                         </button>
@@ -297,17 +297,17 @@ const MessagesPage = () => {
 
                     {/* AI Summary */}
                     {criticalCount > 0 && (
-                        <div className="bg-gradient-to-r from-red-500/[0.12] to-amber-500/[0.12] border border-red-500/30 rounded-xl p-4 mb-5 shadow-[0_0_20px_rgba(239,68,68,0.1)]">
+                        <div className="bg-gradient-to-r from-red-500/10 to-amber-500/10 border border-red-500/30 rounded-xl p-4 mb-5 shadow-lg shadow-red-500/10">
                             <div className="flex items-start gap-3">
                                 <div className="w-9 h-9 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center justify-center flex-shrink-0">
-                                    <FiAlertTriangle className="text-red-400 text-base" />
+                                    <FiAlertTriangle className="text-red-500 text-base" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-white font-medium leading-relaxed">
+                                    <p className="text-sm text-text-primary font-medium leading-relaxed">
                                         {criticalCount} important alert{criticalCount > 1 ? "s" : ""} need your
                                         attention today
                                     </p>
-                                    <p className="text-xs text-gray-400 mt-1.5 leading-relaxed">
+                                    <p className="text-xs text-text-secondary mt-1.5 leading-relaxed">
                                         Review critical market movements and portfolio changes
                                     </p>
                                 </div>
@@ -317,13 +317,13 @@ const MessagesPage = () => {
 
                     {/* Search Bar */}
                     <div className="relative group">
-                        <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors duration-200" />
+                        <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary group-focus-within:text-blue-500 transition-colors duration-200" />
                         <input
                             type="text"
                             placeholder="Search by symbol, keyword, or order ID..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-11 pr-4 py-3.5 bg-[#0a0f1e]/60 border border-white/10 rounded-xl text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#0a0f1e]/80 transition-all duration-200 focus:shadow-[0_0_20px_rgba(59,130,246,0.1)]"
+                            className="w-full pl-11 pr-4 py-3.5 bg-background-card border border-border-default rounded-xl text-text-primary text-sm placeholder-text-tertiary focus:outline-none focus:border-blue-500 focus:bg-background-card transition-all duration-200 focus:shadow-lg focus:shadow-blue-500/10"
                         />
                     </div>
                 </div>
@@ -333,7 +333,7 @@ const MessagesPage = () => {
                     <div className="lg:col-span-1 space-y-5">
                         {/* Categories */}
                         <div className="space-y-2">
-                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
+                            <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2">
                                 Categories
                             </h3>
                             <div className="space-y-1">
@@ -348,13 +348,13 @@ const MessagesPage = () => {
                                                 w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium
                                                 transition-all duration-300 group
                                                 ${isActive
-                                                    ? "bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 text-white shadow-[0_0_24px_rgba(59,130,246,0.15)]"
-                                                    : "text-gray-400 hover:bg-[#0a0f1e]/70 hover:text-white border border-transparent hover:border-white/[0.1] hover:shadow-lg hover:-translate-y-0.5"
+                                                    ? "bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-500/30 text-blue-600 shadow-md shadow-blue-500/10"
+                                                    : "text-text-secondary hover:bg-background-surface hover:text-text-primary border border-transparent hover:border-border-default hover:shadow-sm hover:-translate-y-0.5"
                                                 }
                                             `}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <Icon className={`text-base transition-colors duration-300 ${isActive ? "text-blue-400" : "group-hover:text-blue-400"}`} />
+                                                <Icon className={`text-base transition-colors duration-300 ${isActive ? "text-blue-500" : "group-hover:text-blue-500"}`} />
                                                 <span>{cat.label}</span>
                                             </div>
                                             {cat.count > 0 && (
@@ -362,8 +362,8 @@ const MessagesPage = () => {
                                                     className={`
                                                         px-2 py-0.5 rounded text-[10px] font-bold transition-all duration-300
                                                         ${isActive
-                                                            ? "bg-blue-500/20 text-blue-200"
-                                                            : "bg-white/[0.05] text-gray-500 group-hover:bg-white/10 group-hover:text-gray-300"
+                                                            ? "bg-blue-500/20 text-blue-600"
+                                                            : "bg-background-surface text-text-tertiary group-hover:bg-background-card group-hover:text-text-secondary"
                                                         }
                                                     `}
                                                 >
@@ -378,7 +378,7 @@ const MessagesPage = () => {
 
                         {/* Quick Filters */}
                         <div className="space-y-2 mt-8">
-                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
+                            <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2">
                                 Quick Filters
                             </h3>
                             <div className="space-y-1">
@@ -392,8 +392,8 @@ const MessagesPage = () => {
                                                 w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium
                                                 transition-all duration-300 group
                                                 ${isActive
-                                                    ? "bg-white/[0.1] text-white border border-white/10 shadow-lg"
-                                                    : "text-gray-400 hover:text-white hover:bg-[#0a0f1e]/70 border border-transparent hover:border-white/[0.1] hover:-translate-y-0.5"
+                                                    ? "bg-background-card text-text-primary border border-border-default shadow-sm"
+                                                    : "text-text-secondary hover:text-text-primary hover:bg-background-surface border border-transparent hover:border-border-default hover:-translate-y-0.5"
                                                 }
                                             `}
                                         >
@@ -408,14 +408,14 @@ const MessagesPage = () => {
                     {/* Main Feed */}
                     <div className="lg:col-span-3">
                         {filteredMessages.length === 0 ? (
-                            <div className="bg-[#0a0f1e]/50 backdrop-blur-xl rounded-xl border border-white/[0.07] p-20 text-center shadow-lg">
-                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-white/10 flex items-center justify-center mx-auto mb-5">
-                                    <FiBell className="text-4xl text-gray-600" />
+                            <div className="bg-background-card backdrop-blur-xl rounded-xl border border-border-default p-20 text-center shadow-lg">
+                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-border-default flex items-center justify-center mx-auto mb-5">
+                                    <FiBell className="text-4xl text-text-tertiary" />
                                 </div>
-                                <p className="text-gray-400 text-sm font-medium mb-2">
+                                <p className="text-text-secondary text-sm font-medium mb-2">
                                     {searchQuery ? "No messages match your search" : "All caught up!"}
                                 </p>
-                                <p className="text-gray-500 text-xs">
+                                <p className="text-text-tertiary text-xs">
                                     {searchQuery
                                         ? "Try adjusting your search terms"
                                         : "We'll notify you when something important happens"}
@@ -480,12 +480,12 @@ const MessageCard = ({
             onMouseLeave={() => setIsHovered(false)}
             style={{ animationDelay: `${index * 50}ms` }}
             className={`
-        bg-[#0a0f1e]/50 backdrop-blur-xl rounded-lg border border-white/[0.07]
+        bg-background-card backdrop-blur-xl rounded-lg border border-border-default
         p-3 cursor-pointer transition-all duration-300 group
-        hover:bg-[#0a0f1e]/70 hover:border-white/[0.15]
+        hover:bg-background-surface hover:border-border-default
         hover:shadow-lg hover:-translate-y-0.5
         ${priorityStyles.border} ${priorityStyles.bg} ${priorityStyles.glow}
-        ${!message.read ? "ring-1 ring-blue-500/25 shadow-[0_0_20px_rgba(59,130,246,0.1)]" : ""}
+        ${!message.read ? "ring-1 ring-blue-500/25 shadow-lg shadow-blue-500/5" : ""}
         animate-in fade-in slide-in-from-bottom-4 duration-500
       `}
         >
@@ -494,7 +494,7 @@ const MessageCard = ({
                 <div
                     className={`
           w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0
-          bg-gradient-to-br from-white/10 to-white/5 border border-white/10
+          bg-background-surface border border-border-default
           transition-all duration-300 group-hover:scale-105
           ${message.priority === "critical" ? "bg-red-500/15 border-red-500/30" : ""}
           ${message.priority === "high" ? "bg-amber-500/15 border-amber-500/30" : ""}
@@ -502,14 +502,14 @@ const MessageCard = ({
                 >
                     <Icon
                         className={`text-base transition-all duration-300 ${message.priority === "critical"
-                            ? "text-red-400"
+                            ? "text-red-500"
                             : message.priority === "high"
-                                ? "text-amber-400"
+                                ? "text-amber-500"
                                 : message.category === "alerts"
-                                    ? "text-blue-400"
+                                    ? "text-blue-500"
                                     : message.category === "notifications"
-                                        ? "text-green-400"
-                                        : "text-gray-400"
+                                        ? "text-green-500"
+                                        : "text-text-tertiary"
                             }`}
                     />
                 </div>
@@ -519,26 +519,26 @@ const MessageCard = ({
                     <div className="flex items-start justify-between gap-2 mb-1">
                         <div className="flex items-center gap-2">
                             <h3
-                                className={`font-semibold text-sm transition-colors duration-200 ${!message.read ? "text-white" : "text-gray-300 group-hover:text-white"
+                                className={`font-semibold text-sm transition-colors duration-200 ${!message.read ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary"
                                     }`}
                             >
                                 {message.title}
                             </h3>
                             {isPinned && (
-                                <FiStar className="text-blue-400 text-[10px] fill-blue-400 animate-in zoom-in duration-300" />
+                                <FiStar className="text-blue-500 text-[10px] fill-blue-500 animate-in zoom-in duration-300" />
                             )}
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-[11px] text-gray-500 whitespace-nowrap font-medium">
+                            <span className="text-[11px] text-text-tertiary whitespace-nowrap font-medium">
                                 {formatTimestamp(message.timestamp)}
                             </span>
                             {!message.read && (
-                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse shadow-sm shadow-blue-500/50" />
                             )}
                         </div>
                     </div>
 
-                    <p className="text-[11px] text-gray-400 mb-2 line-clamp-1 leading-relaxed">
+                    <p className="text-[11px] text-text-secondary mb-2 line-clamp-1 leading-relaxed">
                         {message.description}
                     </p>
 
@@ -548,7 +548,7 @@ const MessageCard = ({
                             {Object.entries(message.metadata).slice(0, 3).map(([key, value]) => (
                                 <span
                                     key={key}
-                                    className="px-2 py-1 bg-white/[0.06] border border-white/10 rounded-md text-[11px] text-gray-300 font-mono transition-all duration-200 hover:bg-white/10 hover:border-white/20"
+                                    className="px-2 py-1 bg-background-surface border border-border-default rounded-md text-[11px] text-text-secondary font-mono transition-all duration-200 hover:bg-border-default hover:border-border-default"
                                 >
                                     {value}
                                 </span>
@@ -571,7 +571,7 @@ const MessageDetailModal = ({ message, onClose, formatTimestamp }) => {
             onClick={onClose}
         >
             <div
-                className="bg-[#0a0f1e] border border-white/[0.12] rounded-2xl max-w-2xl w-full p-7 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
+                className="bg-background-card border border-border-default rounded-2xl max-w-2xl w-full p-7 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -580,41 +580,41 @@ const MessageDetailModal = ({ message, onClose, formatTimestamp }) => {
                         <div
                             className={`
               w-14 h-14 rounded-xl flex items-center justify-center
-              bg-gradient-to-br from-white/10 to-white/5 border border-white/[0.12]
+              bg-background-surface border border-border-default
               shadow-lg
             `}
                         >
-                            <Icon className="text-2xl text-blue-400" />
+                            <Icon className="text-2xl text-blue-500" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold text-white tracking-tight">{message.title}</h2>
-                            <p className="text-xs text-gray-400 mt-1 font-medium">
+                            <h2 className="text-lg font-semibold text-text-primary tracking-tight">{message.title}</h2>
+                            <p className="text-xs text-text-secondary mt-1 font-medium">
                                 {formatTimestamp(message.timestamp)}
                             </p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-white transition-all duration-200 p-1.5 hover:bg-white/10 rounded-lg active:scale-90"
+                        className="text-text-tertiary hover:text-text-primary transition-all duration-200 p-1.5 hover:bg-background-surface rounded-lg active:scale-90"
                     >
                         <FiX className="text-xl" />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="bg-[#02050e]/60 rounded-xl p-5 border border-white/[0.07] mb-6 shadow-inner">
-                    <p className="text-sm text-gray-300 leading-relaxed">{message.content}</p>
+                <div className="bg-background-surface rounded-xl p-5 border border-border-default mb-6 shadow-inner">
+                    <p className="text-sm text-text-primary leading-relaxed">{message.content}</p>
                 </div>
 
                 {/* Metadata */}
                 {message.metadata && (
                     <div className="grid grid-cols-2 gap-3 mb-6">
                         {Object.entries(message.metadata).map(([key, value]) => (
-                            <div key={key} className="bg-white/[0.06] rounded-xl p-4 border border-white/[0.07] hover:bg-white/[0.09] transition-all duration-200">
-                                <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-semibold">
+                            <div key={key} className="bg-background-card rounded-xl p-4 border border-border-default hover:bg-background-surface transition-all duration-200">
+                                <p className="text-xs text-text-tertiary uppercase tracking-wider mb-2 font-semibold">
                                     {key.replace(/([A-Z])/g, " $1").trim()}
                                 </p>
-                                <p className="text-sm text-white font-semibold font-mono">{value}</p>
+                                <p className="text-sm text-text-primary font-semibold font-mono">{value}</p>
                             </div>
                         ))}
                     </div>
@@ -634,7 +634,7 @@ const MessageDetailModal = ({ message, onClose, formatTimestamp }) => {
                             </button>
                         );
                     })}
-                    <button className="px-5 py-3 bg-white/[0.07] hover:bg-white/[0.12] text-gray-300 hover:text-white border border-white/10 hover:border-white/20 rounded-xl text-sm font-medium transition-all duration-200 active:scale-95">
+                    <button className="px-5 py-3 bg-background-surface hover:bg-border-default text-text-secondary hover:text-text-primary border border-border-default rounded-xl text-sm font-medium transition-all duration-200 active:scale-95">
                         Mark as Read
                     </button>
                 </div>

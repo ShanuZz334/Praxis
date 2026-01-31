@@ -34,7 +34,7 @@ export default function TechnicalHistoryChart({ trend = 'neutral', baseValue = 5
             date.setDate(date.getDate() - (days - 1 - i));
             result.push({
                 date: date.toLocaleDateString('en-US', { disable_month: 'short', day: 'numeric' }),
-                value: series[i]
+                value: parseFloat(series[i].toFixed(3))
             });
         }
 
@@ -43,53 +43,61 @@ export default function TechnicalHistoryChart({ trend = 'neutral', baseValue = 5
 
     // Color Logic
     const safeTrend = (trend || '').toLowerCase();
-    let color = '#fbbf24'; // Warning/Neutral
-    if (safeTrend.includes('bull') || safeTrend.includes('up') || safeTrend.includes('positive') || safeTrend.includes('buy')) color = '#34d399';
-    if (safeTrend.includes('bear') || safeTrend.includes('down') || safeTrend.includes('negative') || safeTrend.includes('sell')) color = '#f87171';
+    let color = '#d97706'; // amber-600
+    if (safeTrend.includes('bull') || safeTrend.includes('up') || safeTrend.includes('positive') || safeTrend.includes('buy')) color = '#059669'; // emerald-600
+    if (safeTrend.includes('bear') || safeTrend.includes('down') || safeTrend.includes('negative') || safeTrend.includes('sell')) color = '#dc2626'; // red-600
 
     return (
         <div className="w-full h-full min-h-[300px] flex flex-col">
             <div className="flex justify-between items-center mb-4 px-2">
-                <span className="text-xs font-bold text-white/40 uppercase tracking-widest">30-Day Trend</span>
+                <span className="text-xs font-bold text-text-tertiary uppercase tracking-widest">30-Day Trend</span>
                 <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                    <span className="text-xs text-white/60 capitalize font-mono">{trend || 'Neutral'}</span>
+                    <span className="text-xs text-text-secondary capitalize font-mono">{trend || 'Neutral'}</span>
                 </div>
             </div>
 
             <div className="flex-1 w-full relative">
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" vertical={false} />
                         <XAxis
                             dataKey="date"
-                            stroke="#ffffff30"
-                            tick={{ fontSize: 10, fill: '#ffffff50' }}
+                            stroke="#94a3b8"
+                            tick={{ fontSize: 10, fill: '#475569', fontWeight: '500' }}
                             axisLine={false}
                             tickLine={false}
                             dy={10}
                             interval={4}
                         />
                         <YAxis
-                            stroke="#ffffff30"
-                            tick={{ fontSize: 10, fill: '#ffffff50' }}
+                            stroke="#94a3b8"
+                            tick={{ fontSize: 10, fill: '#475569', fontWeight: '500' }}
                             axisLine={false}
                             tickLine={false}
                             domain={['auto', 'auto']}
                             width={30}
                         />
                         <Tooltip
-                            contentStyle={{ backgroundColor: '#0b1220', borderColor: '#ffffff20', borderRadius: '8px', color: '#fff' }}
-                            itemStyle={{ color: color }}
-                            labelStyle={{ color: '#ffffff50', marginBottom: '4px', fontSize: '10px', textTransform: 'uppercase' }}
-                            cursor={{ stroke: '#ffffff20', strokeWidth: 1 }}
+                            contentStyle={{
+                                backgroundColor: 'var(--background-card)',
+                                border: '1px solid var(--border-default)',
+                                borderRadius: '12px',
+                                padding: '8px 12px',
+                                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+                                color: 'var(--text-primary)'
+                            }}
+                            itemStyle={{ color: color, fontSize: '12px', fontWeight: 'bold', textTransform: 'capitalize' }}
+                            labelStyle={{ color: 'var(--text-secondary)', marginBottom: '4px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                            cursor={{ stroke: '#88888840', strokeWidth: 1 }}
+                            formatter={(value) => [`${value}`, 'Value']}
                         />
                         <Line
                             type="monotone"
                             dataKey="value"
                             stroke={color}
                             strokeWidth={2}
-                            dot={{ fill: '#0b1220', stroke: color, strokeWidth: 2, r: 3 }}
+                            dot={{ fill: 'var(--background-card)', stroke: color, strokeWidth: 2, r: 3 }}
                             activeDot={{ r: 5, fill: color, stroke: '#fff' }}
                             strokeDasharray="5 5"
                         />

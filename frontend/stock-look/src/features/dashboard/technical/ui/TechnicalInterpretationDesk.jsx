@@ -68,34 +68,34 @@ export default function TechnicalInterpretationDesk({ card }) {
         ">
             <div className="
                 relative overflow-hidden
-                bg-[#0b1220]/80 backdrop-blur-xl
-                border border-white/10
+                bg-[var(--bg-tooltip)]
+                border border-border-default
                 rounded-2xl
                 p-5
                 shadow-2xl
                 flex flex-col gap-5
             ">
                 {/* HEADER */}
-                <div className="flex items-center gap-3 mb-2 pb-2 border-b border-white/5">
-                    <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center border border-blue-500/20 text-blue-400 text-xs">ℹ</div>
-                    <span className="text-blue-100/90 text-[11px] font-bold tracking-widest uppercase">Indicator Guide</span>
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="w-6 h-6 rounded-md bg-background-elevated flex items-center justify-center border border-border-subtle text-accent-primary text-xs font-bold font-serif italic">i</div>
+                    <span className="text-accent-primary text-[11px] font-bold tracking-widest uppercase">Indicator Guide</span>
                 </div>
 
                 {/* 1. OVERVIEW / USAGE */}
                 <div>
-                    <h3 className="text-xs font-bold text-white mb-1.5 uppercase tracking-wide opacity-50">Definition</h3>
-                    <p className="text-xs text-white/80 leading-relaxed font-normal">
+                    <h3 className="text-xs font-bold text-text-primary mb-1.5 uppercase tracking-wide opacity-50">Definition</h3>
+                    <p className="text-xs text-text-secondary leading-relaxed font-normal">
                         {card.desc || edu.usage}
                     </p>
                 </div>
 
                 {/* 2. HOW TO READ */}
-                <div className="bg-gradient-to-br from-white/[0.03] to-white/[0.01] rounded-xl p-4 border border-white/10 shadow-inner group transition-all hover:border-white/20">
-                    <h3 className="text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <span className="w-1 h-1 bg-blue-400 rounded-full" />
+                <div className="bg-background-elevated/40 rounded-xl p-4 border border-border-subtle transition-all hover:border-border-hover">
+                    <h3 className="text-[10px] font-extrabold text-accent-primary uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <span className="w-1 h-1 bg-accent-primary rounded-full" />
                         Market Interpretation
                     </h3>
-                    <div className="text-xs text-white/70 leading-loose whitespace-pre-line font-medium pl-1">
+                    <div className="text-xs text-text-secondary leading-loose whitespace-pre-line font-medium pl-1">
                         {edu.read}
                     </div>
                 </div>
@@ -105,16 +105,16 @@ export default function TechnicalInterpretationDesk({ card }) {
                     <div className="absolute left-0 top-1 bottom-1 w-0.5 bg-amber-500/40 rounded-full" />
                     <div className="pl-4">
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="text-amber-400 text-[10px] font-black tracking-wider uppercase">Pro Insight</span>
+                            <span className="text-amber-600 text-[10px] font-black tracking-wider uppercase">Pro Insight</span>
                         </div>
-                        <p className="text-xs text-white/60 leading-relaxed italic">
+                        <p className="text-xs text-text-tertiary leading-relaxed italic font-medium">
                             "{edu.keyPoint}"
                         </p>
                     </div>
                 </div>
 
                 {/* DECORATIVE */}
-                <div className="mt-auto pt-4 border-t border-white/5 text-[9px] text-white/10 text-center uppercase tracking-[0.3em] font-light">
+                <div className="mt-auto pt-4 border-t border-border-subtle text-[9px] text-text-tertiary opacity-30 text-center uppercase tracking-[0.3em] font-light">
                     Stocky Education Module
                 </div>
             </div>

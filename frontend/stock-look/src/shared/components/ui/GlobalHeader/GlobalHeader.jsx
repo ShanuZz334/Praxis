@@ -12,10 +12,10 @@ import { typography } from "@/shared/global/styles/typography";
 -------------------------------------------------------------------------- */
 
 const STYLES = {
-    BORDER_OUTER: "border-white/15",       // 5% (Matches Card)
-    BORDER_INNER: "border-white/15",  // 5% (Badges, Inputs, Hovers)
-    DIVIDE: "divide-white/[0.05]",        // 2% (Grid Dividers)
-    BORDER_DIVIDER: "border-white/[0.05]" // 2% (Section Separators)
+    BORDER_OUTER: "border-border-default",
+    BORDER_INNER: "border-border-subtle",
+    DIVIDE: "divide-border-subtle",
+    BORDER_DIVIDER: "border-border-subtle"
 };
 
 export default function GlobalHeader({
@@ -25,7 +25,7 @@ export default function GlobalHeader({
     prevScore = 0,
 
     // Context
-    regime = { label: "Neutral", desc: "No clear dominance", confidence: 0, color: "text-slate-200" },
+    regime = { label: "Neutral", desc: "No clear dominance", confidence: 0, color: "text-text-secondary" },
     integrity = { coverage: "100%", source: "Primary", freshness: "Realtime" },
 
     // Components
@@ -35,14 +35,14 @@ export default function GlobalHeader({
 
     // Info / Manual
     infoContent = (
-        <div className="w-80 p-4 bg-[#0b1220] border border-white/10 rounded-xl shadow-2xl">
-            <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-2">
-                <span className="text-xs font-bold text-white uppercase tracking-wider">System Composite</span>
+        <div className="w-80">
+            <div className="flex items-center gap-2 mb-2 border-b border-border-default pb-2">
+                <span className="text-xs font-bold text-text-primary uppercase tracking-wider">System Composite</span>
             </div>
-            <p className="text-xs text-white/70 leading-relaxed">
+            <p className="text-xs text-text-secondary leading-relaxed">
                 The Stocky Composite Score aggregates real-time data from Technical (30%), Options (25%), Fundamental (20%), Global Macro (15%), and Events (10%) engines into a single directional signal.
             </p>
-            <div className="mt-3 pt-2 border-t border-white/5 flex items-center gap-1.5 text-[10px] text-blue-400 font-bold uppercase tracking-wide">
+            <div className="mt-3 pt-2 border-t border-border-default flex items-center gap-1.5 text-[10px] text-blue-400 font-bold uppercase tracking-wide">
                 <span>Click to read full manual</span>
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
             </div>
@@ -74,9 +74,10 @@ export default function GlobalHeader({
     const compositeState = getCompositeState(score);
 
     // 2. Delta Logic
-    const deltaVal = (score - (prevScore || score)).toFixed(1);
-    const deltaSign = deltaVal > 0 ? "+" : "";
-    const deltaColor = deltaVal > 0 ? "text-emerald-400" : deltaVal < 0 ? "text-red-400" : "text-slate-400";
+    const deltaRaw = (score - (prevScore || score));
+    const deltaVal = Math.abs(deltaRaw).toFixed(1);
+    const deltaSign = deltaRaw > 0 ? "+" : deltaRaw < 0 ? "-" : "";
+    const deltaColor = deltaRaw > 0 ? "text-emerald-600 dark:text-emerald-400" : deltaRaw < 0 ? "text-red-600 dark:text-red-400" : "text-text-tertiary";
 
     // 3. Signal Counts (Bulls, Bears, Neutrals)
     const signalCounts = useMemo(() => {
@@ -122,7 +123,7 @@ export default function GlobalHeader({
                                 <PortalTooltip content={infoContent}>
                                     <button
                                         onClick={() => navigate(manualLink)}
-                                        className="text-white/40 hover:text-blue-400 transition-colors cursor-pointer"
+                                        className="text-text-tertiary hover:text-blue-400 transition-colors cursor-pointer"
                                     >
                                         <HelpCircle className="w-4 h-4" />
                                     </button>
@@ -132,7 +133,7 @@ export default function GlobalHeader({
                             {/* Delta Pill */}
                             <div className={`flex items-center gap-1 ${deltaColor} bg-background-surface px-2 py-1 rounded text-[10px] font-mono border ${STYLES.BORDER_INNER}`}>
                                 <span className="font-bold">{deltaSign}{deltaVal}%</span>
-                                <span className="text-text-tertiary ml-1">vs prev</span>
+                                <span className="opacity-70 ml-1 italic lowercase">vs prev</span>
                             </div>
                         </div>
 
@@ -157,7 +158,7 @@ export default function GlobalHeader({
                         <div className={`${typography.label.sm} mb-3`}>Market Regime</div>
                         <div className="mb-4">
                             <div className="flex items-center gap-3 mb-1">
-                                <div className={`text-2xl font-bold ${regime.color || "text-white"}`}>{regime.label}</div>
+                                <div className={`text-2xl font-bold ${regime.color || 'text-text-primary'}`}>{regime.label}</div>
                                 <div className="text-xs px-1.5 py-0.5 rounded bg-background-surface text-text-secondary font-mono">
                                     {regime.confidence}% Conf
                                 </div>
@@ -165,7 +166,7 @@ export default function GlobalHeader({
                             <div className="text-xs text-text-tertiary">{regime.desc}</div>
                         </div>
                         {/* Simple Linear Scale */}
-                        <div className="relative h-2 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 opacity-80">
+                        <div className="relative h-2 rounded-full bg-gradient-to-r from-red-600 via-amber-500 to-emerald-600 opacity-80">
                             <div
                                 className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-background-app rounded-full shadow-lg transition-all duration-1000"
                                 style={{ left: `${Math.max(5, Math.min(95, score))}%` }}
@@ -191,7 +192,7 @@ export default function GlobalHeader({
                                     <span>Coverage</span>
                                     <span>{integrity.coverage}</span>
                                 </div>
-                                <div className="h-1.5 bg-background-surface rounded-full overflow-hidden">
+                                <div className="h-1.5 bg-background-surface/50 border border-border-subtle rounded-full overflow-hidden">
                                     <div className="h-full bg-blue-500 w-full rounded-full" />
                                 </div>
                             </div>
@@ -203,25 +204,25 @@ export default function GlobalHeader({
                                 <StatBlock
                                     label={creditLabel}
                                     value={totalCredits}
-                                    color="text-white/90"
+                                    color="text-text-primary"
                                     breakdown={enableBreakdown ? creditBreakdown : null}
                                 />
                                 <StatBlock
                                     label="Bulls"
                                     value={signalCounts.bulls}
-                                    color="text-emerald-400"
+                                    color="text-emerald-600 dark:text-emerald-400"
                                     breakdown={enableBreakdown ? signalCounts.breakdown.bulls : null}
                                 />
                                 <StatBlock
                                     label="Bears"
                                     value={signalCounts.bears}
-                                    color="text-red-400"
+                                    color="text-red-600 dark:text-red-400"
                                     breakdown={enableBreakdown ? signalCounts.breakdown.bears : null}
                                 />
                                 <StatBlock
                                     label="Neutral"
                                     value={signalCounts.neutrals}
-                                    color="text-yellow-400"
+                                    color="text-amber-500 dark:text-amber-400"
                                     breakdown={enableBreakdown ? signalCounts.breakdown.neutrals : null}
                                 />
                             </div>
@@ -255,8 +256,8 @@ function StatBlock({ label, value, color, breakdown }) {
 
     const Content = (
         <div className="text-center group/stat cursor-default">
-            <div className="text-[9px] text-white/40 uppercase mb-1.5 tracking-wide group-hover/stat:text-white/60 transition-colors">{label}</div>
-            <div className={`text-lg font-bold ${color} font-mono group-hover/stat:scale-105 transition-transform`}>{value}</div>
+            <div className={`text-[9px] uppercase mb-1.5 tracking-wide transition-colors ${color} opacity-70 group-hover/stat:opacity-100`}>{label}</div>
+            <div className={`text-xl font-extrabold ${color} font-mono group-hover/stat:scale-105 transition-transform`}>{value}</div>
         </div>
     );
 
@@ -265,14 +266,14 @@ function StatBlock({ label, value, color, breakdown }) {
     return (
         <PortalTooltip
             content={
-                <div className="w-48 bg-[#0b1220] border border-white/10 rounded-lg shadow-xl p-3">
-                    <div className="text-[10px] font-bold text-white/50 uppercase border-b border-white/5 pb-1 mb-2 tracking-wider">
+                <div className="w-48">
+                    <div className="text-[10px] font-bold text-text-tertiary uppercase border-b border-border-default pb-1 mb-2 tracking-wider">
                         {label} Breakdown
                     </div>
                     <div className="space-y-1.5">
                         {Object.entries(breakdown).map(([mod, count]) => (
                             <div key={mod} className="flex justify-between items-center text-xs">
-                                <span className="text-white/70">{mod}</span>
+                                <span className="text-text-secondary">{mod}</span>
                                 <span className={`font-mono font-bold ${color}`}>{count}</span>
                             </div>
                         ))}
@@ -294,7 +295,7 @@ function SectionBar({ sections }) {
                 const heightPct = Math.min(100, Math.abs(s.normalizedScore || 0)); // Simplified for visual
                 const isPos = (s.rawScore || 0) > 0; // Assuming rawScore determines direction? Or normalize?
                 // Fallback logic purely visual for now
-                const barColor = isPos ? "bg-emerald-500" : "bg-red-500";
+                const barColor = isPos ? "bg-emerald-600 dark:bg-emerald-500" : "bg-red-600 dark:bg-red-500";
 
                 return (
                     <div key={s.id} className="relative flex flex-col items-center justify-end h-full group">
@@ -314,10 +315,10 @@ function SectionBar({ sections }) {
 
 function ImpactList({ title, items, type }) {
     const isBull = type === 'bull';
-    const colorClass = isBull ? "text-green-500" : "text-red-500";
+    const colorClass = isBull ? "text-emerald-700 dark:text-emerald-500" : "text-red-700 dark:text-red-500";
     const bgClass = isBull ? "bg-state-bullish-surface" : "bg-state-bearish-surface";
     const badgeText = isBull ? "BULLISH DRIVERS" : "BEARISH DRIVERS";
-    const valColor = isBull ? "text-green-400" : "text-red-400";
+    const valColor = isBull ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-red-600 dark:text-red-400 font-bold";
 
     return (
         <div className={`p-5 ${bgClass} h-[240px] flex flex-col`}>
@@ -339,7 +340,7 @@ function ImpactList({ title, items, type }) {
                         </div>
                     </div>
                 )) : (
-                    <div className="text-xs text-white/40 italic">No significant items</div>
+                    <div className="text-xs text-text-tertiary italic">No significant items</div>
                 )}
             </div>
         </div>

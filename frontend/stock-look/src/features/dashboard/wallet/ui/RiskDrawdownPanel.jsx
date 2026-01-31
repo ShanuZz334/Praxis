@@ -9,7 +9,7 @@ export default function RiskDrawdownPanel({ drawdown, riskRules }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
             {/* 1. DRAWDOWN MONITOR */}
-            <div className="bg-[#0b1220] border border-white/5 rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col">
+            <div className="bg-background-card-primary border border-border-subtle-faint rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col">
                 <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
                     <div className="text-xs font-bold text-white/40 uppercase tracking-widest">Drawdown Concentrator</div>
                     <div className="flex items-center gap-2">
@@ -70,7 +70,7 @@ export default function RiskDrawdownPanel({ drawdown, riskRules }) {
             </div>
 
             {/* 2. AUTO-RISK PROTOCOLS */}
-            <div className="bg-[#0b1220] border border-white/5 rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col">
+            <div className="bg-background-card-primary border border-border-subtle-faint rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col">
                 <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
                     <div className="text-xs font-bold text-white/40 uppercase tracking-widest">Active Risk Protocols</div>
                     <div className="bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded text-[10px] font-bold text-blue-400 uppercase">

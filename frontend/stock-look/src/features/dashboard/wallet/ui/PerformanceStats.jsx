@@ -2,7 +2,7 @@ import React from "react";
 
 export default function PerformanceStats({ stats }) {
     return (
-        <div className="bg-[#0b1220] border border-white/10 rounded-2xl p-6 shadow-lg">
+        <div className="bg-background-card-primary border border-border-subtle-translucent rounded-2xl p-6 shadow-lg">
             <div className="text-xs font-bold text-white/40 uppercase tracking-wider mb-6">Trade Performance Breakdown</div>
 
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 divide-x divide-white/5">

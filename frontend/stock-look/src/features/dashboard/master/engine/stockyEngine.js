@@ -24,20 +24,40 @@ export function calculateStockyScore(components) {
 }
 
 export function deriveMasterRegime(score, volatilityState) {
-    if (score >= 75) return "Conviction Buy";
-    if (score >= 60) return "Selective Bullish";
-    if (score >= 40) return "Neutral / Range";
-    if (score >= 25) return "Defensive / Hedge";
+    const isHighVol = volatilityState === "High" || volatilityState === "Elevated" || volatilityState === "Volatile";
+
+    if (score >= 75) {
+        return isHighVol ? "Volatile Breakout" : "Risk-On Trend";
+    }
+    if (score >= 60) {
+        return isHighVol ? "Emotional Rally" : "Selective Bullish";
+    }
+    if (score >= 40) {
+        return isHighVol ? "Choppy / Uncertain" : "Neutral / Range";
+    }
+    if (score >= 25) {
+        return isHighVol ? "Liquidation Risk" : "Defensive / Hedge";
+    }
     return "Capital Protection";
 }
 
 export function getRegimeColor(regime) {
     switch (regime) {
-        case "Conviction Buy": return "text-emerald-400";
-        case "Selective Bullish": return "text-green-300";
-        case "Neutral / Range": return "text-yellow-400";
-        case "Defensive / Hedge": return "text-orange-400";
-        case "Capital Protection": return "text-red-500";
-        default: return "text-white";
+        case "Risk-On Trend":
+        case "Volatile Breakout":
+            return "text-emerald-600 dark:text-emerald-400 font-bold";
+        case "Selective Bullish":
+        case "Emotional Rally":
+            return "text-emerald-500 font-bold";
+        case "Neutral / Range":
+        case "Choppy / Uncertain":
+            return "text-amber-600 dark:text-amber-400 font-bold";
+        case "Defensive / Hedge":
+        case "Liquidation Risk":
+            return "text-orange-600 dark:text-orange-400 font-bold";
+        case "Capital Protection":
+            return "text-red-600 dark:text-red-400 font-bold";
+        default:
+            return "text-text-primary";
     }
 }

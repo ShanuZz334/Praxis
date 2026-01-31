@@ -57,11 +57,11 @@ const Login = () => {
 
   return (
     <div>
-      <h2 className="text-3xl font-semibold text-white mb-2">
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Login
+      <h2 className="text-3xl font-bold text-white mb-2">
+        Login
       </h2>
-      <p className="text-sm text-white/70 mb-6">
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Access your trading dashboard
+      <p className="text-sm text-white/70 mb-8">
+        Access your trading dashboard
       </p>
 
       <form onSubmit={handleLogin} className="space-y-3">
@@ -117,7 +117,7 @@ const Login = () => {
           Don't have an account?{" "}
           <button
             type="button"
-            className="text-indigo-300 underline"
+            className="text-[#1E1BFF] font-bold hover:underline"
             onClick={() => navigate("/signup")}
           >
             Sign Up

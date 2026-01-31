@@ -51,25 +51,25 @@ export function getTechnicalRegime(score) {
     if (score >= 65) return {
         label: "Trend Following",
         desc: "Strong directional conviction",
-        color: "text-emerald-400",
+        color: "text-state-bullish-text",
         bg: "bg-emerald-500"
     };
     if (score <= 35) return {
         label: "Distribution",
         desc: "Selling pressure dominant",
-        color: "text-red-400",
+        color: "text-state-bearish-text",
         bg: "bg-red-500"
     };
     if (score >= 45 && score <= 55) return {
         label: "Chop / Noise",
         desc: "Lack of clear direction",
-        color: "text-slate-400",
+        color: "text-state-neutral-text",
         bg: "bg-slate-500"
     };
     return {
         label: "Mean Reversion",
         desc: "Counter-trend opportunities",
-        color: "text-yellow-400",
+        color: "text-state-neutral-text",
         bg: "bg-yellow-500"
     };
 }

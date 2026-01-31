@@ -37,11 +37,11 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect }) 
     };
 
     return (
-        <div className="flex-1 bg-[#0b1220] rounded-xl border border-white/10 overflow-hidden relative flex flex-col">
+        <div className="flex-1 bg-background-card rounded-xl border border-border-default overflow-hidden relative flex flex-col">
             <div className="overflow-x-auto no-scrollbar">
                 <div className="min-w-[800px]">
                     {/* HEADER */}
-                    <div className="grid grid-cols-[1fr_auto_1fr] bg-[#05080f] text-[10px] font-bold text-white/40 uppercase tracking-widest border-b border-white/10 sticky top-0 z-10 mr-[1px]">
+                    <div className="grid grid-cols-[1fr_auto_1fr] bg-background-surface text-[10px] font-bold text-text-tertiary uppercase tracking-widest border-b border-border-default sticky top-0 z-10 mr-[1px]">
                         <div className="grid grid-cols-[70px_50px_50px_35px_35px] lg:grid-cols-[70px_50px_50px_45px_35px_35px] p-3 text-right gap-2 justify-end items-center">
                             <span>LTP</span>
                             <span>OI</span>
@@ -50,7 +50,7 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect }) 
                             <span className="opacity-50">IV</span>
                             <span className="opacity-50">Delta</span>
                         </div>
-                        <div className="w-16 p-3 text-center bg-white/5 border-x border-white/5 text-white/60">STRIKE</div>
+                        <div className="w-16 p-3 text-center bg-background-card border-x border-border-default text-text-secondary">STRIKE</div>
                         <div className="grid grid-cols-[35px_35px_50px_50px_70px] lg:grid-cols-[35px_35px_45px_50px_50px_70px] p-3 text-left gap-2 justify-start items-center">
                             <span className="opacity-50">Delta</span>
                             <span className="opacity-50">IV</span>
@@ -68,7 +68,7 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect }) 
                             const spotLine = row.strike <= spotPrice && row.strike + 50 > spotPrice;
 
                             return (
-                                <div key={row.strike} className={`group grid grid-cols-[1fr_auto_1fr] text-xs border-b border-white/5 hover:bg-white/[0.02] transition-colors relative`}>
+                                <div key={row.strike} className={`group grid grid-cols-[1fr_auto_1fr] text-xs border-b border-border-default hover:bg-background-surface transition-colors relative`}>
 
                                     {/* SPOT LINE INDICATOR */}
                                     {spotLine && (
@@ -82,18 +82,18 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect }) 
                                         onMouseLeave={handleMouseLeave}
                                         onClick={() => handleClick(row.call, 'call', row.strike)}
                                     >
-                                        <span className="text-green-300 font-mono font-bold">{row.call.ltp}</span>
-                                        <span className="text-white/60 font-mono text-[10px]">{(row.call.oi / 1000).toFixed(0)}k</span>
-                                        <span className={`text-[10px] ${row.call.oiChg >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                        <span className="text-state-bullish-text font-mono font-bold">{row.call.ltp}</span>
+                                        <span className="text-text-secondary font-mono text-[10px]">{(row.call.oi / 1000).toFixed(0)}k</span>
+                                        <span className={`text-[10px] ${row.call.oiChg >= 0 ? 'text-emerald-600' : 'text-red-600'} font-bold`}>
                                             {row.call.oiChg > 0 ? '+' : ''}{row.call.oiChg}%
                                         </span>
-                                        <span className="text-white/20 text-[9px] hidden lg:block">{row.call.vol}</span>
-                                        <span className="text-yellow-500/60 font-mono text-[10px]">{Number(row.iv).toFixed(2)}%</span>
-                                        <span className="text-white/30 text-[10px]">{row.call.delta.toFixed(2)}</span>
+                                        <span className="text-text-tertiary text-[9px] hidden lg:block">{row.call.vol}</span>
+                                        <span className="text-orange-600 font-mono font-bold text-[10px]">{Number(row.iv).toFixed(2)}%</span>
+                                        <span className="text-text-tertiary text-[10px]">{row.call.delta.toFixed(2)}</span>
                                     </div>
 
                                     {/* STRIKE */}
-                                    <div className={`w-16 p-2 flex items-center justify-center font-bold font-mono border-x border-white/5 ${isATM ? 'text-white bg-blue-500/20' : 'text-white/70 bg-white/[0.01]'}`}>
+                                    <div className={`w-16 p-2 flex items-center justify-center font-bold font-mono border-x border-border-default ${isATM ? 'text-text-primary bg-blue-500/20' : 'text-text-secondary bg-background-surface/50'}`}>
                                         {row.strike}
                                     </div>
 
@@ -104,14 +104,14 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect }) 
                                         onMouseLeave={handleMouseLeave}
                                         onClick={() => handleClick(row.put, 'put', row.strike)}
                                     >
-                                        <span className="text-white/30 text-[10px]">{row.put.delta.toFixed(2)}</span>
-                                        <span className="text-yellow-500/60 font-mono text-[10px]">{Number(row.iv).toFixed(2)}%</span>
-                                        <span className="text-white/20 text-[9px] hidden lg:block">{row.put.vol}</span>
-                                        <span className={`text-[10px] ${row.put.oiChg >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                        <span className="text-text-tertiary text-[10px]">{row.put.delta.toFixed(2)}</span>
+                                        <span className="text-orange-600 font-mono font-bold text-[10px]">{Number(row.iv).toFixed(2)}%</span>
+                                        <span className="text-text-tertiary text-[9px] hidden lg:block">{row.put.vol}</span>
+                                        <span className={`text-[10px] ${row.put.oiChg >= 0 ? 'text-emerald-600' : 'text-red-600'} font-bold`}>
                                             {row.put.oiChg > 0 ? '+' : ''}{row.put.oiChg}%
                                         </span>
-                                        <span className="text-white/60 font-mono text-[10px]">{(row.put.oi / 1000).toFixed(0)}k</span>
-                                        <span className="text-red-300 font-mono font-bold">{row.put.ltp}</span>
+                                        <span className="text-text-secondary font-mono text-[10px]">{(row.put.oi / 1000).toFixed(0)}k</span>
+                                        <span className="text-state-bearish-text font-mono font-bold">{row.put.ltp}</span>
                                     </div>
                                 </div>
                             );

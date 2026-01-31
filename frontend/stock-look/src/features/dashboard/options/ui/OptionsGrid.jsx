@@ -63,12 +63,15 @@ export default function OptionsGrid({
                 return (
                     <div key={section.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Section Header */}
-                        <div className="mb-4 flex items-center gap-3">
-                            <div className="h-px flex-1 bg-white/10" />
-                            <div className="text-sm font-medium text-white/70">
-                                {section.label}
+                        <div className="mb-4 flex items-center gap-4">
+                            <div className="h-px flex-1 bg-border-default" />
+                            <div className="flex items-center gap-3">
+                                <span className="text-sm font-medium text-text-secondary uppercase tracking-widest">{section.label}</span>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded border border-border-default bg-background-surface text-text-tertiary font-mono shadow-sm">
+                                    {sectionCards.length}
+                                </span>
                             </div>
-                            <div className="h-px flex-1 bg-white/10" />
+                            <div className="h-px flex-1 bg-border-default" />
                         </div>
 
                         {/* Cards */}

@@ -90,14 +90,14 @@ export default function OptionsPage() {
                     matchCount: filteredCards.length
                 }}
                 infoContent={
-                    <div className="w-80 p-4 bg-[#0b1220] border border-white/10 rounded-xl shadow-2xl">
-                        <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-2">
-                            <span className="text-xs font-bold text-white uppercase tracking-wider">Options Module</span>
+                    <div className="w-80">
+                        <div className="flex items-center gap-2 mb-2 border-b border-border-default pb-2">
+                            <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Options Module</span>
                         </div>
-                        <p className="text-xs text-white/70 leading-relaxed">
+                        <p className="text-xs text-text-secondary leading-relaxed">
                             The Options module analyzes dealer gamma exposure (GEX), open interest flow, and volatility skews to identifying turning points.
                         </p>
-                        <div className="mt-3 pt-2 border-t border-white/5 flex items-center gap-1.5 text-[10px] text-blue-400 font-bold uppercase tracking-wide">
+                        <div className="mt-3 pt-2 border-t border-border-default flex items-center gap-1.5 text-[10px] text-blue-400 font-bold uppercase tracking-wide">
                             <span>Click to read full manual</span>
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         </div>
