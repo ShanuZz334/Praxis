@@ -82,7 +82,7 @@ export default function FundamentalInterpretationDesk({ card }) {
         ">
             <div className="
                 relative overflow-hidden
-                bg-[var(--bg-tooltip)]
+                bg-background-tooltip
                 border border-border-default
                 rounded-2xl
                 p-5

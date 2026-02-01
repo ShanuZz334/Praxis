@@ -12,10 +12,10 @@ import { typography } from "@/shared/global/styles/typography";
 -------------------------------------------------------------------------- */
 
 const STYLES = {
-    BORDER_OUTER: "border-border-default",
-    BORDER_INNER: "border-border-subtle",
-    DIVIDE: "divide-border-subtle",
-    BORDER_DIVIDER: "border-border-subtle"
+    BORDER_OUTER: "border-[var(--border-default)]",
+    BORDER_INNER: "border-[var(--border-subtle)]",
+    DIVIDE: "divide-[var(--border-subtle)]",
+    BORDER_DIVIDER: "border-[var(--border-subtle)]"
 };
 
 export default function GlobalHeader({
@@ -110,10 +110,10 @@ export default function GlobalHeader({
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* MAIN BLOCK */}
-            <div className={`relative rounded-2xl border ${STYLES.BORDER_OUTER} shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden bg-background-card`}>
+            <div className={`relative rounded-2xl border ${STYLES.BORDER_OUTER} shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden bg-transparent`}>
 
                 {/* TOP ROW: GAUGE | REGIME | INTEGRITY */}
-                <div className={`grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x ${STYLES.DIVIDE} border-b ${STYLES.BORDER_DIVIDER} bg-background-surface min-h-[220px]`}>
+                <div className={`grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x ${STYLES.DIVIDE} bg-transparent min-h-[220px]`}>
 
                     {/* A. GAUGE */}
                     <div className="p-4 md:p-6 group relative flex flex-col md:block">
@@ -349,7 +349,7 @@ function ImpactList({ title, items, type }) {
 
 function HeaderControls({ controls }) {
     return (
-        <div className={`flex flex-col md:flex-row justify-between items-center border-t ${STYLES.BORDER_DIVIDER} pt-4 p-4 text-text-primary bg-background-card`}>
+        <div className={`flex flex-col md:flex-row justify-between items-center border-t ${STYLES.BORDER_DIVIDER} pt-4 p-4 text-text-primary bg-transparent`}>
             {/* LEFT: Search */}
             <div className="relative group w-full md:w-64 transition-all focus-within:md:w-80 mb-4 md:mb-0">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-tertiary">

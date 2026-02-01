@@ -52,9 +52,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
                 ${collapsed && !isMobileDrawer ? "justify-center" : "gap-4"}
                 px-4 py-3 rounded-xl
                 transition-all duration-300
-                hover:bg-background-surface
                 relative
-                ${isActive ? "bg-accent-glow/10" : ""}
               `}
             >
               {/* ICON */}

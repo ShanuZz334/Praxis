@@ -1,15 +1,11 @@
 /* =========================================================
    STOCKY – GLOBAL STYLESHEET (PREMIUM)
-   Purpose: App-wide theming, resets, and core UI behavior
-   Quality: Institutional / Production-grade
 ========================================================= */
 
 /* ------------------------------
    FONTS
 -------------------------------- */
-/* Inter for UI/Data (Clean, legible, modern) */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-/* Rancho for Brand Logo */
 @import url("https://fonts.googleapis.com/css2?family=Rancho&display=swap");
 
 /* ------------------------------
@@ -18,38 +14,51 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* ------------------------------
-   THEME VARIABLES
--------------------------------- */
-:root {
-  /* Typography */
-  --font-primary: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-brand: "Rancho", cursive;
+@theme {
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-background-surface: var(--bg-surface);
+  --color-background-subtle: var(--bg-subtle);
+  --color-background-card: var(--bg-card);
+  --color-background-tooltip: var(--bg-tooltip);
+}
 
-  /* =========================================
-     THEME TOKENS (DARK MODE DEFAULT)
-     Pixel-perfect match to previous hardcoded values
-     ========================================= */
+/* =========================================================
+   DARK MODE DEFAULT (BASE)
+========================================================= */
+:root,
+.dark,
+[data-theme="dark"],
+html.dark,
+html[data-theme="dark"] {
+  --font-primary: "Inter", system-ui, sans-serif;
+  --font-brand: "Rancho", cursive;
 
   /* Backgrounds */
   --bg-app: #02050e;
   --bg-card: #0b1220;
+  /* Match Tooltip */
+  --bg-card-primary: #0b1220;
+  /* Match Tooltip */
+  --bg-card-secondary: #0b1220;
+  /* Match Tooltip (Flattened) */
   --bg-surface: rgba(255, 255, 255, 0.02);
-  --bg-surface: rgba(255, 255, 255, 0.02);
-  --bg-elevated: #101a33;
+  --bg-elevated: #0b1220;
+  /* Match Tooltip (Flattened) */
   --bg-tooltip: #0b1220;
-  /* Solid Dark Blue */
 
-  /* Borders */
-  --border-default: rgba(255, 255, 255, 0.05);
-  --border-subtle: rgba(255, 255, 255, 0.02);
+  /* Borders — 1px, ULTRA FADED (Matching Header) */
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-subtle-translucent: rgba(255, 255, 255, 0.08);
+  --border-subtle-faint: rgba(255, 255, 255, 0.03);
 
   /* Text */
   --text-primary: rgba(255, 255, 255, 0.9);
   --text-secondary: rgba(255, 255, 255, 0.6);
   --text-tertiary: rgba(255, 255, 255, 0.4);
 
-  /* States (Semantic) */
+  /* States */
   --state-bullish-main: #10b981;
   --state-bullish-surface: rgba(16, 185, 129, 0.1);
   --state-bullish-text: #34d399;
@@ -62,120 +71,101 @@
   --state-neutral-surface: rgba(100, 116, 139, 0.1);
   --state-neutral-text: #e2e8f0;
 
-  /* Accents */
+  /* Accent */
   --accent-primary: #3b82f6;
   --accent-glow: rgba(59, 130, 246, 0.4);
 
-  /* =========================================
-     NEW CENTRALIZED TOKENS (Audit Result)
-     ========================================= */
-  /* Specific Card Depths (Dark Mode Defaults) */
-  --bg-card-primary: #0b1220;
-  /* Deep Navy */
-  --bg-card-secondary: #101a33;
-  /* Elevated Blue */
-  --bg-glass: rgba(15, 23, 42, 0.6);
-  /* Slate-900 glass */
+  /* Shadows */
+  /* New Strict Tokens */
+  --border-hover: rgba(255, 255, 255, 0.10);
+  --border-active: rgba(59, 130, 246, 0.5);
 
-  /* Action Colors */
-  --action-primary: #1E1BFF;
-  /* Stocky Vibrant Blue */
-  --action-primary-hover: #1720cc;
+  --text-brand: #60a5fa;
 
-  /* Borders */
-  --border-subtle-translucent: rgba(255, 255, 255, 0.1);
-  --border-subtle-faint: rgba(255, 255, 255, 0.05);
+  --state-warning-main: #f59e0b;
+  --state-warning-surface: rgba(245, 158, 11, 0.1);
+  --state-warning-text: #fbbf24;
 
-  /* Warning Modal Specifics */
-  --bg-modal-warning: #0b1220;
+  --reliability-high: #10b981;
+  --reliability-med: #facc15;
+  --reliability-low: #94a3b8;
 
-  /* 3D Shadows (Manual Aesthetics) */
-  /* Matched to Tailwind shadow-2xl but with high opacity for Dark Mode visibility */
-  --shadow-card-3d-hover: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+  --shadow-card-3d-hover: 0 18px 40px rgba(0, 0, 0, 0.65);
 }
 
-/* =========================================
-   LIGHT MODE OVERRIDES
-   Institutional, Calm, Professional
-   ========================================= */
-[data-theme='light'] {
-  /* Backgrounds */
+/* =========================================================
+   LIGHT MODE (LOCKED – DO NOT CHANGE)
+========================================================= */
+[data-theme="light"],
+html[data-theme="light"],
+.light {
   --bg-app: #F5F7FA;
-  /* Cool light grey, not pure white */
-  --bg-card: #FFFFFF;
-  /* Pure white cards */
-  --bg-surface: #EEF2F7;
-  /* Slight contrast for inputs/widgets */
-  --bg-elevated: #FFFFFF;
-  --bg-tooltip: #f1f5f9;
-  /* Solid Grey */
-  /* Popovers/Dropdowns */
+  --bg-card: transparent;
+  --bg-card-primary: transparent;
+  --bg-card-secondary: transparent;
+  --bg-surface: transparent;
+  --bg-elevated: transparent;
+  --bg-tooltip: rgba(255, 255, 255, 0.9);
+  /* Faded White */
 
-  /* NEW TOKENS OVERRIDES */
-  --bg-card-primary: #FFFFFF;
-  /* White */
-  --bg-card-secondary: #F8FAFC;
-  /* Slate-50 */
-  --bg-glass: rgba(255, 255, 255, 0.7);
+  /* Darkened for visibility (PITCH BLACK per user request) */
+  --border-default: #000000;
+  --border-subtle: #000000;
+  --border-subtle-translucent: rgba(0, 0, 0, 0.2);
+  --border-subtle-faint: rgba(0, 0, 0, 0.1);
 
-  --action-primary: #1E1BFF;
-  /* Keep Stocky Blue */
-  --action-primary-hover: #1720cc;
+  /* New Strict Tokens (Light Mode Overrides) */
+  --border-hover: #334155;
+  /* slate-300 */
+  --border-active: #3B82F6;
+  /* blue-500 */
 
-  --border-subtle-translucent: #E2E8F0;
-  /* Slate-200 */
-  --border-subtle-faint: #F1F5F9;
-  /* Slate-100 */
-
-  --bg-modal-warning: #FFFFFF;
-  /* Pure White for Light Mode */
-
-  /* 3D Shadows Override */
-  --shadow-card-3d-hover: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  /* Standard Tailwind 2xl */
-
-  /* Borders */
-  --border-default: #E2E8F0;
-  /* Slate-200 */
-  --border-subtle: #F1F5F9;
-  /* Slate-100 */
-
-  /* Text */
   --text-primary: #0F172A;
-  /* Slate-900 (Deep, not black) */
   --text-secondary: #475569;
-  /* Slate-600 */
   --text-tertiary: #64748B;
-  /* Slate-500 */
+  --text-brand: #2563EB;
+  /* blue-600 */
 
-  /* States (Adjusted for Light Mode visibility) */
   --state-bullish-main: #16A34A;
-  /* Emerald-600 */
   --state-bullish-surface: rgba(22, 163, 74, 0.1);
   --state-bullish-text: #059669;
-  /* Emerald-600 (Vibrant) */
 
   --state-bearish-main: #DC2626;
-  /* Red-600 */
   --state-bearish-surface: rgba(220, 38, 38, 0.1);
   --state-bearish-text: #dc2626;
-  /* Red-600 (Vibrant) */
 
   --state-neutral-main: #64748B;
-  /* Slate-500 */
   --state-neutral-surface: #E2E8F0;
-  /* Slate-200 */
   --state-neutral-text: #334155;
-  /* Slate-700 */
 
-  /* Accents */
+  --state-warning-main: #D97706;
+  /* amber-600 */
+  --state-warning-surface: #FEF3C7;
+  /* amber-100 */
+  --state-warning-text: #B45309;
+  /* amber-700 */
+
+  --reliability-high: #059669;
+  /* emerald-600 */
+  --reliability-med: #D97706;
+  /* amber-600 */
+  --reliability-low: #64748B;
+  /* slate-500 */
+
   --accent-primary: #2563EB;
-  /* Blue-600 (Slightly darker than dark mode blue) */
   --accent-glow: rgba(37, 99, 235, 0.2);
+
+  --scrollbar-thumb: #94a3b8;
+  /* slate-400 */
+  --scrollbar-thumb-hover: #64748b;
+  /* slate-500 */
+  --shadow-card-3d-hover: 0 25px 50px rgba(0, 0, 0, 0.25);
 }
 
 /* ------------------------------
-   RESET & BASE
+   BASE RESET
 -------------------------------- */
 *,
 *::before,
@@ -186,111 +176,27 @@
 html,
 body {
   margin: 0;
-  padding: 0;
-  width: 100%;
-  min-height: 100%;
   background-color: var(--bg-app);
   color: var(--text-primary);
   font-family: var(--font-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
-}
-
-/* Selection Highlight */
-::selection {
-  background: rgba(59, 130, 246, 0.3);
-  color: #ffffff;
 }
 
 /* ------------------------------
-   CUSTOM SCROLLBARS (Premium)
+   SCROLLBARS (Premium)
 -------------------------------- */
-/* Webkit (Chrome, Edge, Safari) */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--scrollbar-thumb);
   border-radius: 99px;
-  transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-/* Firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-}
-
-/* Utility to hide scrollbar but keep functionality */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* ------------------------------
-   UTILITY CLASSES (Stocky Specific)
--------------------------------- */
-
-/* Navbar Icon Interaction */
-.navbar-icon {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.navbar-icon:hover {
-  transform: translateY(-2px);
-  color: white;
-  filter: drop-shadow(0 0 8px var(--accent-glow));
-}
-
-@keyframes sidebar-pulse {
-
-  0%,
-  100% {
-    transform: scale(1.1) rotate(-8deg);
-  }
-
-  50% {
-    transform: scale(1.25) rotate(-12deg);
-  }
-}
-
-.hover-icon-pulse:hover {
-  animation: sidebar-pulse 2s ease-in-out infinite !important;
-}
-
-.recharts-tooltip-wrapper {
-  z-index: 9999 !important;
-}
-
-/* SPECIAL UTILITIES (Fixes connection issues) */
-.border-premium-header {
-  border-color: rgba(255, 255, 255, 0.02);
-}
-
-html.light .border-premium-header {
-  border-color: #E2E8F0 !important;
-}
-
-.divide-premium-header>*+* {
-  border-color: rgba(255, 255, 255, 0.02);
-}
-
-html.light .divide-premium-header>*+* {
-  border-color: #E2E8F0 !important;
+  background: var(--scrollbar-thumb-hover);
 }

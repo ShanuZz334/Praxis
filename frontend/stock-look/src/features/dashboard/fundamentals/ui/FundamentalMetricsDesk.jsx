@@ -117,7 +117,7 @@ export default function FundamentalMetricsDesk({ card }) {
         ">
             {/* GLASS CONTAINER */}
             <div className="
-                bg-[var(--bg-tooltip)]
+                bg-background-tooltip
                 border border-border-default
                 rounded-2xl
                 p-6
@@ -127,7 +127,7 @@ export default function FundamentalMetricsDesk({ card }) {
                 {/* HEADER LABEL */}
                 <div className="flex items-center gap-2 border-b border-border-subtle pb-3 mb-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.4)]" />
-                    <span className="text-[10px] font-black text-slate-600 dark:text-accent-primary uppercase tracking-[0.2em]">Institutional Trade Directive</span>
+                    <span className="text-[10px] font-black text-accent-primary uppercase tracking-[0.2em]">Institutional Trade Directive</span>
                 </div>
 
                 {/* 1. PRIMARY ACTION SIGNAL BADGE */}

@@ -8,12 +8,12 @@ export default function PsychologyTracker({ psychology }) {
     const total = Object.values(heatmap).reduce((a, b) => a + b, 0);
 
     return (
-        <div className="relative bg-background-card border border-border-default rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="relative bg-background-card border border-border-default rounded-2xl p-6 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-white/3 to-transparent" />
             <div className="relative z-10">
-                <div className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest mb-4 border-b border-border-default pb-2 flex justify-between items-center">
+                <div className="text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-4 border-b border-border-default pb-2 flex justify-between items-center">
                     <span>Emotional Risk Monitor</span>
-                    <span className="text-[10px] text-emerald-400 font-bold">{psychology.ruleAdherence}% Adherence</span>
+                    <span className="text-[10px] text-emerald-500 font-bold">{psychology.ruleAdherence}% Adherence</span>
                 </div>
 
                 <div className="space-y-4">
@@ -24,7 +24,7 @@ export default function PsychologyTracker({ psychology }) {
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-border-default text-center">
-                    <div className="text-[10px] text-text-tertiary italic">"Good process requires a calm state."</div>
+                    <div className="text-[10px] text-text-secondary italic uppercase tracking-widest font-medium opacity-80">"Good process requires a calm state."</div>
                 </div>
             </div>
         </div>
@@ -37,7 +37,7 @@ function EmotionBar({ label, value, total, color }) {
     return (
         <div>
             <div className="flex justify-between items-end mb-1">
-                <span className="text-[10px] font-bold text-text-tertiary uppercase">{label}</span>
+                <span className="text-[10px] font-bold text-text-secondary uppercase">{label}</span>
                 <span className="text-[10px] font-mono font-bold text-text-primary">{value}</span>
             </div>
             <div className="h-2 w-full bg-background-surface/50 border border-border-subtle rounded-full overflow-hidden">

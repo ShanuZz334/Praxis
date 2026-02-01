@@ -43,9 +43,9 @@ export default function FundamentalHistoryChart({ trend = 'neutral', baseValue =
 
     // Color Logic
     const safeTrend = (trend || '').toLowerCase();
-    let color = '#d97706'; // amber-600 (Vibrant for light)
-    if (safeTrend.includes('bull') || safeTrend.includes('top') || safeTrend.includes('high')) color = '#059669'; // emerald-600
-    if (safeTrend.includes('bear') || safeTrend.includes('bottom') || safeTrend.includes('low')) color = '#dc2626'; // red-600
+    let color = 'var(--state-warning-main)'; // default/neutralish or warning? Old was amber.
+    if (safeTrend.includes('bull') || safeTrend.includes('top') || safeTrend.includes('high')) color = 'var(--state-bullish-main)';
+    if (safeTrend.includes('bear') || safeTrend.includes('bottom') || safeTrend.includes('low')) color = 'var(--state-bearish-main)';
 
     return (
         <div className="w-full h-full min-h-[300px] flex flex-col">
@@ -60,19 +60,19 @@ export default function FundamentalHistoryChart({ trend = 'neutral', baseValue =
             <div className="flex-1 w-full relative">
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" vertical={false} />
                         <XAxis
                             dataKey="date"
-                            stroke="#94a3b8"
-                            tick={{ fontSize: 10, fill: '#475569', fontWeight: '500' }}
+                            stroke="var(--text-tertiary)"
+                            tick={{ fontSize: 10, fill: 'var(--text-secondary)', fontWeight: '500' }}
                             axisLine={false}
                             tickLine={false}
                             dy={10}
                             interval={4}
                         />
                         <YAxis
-                            stroke="#94a3b8"
-                            tick={{ fontSize: 10, fill: '#475569', fontWeight: '500' }}
+                            stroke="var(--text-tertiary)"
+                            tick={{ fontSize: 10, fill: 'var(--text-secondary)', fontWeight: '500' }}
                             axisLine={false}
                             tickLine={false}
                             domain={['auto', 'auto']}
@@ -89,7 +89,7 @@ export default function FundamentalHistoryChart({ trend = 'neutral', baseValue =
                             }}
                             itemStyle={{ color: color, fontSize: '12px', fontWeight: 'bold', textTransform: 'capitalize' }}
                             labelStyle={{ color: 'var(--text-secondary)', marginBottom: '4px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}
-                            cursor={{ stroke: '#88888840', strokeWidth: 1 }}
+                            cursor={{ stroke: 'var(--text-tertiary)', strokeWidth: 1, strokeOpacity: 0.5 }}
                             formatter={(value) => [`${value}`, 'Value']}
                         />
                         <Line

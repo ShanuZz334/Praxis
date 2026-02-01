@@ -25,21 +25,27 @@ const Card = ({
         borderless
           ? "bg-transparent shadow-none"
           : `
-            bg-background-card
-            border border-border-default dark:border-border-subtle-faint
-            shadow-md
+            /* ---------- THEME DEPLOYMENT (FIXED) ---------- */
+            bg-[var(--bg-card-primary)]
+            border-2 dark:border border-[var(--border-subtle)]
+            shadow-sm dark:shadow-none
             hover:border-border-hover dark:hover:border-border-subtle-translucent
-            hover:shadow-2xl
+            hover:shadow-xl dark:hover:shadow-card-3d-hover
             hover:-translate-y-1
-            duration-300
           `,
         spanMap[span],
         className
       )}
     >
-      {/* subtle inner glow (Manual-like sheen) */}
+      {/* subtle inner sheen — removed for pure color matching */}
       {!borderless && (
-        <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-background-surface to-transparent opacity-50" />
+        <div
+          className={clsx(
+            "pointer-events-none absolute inset-0 rounded-2xl",
+            "bg-gradient-to-br from-background-surface to-transparent",
+            "opacity-0"
+          )}
+        />
       )}
 
       <div className="relative z-10 flex-1 min-h-0 flex flex-col">

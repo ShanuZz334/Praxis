@@ -106,8 +106,8 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                 }
             } else if (date.isBefore(dayjs(), 'day')) {
                 content = "×";
-                textColor = "text-text-tertiary";
-                opacity = "opacity-60";
+                textColor = "text-text-secondary";
+                opacity = "opacity-80";
             }
 
             if (isFuture) {
@@ -144,13 +144,13 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                                 exit={{ opacity: 0, scale: 0.95 }}
                                 className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[101] pointer-events-none"
                             >
-                                <div className="bg-white border border-border-default px-4 py-2.5 rounded-xl shadow-[0_15px_35px_rgba(0,0,0,0.15)] min-w-[110px]">
+                                <div className="bg-background-tooltip border border-border-default px-4 py-2.5 rounded-xl shadow-[0_15px_35px_rgba(0,0,0,0.35)] min-w-[120px]">
                                     <div className="text-[10px] font-black text-accent-primary mb-1.5 uppercase tracking-[0.2em] border-b border-border-subtle pb-1.5">{date.format("D MMMM")}</div>
                                     <div className="space-y-1.5">
-                                        <div className={`text-sm font-black tracking-tight ${data.pnl >= 0 ? 'text-state-bullish-text' : 'text-state-bearish-text'}`}>
+                                        <div className={`text-sm font-black tracking-tight ${data.pnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                                             {data.pnl >= 0 ? '+' : ''}₹{data.pnl.toLocaleString()}
                                         </div>
-                                        <div className="text-[9px] text-text-tertiary font-black uppercase tracking-widest opacity-80">
+                                        <div className="text-[10px] text-text-secondary font-black uppercase tracking-widest">
                                             {data.win}W / {data.loss}L • {data.rMult.toFixed(1)}R
                                         </div>
                                     </div>
@@ -167,7 +167,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                 <span className="text-[11px] font-black text-text-primary uppercase tracking-[0.25em] text-center border-b border-border-subtle/30 pb-2">{firstDayOfMonth.format("MMMM")}</span>
                 <div className="grid grid-cols-7 gap-[4px]">
                     {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(d => (
-                        <div key={d} className="w-5 h-5 flex items-center justify-center text-[7px] font-black text-text-tertiary opacity-60 tracking-tighter">{d}</div>
+                        <div key={d} className="w-5 h-5 flex items-center justify-center text-[7px] font-black text-text-secondary tracking-tighter">{d}</div>
                     ))}
                     {days}
                 </div>
@@ -187,7 +187,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
 
     return (
         <div
-            className="fixed z-50 flex items-center justify-center p-4 overflow-hidden"
+            className="fixed z-50 flex items-center justify-center pt-0 px-4 pb-4 overflow-hidden"
             style={{
                 top: "var(--navbar-height)",
                 left: "var(--sidebar-width)",
@@ -203,7 +203,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                 initial={{ opacity: 0, scale: 0.99, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.99, y: -10 }}
-                className="bg-background-card/98 backdrop-blur-3xl border border-border-default rounded-2xl w-full max-w-[1600px] h-[90vh] md:h-[85vh] flex flex-col lg:flex-row overflow-hidden shadow-2xl"
+                className="bg-background-card/98 backdrop-blur-3xl border-x border-b border-border-default rounded-b-2xl w-full max-w-[1600px] h-full flex flex-col lg:flex-row overflow-hidden shadow-2xl"
             >
                 {/* LEFT (TOP on Mobile): CALENDAR WORKSPACE */}
                 <div className="w-full h-1/2 lg:h-auto lg:flex-1 bg-background-subtle p-6 lg:p-12 flex flex-col overflow-y-auto no-scrollbar order-1 border-r border-border-subtle">
@@ -214,7 +214,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                             </div>
                             <div>
                                 <h2 className="text-lg font-bold text-text-primary tracking-tight uppercase">Performance Map</h2>
-                                <p className="text-[9px] text-text-tertiary font-black tracking-[0.3em] uppercase opacity-50">{viewYear} Annual Discipline Matrix</p>
+                                <p className="text-[9px] text-text-secondary font-black tracking-[0.3em] uppercase opacity-80">{viewYear} Annual Discipline Matrix</p>
                             </div>
                         </div>
 
@@ -238,7 +238,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                 <div className="w-full h-1/2 lg:h-auto lg:w-[460px] bg-background-card flex flex-col order-2">
                     <div className="px-8 py-10 border-b border-border-subtle flex items-center justify-between">
                         <div>
-                            <div className="text-[10px] font-black text-accent-primary uppercase tracking-[0.3em] mb-1.5 opacity-60">{dayjs(selectedDate).format("dddd")} log</div>
+                            <div className="text-[10px] font-black text-accent-primary uppercase tracking-[0.3em] mb-1.5">{dayjs(selectedDate).format("dddd")} log</div>
                             <div className="text-3xl font-black text-text-primary tracking-tighter">{dayjs(selectedDate).format("DD MMM, YYYY")}</div>
                         </div>
                         <button onClick={onClose} className="p-3 rounded-xl bg-background-elevated text-text-tertiary hover:text-accent-primary hover:bg-background-subtle transition-all border border-border-default active:scale-95 shadow-sm">
@@ -258,10 +258,10 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                         {/* Recent History */}
                         <section>
                             <div className="flex items-center justify-between mb-5 border-b border-border-subtle pb-2">
-                                <div className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest flex items-center gap-2">
-                                    <Signal size={12} className="text-text-tertiary opacity-40" /> Execution
+                                <div className="text-[10px] font-bold text-text-secondary uppercase tracking-widest flex items-center gap-2">
+                                    <Signal size={12} className="text-text-secondary opacity-60" /> Execution
                                 </div>
-                                <span className="text-[9px] font-mono text-text-tertiary opacity-30 uppercase">Real-time</span>
+                                <span className="text-[9px] font-mono text-text-secondary opacity-50 uppercase">Real-time</span>
                             </div>
 
                             <div className="space-y-2">
@@ -270,21 +270,21 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                                         <div className="flex items-center gap-3">
                                             <div className="flex flex-col">
                                                 <span className="text-xs font-bold text-text-primary">{trade.instrument}</span>
-                                                <span className="text-[9px] text-text-tertiary font-mono uppercase opacity-70">{trade.strategy}</span>
+                                                <span className="text-[9px] text-text-secondary font-mono uppercase opacity-90">{trade.strategy}</span>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <div className={`text-xs font-mono font-bold ${trade.pnl >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                            <div className={`text-xs font-mono font-bold ${trade.pnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                                                 {trade.pnl >= 0 ? '+' : ''}{trade.pnl}
                                             </div>
-                                            <div className="text-[10px] text-text-tertiary font-mono opacity-60">{trade.rMultiple}R</div>
+                                            <div className="text-[10px] text-text-secondary font-mono opacity-80">{trade.rMultiple}R</div>
                                         </div>
                                     </div>
                                 )) : (
                                     <div className="py-12 border border-dashed border-border-subtle rounded-xl text-center flex flex-col items-center justify-center gap-2 bg-background-elevated/20">
-                                        <Minus size={18} className="text-text-tertiary opacity-20" />
-                                        <p className="text-[10px] text-text-tertiary uppercase font-bold tracking-[0.2em] opacity-40">Terminal Idle</p>
-                                        <p className="text-[8px] text-text-tertiary font-medium px-10 leading-relaxed uppercase tracking-widest opacity-20">No market exposure identified during this terminal session.</p>
+                                        <Minus size={18} className="text-text-secondary opacity-40" />
+                                        <p className="text-[10px] text-text-secondary uppercase font-bold tracking-[0.2em] opacity-80">Terminal Idle</p>
+                                        <p className="text-[8px] text-text-secondary font-medium px-10 leading-relaxed uppercase tracking-widest opacity-60">No market exposure identified during this terminal session.</p>
                                     </div>
                                 )}
                             </div>
@@ -293,8 +293,8 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                         {/* Analysis Section */}
                         <section className="flex flex-col gap-4">
                             <div className="flex items-center justify-between border-b border-border-subtle pb-2">
-                                <div className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest flex items-center gap-2">
-                                    <Edit3 size={12} className="text-text-tertiary opacity-40" /> Commentary
+                                <div className="text-[10px] font-bold text-text-secondary uppercase tracking-widest flex items-center gap-2">
+                                    <Edit3 size={12} className="text-text-secondary opacity-60" /> Commentary
                                 </div>
                                 {showEditor && (
                                     <div className="flex items-center gap-2">
@@ -351,7 +351,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                                     <div className="flex justify-end mt-4">
                                         <button
                                             onClick={handleSaveNote}
-                                            className="px-6 py-2.5 bg-accent-primary hover:bg-accent-primary/90 text-[9px] font-black text-white uppercase tracking-[0.2em] rounded-lg transition-all shadow-lg active:scale-95 flex items-center gap-3"
+                                            className="px-5 py-2 bg-[#3b82f6] hover:bg-[#2563eb] text-[10px] font-black text-white uppercase tracking-[0.2em] rounded-lg transition-all shadow-lg active:scale-95 flex items-center gap-2.5"
                                         >
                                             <Save size={12} /> Commit Record
                                         </button>
@@ -378,10 +378,10 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
 function LegendItem({ label, color, symbol, border = "" }) {
     return (
         <div className="flex items-center gap-2.5">
-            <div className={`w-3 h-3 rounded-md ${color} ${border} flex items-center justify-center text-[8px] font-black text-text-primary shadow-sm border`}>
+            <div className={`w-3 h-3 rounded-md ${color} ${border} flex items-center justify-center text-[8px] font-black text-white shadow-sm border`}>
                 {symbol}
             </div>
-            <span className="text-[10px] font-black text-text-tertiary uppercase tracking-widest opacity-80">{label}</span>
+            <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">{label}</span>
         </div>
     );
 }
@@ -389,9 +389,9 @@ function LegendItem({ label, color, symbol, border = "" }) {
 function MetricBox({ label, value, color = "text-text-primary", sub }) {
     return (
         <div className="p-4 bg-background-elevated border border-border-subtle rounded-xl flex flex-col justify-center transition-colors">
-            <div className="text-[8px] font-bold text-text-tertiary uppercase tracking-widest mb-1 opacity-60">{label}</div>
+            <div className="text-[8px] font-bold text-text-secondary uppercase tracking-widest mb-1">{label}</div>
             <div className={`text-sm font-mono font-black ${color}`}>{value}</div>
-            {sub && <div className="text-[8px] text-text-tertiary font-bold uppercase mt-1 opacity-40">{sub}</div>}
+            {sub && <div className="text-[8px] text-text-secondary font-bold uppercase mt-1 opacity-60">{sub}</div>}
         </div>
     );
 }

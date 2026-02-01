@@ -48,7 +48,7 @@ export default function GlobalStructureModal({ open, onClose, card }) {
                     className="
             flex-1 min-w-0 max-w-3xl pointer-events-auto
             flex flex-col
-            bg-[var(--bg-tooltip)]
+            bg-background-tooltip
             border border-border-default
             rounded-2xl
             shadow-xl

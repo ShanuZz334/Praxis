@@ -34,15 +34,15 @@ export default function TradeLogTable({ trades, onSelectTrade }) {
     };
 
     return (
-        <div className="relative w-full h-full bg-background-card border border-border-default rounded-2xl overflow-hidden flex flex-col shadow-[0_8px_24px_rgba(0,0,0,0.45)] min-h-[500px]">
+        <div className="relative w-full h-full bg-background-card border border-border-default rounded-2xl overflow-hidden flex flex-col min-h-[500px]">
             <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-white/3 to-transparent" />
             <div className="relative z-10 flex flex-col h-full">
 
                 {/* TOOLBAR */}
                 <div className="px-5 py-4 border-b border-border-default flex items-center justify-between bg-background-surface">
                     <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-text-secondary uppercase tracking-widest">Execution Log</span>
-                        <span className="px-1.5 py-0.5 rounded bg-background-floor text-[10px] font-mono text-text-tertiary">{filteredTrades.length}</span>
+                        <span className="text-xs font-bold text-text-primary uppercase tracking-widest">Execution Log</span>
+                        <span className="px-1.5 py-0.5 rounded bg-background-floor text-[10px] font-mono text-text-secondary">{filteredTrades.length}</span>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -72,7 +72,7 @@ export default function TradeLogTable({ trades, onSelectTrade }) {
                                 <HeaderCell label="Risk" sortKey="riskPct" currentSort={sortConfig} onSort={handleSort} className="hidden md:table-cell" />
                                 <HeaderCell label="R-Mult" sortKey="rMultiple" currentSort={sortConfig} onSort={handleSort} className="hidden md:table-cell" />
                                 <HeaderCell label="Outcome" sortKey="outcome" currentSort={sortConfig} onSort={handleSort} />
-                                <th className="px-5 py-3 text-[9px] font-bold text-text-tertiary uppercase tracking-wider border-b border-border-default whitespace-nowrap hidden md:table-cell">Compliance</th>
+                                <th className="px-5 py-3 text-[9px] font-bold text-text-secondary uppercase tracking-wider border-b border-border-default whitespace-nowrap hidden md:table-cell">Compliance</th>
                                 <th className="p-3 w-10 border-b border-border-default"></th>
                             </tr>
                         </thead>
@@ -90,6 +90,18 @@ export default function TradeLogTable({ trades, onSelectTrade }) {
                         </div>
                     )}
                 </div>
+
+                {/* MOBILE CARD VIEW */}
+                <div className="md:hidden flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                    {filteredTrades.map((trade) => (
+                        <TradeMobileCard key={trade.id} trade={trade} onClick={() => onSelectTrade(trade)} />
+                    ))}
+                    {filteredTrades.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-10 text-text-tertiary">
+                            <span className="text-xs font-medium">No records found</span>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -102,11 +114,11 @@ function HeaderCell({ label, sortKey, currentSort, onSort, className = "" }) {
     return (
         <th
             onClick={() => onSort(sortKey)}
-            className={`px-5 py-3 text-[9px] font-bold text-text-tertiary uppercase tracking-wider border-b border-border-default whitespace-nowrap cursor-pointer hover:text-text-secondary transition-colors select-none group ${className}`}
+            className={`px-5 py-3 text-[9px] font-bold text-text-secondary uppercase tracking-wider border-b border-border-default whitespace-nowrap cursor-pointer hover:text-text-primary transition-colors select-none group ${className}`}
         >
             <div className="flex items-center gap-1.5">
                 {label}
-                <span className={`text-text-tertiary ${isActive ? 'text-blue-500' : 'opacity-0 group-hover:opacity-100 transition-opacity'}`}>
+                <span className={`text-text-secondary ${isActive ? 'text-blue-500' : 'opacity-0 group-hover:opacity-100 transition-opacity'}`}>
                     {isActive && currentSort.direction === 'asc' && <ArrowUp size={10} />}
                     {isActive && currentSort.direction === 'desc' && <ArrowDown size={10} />}
                     {!isActive && <ArrowUpDown size={10} />}
@@ -127,7 +139,7 @@ function TableRow({ trade, onClick }) {
             className="group hover:bg-background-surface cursor-pointer transition-colors"
         >
             {/* Time (Hidden on Mobile) */}
-            <td className="hidden md:table-cell px-5 py-3 text-[10px] font-mono text-text-tertiary">
+            <td className="hidden md:table-cell px-5 py-3 text-[10px] font-mono text-text-secondary">
                 {new Date(trade.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </td>
 
@@ -145,19 +157,19 @@ function TableRow({ trade, onClick }) {
 
             {/* Side */}
             <td className="px-5 py-3">
-                <span className={`text-[10px] font-bold uppercase ${trade.direction === 'Long' ? 'text-emerald-400' : 'text-red-400'}`}>
+                <span className={`text-[10px] font-bold uppercase ${trade.direction === 'Long' ? 'text-emerald-500' : 'text-red-500'}`}>
                     {trade.direction}
                 </span>
             </td>
 
             {/* Risk (Hidden on Mobile) */}
-            <td className="hidden md:table-cell px-5 py-3 text-[10px] font-mono text-text-tertiary">
+            <td className="hidden md:table-cell px-5 py-3 text-[10px] font-mono text-text-secondary">
                 {trade.riskPct}%
             </td>
 
             {/* R-Mult (Hidden on Mobile) */}
             <td className="hidden md:table-cell px-5 py-3">
-                <span className={`text-[10px] font-mono font-bold ${isWin ? 'text-emerald-400' : 'text-red-400'}`}>
+                <span className={`text-[10px] font-mono font-bold ${isWin ? 'text-emerald-500' : 'text-red-500'}`}>
                     {trade.rMultiple}R
                 </span>
             </td>
@@ -197,5 +209,61 @@ function TableRow({ trade, onClick }) {
                 <ChevronRight size={14} className="text-text-tertiary group-hover:text-blue-400 transition-colors" />
             </td>
         </tr>
+    );
+}
+
+// 3. Mobile Card Component
+function TradeMobileCard({ trade, onClick }) {
+    const isWin = trade.outcome === 'Win';
+    const hasError = trade.execution.errors.length > 0;
+
+    return (
+        <div
+            onClick={onClick}
+            className="bg-background-surface border border-border-default rounded-xl p-4 active:scale-98 transition-transform shadow-sm"
+        >
+            {/* Header: Instrument & Outcome */}
+            <div className="flex justify-between items-start mb-3">
+                <div>
+                    <div className="text-sm font-bold text-text-primary">{trade.instrument}</div>
+                    <div className="text-[10px] text-text-tertiary font-mono mt-0.5">
+                        {new Date(trade.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                </div>
+                <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${isWin ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                    {trade.rMultiple}R
+                </div>
+            </div>
+
+            {/* Metrics Row */}
+            <div className="flex items-center gap-4 text-[10px] text-text-secondary mb-3">
+                <div className="flex flex-col">
+                    <span className="text-text-tertiary uppercase text-[8px] font-bold">Side</span>
+                    <span className={`font-bold ${trade.direction === 'Long' ? 'text-emerald-500' : 'text-red-500'}`}>{trade.direction}</span>
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-text-tertiary uppercase text-[8px] font-bold">Risk</span>
+                    <span className="font-mono">{trade.riskPct}%</span>
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-text-tertiary uppercase text-[8px] font-bold">Strategy</span>
+                    <span>{trade.strategy}</span>
+                </div>
+            </div>
+
+            {/* Footer: Compliance */}
+            <div className="flex justify-between items-center border-t border-border-subtle pt-2 mt-2">
+                {hasError ? (
+                    <span className="text-[9px] font-bold text-red-400 uppercase flex items-center gap-1">
+                        <AlertTriangle size={10} /> {trade.execution.errors[0]}
+                    </span>
+                ) : (
+                    <span className="text-[9px] font-bold text-emerald-500 uppercase flex items-center gap-1">
+                        <CheckCircle size={10} /> Compliant
+                    </span>
+                )}
+                <ChevronRight size={14} className="text-text-tertiary" />
+            </div>
+        </div>
     );
 }

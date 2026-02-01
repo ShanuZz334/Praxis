@@ -37,17 +37,17 @@ function KPICard({ label, value, sub, subValue, accent, isGrade }) {
 
             <div className="relative z-10 flex flex-col justify-between h-full">
                 <div className="flex justify-between items-start mb-2">
-                    <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest">{label}</span>
+                    <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">{label}</span>
                     {isGrade && <Award size={12} className={accent} />}
                 </div>
 
                 <div>
-                    <div className={`text-2xl font-bold tracking-tighter ${accent} ${isGrade ? 'font-serif italic' : 'font-mono'}`}>
+                    <div className={`text-2xl font-black tracking-tighter ${accent} ${isGrade ? 'font-serif italic' : 'font-mono'}`}>
                         {value}
                     </div>
                     <div className="flex justify-between items-center mt-1 pt-2 border-t border-border-default">
-                        <span className="text-[9px] text-text-tertiary uppercase font-semibold">{sub}</span>
-                        <span className="text-[9px] text-text-secondary font-mono">{subValue}</span>
+                        <span className="text-[9px] text-text-secondary uppercase font-bold">{sub}</span>
+                        <span className={`text-[9px] font-mono font-bold ${accent} opacity-80 uppercase`}>{subValue}</span>
                     </div>
                 </div>
             </div>

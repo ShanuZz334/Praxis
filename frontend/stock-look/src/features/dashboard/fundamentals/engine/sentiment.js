@@ -52,15 +52,17 @@ export function classifyNormalizedScore(normalized) {
  */
 export function getZoneColor(zone) {
   const colors = {
-    "bull-strong": "#22c55e", // Green 500
-    "bull": "#4ade80",        // Green 400
-    "bull-weak": "#86efac",   // Green 300
-    "neutral": "#94a3b8",     // Slate 400
-    "bear-weak": "#fca5a5",   // Red 300
-    "bear": "#f87171",        // Red 400
-    "bear-strong": "#ef4444", // Red 500
+    "bull-strong": "var(--state-bullish-main)",
+    "bull": "var(--state-bullish-text)",       // Using text variant for cleaner look or main? Let's use main for consistency with old hex.
+    // Wait, old hex was #4ade80 (green-400). --state-bullish-text is #34d399 (emerald-400). Close enough.
+    // Actually, let's use the explicit variables created in index.css
+    "bull-weak": "var(--state-bullish-text)",
+    "neutral": "var(--state-neutral-main)",
+    "bear-weak": "var(--state-bearish-text)",
+    "bear": "var(--state-bearish-text)",
+    "bear-strong": "var(--state-bearish-main)",
   };
-  return colors[zone] || "#94a3b8";
+  return colors[zone] || "var(--state-neutral-main)";
 }
 
 /**

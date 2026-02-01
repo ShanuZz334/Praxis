@@ -202,7 +202,7 @@ export default function GlobalMetricsDesk({ card }) {
         ">
             {/* GLASS CONTAINER */}
             <div className="
-                bg-[var(--bg-tooltip)]
+                bg-background-tooltip
                 border border-border-default
                 rounded-2xl
                 p-6
@@ -212,7 +212,7 @@ export default function GlobalMetricsDesk({ card }) {
                 {/* HEADER LABEL */}
                 <div className="flex items-center gap-3 border-b border-border-subtle pb-2 mb-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse box-shadow-purple" />
-                    <span className="text-[10px] font-black text-slate-600 dark:text-purple-600 uppercase tracking-[0.2em]">AI Analysis</span>
+                    <span className="text-[10px] font-black text-purple-600 uppercase tracking-[0.2em]">AI Analysis</span>
                 </div>
 
                 {/* 1. AI INSIGHT (Dynamic) */}

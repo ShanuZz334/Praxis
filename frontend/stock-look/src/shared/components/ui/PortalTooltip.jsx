@@ -90,7 +90,7 @@ export default function PortalTooltip({
 
     // Simplified Styling: Relies on CSS keys in index.css
     // --bg-tooltip resolves to Solid Grey in Light Mode, Solid Dark Blue in Dark Mode
-    const bgClass = 'bg-[var(--bg-tooltip)]';
+    const bgClass = 'bg-background-tooltip';
     const textClass = 'text-text-primary';
     const borderClass = 'border-border-default';
 
@@ -108,8 +108,9 @@ export default function PortalTooltip({
             {isVisible && createPortal(
                 <div
                     ref={tooltipRef}
-                    // Apply theme class to wrapper to ensure inner variables (text colors) resolve correctly
+                    // Apply theme class and data-attribute to wrapper
                     className={`fixed z-[9999] pointer-events-auto transition-opacity duration-200 ${theme}`}
+                    data-theme={theme}
                     style={{
                         top: coords.top,
                         left: coords.left,

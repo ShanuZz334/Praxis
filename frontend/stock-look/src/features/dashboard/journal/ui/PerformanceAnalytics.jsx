@@ -8,7 +8,7 @@ export default function PerformanceAnalytics({ analytics }) {
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
             {/* CARD A: SYSTEM VIABILITY */}
-            <div className="relative bg-background-card border border-border-default rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden">
+            <div className="relative bg-background-card border border-border-default rounded-2xl p-6 overflow-hidden">
                 <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-white/3 to-transparent" />
                 <div className="relative z-10">
                     <div className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest mb-6 border-b border-border-default pb-2">
@@ -31,7 +31,7 @@ export default function PerformanceAnalytics({ analytics }) {
             </div>
 
             {/* CARD B: STRATEGY ALLOCATION */}
-            <div className="relative bg-background-card border border-border-default rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden">
+            <div className="relative bg-background-card border border-border-default rounded-2xl p-6 overflow-hidden">
                 <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-white/3 to-transparent" />
                 <div className="relative z-10">
                     <div className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest mb-4 border-b border-border-default pb-2">

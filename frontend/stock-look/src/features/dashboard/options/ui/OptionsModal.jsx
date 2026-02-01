@@ -31,7 +31,7 @@ export default function OptionsModal({ open, onClose, card }) {
             />
 
             {/* MODAL CONTENT */}
-            <div className="relative flex flex-col w-full max-w-4xl max-h-[90vh] bg-[var(--bg-tooltip)] border border-border-default rounded-2xl shadow-xl overflow-hidden pointer-events-auto">
+            <div className="relative flex flex-col w-full max-w-4xl max-h-[90vh] bg-background-tooltip border border-border-default rounded-2xl shadow-xl overflow-hidden pointer-events-auto">
 
                 {/* HEADER */}
                 <div className="shrink-0 p-6 border-b border-border-subtle flex justify-between items-start bg-transparent z-10 select-none">

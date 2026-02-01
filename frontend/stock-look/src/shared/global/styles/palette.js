@@ -8,16 +8,16 @@ export const colors = {
     // Backgrounds
     background: {
         app: "#02050e",
-        card: "#0b1220",   // Darker card background
-        elevated: "#101a33",
+        card: "#0b1220",   // Match Tooltip
+        elevated: "#0b1220", // Match Tooltip (Flattened from #101a33)
         surface: "rgba(255, 255, 255, 0.02)",
     },
 
     // Borders
     border: {
-        default: "rgba(255, 255, 255, 0.05)", // 5% (Matches Card)
-        subtle: "rgba(255, 255, 255, 0.02)",  // 2% (Ultra-thin internal)
-        hover: "rgba(255, 255, 255, 0.10)",   // 10%
+        default: "var(--border-default)",  // Dynamic
+        subtle: "var(--border-subtle)",   // Dynamic
+        hover: "rgba(255, 255, 255, 0.20)",    // Increased from 0.12
         active: "rgba(59, 130, 246, 0.5)",
     },
 
