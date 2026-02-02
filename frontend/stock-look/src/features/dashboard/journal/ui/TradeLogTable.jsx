@@ -1,9 +1,19 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, memo } from "react";
 import { Filter, AlertTriangle, CheckCircle, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 export default function TradeLogTable({ trades, onSelectTrade }) {
     const [showViolations, setShowViolations] = useState(false);
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+    const [isMobile, setIsMobile] = useState(false);
+
+    // Track window width to conditionally render parts of the DOM
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
 
     // 1. Filter
     const filteredTrades = useMemo(() => {
@@ -60,55 +70,59 @@ export default function TradeLogTable({ trades, onSelectTrade }) {
                     </div>
                 </div>
 
-                {/* TABLE HEADER (Sticky) */}
-                <div className="flex-1 overflow-auto relative rounded-b-xl custom-scrollbar scrollbar-hide">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="bg-background-card sticky top-0 z-10 shadow-sm">
-                            <tr>
-                                <HeaderCell label="Time" sortKey="date" currentSort={sortConfig} onSort={handleSort} className="hidden md:table-cell" />
-                                <HeaderCell label="Instrument" sortKey="instrument" currentSort={sortConfig} onSort={handleSort} />
-                                <HeaderCell label="Setup" sortKey="strategy" currentSort={sortConfig} onSort={handleSort} className="hidden md:table-cell" />
-                                <HeaderCell label="Side" sortKey="direction" currentSort={sortConfig} onSort={handleSort} />
-                                <HeaderCell label="Risk" sortKey="riskPct" currentSort={sortConfig} onSort={handleSort} className="hidden md:table-cell" />
-                                <HeaderCell label="R-Mult" sortKey="rMultiple" currentSort={sortConfig} onSort={handleSort} className="hidden md:table-cell" />
-                                <HeaderCell label="Outcome" sortKey="outcome" currentSort={sortConfig} onSort={handleSort} />
-                                <th className="px-5 py-3 text-[9px] font-bold text-text-secondary uppercase tracking-wider border-b border-border-default whitespace-nowrap hidden md:table-cell">Compliance</th>
-                                <th className="p-3 w-10 border-b border-border-default"></th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border-default">
-                            {filteredTrades.map((trade) => (
-                                <TableRow key={trade.id} trade={trade} onClick={() => onSelectTrade(trade)} />
-                            ))}
-                        </tbody>
-                    </table>
+                {/* DESKTOP TABLE VIEW */}
+                {!isMobile && (
+                    <div className="flex-1 overflow-auto relative rounded-b-xl custom-scrollbar scrollbar-hide">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-background-card sticky top-0 z-10 shadow-sm">
+                                <tr>
+                                    <HeaderCell label="Time" sortKey="date" currentSort={sortConfig} onSort={handleSort} className="hidden md:table-cell" />
+                                    <HeaderCell label="Instrument" sortKey="instrument" currentSort={sortConfig} onSort={handleSort} />
+                                    <HeaderCell label="Setup" sortKey="strategy" currentSort={sortConfig} onSort={handleSort} className="hidden md:table-cell" />
+                                    <HeaderCell label="Side" sortKey="direction" currentSort={sortConfig} onSort={handleSort} />
+                                    <HeaderCell label="Risk" sortKey="riskPct" currentSort={sortConfig} onSort={handleSort} className="hidden md:table-cell" />
+                                    <HeaderCell label="R-Mult" sortKey="rMultiple" currentSort={sortConfig} onSort={handleSort} className="hidden md:table-cell" />
+                                    <HeaderCell label="Outcome" sortKey="outcome" currentSort={sortConfig} onSort={handleSort} />
+                                    <th className="px-5 py-3 text-[9px] font-bold text-text-secondary uppercase tracking-wider border-b border-border-default whitespace-nowrap hidden md:table-cell">Compliance</th>
+                                    <th className="p-3 w-10 border-b border-border-default"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border-default">
+                                {filteredTrades.map((trade) => (
+                                    <TableRow key={trade.id} trade={trade} onClick={() => onSelectTrade(trade)} />
+                                ))}
+                            </tbody>
+                        </table>
 
-                    {filteredTrades.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-20 text-text-tertiary">
-                            <Filter size={24} className="mb-2 opacity-50" />
-                            <span className="text-xs font-medium">No records found matching filter</span>
-                        </div>
-                    )}
-                </div>
+                        {filteredTrades.length === 0 && (
+                            <div className="flex flex-col items-center justify-center py-20 text-text-tertiary">
+                                <Filter size={24} className="mb-2 opacity-50" />
+                                <span className="text-xs font-medium">No records found matching filter</span>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* MOBILE CARD VIEW */}
-                <div className="md:hidden flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                    {filteredTrades.map((trade) => (
-                        <TradeMobileCard key={trade.id} trade={trade} onClick={() => onSelectTrade(trade)} />
-                    ))}
-                    {filteredTrades.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-10 text-text-tertiary">
-                            <span className="text-xs font-medium">No records found</span>
-                        </div>
-                    )}
-                </div>
+                {isMobile && (
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                        {filteredTrades.map((trade) => (
+                            <TradeMobileCard key={trade.id} trade={trade} onClick={() => onSelectTrade(trade)} />
+                        ))}
+                        {filteredTrades.length === 0 && (
+                            <div className="flex flex-col items-center justify-center py-10 text-text-tertiary">
+                                <span className="text-xs font-medium">No records found</span>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
 }
 
 // 1. Update HeaderCell to accept className
-function HeaderCell({ label, sortKey, currentSort, onSort, className = "" }) {
+const HeaderCell = memo(function HeaderCell({ label, sortKey, currentSort, onSort, className = "" }) {
     const isActive = currentSort.key === sortKey;
 
     return (
@@ -126,10 +140,10 @@ function HeaderCell({ label, sortKey, currentSort, onSort, className = "" }) {
             </div>
         </th>
     );
-}
+});
 
 // 2. Update TableRow to hide columns on mobile
-function TableRow({ trade, onClick }) {
+const TableRow = memo(function TableRow({ trade, onClick }) {
     const isWin = trade.outcome === 'Win';
     const hasError = trade.execution.errors.length > 0;
 
@@ -210,10 +224,10 @@ function TableRow({ trade, onClick }) {
             </td>
         </tr>
     );
-}
+});
 
 // 3. Mobile Card Component
-function TradeMobileCard({ trade, onClick }) {
+const TradeMobileCard = memo(function TradeMobileCard({ trade, onClick }) {
     const isWin = trade.outcome === 'Win';
     const hasError = trade.execution.errors.length > 0;
 
@@ -266,4 +280,4 @@ function TradeMobileCard({ trade, onClick }) {
             </div>
         </div>
     );
-}
+});

@@ -1,27 +1,39 @@
 import React, { useContext } from "react";
-import { FiMenu, FiSettings } from "react-icons/fi";
+import { FiSettings } from "react-icons/fi";
 import { UserContext } from "@/shared/context/UserContext";
 import { useNavigate } from "react-router-dom";
+import GlitchText from "@/shared/components/backgrounds/GlitchText";
+import logoBgless from "@/assets/icons/logo_bgless.png";
 
 const MobileHeader = ({ onMenuClick }) => {
     const navigate = useNavigate();
     const { user } = useContext(UserContext);
 
     return (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-transparent px-4 h-14 flex items-center justify-between md:hidden">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-transparent px-4 h-18 flex items-center justify-between md:hidden">
 
-            {/* Left: Hamburger (Menu) */}
             <button
                 onClick={onMenuClick}
-                className="p-2 -ml-2 text-text-primary hover:text-accent-primary transition-colors"
+                className="p-2 -ml-2 transition-all hover:opacity-80 active:scale-95"
                 aria-label="Menu"
             >
-                <FiMenu className="text-2xl" />
+                <img
+                    src={logoBgless}
+                    alt="Menu"
+                    className="w-10 h-10 transition-transform hover:scale-110"
+                />
             </button>
 
-            {/* Center: Brand (Optional, maybe small logo) */}
-            <div className="text-lg font-brand font-bold text-blue-500 tracking-wide">
-                Stocky
+            {/* Center: Brand Static Glitch Text */}
+            <div className="flex items-center justify-center">
+                <GlitchText
+                    speed={1}
+                    enableShadows={false}
+                    enableOnHover={true}
+                    className="text-2xl font-extrabold text-[#1E1BFF]"
+                >
+                    Stocky
+                </GlitchText>
             </div>
 
             {/* Right: Settings Switch */}

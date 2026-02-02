@@ -6,7 +6,7 @@ export default function TradeReadinessPanel({ readiness }) {
     const { capital } = readiness;
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
 
             {/* 1. FOCUS (Action) */}
             <Card className="border-2 dark:border border-emerald-500/40 hover:border-emerald-500/60 flex flex-col relative overflow-hidden group">

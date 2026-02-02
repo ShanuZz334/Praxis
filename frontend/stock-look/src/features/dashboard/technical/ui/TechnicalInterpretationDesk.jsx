@@ -62,7 +62,7 @@ export default function TechnicalInterpretationDesk({ card }) {
 
     return (
         <div className="
-            w-[280px] shrink-0
+            w-full lg:w-[280px] shrink-0
             flex flex-col gap-4
             animate-in fade-in slide-in-from-right-4 duration-500
         ">

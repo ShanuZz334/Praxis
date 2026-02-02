@@ -1,26 +1,52 @@
 import React from 'react';
-import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import './ThemeToggle.css';
 
 export default function ThemeToggle() {
     const { theme, toggleTheme } = useTheme();
     const isDark = theme === 'dark';
 
     return (
-        <button
-            onClick={toggleTheme}
-            className="p-2 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-background-elevated transition-colors relative overflow-hidden group"
-            aria-label="Toggle theme"
+        <label
+            htmlFor="themeToggle"
+            className="themeToggle st-sunMoonThemeToggleBtn"
             title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
         >
-            <div className="relative w-5 h-5">
-                <Sun
-                    className={`absolute inset-0 w-full h-full transition-all duration-500 transform ${isDark ? 'rotate-90 opacity-0 scale-50' : 'rotate-0 opacity-100 scale-100'}`}
+            <input
+                type="checkbox"
+                id="themeToggle"
+                className="themeToggleInput"
+                checked={!isDark} // Checked state means "Light Mode" in this CSS
+                onChange={toggleTheme}
+            />
+            <svg
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                stroke="none"
+            >
+                <mask id="moon-mask">
+                    <rect x="0" y="0" width="20" height="20" fill="white" />
+                    <circle cx="11" cy="3" r="8" fill="black" />
+                </mask>
+                <circle
+                    className="sunMoon"
+                    cx="10"
+                    cy="10"
+                    r="8"
+                    mask="url(#moon-mask)"
                 />
-                <Moon
-                    className={`absolute inset-0 w-full h-full transition-all duration-500 transform ${isDark ? 'rotate-0 opacity-100 scale-100' : '-rotate-90 opacity-0 scale-50'}`}
-                />
-            </div>
-        </button>
+                <g>
+                    <circle className="sunRay sunRay1" cx="18" cy="10" r="1.5" />
+                    <circle className="sunRay sunRay2" cx="14" cy="16.928" r="1.5" />
+                    <circle className="sunRay sunRay3" cx="6" cy="16.928" r="1.5" />
+                    <circle className="sunRay sunRay4" cx="2" cy="10" r="1.5" />
+                    <circle className="sunRay sunRay5" cx="6" cy="3.1718" r="1.5" />
+                    <circle className="sunRay sunRay6" cx="14" cy="3.1718" r="1.5" />
+                </g>
+            </svg>
+        </label>
     );
 }
+

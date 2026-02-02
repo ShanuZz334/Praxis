@@ -30,8 +30,8 @@ const Card = ({
             border-2 dark:border border-[var(--border-subtle)]
             shadow-sm dark:shadow-none
             hover:border-border-hover dark:hover:border-border-subtle-translucent
-            hover:shadow-xl dark:hover:shadow-card-3d-hover
-            hover:-translate-y-1
+            hover:shadow-[var(--shadow-card-3d-hover)]
+            hover:-translate-y-2
           `,
         spanMap[span],
         className

@@ -55,13 +55,14 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
                 relative
               `}
             >
-              {/* ICON */}
               <item.icon
                 className={`
                   text-[20px] transition-all duration-300 ease-out transform
                   ${isActive
                     ? "text-blue-700 scale-110"
-                    : "text-text-tertiary group-hover:text-blue-400 group-hover:scale-110"
+                    : isMobileDrawer
+                      ? "text-white/80 group-hover:text-white group-hover:scale-115"
+                      : "text-text-tertiary group-hover:text-blue-400 group-hover:scale-115"
                   }
                 `}
               />
@@ -73,7 +74,9 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
                     text-sm font-semibold transition-all duration-300
                     ${isActive
                       ? "text-blue-700"
-                      : "text-text-secondary group-hover:text-blue-400 group-hover:translate-x-1"
+                      : isMobileDrawer
+                        ? "text-white/90 group-hover:text-white group-hover:translate-x-2"
+                        : "text-text-secondary group-hover:text-blue-400 group-hover:translate-x-2"
                     }
                   `}
                 >
@@ -112,10 +115,10 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
 
           {(!collapsed || isMobileDrawer) && (
             <div className="leading-tight">
-              <p className="text-sm font-medium text-text-primary">
+              <p className={`text-sm font-medium ${isMobileDrawer ? 'text-white' : 'text-text-primary'}`}>
                 {user?.fullName || "Trader"}
               </p>
-              <p className="text-xs text-text-tertiary">
+              <p className={`text-xs ${isMobileDrawer ? 'text-white/60' : 'text-text-tertiary'}`}>
                 {user?.email || "Active"}
               </p>
             </div>

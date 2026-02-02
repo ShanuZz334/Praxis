@@ -32,7 +32,7 @@ export default function TechnicalMetricsDesk({ card }) {
 
     return (
         <div className="
-            w-[260px] shrink-0
+            w-full lg:w-[260px] shrink-0
             flex flex-col gap-4
             animate-in fade-in slide-in-from-right-4 duration-500
         ">

@@ -113,7 +113,7 @@ export default function GlobalHeader({
             <div className={`relative rounded-2xl border ${STYLES.BORDER_OUTER} shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden bg-transparent`}>
 
                 {/* TOP ROW: GAUGE | REGIME | INTEGRITY */}
-                <div className={`grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x ${STYLES.DIVIDE} bg-transparent min-h-[220px]`}>
+                <div className={`grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x ${STYLES.DIVIDE} bg-transparent min-h-0 lg:min-h-[220px]`}>
 
                     {/* A. GAUGE */}
                     <div className="p-4 md:p-6 group relative flex flex-col md:block">
@@ -137,13 +137,22 @@ export default function GlobalHeader({
                             </div>
                         </div>
 
-                        <div className="flex flex-col md:flex-row items-center md:items-baseline gap-1 md:gap-3 mb-4 text-center md:text-left">
-                            <div className={`${typography.number.giant} md:text-6xl text-7xl`}>{score.toFixed(0)}</div>
-                            <div className="flex flex-col justify-end h-full py-1">
-                                <div className={`text-lg font-bold ${compositeState.className} transition-colors duration-500`}>
+                        <div className="flex flex-row items-center md:items-baseline gap-2 md:gap-3 mb-3 md:mb-4 text-left">
+                            <div className={`${typography.number.giant} text-5xl md:text-6xl lg:text-7xl`}>{score.toFixed(0)}</div>
+                            <div className="flex flex-col justify-end h-full pb-1">
+                                <div className={`text-base md:text-lg font-bold ${compositeState.className} transition-colors duration-500`}>
                                     {compositeState.label}
                                 </div>
-                                <div className="text-[10px] text-text-tertiary font-mono">/ 100.00</div>
+                                <div className="text-[9px] md:text-[10px] text-text-tertiary font-mono">/ 100.00</div>
+                            </div>
+                        </div>
+
+                        {/* Mobile Regime Indicator */}
+                        <div className="flex lg:hidden items-center gap-2 mt-1 mb-2 px-2 py-1.5 rounded-lg bg-background-surface/50 border border-border-subtle w-fit">
+                            <div className={`text-xs font-bold ${regime.color || 'text-text-primary'}`}>{regime.label}</div>
+                            <div className="w-1 h-1 rounded-full bg-text-tertiary opacity-30" />
+                            <div className="text-[10px] text-text-secondary font-mono">
+                                {regime.confidence}% Conf
                             </div>
                         </div>
 
@@ -175,7 +184,7 @@ export default function GlobalHeader({
                     </div>
 
                     {/* C. INTEGRITY */}
-                    <div className="p-6 flex flex-col justify-between gap-2">
+                    <div className="p-4 md:p-6 flex flex-col justify-between gap-3 md:gap-2">
                         <div className={typography.label.sm}>Signal Integrity</div>
 
                         {/* TOP SECTION: Signal Status */}
@@ -200,7 +209,7 @@ export default function GlobalHeader({
 
                         {/* BOTTOM SECTION: Credit Distribution (Larger Values) */}
                         {totalCredits > 0 && (
-                            <div className={`grid grid-cols-4 gap-3 pt-4 border-t ${STYLES.BORDER_DIVIDER}`}>
+                            <div className={`grid grid-cols-4 gap-2 md:gap-3 pt-3 md:pt-4 border-t ${STYLES.BORDER_DIVIDER}`}>
                                 <StatBlock
                                     label={creditLabel}
                                     value={totalCredits}
@@ -256,8 +265,8 @@ function StatBlock({ label, value, color, breakdown }) {
 
     const Content = (
         <div className="text-center group/stat cursor-default">
-            <div className={`text-[9px] uppercase mb-1.5 tracking-wide transition-colors ${color} opacity-70 group-hover/stat:opacity-100`}>{label}</div>
-            <div className={`text-xl font-extrabold ${color} font-mono group-hover/stat:scale-105 transition-transform`}>{value}</div>
+            <div className={`text-[8px] md:text-[9px] uppercase mb-1 md:mb-1.5 tracking-wide transition-colors ${color} opacity-70 group-hover/stat:opacity-100`}>{label}</div>
+            <div className={`text-lg md:text-xl font-extrabold ${color} font-mono group-hover/stat:scale-105 transition-transform`}>{value}</div>
         </div>
     );
 
@@ -351,7 +360,7 @@ function HeaderControls({ controls }) {
     return (
         <div className={`flex flex-col md:flex-row justify-between items-center border-t ${STYLES.BORDER_DIVIDER} pt-4 p-4 text-text-primary bg-transparent`}>
             {/* LEFT: Search */}
-            <div className="relative group w-full md:w-64 transition-all focus-within:md:w-80 mb-4 md:mb-0">
+            <div className="relative group w-full md:w-64 transition-all focus-within:md:w-80 mb-3 md:mb-0 shrink-0">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-tertiary">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                 </div>
@@ -364,33 +373,41 @@ function HeaderControls({ controls }) {
                 />
             </div>
 
-            {/* RIGHT: Toggles (Hidden on Mobile) */}
-            <div className="hidden md:flex gap-4">
-                {/* View Mode Toggle */}
-                {controls.onViewChange && (
-                    <CardSegmented
-                        value={controls.viewMode}
-                        onChange={controls.onViewChange}
-                        options={[
-                            { value: "sectioned", label: "Sections" },
-                            { value: "flat", label: "Flat View" },
-                        ]}
-                    />
-                )}
+            {/* RIGHT: Toggles (Scrollable on Mobile) */}
+            <div className="flex w-full md:w-auto overflow-x-auto md:overflow-visible gap-3 pb-1 md:pb-0 custom-scrollbar-hidden">
+                <div className="flex items-center gap-3 shrink-0">
+                    {/* View Mode Toggle (Desktop Only) */}
+                    {controls.onViewChange && (
+                        <div className="hidden md:block">
+                            <CardSegmented
+                                value={controls.viewMode}
+                                onChange={controls.onViewChange}
+                                options={[
+                                    { value: "sectioned", label: "Sections" },
+                                    { value: "flat", label: "Flat View" },
+                                ]}
+                            />
+                        </div>
+                    )}
 
-                {/* Sort Mode Toggle */}
-                {controls.onSortChange && (
-                    <CardSegmented
-                        value={controls.sortMode}
-                        onChange={controls.onSortChange}
-                        options={controls.sortOptions || [
-                            { value: "score_desc", label: "Strongest" },
-                            { value: "score_asc", label: "Weakest" },
-                            { value: "rel_desc", label: "High Credit" },
-                            { value: "rel_asc", label: "Low Credit" },
-                        ]}
-                    />
-                )}
+                    {/* Sort Mode Toggle */}
+                    {controls.onSortChange && (
+                        <div className="flex-1">
+                            <CardSegmented
+                                value={controls.sortMode}
+                                onChange={controls.onSortChange}
+                                size="xs"
+                                fullWidth
+                                options={controls.sortOptions || [
+                                    { value: "score_desc", label: "Strongest" },
+                                    { value: "score_asc", label: "Weakest" },
+                                    { value: "rel_desc", label: "High Credit" },
+                                    { value: "rel_asc", label: "Low Credit" },
+                                ]}
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

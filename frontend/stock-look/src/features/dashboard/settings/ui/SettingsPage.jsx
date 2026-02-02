@@ -15,7 +15,8 @@ import {
     FiInfo,
     FiSun,
     FiMoon,
-    FiChevronDown
+    FiChevronDown,
+    FiMap
 } from "react-icons/fi";
 import { UserContext } from "../../../../shared/context/UserContext";
 import {
@@ -40,9 +41,12 @@ import angelOneLogo from "../../../../assets/images/angel_one.png";
 import kotakLogo from "../../../../assets/images/kotak.png";
 import growwLogo from "../../../../assets/images/groww.png";
 
+import { useTheme } from "../../../../shared/context/ThemeContext";
+
 const SettingsPage = () => {
     // Context
-    const { user, updateUser, token, theme, setTheme } = useContext(UserContext);
+    const { user, updateUser, token, } = useContext(UserContext);
+    const { theme, toggleTheme, vfxPreset, setVfxPreset } = useTheme();
 
     // UI State
     const [activeTab, setActiveTab] = useState("account");
@@ -524,7 +528,7 @@ const SettingsPage = () => {
         { id: "account", label: "Account", icon: FiUser },
         { id: "notifications", label: "Notifications", icon: FiBell },
         { id: "security", label: "Security", icon: FiLock },
-        { id: "preferences", label: "Preferences", icon: FiSettings },
+        { id: "preferences", label: "Customisation", icon: FiSettings },
     ];
 
     if (loading) {
@@ -564,31 +568,33 @@ const SettingsPage = () => {
         }
     };
 
+    const borderColor = theme === 'dark' ? 'var(--border-default)' : '#64748b';
+
     return (
-        <div className="min-h-screen p-4 text-text-primary md:p-8 font-sans dark:[--border-default:rgba(255,255,255,0.20)] dark:[--border-subtle:rgba(255,255,255,0.12)]">
+        <div className="min-h-screen p-3 sm:p-4 text-text-primary md:p-8 font-sans [--border-default:rgba(0,0,0,0.2)] [--border-subtle:rgba(0,0,0,0.1)] dark:[--border-default:rgba(255,255,255,0.20)] dark:[--border-subtle:rgba(255,255,255,0.12)]">
             <div className="mx-auto max-w-6xl">
 
                 {/* Header */}
-                <div className="mb-8 flex items-end justify-between">
+                <div className="mb-6 md:mb-8 flex items-end justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-                        <p className="mt-1 text-text-secondary">Manage your account and preferences</p>
+                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Settings</h1>
+                        <p className="mt-1 text-xs md:text-sm text-text-secondary">Manage your account and customization</p>
                     </div>
                 </div>
 
                 {/* Unsaved Changes Bar - Sticky */}
                 {hasUnsavedChanges && (
-                    <div className="sticky top-4 z-50 mb-6 flex items-center justify-between rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4 backdrop-blur-md">
+                    <div className="sticky top-20 md:top-4 z-50 mb-6 flex flex-col sm:flex-row items-center justify-between rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-3 md:p-4 backdrop-blur-md gap-3">
                         <div className="flex items-center gap-3">
-                            <FiAlertCircle className="text-yellow-500" />
-                            <span className="text-sm font-medium text-yellow-600 dark:text-yellow-400">You have unsaved changes</span>
+                            <FiAlertCircle className="text-yellow-500 flex-shrink-0" />
+                            <span className="text-xs md:text-sm font-medium text-yellow-600 dark:text-yellow-400 text-center sm:text-left">Unsaved changes detected</span>
                         </div>
-                        <div className="flex gap-3">
-                            <button onClick={discardChanges} className="text-sm font-medium text-text-secondary hover:text-text-primary">Discard</button>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <button onClick={discardChanges} className="flex-1 sm:flex-none text-xs md:text-sm font-medium text-text-secondary hover:text-text-primary px-3 py-2">Discard</button>
                             <button
                                 onClick={saveAllChanges}
                                 disabled={saveStatus === "saving"}
-                                className="rounded-md bg-text-primary px-4 py-2 text-sm font-semibold text-background-base hover:opacity-90 disabled:opacity-50"
+                                className="flex-1 sm:flex-none rounded-lg bg-text-primary px-4 py-2 text-xs md:text-sm font-semibold text-background-base hover:opacity-90 disabled:opacity-50"
                             >
                                 {saveStatus === "saving" ? "Saving..." : "Save Changes"}
                             </button>
@@ -611,25 +617,28 @@ const SettingsPage = () => {
 
                 <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
 
-                    {/* Sidebar Navigation */}
-                    <nav className="flex flex-col gap-2">
+                    {/* Sidebar / Tabs Navigation */}
+                    <nav className="flex md:flex-col gap-1 overflow-x-auto pb-2 mb:pb-0 scrollbar-hide -mx-1 px-1">
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition-all duration-300 ${activeTab === tab.id
-                                    ? "bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-500/40 shadow-sm"
+                                className={`flex items-center gap-2 md:gap-3 rounded-xl px-4 py-2.5 md:py-3 text-left text-sm font-medium transition-all duration-300 shrink-0 ${activeTab === tab.id
+                                    ? "bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-500/40 shadow-sm text-blue-500"
                                     : "text-text-secondary hover:bg-transparent hover:text-text-primary border border-transparent hover:border-[var(--border-default)] hover:shadow-sm hover:-translate-y-0.5"
                                     }`}
                             >
-                                <tab.icon className={`h-5 w-5 transition-colors duration-300 ${activeTab === tab.id ? "text-blue-500" : "group-hover:text-blue-500"}`} />
-                                {tab.label}
+                                <tab.icon className={`h-4 w-4 md:h-5 md:w-5 transition-colors duration-300 ${activeTab === tab.id ? "text-blue-500" : "group-hover:text-blue-500"}`} />
+                                <span className="whitespace-nowrap">{tab.label}</span>
                             </button>
                         ))}
                     </nav>
 
                     {/* Main Content Area */}
-                    <div className="rounded-2xl border border-[var(--border-default)] bg-transparent p-6 lg:p-8 shadow-xl shadow-black/5 backdrop-blur-sm">
+                    <div
+                        className="rounded-2xl border bg-transparent p-4 sm:p-6 lg:p-8 shadow-xl shadow-black/5 backdrop-blur-sm"
+                        style={{ borderColor }}
+                    >
 
                         {/* --- ACCOUNT TAB --- */}
                         {activeTab === "account" && (
@@ -639,17 +648,17 @@ const SettingsPage = () => {
                                     <p className="text-sm text-text-secondary">Update your public profile and details</p>
                                 </div>
 
-                                <div className="flex items-center gap-6">
-                                    <div className="relative h-24 w-24 overflow-hidden rounded-full bg-gradient-to-br from-blue-600 to-purple-600 p-[2px]">
+                                <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6">
+                                    <div className="relative h-20 w-20 md:h-24 md:w-24 overflow-hidden rounded-full bg-gradient-to-br from-blue-600 to-purple-600 p-[2px]">
                                         <div className="flex h-full w-full items-center justify-center rounded-full bg-transparent">
                                             {formData.profileImage ? (
                                                 <img src={formData.profileImage} alt="Profile" className="h-full w-full rounded-full object-cover" />
                                             ) : (
-                                                <span className="text-2xl font-bold">{formData.fullName?.[0]?.toUpperCase() || "U"}</span>
+                                                <span className="text-xl md:text-2xl font-bold">{formData.fullName?.[0]?.toUpperCase() || "U"}</span>
                                             )}
                                         </div>
                                     </div>
-                                    <div>
+                                    <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
                                         <input
                                             type="file"
                                             ref={fileInputRef}
@@ -674,7 +683,8 @@ const SettingsPage = () => {
                                             type="text"
                                             value={formData.fullName}
                                             onChange={(e) => handleInputChange("fullName", e.target.value)}
-                                            className="w-full rounded-lg border border-[var(--border-default)] bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:bg-transparent focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
+                                            className="w-full rounded-lg border bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:bg-transparent focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
+                                            style={{ borderColor }}
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -690,16 +700,17 @@ const SettingsPage = () => {
                                                 </span>
                                             )}
                                         </label>
-                                        <div className="flex gap-2">
+                                        <div className="flex flex-col sm:flex-row gap-2">
                                             <input
                                                 type="email"
                                                 value={formData.email}
                                                 disabled // Not directly editable needs OTP flow trigger
-                                                className="w-full cursor-not-allowed rounded-lg border border-[var(--border-default)] bg-transparent/50 px-4 py-2.5 text-text-secondary"
+                                                className="w-full cursor-not-allowed rounded-lg border bg-transparent/50 px-4 py-2.5 text-text-secondary text-sm md:text-base"
+                                                style={{ borderColor }}
                                             />
                                             <button
                                                 onClick={() => setShowEmailChangeModal(true)}
-                                                className="shrink-0 rounded-lg border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium hover:bg-transparent hover:border-[var(--border-subtle)] transition-all active:scale-95"
+                                                className="w-full sm:shrink-0 sm:w-auto rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95"
                                             >
                                                 Change
                                             </button>
@@ -738,7 +749,10 @@ const SettingsPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="border-t border-[var(--border-default)] pt-8">
+                                <div
+                                    className="border-t pt-8"
+                                    style={{ borderColor }}
+                                >
                                     <h3 className="mb-4 flex items-center gap-2 text-lg font-medium">
                                         <FiLink2 className="text-blue-500" /> Broker Integration
                                     </h3>
@@ -747,25 +761,26 @@ const SettingsPage = () => {
                                         <div className="flex-1 space-y-6">
                                             <div className="space-y-3">
                                                 <label className="text-sm font-medium text-text-secondary">Select Broker</label>
-                                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3">
                                                     {AVAILABLE_BROKERS.map((broker) => (
                                                         <button
                                                             key={broker.value}
                                                             type="button"
                                                             onClick={() => handleInputChange("broker", broker.value)}
-                                                            className={`flex flex-col items-center gap-2 rounded-xl p-3 transition-all border ${formData.broker === broker.value
+                                                            className={`flex flex-col items-center gap-1.5 md:gap-2 rounded-xl p-2 md:p-3 transition-all border ${formData.broker === broker.value
                                                                 ? 'bg-blue-500/10 border-blue-500/50 shadow-md shadow-blue-500/5'
                                                                 : 'bg-transparent border-[var(--border-default)] hover:bg-transparent hover:border-[var(--border-default)] hover:shadow-lg hover:-translate-y-0.5'
                                                                 }`}
+                                                            style={{ borderColor: formData.broker === broker.value ? undefined : borderColor }}
                                                         >
-                                                            <div className="h-10 w-10 flex items-center justify-center p-1">
+                                                            <div className="h-8 w-8 md:h-10 md:w-10 flex items-center justify-center p-1">
                                                                 {broker.image ? (
                                                                     <img src={broker.image} alt={broker.label} className="h-full w-full object-contain filter drop-shadow-md" />
                                                                 ) : (
-                                                                    <span className="text-xl">{broker.icon}</span>
+                                                                    <span className="text-lg md:text-xl">{broker.icon}</span>
                                                                 )}
                                                             </div>
-                                                            <span className={`text-[10px] font-bold tracking-tight text-center transition-colors uppercase ${formData.broker === broker.value ? 'text-blue-500' : 'text-text-tertiary'}`}>
+                                                            <span className={`text-[9px] md:text-[10px] font-bold tracking-tight text-center transition-colors uppercase ${formData.broker === broker.value ? 'text-blue-500' : 'text-text-tertiary'}`}>
                                                                 {broker.label}
                                                             </span>
                                                         </button>
@@ -782,7 +797,8 @@ const SettingsPage = () => {
                                                             value={formData.apiKey}
                                                             onChange={(e) => handleInputChange("apiKey", e.target.value)}
                                                             placeholder="Enter your broker API key"
-                                                            className="w-full rounded-lg border border-[var(--border-subtle)] bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
+                                                            className="w-full rounded-lg border bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
+                                                            style={{ borderColor }}
                                                         />
                                                     </div>
                                                 )}
@@ -797,7 +813,8 @@ const SettingsPage = () => {
                                                             value={formData.apiSecret}
                                                             onChange={(e) => handleInputChange("apiSecret", e.target.value)}
                                                             placeholder="Enter your broker API secret"
-                                                            className="w-full rounded-lg border border-[var(--border-subtle)] bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
+                                                            className="w-full rounded-lg border bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
+                                                            style={{ borderColor }}
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
@@ -807,7 +824,8 @@ const SettingsPage = () => {
                                                             value={formData.clientId}
                                                             onChange={(e) => handleInputChange("clientId", e.target.value)}
                                                             placeholder="Your broker client ID"
-                                                            className="w-full rounded-lg border border-[var(--border-subtle)] bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
+                                                            className="w-full rounded-lg border bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
+                                                            style={{ borderColor }}
                                                         />
                                                     </div>
                                                 </div>
@@ -884,12 +902,15 @@ const SettingsPage = () => {
                                         </div>
 
                                         {/* Right Side: Connected Brokers Display */}
-                                        <div className="w-full lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l border-[var(--border-default)] pt-10 lg:pt-0 lg:pl-10">
+                                        <div
+                                            className="w-full lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l pt-10 lg:pt-0 lg:pl-10"
+                                            style={{ borderColor }}
+                                        >
                                             <div className="sticky top-6">
                                                 <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-tertiary mb-6 flex items-center gap-2">
-                                                    <div className="h-px flex-1 bg-[var(--border-subtle)]"></div>
+                                                    <div className="h-px flex-1 bg-[var(--border-subtle)]" style={{ backgroundColor: borderColor }}></div>
                                                     Active Connections
-                                                    <div className="h-px flex-1 bg-[var(--border-subtle)]"></div>
+                                                    <div className="h-px flex-1 bg-[var(--border-subtle)]" style={{ backgroundColor: borderColor }}></div>
                                                 </h4>
 
                                                 <div className="space-y-4">
@@ -906,7 +927,10 @@ const SettingsPage = () => {
                                                             loading={testingConnection}
                                                         />
                                                     ) : (
-                                                        <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] p-8 text-center bg-transparent">
+                                                        <div
+                                                            className="rounded-2xl border border-dashed p-8 text-center bg-transparent"
+                                                            style={{ borderColor }}
+                                                        >
                                                             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-transparent mb-3">
                                                                 <FiLink2 className="text-text-tertiary text-xl" />
                                                             </div>
@@ -926,15 +950,15 @@ const SettingsPage = () => {
                                     <h3 className="mb-4 flex items-center gap-2 text-lg font-medium text-red-500">
                                         <FiAlertCircle className="text-red-500" /> Danger Zone
                                     </h3>
-                                    <div className="rounded-xl border border-red-500/10 bg-red-500/5 p-6">
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                            <div>
+                                    <div className="rounded-xl border border-red-500/10 bg-red-500/5 p-4 md:p-6">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                            <div className="text-center sm:text-left">
                                                 <p className="font-semibold text-text-primary">Delete Account</p>
-                                                <p className="text-sm text-text-secondary">Permanently remove your account and all associated data. This action cannot be undone.</p>
+                                                <p className="text-xs md:text-sm text-text-secondary mt-1">Permanently remove your account and all associated data. This action cannot be undone.</p>
                                             </div>
                                             <button
                                                 onClick={() => setShowDeleteModal(true)}
-                                                className="shrink-0 rounded-lg bg-red-600/10 border border-red-500/20 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-lg shadow-red-500/5"
+                                                className="w-full sm:w-auto shrink-0 rounded-lg bg-red-600/10 border border-red-500/20 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-lg shadow-red-500/5"
                                             >
                                                 Delete Account
                                             </button>
@@ -955,7 +979,7 @@ const SettingsPage = () => {
                                         { id: "portfolioAlerts", label: "Portfolio Updates", desc: "Daily P&L and position summaries" },
                                         { id: "systemMessages", label: "System Messages", desc: "Maintenance and platform updates" },
                                     ].map(item => (
-                                        <div key={item.id} className="flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-transparent p-4 transition-all hover:border-[var(--border-subtle)] hover:bg-transparent">
+                                        <div key={item.id} className="flex items-center justify-between rounded-lg border bg-transparent p-4 transition-all hover:bg-transparent" style={{ borderColor }}>
                                             <div>
                                                 <p className="font-medium">{item.label}</p>
                                                 <p className="text-sm text-text-secondary">{item.desc}</p>
@@ -976,7 +1000,7 @@ const SettingsPage = () => {
                                         { id: "deliveryApp", label: "In-App Push", icon: FiBell },
                                         { id: "deliveryEmail", label: "Email Digest", icon: FiUser },
                                     ].map(item => (
-                                        <div key={item.id} className="flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-transparent p-4 transition-all hover:border-[var(--border-subtle)] hover:bg-transparent">
+                                        <div key={item.id} className="flex items-center justify-between rounded-lg border bg-transparent p-4 transition-all hover:bg-transparent" style={{ borderColor }}>
                                             <div className="flex items-center gap-3">
                                                 <item.icon className="text-text-secondary" />
                                                 <span className="font-medium">{item.label}</span>
@@ -1001,7 +1025,7 @@ const SettingsPage = () => {
                                     <p className="text-sm text-text-secondary">Manage your password and account security</p>
                                 </div>
 
-                                <div className="rounded-xl border border-[var(--border-subtle)] bg-transparent p-6">
+                                <div className="rounded-xl border bg-transparent p-4 md:p-6" style={{ borderColor }}>
                                     <h3 className="mb-4 text-lg font-medium">Update Password</h3>
                                     <div className="grid gap-4 md:grid-cols-2">
                                         <div className="space-y-2 md:col-span-2">
@@ -1010,7 +1034,8 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.currentPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                                                className="w-full rounded-lg border border-[var(--border-subtle)] bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+                                                className="w-full rounded-lg border bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all text-sm md:text-base"
+                                                style={{ borderColor }}
                                             />
                                         </div>
 
@@ -1020,7 +1045,8 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.newPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                                                className="w-full rounded-lg border border-[var(--border-subtle)] bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+                                                className="w-full rounded-lg border bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+                                                style={{ borderColor }}
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -1029,7 +1055,8 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.confirmPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                                                className="w-full rounded-lg border border-[var(--border-subtle)] bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+                                                className="w-full rounded-lg border bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+                                                style={{ borderColor }}
                                             />
                                         </div>
                                     </div>
@@ -1058,26 +1085,24 @@ const SettingsPage = () => {
                         )}
 
 
-                        {/* --- PREFERENCES TAB --- */}
+                        {/* --- CUSTOMISATION TAB --- */}
                         {activeTab === "preferences" && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div>
-                                    <h2 className="text-xl font-semibold">User Preferences</h2>
+                                    <h2 className="text-xl font-semibold">User Customisation</h2>
                                     <p className="text-sm text-text-secondary">Customize your trading experience</p>
                                 </div>
 
                                 {/* Trading Mode */}
                                 <div>
                                     <h3 className="mb-4 text-sm font-medium text-text-secondary">Trading Mode</h3>
-                                    <div className="grid gap-4 md:grid-cols-3">
+                                    <div className="grid gap-3 md:gap-4 md:grid-cols-3">
                                         {[
-                                            { id: "conservative", label: "Conservative", icon: FiShield, desc: "Low-risk defaults, safety first" },
-                                            { id: "balanced", label: "Balanced", icon: FiTrendingUp, desc: "Standard risk-reward ratio" },
+                                            { id: "conservative", label: "Conservative", icon: FiShield, desc: "Low-risk defaults" },
+                                            { id: "balanced", label: "Balanced", icon: FiTrendingUp, desc: "Standard risk-reward" },
                                             { id: "aggressive", label: "Aggressive", icon: FiZap, desc: "High-risk, max leverage" }
                                         ].map(mode => {
                                             const isActive = settings.tradingMode === mode.id;
-
-                                            // Dynamic Styles based on mode
                                             let activeClass = "";
                                             if (isActive) {
                                                 switch (mode.id) {
@@ -1087,19 +1112,20 @@ const SettingsPage = () => {
                                                     default: activeClass = "bg-gray-800 text-white";
                                                 }
                                             } else {
-                                                activeClass = "border-[var(--border-subtle)] bg-transparent hover:border-[var(--border-subtle)] hover:bg-transparent hover:shadow-lg hover:-translate-y-0.5 text-text-secondary";
+                                                activeClass = "bg-transparent hover:bg-transparent hover:shadow-lg hover:-translate-y-0.5 text-text-secondary";
                                             }
 
                                             return (
                                                 <button
                                                     key={mode.id}
                                                     onClick={() => handleTradingModeSelect(mode.id)}
-                                                    className={`group relative flex flex-col items-center gap-3 rounded-xl border p-6 text-center transition-all duration-300 ${activeClass}`}
+                                                    className={`group relative flex md:flex-col items-center gap-3 rounded-xl border p-4 md:p-6 text-left md:text-center transition-all duration-300 ${activeClass}`}
+                                                    style={{ borderColor: settings.tradingMode === mode.id ? 'transparent' : borderColor }}
                                                 >
-                                                    <mode.icon className={`h-8 w-8 transition-colors duration-300 ${isActive ? "text-white" : "text-text-tertiary group-hover:text-text-primary"}`} />
+                                                    <mode.icon className={`h-6 w-6 md:h-8 md:w-8 shrink-0 transition-colors duration-300 ${isActive ? "text-white" : "text-text-tertiary group-hover:text-text-primary"}`} />
                                                     <div>
-                                                        <p className={`font-semibold transition-colors duration-300 ${isActive ? "text-white" : "text-text-primary"}`}>{mode.label}</p>
-                                                        <p className={`mt-1.5 text-xs leading-relaxed ${isActive ? "text-white/80" : "text-text-tertiary"}`}>{mode.desc}</p>
+                                                        <p className={`font-semibold text-sm md:text-base transition-colors duration-300 ${isActive ? "text-white" : "text-text-primary"}`}>{mode.label}</p>
+                                                        <p className={`mt-0.5 md:mt-1.5 text-[10px] md:text-xs leading-relaxed ${isActive ? "text-white/80" : "text-text-tertiary"}`}>{mode.desc}</p>
                                                     </div>
                                                 </button>
                                             )
@@ -1110,7 +1136,7 @@ const SettingsPage = () => {
                                 {/* Theme Toggle */}
                                 <div className="pt-4">
                                     <h3 className="mb-4 text-sm font-medium text-text-secondary">Appearance</h3>
-                                    <div className="flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-transparent p-4">
+                                    <div className="flex items-center justify-between rounded-lg border bg-transparent p-4" style={{ borderColor }}>
                                         <div>
                                             <p className="font-medium text-text-primary">Theme Preference</p>
                                             <div className="mt-1 flex items-center gap-2 text-sm text-text-tertiary">
@@ -1118,16 +1144,16 @@ const SettingsPage = () => {
                                                 {theme === 'dark' ? 'Dark mode is recommended for focus & reduced eye strain' : 'Light mode provides better readability in bright environments'}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 bg-transparent p-1 rounded-lg border border-[var(--border-subtle)]">
+                                        <div className="flex items-center gap-2 bg-transparent p-1 rounded-lg border" style={{ borderColor }}>
                                             <button
-                                                onClick={() => setTheme('light')}
+                                                onClick={() => theme === 'dark' && toggleTheme()}
                                                 className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all ${theme === 'light' ? "bg-white text-blue-600 font-medium shadow-md shadow-black/5" : "text-text-tertiary hover:text-text-primary"
                                                     }`}
                                             >
                                                 <FiSun /> Light
                                             </button>
                                             <button
-                                                onClick={() => setTheme('dark')}
+                                                onClick={() => theme === 'light' && toggleTheme()}
                                                 className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all ${theme === 'dark' ? "bg-gray-800 text-text-primary font-medium shadow-sm" : "text-text-tertiary hover:text-text-primary"
                                                     }`}
                                             >
@@ -1136,6 +1162,38 @@ const SettingsPage = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* VFX Customization (Dark Mode Only) */}
+                                {theme === 'dark' && (
+                                    <div className="pt-4 animate-in fade-in duration-500">
+                                        <h3 className="mb-4 text-sm font-medium text-text-secondary">VFX Presets (Dark Mode Only)</h3>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                                            {[
+                                                { id: 'midnight', label: 'Midnight', colors: 'from-blue-600 via-indigo-600 to-cyan-500', desc: 'Default Balance' },
+                                                { id: 'solar', label: 'Solar Flare', colors: 'from-orange-500 via-amber-500 to-rose-500', desc: 'Warm Energy' },
+                                                { id: 'forest', label: 'Neon Forest', colors: 'from-emerald-500 via-teal-500 to-lime-500', desc: 'Calm Growth' },
+                                                { id: 'ocean', label: 'Deep Ocean', colors: 'from-blue-800 via-blue-600 to-cyan-600', desc: 'Icy Focus' },
+                                                { id: 'royal', label: 'Royal Nebula', colors: 'from-indigo-600 via-violet-600 to-blue-500', desc: 'Premium Depth' }
+                                            ].map((preset) => (
+                                                <button
+                                                    key={preset.id}
+                                                    onClick={() => setVfxPreset(preset.id)}
+                                                    className={`group relative p-3 rounded-xl border transition-all duration-300 flex flex-col items-center gap-2 text-center
+                                                        ${vfxPreset === preset.id
+                                                            ? "border-blue-500/50 bg-blue-500/5 shadow-lg shadow-blue-500/10"
+                                                            : "border-border-subtle bg-transparent hover:border-border-default"}
+                                                    `}
+                                                >
+                                                    <div className={`w-full h-12 rounded-lg bg-gradient-to-br ${preset.colors} opacity-80 group-hover:opacity-100 transition-opacity`} />
+                                                    <div>
+                                                        <p className={`text-xs font-bold ${vfxPreset === preset.id ? 'text-blue-400' : 'text-text-primary'}`}>{preset.label}</p>
+                                                        <p className="text-[10px] text-text-tertiary mt-0.5 whitespace-nowrap">{preset.desc}</p>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -1146,7 +1204,7 @@ const SettingsPage = () => {
             {
                 showAggressiveWarning && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                        <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-background-modal-warning p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-white dark:bg-[#0b1220] p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 mb-4">
                                 <FiAlertCircle className="h-8 w-8 text-red-500" />
                             </div>
@@ -1154,16 +1212,16 @@ const SettingsPage = () => {
                             <p className="mt-2 text-center text-slate-500 dark:text-slate-300">
                                 This mode increases trading risk significantly and is recommended only for experienced traders. Are you sure you want to proceed?
                             </p>
-                            <div className="mt-8 flex gap-3">
+                            <div className="mt-6 flex flex-col sm:flex-row gap-3">
                                 <button
                                     onClick={() => setShowAggressiveWarning(false)}
-                                    className="flex-1 rounded-lg border border-slate-200 bg-white py-2.5 font-medium text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:border-[var(--border-subtle)] dark:text-slate-200 dark:hover:bg-slate-700 transition-all shadow-sm"
+                                    className="flex-1 rounded-lg border border-slate-200 bg-white py-3 font-medium text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:border-[var(--border-subtle)] dark:text-slate-200 dark:hover:bg-slate-700 transition-all shadow-sm"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={confirmAggressiveMode}
-                                    className="flex-1 rounded-lg bg-red-600 py-2.5 font-medium text-white hover:bg-red-500 shadow-lg shadow-red-600/20"
+                                    className="flex-1 rounded-lg bg-red-600 py-3 font-medium text-white hover:bg-red-500 shadow-lg shadow-red-600/20"
                                 >
                                     Proceed
                                 </button>
@@ -1177,7 +1235,7 @@ const SettingsPage = () => {
             {
                 showEmailOtpModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                        <div className="w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-transparent p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="w-full max-w-md rounded-2xl border bg-white dark:bg-[#0b1220] p-6 shadow-2xl animate-in zoom-in-95 duration-200" style={{ borderColor }}>
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-lg font-bold text-text-primary">Change Email Address</h3>
                                 <button onClick={() => setShowEmailOtpModal(false)}><FiX className="text-text-secondary hover:text-text-primary" /></button>
@@ -1189,7 +1247,8 @@ const SettingsPage = () => {
                                     <input
                                         type="email"
                                         placeholder="New Email Address"
-                                        className="w-full rounded-lg border border-[var(--border-subtle)] bg-transparent px-4 py-3 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+                                        className="w-full rounded-lg border bg-transparent px-4 py-3 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+                                        style={{ borderColor }}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') initiateEmailChange(e.currentTarget.value)
                                         }}
@@ -1215,7 +1274,8 @@ const SettingsPage = () => {
                                         maxLength={6}
                                         onChange={(e) => setEmailOtp(e.target.value)}
                                         placeholder="000 000"
-                                        className="w-full rounded-lg border border-[var(--border-subtle)] bg-transparent px-4 py-3 text-center text-xl tracking-widest text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10"
+                                        className="w-full rounded-lg border bg-transparent px-4 py-3 text-center text-xl tracking-widest text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10"
+                                        style={{ borderColor }}
                                     />
                                     <div className="flex justify-between text-xs text-text-tertiary">
                                         <span>Expires in 5:00</span>
@@ -1249,7 +1309,7 @@ const SettingsPage = () => {
             {
                 showVerifyEmailOtpModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                        <div className="w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-transparent p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="w-full max-w-md rounded-2xl border bg-white dark:bg-[#0b1220] p-6 shadow-2xl animate-in zoom-in-95 duration-200" style={{ borderColor }}>
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-bold text-text-primary uppercase tracking-tight">Verify Email</h3>
                                 <button onClick={() => setShowVerifyEmailOtpModal(false)}><FiX className="text-text-secondary hover:text-text-primary shadow-sm" /></button>
@@ -1266,7 +1326,8 @@ const SettingsPage = () => {
                                         maxLength={6}
                                         onChange={(e) => setEmailOtp(e.target.value)}
                                         placeholder="000 000"
-                                        className="w-full rounded-lg border border-[var(--border-subtle)] bg-transparent px-4 py-4 text-center text-2xl font-bold tracking-[0.5em] text-text-primary focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-text-tertiary/20"
+                                        className="w-full rounded-lg border bg-transparent px-4 py-4 text-center text-2xl font-bold tracking-[0.5em] text-text-primary focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-text-tertiary/20"
+                                        style={{ borderColor }}
                                     />
                                 </div>
                                 <div className="flex justify-between text-[10px] text-text-tertiary uppercase font-medium tracking-wider">
@@ -1304,7 +1365,7 @@ const SettingsPage = () => {
             {
                 showEmailChangeModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                        <div className="w-full max-w-md rounded-2xl border border-blue-500/20 bg-transparent p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="w-full max-w-md rounded-2xl border border-blue-500/20 bg-white dark:bg-[#0b1220] p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 mb-4">
                                 <FiAlertCircle className="h-8 w-8 text-blue-500" />
                             </div>
@@ -1321,7 +1382,8 @@ const SettingsPage = () => {
                                         value={pendingEmail}
                                         onChange={(e) => setPendingEmail(e.target.value)}
                                         placeholder="your.email@example.com"
-                                        className="w-full rounded-lg border border-[var(--border-subtle)] bg-transparent px-4 py-3 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10"
+                                        className="w-full rounded-lg border bg-transparent px-4 py-3 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10"
+                                        style={{ borderColor }}
                                     />
                                 </div>
 
@@ -1331,7 +1393,8 @@ const SettingsPage = () => {
                                             setShowEmailChangeModal(false);
                                             setPendingEmail("");
                                         }}
-                                        className="flex-1 rounded-lg border border-[var(--border-subtle)] bg-transparent py-3 text-sm font-medium text-text-secondary hover:bg-transparent hover:text-text-primary transition-all"
+                                        className="flex-1 rounded-lg border bg-transparent py-3 text-sm font-medium text-text-secondary hover:bg-transparent hover:text-text-primary transition-all"
+                                        style={{ borderColor }}
                                     >
                                         Cancel
                                     </button>
@@ -1360,7 +1423,7 @@ const SettingsPage = () => {
             {
                 showDeleteModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                        <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-transparent p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-white dark:bg-[#0b1220] p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 mb-4">
                                 <FiAlertCircle className="h-8 w-8 text-red-500" />
                             </div>
@@ -1378,7 +1441,8 @@ const SettingsPage = () => {
                                     value={deleteConfirmText}
                                     onChange={(e) => setDeleteConfirmText(e.target.value)}
                                     placeholder="Type DELETE here"
-                                    className="w-full rounded-lg border border-[var(--border-subtle)] bg-transparent px-4 py-3 text-center text-text-primary focus:border-red-500 focus:outline-none focus:shadow-lg focus:shadow-red-500/10"
+                                    className="w-full rounded-lg border bg-transparent px-4 py-3 text-center text-text-primary focus:border-red-500 focus:outline-none focus:shadow-lg focus:shadow-red-500/10"
+                                    style={{ borderColor }}
                                 />
 
                                 <div className="flex gap-3 pt-2">
@@ -1388,7 +1452,8 @@ const SettingsPage = () => {
                                             setDeleteConfirmText("");
                                         }}
                                         disabled={isDeleting}
-                                        className="flex-1 rounded-lg border border-[var(--border-subtle)] bg-transparent py-3 text-sm font-medium text-text-secondary hover:bg-transparent hover:text-text-primary transition-all"
+                                        className="flex-1 rounded-lg border bg-transparent py-3 text-sm font-medium text-text-secondary hover:bg-transparent hover:text-text-primary transition-all"
+                                        style={{ borderColor }}
                                     >
                                         Cancel
                                     </button>
@@ -1425,9 +1490,13 @@ const ConnectedBrokerCard = ({ broker, clientId, onClick, loading }) => {
             type="button"
             onClick={onClick}
             disabled={loading}
-            className="w-full text-left group relative flex items-center gap-4 rounded-2xl border border-[var(--border-subtle)] bg-gradient-to-br from-transparent to-transparent p-4 transition-all duration-300 hover:border-blue-500 hover:bg-transparent hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-wait"
+            className="w-full text-left group relative flex items-center gap-4 rounded-2xl border bg-gradient-to-br from-transparent to-transparent p-4 transition-all duration-300 hover:border-blue-500 hover:bg-transparent hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-wait"
+            style={{ borderColor: borderColor }}
         >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-transparent border border-[var(--border-subtle)] group-hover:border-blue-500/20 transition-all">
+            <div
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-transparent border group-hover:border-blue-500/20 transition-all"
+                style={{ borderColor: borderColor }}
+            >
                 {loading ? (
                     <div className="animate-spin text-blue-500">
                         <i className="bx bx-loader-alt text-xl"></i>

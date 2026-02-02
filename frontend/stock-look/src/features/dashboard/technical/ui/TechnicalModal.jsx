@@ -28,7 +28,7 @@ export default function TechnicalModal({ open, onClose, children, card }) {
     else if (relVal >= 6) { relTier = 'Medium'; relColor = 'text-yellow-400'; }
 
     return createPortal(
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${theme}`}>
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4 ${theme}`}>
             {/* BACKDROP */}
             <div
                 className="fixed inset-0 bg-black/10 backdrop-blur-sm transition-opacity"
@@ -53,18 +53,18 @@ export default function TechnicalModal({ open, onClose, children, card }) {
             rounded-2xl
             shadow-2xl
             overflow-hidden
-            max-h-[85vh]
+            max-h-[92vh] md:max-h-[85vh]
           "
                 >
                     {/* FIXED HEADER */}
-                    <div className="relative shrink-0 p-6 border-b border-border-subtle flex justify-between items-start bg-transparent z-10 select-none">
+                    <div className="relative shrink-0 p-4 md:p-6 border-b border-border-subtle flex justify-between items-start bg-transparent z-10 select-none">
                         <div>
-                            <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-text-primary via-text-primary/90 to-text-primary/60 leading-tight pr-8">
+                            <h2 className="text-lg md:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-text-primary via-text-primary/90 to-text-primary/60 leading-tight pr-10 md:pr-8">
                                 {card.label}
                             </h2>
-                            <div className="flex items-center gap-2 mt-2">
+                            <div className="flex items-center gap-2 mt-1 md:mt-2">
                                 <span className="text-[10px] font-mono text-state-bullish-text bg-state-bullish-surface px-1.5 py-0.5 rounded border border-emerald-500/20">LIVE</span>
-                                <span className="text-sm text-text-tertiary border-l border-border-subtle pl-2">
+                                <span className="text-xs md:text-sm text-text-tertiary border-l border-border-subtle pl-2">
                                     {card.desc || `Technical ID: ${card.id}`}
                                 </span>
                             </div>
@@ -73,8 +73,8 @@ export default function TechnicalModal({ open, onClose, children, card }) {
                             onClick={onClose}
                             className="
                                 group
-                                absolute top-5 right-5
-                                w-8 h-8
+                                absolute top-3 right-3 md:top-5 md:right-5
+                                w-10 h-10 md:w-8 md:h-8
                                 flex items-center justify-center
                                 rounded-full
                                 bg-background-elevated
@@ -100,10 +100,10 @@ export default function TechnicalModal({ open, onClose, children, card }) {
 
                         {/* ACTUAL CHART CONTAINER */}
                         <div className="
-                            w-full min-h-[400px] h-[450px]
+                            w-full min-h-[300px] md:min-h-[400px] h-[350px] md:h-[450px]
                             border border-border-subtle rounded-xl 
                             bg-background-elevated/40
-                            p-4 relative
+                            p-3 md:p-4 relative
                             group
                         ">
 
@@ -117,15 +117,21 @@ export default function TechnicalModal({ open, onClose, children, card }) {
 
                             </div>
                         </div>
+
+                        {/* Mobile Desks Stacking */}
+                        <div className="lg:hidden space-y-6 mt-6">
+                            <TechnicalInterpretationDesk card={card} />
+                            <TechnicalMetricsDesk card={card} />
+                        </div>
                     </div>
 
                     {/* FIXED FOOTER */}
-                    <div className="shrink-0 p-5 border-t border-border-subtle bg-background-card/75 backdrop-blur-xl z-10">
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-xs text-text-primary">
+                    <div className="shrink-0 p-4 md:p-5 border-t border-border-subtle bg-background-card/75 backdrop-blur-xl z-10">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 text-[10px] md:text-xs text-text-primary">
                             <div>
                                 <div className="text-text-tertiary uppercase tracking-wider mb-1">Raw Value</div>
-                                <div className="font-mono text-text-primary text-sm font-bold">
-                                    {card.raw} <span className="text-[10px] font-normal text-text-tertiary">{card.unit}</span>
+                                <div className="font-mono text-text-primary text-xs md:text-sm font-bold">
+                                    {card.raw} <span className="text-[9px] md:text-[10px] font-normal text-text-tertiary">{card.unit}</span>
                                 </div>
                             </div>
                             <div>
@@ -135,12 +141,12 @@ export default function TechnicalModal({ open, onClose, children, card }) {
                                 </div>
                             </div>
                             <div>
-                                <div className="text-text-tertiary uppercase tracking-wider mb-1">Impact Weight</div>
+                                <div className="text-text-tertiary uppercase tracking-wider mb-1 md:mb-1">Impact</div>
                                 <div className="font-mono text-text-primary">{(card.weight || 1).toFixed(2)}x</div>
                             </div>
                             <div>
                                 <div className="text-text-tertiary uppercase tracking-wider mb-1">Category</div>
-                                <div className="text-text-primary">{card.category}</div>
+                                <div className="text-text-primary truncate">{card.category}</div>
                             </div>
                         </div>
                     </div>

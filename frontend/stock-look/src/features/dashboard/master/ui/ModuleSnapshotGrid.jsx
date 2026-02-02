@@ -34,7 +34,7 @@ export default function ModuleSnapshotGrid({ snapshots }) {
     };
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3 md:gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 md:gap-6 mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
             {/* 1. Fundamental */}
             {renderCard("fund", "Fundamental", snapshots.fundamental, "regime", null, TOTAL_FUNDAMENTAL_CREDITS)}

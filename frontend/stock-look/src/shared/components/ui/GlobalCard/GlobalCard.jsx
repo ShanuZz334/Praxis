@@ -41,7 +41,7 @@ export function GlobalCard({
   return (
     <Card
       className={cn(
-        "relative group h-[160px]",
+        "relative group h-[140px] md:h-[160px]",
 
         /* Light mode hover (unchanged) */
         "hover:border-border-hover",
@@ -66,17 +66,17 @@ export function GlobalCard({
         <div>
           <div className="flex items-start justify-between mb-2">
             {/* LEFT */}
-            <div className="flex-1 min-h-[56px] flex flex-col justify-center">
-              <div className="text-sm font-semibold text-text-primary line-clamp-2 pr-2 leading-tight">
+            <div className="flex-1 min-h-[48px] md:min-h-[56px] flex flex-col justify-center">
+              <div className="text-xs md:text-sm font-semibold text-text-primary line-clamp-2 pr-1 md:pr-2 leading-tight">
                 {label}
               </div>
 
               {(raw !== undefined || unit || reason) && (
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-xs text-text-secondary font-mono">
+                <div className="flex items-baseline gap-1.5 md:gap-2 mt-0.5 md:mt-1">
+                  <span className="text-[10px] md:text-xs text-text-secondary font-mono">
                     {typeof raw === "number" ? raw.toFixed(2) : raw}
                     {unit && (
-                      <span className="text-[10px] text-text-tertiary ml-1">
+                      <span className="text-[9px] md:text-[10px] text-text-tertiary ml-0.5 md:ml-1">
                         {unit}
                       </span>
                     )}
@@ -98,7 +98,7 @@ export function GlobalCard({
           </div>
 
           {/* BAR */}
-          <div className="h-1.5 bg-background-surface rounded-full overflow-hidden mb-2 mt-2 border border-border-subtle">
+          <div className="h-1 md:h-1.5 bg-background-surface rounded-full overflow-hidden mb-1.5 md:mb-2 mt-1.5 md:mt-2 border border-border-subtle">
             <div
               className="h-full rounded-full transition-all duration-500 ease-out"
               style={{
@@ -110,7 +110,7 @@ export function GlobalCard({
         </div>
 
         {/* FOOTER */}
-        <div className="flex justify-between items-center text-xs mt-auto">
+        <div className="flex justify-between items-center text-[10px] md:text-xs mt-auto">
           <div className="font-medium" style={{ color: derivedColor }}>
             {derivedSignal}
           </div>

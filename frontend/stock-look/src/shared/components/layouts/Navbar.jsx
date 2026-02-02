@@ -2,6 +2,7 @@ import React, { useContext } from "react";
 import { FiBell, FiSettings, FiSun, FiMoon } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "@/shared/context/UserContext";
+import { useTheme } from "@/shared/context/ThemeContext";
 
 import {
   niftySeries,
@@ -13,14 +14,11 @@ import nseLogo from "@/assets/images/nse.png";
 import zerodhaLogo from "@/assets/images/zerodha.png";
 import logo from "@/assets/images/logo1.png";
 import logoBgless from "@/assets/icons/logo_bgless.png";
+import ThemeToggle from "@/shared/components/ui/ThemeToggle";
 
 const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
-  const { theme, setTheme } = useContext(UserContext);
-
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-  };
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header
@@ -98,42 +96,32 @@ const Navbar = ({ onToggleSidebar }) => {
 
         {/* NSE */}
         <button
-          className="w-10 h-10 flex items-center justify-center rounded-lg bg-background-glass backdrop-blur-md border border-border-subtle-translucent transition navbar-icon shadow-sm hover:border-accent-primary/50"
+          className="text-text-tertiary transition-colors"
           onClick={() => window.open("https://www.nseindia.com", "_blank")}
         >
-          <img src={nseLogo} alt="NSE" className="w-8 h-8 object-contain" />
+          <img
+            src={nseLogo}
+            alt="NSE"
+            className="w-6 h-6 object-contain transition-transform hover:scale-110"
+          />
         </button>
 
         {/* Zerodha */}
         <button
-          className="w-10 h-10 flex items-center justify-center rounded-lg bg-background-glass backdrop-blur-md border border-border-subtle-translucent transition navbar-icon shadow-sm hover:border-accent-primary/50"
+          className="text-text-tertiary transition-colors"
           onClick={() => window.open("https://kite.zerodha.com", "_blank")}
         >
           <img
             src={zerodhaLogo}
             alt="Zerodha"
-            className="w-8 h-8 object-contain"
+            className="w-7 h-7 object-contain transition-transform hover:scale-110"
           />
         </button>
 
         <div className="w-5" />
 
-        {/* Temporary Theme Toggle */}
-        <button
-          onClick={toggleTheme}
-          className="
-            text-text-tertiary
-            transition-colors
-            hover:text-amber-500
-          "
-          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-        >
-          {theme === 'dark' ? (
-            <FiSun className="text-xl transition-transform hover:rotate-90 hover:scale-110" />
-          ) : (
-            <FiMoon className="text-xl transition-transform hover:-rotate-12 hover:scale-110" />
-          )}
-        </button>
+        {/* Animated Theme Toggle */}
+        <ThemeToggle />
 
         {/* Notifications */}
         <button

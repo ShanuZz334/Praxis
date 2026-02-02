@@ -12,7 +12,7 @@ export default function TradeDeepDive({ trade, onClose }) {
 
     return (
         <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 ${theme}`}>
-            <div className="bg-[var(--bg-tooltip)] border border-border-default rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto invisibleScroll shadow-2xl relative">
+            <div className="bg-background-tooltip border border-border-default rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto invisibleScroll shadow-2xl relative">
 
                 {/* HEADER */}
                 <div className="px-6 py-5 border-b border-border-default flex items-start justify-between bg-background-surface">

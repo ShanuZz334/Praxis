@@ -41,8 +41,8 @@ const AuthLayout = ({ children }) => {
                 {isVerifying && isSignup ? (
                   <div className="w-full max-w-[320px] space-y-4 animate-in fade-in slide-in-from-left duration-500">
                     <div className="text-center">
-                      <div className="mx-auto w-10 h-10 bg-indigo-500/20 rounded-full flex items-center justify-center mb-2 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.3)]">
-                        <i className="bx bx-shield-quarter text-xl text-indigo-400"></i>
+                      <div className="mx-auto w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center mb-2 shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                        <i className="bx bx-shield-quarter text-xl text-white/80"></i>
                       </div>
                       <h3 className="text-xl font-bold text-white mb-1">Security Check</h3>
                       <p className="text-white/60 text-xs hidden md:block">
@@ -139,9 +139,9 @@ const AuthLayout = ({ children }) => {
               <div className="flex items-center justify-end w-full mb-6 gap-3">
                 <button
                   onClick={() => navigate("/login")}
-                  className={`px-5 py-2 rounded-full text-sm transition-all
+                  className={`px-5 py-2 rounded-full text-sm font-bold transition-all
                     ${isLogin
-                      ? "bg-[#1E1BFF] text-white shadow-[0_0_15px_rgba(30,27,255,0.4)]"
+                      ? "bg-gray-200 text-black shadow-[0_0_15px_rgba(255,255,255,0.25)]"
                       : "bg-white/5 text-white/60 hover:bg-white/10"
                     }`}
                 >
@@ -152,7 +152,7 @@ const AuthLayout = ({ children }) => {
                   onClick={() => navigate("/signup")}
                   className={`px-5 py-2 rounded-full text-sm font-bold transition-all
                     ${!isLogin
-                      ? "bg-[#1E1BFF] text-white shadow-[0_0_15px_rgba(30,27,255,0.4)]"
+                      ? "bg-gray-200 text-black shadow-[0_0_15px_rgba(255,255,255,0.25)]"
                       : "bg-white/5 text-white/60 hover:bg-white/10"
                     }`}
                 >

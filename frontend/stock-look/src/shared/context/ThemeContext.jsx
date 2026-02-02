@@ -13,26 +13,33 @@ export function ThemeProvider({ children }) {
         return 'dark';
     });
 
+    const [vfxPreset, setVfxPreset] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('stocky-vfx-preset');
+            if (saved) return saved;
+            return 'midnight';
+        }
+        return 'midnight';
+    });
+
     useEffect(() => {
         const root = window.document.documentElement;
-
-        // Remove old class
         root.classList.remove('light', 'dark');
-
-        // Add new class and data-attribute
         root.classList.add(theme);
         root.setAttribute('data-theme', theme);
-
-        // Save to local storage
         localStorage.setItem('stocky-theme', theme);
     }, [theme]);
+
+    useEffect(() => {
+        localStorage.setItem('stocky-vfx-preset', vfxPreset);
+    }, [vfxPreset]);
 
     const toggleTheme = () => {
         setTheme(prev => prev === 'dark' ? 'light' : 'dark');
     };
 
     return (
-        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+        <ThemeContext.Provider value={{ theme, toggleTheme, vfxPreset, setVfxPreset }}>
             {children}
         </ThemeContext.Provider>
     );

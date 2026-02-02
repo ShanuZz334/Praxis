@@ -7,13 +7,9 @@ export default function JournalAIInsights({ onToggleNotes }) {
 
             {/* LEFT: SYSTEM IDENTITY */}
             <div className="hidden md:flex items-center gap-6">
-                <div className="flex items-center gap-2.5 text-emerald-500 bg-background-elevated px-3 py-1.5 rounded-lg border border-border-default shadow-sm font-bold">
-                    <Activity size={16} className="animate-pulse" />
-                    <span className="text-[11px] font-black uppercase tracking-[0.2em] font-mono">Stocky Journal v2.0</span>
-                </div>
-                <div className="flex items-center gap-2 text-[11px] text-text-secondary font-black uppercase tracking-widest opacity-80">
-                    <ShieldCheck size={14} className="text-accent-primary" />
-                    <span>Execution Monitoring Active</span>
+                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest">
+                    <ShieldCheck size={14} className="text-emerald-500" />
+                    <span className="text-emerald-500">Execution Monitoring Active</span>
                 </div>
             </div>
 

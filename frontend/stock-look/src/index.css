@@ -36,11 +36,10 @@ html[data-theme="dark"] {
 
   /* Backgrounds */
   --bg-app: #02050e;
-  --bg-card: #0b1220;
-  /* Match Tooltip */
-  --bg-card-primary: #0b1220;
-  /* Match Tooltip */
-  --bg-card-secondary: #0b1220;
+  --bg-card: #0f172a;
+  /* Reduced darkness for better contrast */
+  --bg-card-primary: #0f172a;
+  --bg-card-secondary: #0f172a;
   /* Match Tooltip (Flattened) */
   --bg-surface: rgba(255, 255, 255, 0.02);
   --bg-elevated: #0b1220;
@@ -48,10 +47,10 @@ html[data-theme="dark"] {
   --bg-tooltip: #0b1220;
 
   /* Borders — 1px, ULTRA FADED (Matching Header) */
-  --border-default: rgba(255, 255, 255, 0.10);
-  --border-subtle: rgba(255, 255, 255, 0.05);
-  --border-subtle-translucent: rgba(255, 255, 255, 0.08);
-  --border-subtle-faint: rgba(255, 255, 255, 0.03);
+  --border-default: rgba(255, 255, 255, 0.15);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-subtle-translucent: rgba(255, 255, 255, 0.12);
+  --border-subtle-faint: rgba(255, 255, 255, 0.05);
 
   /* Text */
   --text-primary: rgba(255, 255, 255, 0.9);
@@ -92,7 +91,7 @@ html[data-theme="dark"] {
 
   --scrollbar-thumb: rgba(255, 255, 255, 0.15);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
-  --shadow-card-3d-hover: 0 18px 40px rgba(0, 0, 0, 0.65);
+  --shadow-card-3d-hover: 0 8px 30px rgba(30, 27, 255, 0.3);
 }
 
 /* =========================================================
@@ -107,7 +106,7 @@ html[data-theme="light"],
   --bg-card-secondary: transparent;
   --bg-surface: transparent;
   --bg-elevated: transparent;
-  --bg-tooltip: rgba(255, 255, 255, 0.9);
+  --bg-tooltip: #ffffff;
   /* Faded White */
 
   /* Darkened for visibility (PITCH BLACK per user request) */
@@ -199,4 +198,159 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
+}
+
+/* ------------------------------
+   PREMIUM BACKGROUND VFX ANIMATIONS
+-------------------------------- */
+
+/* Slow floating animation - 20s cycle */
+@keyframes float-slow {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -40px) scale(1.05);
+  }
+
+  66% {
+    transform: translate(-20px, 30px) scale(0.95);
+  }
+}
+
+/* Delayed floating - 25s cycle with offset */
+@keyframes float-delayed {
+
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  25% {
+    transform: translate(-35px, 25px) rotate(2deg);
+  }
+
+  50% {
+    transform: translate(20px, -30px) rotate(-2deg);
+  }
+
+  75% {
+    transform: translate(25px, 20px) rotate(1deg);
+  }
+}
+
+/* Reverse floating - 22s cycle */
+@keyframes float-reverse {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  40% {
+    transform: translate(-25px, -35px) scale(1.08);
+  }
+
+  80% {
+    transform: translate(35px, 25px) scale(0.92);
+  }
+}
+
+/* Medium speed float - 18s cycle */
+@keyframes float-medium {
+
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(-40px, 40px);
+  }
+}
+
+/* Fast subtle float - 15s cycle */
+@keyframes float-fast {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(25px, -25px) scale(1.1);
+  }
+}
+
+/* Slow pulse - 8s cycle */
+@keyframes pulse-slow {
+
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+/* Drift animation - 30s cycle */
+@keyframes drift {
+
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  25% {
+    transform: translate(50px, -30px) rotate(5deg);
+  }
+
+  50% {
+    transform: translate(-30px, 40px) rotate(-5deg);
+  }
+
+  75% {
+    transform: translate(40px, 30px) rotate(3deg);
+  }
+}
+
+/* Apply animations */
+.animate-float-slow {
+  animation: float-slow 20s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 25s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+.animate-float-reverse {
+  animation: float-reverse 22s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+.animate-float-medium {
+  animation: float-medium 18s ease-in-out infinite;
+  animation-delay: 3s;
+}
+
+.animate-float-fast {
+  animation: float-fast 15s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 8s ease-in-out infinite;
+}
+
+.animate-drift {
+  animation: drift 30s ease-in-out infinite;
+  animation-delay: 4s;
 }

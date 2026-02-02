@@ -153,7 +153,7 @@ export default function MasterDashboard() {
     }, []);
 
     return (
-        <div className="p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto h-full space-y-6">
+        <div className="p-4 sm:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto h-full space-y-4 md:space-y-6">
 
             {/* HEADER AREA */}
             <GlobalHeader

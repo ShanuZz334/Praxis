@@ -38,13 +38,32 @@ export default function TechnicalGrid({
     }, [cards]);
 
     // Section Order (using the config from helper or indicatorConfig orders)
-    // We already have 6 main categories mapped in config.
     const SECTION_ORDER = ["Trend", "Momentum", "Volatility", "Volume", "Breadth", "Structure"];
 
     return (
-        <>
+        <div className="space-y-6">
+            {/* Category Navigator (Mobile/Tablet Only) */}
+            {viewMode === "sectioned" && (
+                <div className="lg:hidden flex overflow-x-auto gap-2 pb-2 -mx-1 px-1 custom-scrollbar-hidden sticky top-0 bg-background-app/80 backdrop-blur-md z-30 py-3">
+                    {SECTION_ORDER.map(section => {
+                        if (!grouped[section]?.length) return null;
+                        return (
+                            <button
+                                key={section}
+                                onClick={() => {
+                                    const el = document.getElementById(`section-${section}`);
+                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }}
+                                className="shrink-0 px-3 py-1.5 rounded-full bg-background-elevated border border-border-subtle text-[11px] font-bold text-text-secondary hover:text-text-primary hover:border-border-default transition-all whitespace-nowrap"
+                            >
+                                {section}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
             {viewMode === "flat" ? (
-                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 md:gap-4">
                     {cards.length === 0 && searchQuery ? (
                         <div className="col-span-4 p-12 text-center text-text-tertiary italic">No technicals found for "{searchQuery}"</div>
                     ) : (
@@ -58,7 +77,7 @@ export default function TechnicalGrid({
                     )}
                 </div>
             ) : (
-                <div className="space-y-10">
+                <div className="space-y-8 md:space-y-10">
                     {SECTION_ORDER.map((section) => {
                         let sectionCards = grouped[section];
                         if (!sectionCards || sectionCards.length === 0) return null;
@@ -67,21 +86,19 @@ export default function TechnicalGrid({
                         sectionCards = sortCards(sectionCards, sortMode);
 
                         return (
-                            <div key={section} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div key={section} id={`section-${section}`} className="animate-in fade-in slide-in-from-bottom-4 duration-500 scroll-mt-20">
                                 {/* Section Header (Matched to Fundamental) */}
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="h-px flex-1 bg-gradient-to-r from-border-default to-transparent" />
+                                <div className="flex items-center justify-center gap-4 mb-4 md:mb-6">
                                     <div className="flex items-center gap-3">
                                         <span className="text-sm font-bold text-text-primary uppercase tracking-widest">{section}</span>
                                         <span className="text-[10px] px-1.5 py-0.5 rounded border border-border-default bg-background-surface text-text-tertiary font-mono shadow-sm">
                                             {sectionCards.length}
                                         </span>
                                     </div>
-                                    <div className="h-px flex-1 bg-gradient-to-l from-border-default to-transparent" />
                                 </div>
 
                                 {/* Cards */}
-                                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+                                <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 md:gap-4">
                                     {sectionCards.map((card) => (
                                         <TechnicalCard
                                             key={card.id}
@@ -95,6 +112,6 @@ export default function TechnicalGrid({
                     })}
                 </div>
             )}
-        </>
+        </div>
     );
 }

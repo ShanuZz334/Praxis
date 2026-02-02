@@ -14,21 +14,21 @@ export default function SignalAlignmentMatrix({ alerts }) {
   return (
     <Card className="h-full max-h-[360px] flex flex-col min-h-0 overflow-hidden p-0">
       {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-border-subtle">
+      <div className="flex-shrink-0 px-3 md:px-4 py-2 md:py-3 border-b border-border-subtle">
         <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <MessageCircle size={14} className="text-accent-primary" />
-            <span className="text-xs font-bold uppercase tracking-widest text-text-primary">
+          <div className="flex items-center gap-1.5 md:gap-2">
+            <MessageCircle size={12} className="text-accent-primary" />
+            <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-text-primary">
               AI Insights
             </span>
           </div>
-          <span className="text-[10px] text-text-tertiary italic">Live Feed</span>
+          <span className="text-[9px] md:text-[10px] text-text-tertiary italic">Live Feed</span>
         </div>
       </div>
 
       {/* Scroll Area */}
       <div
-        className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3"
+        className="flex-1 min-h-0 overflow-y-auto px-3 md:px-4 py-2 md:py-3 space-y-2 md:space-y-3"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none'

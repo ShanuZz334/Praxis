@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Calendar, Edit3, Save, Clock, TrendingUp, TrendingDown, Minus, Info, Lock, Palette, Signal, RotateCcw } from "lucide-react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
@@ -164,7 +165,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
 
         return (
             <div className="flex flex-col gap-4">
-                <span className="text-[11px] font-black text-text-primary uppercase tracking-[0.25em] text-center border-b border-border-subtle/30 pb-2">{firstDayOfMonth.format("MMMM")}</span>
+                <span className="text-[9px] font-black text-text-primary uppercase tracking-[0.2em] text-center border-b border-border-subtle/30 pb-1.5">{firstDayOfMonth.format("MMMM")}</span>
                 <div className="grid grid-cols-7 gap-[4px]">
                     {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(d => (
                         <div key={d} className="w-5 h-5 flex items-center justify-center text-[7px] font-black text-text-secondary tracking-tighter">{d}</div>
@@ -185,25 +186,19 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
     // Today can start in Edit mode and switch to Read mode after commit.
     const showEditor = isTodaySelected && isEditingToday;
 
-    return (
+    return createPortal(
         <div
-            className="fixed z-50 flex items-center justify-center pt-0 px-4 pb-4 overflow-hidden"
-            style={{
-                top: "var(--navbar-height)",
-                left: "var(--sidebar-width)",
-                right: 0,
-                bottom: 0,
-                width: "calc(100% - var(--sidebar-width))",
-                height: "calc(100vh - var(--navbar-height))"
-            }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={onClose}
         >
             <Toaster position="top-right" />
 
             <motion.div
-                initial={{ opacity: 0, scale: 0.99, y: 10 }}
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.99, y: -10 }}
-                className="bg-background-card/98 backdrop-blur-3xl border-x border-b border-border-default rounded-b-2xl w-full max-w-[1600px] h-full flex flex-col lg:flex-row overflow-hidden shadow-2xl"
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-background-tooltip border border-border-default rounded-2xl w-full max-w-[1600px] max-h-[90vh] flex flex-col lg:flex-row overflow-hidden shadow-2xl"
             >
                 {/* LEFT (TOP on Mobile): CALENDAR WORKSPACE */}
                 <div className="w-full h-1/2 lg:h-auto lg:flex-1 bg-background-subtle p-6 lg:p-12 flex flex-col overflow-y-auto no-scrollbar order-1 border-r border-border-subtle">
@@ -371,14 +366,15 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                     </div>
                 </div>
             </motion.div>
-        </div>
+        </div>,
+        document.body
     );
 }
 
 function LegendItem({ label, color, symbol, border = "" }) {
     return (
         <div className="flex items-center gap-2.5">
-            <div className={`w-3 h-3 rounded-md ${color} ${border} flex items-center justify-center text-[8px] font-black text-white shadow-sm border`}>
+            <div className={`w-3 h-3 rounded-md ${color} ${border} flex items-center justify-center text-[8px] font-black ${symbol ? 'text-text-secondary' : 'text-white'} shadow-sm border`}>
                 {symbol}
             </div>
             <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">{label}</span>

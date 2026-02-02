@@ -66,7 +66,7 @@ export default function PortalTooltip({
     const hide = () => {
         hoverTimeout.current = setTimeout(() => {
             setIsVisible(false);
-        }, 300);
+        }, 100);
     };
 
     // Effects
