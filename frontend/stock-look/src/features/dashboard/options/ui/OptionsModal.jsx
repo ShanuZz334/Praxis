@@ -34,36 +34,36 @@ export default function OptionsModal({ open, onClose, card }) {
             <div className="relative flex flex-col w-full max-w-4xl max-h-[90vh] bg-background-tooltip border border-border-default rounded-2xl shadow-xl overflow-hidden pointer-events-auto">
 
                 {/* HEADER */}
-                <div className="shrink-0 p-6 border-b border-border-subtle flex justify-between items-start bg-transparent z-10 select-none">
+                <div className="shrink-0 p-4 md:p-6 border-b border-border-subtle flex justify-between items-start bg-transparent z-10 select-none">
                     <div>
-                        <div className="text-xs font-bold text-text-tertiary uppercase tracking-widest mb-2">
+                        <div className="text-[10px] md:text-xs font-bold text-text-tertiary uppercase tracking-widest mb-1 md:mb-2">
                             {card.category} Analysis
                         </div>
-                        <h2 className="text-2xl font-bold text-text-primary leading-tight">
+                        <h2 className="text-xl md:text-2xl font-bold text-text-primary leading-tight">
                             {card.label}
                         </h2>
-                        <div className="flex items-center gap-3 mt-1">
-                            <span className="text-lg font-mono text-accent-primary font-bold">{card.value} {card.unit}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded border ${card.trend === 'up' ? 'text-state-bullish-text border-emerald-500/20 bg-state-bullish-surface' : 'text-text-secondary border-border-subtle'}`}>
+                        <div className="flex items-center gap-2 md:gap-3 mt-1">
+                            <span className="text-sm md:text-lg font-mono text-accent-primary font-bold">{card.value} {card.unit}</span>
+                            <span className={`text-[10px] md:text-xs px-2 py-0.5 rounded border ${card.trend === 'up' ? 'text-state-bullish-text border-emerald-500/20 bg-state-bullish-surface' : 'text-text-secondary border-border-subtle'}`}>
                                 {card.change}
                             </span>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="w-8 h-8 flex items-center justify-center rounded-full bg-background-elevated text-text-tertiary hover:text-text-primary hover:bg-background-subtle transition-colors border border-border-subtle"
+                        className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded-full bg-background-elevated text-text-tertiary hover:text-text-primary hover:bg-background-subtle transition-colors border border-border-subtle"
                     >
                         ✕
                     </button>
                 </div>
 
                 {/* BODY layout */}
-                <div className="flex-1 flex overflow-hidden">
+                <div className="flex-1 flex flex-col md:flex-row overflow-hidden overflow-y-auto md:overflow-y-hidden">
 
                     {/* LEFT PANEL: CONTEXT */}
-                    <div className="w-1/3 border-r border-border-subtle p-6 bg-background-elevated/40 overflow-y-auto custom-scrollbar">
-                        <h3 className="text-sm font-bold text-text-primary mb-4">What this means</h3>
-                        <p className="text-sm text-text-secondary leading-relaxed mb-6 font-light">
+                    <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-border-subtle p-4 md:p-6 bg-background-elevated/40 shrink-0">
+                        <h3 className="text-sm font-bold text-text-primary mb-3 md:mb-4">What this means</h3>
+                        <p className="text-xs md:text-sm text-text-secondary leading-relaxed mb-4 md:mb-6 font-light">
                             {card.interpretation}. <br /><br />
                             This metric combines raw exchange data with derived algorithmic scoring to determine the directional bias of institutional positioning.
                         </p>
@@ -91,8 +91,8 @@ export default function OptionsModal({ open, onClose, card }) {
                         </div>
                     </div>
 
-                    {/* RIGHT PANEL: VISUALIZATION (Placeholder for Charts) */}
-                    <div className="flex-1 p-6 flex flex-col bg-transparent relative group">
+                    {/* RIGHT PANEL: VISUALIZATION */}
+                    <div className="w-full md:flex-1 p-4 md:p-6 flex flex-col bg-transparent relative group min-h-[300px]">
                         <div className="w-full h-full relative z-10">
                             <OptionsHistoryChart
                                 trend={card.trend}

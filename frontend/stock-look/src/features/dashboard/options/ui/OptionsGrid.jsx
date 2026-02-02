@@ -53,7 +53,27 @@ export default function OptionsGrid({
     }
 
     return (
-        <div className="space-y-10">
+        <div className="space-y-6 md:space-y-10">
+            {/* Category Navigator (Mobile/Tablet Only) */}
+            {viewMode === "sectioned" && (
+                <div className="lg:hidden flex overflow-x-auto gap-2 pb-2 -mx-1 px-1 custom-scrollbar-hidden sticky top-0 bg-background-app/80 backdrop-blur-md z-30 py-3">
+                    {optionsSections.map(section => {
+                        if (!grouped[section.id]?.length) return null;
+                        return (
+                            <button
+                                key={section.id}
+                                onClick={() => {
+                                    const el = document.getElementById(`section-${section.id}`);
+                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }}
+                                className="shrink-0 px-3 py-1.5 rounded-full bg-background-elevated border border-border-subtle text-[11px] font-bold text-text-secondary hover:text-text-primary hover:border-border-default transition-all whitespace-nowrap"
+                            >
+                                {section.label}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
             {optionsSections.map((section) => {
                 const sectionCards = grouped[section.id];
                 if (!sectionCards || sectionCards.length === 0) return null;
@@ -61,9 +81,9 @@ export default function OptionsGrid({
                 const sortedSectionCards = sortCards(sectionCards, sortMode);
 
                 return (
-                    <div key={section.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div key={section.id} id={`section-${section.id}`} className="animate-in fade-in slide-in-from-bottom-4 duration-500 scroll-mt-20">
                         {/* Section Header */}
-                        <div className="mb-4 flex items-center justify-center gap-4">
+                        <div className="mb-3 md:mb-4 flex items-center justify-center gap-4">
                             <div className="flex items-center gap-3">
                                 <span className="text-sm font-medium text-text-secondary uppercase tracking-widest">{section.label}</span>
                                 <span className="text-[10px] px-1.5 py-0.5 rounded border border-border-default bg-background-surface text-text-tertiary font-mono shadow-sm">

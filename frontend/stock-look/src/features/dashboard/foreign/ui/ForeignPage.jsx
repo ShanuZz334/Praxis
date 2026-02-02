@@ -85,7 +85,7 @@ export default function ForeignPage() {
     }, [filteredCards, sortMode]);
 
     return (
-        <div className="p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-6">
+        <div className="p-4 md:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">
 
             <GlobalHeader
                 title="Global Structure"

@@ -110,7 +110,7 @@ export default function GlobalHeader({
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* MAIN BLOCK */}
-            <div className={`relative rounded-2xl border ${STYLES.BORDER_OUTER} shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden bg-transparent`}>
+            <div className={`relative rounded-2xl border ${STYLES.BORDER_OUTER} md:dark:border-[var(--border-default)] dark:border-blue-500 shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden bg-transparent`}>
 
                 {/* TOP ROW: GAUGE | REGIME | INTEGRITY */}
                 <div className={`grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x ${STYLES.DIVIDE} bg-transparent min-h-0 lg:min-h-[220px]`}>
@@ -392,20 +392,16 @@ function HeaderControls({ controls }) {
 
                     {/* Sort Mode Toggle */}
                     {controls.onSortChange && (
-                        <div className="flex-1">
-                            <CardSegmented
-                                value={controls.sortMode}
-                                onChange={controls.onSortChange}
-                                size="xs"
-                                fullWidth
-                                options={controls.sortOptions || [
-                                    { value: "score_desc", label: "Strongest" },
-                                    { value: "score_asc", label: "Weakest" },
-                                    { value: "rel_desc", label: "High Credit" },
-                                    { value: "rel_asc", label: "Low Credit" },
-                                ]}
-                            />
-                        </div>
+                        <CardSegmented
+                            value={controls.sortMode}
+                            onChange={controls.onSortChange}
+                            options={controls.sortOptions || [
+                                { value: "score_desc", label: "Strongest" },
+                                { value: "score_asc", label: "Weakest" },
+                                { value: "rel_desc", label: "High Credit" },
+                                { value: "rel_asc", label: "Low Credit" },
+                            ]}
+                        />
                     )}
                 </div>
             </div>

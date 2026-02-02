@@ -56,7 +56,7 @@ const Login = () => {
   };
 
   return (
-    <div>
+    <div className="w-full max-w-sm md:max-w-md mx-auto p-2 md:p-0">
       <h2 className="text-3xl font-bold text-white mb-2">
         Login
       </h2>
@@ -64,19 +64,19 @@ const Login = () => {
         Access your trading dashboard
       </p>
 
-      <form onSubmit={handleLogin} className="space-y-3">
+      <form onSubmit={handleLogin} className="space-y-4 md:space-y-3">
         {/* Email */}
         <div>
           <label className="text-xs text-white/70 block mb-2">
             Email
           </label>
-          <div className="bg-white/10 border border-white/20 rounded-md px-3 py-3 flex items-center">
+          <div className="bg-white/10 border border-white/20 rounded-md px-3 py-3 md:py-3 flex items-center transition-colors focus-within:border-blue-500/50">
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="john@example.com"
-              className="w-full bg-transparent outline-none text-white placeholder:text-white/40"
+              className="w-full bg-transparent outline-none text-white placeholder:text-white/40 h-6"
             />
           </div>
         </div>
@@ -86,13 +86,13 @@ const Login = () => {
           <label className="text-xs text-white/70 block mb-2">
             Password
           </label>
-          <div className="bg-white/10 border border-white/20 rounded-md px-3 py-3 flex items-center">
+          <div className="bg-white/10 border border-white/20 rounded-md px-3 py-3 md:py-3 flex items-center transition-colors focus-within:border-blue-500/50">
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Min 8 Characters"
-              className="w-full bg-transparent outline-none text-white placeholder:text-white/40"
+              className="w-full bg-transparent outline-none text-white placeholder:text-white/40 h-6"
             />
           </div>
         </div>
@@ -104,7 +104,7 @@ const Login = () => {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-3 rounded-md bg-[#1E1BFF] text-white font-medium shadow-md hover:bg-[#1720cc] transition disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+          className="w-full py-3.5 md:py-3 rounded-md bg-[#1E1BFF] text-white font-medium shadow-md hover:bg-[#1720cc] transition disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center active:scale-[0.98]"
         >
           {isLoading ? (
             <Loader size="xxs" color="white" />
@@ -113,7 +113,7 @@ const Login = () => {
           )}
         </button>
 
-        <p className="text-center text-white/60 text-sm">
+        <p className="text-center text-white/60 text-sm pt-2">
           Don't have an account?{" "}
           <button
             type="button"

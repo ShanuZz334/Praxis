@@ -25,7 +25,7 @@ export default function AboutPage() {
                 <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-emerald-600/5 rounded-full blur-[120px]" />
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-6 pt-28 pb-12 md:py-20 space-y-16 md:space-y-24 animate-in fade-in duration-700">
+            <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 pt-24 pb-12 md:py-20 space-y-12 md:space-y-24 animate-in fade-in duration-700">
 
                 {/* 1. HERO SECTION */}
                 <div className="text-center max-w-3xl mx-auto space-y-6">
@@ -34,20 +34,20 @@ export default function AboutPage() {
                         System Version 2.0
                     </div>
 
-                    <h1 className="text-3xl md:text-6xl font-bold tracking-tight text-text-primary animate-in slide-in-from-bottom-4 duration-700 delay-200">
-                        Precision Intelligence <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-emerald-500">
+                    <h1 className="text-3xl md:text-6xl font-bold tracking-tight text-text-primary animate-in slide-in-from-bottom-4 duration-700 delay-200 leading-tight md:leading-tight">
+                        Precision Intelligence <br className="hidden md:block" />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-emerald-500 block md:inline mt-2 md:mt-0">
                             For Discretionary Traders
                         </span>
                     </h1>
 
-                    <p className="text-base md:text-xl text-text-secondary leading-relaxed animate-in slide-in-from-bottom-4 duration-700 delay-300">
+                    <p className="text-sm md:text-xl text-text-secondary leading-relaxed animate-in slide-in-from-bottom-4 duration-700 delay-300 max-w-xl mx-auto md:max-w-3xl">
                         Stocky is not a signal service. It is an <span className="text-blue-500 font-medium">institutional-grade decision support system</span> designed to align market context, probability, and risk execution.
                     </p>
                 </div>
 
                 {/* 2. CORE PHILOSOPHY GRID */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in slide-in-from-bottom-8 duration-700 delay-500">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 animate-in slide-in-from-bottom-8 duration-700 delay-500">
                     <PhilosophyCard
                         icon={Shield}
                         title="Risk First"
@@ -161,7 +161,7 @@ export default function AboutPage() {
                 </div>
 
                 {/* 5. FOOTER / CREDITS */}
-                <div className="border-t border-border-default pt-12 flex flex-col md:flex-row justify-between items-center gap-6 text-sm text-text-tertiary animate-in fade-in duration-1000 delay-1000">
+                <div className="border-t border-border-default pt-8 md:pt-12 flex flex-col md:flex-row justify-between items-center gap-6 text-sm text-text-tertiary animate-in fade-in duration-1000 delay-1000">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-background-surface">
                             <Code2 size={20} className="text-text-secondary" />

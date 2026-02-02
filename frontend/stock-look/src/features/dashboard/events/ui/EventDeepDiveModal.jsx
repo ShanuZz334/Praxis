@@ -127,17 +127,17 @@ export default function EventDeepDiveModal({ open, onClose, event }) {
             <div className="fixed inset-0 bg-black/10 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
             {/* LAYOUT CONTAINER */}
-            <div className="relative flex items-stretch justify-center gap-6 max-w-[1400px] w-full h-[600px] pointer-events-none">
+            <div className="relative flex flex-col lg:flex-row items-stretch justify-center gap-4 lg:gap-6 max-w-[1400px] w-full h-[85vh] lg:h-[600px] pointer-events-none overflow-y-auto lg:overflow-visible">
 
                 {/* LEFT */}
-                <div className="hidden lg:block w-[280px] pointer-events-auto">
+                <div className="w-full lg:w-[280px] pointer-events-auto shrink-0 order-2 lg:order-1">
                     <EventInterpretationDesk event={event} />
                 </div>
 
                 {/* CENTER */}
-                <div className="flex-1 min-w-0 bg-background-card/98 border border-border-default backdrop-blur-3xl rounded-2xl shadow-xl flex flex-col overflow-hidden pointer-events-auto">
+                <div className="flex-1 min-w-0 bg-background-card/98 border border-border-default backdrop-blur-3xl rounded-2xl shadow-xl flex flex-col overflow-hidden pointer-events-auto order-1 lg:order-2 min-h-[400px]">
                     {/* Header */}
-                    <div className="shrink-0 p-8 border-b border-border-subtle flex justify-between items-start bg-transparent z-10">
+                    <div className="shrink-0 p-4 md:p-8 border-b border-border-subtle flex justify-between items-start bg-transparent z-10">
                         <div>
                             <h2 className="text-2xl font-black text-text-primary tracking-tighter leading-tight">{event.title}</h2>
                             <div className="text-[10px] font-black text-text-tertiary mt-2 flex gap-4 uppercase tracking-[0.2em] opacity-60">
@@ -175,7 +175,7 @@ export default function EventDeepDiveModal({ open, onClose, event }) {
                 </div>
 
                 {/* RIGHT */}
-                <div className="hidden lg:block w-[280px] pointer-events-auto">
+                <div className="w-full lg:w-[280px] pointer-events-auto shrink-0 order-3">
                     <EventTradingPlaybook event={event} />
                 </div>
 

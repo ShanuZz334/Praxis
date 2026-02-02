@@ -142,7 +142,7 @@ export default function EventsPage() {
     };
 
     return (
-        <div className="p-6 space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
+        <div className="p-4 md:p-6 space-y-6 md:space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
 
             <GlobalHeader
                 title="Events Sentiment"

@@ -77,7 +77,7 @@ export default function TechnicalGrid({
                     )}
                 </div>
             ) : (
-                <div className="space-y-8 md:space-y-10">
+                <div className="space-y-6 md:space-y-10">
                     {SECTION_ORDER.map((section) => {
                         let sectionCards = grouped[section];
                         if (!sectionCards || sectionCards.length === 0) return null;
@@ -88,7 +88,7 @@ export default function TechnicalGrid({
                         return (
                             <div key={section} id={`section-${section}`} className="animate-in fade-in slide-in-from-bottom-4 duration-500 scroll-mt-20">
                                 {/* Section Header (Matched to Fundamental) */}
-                                <div className="flex items-center justify-center gap-4 mb-4 md:mb-6">
+                                <div className="flex items-center justify-center gap-4 mb-3 md:mb-6">
                                     <div className="flex items-center gap-3">
                                         <span className="text-sm font-bold text-text-primary uppercase tracking-widest">{section}</span>
                                         <span className="text-[10px] px-1.5 py-0.5 rounded border border-border-default bg-background-surface text-text-tertiary font-mono shadow-sm">

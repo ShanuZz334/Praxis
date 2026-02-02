@@ -68,8 +68,9 @@ const DashboardLayout = () => {
     <div className="min-h-screen bg-background-app text-text-primary relative overflow-hidden flex flex-col md:block">
 
       {/* LIGHT MODE - SOFT MINT & LAVENDER (LOCKED) */}
+      {/* LIGHT MODE - SOFT MINT & LAVENDER (LOCKED) */}
       {theme === "light" && (
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="hidden md:block fixed inset-0 pointer-events-none z-0 overflow-hidden">
           <div className="absolute inset-0">
             <div className="absolute top-[-15%] left-[-15%] w-[800px] h-[800px] bg-gradient-to-br from-blue-400/18 via-blue-300/12 to-transparent rounded-full blur-[140px] animate-float-slow opacity-100" />
             <div className="absolute top-[-20%] left-[20%] w-[850px] h-[850px] bg-gradient-to-b from-emerald-400/22 via-emerald-300/15 to-transparent rounded-full blur-[150px] animate-float-reverse opacity-95" />
@@ -78,9 +79,14 @@ const DashboardLayout = () => {
         </div>
       )}
 
+      {/* MOBILE BACKGROUND - SIMPLE & CLEAN (NO VFX) */}
+      <div className="md:hidden fixed inset-0 -z-10">
+        <div className={`absolute inset-0 ${theme === 'dark' ? 'bg-[#0F1218] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/50 via-[#0F1218] to-[#0F1218]' : 'bg-gray-50/90'}`} />
+      </div>
+
       {/* PREMIUM ANIMATED BACKGROUND VFX - VIBRANT (DARK MODE ONLY) */}
       {theme === "dark" && (
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="hidden md:block fixed inset-0 pointer-events-none z-0 overflow-hidden">
           {/* Layer 1: Primary Vibrant Orbs - Slow Float */}
           <div className="absolute inset-0">
             <div className={`absolute top-[-15%] left-[-10%] w-[600px] h-[600px] bg-gradient-to-br ${p.layer1[0]} to-transparent rounded-full blur-[140px] animate-float-slow opacity-100`} />
@@ -141,8 +147,9 @@ const DashboardLayout = () => {
 `} onClick={() => setShowMobileMenu(false)} />
 
       <div className={`
-        fixed inset-y-0 left-0 z-[61] w-[280px] bg-[#0b1220]/95 backdrop-blur-xl border-r border-white/10 shadow-2xl transform transition-transform duration-300 md:hidden
+        fixed inset-y-0 left-0 z-[61] w-[280px] backdrop-blur-xl shadow-2xl transform transition-transform duration-300 md:hidden
         ${showMobileMenu ? "translate-x-0" : "-translate-x-full"}
+        ${theme === 'dark' ? 'bg-[#0b1220]/95 border-r border-white/10' : 'bg-white/95 border-r border-gray-200'}
 `}>
         <div className="h-full pt-safe-area-top pb-safe-area-bottom">
           <SideMenu
@@ -151,6 +158,7 @@ const DashboardLayout = () => {
             topOffset={0}
             user={user}
             isMobileDrawer={true}
+            theme={theme}
           />
         </div>
       </div>

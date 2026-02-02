@@ -8,44 +8,50 @@ export default function StockyGaugeSection({ score, regime, risk, readiness }) {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-            {/* 1. MASTER GAUGE (Hero) */}
-            <div className="lg:col-span-1 bg-[#0b1220] border border-white/5 rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col items-center justify-center relative overflow-hidden">
-                <div className="flex items-center gap-2 mb-6">
-                    <Activity size={14} className="text-slate-500" />
-                    <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Stocky Score</div>
-                </div>
+            {/* 1. MASTER GAUGE (Hero) - REVOLVING BORDER */}
+            <div className="lg:col-span-1 relative group">
+                {/* Animated Revolving Border */}
+                <div className="absolute -inset-0.5 bg-[conic-gradient(from_0deg_at_50%_50%,#10b981_0%,#ef4444_50%,#10b981_100%)] rounded-2xl opacity-75 blur-sm animate-[spin_4s_linear_infinite]" />
 
-                <div className="relative w-40 h-40 flex items-center justify-center mb-2">
-                    <svg className="w-full h-full transform -rotate-90">
-                        {/* Background Circle */}
-                        <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800/50" />
-                        {/* Value Circle */}
-                        <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="8" fill="transparent"
-                            className={`${score >= 75 ? 'text-emerald-500' :
-                                score >= 60 ? 'text-lime-500' :
-                                    score >= 40 ? 'text-yellow-500' :
-                                        score >= 25 ? 'text-amber-500' :
-                                            'text-red-500'} transition-all duration-1000 shadow-[0_0_20px_currentColor]`}
-                            strokeDasharray={440}
-                            strokeDashoffset={440 - (440 * score) / 100}
-                            strokeLinecap="round"
-                        />
-                    </svg>
-                    <div className="absolute flex flex-col items-center">
-                        <span className="text-5xl font-bold text-white tracking-tighter leading-none">{score}</span>
-                        <div className={`mt-1 text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${score >= 75 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                            score >= 60 ? 'bg-lime-500/10 text-lime-400 border-lime-500/20' :
-                                score >= 40 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                    score >= 25 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                        'bg-red-500/10 text-red-400 border-red-500/20'
-                            }`}>
-                            {readiness.bias} Bias
+                {/* Main Card Content */}
+                <div className="relative h-full bg-[#0b1220] border border-white/5 rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col items-center justify-center overflow-hidden">
+                    <div className="flex items-center gap-2 mb-6">
+                        <Activity size={14} className="text-slate-500" />
+                        <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Stocky Score</div>
+                    </div>
+
+                    <div className="relative w-40 h-40 flex items-center justify-center mb-2">
+                        <svg className="w-full h-full transform -rotate-90">
+                            {/* Background Circle */}
+                            <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800/50" />
+                            {/* Value Circle */}
+                            <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="8" fill="transparent"
+                                className={`${score >= 75 ? 'text-emerald-500' :
+                                    score >= 60 ? 'text-lime-500' :
+                                        score >= 40 ? 'text-yellow-500' :
+                                            score >= 25 ? 'text-amber-500' :
+                                                'text-red-500'} transition-all duration-1000 shadow-[0_0_20px_currentColor]`}
+                                strokeDasharray={440}
+                                strokeDashoffset={440 - (440 * score) / 100}
+                                strokeLinecap="round"
+                            />
+                        </svg>
+                        <div className="absolute flex flex-col items-center">
+                            <span className="text-5xl font-bold text-white tracking-tighter leading-none">{score}</span>
+                            <div className={`mt-1 text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${score >= 75 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                score >= 60 ? 'bg-lime-500/10 text-lime-400 border-lime-500/20' :
+                                    score >= 40 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                        score >= 25 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                            'bg-red-500/10 text-red-400 border-red-500/20'
+                                }`}>
+                                {readiness.bias} Bias
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="text-[10px] text-slate-500 font-mono">
-                    Model Confidence: <span className="text-slate-300">{readiness.confidence}%</span>
+                    <div className="text-[10px] text-slate-500 font-mono">
+                        Model Confidence: <span className="text-slate-300">{readiness.confidence}%</span>
+                    </div>
                 </div>
             </div>
 

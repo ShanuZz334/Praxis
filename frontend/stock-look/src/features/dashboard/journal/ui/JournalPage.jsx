@@ -17,7 +17,7 @@ export default function JournalPage() {
     return (
         <div className="pb-20 animate-in fade-in duration-500 min-h-screen font-sans">
             {/* 1. SYSTEM MONITOR STRIP (Full Width, Slim) */}
-            <div className="max-w-[1920px] mx-auto px-6 py-6 space-y-6">
+            <div className="max-w-[1920px] mx-auto px-4 md:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
                 <JournalAIInsights onToggleNotes={() => setIsNotesOpen(true)} />
 
                 {/* 2. KPI GRID (Account & Process) */}
@@ -41,8 +41,8 @@ export default function JournalPage() {
                         />
                     </div>
 
-                    {/* RIGHT: ANALYTICS STACK (25%) */}
-                    <div className="hidden xl:block xl:col-span-1 space-y-6">
+                    {/* RIGHT: ANALYTICS STACK (25%) - Visible on mobile now, stacked below */}
+                    <div className="col-span-1 xl:col-span-1 space-y-6">
                         <PerformanceAnalytics analytics={MOCK_JOURNAL_DATA.analytics} />
                         <PsychologyTracker psychology={MOCK_JOURNAL_DATA.psychology} />
                     </div>

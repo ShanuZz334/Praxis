@@ -36,10 +36,10 @@ export default function GlobalStructureModal({ open, onClose, card }) {
             />
 
             {/* MODAL LAYOUT (Three-panel) */}
-            <div className="relative flex items-start justify-center gap-6 max-w-[1600px] w-full max-h-[95vh] pointer-events-none">
+            <div className="relative flex flex-col lg:flex-row items-start justify-center gap-4 lg:gap-6 max-w-[1600px] w-full max-h-[90vh] lg:max-h-[95vh] pointer-events-none overflow-y-auto lg:overflow-visible">
 
                 {/* ⬅ LEFT FLOAT: INTERPRETATION DESK */}
-                <div className="hidden lg:block w-[300px] pointer-events-auto">
+                <div className="w-full lg:w-[300px] pointer-events-auto order-2 lg:order-1 shrink-0">
                     <GlobalInterpretationDesk card={card} />
                 </div>
 
@@ -53,7 +53,9 @@ export default function GlobalStructureModal({ open, onClose, card }) {
             rounded-2xl
             shadow-xl
             overflow-hidden
-            max-h-[85vh]
+            max-h-none lg:max-h-[85vh]
+            order-1 lg:order-2
+            min-h-[450px]
           "
                 >
                     {/* FIXED HEADER */}
@@ -146,7 +148,7 @@ export default function GlobalStructureModal({ open, onClose, card }) {
                 </div>
 
                 {/* ➡ RIGHT FLOAT: METRICS DESK (AI ANALYSIS) */}
-                <div className="hidden lg:block w-[240px] pointer-events-auto">
+                <div className="w-full lg:w-[240px] pointer-events-auto order-3 shrink-0">
                     <GlobalMetricsDesk card={card} />
                 </div>
 

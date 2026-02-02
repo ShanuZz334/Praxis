@@ -1139,10 +1139,6 @@ const SettingsPage = () => {
                                     <div className="flex items-center justify-between rounded-lg border bg-transparent p-4" style={{ borderColor }}>
                                         <div>
                                             <p className="font-medium text-text-primary">Theme Preference</p>
-                                            <div className="mt-1 flex items-center gap-2 text-sm text-text-tertiary">
-                                                <FiInfo className="text-blue-500" />
-                                                {theme === 'dark' ? 'Dark mode is recommended for focus & reduced eye strain' : 'Light mode provides better readability in bright environments'}
-                                            </div>
                                         </div>
                                         <div className="flex items-center gap-2 bg-transparent p-1 rounded-lg border" style={{ borderColor }}>
                                             <button
@@ -1165,7 +1161,7 @@ const SettingsPage = () => {
 
                                 {/* VFX Customization (Dark Mode Only) */}
                                 {theme === 'dark' && (
-                                    <div className="pt-4 animate-in fade-in duration-500">
+                                    <div className="pt-4 animate-in fade-in duration-500 hidden md:block">
                                         <h3 className="mb-4 text-sm font-medium text-text-secondary">VFX Presets (Dark Mode Only)</h3>
                                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                                             {[

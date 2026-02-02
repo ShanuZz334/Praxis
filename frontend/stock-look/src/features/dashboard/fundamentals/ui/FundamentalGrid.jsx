@@ -91,7 +91,7 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
         </div>
       )}
 
-      <div className="space-y-8 md:space-y-12">
+      <div className="space-y-6 md:space-y-12">
         {FUNDAMENTAL_SECTIONS.map(section => {
           const rawList = sections[section.id];
           if (!rawList || rawList.length === 0) return null;
@@ -101,7 +101,7 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
           return (
             <div key={section.id} id={`section-${section.id}`} className="animate-in fade-in slide-in-from-bottom-4 duration-500 scroll-mt-20">
               {/* Section Header */}
-              <div className="flex items-center justify-center gap-4 mb-4 md:mb-6">
+              <div className="flex items-center justify-center gap-4 mb-3 md:mb-6">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-bold text-text-primary uppercase tracking-widest">{section.label}</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded border border-border-default bg-background-surface text-text-tertiary font-mono shadow-sm">

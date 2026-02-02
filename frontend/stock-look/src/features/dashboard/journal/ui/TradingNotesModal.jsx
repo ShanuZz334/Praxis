@@ -201,7 +201,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                 className="bg-background-tooltip border border-border-default rounded-2xl w-full max-w-[1600px] max-h-[90vh] flex flex-col lg:flex-row overflow-hidden shadow-2xl"
             >
                 {/* LEFT (TOP on Mobile): CALENDAR WORKSPACE */}
-                <div className="w-full h-1/2 lg:h-auto lg:flex-1 bg-background-subtle p-6 lg:p-12 flex flex-col overflow-y-auto no-scrollbar order-1 border-r border-border-subtle">
+                <div className="w-full h-auto lg:h-auto lg:flex-1 bg-background-subtle p-4 md:p-6 lg:p-12 flex flex-col overflow-y-auto no-scrollbar order-1 border-b lg:border-b-0 lg:border-r border-border-subtle shrink-0">
                     <div className="flex items-center justify-between mb-6 lg:mb-12 shrink-0">
                         <div className="flex items-center gap-4">
                             <div className="bg-accent-primary/10 p-2.5 rounded-lg border border-accent-primary/20 shadow-sm">
@@ -230,7 +230,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                 </div>
 
                 {/* RIGHT (BOTTOM on Mobile): TERMINAL PANEL */}
-                <div className="w-full h-1/2 lg:h-auto lg:w-[460px] bg-background-card flex flex-col order-2">
+                <div className="w-full h-full lg:h-auto lg:w-[460px] bg-background-card flex flex-col order-2 min-h-[400px]">
                     <div className="px-8 py-10 border-b border-border-subtle flex items-center justify-between">
                         <div>
                             <div className="text-[10px] font-black text-accent-primary uppercase tracking-[0.3em] mb-1.5">{dayjs(selectedDate).format("dddd")} log</div>

@@ -9,21 +9,21 @@ export default function WalletPage() {
     const { summary, allocation, performance, riskRules, positions, systemNote } = MOCK_WALLET_DATA;
 
     return (
-        <div className="p-6 space-y-6 max-w-[1600px] mx-auto pb-20 animate-in fade-in duration-700">
+        <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-[1600px] mx-auto pb-20 animate-in fade-in duration-700">
             {/* 1. TOP SUMMARY STRIP (HERO) - NOW WALLET HEADER */}
             <WalletHeader summary={summary} />
 
             {/* 2. CAPITAL ALLOCATION PANEL */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
                 {allocation.map((item) => (
                     <AllocationCard key={item.id} item={item} />
                 ))}
             </div>
 
             {/* 3. PERFORMANCE & DRAWDOWN + 4. RISK GUARDRAILS */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
                 {/* Left Column: Performance & Drawdown Cards */}
-                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <EquityCurveCard data={performance.equityCurve} />
                     <DrawdownMonitor drawdown={performance.drawdown} />
                 </div>

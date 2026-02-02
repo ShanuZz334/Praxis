@@ -5,7 +5,7 @@ import { SIDE_MENU_DATA } from "../../utils/data";
 import { UserContext } from "../../context/UserContext";
 import { logoutUser } from "../../../services/userService";
 
-const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) => {
+const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false, theme = 'dark' }) => {
   const { user, clearUser } = useContext(UserContext);
   const navigate = useNavigate();
 
@@ -23,6 +23,8 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
     }
     navigate(route);
   };
+
+  const isDarkDrawer = isMobileDrawer && theme === 'dark';
 
   return (
     <aside
@@ -60,7 +62,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
                   text-[20px] transition-all duration-300 ease-out transform
                   ${isActive
                     ? "text-blue-700 scale-110"
-                    : isMobileDrawer
+                    : isDarkDrawer
                       ? "text-white/80 group-hover:text-white group-hover:scale-115"
                       : "text-text-tertiary group-hover:text-blue-400 group-hover:scale-115"
                   }
@@ -74,7 +76,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
                     text-sm font-semibold transition-all duration-300
                     ${isActive
                       ? "text-blue-700"
-                      : isMobileDrawer
+                      : isDarkDrawer
                         ? "text-white/90 group-hover:text-white group-hover:translate-x-2"
                         : "text-text-secondary group-hover:text-blue-400 group-hover:translate-x-2"
                     }
@@ -115,10 +117,10 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false }) 
 
           {(!collapsed || isMobileDrawer) && (
             <div className="leading-tight">
-              <p className={`text-sm font-medium ${isMobileDrawer ? 'text-white' : 'text-text-primary'}`}>
+              <p className={`text-sm font-medium ${isDarkDrawer ? 'text-white' : 'text-text-primary'}`}>
                 {user?.fullName || "Trader"}
               </p>
-              <p className={`text-xs ${isMobileDrawer ? 'text-white/60' : 'text-text-tertiary'}`}>
+              <p className={`text-xs ${isDarkDrawer ? 'text-white/60' : 'text-text-tertiary'}`}>
                 {user?.email || "Active"}
               </p>
             </div>
