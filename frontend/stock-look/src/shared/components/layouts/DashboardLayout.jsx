@@ -168,7 +168,7 @@ const DashboardLayout = () => {
       <main
         className="
           min-h-screen transition-all duration-300 ease-in-out relative z-10
-          pt-[72px] pb-0 md:pt-[60px] md:pb-0
+          pt-[85px] pb-0 md:pt-[60px] md:pb-0
         "
         style={{
           marginLeft: window.innerWidth >= 768 ? sidebarWidth : 0,

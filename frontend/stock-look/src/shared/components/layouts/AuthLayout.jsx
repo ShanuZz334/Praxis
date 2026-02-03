@@ -161,7 +161,7 @@ const AuthLayout = ({ children }) => {
               </div>
 
               {/* Auth Form */}
-              <div className="w-full max-w-[400px] p-8">
+              <div className="w-full max-w-[335px] md:max-w-[400px] p-6 md:p-8">
                 {children}
               </div>
 

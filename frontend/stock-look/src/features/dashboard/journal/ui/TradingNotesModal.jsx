@@ -81,7 +81,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
 
         const days = [];
         for (let i = 0; i < startDay; i++) {
-            days.push(<div key={`pad-${monthIndex}-${i}`} className="w-5 h-5" />);
+            days.push(<div key={`pad-${monthIndex}-${i}`} className="w-4 h-4 sm:w-5 sm:h-5" />);
         }
 
         for (let d = 1; d <= daysInMonth; d++) {
@@ -127,7 +127,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                     <button
                         onClick={() => handleDateSelect(dateStr)}
                         disabled={isFuture}
-                        className={`w-5 h-5 flex items-center justify-center text-[9px] font-black rounded-sm transition-all shadow-sm
+                        className={`w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[7px] sm:text-[9px] font-black rounded-sm transition-all shadow-sm
                             ${bgColor} ${textColor} ${opacity}
                             ${isSelected ? 'ring-2 ring-accent-primary ring-offset-2 ring-offset-background-card z-20 scale-125 shadow-xl !opacity-100' : ''}
                             ${isTodayDate && !isSelected ? 'ring-2 ring-accent-primary/50 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : ''}
@@ -165,10 +165,10 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
 
         return (
             <div className="flex flex-col gap-4">
-                <span className="text-[9px] font-black text-text-primary uppercase tracking-[0.2em] text-center border-b border-border-subtle/30 pb-1.5">{firstDayOfMonth.format("MMMM")}</span>
-                <div className="grid grid-cols-7 gap-[4px]">
-                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(d => (
-                        <div key={d} className="w-5 h-5 flex items-center justify-center text-[7px] font-black text-text-secondary tracking-tighter">{d}</div>
+                <span className="text-[7px] sm:text-[9px] font-black text-text-primary uppercase tracking-[0.2em] text-center border-b border-border-subtle/30 pb-1">{firstDayOfMonth.format("MMMM")}</span>
+                <div className="grid grid-cols-7 gap-[2px] sm:gap-[4px]">
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, index) => (
+                        <div key={`${d}-${index}`} className="w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[6px] sm:text-[7px] font-black text-text-secondary tracking-tighter">{d}</div>
                     ))}
                     {days}
                 </div>
@@ -196,13 +196,12 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
             <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-background-tooltip border border-border-default rounded-2xl w-full max-w-[1600px] max-h-[90vh] flex flex-col lg:flex-row overflow-hidden shadow-2xl"
+                className="bg-background-tooltip border border-border-default rounded-2xl w-full max-w-[1700px] h-[90vh] lg:h-[95vh] flex flex-col lg:flex-row overflow-hidden shadow-2xl m-2 lg:m-0"
             >
-                {/* LEFT (TOP on Mobile): CALENDAR WORKSPACE */}
-                <div className="w-full h-auto lg:h-auto lg:flex-1 bg-background-subtle p-4 md:p-6 lg:p-12 flex flex-col overflow-y-auto no-scrollbar order-1 border-b lg:border-b-0 lg:border-r border-border-subtle shrink-0">
-                    <div className="flex items-center justify-between mb-6 lg:mb-12 shrink-0">
+                {/* LEFT (BOTTOM on Mobile): CALENDAR WORKSPACE */}
+                <div className="w-full h-[50vh] lg:h-full lg:flex-1 bg-background-subtle p-3 md:p-6 lg:p-8 flex flex-col overflow-y-auto no-scrollbar order-2 lg:order-1 border-t lg:border-t-0 lg:border-r border-border-subtle shrink-0">
+                    <div className="flex items-center justify-between mb-4 lg:mb-6 shrink-0">
                         <div className="flex items-center gap-4">
                             <div className="bg-accent-primary/10 p-2.5 rounded-lg border border-accent-primary/20 shadow-sm">
                                 <Calendar size={18} className="text-accent-primary" />
@@ -220,7 +219,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-12 gap-y-12 items-start justify-center max-w-5xl mx-auto pb-10">
+                    <div className="grid grid-cols-2 min-[340px]:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-4 md:gap-x-8 md:gap-y-6 lg:gap-x-10 lg:gap-y-6 items-start justify-center max-w-5xl mx-auto pb-4">
                         {Array.from({ length: 12 }).map((_, i) => (
                             <div key={i} className="flex justify-center w-full">
                                 {renderMiniMonth(i)}
@@ -229,19 +228,19 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                     </div>
                 </div>
 
-                {/* RIGHT (BOTTOM on Mobile): TERMINAL PANEL */}
-                <div className="w-full h-full lg:h-auto lg:w-[460px] bg-background-card flex flex-col order-2 min-h-[400px]">
-                    <div className="px-8 py-10 border-b border-border-subtle flex items-center justify-between">
+                {/* RIGHT (TOP on Mobile): TERMINAL PANEL */}
+                <div className="w-full h-[40vh] lg:h-full lg:w-[460px] bg-background-card flex flex-col order-1 lg:order-2 border-b lg:border-b-0 border-border-subtle shrink-0 lg:shrink-1 overflow-y-auto no-scrollbar">
+                    <div className="px-6 py-4 lg:py-6 border-b border-border-subtle flex items-center justify-between bg-background-surface/50">
                         <div>
-                            <div className="text-[10px] font-black text-accent-primary uppercase tracking-[0.3em] mb-1.5">{dayjs(selectedDate).format("dddd")} log</div>
-                            <div className="text-3xl font-black text-text-primary tracking-tighter">{dayjs(selectedDate).format("DD MMM, YYYY")}</div>
+                            <div className="text-[9px] font-bold text-text-tertiary uppercase tracking-widest leading-none mb-1">{dayjs(selectedDate).format("dddd")}</div>
+                            <div className="text-sm font-black text-text-primary tracking-tight leading-none">{dayjs(selectedDate).format("DD MMM, YYYY")}</div>
                         </div>
-                        <button onClick={onClose} className="p-3 rounded-xl bg-background-elevated text-text-tertiary hover:text-accent-primary hover:bg-background-subtle transition-all border border-border-default active:scale-95 shadow-sm">
-                            <X size={20} />
+                        <button onClick={onClose} className="p-1.5 rounded-lg bg-background-elevated text-text-tertiary hover:text-red-400 transition-all border border-border-default active:scale-95 shadow-sm">
+                            <X size={14} />
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-8 space-y-10 no-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-6 lg:space-y-10 no-scrollbar">
                         {/* Metrics Grid */}
                         <div className="grid grid-cols-2 gap-3">
                             <MetricBox label="Net P&L" value={`₹${(selectedData?.pnl || 0).toLocaleString()}`} color={selectedData?.pnl >= 0 ? "text-emerald-600" : "text-red-600"} />
@@ -346,7 +345,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                                     <div className="flex justify-end mt-4">
                                         <button
                                             onClick={handleSaveNote}
-                                            className="px-5 py-2 bg-[#3b82f6] hover:bg-[#2563eb] text-[10px] font-black text-white uppercase tracking-[0.2em] rounded-lg transition-all shadow-lg active:scale-95 flex items-center gap-2.5"
+                                            className="px-5 py-2 bg-[#1E1BFF] hover:bg-[#1E1BFF]/90 text-[10px] font-black text-white uppercase tracking-[0.2em] rounded-lg transition-all shadow-lg active:scale-95 flex items-center gap-2.5"
                                         >
                                             <Save size={12} /> Commit Record
                                         </button>

@@ -81,9 +81,9 @@ const SignUp = () => {
   };
 
   return (
-    <div className="w-full max-w-sm md:max-w-md mx-auto p-2 md:p-0">
-      <div className="text-center mb-6 md:mb-6">
-        <h2 className="text-3xl font-semibold text-white mb-2">
+    <div className="w-full max-w-[320px] md:max-w-md mx-auto p-2 md:p-0">
+      <div className="text-center mb-5 md:mb-6">
+        <h2 className="text-2xl md:text-3xl font-semibold text-white mb-2">
           Create Account
         </h2>
         <p className="text-sm text-white/70">
@@ -91,7 +91,7 @@ const SignUp = () => {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-3 md:space-y-3">
 
         {/* PROFILE IMAGE (Desktop Only) */}
         <div className="hidden md:flex justify-center mb-4">
@@ -139,7 +139,7 @@ const SignUp = () => {
           <label className="text-xs text-white/70 block mb-1">
             Full Name
           </label>
-          <div className="bg-white/10 rounded-md border border-white/20 px-3 py-3 md:py-3 flex items-center transition-colors focus-within:border-blue-500/50">
+          <div className="bg-white/10 rounded-md border border-white/20 px-3 py-2 md:py-3 flex items-center transition-colors focus-within:border-blue-500/50">
             <input
               type="text"
               className="w-full bg-transparent text-white text-sm outline-none placeholder:text-white/40 h-6"
@@ -155,7 +155,7 @@ const SignUp = () => {
           <label className="text-xs text-white/70 block mb-1">
             Email
           </label>
-          <div className="bg-white/10 rounded-md border border-white/20 px-3 py-3 md:py-3 flex items-center justify-between transition-colors focus-within:border-blue-500/50">
+          <div className="bg-white/10 rounded-md border border-white/20 px-3 py-2 md:py-3 flex items-center justify-between transition-colors focus-within:border-blue-500/50">
             <input
               type="email"
               className="w-full bg-transparent text-white text-sm outline-none placeholder:text-white/40 h-6"
@@ -186,7 +186,7 @@ const SignUp = () => {
           <label className="text-xs text-white/70 block mb-1">
             Password
           </label>
-          <div className="bg-white/10 rounded-md border border-white/20 px-3 py-3 md:py-3 flex items-center transition-colors focus-within:border-blue-500/50">
+          <div className="bg-white/10 rounded-md border border-white/20 px-3 py-2 md:py-3 flex items-center transition-colors focus-within:border-blue-500/50">
             <input
               type="password"
               className="w-full bg-transparent text-white text-sm outline-none placeholder:text-white/40 h-6"
@@ -206,7 +206,7 @@ const SignUp = () => {
         <button
           type="submit"
           disabled={isSigningUp}
-          className={`w-full py-3.5 md:py-3 rounded-md text-white font-medium shadow-md transition flex items-center justify-center active:scale-[0.98]
+          className={`w-full py-2.5 md:py-3 rounded-md text-white font-medium shadow-md transition flex items-center justify-center active:scale-[0.98]
             ${!isSigningUp && isVerified
               ? "bg-[#1E1BFF] hover:bg-[#1720cc]"
               : "bg-gray-600 cursor-not-allowed opacity-50"

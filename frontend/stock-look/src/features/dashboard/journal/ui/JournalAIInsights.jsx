@@ -17,7 +17,7 @@ export default function JournalAIInsights({ onToggleNotes }) {
             <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
                 <button
                     onClick={onToggleNotes}
-                    className="flex w-full md:w-auto justify-center items-center gap-2 bg-[#3b82f6] hover:bg-[#2563eb] border border-white/10 px-3.5 py-1.5 rounded-lg text-white transition-all group active:scale-95 shadow-sm"
+                    className="flex w-full md:w-auto justify-center items-center gap-2 bg-[#1E1BFF] hover:bg-[#1E1BFF]/90 border border-white/10 px-3.5 py-1.5 rounded-lg text-white transition-all group active:scale-95 shadow-sm"
                     title="Open Session Journal & Heatmap"
                 >
                     <Edit3 size={13} className="group-hover:rotate-12 transition-transform" />

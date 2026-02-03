@@ -616,7 +616,7 @@ const SettingsPage = () => {
                 <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
 
                     {/* Sidebar / Tabs Navigation */}
-                    <nav className="flex md:flex-col gap-1 overflow-x-auto pb-2 mb:pb-0 scrollbar-hide -mx-1 px-1">
+                    <nav className="flex md:flex-col gap-1 overflow-x-auto pb-2 md:pb-0 md:overflow-visible scrollbar-hide -mx-1 px-1">
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
@@ -680,6 +680,7 @@ const SettingsPage = () => {
                                             type="text"
                                             value={formData.fullName}
                                             onChange={(e) => handleInputChange("fullName", e.target.value)}
+                                            placeholder="Enter your full name"
                                             className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:bg-transparent focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
                                         />
                                     </div>
@@ -1022,6 +1023,7 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.currentPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                                                placeholder="Enter current password"
                                                 className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all text-sm md:text-base"
                                             />
                                         </div>
@@ -1032,6 +1034,7 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.newPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                                                placeholder="Enter new password"
                                                 className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
                                             />
                                         </div>
@@ -1041,6 +1044,7 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.confirmPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                                                placeholder="Confirm new password"
                                                 className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
                                             />
                                         </div>

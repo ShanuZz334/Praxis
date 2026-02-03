@@ -35,7 +35,7 @@ const MobileHeader = ({ onMenuClick }) => {
     };
 
     // Use actual theme toggle from context
-    const { toggleTheme } = useTheme();
+    const { theme, toggleTheme } = useTheme();
 
     useEffect(() => {
         const button = buttonRef.current;
@@ -126,7 +126,14 @@ const MobileHeader = ({ onMenuClick }) => {
                 )}
             </AnimatePresence>
 
-            <div className="fixed top-0 left-0 right-0 z-50 bg-transparent px-4 h-18 flex items-center justify-between md:hidden">
+            <div className={`
+                fixed top-3 left-3 right-3 z-50 
+                h-16 flex items-center justify-between pl-0.5 pr-2 
+                rounded-2xl backdrop-blur-xl border transition-all duration-300 md:hidden
+                ${theme === 'dark'
+                    ? 'bg-[#0C1224]/80 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]'
+                    : 'bg-white/70 border-gray-200/50 shadow-[0_8px_32px_rgba(31,38,135,0.1)]'}
+            `}>
 
                 <button
                     ref={buttonRef}
@@ -135,13 +142,13 @@ const MobileHeader = ({ onMenuClick }) => {
                             onMenuClick();
                         }
                     }}
-                    className="p-2 -ml-2 transition-all hover:opacity-80 active:scale-95 select-none touch-none"
+                    className="p-1 -ml-1.5 transition-all hover:opacity-80 active:scale-95 select-none touch-none"
                     aria-label="Menu"
                 >
                     <img
                         src={logoBgless}
                         alt="Menu"
-                        className="w-10 h-10 transition-transform hover:scale-110 pointer-events-none" // prevent img from capturing drag
+                        className="w-12 h-12 transition-transform hover:scale-110 pointer-events-none" // prevent img from capturing drag
                     />
                 </button>
 
@@ -151,19 +158,18 @@ const MobileHeader = ({ onMenuClick }) => {
                         speed={1}
                         enableShadows={false}
                         enableOnHover={true}
-                        className="text-2xl font-extrabold text-[#1E1BFF]"
+                        className="text-3xl font-extrabold text-[#1E1BFF]"
                     >
                         Stocky
                     </GlitchText>
                 </div>
 
-                {/* Right: Settings Switch */}
                 <button
                     onClick={() => navigate("/dashboard/settings")}
-                    className="p-2 -mr-2 text-text-secondary hover:text-text-primary transition-colors"
+                    className="p-1 -mr-1 text-text-secondary hover:text-text-primary transition-colors"
                     aria-label="Settings"
                 >
-                    <FiSettings className="text-xl" />
+                    <FiSettings className="text-2xl" />
                 </button>
 
             </div>

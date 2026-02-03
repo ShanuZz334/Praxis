@@ -59,13 +59,13 @@ export default function TradeLogTable({ trades, onSelectTrade }) {
                         {/* Violations Toggle */}
                         <button
                             onClick={() => setShowViolations(!showViolations)}
-                            className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${showViolations
+                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded text-[9px] md:text-[10px] font-bold uppercase transition-all ${showViolations
                                 ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                                : "bg-background-card text-text-secondary border border-border-default hover:bg-background-surface"
+                                : "bg-background-card text-text-secondary border border-border-default hover:bg-background-surface shadow-sm"
                                 }`}
                         >
-                            <AlertTriangle size={12} />
-                            {showViolations ? "Filtering Violations" : "Filter Violations"}
+                            <AlertTriangle size={11} md={12} />
+                            {showViolations ? (isMobile ? "Violations" : "Filtering Violations") : (isMobile ? "Filter" : "Filter Violations")}
                         </button>
                     </div>
                 </div>
@@ -105,7 +105,7 @@ export default function TradeLogTable({ trades, onSelectTrade }) {
 
                 {/* MOBILE CARD VIEW */}
                 {isMobile && (
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
                         {filteredTrades.map((trade) => (
                             <TradeMobileCard key={trade.id} trade={trade} onClick={() => onSelectTrade(trade)} />
                         ))}
@@ -234,7 +234,7 @@ const TradeMobileCard = memo(function TradeMobileCard({ trade, onClick }) {
     return (
         <div
             onClick={onClick}
-            className="bg-background-surface border border-border-default rounded-xl p-4 active:scale-98 transition-transform shadow-sm"
+            className="bg-background-surface border border-border-default rounded-xl p-3 active:scale-98 transition-transform shadow-sm"
         >
             {/* Header: Instrument & Outcome */}
             <div className="flex justify-between items-start mb-3">
