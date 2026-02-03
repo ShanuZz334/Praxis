@@ -1,12 +1,38 @@
+/**
+ * @file authController.js
+ * @purpose Authentication controller for user registration, login, and verification.
+ * @responsibilities
+ * - Handles user signup with email OTP and TOTP verification.
+ * - Handles user login with password authentication.
+ * - Generates JWT tokens for authenticated sessions.
+ * - Validates signup tokens before user registration.
+ * - Retrieves authenticated user information.
+ * @key_exports
+ * - verifyCredentials - Verify email OTP and master TOTP
+ * - registerUser - Register new user with signup token
+ * - loginUser - Authenticate existing user
+ * - getUserInfo - Get authenticated user details
+ * @dependencies
+ * - ../models/User.js - User model
+ * - jsonwebtoken - JWT token generation/verification
+ * - ../services/verifyService.js - TOTP verification
+ * @lifecycle
+ * - Called by authRoutes.js
+ * - Requires JWT_SECRET environment variable
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
+
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
-import {
-  verifyMasterTOTP,
-} from "../services/verifyService.js";
+import { verifyMasterTOTP } from "../services/verifyService.js";
 
-/* ============================================================
-   TOKEN HELPERS
-============================================================ */
+// =============================
+// Token Helpers
+// =============================
 
 const generateAuthToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -14,7 +40,6 @@ const generateAuthToken = (id) => {
   });
 };
 
-// Short-lived token ONLY for signup verification
 const generateSignupToken = (email) => {
   return jwt.sign(
     {
@@ -27,10 +52,9 @@ const generateSignupToken = (email) => {
   );
 };
 
-
-/* ============================================================
-   VERIFY EMAIL OTP + MASTER TOTP
-============================================================ */
+// =============================
+// Verify Credentials
+// =============================
 
 export const verifyCredentials = async (req, res) => {
   const { email, totp } = req.body;
@@ -42,7 +66,6 @@ export const verifyCredentials = async (req, res) => {
   }
 
   try {
-    // 1. Check TOTP
     const totpValid = verifyMasterTOTP(totp);
     if (!totpValid) {
       return res.status(400).json({
@@ -50,7 +73,6 @@ export const verifyCredentials = async (req, res) => {
       });
     }
 
-    // Issue short-lived signup token
     const signupToken = generateSignupToken(email);
 
     res.status(200).json({
@@ -65,12 +87,12 @@ export const verifyCredentials = async (req, res) => {
   }
 };
 
-/* ============================================================
-   REGISTER USER (REQUIRES SIGNUP TOKEN)
-============================================================ */
+// =============================
+// Register User
+// =============================
 
 export const registerUser = async (req, res) => {
-  const { fullName, email, password, profileImage } = req.body; // Changed profileImageUrl to profileImage
+  const { fullName, email, password, profileImage } = req.body;
   const signupToken = req.headers["x-signup-token"];
 
   if (!signupToken) {
@@ -136,9 +158,9 @@ export const registerUser = async (req, res) => {
   }
 };
 
-/* ============================================================
-   LOGIN USER
-============================================================ */
+// =============================
+// Login User
+// =============================
 
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
@@ -175,9 +197,9 @@ export const loginUser = async (req, res) => {
   }
 };
 
-/* ============================================================
-   GET USER INFO (AUTH REQUIRED)
-============================================================ */
+// =============================
+// Get User Info
+// =============================
 
 export const getUserInfo = async (req, res) => {
   try {

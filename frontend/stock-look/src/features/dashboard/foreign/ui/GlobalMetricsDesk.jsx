@@ -212,7 +212,7 @@ export default function GlobalMetricsDesk({ card }) {
 
     // 4. Render
     return (
-        <div className="w-[260px] shrink-0 flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="w-full lg:w-[260px] shrink-0 flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-500">
             <div className="bg-background-tooltip border border-border-default rounded-2xl p-6 shadow-xl flex flex-col gap-6">
 
                 {/* Header */}

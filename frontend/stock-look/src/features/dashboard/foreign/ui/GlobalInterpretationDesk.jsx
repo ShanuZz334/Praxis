@@ -163,7 +163,7 @@ export default function GlobalInterpretationDesk({ card }) {
     const edu = getEducationalContent(card.category, card.label, card.id);
 
     return (
-        <div className="w-[280px] shrink-0 flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="w-full lg:w-[280px] shrink-0 flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-500">
             <div className="relative overflow-hidden bg-background-tooltip border border-border-default rounded-2xl p-5 shadow-xl flex flex-col gap-5">
 
                 {/* Header */}

@@ -1,3 +1,31 @@
+/**
+ * @file server.js
+ * @purpose Main entry point for the Stocky backend API server.
+ * @responsibilities
+ * - Initializes Express application with middleware (CORS, JSON parsing).
+ * - Connects to MongoDB database.
+ * - Registers API routes for authentication, user management, and broker integration.
+ * - Serves static uploads folder.
+ * - Starts HTTP server on configured port.
+ * @key_exports
+ * - Express app instance (implicit via app.listen)
+ * @dependencies
+ * - express - Web framework
+ * - cors - Cross-origin resource sharing
+ * - dotenv - Environment variables
+ * - ./config/db.js - MongoDB connection
+ * - ./routes/* - API route handlers
+ * @lifecycle
+ * - Entry point: node server.js or npm start
+ * - Connects to MongoDB on startup
+ * - Listens on PORT from env or 5000
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
+
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -5,36 +33,30 @@ import path from "path";
 import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 
-// Import all routes
-import dashboardRoutes from "./routes/dashboardRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-import eventsRoutes from "./routes/eventsRoutes.js";
-import foreignMarketRoutes from "./routes/foreignMarketRoutes.js";
-import fundamentalsRoutes from "./routes/fundamentalsRoutes.js";
-import optionsRoutes from "./routes/optionsRoutes.js";
-import pnlRoutes from "./routes/pnlRoutes.js";
-import technicalRoutes from "./routes/technicalRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import brokerRoutes from "./routes/brokerRoutes.js";
-import journalRoutes from "./routes/journalRoutes.js";
-import messageRoutes from "./routes/messageRoutes.js";
+
+// =============================
+// Express App Setup
+// =============================
 
 const app = express();
 app.set("trust proxy", 1);
 
-// Fix dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// =============================
 // Middleware
-// Middleware
+// =============================
+
 app.use(cors({
     origin: (origin, callback) => {
         const allowedOrigins = process.env.CLIENT_URL
             ? process.env.CLIENT_URL.split(",").map(url => url.trim())
             : ["*"];
 
-        // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
 
         if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
@@ -50,30 +72,33 @@ app.use(cors({
 
 app.use(express.json());
 
-// MongoDB Connect
+// =============================
+// Database Connection
+// =============================
+
 connectDB();
 
-// Health Check Route
+// =============================
+// Routes
+// =============================
+
 app.get("/", (req, res) => {
     res.send("Stocky API v2.0 is running...");
 });
 
-// Routes
 app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/dashboard", dashboardRoutes);
-app.use("/api/v1/events", eventsRoutes);
-app.use("/api/v1/foreign", foreignMarketRoutes);
-app.use("/api/v1/fundamentals", fundamentalsRoutes);
-app.use("/api/v1/options", optionsRoutes);
-app.use("/api/v1/pnl", pnlRoutes);
-app.use("/api/v1/technical", technicalRoutes);
 app.use("/api/v1/user", userRoutes);
 app.use("/api/broker", brokerRoutes);
-app.use("/api/v1/journal", journalRoutes);
-app.use("/api/v1/messages", messageRoutes);
 
-// Static Uploads Folder
+// =============================
+// Static Files
+// =============================
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// =============================
+// Server Start
+// =============================
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
