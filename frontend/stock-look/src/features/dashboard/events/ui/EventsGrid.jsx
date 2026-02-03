@@ -1,6 +1,29 @@
+/**
+ * @file EventsGrid.jsx
+ * @purpose Grid layout for displaying news intelligence cards.
+ * @responsibilities
+ * - Renders a responsive grid of `GlobalCard` or specialized `NewsCard` components.
+ * - Sorts items by impact magnitude (Absolute Score) to highlight biggest movers.
+ * - Maps AI Sentiment Scores to visual cues (Bullish/Bearish indicators).
+ * - Handles empty states gracefully.
+ * @key_exports
+ * - EventsGrid (Default Component)
+ * @dependencies
+ * - GlobalCard (Common UI)
+ * @lifecycle
+ * - Rendered by EventsPage to show filtered news results.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 import { GlobalCard } from "@/shared/components/ui/GlobalCard";
 
+// =============================
+// Main Component
+// =============================
 export default function EventsGrid({ newsItems, onNewsClick }) {
 
     if (!newsItems || newsItems.length === 0) {
@@ -11,50 +34,34 @@ export default function EventsGrid({ newsItems, onNewsClick }) {
         );
     }
 
-    // Sort by absolute impact (Magnitude) to show biggest movers first
+    // 1. Sort by Magnitude (High Impact First)
     const sortedNews = [...newsItems].sort((a, b) => Math.abs(b.impactScore || 0) - Math.abs(a.impactScore || 0));
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
             {sortedNews.map((news) => {
-                // Determine display properties from AI Score
                 const score = news.impactScore || 0;
-
-                // Color coding based on sign
-                // Positive = Bullish (Green), Negative = Bearish (Red)
-                // We normalize this for the GlobalCard "normalized" prop (0-1) 
-                // but we might need a way to tell GlobalCard to be RED.
-                // Currently GlobalCard uses 0-1. Let's map -10 to +10 range to 0-1 for intensity, 
-                // but we need a "trend" or "reason" to convey direction.
-
                 const absScore = Math.abs(score);
-                const normalized = Math.min(1, absScore / 8); // Scale 0-8 to 0-1 intensity
 
-                // Formulate "Analysis" string
+                // 2. Sentiment Mapping
                 const sentiment = score > 0 ? "Bullish" : score < 0 ? "Bearish" : "Neutral";
                 const sentimentIcon = score > 0 ? "▲" : score < 0 ? "▼" : "•";
+
+                // 3. Normalize Score for UI Gauge (0 to 1)
+                // -10 -> 0 (Red), 0 -> 0.5 (Mid), +10 -> 1 (Green)
+                // This maps the bipolar -10..+10 range to the unipolar 0..1 range expected by some gauges.
+                const gaugeValue = (score + 10) / 20;
 
                 return (
                     <GlobalCard
                         key={news.id}
                         label={news.title}
-                        // Use Source + Time as "Raw Value" context
                         raw={`${news.source} • ${formatTime(news.timestamp)}`}
                         unit=""
-
-                        // Pass the direction/sentiment explicitly via reason or separate prop if supported
-                        // GlobalCard primarily uses 'normalized' for the gauge color (Red->Green). 
-                        // If we want Negative to be Red and Positive to be Green, we can just map simple 0-1.
-                        // However, standard GlobalCard mapping is 0(Red)...1(Green).
-                        // So: -10 -> 0 (Red), 0 -> 0.5 (Yellow), +10 -> 1 (Green).
-                        normalized={(score + 10) / 20}
-
-                        // Use impact score as "Credit Weight" equivalent
-                        creditAllocation={Math.round(absScore)} // High impact = More credits/weight
-                        totalPageCredits={10} // Relative scale
-
+                        normalized={gaugeValue}
+                        creditAllocation={Math.round(absScore)} // Visual weight
+                        totalPageCredits={10}
                         reason={`${sentimentIcon} ${sentiment}: ${news.takeaway}`}
-
                         onClick={() => onNewsClick?.(news)}
                     />
                 );
@@ -63,6 +70,14 @@ export default function EventsGrid({ newsItems, onNewsClick }) {
     );
 }
 
+// =============================
+// Utility Functions
+// =============================
+
+/**
+ * formatTime
+ * Helper to display relative time.
+ */
 function formatTime(isoString) {
     if (!isoString) return "";
     const date = new Date(isoString);

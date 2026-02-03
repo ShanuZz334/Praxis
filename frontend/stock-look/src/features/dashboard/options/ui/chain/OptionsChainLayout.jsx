@@ -1,24 +1,46 @@
+/**
+ * @file OptionsChainLayout.jsx
+ * @purpose Layout container for the deep-dive Options Chain interface.
+ * @responsibilities
+ * - Manages the split-view layout: Context Sidebar | Main Chain Table | Pro Picks Sidebar.
+ * - Handles the "Selected Option" state for the detail view on the left.
+ * - Displays high-level metrics (Spot Price, PCR, Max Pain) when no option is selected.
+ * - Adapts to mobile views by stacking components.
+ * @key_exports
+ * - OptionsChainLayout (Default Component)
+ * @dependencies
+ * - OptionsChainTable: The main grid.
+ * - GreeksReferenceGuide: Educational component.
+ * - PortalTooltip: For quick stats.
+ * @lifecycle
+ * - Rendered by OptionsPage.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from 'react';
 import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 import OptionsChainTable from './OptionsChainTable';
 import GreeksReferenceGuide from './GreeksReferenceGuide';
 
+// =============================
+// Main Component
+// =============================
 export default function OptionsChainLayout({ chain, picks, spotPrice, metrics }) {
     const [selectedOption, setSelectedOption] = React.useState(null);
 
     return (
         <div className="w-full flex flex-col lg:flex-row gap-4 mt-6 mb-6">
 
-            {/* LEFT SIDEBAR: MARKET CONTEXT vs SELECTED OPTION */}
+            {/* ================= LEFT PANEL: CONTEXT / DETAILS ================= */}
             <div className="w-full lg:w-64 shrink-0 bg-background-card rounded-xl border border-border-default p-4 flex flex-col gap-4 min-h-[300px] lg:h-[600px]">
 
-                {/* 
-                    MOBILE LOGIC: 
-                    If an option is selected, show its details here.
-                    Otherwise, show the default Market Context.
-                */}
+                {/* MODE A: DETAIL VIEW (If Option Selected) */}
                 {selectedOption ? (
                     <div className="animate-in fade-in slide-in-from-right duration-300 h-full flex flex-col">
+                        {/* Selected Header */}
                         <div className="flex items-center justify-between border-b border-border-default pb-3 mb-3">
                             <div className="flex items-center gap-2">
                                 <span className={`text-lg font-bold font-mono ${selectedOption.type === 'call' ? 'text-emerald-600' : 'text-red-600'}`}>
@@ -33,6 +55,7 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                             </button>
                         </div>
 
+                        {/* Detail Content */}
                         <div className="space-y-4 flex-1 overflow-y-auto no-scrollbar">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -86,12 +109,13 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                         </div>
                     </div>
                 ) : (
+                    /* MODE B: MARKET CONTEXT (Default) */
                     <>
                         <div className="text-xs font-bold text-text-tertiary uppercase tracking-widest border-b border-border-default pb-2">
                             Market Context
                         </div>
 
-                        {/* Stats */}
+                        {/* Stats Stack */}
                         <div className="space-y-4 shrink-0">
                             {/* SPOT */}
                             <div>
@@ -106,7 +130,7 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                                 <div className="text-2xl font-bold text-text-primary tracking-tight">{spotPrice.toLocaleString()}</div>
                             </div>
 
-                            {/* PCR (Volume) */}
+                            {/* PCR */}
                             <div>
                                 <div className="flex items-center gap-1.5 mb-0.5">
                                     <span className="text-[10px] text-text-tertiary uppercase">PCR (Volume)</span>
@@ -141,7 +165,7 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                                 </div>
                             </div>
 
-                            {/* IV RANK (New) */}
+                            {/* IV RANK */}
                             <div>
                                 <div className="flex items-center gap-1.5 mb-0.5">
                                     <span className="text-[10px] text-text-tertiary uppercase">IV Rank</span>
@@ -151,7 +175,6 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                                         </div>
                                     </PortalTooltip>
                                 </div>
-                                {/* Mocking IV Rank as we don't assume metrics has it fully populated yet, or use metrics.ivRank */}
                                 <div className={`text-xl font-mono font-bold ${(metrics.ivRank || 34) > 60 ? 'text-red-600' :
                                     (metrics.ivRank || 34) < 30 ? 'text-emerald-600' :
                                         'text-amber-600'
@@ -161,7 +184,7 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                             </div>
                         </div>
 
-                        {/* GREEKS GUIDE - EDUCATIONAL (Hidden on Mobile) */}
+                        {/* GREEKS GUIDE - EDUCATIONAL (Desktop Only) */}
                         <div className="hidden md:flex flex-1 overflow-hidden min-h-0">
                             <GreeksReferenceGuide />
                         </div>
@@ -169,14 +192,13 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                 )}
             </div>
 
-            {/* CENTER: FULL CHAIN */}
+            {/* ================= CENTER PANEL: OPTIONS CHAIN ================= */}
             <div className="flex-1 flex flex-col min-w-0 h-[600px] lg:h-[600px]">
                 <div className="flex items-center justify-between mb-2 px-2">
                     <div className="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         Live Options Chain
                     </div>
-
                 </div>
                 <OptionsChainTable
                     chain={chain}
@@ -185,7 +207,7 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                 />
             </div>
 
-            {/* RIGHT SIDEBAR: PRO PICKS */}
+            {/* ================= RIGHT PANEL: PRO PICKS ================= */}
             <div className="w-full lg:w-64 shrink-0 bg-background-card rounded-xl border border-border-default p-0 flex flex-col overflow-hidden max-h-[400px] lg:max-h-full lg:h-[600px]">
                 <div className="p-4 border-b border-border-default bg-background-surface">
                     <div className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-widest">
@@ -194,7 +216,7 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-3 p-3 no-scrollbar">
-                    {/* Calls */}
+                    {/* Calls Collection */}
                     <div className="space-y-2">
                         <div className="text-[10px] text-emerald-600 font-bold uppercase">Top Calls (Bullish)</div>
                         {picks.ce.map((pick, i) => (
@@ -214,7 +236,7 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                         ))}
                     </div>
 
-                    {/* Puts */}
+                    {/* Puts Collection */}
                     <div className="space-y-2 mt-4">
                         <div className="text-[10px] text-red-600 font-bold uppercase">Top Puts (Bearish)</div>
                         {picks.pe.map((pick, i) => (

@@ -1,3 +1,18 @@
+/**
+ * @file TradePermissionBanner.jsx
+ * @purpose Visual banner indicating trade permission status.
+ * @responsibilities
+ * - Shows global trade status (Allowed, Reduced Size, Blocked).
+ * - Contextualizes the reason for restrictions.
+ * @key_exports
+ * - TradePermissionBanner (Default)
+ * @dependencies
+ * - None (Pure UI)
+ * @lifecycle
+ * - Rendered by WalletPage (Future/Expanded).
+ * @date 2026-02-03
+ */
+
 import React from "react";
 
 export default function TradePermissionBanner({ permission }) {

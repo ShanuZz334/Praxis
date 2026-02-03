@@ -1,4 +1,21 @@
 <!doctype html>
+<!--
+  @file index.html
+  @purpose Main HTML entry point for the Stocky application.
+  @responsibilities
+  - Defines the root HTML structure for the React application.
+  - Includes meta tags for SEO and viewport configuration.
+  - Loads external icon library (Boxicons).
+  - Provides mount points for React root and modal portals.
+  - Loads the main JavaScript entry point (main.jsx).
+  @dependencies
+  - Boxicons (external CDN)
+  - /src/app/main.jsx (React entry point)
+  @lifecycle
+  - Loaded by the browser as the initial HTML document.
+  - React mounts to #root, modals render to #modal-root.
+  @date 2026-02-04
+-->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -13,13 +30,9 @@
     <title>Stocky</title>
   </head>
   <body>
-    <!-- 🔴 REQUIRED: React app root -->
     <div id="root"></div>
-
-    <!-- 🟢 Optional: Portal root -->
     <div id="modal-root"></div>
 
-    <!-- Entry -->
     <script type="module" src="/src/app/main.jsx"></script>
   </body>
 </html>

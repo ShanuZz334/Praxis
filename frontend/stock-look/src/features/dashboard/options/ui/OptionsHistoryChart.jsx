@@ -1,54 +1,55 @@
+/**
+ * @file OptionsHistoryChart.jsx
+ * @purpose Renders a lightweight 7-day trend chart for options metrics.
+ * @responsibilities
+ * - Visualizes the historical trend of a specific metric (e.g., PCR or Net Delta).
+ * - Simulates historical data points based on the current "trend" and "baseValue" (since backend history is pending).
+ * - Adapts line color based on trend direction (Emerald/Red/Amber).
+ * @key_exports
+ * - OptionsHistoryChart (Default Component)
+ * @dependencies
+ * - recharts: For responsive line charting.
+ * @lifecycle
+ * - Rendered by OptionsModal.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useMemo } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
+// =============================
+// Main Component
+// =============================
 export default function OptionsHistoryChart({ trend = 'neutral', baseValue = 100, label = 'Metric' }) {
 
-    // GENERATE MOCK HISTORY (7 Days)
+    // =============================
+    // Mock Data Generation
+    // =============================
     const data = useMemo(() => {
         const result = [];
         const today = new Date();
         const startVal = parseFloat(baseValue) || 100;
 
-        let current = startVal;
-        // Reverse engineer 7 days based on trend
-        // If UP, we start lower. If DOWN, we start higher.
+        // Configuration
+        const volatility = startVal * 0.05; // 5% daily random noise
+        const drift = trend === 'up' ? 0.03 : trend === 'down' ? -0.03 : 0; // 3% directional drift
 
-        const volatility = startVal * 0.05; // 5% daily noise
-        const drift = trend === 'up' ? 0.03 : trend === 'down' ? -0.03 : 0; // 3% drift
-
-        // Generate backwards then reverse
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - i);
-            const dateStr = date.toLocaleDateString('en-US', { disable_month: 'short', day: 'numeric' });
-
-            // Mock logic: 
-            // We want the LAST point to be roughly the baseValue.
-            // So we can simulate backwards from baseValue? 
-            // Or just simulate forward from (baseValue * (1 - drift*7))? Let's do forward.
-
-            // Actually simpler:
-            // Calculate a starting point
-            // Trend Factor: Up means start = val * 0.8, Down means start = val * 1.2
-
-            // Per point loop:
-            // This is just a visual aid, exact math doesn't matter as much as the shape.
-        }
-
-        // Simpler approach: Create array of 7 points ending near baseValue
+        // Generate series backwards from current value
         let series = [];
         let val = startVal;
 
-        // Walk backwards
         for (let i = 0; i < 7; i++) {
-            // Undo drift
+            // Reverse the drift to find previous day's likely value
             val = val / (1 + drift);
             // Add noise
             val = val + (Math.random() - 0.5) * volatility;
             series.unshift(val);
         }
 
-        // Map to object
+        // Map to Recharts format
         for (let i = 0; i < 7; i++) {
             const date = new Date(today);
             date.setDate(date.getDate() - (6 - i));
@@ -61,10 +62,12 @@ export default function OptionsHistoryChart({ trend = 'neutral', baseValue = 100
         return result;
     }, [trend, baseValue]);
 
-    const color = trend === 'up' ? '#059669' : trend === 'down' ? '#dc2626' : '#d97706'; // Emerald, Red, Amber 600
+    // Visual Config
+    const color = trend === 'up' ? '#059669' : trend === 'down' ? '#dc2626' : '#d97706'; // Emerald, Red, Amber
 
     return (
         <div className="w-full h-full min-h-[300px] flex flex-col">
+            {/* Header */}
             <div className="flex justify-between items-center mb-4 px-2">
                 <span className="text-xs font-bold text-text-tertiary uppercase tracking-widest">7-Day Trend</span>
                 <div className="flex items-center gap-2">
@@ -73,6 +76,7 @@ export default function OptionsHistoryChart({ trend = 'neutral', baseValue = 100
                 </div>
             </div>
 
+            {/* Chart Area */}
             <div className="flex-1 w-full relative">
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data}>
@@ -105,7 +109,7 @@ export default function OptionsHistoryChart({ trend = 'neutral', baseValue = 100
                             itemStyle={{ color: color, fontSize: '12px', fontWeight: 'bold', textTransform: 'capitalize' }}
                             labelStyle={{ color: 'var(--text-secondary)', marginBottom: '4px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}
                             cursor={{ stroke: 'var(--text-tertiary)', strokeWidth: 1 }}
-                            formatter={(value) => [`${value}`, 'Value']}
+                            formatter={(value) => [`${value}`, label]}
                         />
                         <Line
                             type="monotone"
@@ -114,7 +118,7 @@ export default function OptionsHistoryChart({ trend = 'neutral', baseValue = 100
                             strokeWidth={2}
                             dot={{ fill: 'var(--background-card)', stroke: color, strokeWidth: 2, r: 4 }}
                             activeDot={{ r: 6, fill: color, stroke: '#fff' }}
-                            strokeDasharray="5 5" // DOTTED LINE REQUEST
+                            strokeDasharray="5 5"
                         />
                     </LineChart>
                 </ResponsiveContainer>

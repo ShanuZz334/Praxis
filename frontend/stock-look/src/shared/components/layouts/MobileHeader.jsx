@@ -1,12 +1,39 @@
+/**
+ * @file MobileHeader.jsx
+ * @purpose Top header bar for mobile devices.
+ * @responsibilities
+ * - Displays the logo/branding for mobile users.
+ * - Provides access to the Sidebar Menu and Settings.
+ * - Hosts the "Quick Navigation" gesture-based overlay.
+ * - Manages touch interactions for long-press menus.
+ * @key_exports
+ * - MobileHeader (Default)
+ * @dependencies
+ * - MobileQuickNav, GlitchText
+ * - UserContext, ThemeContext
+ * @lifecycle
+ * - Rendered by DashboardLayout on small screens.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useContext, useState, useRef, useEffect } from "react";
 import { FiSettings } from "react-icons/fi";
 import { UserContext } from "@/shared/context/UserContext";
 import { useNavigate, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
+
 import GlitchText from "@/shared/components/backgrounds/GlitchText";
 import logoBgless from "@/assets/icons/logo_bgless.png";
 import { useTheme } from "../../context/ThemeContext";
 import MobileQuickNav from "./MobileQuickNav";
-import { AnimatePresence } from "framer-motion";
+
+// =============================
+// Component
+// =============================
 
 const MobileHeader = ({ onMenuClick }) => {
     const navigate = useNavigate();

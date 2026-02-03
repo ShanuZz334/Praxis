@@ -1,6 +1,30 @@
+/**
+ * @file NewsCard.jsx
+ * @purpose A specialized display card for individual news items.
+ * @responsibilities
+ * - Displays news metadata: Source, Timestamp, Impact Badge.
+ * - Shows headlines and takeaways with clear hierarchy.
+ * - Visualizes AI Confidence/Impact Score via a bottom progress bar.
+ * - Supports hover and selection states for parent interactions.
+ * - Renders semantic tags (Bullish/Bearish arrows).
+ * @key_exports
+ * - NewsCard (Default Component)
+ * @dependencies
+ * - date-fns: For relative time formatting.
+ * @lifecycle
+ * - Rendered by NewsFeed list.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 import { formatDistanceToNow, parseISO } from 'date-fns';
 
+// =============================
+// Main Component
+// =============================
 export default function NewsCard({ news, onHover, onClick, isSelected }) {
     const {
         title,
@@ -12,7 +36,7 @@ export default function NewsCard({ news, onHover, onClick, isSelected }) {
         tags
     } = news;
 
-    // Impact Badge Color
+    // 1. Impact Badge & Color Logic
     let impactColor = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
     let impactLabel = "Low Impact";
 
@@ -24,7 +48,7 @@ export default function NewsCard({ news, onHover, onClick, isSelected }) {
         impactLabel = "Medium Impact";
     }
 
-    // Tags Visualization
+    // 2. Tag Rendering Helper
     const renderTag = (tag, idx) => {
         const isUp = tag.bias === 'up';
         const isDown = tag.bias === 'down';
@@ -47,19 +71,21 @@ export default function NewsCard({ news, onHover, onClick, isSelected }) {
             onMouseEnter={() => onHover(news)}
             onClick={() => onClick(news)}
         >
-            {/* HEADER */}
+            {/* Header: Metadata & Badge */}
             <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">{source}</span>
                     <span className="text-[10px] text-text-tertiary">•</span>
-                    <span className="text-[10px] text-text-tertiary">{formatDistanceToNow(parseISO(timestamp), { addSuffix: true })}</span>
+                    <span className="text-[10px] text-text-tertiary">
+                        {formatDistanceToNow(parseISO(timestamp), { addSuffix: true })}
+                    </span>
                 </div>
                 <div className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${impactColor}`}>
                     {impactLabel}
                 </div>
             </div>
 
-            {/* CONTENT */}
+            {/* Content: Title & Takeaway */}
             <div className="mb-3">
                 <h3 className="text-sm font-semibold text-text-primary leading-snug mb-2 group-hover:text-blue-500 transition-colors">
                     {title}
@@ -69,7 +95,7 @@ export default function NewsCard({ news, onHover, onClick, isSelected }) {
                 </p>
             </div>
 
-            {/* FOOTER - TAGS */}
+            {/* Footer: Tags */}
             <div className="flex flex-wrap gap-2">
                 <span className="text-[10px] uppercase font-bold text-text-tertiary py-0.5 bg-background-surface px-1.5 rounded">
                     {category}
@@ -77,7 +103,7 @@ export default function NewsCard({ news, onHover, onClick, isSelected }) {
                 {tags.map(renderTag)}
             </div>
 
-            {/* IMPACT BAR (Confidence) */}
+            {/* Bottom Impact Bar */}
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-transparent group-hover:bg-background-surface rounded-b-xl overflow-hidden">
                 <div
                     className="h-full bg-blue-500/50"

@@ -1,6 +1,28 @@
-import React from "react";
-import { TrendingUp, TrendingDown, Minus, Info } from "lucide-react";
+/**
+ * @file GlobalIndicesGrid.jsx
+ * @purpose Renders global indices grouped by risk buckets (Risk-On, Neutral, Risk-Off).
+ * @responsibilities
+ * - Displays relative strength of global markets.
+ * - Groups indices into logical buckets for "Risk Rotation" analysis.
+ * - Provides immediate visual cues on where money is flowing.
+ * @key_exports
+ * - GlobalIndicesGrid (Default Component)
+ * @dependencies
+ * - Lucide React (Icons)
+ * @lifecycle
+ * - Rendered within dashboard grids.
+ * @date 2026-02-03
+ */
 
+// =============================
+// Imports
+// =============================
+import React from "react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+
+// =============================
+// Main Component
+// =============================
 export default function GlobalIndicesGrid({ buckets }) {
     if (!buckets) return null;
     const { riskOn, neutral, riskOff, footerInsight } = buckets;
@@ -14,7 +36,7 @@ export default function GlobalIndicesGrid({ buckets }) {
                 <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-slate-400">Relative Strength</span>
             </div>
 
-            {/* Grid */}
+            {/* Buckets Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
                 <BucketSubCard data={riskOn} color="emerald" />
                 <BucketSubCard data={neutral} color="slate" />
@@ -31,36 +53,38 @@ export default function GlobalIndicesGrid({ buckets }) {
     );
 }
 
+// =============================
+// Sub Components
+// =============================
+
 function BucketSubCard({ data, color }) {
-    // Colors
+    // Styling Logic
     const textBase = color === 'emerald' ? 'text-emerald-400' : color === 'red' ? 'text-red-400' : 'text-slate-400';
     const bgTint = color === 'emerald' ? 'bg-emerald-500/[0.02]' : color === 'red' ? 'bg-red-500/[0.02]' : 'bg-slate-500/[0.02]';
     const borderTint = color === 'emerald' ? 'border-emerald-500/10' : color === 'red' ? 'border-red-500/10' : 'border-slate-500/10';
 
-    // Min Rows Logic
+    // Ensure Min Rows
     const MIN_ROWS = 3;
     const items = data.items || [];
     const rows = [...items];
 
-    // Backfill if needed
     while (rows.length < MIN_ROWS) {
         rows.push({ isEmpty: true, name: "No Active Signal", reason: "Low Conviction" });
     }
 
     return (
         <div className={`flex flex-col h-full rounded-lg border ${borderTint} ${bgTint} p-3`}>
-
-            {/* Bucket Header */}
+            {/* Title */}
             <div className={`text-[10px] uppercase font-bold ${textBase} mb-1 opacity-90`}>
                 {data.title}
             </div>
 
-            {/* Bucket Summary Line */}
+            {/* Summary */}
             <div className="text-[9px] font-medium text-slate-500 mb-3 leading-snug min-h-[2.5em]">
                 {data.summary}
             </div>
 
-            {/* Items */}
+            {/* Rows */}
             <div className="flex-1 flex flex-col">
                 {rows.map((idx, i) => (
                     <BucketRow key={i} data={idx} isLast={i === rows.length - 1} color={color} />
@@ -85,13 +109,11 @@ function BucketRow({ data, isLast, color }) {
     const isPositive = change > 0;
     const isNegative = change < 0;
 
-    // Direction Icon
     const Icon = isPositive ? TrendingUp : isNegative ? TrendingDown : Minus;
     const numColor = isPositive ? 'text-emerald-400' : isNegative ? 'text-red-400' : 'text-slate-400';
 
     return (
         <div className={`flex justify-between items-center py-2 ${isLast ? '' : 'border-b border-white/5'} h-[44px]`}>
-
             {/* Left: Name + Reason */}
             <div className="flex flex-col">
                 <span className="text-xs font-bold text-slate-300 leading-none mb-0.5">{name}</span>

@@ -1,3 +1,23 @@
+/**
+ * @file JournalPage.jsx
+ * @purpose Main container for the Trading Journal feature.
+ * @responsibilities
+ * - Orchestrates the layout of Journal components (Header, Context, Log, Analytics).
+ * - Manages state for selected trades and active modals.
+ * - Integrates mock data (pending backend integration).
+ * @key_exports
+ * - JournalPage (Default Component)
+ * @dependencies
+ * - Framer Motion (AnimatePresence)
+ * - JournalHeader, MarketContextBar, TradeLogTable, etc.
+ * @lifecycle
+ * - Rendered by Routing Logic (Dashboard Layout).
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import JournalAIInsights from "./JournalAIInsights";
@@ -10,30 +30,36 @@ import TradeDeepDive from "./TradeDeepDive";
 import TradingNotesModal from "./TradingNotesModal";
 import { MOCK_JOURNAL_DATA } from "../data/journalData";
 
+// =============================
+// Main Component
+// =============================
+
 export default function JournalPage() {
     const [selectedTrade, setSelectedTrade] = useState(null);
     const [isNotesOpen, setIsNotesOpen] = useState(false);
 
     return (
         <div className="pb-20 animate-in fade-in duration-500 min-h-screen font-sans">
-            {/* 1. SYSTEM MONITOR STRIP (Full Width, Slim) */}
+            {/* --- Main Content Container --- */}
             <div className="max-w-[1920px] mx-auto px-4 md:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
+
+                {/* 1. AI Insights System */}
                 <JournalAIInsights onToggleNotes={() => setIsNotesOpen(true)} />
 
-                {/* 2. KPI GRID (Account & Process) */}
+                {/* 2. Account & Process KPIs */}
                 <JournalHeader
                     capital={MOCK_JOURNAL_DATA.account}
                     score={MOCK_JOURNAL_DATA.executionScore}
                 />
 
-                {/* 3. MARKET CONTEXT RIBBON */}
+                {/* 3. Market Context Ribbon */}
                 <div className="hidden md:block">
                     <MarketContextBar context={MOCK_JOURNAL_DATA.marketContext} />
                 </div>
 
-                {/* 4. MAIN WORKSPACE (Log + Sidebar) */}
+                {/* 4. Workspace Split (Log vs Analytics) */}
                 <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
-                    {/* LEFT: EXECUTION LOG (75%) */}
+                    {/* Left: Execution Log (75%) */}
                     <div className="xl:col-span-3">
                         <TradeLogTable
                             trades={MOCK_JOURNAL_DATA.trades}
@@ -41,7 +67,7 @@ export default function JournalPage() {
                         />
                     </div>
 
-                    {/* RIGHT: ANALYTICS STACK (25%) - Visible on mobile now, stacked below */}
+                    {/* Right: Analytics Stack (25%) */}
                     <div className="col-span-1 xl:col-span-1 space-y-6">
                         <PerformanceAnalytics analytics={MOCK_JOURNAL_DATA.analytics} />
                         <PsychologyTracker psychology={MOCK_JOURNAL_DATA.psychology} />
@@ -49,7 +75,7 @@ export default function JournalPage() {
                 </div>
             </div>
 
-            {/* MODALS WINDOW SYSTEM */}
+            {/* --- Modal System --- */}
             <AnimatePresence>
                 {selectedTrade && (
                     <TradeDeepDive

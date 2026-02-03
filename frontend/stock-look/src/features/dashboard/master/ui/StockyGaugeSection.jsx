@@ -1,6 +1,52 @@
+/**
+ * @file StockyGaugeSection.jsx
+ * @purpose Renders the primary visual gauge for the Stocky Master Score.
+ * @responsibilities
+ * - Visualizes the aggregate score using an SVG circular gauge.
+ * - Displays the current market regime with descriptive text.
+ * - Shows a risk monitor panel with system constraints.
+ * @key_exports
+ * - StockyGaugeSection (Default Component)
+ * @dependencies
+ * - React, lucide-react
+ * - getRegimeColor (stockyEngine)
+ * @lifecycle
+ * - Rendered by MasterDashboard (Legacy/Alternative View - possibly deprecated by GlobalHeader but kept for safety).
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
+import { Activity, ShieldAlert } from "lucide-react";
 import { getRegimeColor } from "../engine/stockyEngine";
-import { Activity, ShieldAlert, Zap } from "lucide-react";
+
+// =============================
+// Helper Components
+// =============================
+
+function RiskRow({ label, value, color = "text-slate-200" }) {
+    return (
+        <div className="flex justify-between items-center">
+            <span className="text-[11px] font-bold text-red-400/50 uppercase">{label}</span>
+            <span className={`text-xs font-bold font-mono ${color}`}>{value}</span>
+        </div>
+    );
+}
+
+function ContextStat({ label, value, color }) {
+    return (
+        <div>
+            <div className="text-[9px] text-slate-500 font-bold uppercase mb-0.5">{label}</div>
+            <div className={`text-sm font-bold font-mono ${color}`}>{value}</div>
+        </div>
+    );
+}
+
+// =============================
+// Main Component
+// =============================
 
 export default function StockyGaugeSection({ score, regime, risk, readiness }) {
     const regimeColor = getRegimeColor(regime);
@@ -25,7 +71,9 @@ export default function StockyGaugeSection({ score, regime, risk, readiness }) {
                             {/* Background Circle */}
                             <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800/50" />
                             {/* Value Circle */}
-                            <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="8" fill="transparent"
+                            <circle
+                                cx="80" cy="80" r="70"
+                                stroke="currentColor" strokeWidth="8" fill="transparent"
                                 className={`${score >= 75 ? 'text-emerald-500' :
                                     score >= 60 ? 'text-lime-500' :
                                         score >= 40 ? 'text-yellow-500' :
@@ -118,24 +166,6 @@ export default function StockyGaugeSection({ score, regime, risk, readiness }) {
                 </div>
             </div>
 
-        </div>
-    );
-}
-
-function RiskRow({ label, value, color = "text-slate-200" }) {
-    return (
-        <div className="flex justify-between items-center">
-            <span className="text-[11px] font-bold text-red-400/50 uppercase">{label}</span>
-            <span className={`text-xs font-bold font-mono ${color}`}>{value}</span>
-        </div>
-    );
-}
-
-function ContextStat({ label, value, color }) {
-    return (
-        <div>
-            <div className="text-[9px] text-slate-500 font-bold uppercase mb-0.5">{label}</div>
-            <div className={`text-sm font-bold font-mono ${color}`}>{value}</div>
         </div>
     );
 }

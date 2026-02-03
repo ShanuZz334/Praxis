@@ -1,3 +1,24 @@
+/**
+ * @file GDPGrowthChart.jsx
+ * @purpose Plots Real GDP Growth timeline with economic cycle zones.
+ * @responsibilities
+ * - Renders GDP trend line using Recharts.
+ * - Highlights economic regimes (Boom, Stable, Slow, Recession).
+ * - Formats dates and values for clarity.
+ * @key_exports
+ * - GDPGrowthChart (Default)
+ * @dependencies
+ * - Recharts, ChartTooltip
+ * - chartUtils (formatChartDate)
+ * @lifecycle
+ * - Core Macro indicator for economic health assessment.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useMemo } from 'react';
 import {
     ComposedChart,
@@ -12,12 +33,10 @@ import {
 import { RechartsTooltipWrapper } from '../ChartTooltip';
 import { formatChartDate } from '@/shared/utils/chartUtils';
 
-/**
- * GDPGrowthChart
- *
- * Primary: GDP Growth Rate (Line) with Color-coded regimes
- * Supporting: Zone/Cycle Shading Indicator
- */
+// =============================
+// Component
+// =============================
+
 export default function GDPGrowthChart({ data = [], height = 400 }) {
     const chartData = useMemo(() => {
         if (!data || data.length === 0) return [];

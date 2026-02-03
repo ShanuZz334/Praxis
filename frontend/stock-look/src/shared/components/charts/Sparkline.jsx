@@ -1,7 +1,35 @@
+/**
+ * @file Sparkline.jsx
+ * @purpose Minimalistic line chart for trend visualization.
+ * @responsibilities
+ * - Renders a simple SVG polyline chart.
+ * - Fits within small UI containers (tiles, list items).
+ * - Auto-measures width for responsive rendering.
+ * @key_exports
+ * - Sparkline (Default)
+ * @dependencies
+ * - React
+ * @lifecycle
+ * - Used in high-density data grids/lists.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { memo, useEffect, useRef, useState } from "react";
+
+// =============================
+// Constants
+// =============================
 
 const HEIGHT = 32;
 const PADDING = 4;
+
+// =============================
+// Component
+// =============================
 
 function Sparkline({ data = [], color = "var(--accent-primary)" }) {
   const ref = useRef(null);

@@ -1,3 +1,23 @@
+/**
+ * @file manualData.js
+ * @purpose Provides static content and configuration for the "Manual" (Knowledge Base) feature.
+ * @responsibilities
+ * - Defines the navigation structure for the Manual sections (Dashboard, Fundamental, Technical, etc.).
+ * - Stores detailed educational content, calculation methods, and interpretative guides for each topic.
+ * - Centralizes icons and metadata for the Manual UI.
+ * @key_exports
+ * - MANUAL_SECTIONS (Navigation Config)
+ * - MANUAL_CONTENT (Detailed Topic Data)
+ * @dependencies
+ * - react-icons/lu (Icons)
+ * @lifecycle
+ * - Imported by ManualDashboard and ManualSectionLayout to populate the UI.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import {
     LuLayoutDashboard,
     LuBookOpen,
@@ -8,6 +28,10 @@ import {
     LuGlobe,
     LuNotebook
 } from "react-icons/lu";
+
+// =============================
+// Navigation Configuration
+// =============================
 
 export const MANUAL_SECTIONS = [
     {
@@ -68,10 +92,12 @@ export const MANUAL_SECTIONS = [
     }
 ];
 
+// =============================
+// Detailed Content Store
+// =============================
+
 export const MANUAL_CONTENT = {
-    // ==========================================
-    // 1. DASHBOARD
-    // ==========================================
+    // --- 1. DASHBOARD ---
     dashboard: {
         title: "Master Dashboard",
         description: "The central nervous system of Stocky. Synthesizes data to produce unified scoring and regime identification.",
@@ -115,9 +141,7 @@ export const MANUAL_CONTENT = {
         ]
     },
 
-    // ==========================================
-    // 2. FUNDAMENTAL
-    // ==========================================
+    // --- 2. FUNDAMENTAL ---
     fundamental: {
         title: "Fundamental Intelligence",
         description: "Deep-dive into the structural value, growth trajectory, and quality of the market.",
@@ -197,9 +221,7 @@ export const MANUAL_CONTENT = {
         ]
     },
 
-    // ==========================================
-    // 3. TECHNICAL
-    // ==========================================
+    // --- 3. TECHNICAL ---
     technical: {
         title: "Technical Intelligence",
         description: "Core price action engine analyzing momentum, trend, and statistical extensions.",
@@ -297,9 +319,7 @@ export const MANUAL_CONTENT = {
         ]
     },
 
-    // ==========================================
-    // 4. OPTIONS
-    // ==========================================
+    // --- 4. OPTIONS ---
     options: {
         title: "Options Intelligence",
         description: "Volatility surface, open interest structures, and greek exposure analysis.",
@@ -388,9 +408,7 @@ export const MANUAL_CONTENT = {
         ]
     },
 
-    // ==========================================
-    // 5. GLOBAL
-    // ==========================================
+    // --- 5. GLOBAL ---
     global: {
         title: "Global Intelligence",
         description: "Macro correlations, currency impacts, and foreign market lead-lag relationships.",
@@ -452,9 +470,7 @@ export const MANUAL_CONTENT = {
         ]
     },
 
-    // ==========================================
-    // 6. EVENTS
-    // ==========================================
+    // --- 6. EVENTS ---
     events: {
         title: "Event Intelligence",
         description: "Impact scaling of binary economic outcomes and corporate earnings.",
@@ -510,9 +526,7 @@ export const MANUAL_CONTENT = {
         ]
     },
 
-    // ==========================================
-    // 7. WALLET
-    // ==========================================
+    // --- 7. WALLET & RISK ---
     wallet: {
         title: "Wallet & Risk",
         description: "Portfolio tracking, PnL analysis, and capital allocation metrics.",
@@ -561,7 +575,7 @@ export const MANUAL_CONTENT = {
                 proTip: "Institutional desks cut risk strictly based on VaR limits."
             },
             {
-                id: " kelly",
+                id: "kelly",
                 title: "Kelly Criterion",
                 description: "Optimal position sizing formula.",
                 calculation: "W - (1-W)/R.",
@@ -572,9 +586,7 @@ export const MANUAL_CONTENT = {
         ]
     },
 
-    // ==========================================
-    // 8. JOURNAL
-    // ==========================================
+    // --- 8. JOURNAL ---
     journal: {
         title: "Trade Journal",
         description: "Behavioral analytics and rule adherence tracking.",

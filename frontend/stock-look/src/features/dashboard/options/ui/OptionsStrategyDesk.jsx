@@ -1,21 +1,45 @@
+/**
+ * @file OptionsStrategyDesk.jsx
+ * @purpose Actionable strategy panel based on Options Intelligence.
+ * @responsibilities
+ * - Displays the primary "Action Signal" (Bullish/Bearish/Neutral).
+ * - Suggests top trading strategies (e.g., Bull Call Spread, Iron Condor) based on IV Rank and Bias.
+ * - Highlights "Top Picks" (specific contracts) with high algorithmic scores.
+ * - Provides execution notes explaining the "Why".
+ * @key_exports
+ * - OptionsStrategyDesk (Default Component)
+ * @dependencies
+ * - optionsHelper: Strategy logic.
+ * @lifecycle
+ * - Rendered by OptionsChainLayout (Sidebar).
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useMemo } from "react";
 import { getStrategySuggestions, getTopContracts } from "@/features/dashboard/options/engine/optionsHelper";
 
+// =============================
+// Main Component
+// =============================
 export default function OptionsStrategyDesk({ score, metrics, ivRank = 30, chain = [] }) {
 
-    // Determine Signal Status
+    // 1. Determine Bias Status
     let status = { label: "Neutral", color: "text-text-tertiary", bg: "bg-background-elevated" };
     if (score > 65) status = { label: "Bullish Bias", color: "text-state-bullish-text", bg: "bg-state-bullish-surface" };
     else if (score < 35) status = { label: "Bearish Bias", color: "text-state-bearish-text", bg: "bg-state-bearish-surface" };
 
-    // Get Suggestions
+    // 2. Compute Suggestions
     const strategies = useMemo(() => getStrategySuggestions(score, metrics?.pcr || 1, ivRank), [score, metrics, ivRank]);
 
-    // Get Top Contracts
+    // 3. Get Top Contracts (Legacy Sort)
     const { ce: topCE, pe: topPE } = useMemo(() => getTopContracts(chain), [chain]);
 
     return (
         <div className="h-full flex flex-col bg-transparent">
+            {/* Header */}
             <div className="p-4 border-b border-border-subtle">
                 <div className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest mb-1.5 opacity-60">
                     Action Signal
@@ -25,13 +49,13 @@ export default function OptionsStrategyDesk({ score, metrics, ivRank = 30, chain
                 </div>
             </div>
 
+            {/* Scrollable Content */}
             <div className="p-4 flex-1 overflow-y-auto space-y-5 custom-scrollbar">
-                {/* PRIMARY STRATEGY */}
+
+                {/* Primary Strategy Card */}
                 {strategies.length > 0 && (
                     <div className="relative group p-[1px] rounded-2xl overflow-hidden shadow-lg">
-                        {/* Gradient Border */}
                         <div className="absolute inset-0 bg-gradient-to-r from-accent-primary via-purple-500 to-accent-primary opacity-30 group-hover:opacity-100 transition-opacity duration-500" />
-
                         <div className="relative bg-background-card rounded-2xl p-4 h-full">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[10px] px-2 py-0.5 rounded bg-accent-primary/10 text-accent-primary font-black uppercase tracking-wider border border-accent-primary/20 shadow-sm">
@@ -52,7 +76,7 @@ export default function OptionsStrategyDesk({ score, metrics, ivRank = 30, chain
                     </div>
                 )}
 
-                {/* SECONDARY STRATEGIES */}
+                {/* Secondary Strategies */}
                 <div className="space-y-3">
                     {strategies.slice(1).map((strat, idx) => (
                         <div key={idx} className="bg-background-elevated/40 border border-border-subtle rounded-xl p-3.5 hover:bg-background-subtle transition-all shadow-sm group">
@@ -66,7 +90,7 @@ export default function OptionsStrategyDesk({ score, metrics, ivRank = 30, chain
                     ))}
                 </div>
 
-                {/* EXECUTION NOTES */}
+                {/* Execution Logic */}
                 <div className="pt-2 p-4 bg-background-elevated/20 rounded-xl border border-border-subtle border-dashed shadow-inner">
                     <div className="text-[10px] uppercase text-text-tertiary font-black mb-3 tracking-widest opacity-60">Execution Notes</div>
                     <ul className="text-xs text-text-secondary space-y-2.5 list-none">
@@ -85,7 +109,7 @@ export default function OptionsStrategyDesk({ score, metrics, ivRank = 30, chain
                     </ul>
                 </div>
 
-                {/* TOP CONTRACTS (NEW) */}
+                {/* Activity Feed (Highest OI) */}
                 <div className="pt-4 mt-2">
                     <div className="text-[10px] uppercase text-text-tertiary font-black mb-3 tracking-widest opacity-60">Highest Activity</div>
                     <div className="grid grid-cols-2 gap-3">

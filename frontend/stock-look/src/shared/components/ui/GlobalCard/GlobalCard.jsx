@@ -1,7 +1,34 @@
+/**
+ * @file GlobalCard.jsx
+ * @purpose Generic dashboard metric card with embedded signal logic.
+ * @responsibilities
+ * - Displays key metrics with visual credit/confidence indicators.
+ * - Handles reliability dimming based on credit score.
+ * - Visualizes progress bars and trend signals (Bullish/Bearish).
+ * - Adapts to Light/Dark modes with specific border treatments.
+ * @key_exports
+ * - GlobalCard (Default)
+ * @dependencies
+ * - Card (Wrapper)
+ * - getReliabilityConfig, getSignalState (Logic)
+ * - cn (Utils)
+ * @lifecycle
+ * - Rendered by Fundamental/Technical grids to show specific data points.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from "react";
 import Card from "@/shared/components/common/Card";
 import { cn } from "@/lib/utils";
 import { getReliabilityConfig, getSignalState } from "@/shared/global/logic/signals";
+
+// =============================
+// Component
+// =============================
 
 export function GlobalCard({
   label = "Metric Label",

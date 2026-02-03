@@ -1,14 +1,37 @@
+/**
+ * @file TradeReadinessPanel.jsx
+ * @purpose Displays the daily pre-market trading plan and readiness assessment.
+ * @responsibilities
+ * - Visualizes Focus Areas (instruments, strategy).
+ * - Highlights Risk Zones (time windows, traps).
+ * - Enforces Capital Deployment rules (risk limits, allocation bias).
+ * @key_exports
+ * - TradeReadinessPanel (Default Component)
+ * @dependencies
+ * - React, lucide-react, Card (Shared)
+ * @lifecycle
+ * - Rendered by MasterDashboard to guide the trader's session.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 import { Crosshair, AlertOctagon, Wallet } from "lucide-react";
 import Card from "@/shared/components/common/Card";
+
+// =============================
+// Main Component
+// =============================
 
 export default function TradeReadinessPanel({ readiness }) {
     const { capital } = readiness;
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
-            {/* 1. FOCUS (Action) */}
+            {/* 1. FOCUS AREAS (What to Trade) */}
             <Card className="border-2 dark:border border-emerald-500/40 hover:border-emerald-500/60 flex flex-col relative overflow-hidden group">
                 <div className="flex items-center gap-2 mb-4">
                     <Crosshair size={14} className="text-emerald-500" />
@@ -20,7 +43,7 @@ export default function TradeReadinessPanel({ readiness }) {
                         <div className="text-[9px] text-text-tertiary font-bold uppercase mb-1.5">Preferred Instruments</div>
                         <div className="flex gap-2 flex-wrap">
                             {readiness.do.instruments.map(i => (
-                                <span key={i} className="text-[10px] font-bold text-text-primary bg-background-elevated px-2 py-1 rounded border border-border-subtle cursor-default">
+                                <span key={i} className="text-[10px] font-bold text-text-primary bg-background-elevated px-2 py-1 rounded border border-border-subtle cursor-default transition-colors hover:border-emerald-500/30">
                                     {i}
                                 </span>
                             ))}
@@ -33,7 +56,7 @@ export default function TradeReadinessPanel({ readiness }) {
                 </div>
             </Card>
 
-            {/* 2. RISK ZONES (Avoid) */}
+            {/* 2. RISK ZONES (What to Avoid) */}
             <Card className="border-2 dark:border border-red-500/40 hover:border-red-500/60 flex flex-col relative overflow-hidden">
                 <div className="flex items-center gap-2 mb-4">
                     <AlertOctagon size={14} className="text-red-500" />
@@ -58,7 +81,7 @@ export default function TradeReadinessPanel({ readiness }) {
                 </div>
             </Card>
 
-            {/* 3. CAPITAL DEPLOYMENT (Constraint) */}
+            {/* 3. CAPITAL PLAN (How to Size) */}
             <Card className="border-2 dark:border border-blue-500/40 hover:border-blue-500/60 flex flex-col justify-center relative">
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex items-center gap-2">

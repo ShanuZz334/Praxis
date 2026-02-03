@@ -1,3 +1,18 @@
+/**
+ * @file PerformanceStats.jsx
+ * @purpose Breakdown of trading performance statistics.
+ * @responsibilities
+ * - Displays Avg R-Multiple, Profit Factor, Expectancy, and Hold Time.
+ * - Highlights best and worst setups.
+ * @key_exports
+ * - PerformanceStats (Default)
+ * @dependencies
+ * - None (Pure UI)
+ * @lifecycle
+ * - Rendered by WalletPage (Future/Expanded).
+ * @date 2026-02-03
+ */
+
 import React from "react";
 
 export default function PerformanceStats({ stats }) {

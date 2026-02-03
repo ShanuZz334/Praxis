@@ -1,21 +1,37 @@
+/**
+ * @file TechnicalMetricsDesk.jsx
+ * @purpose Renders "AI Insight" and dynamic analysis for a technical indicator.
+ * @responsibilities
+ * - Generates natural language insights based on indicator value and trend.
+ * - Displays market context and sentiment analysis.
+ * @key_exports
+ * - TechnicalMetricsDesk (Default)
+ * @dependencies
+ * - None (Pure UI)
+ * @lifecycle
+ * - Rendered by TechnicalModal (Right Panel).
+ * @date 2026-02-03
+ */
+
 import React from 'react';
 
-/**
- * Technical Metrics Desk -> Now "AI Insight"
- * Provides dynamic analysis of the current signal.
- */
+// =============================
+// Component
+// =============================
+
 export default function TechnicalMetricsDesk({ card }) {
     if (!card) return null;
 
-    // 1. Derive Context
+    // =============================
+    // Logic
+    // =============================
+
     const norm = card.normalized || 0;
     const trendState = card.trendState || "Stable";
 
-    // AI LOGIC (Moved from InterpretationDesk)
     const isBullish = norm > 0.2;
     const isBearish = norm < -0.2;
 
-    // Generate AI Insight Text
     let insightText = "Indicator is neutral, suggesting consolidation or lack of clear directional bias.";
     let contextText = "Market awaits a catalyst.";
     let sentimentColor = "text-text-tertiary";
@@ -29,6 +45,10 @@ export default function TechnicalMetricsDesk({ card }) {
         contextText = "Selling pressure dominating recent bars.";
         sentimentColor = "text-state-bearish-text";
     }
+
+    // =============================
+    // Render Layer
+    // =============================
 
     return (
         <div className="

@@ -1,5 +1,29 @@
-// Use Environment Variable for Production, fallback to localhost for dev
+/**
+ * @file apiPaths.js
+ * @purpose Centralized API endpoint definitions and base URL configuration.
+ * @responsibilities
+ * - Exports BASE_URL from environment variables.
+ * - Defines all API endpoint paths for Auth, Dashboard, Income, Expense, and Image uploads.
+ * - Supports dynamic path generation (e.g., DELETE_INCOME by ID).
+ * @key_exports
+ * - BASE_URL
+ * - API_PATHS
+ * @dependencies
+ * - Vite environment variables (import.meta.env)
+ * @lifecycle
+ * - Imported by axiosInstance and service layers.
+ * @date 2026-02-04
+ */
+
+// =============================
+// Base URL Configuration
+// =============================
+
 export const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+// =============================
+// API Endpoint Paths
+// =============================
 
 export const API_PATHS = {
   AUTH: {
@@ -32,3 +56,4 @@ export const API_PATHS = {
     UPLOAD_IMAGE_PUBLIC: "/api/v1/user/upload-image-public",
   },
 };
+

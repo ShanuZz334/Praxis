@@ -1,5 +1,28 @@
+/**
+ * @file Loader.jsx
+ * @purpose Reusable loading spinner component with size/color variants.
+ * @responsibilities
+ * - Renders a CSS-based animated loader.
+ * - Supports multiple sizes (xxs to lg) and color themes.
+ * @key_exports
+ * - Loader (Default)
+ * @dependencies
+ * - Loader.css (Animation styles)
+ * @lifecycle
+ * - Used during async data fetching or lazy loading states.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from 'react';
 import './Loader.css';
+
+// =============================
+// Component
+// =============================
 
 const Loader = ({ size = 'md', color = 'indigo' }) => {
     const sizeClasses = {

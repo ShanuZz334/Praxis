@@ -1,8 +1,25 @@
 /**
- * Chart Mapping
- * Maps fundamental card IDs to their appropriate chart components
+ * @file chartMapping.jsx
+ * @purpose Central registry for mapping Fundamental Card IDs to Recharts components.
+ * @responsibilities
+ * - Exports `getChartForCard` to return the specific chart for a metric.
+ * - Exports `getChartType` for skeleton loading states.
+ * - Exports `shouldShowChart` to determine visibility.
+ * @key_exports
+ * - getChartForCard
+ * - shouldShowChart
+ * - getChartType
+ * @dependencies
+ * - Shared Charts (MeanReversionBandChart, EPSGrowthChart, etc.)
+ * @lifecycle
+ * - Used by FundamentalDetail and FundamentalModal.
+ * @date 2026-02-03
  */
 
+// =============================
+// Imports
+// =============================
+import React from 'react';
 import MeanReversionBandChart from '@/shared/components/charts/valuation/MeanReversionBandChart';
 import EarningsYieldChart from '@/shared/components/charts/valuation/EarningsYieldChart';
 import BuffettIndicatorChart from '@/shared/components/charts/valuation/BuffettIndicatorChart';
@@ -12,12 +29,16 @@ import EPSGrowthChart from '@/shared/components/charts/earnings/EPSGrowthChart';
 import EarningsRevisionFlow from '@/shared/components/charts/earnings/EarningsRevisionFlow';
 import FIIDIIFlowChart from '@/shared/components/charts/liquidity/FIIDIIFlowChart';
 import LiquidityGauge from '@/shared/components/charts/liquidity/LiquidityGauge';
-import SectorHeatmap from '@/shared/components/charts/sector/SectorHeatmap'; // Restored
-import MarketStressRadar from '@/shared/components/charts/risk/MarketStressRadar'; // Restored
-import GDPGrowthChart from '@/shared/components/charts/macro/GDPGrowthChart'; // Restored
-import CPIInflationGauge from '@/shared/components/charts/macro/CPIInflationGauge'; // Restored
-import PolicyRateCycleChart from '@/shared/components/charts/macro/PolicyRateCycleChart'; // Restored
-import SectorEarningsMatrix from '@/shared/components/charts/sector/SectorEarningsMatrix'; // New
+import SectorHeatmap from '@/shared/components/charts/sector/SectorHeatmap';
+import MarketStressRadar from '@/shared/components/charts/risk/MarketStressRadar';
+import GDPGrowthChart from '@/shared/components/charts/macro/GDPGrowthChart';
+import CPIInflationGauge from '@/shared/components/charts/macro/CPIInflationGauge';
+import PolicyRateCycleChart from '@/shared/components/charts/macro/PolicyRateCycleChart';
+import SectorEarningsMatrix from '@/shared/components/charts/sector/SectorEarningsMatrix';
+
+// =============================
+// Chart Mapping Logic
+// =============================
 
 /**
  * Get chart component for a given card

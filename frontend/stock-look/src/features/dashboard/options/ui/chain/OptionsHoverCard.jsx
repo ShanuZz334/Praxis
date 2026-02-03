@@ -1,7 +1,31 @@
+/**
+ * @file OptionsHoverCard.jsx
+ * @purpose Animated hover popup for detailed Greeks & AI Insights.
+ * @responsibilities
+ * - Renders a portal-attached card near the mouse cursor.
+ * - Scores Greeks (Delta, Gamma, Vega, Theta) on a 1-7 scale for quality.
+ * - Visualizes scores with color-coded "Rating Bars".
+ * - Provides an AI-generated textual observation based on real-time data.
+ * @key_exports
+ * - OptionsHoverCard (Default Component)
+ * @dependencies
+ * - react-dom: For Portal rendering.
+ * @lifecycle
+ * - Rendered by OptionsChainTable on mouse hover.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from 'react';
 import { createPortal } from 'react-dom';
 
-// Helper to score Greeks 1-7 (for Long Position)
+// =============================
+// Logic Helpers
+// =============================
+
+// Greek Scorer (Context: Long Option Buying)
 const getGreekScore = (greek, value) => {
     if (value === undefined || value === null || isNaN(value)) {
         return { score: 1, label: 'N/A' };
@@ -26,7 +50,7 @@ const getGreekScore = (greek, value) => {
             if (absVal < 0.0018) return { score: 5, label: 'High' };
             if (absVal < 0.0025) return { score: 6, label: 'Ex High' };
             return { score: 7, label: 'Explosive' };
-        case 'theta': // Closer to 0 is better for Long
+        case 'theta': // Closer to 0 is better for Long (less decay)
             if (value > -5) return { score: 7, label: 'Safe' };
             if (value > -10) return { score: 6, label: 'Low' };
             if (value > -18) return { score: 5, label: 'Mod' };
@@ -34,7 +58,7 @@ const getGreekScore = (greek, value) => {
             if (value > -40) return { score: 3, label: 'High' };
             if (value > -60) return { score: 2, label: 'Severe' };
             return { score: 1, label: 'Critical' };
-        case 'vega': // Higher is better for Long (Exposure)
+        case 'vega': // Higher is better for Long (Exposure to Vol)
             if (absVal < 3) return { score: 1, label: 'Negligible' };
             if (absVal < 6) return { score: 2, label: 'Low' };
             if (absVal < 10) return { score: 3, label: 'Mod' };
@@ -47,6 +71,9 @@ const getGreekScore = (greek, value) => {
     }
 };
 
+// =============================
+// Sub-Components
+// =============================
 const RatingBar = ({ score }) => (
     <div className="flex gap-[3px] mt-1.5 opacity-100">
         {[...Array(7)].map((_, i) => {
@@ -64,13 +91,16 @@ const RatingBar = ({ score }) => (
     </div>
 );
 
+// =============================
+// Main Component
+// =============================
 export default function OptionsHoverCard({ data, position, type, strike }) {
     if (!data || !position) return null;
 
-    // Position calc (offset from mouse/element)
+    // Position Calculation: Try to place smartly
     const style = {
         top: position.y - 10,
-        left: type === 'call' ? position.x + 20 : position.x - 280, // Flip side based on type
+        left: type === 'call' ? position.x + 20 : position.x - 280, // Dynamic side
     };
 
     const isCall = type === 'call';
@@ -90,11 +120,11 @@ export default function OptionsHoverCard({ data, position, type, strike }) {
             className={`fixed z-[9999] w-[300px] bg-[#0b1221] border border-white/10 rounded-xl shadow-2xl backdrop-blur-xl p-0 overflow-hidden pointer-events-none animate-in fade-in zoom-in-95 duration-200 ${glowClass}`}
             style={style}
         >
-            {/* DECORATIVE TOP LINE */}
+            {/* Top Indicator Line */}
             <div className={`h-1 w-full ${isCall ? 'bg-emerald-500' : 'bg-rose-500'}`} />
 
             <div className="p-5">
-                {/* HEADER */}
+                {/* Header Block */}
                 <div className="flex justify-between items-start mb-6">
                     <div>
                         <div className="text-[10px] text-white/50 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
@@ -109,7 +139,7 @@ export default function OptionsHoverCard({ data, position, type, strike }) {
                     </div>
                 </div>
 
-                {/* GREEKS GRID */}
+                {/* Greeks Grid */}
                 <div className="grid grid-cols-2 gap-x-8 gap-y-6 mb-6">
                     {greeks.map(g => {
                         const { score, label } = getGreekScore(g.key, g.val);
@@ -130,7 +160,7 @@ export default function OptionsHoverCard({ data, position, type, strike }) {
                     })}
                 </div>
 
-                {/* MICRO INSIGHT */}
+                {/* AI Insight Box */}
                 <div className="p-4 rounded-lg bg-gradient-to-br from-white/[0.03] to-transparent border border-white/5 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1 h-full bg-blue-500/50" />
 

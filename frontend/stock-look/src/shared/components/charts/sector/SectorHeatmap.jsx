@@ -1,10 +1,30 @@
+/**
+ * @file SectorHeatmap.jsx
+ * @purpose Interactive heatmap of Sector Valuation vs History.
+ * @responsibilities
+ * - Renders grid of sector tiles colored by PE Percentile.
+ * - Sorts sectors by weight (Size).
+ * - Provides interactive drill-down on click.
+ * @key_exports
+ * - SectorHeatmap (Default)
+ * @dependencies
+ * - framer-motion
+ * @lifecycle
+ * - Primary visualization for Sector Valuation analysis.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
-/**
- * SectorHeatmap
- * Grid heatmap showing sector valuation vs historical percentiles
- */
+// =============================
+// Component
+// =============================
+
 export default function SectorHeatmap({
     sectors = [],
     height = 400,

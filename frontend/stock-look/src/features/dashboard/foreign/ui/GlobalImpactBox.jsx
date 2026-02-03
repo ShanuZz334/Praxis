@@ -1,13 +1,35 @@
+/**
+ * @file GlobalImpactBox.jsx
+ * @purpose Detailed visual strip for specific impact events on Nifty/BankNifty.
+ * @responsibilities
+ * - Shows the "Net Impact" calculation (Positive/Negative).
+ * - Visualizes the primary and secondary drivers.
+ * - Displays confidence score for specific signal.
+ * @key_exports
+ * - GlobalImpactBox (Default Component)
+ * @dependencies
+ * - React
+ * @lifecycle
+ * - Rendered in lists or dashboards to show specific event impacts.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 
-export default function GlobalImpactStrip({ impact }) {
+// =============================
+// Main Component
+// =============================
+export default function GlobalImpactBox({ impact }) {
     if (!impact) return null;
 
-    // Severity Logic
+    // 1. Severity Logic
     const isBearish = impact.bias.includes('Bear') || impact.bias.includes('Negative');
     const isBullish = impact.bias.includes('Bull') || impact.bias.includes('Positive');
 
-    // Determining Style - Premium Glass Gradients
+    // 2. Dynamic Styles
     const style = isBearish
         ? "bg-gradient-to-r from-red-950/60 via-red-900/40 to-slate-900/80 border-red-500/30 shadow-[0_4px_30px_rgba(220,38,38,0.1)]"
         : isBullish
@@ -19,7 +41,7 @@ export default function GlobalImpactStrip({ impact }) {
     return (
         <div className={`w-full border-b backdrop-blur-xl p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 mb-0 animate-in slide-in-from-top duration-700 ${style}`}>
 
-            {/* LEFT: THE VERDICT */}
+            {/* Left: Verdict */}
             <div className="flex-1">
                 <div className={`text-xs font-bold uppercase tracking-widest mb-2 opacity-70 ${textStyle}`}>Net Impact on NIFTY Today</div>
                 <div className="flex items-center gap-6">
@@ -33,7 +55,7 @@ export default function GlobalImpactStrip({ impact }) {
                 </div>
             </div>
 
-            {/* RIGHT: DRIVERS & CONFIDENCE */}
+            {/* Right: Drivers & Stats */}
             <div className="flex gap-10 items-center border-l border-white/10 pl-10">
                 <div>
                     <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Key Drivers</div>

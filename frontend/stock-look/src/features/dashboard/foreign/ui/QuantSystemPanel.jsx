@@ -1,6 +1,29 @@
+/**
+ * @file QuantSystemPanel.jsx
+ * @purpose Displays the output of the quantitative logic engine (The "Auto-Strategist").
+ * @responsibilities
+ * - shows the "Primary Model Bias" and time horizon.
+ * - Visualizes model confidence and factor alignment.
+ * - Lists "Invalidation Levels" and "Bias Change Scenarios".
+ * - Provides sizing recommendations.
+ * @key_exports
+ * - QuantSystemPanel (Default Component)
+ * @dependencies
+ * - Lucide React (Icons)
+ * @lifecycle
+ * - Rendered in Dashboard/Foreign.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 import { ShieldAlert, Zap, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 
+// =============================
+// Main Component
+// =============================
 export default function QuantSystemPanel({ system }) {
     if (!system) return null;
     const { primaryBias, invalidation, positioning, timeHorizon, confidence, crossFactor, scenarios } = system;
@@ -74,6 +97,9 @@ export default function QuantSystemPanel({ system }) {
     );
 }
 
+// =============================
+// Helper Component
+// =============================
 function ConfidenceBar({ value }) {
     return (
         <div className="w-full mt-1">

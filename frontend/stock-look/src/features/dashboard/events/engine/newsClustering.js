@@ -1,16 +1,45 @@
+/**
+ * @file newsClustering.js
+ * @purpose Identifies immediate, high-frequency news bursts.
+ * @responsibilities
+ * - Detects rapid-fire news releases affecting market sentiment.
+ * - Clusters high-impact news items occurring within a tight time window.
+ * - Flags "Market Moving Clusters" for real-time alerts.
+ * @key_exports
+ * - detectNewsClusters (Function): Returns news cluster metadata.
+ * @dependencies
+ * - date-fns: For minute-level time difference calculations.
+ * @lifecycle
+ * - integrated into the news feed processing pipeline.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import { differenceInMinutes, parseISO } from 'date-fns';
 
+// =============================
+// Core Logic
+// =============================
+
+/**
+ * detectNewsClusters
+ * Detects if multiple high-impact news items have arrived within a short duration.
+ * @param {Array} newsItems - List of news objects.
+ * @returns {Object|null} - Cluster object if detected, else null.
+ */
 export function detectNewsClusters(newsItems) {
-    // Filter for high impact
+    // 1. Filter for High Impact
     const highImpact = newsItems.filter(n => n.impactScore >= 7);
 
     if (highImpact.length < 2) return null;
 
-    // Sort by time (descending usually, but for diff check lets do asc)
+    // 2. Sort by Time (Ascending for diff calc)
     const sorted = [...highImpact].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-    // Check closest cluster (last 2-3 items)
-    // If 2 high impact items within 60 mins -> Cluster
+    // 3. Cluster Detection Loop
+    // Definition: 2 high impact items within 60 minutes
     for (let i = 0; i < sorted.length - 1; i++) {
         const start = sorted[i];
         const end = sorted[i + 1];

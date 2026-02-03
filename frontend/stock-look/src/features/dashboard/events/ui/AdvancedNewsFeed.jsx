@@ -1,15 +1,42 @@
+/**
+ * @file AdvancedNewsFeed.jsx
+ * @purpose Renders a high-density, Bloomberg-style news feed for real-time market intelligence.
+ * @responsibilities
+ * - Displays a live stream of scored news items.
+ * - Indicators for sentiment, source credibility, and AI-driven analysis.
+ * - Supports resetting filters via a clear action button.
+ * - Uses animation for smooth entry of new items.
+ * @key_exports
+ * - AdvancedNewsFeed (Default Component)
+ * @dependencies
+ * - lucide-react (Icons)
+ * @lifecycle
+ * - Rendered by EventsPage and NewsSection.
+ * - Updates efficiently as the `newsItems` prop changes.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 import { Cpu, RotateCcw } from "lucide-react";
 
+// =============================
+// Main Component
+// =============================
 export default function AdvancedNewsFeed({ newsItems, onReset }) {
     if (!newsItems || newsItems.length === 0) return null;
 
     return (
         <div className="w-full space-y-6">
+            {/* Header / Toolbar */}
             <div className="flex justify-between items-end pb-2 border-b border-border-default">
                 <div className="flex items-center gap-3">
                     <Cpu className="w-4 h-4 text-text-tertiary" />
-                    <span className="text-xs font-bold text-text-tertiary uppercase tracking-widest">Live Intelligence Stream</span>
+                    <span className="text-xs font-bold text-text-tertiary uppercase tracking-widest">
+                        Live Intelligence Stream
+                    </span>
                 </div>
 
                 {onReset && (
@@ -23,6 +50,7 @@ export default function AdvancedNewsFeed({ newsItems, onReset }) {
                 )}
             </div>
 
+            {/* Feed List */}
             <div className="space-y-3">
                 {newsItems.map((news) => (
                     <NewsItem key={news.id} news={news} />
@@ -32,27 +60,36 @@ export default function AdvancedNewsFeed({ newsItems, onReset }) {
     );
 }
 
-// Single News Item Component (Bloomberg Style - Clean, Institutional)
+// =============================
+// Helper Component (Internal)
+// =============================
+
+/**
+ * NewsItem
+ * Renders a single news row with institutional-grade visual cues.
+ */
 function NewsItem({ news }) {
     const score = news.impactScore || 0;
     const isBull = score > 0;
     const isBear = score < 0;
 
-    // Color Logic
+    // Stylistic Logic
     const accentColor = isBull ? "bg-emerald-500" : isBear ? "bg-red-500" : "bg-slate-500";
     const scoreColor = isBull ? "text-emerald-400" : isBear ? "text-red-400" : "text-slate-400";
     const scoreBg = isBull ? "bg-emerald-500/10" : isBear ? "bg-red-500/10" : "bg-slate-500/10";
 
     return (
         <div className="group relative w-full bg-background-card border border-border-default hover:border-border-default hover:bg-background-surface transition-all duration-200 rounded-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
-            {/* Left Accent Bar (Thin) */}
+            {/* Left Accent Bar (Visual Sentinel) */}
             <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${accentColor}`} />
 
             <div className="pl-5 pr-4 py-3 flex flex-col gap-1.5">
-                {/* 1. Header Row: Source | Time | Score */}
+                {/* 1. Header: Source | Time | Badge */}
                 <div className="flex justify-between items-center h-6">
                     <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">{news.source}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">
+                            {news.source}
+                        </span>
                         {news.eventType && (
                             <>
                                 <span className="text-[10px] text-text-tertiary">•</span>
@@ -62,10 +99,12 @@ function NewsItem({ news }) {
                             </>
                         )}
                         <span className="text-[10px] text-text-tertiary">•</span>
-                        <span className="text-[10px] text-text-tertiary font-mono">{formatTime(news.timestamp)}</span>
+                        <span className="text-[10px] text-text-tertiary font-mono">
+                            {formatTime(news.timestamp)}
+                        </span>
                     </div>
 
-                    {/* Impact Badge (Compact) */}
+                    {/* Impact Score Badge */}
                     <div className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded ${scoreBg}`}>
                         <span className={`text-[10px] font-bold font-mono ${scoreColor}`}>
                             {score > 0 ? "+" : ""}{score}
@@ -73,12 +112,12 @@ function NewsItem({ news }) {
                     </div>
                 </div>
 
-                {/* 2. Headline (Bold, Scannable) */}
+                {/* 2. Headline */}
                 <h3 className="text-sm font-semibold text-text-primary leading-snug group-hover:text-text-primary transition-colors">
                     {news.title}
                 </h3>
 
-                {/* 3. AI Interpretation (Subtle) */}
+                {/* 3. AI Takeaway */}
                 <div className="flex items-start gap-2 mt-1">
                     <div className={`mt-1.5 w-1 h-1 rounded-full ${accentColor} opacity-60`} />
                     <div className="flex flex-col gap-1">
@@ -93,7 +132,7 @@ function NewsItem({ news }) {
                     </div>
                 </div>
 
-                {/* 4. Footer Row: Tags | Horizon */}
+                {/* 4. Footer: Tags & Horizon */}
                 <div className="mt-2 flex items-center justify-between">
                     <div className="flex flex-wrap gap-2">
                         {news.tags && news.tags.length > 0 && news.tags.map((tag, i) => (
@@ -111,9 +150,17 @@ function NewsItem({ news }) {
                 </div>
             </div>
         </div>
-    )
+    );
 }
 
+// =============================
+// Utility Functions
+// =============================
+
+/**
+ * formatTime
+ * Converts ISO string to relative "ago" format.
+ */
 function formatTime(isoString) {
     if (!isoString) return "";
     const date = new Date(isoString);

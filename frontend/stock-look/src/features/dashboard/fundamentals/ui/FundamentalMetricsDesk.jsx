@@ -1,27 +1,39 @@
+/**
+ * @file FundamentalMetricsDesk.jsx
+ * @purpose Right panel of the detail modal, providing "Institutional Trade Directives".
+ * @responsibilities
+ * - Analyzes the normalized score to generate a clear "Signal" (Buy/Sell/Hold).
+ * - Determines "Strategic Bias" (e.g., Accumulate, Sell Rallies).
+ * - Maps the metric state to a "Market Condition" narrative.
+ * - Displays a confidence score derived from data reliability.
+ * @key_exports
+ * - FundamentalMetricsDesk (Default Component)
+ * @lifecycle
+ * - Rendered in FundamentalModal.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from 'react';
 
-/**
- * Fundamental Metrics Desk (Right Floating Panel)
- * ACTION & STATUS CENTER
- */
+// =============================
+// Main Component
+// =============================
 export default function FundamentalMetricsDesk({ card }) {
     if (!card) return null;
 
-    // 1. Derive Context from Card Data
+    // --- State Derivation ---
     const norm = card.normalized || 0;
     const credit = card.creditScore || 0;
     const category = card.category || "General";
 
-    /* ------------------------------------------------------------
-       LOGIC: Signal Construction (Institutional Grade)
-       ------------------------------------------------------------ */
-
-    // Default State (Neutral)
+    // --- Signal Construction ---
     let signal = "Neutral";
     let signalColor = "text-accent-primary";
     let signalContext = "Trend lacks conviction; awaiting catalyst";
 
-    // Bullish States
     if (norm > 0.5) {
         signal = "Bullish";
         signalColor = "text-state-bullish-text";
@@ -30,9 +42,7 @@ export default function FundamentalMetricsDesk({ card }) {
         signal = "Moderately Bullish";
         signalColor = "text-state-bullish-text/90";
         signalContext = "Earnings momentum outweighs valuation drag";
-    }
-    // Bearish States
-    else if (norm < -0.5) {
+    } else if (norm < -0.5) {
         signal = "Bearish";
         signalColor = "text-state-bearish-text";
         signalContext = "Structural weakness evident; risk elevated";
@@ -42,10 +52,7 @@ export default function FundamentalMetricsDesk({ card }) {
         signalContext = "Growth deceleration outpacing support levels";
     }
 
-    /* ------------------------------------------------------------
-       LOGIC: Strategic Bias (Time Horizon + Execution)
-       ------------------------------------------------------------ */
-
+    // --- Strategic Bias ---
     let timeHorizon = "Swing / Positional";
     let biasTitle = "Hold / Monitor";
     let biasDesc = "Avoid chasing; await clear accumulation";
@@ -68,13 +75,8 @@ export default function FundamentalMetricsDesk({ card }) {
         biasDesc = "Trim exposure near resistance zones";
     }
 
-    /* ------------------------------------------------------------
-       LOGIC: Market Condition (Cause-Based Phrasing)
-       ------------------------------------------------------------ */
-
+    // --- Market Narratives ---
     let marketCondition = "Consolidation phase";
-
-    // Dynamic generation based on Category + Sentiment
     if (norm > 0.2) {
         if (category.includes("Growth") || category.includes("Momentum")) marketCondition = "Earnings breadth improving";
         else if (category.includes("Valuation")) marketCondition = "Mean reversion upside";
@@ -85,15 +87,11 @@ export default function FundamentalMetricsDesk({ card }) {
         else marketCondition = "Distribution evident";
     }
 
-    /* ------------------------------------------------------------
-       LOGIC: Signal Confidence (Trust Layer)
-       ------------------------------------------------------------ */
-
-    let confidence = "Medium"; // Default to Medium (6-8 range usually)
+    // --- Confidence Logic ---
+    let confidence = "Medium";
     let confColor = "text-amber-400";
     let confDesc = "Data consistent, but breadth metrics diverging";
 
-    // Reliability score is usually 0.0 - 1.0 in backend, mapped to 0-10 logic here
     const relScore = credit * 10;
 
     if (relScore >= 8) {
@@ -106,40 +104,23 @@ export default function FundamentalMetricsDesk({ card }) {
         confDesc = "Sector leadership strong, but participation still narrow";
     }
 
-    /* ------------------------------------------------------------
-       RENDER
-       ------------------------------------------------------------ */
+    // --- Render ---
     return (
-        <div className="
-            w-full lg:w-[260px] shrink-0
-            flex flex-col gap-4
-            animate-in fade-in slide-in-from-right-4 duration-500
-        ">
+        <div className="w-full lg:w-[260px] shrink-0 flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-500">
             {/* GLASS CONTAINER */}
-            <div className="
-                bg-background-tooltip
-                border border-border-default
-                rounded-2xl
-                p-6
-                shadow-2xl
-                flex flex-col gap-6
-            ">
-                {/* HEADER LABEL */}
+            <div className="bg-background-tooltip border border-border-default rounded-2xl p-6 shadow-2xl flex flex-col gap-6">
+
+                {/* HEADER */}
                 <div className="flex items-center gap-2 border-b border-border-subtle pb-3 mb-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.4)]" />
                     <span className="text-[10px] font-bold text-accent-primary uppercase tracking-[0.2em]">Institutional Trade Directive</span>
                 </div>
 
-                {/* 1. PRIMARY ACTION SIGNAL BADGE */}
+                {/* 1. PRIMARY SIGNAL */}
                 <div className="py-2">
-                    <div className={`
-                        flex items-center justify-center
-                        py-1 font-bold text-xl tracking-tight
-                        ${signalColor}
-                    `}>
+                    <div className={`flex items-center justify-center py-1 font-bold text-xl tracking-tight ${signalColor}`}>
                         {signal}
                     </div>
-                    {/* Signal Context */}
                     <div className="mt-1 text-xs text-text-secondary text-center leading-relaxed font-medium italic opacity-100">
                         "{signalContext}"
                     </div>
@@ -151,9 +132,7 @@ export default function FundamentalMetricsDesk({ card }) {
                 <div className="px-1">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-[9px] text-text-secondary uppercase tracking-[0.2em] font-bold opacity-100">Strategic Bias</span>
-                        <span className="text-[8px] text-accent-primary font-bold uppercase tracking-widest">
-                            {timeHorizon}
-                        </span>
+                        <span className="text-[8px] text-accent-primary font-bold uppercase tracking-widest">{timeHorizon}</span>
                     </div>
 
                     <div className="text-lg font-bold text-text-primary mb-1 tracking-tight">{biasTitle}</div>
@@ -164,18 +143,13 @@ export default function FundamentalMetricsDesk({ card }) {
 
                 <div className="h-px bg-gradient-to-r from-transparent via-border-subtle to-transparent" />
 
-                {/* 3. MARKET CONDITION & CONFIDENCE */}
+                {/* 3. MARKET STATE */}
                 <div className="space-y-6">
-
-                    {/* Market Condition */}
                     <div className="flex justify-between items-center px-1">
                         <div className="text-[9px] text-text-secondary uppercase tracking-[0.2em] font-bold opacity-100">Market State</div>
-                        <div className="text-sm font-bold text-text-primary tracking-tight">
-                            {marketCondition}
-                        </div>
+                        <div className="text-sm font-bold text-text-primary tracking-tight">{marketCondition}</div>
                     </div>
 
-                    {/* Signal Confidence */}
                     <div className="px-1 mt-4">
                         <div className="flex items-baseline justify-between mb-1">
                             <div className="text-[9px] text-text-secondary uppercase tracking-[0.2em] font-bold opacity-100">Engine Confidence</div>
@@ -185,10 +159,9 @@ export default function FundamentalMetricsDesk({ card }) {
                             "{confDesc}"
                         </div>
                     </div>
-
                 </div>
 
-                {/* DECORATIVE FOOTER */}
+                {/* FOOTER */}
                 <div className="mt-2 pt-4 border-t border-border-subtle text-[8px] text-text-tertiary font-bold opacity-30 text-center uppercase tracking-[0.3em]">
                     Institutional Intelligence Hub
                 </div>

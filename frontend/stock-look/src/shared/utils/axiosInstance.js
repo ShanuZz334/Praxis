@@ -1,5 +1,32 @@
+/**
+ * @file axiosInstance.js
+ * @purpose Configured Axios instance with request/response interceptors.
+ * @responsibilities
+ * - Creates axios instance with BASE_URL and default headers.
+ * - Attaches JWT token to all outgoing requests.
+ * - Handles 401 (Unauthorized) responses with session conflict detection.
+ * - Redirects to login on auth failures.
+ * - Logs network and server errors.
+ * @key_exports
+ * - axiosInstance (default)
+ * @dependencies
+ * - axios
+ * - apiPaths (BASE_URL)
+ * @lifecycle
+ * - Used by all API service layers and contexts.
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
+
 import axios from "axios";
 import { BASE_URL } from "@/shared/utils/apiPaths";
+
+// =============================
+// Axios Instance Configuration
+// =============================
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -10,9 +37,10 @@ const axiosInstance = axios.create({
   },
 });
 
-/* -------------------------------------------
-   REQUEST INTERCEPTOR
--------------------------------------------- */
+// =============================
+// Request Interceptor
+// =============================
+
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -24,9 +52,10 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-/* -------------------------------------------
-   RESPONSE INTERCEPTOR
--------------------------------------------- */
+// =============================
+// Response Interceptor
+// =============================
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -40,8 +69,6 @@ axiosInstance.interceptors.response.use(
     if (status === 401) {
       const message = error.response.data?.message || "";
 
-      // If it's a session conflict, don't redirect yet. 
-      // Let the UI handle it via an event.
       if (message.includes("Internal Session Conflict")) {
         window.dispatchEvent(new CustomEvent('session-conflict', { detail: message }));
         return Promise.reject(error);
@@ -64,3 +91,4 @@ axiosInstance.interceptors.response.use(
 );
 
 export default axiosInstance;
+

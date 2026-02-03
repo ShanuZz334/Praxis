@@ -1,9 +1,31 @@
+/**
+ * @file TechnicalHistoryChart.jsx
+ * @purpose Renders a 30-day historical trend chart for an indicator.
+ * @responsibilities
+ * - Generates mock historical data based on current trend and volatility.
+ * - Visualizes the trend with color-coded lines.
+ * @key_exports
+ * - TechnicalHistoryChart (Default)
+ * @dependencies
+ * - Recharts
+ * @lifecycle
+ * - Rendered by TechnicalModal.
+ * @date 2026-02-03
+ */
+
 import React, { useMemo } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
+// =============================
+// Component
+// =============================
+
 export default function TechnicalHistoryChart({ trend = 'neutral', baseValue = 50, label = 'Indicator' }) {
 
-    // GENERATE MOCK HISTORY (30 Days)
+    // =============================
+    // Logic & Memoization
+    // =============================
+
     const data = useMemo(() => {
         const result = [];
         const today = new Date();
@@ -46,6 +68,10 @@ export default function TechnicalHistoryChart({ trend = 'neutral', baseValue = 5
     let color = '#d97706'; // amber-600
     if (safeTrend.includes('bull') || safeTrend.includes('up') || safeTrend.includes('positive') || safeTrend.includes('buy')) color = '#059669'; // emerald-600
     if (safeTrend.includes('bear') || safeTrend.includes('down') || safeTrend.includes('negative') || safeTrend.includes('sell')) color = '#dc2626'; // red-600
+
+    // =============================
+    // Render Layer
+    // =============================
 
     return (
         <div className="w-full h-full min-h-[300px] flex flex-col">

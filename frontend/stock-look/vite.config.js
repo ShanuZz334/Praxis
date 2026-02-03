@@ -1,10 +1,40 @@
+/**
+ * @file vite.config.js
+ * @purpose Vite build configuration for the Stocky application.
+ * @responsibilities
+ * - Configures Vite plugins (Tailwind, React).
+ * - Sets up development server (localhost:5000).
+ * - Defines path aliases for cleaner imports (@/ → ./src).
+ * @key_exports
+ * - Vite configuration object (default export)
+ * @dependencies
+ * - @tailwindcss/vite - Tailwind CSS integration
+ * - @vitejs/plugin-react - React Fast Refresh support
+ * - vite - Build tool
+ * @lifecycle
+ * - Loaded by Vite during development and build.
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
+
 import tailwind from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from "node:url";
 
+// =============================
+// Path Resolution
+// =============================
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// =============================
+// Vite Configuration
+// =============================
 
 export default defineConfig({
   plugins: [tailwind(), react()],

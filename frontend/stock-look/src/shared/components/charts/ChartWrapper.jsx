@@ -1,12 +1,34 @@
+/**
+ * @file ChartWrapper.jsx
+ * @purpose Universal container for all application charts.
+ * @responsibilities
+ * - Provides responsive container dimensions via ResizeObserver.
+ * - Handles Skeleton loading states.
+ * - Manages Error boundaries for visualization failures.
+ * - Standardizes chart transitions and controls positioning.
+ * @key_exports
+ * - ChartWrapper (Default)
+ * @dependencies
+ * - ChartSkeleton
+ * - chartAnimations (chartVariants)
+ * @lifecycle
+ * - Wraps every chart instance to ensure consistency.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { chartVariants } from '@/shared/utils/chartAnimations';
 import ChartSkeleton from './ChartSkeleton';
 
-/**
- * ChartWrapper - Base wrapper for all charts
- * Provides: responsive container, dark mode, skeleton loading, error boundaries
- */
+// =============================
+// Component
+// =============================
+
 export default function ChartWrapper({
     children,
     loading = false,

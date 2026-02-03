@@ -1,9 +1,36 @@
+/**
+ * @file VerificationContext.jsx
+ * @purpose Manages multi-step verification state (Email OTP, TOTP).
+ * @responsibilities
+ * - Tracks verification status (`isVerifying`, `isVerified`).
+ * - Handles credential verification API calls.
+ * - Stores `signupToken` temporarily during the process.
+ * @key_exports
+ * - VerificationProvider
+ * @dependencies
+ * - axiosInstance, API_PATHS
+ * - VerificationContext (Instance)
+ * @lifecycle
+ * - Wraps Auth components usually during Signup/Login flows.
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useState, useCallback } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { API_PATHS } from '@/shared/utils/apiPaths';
 import { VerificationContext } from './VerificationContextInstance';
 
+// =============================
+// Provider Component
+// =============================
+
 export const VerificationProvider = ({ children }) => {
+
+    // --- State ---
     const [isVerifying, setIsVerifying] = useState(false);
     const [isVerified, setIsVerified] = useState(false);
     const [email, setEmail] = useState('');
@@ -12,12 +39,13 @@ export const VerificationProvider = ({ children }) => {
 
     const [signupToken, setSignupToken] = useState(null);
 
+    // --- Actions ---
+
     const initiateVerification = useCallback((userEmail) => {
         setEmail(userEmail);
         setIsVerifying(true);
         setError('');
     }, []);
-
 
     const verifyCredentials = useCallback(async (email, totp) => {
         setLoading(true);
@@ -50,6 +78,8 @@ export const VerificationProvider = ({ children }) => {
         setError('');
     }, []);
 
+    // --- Render ---
+
     return (
         <VerificationContext.Provider value={{
             isVerifying,
@@ -66,3 +96,4 @@ export const VerificationProvider = ({ children }) => {
         </VerificationContext.Provider>
     );
 };
+

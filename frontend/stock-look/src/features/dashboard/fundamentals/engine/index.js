@@ -1,32 +1,46 @@
+/**
+ * @file index.js
+ * @purpose Core entry point for the Fundamentals Engine.
+ * @responsibilities
+ * - Orchestrates the evaluation of all fundamental cards.
+ * - Aggregates section scores and calculates the final weighted composite score.
+ * - Determines the market regime (Risk-On/Risk-Off) and confidence level.
+ * @key_exports
+ * - evaluateFundamentals (Main Computation Function)
+ * @dependencies
+ * - cards.config.js: Card definitions.
+ * - bounds.js: Normalization bounds.
+ * - normalize.js: Scaling logic.
+ * - sections.config.js: Section weightings.
+ * @lifecycle
+ * - Called by `FundamentalPage` or `FundamentalSystem` hooks.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import { FUNDAMENTAL_CARDS } from "./cards.config";
 import { BOUNDS } from "./bounds";
 import { normalize } from "./normalize";
 import { SECTION_WEIGHTS } from "./sections.config";
 
-/**
- * Industry-standard fundamentals evaluator (Refactored)
- * - Single Authoritative Gauge
- * - Weighted Sections
- * - Reliability-based Scoring
- */
+// =============================
+// Core Logic: Evaluation
+// =============================
 export function evaluateFundamentals(snapshot) {
   // 1. Calculate Score for Each Card
   const evaluatedCards = FUNDAMENTAL_CARDS.map((c) => {
-    const b = BOUNDS[c.id] || { min: 0, max: 100 }; // Fallback bound
+    const b = BOUNDS[c.id] || { min: 0, max: 100 };
     const raw = snapshot[c.id];
 
-    // Normalized [-1 to +1]
+    // Normalize raw value to [-1, 1]
     const n = normalize(raw, b.min, b.max, b.inverse);
 
-    // Credit Score [0.5 to 1.0]
+    // Credit Score acts as a confidence/impact dampener
     const credit = c.creditScore || 0.5;
 
-    // Final Card Score [-1 to +1 scaled by credit]
-    // Note: We keep it in -1..1 range conceptually for aggregation, 
-    // but the credit acts as a "confidence/impact" dampener if we wanted, 
-    // OR we can treat it as a direct weight.
-    // User Formula: cardScore = normalized * creditScore
-    // If normalized is 1 and credit is 0.9, score is 0.9.
+    // Final score contribution
     const score = n * credit;
 
     return {
@@ -34,11 +48,11 @@ export function evaluateFundamentals(snapshot) {
       raw,
       normalized: n,
       creditScore: credit,
-      score: score, // This is the contributing score
+      score: score,
     };
   });
 
-  // 2. Group by Section & Calculate Section Scores
+  // 2. Group by Section & Calculate Average Scores
   const sectionScores = {};
   const sectionCounts = {};
 
@@ -52,8 +66,6 @@ export function evaluateFundamentals(snapshot) {
     sectionCounts[section] += 1;
   });
 
-  // Calculate Average Section Score
-  // This prevents sections with more cards from overpowering just by count.
   const averagedSectionScores = {};
   Object.keys(sectionScores).forEach((section) => {
     const count = sectionCounts[section];
@@ -66,27 +78,24 @@ export function evaluateFundamentals(snapshot) {
 
   Object.keys(SECTION_WEIGHTS).forEach((section) => {
     const weight = SECTION_WEIGHTS[section];
-    // Use the computed average for this section, or 0 if missing (neutral)
     const sectionScore = averagedSectionScores[section] || 0;
 
     totalWeightedScore += sectionScore * weight;
     totalWeightUsed += weight;
   });
 
-  // Normalize final score if weights don't sum to exactly 1 (safety)
+  // Normalize final score
   const finalNormalizedScore = totalWeightUsed > 0 ? totalWeightedScore / totalWeightUsed : 0;
 
-  // 4. Map to 0-100 Scale
-  // [-1 ... +1] -> [0 ... 100]
+  // 4. Map to 0-100 Gauge Scale
   const gauge = Math.round(((finalNormalizedScore + 1) / 2) * 100);
 
   // 5. Determine Market Regime
   let regime = "Balanced";
   if (gauge >= 70) regime = "Risk-On";
-  if (gauge < 40) regime = "Risk-Off";
+  else if (gauge < 40) regime = "Risk-Off";
 
-  // 6. Calculate Confidence (based on dispersion)
-  // Simple variance check between section scores
+  // 6. Calculate Confidence (Variance Check)
   const scores = Object.values(averagedSectionScores);
   const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
   const variance = scores.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / scores.length;
@@ -101,6 +110,6 @@ export function evaluateFundamentals(snapshot) {
     confidence,
     normalizedScore: finalNormalizedScore,
     cards: evaluatedCards,
-    sections: averagedSectionScores // Useful for debugging/deep dive
+    sections: averagedSectionScores
   };
 }

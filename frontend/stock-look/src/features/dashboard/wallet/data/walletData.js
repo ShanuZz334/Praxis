@@ -1,3 +1,18 @@
+/**
+ * @file walletData.js
+ * @purpose Provides mock data for the Wallet & Risk Management feature.
+ * @responsibilities
+ * - Defines capital summary, asset allocation, and performance history.
+ * - Stores active positions and risk rules.
+ * @key_exports
+ * - MOCK_WALLET_DATA
+ * @dependencies
+ * - None (Pure Mock Data)
+ * @lifecycle
+ * - Consumed by WalletPage and riskEngine.
+ * @date 2026-02-03
+ */
+
 export const MOCK_WALLET_DATA = {
     summary: {
         availableCapital: 52400,

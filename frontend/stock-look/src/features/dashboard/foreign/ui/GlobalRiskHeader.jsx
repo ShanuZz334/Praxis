@@ -1,6 +1,29 @@
+/**
+ * @file GlobalRiskHeader.jsx
+ * @purpose Header for the Global Risk section, displaying the main Gauge and tactical briefs.
+ * @responsibilities
+ * - Hosts the `ForeignGauge` for high-level risk visualization.
+ * - Displays the current "Macro Regime" (e.g., Risk-On, Inflationary).
+ * - Lists key conditions (Rates, Volatility, Liquidity) with status colors.
+ * - Provides a "Tactical Playbook" summary for traders.
+ * @key_exports
+ * - GlobalRiskHeader (Default Component)
+ * @dependencies
+ * - ForeignGauge: Visualization component.
+ * @lifecycle
+ * - Rendered in Dashboard/Foreign or Dashboard/Risk.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 import ForeignGauge from "./ForeignGauge";
 
+// =============================
+// Main Component
+// =============================
 export default function GlobalRiskHeader({ riskData }) {
     if (!riskData) return null;
     const { index, state, regime, tactical, conditions, helper, lastUpdated } = riskData;
@@ -16,7 +39,7 @@ export default function GlobalRiskHeader({ riskData }) {
                 </div>
             </div>
 
-            {/* 2. REGIME INTELLIGENCE (Strategist Brief) */}
+            {/* 2. REGIME INTELLIGENCE */}
             <div className="flex-1 p-6 flex flex-col justify-center gap-5">
 
                 {/* Header & Conditions */}
@@ -70,6 +93,9 @@ export default function GlobalRiskHeader({ riskData }) {
     );
 }
 
+// =============================
+// Helper Component
+// =============================
 function ConditionItem({ label, value, color }) {
     return (
         <div className="flex flex-col items-start min-w-[60px]">

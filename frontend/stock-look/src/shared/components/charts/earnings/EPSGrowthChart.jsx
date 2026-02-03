@@ -1,14 +1,33 @@
+/**
+ * @file EPSGrowthChart.jsx
+ * @purpose Visualizes Earnings Per Share (EPS) growth momentum.
+ * @responsibilities
+ * - Renders a ComposedChart with Growth Bars and Trend Line.
+ * - Colors bars based on growth thresholds (Green, Yellow, Red).
+ * - Simulates upgrade/downgrade breadth metrics.
+ * @key_exports
+ * - EPSGrowthChart (Default)
+ * @dependencies
+ * - Recharts, ChartTooltip
+ * - chartUtils (formatChartDate, calculateMovingAverage)
+ * @lifecycle
+ * - Core component of Earnings Analysis in Fundamental/Sector pages.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useMemo } from 'react';
 import { ComposedChart, Bar, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { RechartsTooltipWrapper } from '../ChartTooltip';
 import { formatChartDate, calculateMovingAverage } from '@/shared/utils/chartUtils';
 
-/**
- * EPSGrowthChart
- * 
- * Primary: EPS Growth Momentum (Bars) + 3Y Trend (Line)
- * Supporting: Revision Breadth (Upgrades/Downgrades Ratio)
- */
+// =============================
+// Component
+// =============================
+
 export default function EPSGrowthChart({
     data = [],
     height = 400,

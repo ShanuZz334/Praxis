@@ -1,4 +1,24 @@
+/**
+ * @file journalData.js
+ * @purpose Mock data provider for the Trading Journal feature.
+ * @responsibilities
+ * - Provides static mock data for development and testing.
+ * - Includes Account, Score, Context, Trades, Notes, Analytics, and Psychology data.
+ * @key_exports
+ * - MOCK_JOURNAL_DATA
+ * @dependencies
+ * - None
+ * @lifecycle
+ * - Imported by JournalPage and other components to populate the UI.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Mock Data Configuration
+// =============================
+
 export const MOCK_JOURNAL_DATA = {
+    // --- Account Metrics ---
     account: {
         capital: 78000,
         openRiskPct: 1.2,
@@ -6,6 +26,8 @@ export const MOCK_JOURNAL_DATA = {
         winRate: 64,
         avgRR: 1.8
     },
+
+    // --- Execution Quality ---
     executionScore: {
         score: 82,
         grade: "A-",
@@ -17,12 +39,16 @@ export const MOCK_JOURNAL_DATA = {
             emotionalStability: 70
         }
     },
+
+    // --- Market Environment ---
     marketContext: {
         regime: "Late-Cycle Risk-On",
         optionsRegime: "Short Volatility",
         globalRisk: "Constructive",
         volBias: "Compressed"
     },
+
+    // --- Trade Log ---
     trades: [
         {
             id: "t1", date: "2026-01-21T10:30:00", instrument: "NIFTY 22000 CE", type: "Option Buy", direction: "Long",
@@ -88,11 +114,15 @@ export const MOCK_JOURNAL_DATA = {
             psychology: { state: "Calm", notes: "Stop hit quickly." }
         }
     ],
+
+    // --- Daily Journal Notes ---
     dailyNotes: {
         "2026-01-21": "Today was a mixed day. Followed the gap fill perfectly on Nifty, but BankNifty trade was a FOMO entry. Need to stick to the plan better.",
         "2026-01-20": "Great focus today. Execution was flawless on Reliance. No overtrading.",
         "2026-01-19": "Terrible discipline today. Revenge trading after first loss. Account locked as per rules."
     },
+
+    // --- Analytics Summary ---
     analytics: {
         expectancy: 0.45,
         profitFactor: 1.65,
@@ -102,6 +132,8 @@ export const MOCK_JOURNAL_DATA = {
             { name: "Reversal", winRate: 40, expectancy: -0.2 }
         ]
     },
+
+    // --- Psychology Stats ---
     psychology: {
         heatmap: { "Calm": 12, "Rushed": 4, "Hesitant": 2, "Frustrated": 1 },
         ruleAdherence: 88 // percentage

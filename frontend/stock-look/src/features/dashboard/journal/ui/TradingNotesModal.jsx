@@ -1,12 +1,63 @@
+/**
+ * @file TradingNotesModal.jsx
+ * @purpose Comprehensive journaling interface for traders.
+ * @responsibilities
+ * - Performance Map: Heatmap visualization of PnL and consistency.
+ * - Session Journal: Rich text recording of daily insights and behavioral notes.
+ * - Manages read-only historical view vs editable current-day view.
+ * @key_exports
+ * - TradingNotesModal (Default Component)
+ * @dependencies
+ * - dayjs (Date Logic)
+ * - framer-motion (Animations)
+ * - lucide-react (Icons)
+ * - react-hot-toast (Notifications)
+ * @lifecycle
+ * - Rendered by JournalPage (Modal).
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, Calendar, Edit3, Save, Clock, TrendingUp, TrendingDown, Minus, Info, Lock, Palette, Signal, RotateCcw } from "lucide-react";
+import { X, Calendar, Edit3, Save, TrendingUp, TrendingDown, Minus, Info, Palette, Signal, RotateCcw } from "lucide-react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast, Toaster } from "react-hot-toast";
 
 dayjs.extend(isBetween);
+
+// =============================
+// Helper Components
+// =============================
+
+function LegendItem({ label, color, symbol, border = "" }) {
+    return (
+        <div className="flex items-center gap-2.5">
+            <div className={`w-3 h-3 rounded-md ${color} ${border} flex items-center justify-center text-[8px] font-black ${symbol ? 'text-text-secondary' : 'text-white'} shadow-sm border`}>
+                {symbol}
+            </div>
+            <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">{label}</span>
+        </div>
+    );
+}
+
+function MetricBox({ label, value, color = "text-text-primary", sub }) {
+    return (
+        <div className="p-4 bg-background-elevated border border-border-subtle rounded-xl flex flex-col justify-center transition-colors">
+            <div className="text-[8px] font-bold text-text-secondary uppercase tracking-widest mb-1">{label}</div>
+            <div className={`text-sm font-mono font-black ${color}`}>{value}</div>
+            {sub && <div className="text-[8px] text-text-secondary font-bold uppercase mt-1 opacity-60">{sub}</div>}
+        </div>
+    );
+}
+
+// =============================
+// Main Component
+// =============================
 
 export default function TradingNotesModal({ trades, notes, onClose }) {
     const today = dayjs().format("YYYY-MM-DD");
@@ -17,13 +68,14 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
     const editorRef = useRef(null);
     const [hoveredDate, setHoveredDate] = useState(null);
 
-    // Sync editor content only when entering Edit mode for Today
+    // --- State Initialization ---
     useEffect(() => {
         if (editorRef.current && selectedDate === today && isEditingToday) {
             editorRef.current.innerHTML = localNotes[selectedDate] || "";
         }
     }, [isEditingToday, selectedDate, today, localNotes]);
 
+    // --- Helper Logic ---
     const dailyStats = useMemo(() => {
         const stats = {};
         trades.forEach(trade => {
@@ -74,6 +126,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
         }
     };
 
+    // --- Calendar Rendering ---
     const renderMiniMonth = (monthIndex) => {
         const firstDayOfMonth = dayjs().year(viewYear).month(monthIndex).startOf('month');
         const daysInMonth = firstDayOfMonth.daysInMonth();
@@ -178,12 +231,8 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
 
     const selectedData = dailyStats[selectedDate];
     const selectedTrades = trades.filter(t => dayjs(t.date).format("YYYY-MM-DD") === selectedDate);
-
     const isPastDate = dayjs(selectedDate).isBefore(dayjs(), 'day');
     const isTodaySelected = selectedDate === today;
-
-    // Only Today can be in "Edit" mode. Past dates are always "Read" mode.
-    // Today can start in Edit mode and switch to Read mode after commit.
     const showEditor = isTodaySelected && isEditingToday;
 
     return createPortal(
@@ -199,7 +248,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                 onClick={(e) => e.stopPropagation()}
                 className="bg-background-tooltip border border-border-default rounded-2xl w-full max-w-[1700px] h-[90vh] lg:h-[95vh] flex flex-col lg:flex-row overflow-hidden shadow-2xl m-2 lg:m-0"
             >
-                {/* LEFT (BOTTOM on Mobile): CALENDAR WORKSPACE */}
+                {/* LEFT: CALENDAR WORKSPACE */}
                 <div className="w-full h-[50vh] lg:h-full lg:flex-1 bg-background-subtle p-3 md:p-6 lg:p-8 flex flex-col overflow-y-auto no-scrollbar order-2 lg:order-1 border-t lg:border-t-0 lg:border-r border-border-subtle shrink-0">
                     <div className="flex items-center justify-between mb-4 lg:mb-6 shrink-0">
                         <div className="flex items-center gap-4">
@@ -228,7 +277,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                     </div>
                 </div>
 
-                {/* RIGHT (TOP on Mobile): TERMINAL PANEL */}
+                {/* RIGHT: TERMINAL PANEL */}
                 <div className="w-full h-[40vh] lg:h-full lg:w-[460px] bg-background-card flex flex-col order-1 lg:order-2 border-b lg:border-b-0 border-border-subtle shrink-0 lg:shrink-1 overflow-y-auto no-scrollbar">
                     <div className="px-6 py-4 lg:py-6 border-b border-border-subtle flex items-center justify-between bg-background-surface/50">
                         <div>
@@ -367,26 +416,5 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
             </motion.div>
         </div>,
         document.body
-    );
-}
-
-function LegendItem({ label, color, symbol, border = "" }) {
-    return (
-        <div className="flex items-center gap-2.5">
-            <div className={`w-3 h-3 rounded-md ${color} ${border} flex items-center justify-center text-[8px] font-black ${symbol ? 'text-text-secondary' : 'text-white'} shadow-sm border`}>
-                {symbol}
-            </div>
-            <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">{label}</span>
-        </div>
-    );
-}
-
-function MetricBox({ label, value, color = "text-text-primary", sub }) {
-    return (
-        <div className="p-4 bg-background-elevated border border-border-subtle rounded-xl flex flex-col justify-center transition-colors">
-            <div className="text-[8px] font-bold text-text-secondary uppercase tracking-widest mb-1">{label}</div>
-            <div className={`text-sm font-mono font-black ${color}`}>{value}</div>
-            {sub && <div className="text-[8px] text-text-secondary font-bold uppercase mt-1 opacity-60">{sub}</div>}
-        </div>
     );
 }

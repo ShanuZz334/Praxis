@@ -1,3 +1,18 @@
+/**
+ * @file AllocationMap.jsx
+ * @purpose Detailed categorization of capital allocation.
+ * @responsibilities
+ * - Displays capital breakdown (Intraday, Swing, Options, Cash).
+ * - Shows target vs actual allocation with health status.
+ * @key_exports
+ * - AllocationMap (Default)
+ * @dependencies
+ * - GlobalCard
+ * @lifecycle
+ * - Rendered by WalletPage (Future/Expanded).
+ * @date 2026-02-03
+ */
+
 import React from "react";
 import { GlobalCard } from "@/shared/components/ui/GlobalCard";
 

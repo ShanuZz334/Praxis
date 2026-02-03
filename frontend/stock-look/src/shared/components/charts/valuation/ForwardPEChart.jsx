@@ -1,3 +1,24 @@
+/**
+ * @file ForwardPEChart.jsx
+ * @purpose Contrasts Forward PE against Trailing PE multiples.
+ * @responsibilities
+ * - Renders ComposedChart with Forward PE (Area) and Trailing PE (Dashed Line).
+ * - Visualizes the valuation gap/premium.
+ * - Provides context on future earnings expectations.
+ * @key_exports
+ * - ForwardPEChart (Default)
+ * @dependencies
+ * - Recharts, ChartTooltip
+ * - chartUtils (formatChartDate)
+ * @lifecycle
+ * - Used in Valuation dashboard for growth vs value assessment.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useMemo } from 'react';
 import {
     ComposedChart,
@@ -15,12 +36,10 @@ import {
 import { RechartsTooltipWrapper } from '../ChartTooltip';
 import { formatChartDate } from '@/shared/utils/chartUtils';
 
-/**
- * ForwardPEChart
- *
- * Primary: Forward PE vs Trailing PE Line Chart
- * Supporting: Spread Ribbon (Forward - Trailing)
- */
+// =============================
+// Component
+// =============================
+
 export default function ForwardPEChart({ data = [], height = 400 }) {
     // 1. Prepare Data
     const chartData = useMemo(() => {

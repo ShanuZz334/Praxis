@@ -1,3 +1,27 @@
+/**
+ * @file SignUp.jsx
+ * @purpose Registration portal for creating new user accounts with integrated security verification.
+ * @responsibilities
+ * - Manages user onboarding data (Name, Email, Password, Profile Picture).
+ * - Enforces mandatory Admin TOTP verification via VerificationContext.
+ * - Handles asynchronous image uploads via Cloudinary/Utility services.
+ * - Synchronizes with the backend registration engine.
+ * @key_exports
+ * - SignUp (Default): Entry view for user registration.
+ * @dependencies
+ * - VerificationContext: Core security layer for multi-stage registration.
+ * - axiosInstance: API client for registration payloads.
+ * - uploadImage: Specialized utility for binary asset handling.
+ * - UserContext: For bootstrapping the user session post-registration.
+ * @lifecycle
+ * - Rendered by AppRoutes.
+ * - Resets verification state on mount to ensure a clean security context.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -7,33 +31,57 @@ import { UserContext } from "@/shared/context/UserContext";
 import uploadImage from "@/shared/utils/uploadImage";
 import { validateEmail } from "@/shared/utils/helper";
 import { VerificationContext } from "@/shared/context/VerificationContextInstance";
-
 import Loader from "@/shared/components/ui/Loader";
 
+// =============================
+// Main Component
+// =============================
 const SignUp = () => {
+  // -----------------------------
+  // Local State
+  // -----------------------------
   const [profilePic, setProfilePic] = useState(null);
   const [previewPic, setPreviewPic] = useState(null);
-
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [error, setError] = useState("");
   const [isSigningUp, setIsSigningUp] = useState(false);
 
+  // -----------------------------
+  // External Contexts
+  // -----------------------------
   const { updateUser } = useContext(UserContext);
-  const { isVerified, initiateVerification, error: verifyError, signupToken, resetVerification, loading: otpLoading } = useContext(VerificationContext);
+  const {
+    isVerified,
+    initiateVerification,
+    error: verifyError,
+    signupToken,
+    resetVerification,
+    loading: otpLoading
+  } = useContext(VerificationContext);
+
   const navigate = useNavigate();
 
-  // Reset verification state when entering the page
+  // -----------------------------
+  // Lifecycle Effects
+  // -----------------------------
   useEffect(() => {
     resetVerification();
   }, [resetVerification]);
 
+  // -----------------------------
+  // Business Logic Handlers
+  // -----------------------------
+  /**
+   * handleSubmit
+   * Orchestrates the registration sequence including verification checks and image uploads.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
+    // Validation Checks
     if (!fullName) return setError("Enter full name.");
     if (!validateEmail(email)) return setError("Invalid email.");
     if (!password) return setError("Enter password.");
@@ -43,12 +91,13 @@ const SignUp = () => {
     let profileImage = "";
 
     try {
-      // Upload profile image if provided
+      // Asset Processing
       if (profilePic) {
         const uploadRes = await uploadImage(profilePic, true);
         profileImage = uploadRes?.imageUrl || "";
       }
 
+      // API Registration
       const res = await axiosInstance.post(
         API_PATHS.AUTH.REGISTER,
         {
@@ -65,10 +114,7 @@ const SignUp = () => {
       );
 
       const { user, token } = res.data;
-
-      // Single source of truth
       updateUser(user, token);
-
       navigate("/dashboard/home");
     } catch (err) {
       setError(
@@ -80,6 +126,9 @@ const SignUp = () => {
     }
   };
 
+  // -----------------------------
+  // Component UI
+  // -----------------------------
   return (
     <div className="w-full max-w-[320px] md:max-w-md mx-auto p-2 md:p-0">
       <div className="text-center mb-5 md:mb-6">
@@ -92,8 +141,7 @@ const SignUp = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3 md:space-y-3">
-
-        {/* PROFILE IMAGE (Desktop Only) */}
+        {/* Profile Image Section (Desktop) */}
         <div className="hidden md:flex justify-center mb-4">
           <div className="relative group">
             <div className="w-20 h-20 rounded-full overflow-hidden bg-white/5 border-2 border-dashed border-white/20 flex items-center justify-center group-hover:border-indigo-400 transition-colors cursor-pointer">
@@ -134,7 +182,7 @@ const SignUp = () => {
           </div>
         </div>
 
-        {/* FULL NAME */}
+        {/* Account Details */}
         <div>
           <label className="text-xs text-white/70 block mb-1">
             Full Name
@@ -150,7 +198,7 @@ const SignUp = () => {
           </div>
         </div>
 
-        {/* EMAIL */}
+        {/* Identity & Verification */}
         <div>
           <label className="text-xs text-white/70 block mb-1">
             Email
@@ -181,7 +229,7 @@ const SignUp = () => {
           </div>
         </div>
 
-        {/* PASSWORD */}
+        {/* Security Section */}
         <div>
           <label className="text-xs text-white/70 block mb-1">
             Password
@@ -197,17 +245,16 @@ const SignUp = () => {
           </div>
         </div>
 
-        {
-          (error || verifyError) && (
-            <p className="text-red-400 text-sm">{error || verifyError}</p>
-          )
-        }
+        {(error || verifyError) && (
+          <p className="text-red-400 text-sm">{error || verifyError}</p>
+        )}
 
+        {/* Submission Control */}
         <button
           type="submit"
           disabled={isSigningUp}
           className={`w-full py-2.5 md:py-3 rounded-md text-white font-medium shadow-md transition flex items-center justify-center active:scale-[0.98]
-            ${!isSigningUp && isVerified
+                        ${!isSigningUp && isVerified
               ? "bg-[#1E1BFF] hover:bg-[#1720cc]"
               : "bg-gray-600 cursor-not-allowed opacity-50"
             }`}
@@ -225,9 +272,12 @@ const SignUp = () => {
             Login
           </button>
         </p>
-      </form >
-    </div >
+      </form>
+    </div>
   );
 };
 
+// =============================
+// Exports
+// =============================
 export default SignUp;

@@ -1,5 +1,27 @@
+/**
+ * @file GreeksReferenceGuide.jsx
+ * @purpose Educational sidebar component explaining Option Greeks.
+ * @responsibilities
+ * - Displays a quick reference guide for Delta, Gamma, Theta, Vega, and IV.
+ * - Provides actionable "Pro Tips" for each Greek (e.g., "Buy when IV is low").
+ * - Helps users interpret the data shown in the Options Chain.
+ * @key_exports
+ * - GreeksReferenceGuide (Default Component)
+ * @dependencies
+ * - None (Static informational component)
+ * @lifecycle
+ * - Rendered by OptionsChainLayout (Sidebar).
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from 'react';
 
+// =============================
+// Main Component
+// =============================
 export default function GreeksReferenceGuide() {
     return (
         <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 pr-1">
@@ -7,7 +29,7 @@ export default function GreeksReferenceGuide() {
                 How to Read Option Greeks
             </div>
 
-            {/* DELTA */}
+            {/* SECTION: DELTA */}
             <div className="p-3 bg-background-surface rounded-lg border border-border-default">
                 <div className="flex justify-between items-center mb-1.5">
                     <span className="text-[10px] text-blue-600 font-bold uppercase">Delta</span>
@@ -26,7 +48,7 @@ export default function GreeksReferenceGuide() {
                 </div>
             </div>
 
-            {/* GAMMA */}
+            {/* SECTION: GAMMA */}
             <div className="p-3 bg-background-surface rounded-lg border border-border-default">
                 <div className="flex justify-between items-center mb-1.5">
                     <span className="text-[10px] text-purple-600 font-bold uppercase">Gamma</span>
@@ -40,7 +62,7 @@ export default function GreeksReferenceGuide() {
                 </div>
             </div>
 
-            {/* THETA */}
+            {/* SECTION: THETA */}
             <div className="p-3 bg-background-surface rounded-lg border border-border-default">
                 <div className="flex justify-between items-center mb-1.5">
                     <span className="text-[10px] text-orange-600 font-bold uppercase">Theta</span>
@@ -55,7 +77,7 @@ export default function GreeksReferenceGuide() {
                 </div>
             </div>
 
-            {/* VEGA */}
+            {/* SECTION: VEGA */}
             <div className="p-3 bg-background-surface rounded-lg border border-border-default">
                 <div className="flex justify-between items-center mb-1.5">
                     <span className="text-[10px] text-amber-600 font-bold uppercase">Vega</span>
@@ -70,7 +92,7 @@ export default function GreeksReferenceGuide() {
                 </div>
             </div>
 
-            {/* IV */}
+            {/* SECTION: IV */}
             <div className="p-3 bg-background-surface rounded-lg border border-border-default">
                 <div className="flex justify-between items-center mb-1.5">
                     <span className="text-[10px] text-red-600 font-bold uppercase">Implied Vol</span>
@@ -84,7 +106,7 @@ export default function GreeksReferenceGuide() {
                 </div>
             </div>
 
-            {/* COMBOS */}
+            {/* SECTION: COMBOS */}
             <div className="p-3 bg-background-surface rounded-lg border border-border-default">
                 <div className="flex justify-between items-center mb-1.5">
                     <span className="text-[10px] text-emerald-600 font-bold uppercase">Power Combos</span>

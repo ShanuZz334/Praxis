@@ -1,3 +1,18 @@
+/**
+ * @file LivePnLCard.jsx
+ * @purpose Displays real-time Profit & Loss metrics.
+ * @responsibilities
+ * - Shows Net P&L, Gross P&L, Charges, and Win/Loss contribution.
+ * - Visualizes Equity Curve for the session/week.
+ * @key_exports
+ * - LivePnLCard (Default)
+ * @dependencies
+ * - Recharts, Lucide React
+ * @lifecycle
+ * - Rendered by WalletPage (Future/Expanded).
+ * @date 2026-02-03
+ */
+
 import React from "react";
 import { ResponsiveContainer, AreaChart, Area, Tooltip, XAxis, YAxis } from "recharts";
 import { TrendingUp, TrendingDown, Activity, DollarSign } from "lucide-react";

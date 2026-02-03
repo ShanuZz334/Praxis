@@ -1,10 +1,30 @@
+/**
+ * @file ChartSkeleton.jsx
+ * @purpose Loading placeholder for various chart types.
+ * @responsibilities
+ * - Displays shimmer animations for Line, Bar, Gauge, and Heatmap charts.
+ * - Prevents layout shifts during data fetching.
+ * - Mimics the visual structure of the target chart.
+ * @key_exports
+ * - ChartSkeleton (Default)
+ * @dependencies
+ * - framer-motion
+ * @lifecycle
+ * - Displayed by ChartWrapper via IsLoading prop.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from 'react';
 import { motion } from 'framer-motion';
 
-/**
- * ChartSkeleton - Skeleton loader for charts
- * Shows shimmer animation while chart data loads
- */
+// =============================
+// Component
+// =============================
+
 export default function ChartSkeleton({ type = 'line', height = 300 }) {
     const shimmerVariants = {
         animate: {

@@ -1,10 +1,30 @@
+/**
+ * @file CPIInflationGauge.jsx
+ * @purpose Vertical thermometer gauge for tracking inflation.
+ * @responsibilities
+ * - Visualizes current CPI value against a target threshold (e.g., RBI 4%).
+ * - Uses color-coding (Green/Yellow/Red) to indicate risk levels.
+ * - Provides AI interpretation of the inflationary environment.
+ * @key_exports
+ * - CPIInflationGauge (Default)
+ * @dependencies
+ * - framer-motion
+ * @lifecycle
+ * - Key widget in Macro Economic Analysis dashboard.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from 'react';
 import { motion } from 'framer-motion';
 
-/**
- * CPI Inflation Thermometer
- * Vertical gauge-style meter for inflation
- */
+// =============================
+// Component
+// =============================
+
 export default function CPIInflationGauge({ value = 5.5, target = 4.0, height = 300 }) {
     const maxValue = 10;
     const percentage = (value / maxValue) * 100;
@@ -81,8 +101,8 @@ export default function CPIInflationGauge({ value = 5.5, target = 4.0, height = 
             {/* Status */}
             <div className="mt-4 px-4 py-2 rounded-lg bg-white/5">
                 <div className={`text-xs font-medium ${value > 6 ? 'text-red-400' :
-                        value > 4.5 ? 'text-yellow-400' :
-                            'text-green-400'
+                    value > 4.5 ? 'text-yellow-400' :
+                        'text-green-400'
                     }`}>
                     {value > 6 ? '🔥 High Inflation Risk' :
                         value > 4.5 ? '⚠️ Above Target' :

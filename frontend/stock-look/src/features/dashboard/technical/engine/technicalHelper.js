@@ -1,9 +1,26 @@
 /**
- * Technical Analysis Engine
- * Handles scoring, regime classification, and section logic for Technical Indicators.
+ * @file technicalHelper.js
+ * @purpose Provides utility functions for technical scoring and signal analysis.
+ * @responsibilities
+ * - Calculates composite technical scores.
+ * - Determines market regime (Trend, Chop, Mean Rev) based on scores.
+ * - Extracts top bullish/bearish drivers (tailwinds/risks).
+ * @key_exports
+ * - calculateTechnicalComposite
+ * - getTechnicalRegime
+ * - extractTechnicalTailwinds
+ * - extractTechnicalRisks
+ * @dependencies
+ * - None (Pure logic)
+ * @lifecycle
+ * - Used by TechnicaPage and sub-components for analysis.
+ * @date 2026-02-03
  */
 
-// Weights for different technical sections
+// =============================
+// Configuration Constants
+// =============================
+
 export const technicalSections = [
     { id: 'Trend', label: 'Trend', w: 0.25, icon: '📈' },
     { id: 'Momentum', label: 'Mom', w: 0.20, icon: '🚀' },
@@ -13,10 +30,10 @@ export const technicalSections = [
     { id: 'Structure', label: 'Str', w: 0.10, icon: '🏗️' }
 ];
 
-/**
- * Calculates the composite technical score based on indicator cards.
- * Score = 50 + Sum( (SignalScore - 50) * Weight * Reliability * RegimeMultiplier )
- */
+// =============================
+// Core Scoring Logic
+// =============================
+
 export function calculateTechnicalComposite(cards = []) {
     if (!cards || cards.length === 0) return 50;
 

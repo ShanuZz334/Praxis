@@ -1,6 +1,24 @@
+/**
+ * @file TechnicalInterpretationDesk.jsx
+ * @purpose Renders educational content and market interpretation for a specific indicator.
+ * @responsibilities
+ * - Displays definition, usage guide, and pro-tips for indicators.
+ * - Maps technical labels (RSI, MACD) to static educational text.
+ * @key_exports
+ * - TechnicalInterpretationDesk (Default)
+ * @dependencies
+ * - None (Pure UI)
+ * @lifecycle
+ * - Rendered by TechnicalModal (Left Panel).
+ * @date 2026-02-03
+ */
+
 import React from 'react';
 
-// Static Educational Content Map (Simplified for brevity, can be expanded)
+// =============================
+// Educational Content Config
+// =============================
+
 const getEducationalContent = (category, label) => {
     const l = label.toLowerCase();
 
@@ -54,6 +72,10 @@ const getEducationalContent = (category, label) => {
         keyPoint: "Always use in conjunction with other signals for higher probability setups."
     };
 };
+
+// =============================
+// Component
+// =============================
 
 export default function TechnicalInterpretationDesk({ card }) {
     if (!card) return null;

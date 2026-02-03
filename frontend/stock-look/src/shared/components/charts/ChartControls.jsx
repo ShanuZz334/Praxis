@@ -1,10 +1,31 @@
+/**
+ * @file ChartControls.jsx
+ * @purpose User interface for interacting with financial charts.
+ * @responsibilities
+ * - Provides toggles for overlays (Events, Fair Value).
+ * - Manages timeframe selection (Tactical, Swing, Valuation).
+ * - Includes tooltips for educational context.
+ * - Uses Framer Motion for interactive feedback.
+ * @key_exports
+ * - ChartControls (Default)
+ * @dependencies
+ * - framer-motion
+ * @lifecycle
+ * - Controlled by parent page/grid components.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
-/**
- * Chart Controls with Stateful Toggles
- * Features: Events, Fair Value, Timeframe Intelligence
- */
+// =============================
+// Component
+// =============================
+
 export default function ChartControls({
     showEvents = true,
     onToggleEvents,

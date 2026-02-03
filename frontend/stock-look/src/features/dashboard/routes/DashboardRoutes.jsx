@@ -1,11 +1,33 @@
+/**
+ * @file DashboardRoutes.jsx
+ * @purpose Defines the internal routing for the authenticated Dashboard.
+ * @responsibilities
+ * - Manages child routes for all dashboard features (Master, Fundamental, Technical, etc.).
+ * - Syncs the active menu state via MenuSync.
+ * - Provides centralized navigation structure for the workspace.
+ * @key_exports
+ * - DashboardRoutes (Default)
+ * @dependencies
+ * - react-router-dom
+ * - MenuSync (Effect)
+ * - All Dashboard Feature Pages
+ * @lifecycle
+ * - Rendered by DashboardLayout inside the main content area.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
+import React from "react";
 import { Routes, Route } from "react-router-dom";
 
-// Pages
-// Pages
+// Feature Pages
 import MasterDashboard from "@/features/dashboard/master/ui/MasterDashboard";
 import FundamentalPage from "@/features/dashboard/fundamentals/ui/FundamentalPage";
 import TechnicalPage from "@/features/dashboard/technical/ui/TechnicalPage";
-import OptionsPage from "@/features/dashboard/options/ui/OptionsPage"; // New Import
+import OptionsPage from "@/features/dashboard/options/ui/OptionsPage";
 import EventsPage from "@/features/dashboard/events/ui/EventsPage";
 import WalletPage from "@/features/dashboard/wallet/ui/WalletPage";
 import ForeignPage from "@/features/dashboard/foreign/ui/ForeignPage";
@@ -15,11 +37,16 @@ import ManualSectionLayout from "@/features/dashboard/manual/ui/ManualSectionLay
 import AboutPage from "@/features/dashboard/about/ui/AboutPage";
 import SettingsPage from "@/features/dashboard/settings/ui/SettingsPage";
 import MessagesPage from "@/features/dashboard/messages/ui/MessagesPage";
-// Menu sync
+
+// Effects
 import MenuSync from "@/shared/components/effects/MenuSync";
 
 
 
+
+// =============================
+// Component
+// =============================
 
 const DashboardRoutes = ({ setActiveMenu }) => {
   return (

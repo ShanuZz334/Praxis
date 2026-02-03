@@ -1,9 +1,34 @@
-import React, { useMemo } from "react";
-import { GlobalCard } from "@/shared/components/ui/GlobalCard";
-import { GLOBAL_SECTIONS, TOTAL_GLOBAL_CREDITS } from "../data/globalData";
+/**
+ * @file GlobalStructureGrid.jsx
+ * @purpose Main grid layout for interacting with Global Market Cards.
+ * @responsibilities
+ * - Renders a responsive grid of `GlobalCard` components.
+ * - Supports multiple view modes (Sectioned vs Flat).
+ * - Handles sorting logic (by Score, Name, etc.).
+ * - Filters cards based on section associations.
+ * @key_exports
+ * - GlobalStructureGrid (Default Component)
+ * @dependencies
+ * - GlobalCard: Shared card component.
+ * - globalData: Config/Credits constants.
+ * @lifecycle
+ * - Rendered by ForeignPage.
+ * @date 2026-02-03
+ */
 
+// =============================
+// Imports
+// =============================
+import React from "react";
+import { GlobalCard } from "@/shared/components/ui/GlobalCard";
+import { TOTAL_GLOBAL_CREDITS } from "../data/globalData";
+
+// =============================
+// Main Component
+// =============================
 export default function GlobalStructureGrid({ cards, viewMode, sortMode, sections, onCardClick }) {
-    // Helper to sort cards
+
+    // Helper: Sort Logic
     const sortCards = (list, mode) => {
         const arr = [...list];
         switch (mode) {
@@ -28,14 +53,14 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
         );
     }
 
-    // Sectioned View
+    // 1. SECTIONED VIEW
     if (viewMode === "sectioned" && sections) {
         return (
             <div className="space-y-8">
                 {Object.entries(sections).map(([key, section]) => {
                     if (!section.cards || section.cards.length === 0) return null;
 
-                    // Filter section cards based on parent's filtered cards
+                    // Filter section cards based on parent's filtered cards (search)
                     const filteredSectionCards = section.cards.filter(card =>
                         cards.some(c => c.id === card.id)
                     );
@@ -47,6 +72,7 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
 
                     return (
                         <div key={key} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {/* Section Header */}
                             <div className="flex items-center justify-center gap-4 mb-6">
                                 <div className="flex items-center gap-3">
                                     <span className="text-sm font-bold text-text-primary uppercase tracking-widest">{section.label}</span>
@@ -55,6 +81,7 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
                                     </span>
                                 </div>
                             </div>
+                            {/* Grid */}
                             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
                                 {sortedSectionCards.map((card) => (
                                     <GlobalCard
@@ -78,7 +105,7 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
         );
     }
 
-    // Flat View - sort all cards
+    // 2. FLAT VIEW
     const sortedCards = sortCards(cards, sortMode);
 
     return (

@@ -1,3 +1,22 @@
+/**
+ * @file SignalAlignmentMatrix.jsx
+ * @purpose Displays a live feed of AI-driven insights and alerts.
+ * @responsibilities
+ * - Renders alerts with varying severity (warning, tip, social, info).
+ * - Uses color coding to distinguish between risk, opportunity, and market chatter.
+ * - Provides a scrolling feed of recent system notices.
+ * @key_exports
+ * - SignalAlignmentMatrix (Default Component)
+ * @dependencies
+ * - React, lucide-react, Card (Shared)
+ * @lifecycle
+ * - Rendered by MasterDashboard (Grid Section).
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 import {
   Lightbulb,
@@ -8,44 +27,9 @@ import {
 } from "lucide-react";
 import Card from "@/shared/components/common/Card";
 
-export default function SignalAlignmentMatrix({ alerts }) {
-  if (!alerts?.length) return null;
-
-  return (
-    <Card className="h-full max-h-[360px] flex flex-col min-h-0 overflow-hidden p-0">
-      {/* Header */}
-      <div className="flex-shrink-0 px-3 md:px-4 py-2 md:py-3 border-b border-border-subtle">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-1.5 md:gap-2">
-            <MessageCircle size={12} className="text-accent-primary" />
-            <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-text-primary">
-              AI Insights
-            </span>
-          </div>
-          <span className="text-[9px] md:text-[10px] text-text-tertiary italic">Live Feed</span>
-        </div>
-      </div>
-
-      {/* Scroll Area */}
-      <div
-        className="flex-1 min-h-0 overflow-y-auto px-3 md:px-4 py-2 md:py-3 space-y-2 md:space-y-3"
-        style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
-        }}
-      >
-        {alerts.map(item => (
-          <InsightCard key={item.id} item={item} />
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-
-/* ----------------------------------------------------
-   Individual Insight Card
----------------------------------------------------- */
+// =============================
+// Helper Component
+// =============================
 
 function InsightCard({ item }) {
   let Icon = Info;
@@ -53,25 +37,33 @@ function InsightCard({ item }) {
   let bgClass = "bg-blue-500/10 border-blue-500/20";
   let title = "System Notice";
 
-  if (item.type === "warning") {
-    Icon = AlertTriangle;
-    colorClass = "text-state-bearish-text";
-    bgClass = "bg-state-bearish-surface border-red-500/20";
-    title = "Risk Alert";
-  } else if (item.type === "tip") {
-    Icon = Lightbulb;
-    colorClass = "text-amber-600 dark:text-amber-400";
-    bgClass = "bg-amber-500/10 border-amber-500/20";
-    title = "Pro Tip";
-  } else if (item.type === "social") {
-    Icon = MessageCircle;
-    colorClass = "text-state-bullish-text";
-    bgClass = "bg-state-bullish-surface border-emerald-500/20";
-    title = "Market Chatter";
+  // Determine Style based on Alert Type
+  switch (item.type) {
+    case "warning":
+      Icon = AlertTriangle;
+      colorClass = "text-state-bearish-text";
+      bgClass = "bg-state-bearish-surface border-red-500/20";
+      title = "Risk Alert";
+      break;
+    case "tip":
+      Icon = Lightbulb;
+      colorClass = "text-amber-600 dark:text-amber-400";
+      bgClass = "bg-amber-500/10 border-amber-500/20";
+      title = "Pro Tip";
+      break;
+    case "social":
+      Icon = MessageCircle;
+      colorClass = "text-state-bullish-text";
+      bgClass = "bg-state-bullish-surface border-emerald-500/20";
+      title = "Market Chatter";
+      break;
+    default:
+      // Default Info style holds
+      break;
   }
 
   return (
-    <div className="p-3 rounded-xl border border-border-subtle bg-background-elevated hover:bg-background-subtle transition-colors">
+    <div className="p-3 rounded-xl border border-border-subtle bg-background-elevated hover:bg-background-subtle transition-colors group">
       {/* Label Row */}
       <div className="flex justify-between items-start mb-1.5">
         <div className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded border ${bgClass} ${colorClass}`}>
@@ -82,7 +74,7 @@ function InsightCard({ item }) {
         </div>
 
         {item.time && (
-          <div className="flex items-center gap-1 text-[9px] text-text-tertiary">
+          <div className="flex items-center gap-1 text-[9px] text-text-tertiary opacity-70 group-hover:opacity-100 transition-opacity">
             <Clock size={8} />
             <span>{item.time}</span>
           </div>
@@ -94,5 +86,45 @@ function InsightCard({ item }) {
         {item.text}
       </div>
     </div>
+  );
+}
+
+// =============================
+// Main Component
+// =============================
+
+export default function SignalAlignmentMatrix({ alerts }) {
+  if (!alerts?.length) return null;
+
+  return (
+    <Card className="h-full max-h-[360px] flex flex-col min-h-0 overflow-hidden p-0 animate-in fade-in slide-in-from-bottom-2 duration-700">
+      {/* Header */}
+      <div className="flex-shrink-0 px-3 md:px-4 py-2 md:py-3 border-b border-border-subtle bg-background-surface/50">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-1.5 md:gap-2">
+            <MessageCircle size={12} className="text-accent-primary" />
+            <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-text-primary">
+              AI Insights
+            </span>
+          </div>
+          <span className="text-[9px] md:text-[10px] text-text-tertiary italic flex items-center gap-1">
+            <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Live Feed
+          </span>
+        </div>
+      </div>
+
+      {/* Scroll Area */}
+      <div
+        className="flex-1 min-h-0 overflow-y-auto px-3 md:px-4 py-2 md:py-3 space-y-2 md:space-y-3 custom-scrollbar"
+        style={{
+          scrollbarWidth: 'none',  // Firefox
+          msOverflowStyle: 'none'  // IE/Edge
+        }}
+      >
+        {alerts.map(item => (
+          <InsightCard key={item.id} item={item} />
+        ))}
+      </div>
+    </Card>
   );
 }

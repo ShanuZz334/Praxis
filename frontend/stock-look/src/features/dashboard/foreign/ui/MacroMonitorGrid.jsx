@@ -1,6 +1,28 @@
-import React from "react";
-import { TrendingUp, TrendingDown, Activity, DollarSign, BarChart3, AlertCircle, Layers } from "lucide-react";
+/**
+ * @file MacroMonitorGrid.jsx
+ * @purpose Dashboard grid for high-level Macro factors (Yields, DXY, Commodities).
+ * @responsibilities
+ * - Displays a grid of `FactorCard` components.
+ * - Visualizes key macro-economic drivers affecting the market.
+ * - Shows impact statements and confidence intervals for each factor.
+ * @key_exports
+ * - MacroMonitorGrid (Default Component)
+ * @dependencies
+ * - Lucide React (Icons)
+ * @lifecycle
+ * - Rendered on ForeignPage or Risk Dashboard.
+ * @date 2026-02-03
+ */
 
+// =============================
+// Imports
+// =============================
+import React from "react";
+import { TrendingUp, Activity, DollarSign, BarChart3, AlertCircle, Layers } from "lucide-react";
+
+// =============================
+// Main Component
+// =============================
 export default function MacroMonitorGrid({ macroData }) {
     if (!macroData) return null;
     const { vol, yields, dollar, commodities } = macroData;
@@ -22,7 +44,7 @@ export default function MacroMonitorGrid({ macroData }) {
                 accent="text-emerald-400"
             />
 
-            {/* 3. VOLATILITY (Custom content logic handled internally or via generic props) */}
+            {/* 3. VOLATILITY */}
             <FactorCard
                 data={vol}
                 icon={<BarChart3 size={16} />}
@@ -39,6 +61,10 @@ export default function MacroMonitorGrid({ macroData }) {
         </div>
     );
 }
+
+// =============================
+// Helper Components
+// =============================
 
 function FactorCard({ data, icon, accent }) {
     const { headline, metric, subMetric, state, impact, affected, confidence, explanation } = data;

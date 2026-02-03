@@ -1,5 +1,27 @@
+/**
+ * @file JournalAIInsights.jsx
+ * @purpose Quick-access insight bar for system status and journal launching.
+ * @responsibilities
+ * - Displays active system monitoring status.
+ * - Provides access to the Journal Log / Notes modal.
+ * @key_exports
+ * - JournalAIInsights (Default Component)
+ * @dependencies
+ * - lucide-react (Icons)
+ * @lifecycle
+ * - Rendered by JournalPage (Top Bar).
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
-import { Activity, ShieldCheck, Zap, Edit3 } from "lucide-react";
+import { ShieldCheck, Edit3 } from "lucide-react";
+
+// =============================
+// Main Component
+// =============================
 
 export default function JournalAIInsights({ onToggleNotes }) {
     return (
@@ -13,7 +35,7 @@ export default function JournalAIInsights({ onToggleNotes }) {
                 </div>
             </div>
 
-            {/* RIGHT: LIVE STATUS */}
+            {/* RIGHT: LIVE STATUS & CONTROLS */}
             <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
                 <button
                     onClick={onToggleNotes}

@@ -1,9 +1,36 @@
+/**
+ * @file SideMenu.jsx
+ * @purpose Primary collapsible sidebar navigation.
+ * @responsibilities
+ * - Renders navigation links defined in SIDE_MENU_DATA.
+ * - Handles navigation state and highlighting.
+ * - Manages user profile summary and logout actions.
+ * - Adapts styles for Mobile Drawer vs Desktop Sidebar modes.
+ * @key_exports
+ * - SideMenu (Default)
+ * @dependencies
+ * - UserContext (Profile data)
+ * - userService (Logout logic)
+ * - react-router-dom
+ * @lifecycle
+ * - Rendered by DashboardLayout (Mobile & Desktop).
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { SIDE_MENU_DATA } from "../../utils/data";
 import { UserContext } from "../../context/UserContext";
 import { logoutUser } from "../../../services/userService";
+
+// =============================
+// Component
+// =============================
 
 const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false, theme = 'dark' }) => {
   const { user, clearUser } = useContext(UserContext);

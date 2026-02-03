@@ -1,7 +1,29 @@
+/**
+ * @file NewsModal.jsx
+ * @purpose Detail Modal for selected news items.
+ * @responsibilities
+ * - Displays detailed context, historical checks, and action plans for a news item.
+ * - Adapts the `EventDeepDiveModal` layout for news-specific data.
+ * - Handles overlays and modal interactions.
+ * - Visualizes impact vectors and strategy (Equity/Options).
+ * @key_exports
+ * - NewsModal (Default Component)
+ * @dependencies
+ * - react-dom: For Portal rendering.
+ * @lifecycle
+ * - Triggered by grid or feed item clicks.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 
-// REUSING UI LOGIC FROM EVENT MODAL BUT ADAPTED FOR NEWS
+// =============================
+// Helper Components
+// =============================
 
 function NewsInterpretationDesk({ news }) {
     if (!news) return null;
@@ -64,7 +86,11 @@ function NewsPlaybook({ news }) {
     );
 }
 
+// =============================
+// Main Component
+// =============================
 export default function NewsModal({ open, onClose, news }) {
+    // Shortcuts & Scroll Lock
     useEffect(() => {
         if (!open) return;
         const onKey = (e) => e.key === "Escape" && onClose();
@@ -80,39 +106,50 @@ export default function NewsModal({ open, onClose, news }) {
 
     return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
             <div className="fixed inset-0 bg-black/10 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
+            {/* Layout Container */}
             <div className="relative flex items-stretch justify-center gap-6 max-w-[1400px] w-full h-[600px] pointer-events-none">
-                {/* LEFT */}
+                {/* Left Panel */}
                 <div className="hidden lg:block w-[280px] pointer-events-auto">
                     <NewsInterpretationDesk news={news} />
                 </div>
 
-                {/* CENTER */}
+                {/* Center Panel */}
                 <div className="flex-1 min-w-0 bg-background-card/98 border border-border-default backdrop-blur-3xl rounded-2xl shadow-xl flex flex-col overflow-hidden pointer-events-auto">
                     <div className="shrink-0 p-8 border-b border-border-subtle flex justify-between items-start bg-transparent z-10">
                         <div>
-                            <h2 className="text-2xl font-black text-text-primary leading-tight pr-10 tracking-tighter">{news.title}</h2>
+                            <h2 className="text-2xl font-black text-text-primary leading-tight pr-10 tracking-tighter">
+                                {news.title}
+                            </h2>
                             <div className="text-[10px] font-black text-text-tertiary mt-2.5 flex gap-4 uppercase tracking-[0.2em] opacity-60">
                                 <span className="text-accent-primary">{news.source}</span>
                                 <span>•</span>
                                 <span>Impact Vector: <span className="text-text-primary">{news.impactScore}/10</span></span>
                             </div>
                         </div>
-                        <button onClick={onClose} className="p-3 rounded-xl bg-background-elevated text-text-tertiary hover:text-accent-primary hover:bg-background-subtle transition-all border border-border-default active:scale-95 shadow-sm">
+                        <button
+                            onClick={onClose}
+                            className="p-3 rounded-xl bg-background-elevated text-text-tertiary hover:text-accent-primary hover:bg-background-subtle transition-all border border-border-default active:scale-95 shadow-sm"
+                        >
                             ✕
                         </button>
                     </div>
 
                     <div className="flex-1 p-6 relative flex flex-col items-center justify-center bg-transparent">
                         <div className="absolute inset-0 m-6 border border-border-subtle rounded bg-background-elevated/40 flex flex-col items-center justify-center">
-                            <span className="text-text-tertiary font-mono text-sm opacity-50">[ Live Market Chart: NIFTY 5m ]</span>
-                            <span className="text-text-tertiary text-xs mt-2 opacity-30">Vertical marker at {new Date(news.timestamp).toLocaleTimeString()}</span>
+                            <span className="text-text-tertiary font-mono text-sm opacity-50">
+                                [ Live Market Chart: NIFTY 5m ]
+                            </span>
+                            <span className="text-text-tertiary text-xs mt-2 opacity-30">
+                                Vertical marker at {new Date(news.timestamp).toLocaleTimeString()}
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                {/* RIGHT */}
+                {/* Right Panel */}
                 <div className="hidden lg:block w-[280px] pointer-events-auto">
                     <NewsPlaybook news={news} />
                 </div>

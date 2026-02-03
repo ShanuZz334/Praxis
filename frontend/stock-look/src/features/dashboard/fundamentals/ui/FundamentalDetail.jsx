@@ -1,20 +1,42 @@
+/**
+ * @file FundamentalDetail.jsx
+ * @purpose Detailed view for a specific Fundamental metric.
+ * @responsibilities
+ * - Renders the main value, signal label, and history chart.
+ * - Generates mock history data (since backend timeseries is pending).
+ * - Provides educational "Why this matters" context.
+ * @key_exports
+ * - FundamentalDetail (Default Component)
+ * @dependencies
+ * - ChartWrapper / Recharts
+ * - chartMapping (for chart configurations)
+ * @lifecycle
+ * - Rendered inside FundamentalModal.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useMemo, useState } from "react";
 import ChartWrapper from "@/shared/components/charts/ChartWrapper";
 import { getChartForCard, shouldShowChart, getChartType } from "./chartMapping";
 
+// =============================
+// Constants
+// =============================
+const INVERSE_METRICS = ['npa', 'cpi', 'fiscal_deficit', 'corp_debt', 'crude', 'vix', 'sovereign_risk', 'repo'];
+
+// =============================
+// Helpers
+// =============================
 function signalLabel(n) {
   if (n > 0.25) return "Bullish";
   if (n < -0.25) return "Bearish";
   return "Neutral";
 }
 
-/**
- * Inverse metrics (higher value = worse)
- */
-const INVERSE_METRICS = ['npa', 'cpi', 'fiscal_deficit', 'corp_debt', 'crude', 'vix', 'sovereign_risk', 'repo'];
-
 function signalColor(n, metricId = null) {
-  // For inverse metrics, flip the color logic
   const isInverse = metricId && INVERSE_METRICS.includes(metricId);
   const effectiveN = isInverse ? -n : n;
 
@@ -23,7 +45,26 @@ function signalColor(n, metricId = null) {
   return "var(--text-muted)";
 }
 
-// Generate mock chart data based on card type
+function getInsightForCard(card) {
+  const insights = {
+    nifty_pe: 'PE ratio shows market trading at premium to historical averages. Monitor for mean reversion opportunities.',
+    nifty_pb: 'Price-to-book indicates valuation relative to asset base. Compare with sector peers for context.',
+    earnings_yield: 'Earnings yield vs bond yield spread (ERP) indicates equity risk premium. Positive spread favors equities.',
+    mcap_gdp: 'Buffett Indicator tracks market cap relative to GDP. Above 100% suggests elevated valuations.',
+    eps_yoy: 'Earnings growth momentum drives market direction. Acceleration supports higher multiples.',
+    earnings_revision: 'Net revisions (upgrades minus downgrades) signal analyst sentiment shift. Positive flow is bullish.',
+    fii: 'Foreign flows indicate global investor sentiment. Sustained inflows support market rally.',
+    dii: 'Domestic institutional buying provides stability. Often counter-cyclical to FII flows.',
+    system_liquidity: 'RBI liquidity surplus/deficit impacts market funding. Surplus is supportive for risk assets.',
+    sector_valuation: 'Sector PE percentiles vs own history identify value pockets. Green sectors offer better risk/reward.',
+    sovereign_risk: 'Composite stress indicator tracks multiple risk dimensions. Rising stress warrants defensive positioning.',
+  };
+  return insights[card.id] || 'Monitor this metric for market insights and trend changes.';
+}
+
+// =============================
+// Logic: Mock Data Generation
+// =============================
 function generateMockChartData(cardId, days = 30) {
   const data = [];
   const startDate = new Date();
@@ -33,7 +74,6 @@ function generateMockChartData(cardId, days = 30) {
     const date = new Date(startDate);
     date.setDate(date.getDate() + i);
 
-    // Different data patterns for different card types
     let value;
     if (cardId === 'nifty_pe' || cardId === 'nifty_pb') {
       value = 20 + Math.sin(i / 5) * 2 + (Math.random() - 0.5) * 0.5;
@@ -58,13 +98,11 @@ function generateMockChartData(cardId, days = 30) {
       value,
     });
   }
-
   return data;
 }
 
-// Generate specific data structures for different chart types
 function prepareChartData(cardId, mockData) {
-  // For Forward PE chart (needs both forward and trailing)
+  // Forward PE (Dual Line)
   if (cardId === 'forward_pe') {
     return mockData.map(d => ({
       date: d.date,
@@ -72,39 +110,23 @@ function prepareChartData(cardId, mockData) {
       trailingPE: d.value - 1.5 + (Math.random() - 0.5) * 0.5,
     }));
   }
-
-  // For PB chart
+  // PB
   if (cardId === 'pb') {
-    return mockData.map(d => ({
-      date: d.date,
-      pb: d.value,
-    }));
+    return mockData.map(d => ({ date: d.date, pb: d.value }));
   }
-
-  // For GDP chart
+  // GDP
   if (cardId === 'gdp') {
-    return mockData.map(d => ({
-      date: d.date,
-      gdp: d.value,
-    }));
+    return mockData.map(d => ({ date: d.date, gdp: d.value }));
   }
-
-  // For CPI (single value)
+  // CPI (Single Point)
   if (cardId === 'cpi') {
-    return {
-      value: mockData[mockData.length - 1]?.value || 5.5,
-    };
+    return { value: mockData[mockData.length - 1]?.value || 5.5 };
   }
-
-  // For Repo rate
+  // Repo
   if (cardId === 'repo') {
-    return mockData.map(d => ({
-      date: d.date,
-      rate: d.value,
-    }));
+    return mockData.map(d => ({ date: d.date, rate: d.value }));
   }
-
-  // For earnings yield chart (needs dual data)
+  // Earnings Yield
   if (cardId === 'earnings_yield') {
     return mockData.map(d => ({
       date: d.date,
@@ -112,8 +134,7 @@ function prepareChartData(cardId, mockData) {
       bondYield: d.value - 1.5 + (Math.random() - 0.5) * 0.5,
     }));
   }
-
-  // For earnings revision (needs upgrades/downgrades)
+  // Earnings Revision
   if (cardId === 'earnings_revision') {
     return mockData.map(d => ({
       date: d.date,
@@ -121,8 +142,7 @@ function prepareChartData(cardId, mockData) {
       downgrades: Math.max(0, -d.value),
     }));
   }
-
-  // For FII/DII flows
+  // FII/DII
   if (cardId === 'fii' || cardId === 'dii') {
     return mockData.map(d => ({
       date: d.date,
@@ -130,8 +150,7 @@ function prepareChartData(cardId, mockData) {
       dii: d.value * -0.6 + (Math.random() - 0.5) * 2000,
     }));
   }
-
-  // For sector heatmap (Valuation)
+  // Sector Valuation (Heatmap)
   if (cardId === 'sector_valuation') {
     return [
       { name: 'IT', pe: 25.5, pePercentile: 75, weight: 18.2 },
@@ -144,12 +163,9 @@ function prepareChartData(cardId, mockData) {
       { name: 'Realty', pe: 50.9, pePercentile: 95, weight: 2.1 },
     ];
   }
-
-  // NEW: For Sector Earnings Matrix (Growth & Momentum)
+  // Sector Earnings (Matrix)
   if (cardId === 'sector_earnings') {
-    // Helper to normalize data to [-1, 1] for scoring
     const normalize = (val, min, max) => Math.max(-1, Math.min(1, (val - min) / (max - min) * 2 - 1));
-
     const sectors = [
       { name: 'Banking', weight: 32.5 },
       { name: 'IT', weight: 15.2 },
@@ -161,18 +177,12 @@ function prepareChartData(cardId, mockData) {
       { name: 'Power', weight: 3.5 },
       { name: 'Telecom', weight: 2.9 },
     ];
-
     return sectors.map(sector => {
-      // Generate realistic mock data
-      const earningsGrowthYoY = Math.floor(Math.random() * 40) - 10; // -10% to +30%
-      const earningsGrowthQoQ = Math.floor(Math.random() * 15) - 5;  // -5% to +10%
-      // Index contribution correlates somewhat with weight but varies
+      const earningsGrowthYoY = Math.floor(Math.random() * 40) - 10;
+      const earningsGrowthQoQ = Math.floor(Math.random() * 15) - 5;
       const contributionToIndexEarnings = Math.max(0, (sector.weight * (1 + (Math.random() - 0.5) * 0.5))).toFixed(1);
-      const revisionTrend = (Math.random() * 2 - 1).toFixed(2); // -1.0 to 1.0 (Down to Up)
-      const historicalPercentile = Math.floor(Math.random() * 100);
+      const revisionTrend = (Math.random() * 2 - 1).toFixed(2);
 
-      // Calculate Score
-      // 0.40 * YoY + 0.25 * Rev + 0.20 * Contrib + 0.15 * QoQ
       const nYoY = normalize(earningsGrowthYoY, -5, 25);
       const nRev = normalize(parseFloat(revisionTrend), -0.5, 0.5);
       const nContrib = normalize(parseFloat(contributionToIndexEarnings), 2, 20);
@@ -186,13 +196,11 @@ function prepareChartData(cardId, mockData) {
         earningsGrowthQoQ,
         contributionToIndexEarnings,
         revisionTrend,
-        historicalPercentile,
-        sectorScore: rawScore // [-1, 1] range
+        sectorScore: rawScore
       };
     }).sort((a, b) => b.sectorScore - a.sectorScore);
   }
-
-  // For market stress radar
+  // Market Stress Radar
   if (cardId === 'sovereign_risk' || cardId === 'npa') {
     return {
       vix: 15 + Math.random() * 10,
@@ -203,56 +211,39 @@ function prepareChartData(cardId, mockData) {
     };
   }
 
-  // Default: return as-is
   return mockData;
 }
 
-// Get contextual insight for each card
-function getInsightForCard(card) {
-  const insights = {
-    nifty_pe: 'PE ratio shows market trading at premium to historical averages. Monitor for mean reversion opportunities.',
-    nifty_pb: 'Price-to-book indicates valuation relative to asset base. Compare with sector peers for context.',
-    earnings_yield: 'Earnings yield vs bond yield spread (ERP) indicates equity risk premium. Positive spread favors equities.',
-    mcap_gdp: 'Buffett Indicator tracks market cap relative to GDP. Above 100% suggests elevated valuations.',
-    eps_yoy: 'Earnings growth momentum drives market direction. Acceleration supports higher multiples.',
-    earnings_revision: 'Net revisions (upgrades minus downgrades) signal analyst sentiment shift. Positive flow is bullish.',
-    fii: 'Foreign flows indicate global investor sentiment. Sustained inflows support market rally.',
-    dii: 'Domestic institutional buying provides stability. Often counter-cyclical to FII flows.',
-    system_liquidity: 'RBI liquidity surplus/deficit impacts market funding. Surplus is supportive for risk assets.',
-    sector_valuation: 'Sector PE percentiles vs own history identify value pockets. Green sectors offer better risk/reward.',
-    sovereign_risk: 'Composite stress indicator tracks multiple risk dimensions. Rising stress warrants defensive positioning.',
-  };
-
-  return insights[card.id] || 'Monitor this metric for market insights and trend changes.';
-}
-
-export default function FundamentalDetail({ card, history = [] }) {
+// =============================
+// Main Component
+// =============================
+export default function FundamentalDetail({ card }) {
   const [range, setRange] = useState(30);
 
-  // Generate mock data for the chart
+  // Chart Data Preparation
   const chartData = useMemo(() => {
     const mockData = generateMockChartData(card.id, range);
     return prepareChartData(card.id, mockData);
   }, [card.id, range]);
 
-  // Get sentiment color considering inverse metrics
   const color = signalColor(card.normalized, card.id);
   const showChart = shouldShowChart(card.id);
 
   return (
     <div className="space-y-6">
 
-      {/* VALUE - Note: Header (Title) is now in FundamentalModal */}
+      {/* VALUE HEADER */}
       <div className="flex items-end gap-4 border-b border-white/5 pb-4">
         <div className="text-4xl font-bold text-white tracking-tight">
-          {typeof card.raw === 'number' ? card.raw.toFixed(2) : card.raw} <span className="text-lg font-normal text-white/40">{card.unit}</span>
+          {typeof card.raw === 'number' ? card.raw.toFixed(2) : card.raw}
+          <span className="text-lg font-normal text-white/40 ml-1">{card.unit}</span>
         </div>
         <div className="text-sm mb-1.5 font-medium px-2 py-0.5 rounded bg-white/5 uppercase tracking-wide" style={{ color }}>
           {signalLabel(card.normalized)}
         </div>
       </div>
 
-      {/* RANGE */}
+      {/* RANGE SELECTOR */}
       <div className="flex gap-2">
         {[5, 10, 30].map((r) => (
           <button
@@ -275,28 +266,23 @@ export default function FundamentalDetail({ card, history = [] }) {
         {showChart ? (
           <ChartWrapper
             loading={false}
-            height={350} // Base height for drawing, but content can overflow wrapper if not clipped
+            height={350}
             skeletonType={getChartType(card.id)}
-            className="overflow-visible" // Allow tooltips/legends to spill out if needed, but we want space below
+            className="overflow-visible"
           >
             {getChartForCard(card.id, chartData, 350)}
           </ChartWrapper>
         ) : (
           <div className="h-[300px] bg-black/30 rounded-xl p-4 flex items-center justify-center border border-white/5 border-dashed">
-            {/* ... placeholder ... */}
             <div className="text-center">
-              <div className="text-white/60 text-sm mb-2">
-                📊 Chart visualization coming soon
-              </div>
-              <div className="text-white/40 text-xs">
-                {card.label}
-              </div>
+              <div className="text-white/60 text-sm mb-2">📊 Chart visualization coming soon</div>
+              <div className="text-white/40 text-xs">{card.label}</div>
             </div>
           </div>
         )}
       </div>
 
-      {/* INSIGHT: WHY THIS MATTERS */}
+      {/* EDUCATIONAL INSIGHT */}
       <div className="bg-[#0b1220] border border-white/10 rounded-xl p-5 shadow-inner">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-blue-400 text-lg">💡</span>
@@ -307,7 +293,6 @@ export default function FundamentalDetail({ card, history = [] }) {
         </p>
       </div>
 
-      {/* META - Removed from here, handled by FundamentalModal fixed footer */}
     </div>
   );
 }

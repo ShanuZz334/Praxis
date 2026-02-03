@@ -1,3 +1,19 @@
+/**
+ * @file WalletPage.jsx
+ * @purpose Main dashboard for Wallet & Risk Management.
+ * @responsibilities
+ * - Displays capital summary, allocation, performance, and risk metrics.
+ * - Integrates WalletHeader and internal visualization cards.
+ * - Manages view of live positions and system notes.
+ * @key_exports
+ * - WalletPage (Default)
+ * @dependencies
+ * - WalletHeader, walletData, Recharts
+ * @lifecycle
+ * - Route: /dashboard/wallet
+ * @date 2026-02-03
+ */
+
 import React from "react";
 import { TrendingUp, TrendingDown, AlertTriangle, Shield, CheckCircle, Zap, Activity, GripHorizontal, ArrowRight, Wallet } from "lucide-react";
 import { AreaChart, Area, ResponsiveContainer, YAxis, Tooltip, PieChart, Pie, Cell } from "recharts";

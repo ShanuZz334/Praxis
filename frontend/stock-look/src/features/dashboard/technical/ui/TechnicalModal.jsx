@@ -1,9 +1,29 @@
+/**
+ * @file TechnicalModal.jsx
+ * @purpose Detailed view for a specific technical indicator.
+ * @responsibilities
+ * - Displays complex charts, interpretations, and metrics.
+ * - Uses a split-desk layout (Interpretation vs Metrics) on large screens.
+ * - Handles backdrop and escape key closing.
+ * @key_exports
+ * - TechnicalModal (Default)
+ * @dependencies
+ * - TechnicalInterpretationDesk, TechnicalMetricsDesk, TechnicalHistoryChart
+ * @lifecycle
+ * - Rendered by TechnicalPage when a card is selected.
+ * @date 2026-02-03
+ */
+
 import React, { useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTheme } from "@/shared/context/ThemeContext";
 import TechnicalInterpretationDesk from "./TechnicalInterpretationDesk";
 import TechnicalMetricsDesk from "./TechnicalMetricsDesk";
 import TechnicalHistoryChart from "./TechnicalHistoryChart";
+
+// =============================
+// Component
+// =============================
 
 export default function TechnicalModal({ open, onClose, children, card }) {
     const { theme } = useTheme();
@@ -26,6 +46,10 @@ export default function TechnicalModal({ open, onClose, children, card }) {
     let relColor = 'text-slate-400';
     if (relVal >= 8) { relTier = 'High'; relColor = 'text-green-400'; }
     else if (relVal >= 6) { relTier = 'Medium'; relColor = 'text-yellow-400'; }
+
+    // =============================
+    // Render Layer
+    // =============================
 
     return createPortal(
         <div className={`fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4 ${theme}`}>

@@ -1,22 +1,40 @@
 /**
- * Chart Utilities
- * Shared utilities for chart data processing, formatting, and calculations
+ * @file chartUtils.js
+ * @purpose Comprehensive chart data processing and formatting utilities.
+ * @responsibilities
+ * - Statistical calculations (bands, moving averages, normalization).
+ * - Data formatting (numbers, dates, deltas).
+ * - Color zone determination based on metric thresholds.
+ * - Tooltip context generation for market insights.
+ * - Data smoothing and regime detection.
+ * @key_exports
+ * - calculateStatisticalBands, calculateMovingAverage, smoothData
+ * - formatNumber, formatChartDate
+ * - getColorZone, getZoneColor, getRegime
+ * - calculateDelta, normalizeData, getTooltipContext
+ * @dependencies
+ * - None (pure utility functions)
+ * @lifecycle
+ * - Used by all chart components across the application.
+ * @date 2026-02-04
  */
 
-/**
- * Calculate statistical bands (mean ± standard deviations)
- */
+// =============================
+// Statistical Calculations
+// =============================
+
+
 export function calculateStatisticalBands(data, periods = [5, 10]) {
   const bands = {};
-  
+
   periods.forEach(period => {
     const slice = data.slice(-period * 252); // Assuming daily data, ~252 trading days/year
     const values = slice.map(d => d.value);
-    
+
     const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
     const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
     const stdDev = Math.sqrt(variance);
-    
+
     bands[`${period}Y`] = {
       mean,
       stdDev,
@@ -26,16 +44,16 @@ export function calculateStatisticalBands(data, periods = [5, 10]) {
       lower2: mean - 2 * stdDev,
     };
   });
-  
+
   return bands;
 }
 
-/**
- * Determine color zone based on value and thresholds
- */
+// =============================
+// Color Zone Utilities
+// =============================
 export function getColorZone(value, config) {
   const { type = 'pe', inverted = false } = config;
-  
+
   // PE/PB zones (higher = more expensive)
   if (type === 'pe' || type === 'pb') {
     if (inverted) {
@@ -52,7 +70,7 @@ export function getColorZone(value, config) {
       return 'bull-strong';
     }
   }
-  
+
   // Growth zones (higher = better)
   if (type === 'growth') {
     if (value > 0.5) return 'bull-strong';
@@ -61,7 +79,7 @@ export function getColorZone(value, config) {
     if (value > -0.5) return 'bear-weak';
     return 'bear-strong';
   }
-  
+
   // Default normalized (-1 to 1)
   if (value > 0.5) return inverted ? 'bear-strong' : 'bull-strong';
   if (value > 0.2) return inverted ? 'bear-weak' : 'bull-weak';
@@ -70,9 +88,7 @@ export function getColorZone(value, config) {
   return inverted ? 'bull-strong' : 'bear-strong';
 }
 
-/**
- * Get color for a zone
- */
+
 export function getZoneColor(zone) {
   const colors = {
     'bull-strong': 'var(--bull-strong, #22c55e)',
@@ -84,15 +100,15 @@ export function getZoneColor(zone) {
   return colors[zone] || colors.neutral;
 }
 
-/**
- * Calculate delta vs previous period
- */
+// =============================
+// Data Calculations
+// =============================
 export function calculateDelta(current, previous) {
   if (!previous || previous === 0) return null;
-  
+
   const delta = current - previous;
   const deltaPercent = (delta / Math.abs(previous)) * 100;
-  
+
   return {
     absolute: delta,
     percent: deltaPercent,
@@ -100,9 +116,9 @@ export function calculateDelta(current, previous) {
   };
 }
 
-/**
- * Format number for display
- */
+// =============================
+// Formatting Utilities
+// =============================
 export function formatNumber(value, options = {}) {
   const {
     decimals = 2,
@@ -110,11 +126,11 @@ export function formatNumber(value, options = {}) {
     prefix = '',
     compact = false,
   } = options;
-  
+
   if (value === null || value === undefined) return '—';
-  
+
   let formatted = value;
-  
+
   if (compact && Math.abs(value) >= 1000) {
     if (Math.abs(value) >= 10000000) {
       formatted = (value / 10000000).toFixed(decimals) + ' Cr';
@@ -126,13 +142,13 @@ export function formatNumber(value, options = {}) {
   } else {
     formatted = value.toFixed(decimals);
   }
-  
+
   return `${prefix}${formatted}${suffix}`;
 }
 
-/**
- * Generate tooltip context ("why this matters")
- */
+// =============================
+// Tooltip Context
+// =============================
 export function getTooltipContext(metricId, value, normalized) {
   const contexts = {
     nifty_pe: {
@@ -161,21 +177,21 @@ export function getTooltipContext(metricId, value, normalized) {
       low: 'Benign inflation - room for policy easing',
     },
   };
-  
+
   const metric = contexts[metricId];
   if (!metric) return 'Monitor this metric for market insights';
-  
+
   if (normalized > 0.25) return metric.high;
   if (normalized < -0.25) return metric.low;
   return metric.neutral;
 }
 
-/**
- * Calculate moving average
- */
+// =============================
+// Advanced Calculations
+// =============================
 export function calculateMovingAverage(data, period) {
   if (data.length < period) return [];
-  
+
   const result = [];
   for (let i = period - 1; i < data.length; i++) {
     const slice = data.slice(i - period + 1, i + 1);
@@ -188,52 +204,44 @@ export function calculateMovingAverage(data, period) {
   return result;
 }
 
-/**
- * Normalize data to -1 to 1 range
- */
+
 export function normalizeData(value, min, max) {
   if (max === min) return 0;
   return ((value - min) / (max - min)) * 2 - 1;
 }
 
-/**
- * Get regime from normalized value
- */
+
 export function getRegime(value, thresholds = { high: 0.3, low: -0.3 }) {
   if (value > thresholds.high) return 'risk-on';
   if (value < thresholds.low) return 'risk-off';
   return 'neutral';
 }
 
-/**
- * Format date for charts
- */
+
 export function formatChartDate(date, format = 'short') {
   const d = new Date(date);
-  
+
   if (format === 'short') {
     return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
   }
-  
+
   if (format === 'long') {
     return d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
   }
-  
+
   if (format === 'month') {
     return d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short' });
   }
-  
+
   return d.toLocaleDateString('en-IN');
 }
 
-/**
- * Smooth data using exponential moving average
- */
+
 export function smoothData(data, alpha = 0.3) {
   if (data.length === 0) return [];
-  
+
   const smoothed = [data[0]];
-  
+
   for (let i = 1; i < data.length; i++) {
     const value = alpha * data[i].value + (1 - alpha) * smoothed[i - 1].value;
     smoothed.push({
@@ -241,6 +249,6 @@ export function smoothData(data, alpha = 0.3) {
       value,
     });
   }
-  
+
   return smoothed;
 }

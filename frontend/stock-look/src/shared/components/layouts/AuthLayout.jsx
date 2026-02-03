@@ -1,3 +1,26 @@
+/**
+ * @file AuthLayout.jsx
+ * @purpose Specialized layout wrapper for authentication pages (Login/Signup).
+ * @responsibilities
+ * - Renders the 3D AuthBackground.
+ * - Manages the split-screen layout (Visuals vs Form).
+ * - Handles security verification UI (TOTP overlay) via VerificationContext.
+ * - Provides quick links (Socials, Tips) within the visual area.
+ * @key_exports
+ * - AuthLayout (Default)
+ * @dependencies
+ * - VerificationContext (Security state)
+ * - AuthBackground, GlitchText, TextType (Visuals)
+ * - react-router-dom
+ * @lifecycle
+ * - Wraps Login and SignUp pages in AppRoutes.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useContext, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { VerificationContext } from "@/shared/context/VerificationContextInstance";
@@ -7,6 +30,10 @@ import GlitchText from "@/shared/components/backgrounds/GlitchText";
 import TextType from "@/shared/components/backgrounds/TextType";
 
 import stockTips from "@/shared/constants/stockTips";
+
+// =============================
+// Component
+// =============================
 
 const AuthLayout = ({ children }) => {
   const location = useLocation();

@@ -1,33 +1,28 @@
+/**
+ * @file JournalHeader.jsx
+ * @purpose Top-level KPI dashboard for the Trading Journal.
+ * @responsibilities
+ * - Displays key account metrics (Equity, Risk, Drawdown, Win Rate, Expectancy, Score).
+ * - Utilizes a responsive grid layout.
+ * - Provides visual cues (colors, icons) for metric health.
+ * @key_exports
+ * - JournalHeader (Default Component)
+ * @dependencies
+ * - lucide-react (Icons)
+ * @lifecycle
+ * - Rendered by JournalPage.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
-import { TrendingUp, TrendingDown, ShieldAlert, Target, Award } from "lucide-react";
+import { Award } from "lucide-react";
 
-export default function JournalHeader({ capital, score }) {
-    if (!capital || !score) return null;
-
-    return (
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-            {/* 1. EQUITY (Double Width or Highlight) */}
-            <KPICard label="Account Equity" value={`₹${capital.capital.toLocaleString()}`} sub="High Water Mark" subValue="98%" accent="text-text-primary" />
-
-            {/* 2. OPEN RISK */}
-            <KPICard label="Open Risk" value={`${capital.openRiskPct}%`} sub="Exposure" subValue="₹9,450" accent="text-amber-400" />
-
-            {/* 3. DRAWDOWN */}
-            <KPICard label="Max Drawdown" value={`${capital.maxDrawdown}%`} sub="Peak-to-Trough" subValue="Deep" accent="text-red-400" />
-
-            {/* 4. WIN RATE */}
-            <KPICard label="Win Rate" value={`${capital.winRate}%`} sub="Last 20 Trades" subValue="Strong" accent="text-emerald-400" />
-
-            {/* 5. EXPECTANCY (AVG R:R) */}
-            <KPICard label="Avg R:R" value={`${capital.avgRR}R`} sub="Risk Reward" subValue="Healthy" accent="text-blue-400" />
-
-            {/* 6. EXECUTION SCORE (Grade) */}
-            <KPICard label="Execution Quality" value={score.grade} sub={`Score: ${score.score}/100`} subValue="Elite" accent="text-purple-400" isGrade />
-
-        </div>
-    );
-}
+// =============================
+// Helper Components
+// =============================
 
 function KPICard({ label, value, sub, subValue, accent, isGrade }) {
     return (
@@ -51,6 +46,38 @@ function KPICard({ label, value, sub, subValue, accent, isGrade }) {
                     </div>
                 </div>
             </div>
+        </div>
+    );
+}
+
+// =============================
+// Main Component
+// =============================
+
+export default function JournalHeader({ capital, score }) {
+    if (!capital || !score) return null;
+
+    return (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+            {/* 1. EQUITY */}
+            <KPICard label="Account Equity" value={`₹${capital.capital.toLocaleString()}`} sub="High Water Mark" subValue="98%" accent="text-text-primary" />
+
+            {/* 2. OPEN RISK */}
+            <KPICard label="Open Risk" value={`${capital.openRiskPct}%`} sub="Exposure" subValue="₹9,450" accent="text-amber-400" />
+
+            {/* 3. DRAWDOWN */}
+            <KPICard label="Max Drawdown" value={`${capital.maxDrawdown}%`} sub="Peak-to-Trough" subValue="Deep" accent="text-red-400" />
+
+            {/* 4. WIN RATE */}
+            <KPICard label="Win Rate" value={`${capital.winRate}%`} sub="Last 20 Trades" subValue="Strong" accent="text-emerald-400" />
+
+            {/* 5. EXPECTANCY (AVG R:R) */}
+            <KPICard label="Avg R:R" value={`${capital.avgRR}R`} sub="Risk Reward" subValue="Healthy" accent="text-blue-400" />
+
+            {/* 6. EXECUTION SCORE (Grade) */}
+            <KPICard label="Execution Quality" value={score.grade} sub={`Score: ${score.score}/100`} subValue="Elite" accent="text-purple-400" isGrade />
+
         </div>
     );
 }

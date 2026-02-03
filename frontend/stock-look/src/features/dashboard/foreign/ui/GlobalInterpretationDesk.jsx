@@ -1,15 +1,32 @@
-import React from 'react';
-
 /**
- * GlobalInterpretationDesk
- * Educational panel explaining global metrics and their impact on Indian markets
+ * @file GlobalInterpretationDesk.jsx
+ * @purpose Educational and context providing sidebar for Global metrics.
+ * @responsibilities
+ * - Explains "What It Measures" for complex financial metrics (e.g., DXY, Move Index).
+ * - Describes "Impact on India" (e.g., Rising Crude = Inflationary).
+ * - Provides "Key Insights" or Pro-Tips for traders.
+ * @key_exports
+ * - GlobalInterpretationDesk (Default Component)
+ * @dependencies
+ * - React
+ * @lifecycle
+ * - Rendered in Modals or Sidebars when a metric is selected.
+ * @date 2026-02-03
  */
 
+// =============================
+// Imports
+// =============================
+import React from 'react';
+
+// =============================
+// Content Database / Logic
+// =============================
 const getEducationalContent = (category, label, id) => {
     const cat = category?.toLowerCase() || '';
     const lbl = label?.toLowerCase() || '';
 
-    // CURRENCY
+    // 1. CURRENCIES
     if (cat.includes('currency')) {
         if (lbl.includes('dxy') || lbl.includes('dollar')) {
             return {
@@ -32,7 +49,6 @@ const getEducationalContent = (category, label, id) => {
                 keyPoint: "Sudden Yen strength can trigger global carry trade unwinding, causing sharp equity selloffs."
             };
         }
-        // Default Currency
         return {
             usage: "Currency pairs reflect relative economic strength and capital flows between nations.",
             read: "• Monitor trend direction\n• Watch for sharp reversals\n• Correlate with commodity prices",
@@ -40,7 +56,7 @@ const getEducationalContent = (category, label, id) => {
         };
     }
 
-    // GLOBAL INDICES
+    // 2. INDICES
     if (cat.includes('indices')) {
         if (lbl.includes('s&p') || lbl.includes('sp500')) {
             return {
@@ -63,7 +79,6 @@ const getEducationalContent = (category, label, id) => {
                 keyPoint: "Nikkei strength with weak Yen signals healthy risk appetite in Asia, supportive for Nifty."
             };
         }
-        // Default Indices
         return {
             usage: "Global equity indices reflect regional economic health and risk appetite.",
             read: "• Compare relative performance\n• Watch for divergences\n• Monitor sector leadership",
@@ -71,7 +86,7 @@ const getEducationalContent = (category, label, id) => {
         };
     }
 
-    // COMMODITIES
+    // 3. COMMODITIES
     if (cat.includes('commodities')) {
         if (lbl.includes('gold')) {
             return {
@@ -94,7 +109,6 @@ const getEducationalContent = (category, label, id) => {
                 keyPoint: "Copper is a leading indicator for global growth. Strength supports cyclical sectors in India."
             };
         }
-        // Default Commodities
         return {
             usage: "Commodity prices impact inflation, import costs, and sector profitability in India.",
             read: "• Rising commodities: Inflation risk\n• Falling commodities: Margin relief\n• Watch currency impact",
@@ -102,7 +116,7 @@ const getEducationalContent = (category, label, id) => {
         };
     }
 
-    // RATES & VOLATILITY
+    // 4. RATES & VOLATILITY
     if (cat.includes('rates') || cat.includes('volatility')) {
         if (lbl.includes('10y') || lbl.includes('yield')) {
             return {
@@ -125,7 +139,6 @@ const getEducationalContent = (category, label, id) => {
                 keyPoint: "High MOVE index signals bond market stress, which often precedes equity volatility."
             };
         }
-        // Default Rates
         return {
             usage: "Interest rates and volatility metrics reflect monetary policy and market stress levels.",
             read: "• Rising rates: Valuation pressure\n• High volatility: Risk-off mode\n• Watch central bank signals",
@@ -133,7 +146,7 @@ const getEducationalContent = (category, label, id) => {
         };
     }
 
-    // Fallback
+    // 5. Fallback
     return {
         usage: "Global market indicator providing context for Indian equity positioning.",
         read: "• Monitor trend and momentum\n• Compare to historical ranges\n• Watch for extreme readings",
@@ -141,33 +154,25 @@ const getEducationalContent = (category, label, id) => {
     };
 };
 
+// =============================
+// Main Component
+// =============================
 export default function GlobalInterpretationDesk({ card }) {
     if (!card) return null;
 
     const edu = getEducationalContent(card.category, card.label, card.id);
 
     return (
-        <div className="
-            w-[280px] shrink-0
-            flex flex-col gap-4
-            animate-in fade-in slide-in-from-right-4 duration-500
-        ">
-            <div className="
-                relative overflow-hidden
-                bg-background-tooltip
-                border border-border-default
-                rounded-2xl
-                p-5
-                shadow-xl
-                flex flex-col gap-5
-            ">
-                {/* HEADER */}
+        <div className="w-[280px] shrink-0 flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className="relative overflow-hidden bg-background-tooltip border border-border-default rounded-2xl p-5 shadow-xl flex flex-col gap-5">
+
+                {/* Header */}
                 <div className="flex items-center gap-3 mb-2">
                     <div className="w-6 h-6 rounded-md bg-background-elevated flex items-center justify-center border border-border-subtle text-accent-primary text-xs font-bold font-serif italic">i</div>
                     <span className="text-accent-primary text-[11px] font-bold tracking-widest uppercase">Global Context</span>
                 </div>
 
-                {/* 1. OVERVIEW / USAGE */}
+                {/* Usage Section */}
                 <div>
                     <h3 className="text-xs font-bold text-text-primary mb-1.5 uppercase tracking-wide opacity-50">What It Measures</h3>
                     <p className="text-xs text-text-secondary leading-relaxed font-normal">
@@ -175,7 +180,7 @@ export default function GlobalInterpretationDesk({ card }) {
                     </p>
                 </div>
 
-                {/* 2. HOW TO READ */}
+                {/* Impact Section */}
                 <div className="bg-background-elevated/40 rounded-xl p-4 border border-border-subtle group transition-all hover:border-border-hover">
                     <h3 className="text-[10px] font-extrabold text-accent-primary uppercase tracking-widest mb-3 flex items-center gap-2">
                         <span className="w-1 h-1 bg-accent-primary rounded-full" />
@@ -186,7 +191,7 @@ export default function GlobalInterpretationDesk({ card }) {
                     </div>
                 </div>
 
-                {/* 3. MAJOR POINT / PRO TIP */}
+                {/* Key Insight */}
                 <div className="relative pl-1">
                     <div className="absolute left-0 top-1 bottom-1 w-0.5 bg-amber-500/40 rounded-full" />
                     <div className="pl-4">
@@ -199,7 +204,7 @@ export default function GlobalInterpretationDesk({ card }) {
                     </div>
                 </div>
 
-                {/* DECORATIVE */}
+                {/* Footer */}
                 <div className="mt-auto pt-4 border-t border-border-subtle text-[9px] text-text-tertiary opacity-30 text-center uppercase tracking-[0.3em] font-light">
                     Stocky Global Intelligence
                 </div>

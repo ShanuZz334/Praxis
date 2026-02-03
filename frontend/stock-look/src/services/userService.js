@@ -1,7 +1,38 @@
+/**
+ * @file userService.js
+ * @purpose Central service for managing user profile, settings, and authentication data.
+ * @responsibilities
+ * - Fetches and updates user profile information.
+ * - Handles profile image uploads with URL sanitization.
+ * - Manages sensitive operations like password changes and email updates.
+ * - Bridges the frontend with backend user endpoints.
+ * @key_exports
+ * - getUserProfile, updateUserProfile
+ * - uploadProfilePicture
+ * - changePassword, updateEmail
+ * @dependencies
+ * - axiosInstance (API Client)
+ * - BASE_URL (Config)
+ * @lifecycle
+ * - Imported by UserContext and SettingsPage.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import axiosInstance from "@/shared/utils/axiosInstance";
 import { BASE_URL } from "@/shared/utils/apiPaths";
 
-// Helper to fix mixed content issues (localhost images in production)
+// =============================
+// Helper Functions
+// =============================
+
+/**
+ * Ensures user data (specifically images) uses correct absolute URLs.
+ * Handles localhost vs production URL mismatches.
+ */
 const sanitizeUser = (userData) => {
     if (!userData) return null;
 
@@ -23,6 +54,10 @@ const sanitizeUser = (userData) => {
     return sanitized;
 };
 
+// =============================
+// User Profile Operations
+// =============================
+
 export const getUserProfile = async () => {
     try {
         const response = await axiosInstance.get("/api/v1/auth/getUser");
@@ -41,26 +76,6 @@ export const updateUserProfile = async (profileData) => {
         console.error('Error updating profile:', error);
         throw error;
     }
-};
-
-export const updateBrokerSettings = async () => {
-    // Mock implementation as per original
-    return { success: true };
-};
-
-export const testBrokerConnection = async () => {
-    // Mock implementation as per original
-    return { success: true };
-};
-
-export const updateNotificationSettings = async () => {
-    // Mock implementation as per original
-    return { success: true };
-};
-
-export const updatePreferences = async () => {
-    // Mock implementation as per original
-    return { success: true };
 };
 
 export const uploadProfilePicture = async (imageFile) => {
@@ -92,6 +107,10 @@ export const uploadProfilePicture = async (imageFile) => {
     }
 };
 
+// =============================
+// Security & Account Management
+// =============================
+
 export const changePassword = async (passwordData) => {
     try {
         const response = await axiosInstance.put("/api/v1/user/password", passwordData);
@@ -101,6 +120,20 @@ export const changePassword = async (passwordData) => {
         throw error;
     }
 };
+
+export const deleteUserProfile = async () => {
+    try {
+        const response = await axiosInstance.delete("/api/v1/user/profile");
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        throw error;
+    }
+};
+
+// =============================
+// Email Verification Flow
+// =============================
 
 export const requestEmailUpdateOTP = async (newEmail) => {
     try {
@@ -118,16 +151,6 @@ export const updateEmail = async (newEmail, otp) => {
         return response.data;
     } catch (error) {
         console.error('Error updating email:', error);
-        throw error;
-    }
-};
-
-export const deleteUserProfile = async () => {
-    try {
-        const response = await axiosInstance.delete("/api/v1/user/profile");
-        return response.data;
-    } catch (error) {
-        console.error('Error deleting account:', error);
         throw error;
     }
 };
@@ -151,6 +174,30 @@ export const verifyCurrentEmail = async (otp) => {
         throw error;
     }
 };
+
+// =============================
+// Settings Mock Exports
+// =============================
+
+export const updateBrokerSettings = async () => {
+    return { success: true };
+};
+
+export const testBrokerConnection = async () => {
+    return { success: true };
+};
+
+export const updateNotificationSettings = async () => {
+    return { success: true };
+};
+
+export const updatePreferences = async () => {
+    return { success: true };
+};
+
+// =============================
+// Session Management
+// =============================
 
 export const logoutUser = async () => {
     try {

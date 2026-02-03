@@ -1,12 +1,36 @@
-export function calculateGlobalRiskScore(data) {
-    // Logic to be used if we were calculating strictly from raw inputs
-    // For now we pass through the mock score but derive the regime label dynamically
+/**
+ * @file globalRiskEngine.js
+ * @purpose Advanced Risk Analysis Engine for Global Markets.
+ * @responsibilities
+ * - Analyzes cross-asset correlations (e.g., Yields vs. Equities).
+ * - Derives specific impacts on Indian Markets (Nifty/BankNifty).
+ * - Generates high-level textual summaries / narratives.
+ * @key_exports
+ * - calculateGlobalRiskScore (Core Logic)
+ * - deriveIndiaImpact (Impact Analysis)
+ * - generateGlobalInsight (Narrative Check)
+ * @dependencies
+ * - None (Pure logic)
+ * @lifecycle
+ * - Called by Dashboard/Foreign pages to enrich raw data.
+ * @date 2026-02-03
+ */
 
+// =============================
+// Core Analysis Logic
+// =============================
+
+/**
+ * Calculates a consolidated risk score based on Volatility, FX, and Rates.
+ */
+export function calculateGlobalRiskScore(data) {
     const { vix } = data.volatility;
     const { dxy } = data.fx;
     const { us10y } = data.rates;
 
     let bias = "Neutral";
+
+    // Heuristic Thresholds
     if (vix.value < 15 && dxy.value < 105) bias = "Risk-On";
     if (vix.value > 20 || us10y.value > 4.5) bias = "Risk-Off";
 
@@ -16,10 +40,17 @@ export function calculateGlobalRiskScore(data) {
     };
 }
 
+// =============================
+// Impact Analysis (India Context)
+// =============================
+
+/**
+ * Determines how global factors specifically affect Indian Indices.
+ */
 export function deriveIndiaImpact(data) {
     const impacts = [];
 
-    // 1. Yields -> Bank Nifty
+    // 1. Yield Sensitivity (Bank Nifty)
     if (data.rates.us10y.value > 4.2) {
         impacts.push({
             factor: "US 10Y Yield > 4.2%",
@@ -29,7 +60,7 @@ export function deriveIndiaImpact(data) {
         });
     }
 
-    // 2. Oil -> Inflation/Macros
+    // 2. Oil Inflation Risk (CPI / OMCs)
     const oil = data.commodities.find(c => c.name.includes("Crude"));
     if (oil && oil.value > 80) {
         impacts.push({
@@ -40,7 +71,7 @@ export function deriveIndiaImpact(data) {
         });
     }
 
-    // 3. DXY -> Flows
+    // 3. Currency Flow Risk (FIIs)
     if (data.fx.dxy.value > 103) {
         impacts.push({
             factor: "Strong Dollar (DXY > 103)",
@@ -50,7 +81,7 @@ export function deriveIndiaImpact(data) {
         });
     }
 
-    // 4. VIX -> Options Regime
+    // 4. Volatility Regime (Options)
     if (data.volatility.vix.value < 15) {
         impacts.push({
             factor: "Low Global VIX (<15)",
@@ -62,6 +93,10 @@ export function deriveIndiaImpact(data) {
 
     return impacts;
 }
+
+// =============================
+// Narrative Generation
+// =============================
 
 export function generateGlobalInsight(data) {
     const { indices, volatility } = data;

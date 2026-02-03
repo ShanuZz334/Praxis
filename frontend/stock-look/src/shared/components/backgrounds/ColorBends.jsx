@@ -1,6 +1,32 @@
+/**
+ * @file ColorBends.jsx
+ * @purpose Generates a dynamic, WebGL-based flowing color background effect.
+ * @responsibilities
+ * - Renders a THREE.js shader scene for visual ambiance.
+ * - Handles responsive resizing and mouse interaction hooks.
+ * - Optimizes rendering loop for performance.
+ * @key_exports
+ * - ColorBends (Default)
+ * @dependencies
+ * - THREE.js (Core 3D engine)
+ * - React (Hooks)
+ * - ColorBends.css (Styles)
+ * @lifecycle
+ * - Mounted primarily by AuthBackground or specialized dashboard cards.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import './ColorBends.css';
+
+// =============================
+// Constants
+// =============================
 
 const MAX_COLORS = 8;
 
@@ -274,21 +300,21 @@ export default function ColorBends({
   ]);
 
   useEffect(() => {
-  const material = materialRef.current;
-  if (!material) return;
+    const material = materialRef.current;
+    if (!material) return;
 
-  const handlePointerMove = (e) => {
-    const x = (e.clientX / window.innerWidth) * 2 - 1;
-    const y = -((e.clientY / window.innerHeight) * 2 - 1);
-    pointerTargetRef.current.set(x, y);
-  };
+    const handlePointerMove = (e) => {
+      const x = (e.clientX / window.innerWidth) * 2 - 1;
+      const y = -((e.clientY / window.innerHeight) * 2 - 1);
+      pointerTargetRef.current.set(x, y);
+    };
 
-  window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointermove", handlePointerMove);
 
-  return () => {
-    window.removeEventListener("pointermove", handlePointerMove);
-  };
-}, []);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+    };
+  }, []);
 
 
   return <div ref={containerRef} className={`color-bends-container ${className}`} style={style} />;

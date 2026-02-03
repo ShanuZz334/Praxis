@@ -1,15 +1,38 @@
+/**
+ * @file GlobalHeader.jsx
+ * @purpose The Master Header for intelligence pages (Dashboard, Fundamental, Technical).
+ * @responsibilities
+ * - Displays the primary composite score and market regime.
+ * - Visualizes tailwinds, risks, and signal integrity.
+ * - Provides global controls for filtering, sorting, and view modes.
+ * - Aggregates sub-signals into a unified dashboard view.
+ * @key_exports
+ * - GlobalHeader (Default)
+ * @dependencies
+ * - CardSegmented, PortalTooltip
+ * - Signal Logic (getCompositeState, getSignalState)
+ * - Lucide Icons
+ * @lifecycle
+ * - Top-level component for primary feature pages.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowUp, ArrowDown, HelpCircle, ArrowRight } from "lucide-react";
+
 import CardSegmented from "@/shared/components/controls/CardSegmented";
 import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 import { getCompositeState, getSignalState } from "@/shared/global/logic/signals";
 import { typography } from "@/shared/global/styles/typography";
 
-/* --------------------------------------------------------------------------
-   GLOBAL HEADER (The Master Header)
-   Standardized layout for all intelligence pages (Fundamental, Technical, etc.)
--------------------------------------------------------------------------- */
+// =============================
+// Constants
+// =============================
 
 const STYLES = {
     BORDER_OUTER: "border-[var(--border-default)]",
@@ -17,6 +40,10 @@ const STYLES = {
     DIVIDE: "divide-[var(--border-subtle)]",
     BORDER_DIVIDER: "border-[var(--border-subtle)]"
 };
+
+// =============================
+// Component
+// =============================
 
 export default function GlobalHeader({
     // Core Data

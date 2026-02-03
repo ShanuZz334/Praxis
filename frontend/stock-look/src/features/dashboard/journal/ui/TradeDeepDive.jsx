@@ -1,6 +1,68 @@
+/**
+ * @file TradeDeepDive.jsx
+ * @purpose Detail modal for analyzing individual trades.
+ * @responsibilities
+ * - Displays comprehensive trade details (Entry, Exit, R-Multiple, PnL).
+ * - Shows execution checklist (Rule Adherence).
+ * - Reveals psychological state and failure attribution.
+ * - Provides AI-generated verdict if available.
+ * @key_exports
+ * - TradeDeepDive (Default Component)
+ * @dependencies
+ * - lucide-react (Icons)
+ * - ThemeContext
+ * @lifecycle
+ * - Rendered by JournalPage when a trade is selected.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 import { X, Check, XCircle, Clock, Target, Shield } from "lucide-react";
 import { useTheme } from "@/shared/context/ThemeContext";
+
+// =============================
+// Helper Components
+// =============================
+
+function Section({ title, icon, children }) {
+    return (
+        <div>
+            <div className="flex items-center gap-2 mb-4 text-text-tertiary border-b border-border-subtle pb-2">
+                {icon}
+                <span className="text-xs font-bold uppercase tracking-widest">{title}</span>
+            </div>
+            {children}
+        </div>
+    );
+}
+
+function MetricBox({ label, value, color }) {
+    return (
+        <div>
+            <div className="text-[10px] uppercase font-bold text-text-tertiary mb-1">{label}</div>
+            <div className={`text-xl font-mono font-bold tracking-tight ${color || 'text-text-primary'}`}>{value}</div>
+        </div>
+    );
+}
+
+function CheckItem({ label, value, isGood }) {
+    return (
+        <div className={`p-3 rounded border ${isGood ? 'bg-emerald-500/[0.05] border-emerald-500/20' : 'bg-red-500/[0.05] border-red-500/20'}`}>
+            <div className="text-[10px] uppercase font-bold text-text-tertiary mb-1">{label}</div>
+            <div className={`text-sm font-bold flex items-center gap-2 ${isGood ? 'text-emerald-400' : 'text-red-400'}`}>
+                {isGood ? <Check size={14} /> : <XCircle size={14} />}
+                {value}
+            </div>
+        </div>
+    );
+}
+
+// =============================
+// Main Component
+// =============================
 
 export default function TradeDeepDive({ trade, onClose }) {
     const { theme } = useTheme();
@@ -33,6 +95,7 @@ export default function TradeDeepDive({ trade, onClose }) {
                     </button>
                 </div>
 
+                {/* CONTENT BODY */}
                 <div className="p-8 space-y-8">
 
                     {/* 1. EXECUTION REVIEW */}
@@ -75,7 +138,7 @@ export default function TradeDeepDive({ trade, onClose }) {
                         </div>
                     </Section>
 
-                    {/* 4. ELITE VERDICT (If Available) */}
+                    {/* 4. ELITE VERDICT */}
                     {trade.verdict && (
                         <div className="mt-6 p-4 rounded-xl bg-blue-500/[0.05] border border-blue-500/20">
                             <div className="text-[10px] uppercase font-bold text-blue-400 mb-1">Stocky AI Verdict</div>
@@ -83,39 +146,6 @@ export default function TradeDeepDive({ trade, onClose }) {
                         </div>
                     )}
                 </div>
-            </div>
-        </div>
-    );
-}
-
-function Section({ title, icon, children }) {
-    return (
-        <div>
-            <div className="flex items-center gap-2 mb-4 text-text-tertiary border-b border-border-subtle pb-2">
-                {icon}
-                <span className="text-xs font-bold uppercase tracking-widest">{title}</span>
-            </div>
-            {children}
-        </div>
-    );
-}
-
-function MetricBox({ label, value, color }) {
-    return (
-        <div>
-            <div className="text-[10px] uppercase font-bold text-text-tertiary mb-1">{label}</div>
-            <div className={`text-xl font-mono font-bold tracking-tight ${color || 'text-text-primary'}`}>{value}</div>
-        </div>
-    );
-}
-
-function CheckItem({ label, value, isGood }) {
-    return (
-        <div className={`p-3 rounded border ${isGood ? 'bg-emerald-500/[0.05] border-emerald-500/20' : 'bg-red-500/[0.05] border-red-500/20'}`}>
-            <div className="text-[10px] uppercase font-bold text-text-tertiary mb-1">{label}</div>
-            <div className={`text-sm font-bold flex items-center gap-2 ${isGood ? 'text-emerald-400' : 'text-red-400'}`}>
-                {isGood ? <Check size={14} /> : <XCircle size={14} />}
-                {value}
             </div>
         </div>
     );

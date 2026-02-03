@@ -1,16 +1,38 @@
+/**
+ * @file ForeignGauge.jsx
+ * @purpose Specialized Gauge component for visualizing Global Risk Scores.
+ * @responsibilities
+ * - Renders a semi-circle SVG gauge.
+ * - Interpolates colors based on risk levels (Red for Risk-Off, Green for Risk-On).
+ * - Applies glows and gradients for a premium visual effect.
+ * @key_exports
+ * - ForeignGauge (Default Component)
+ * @dependencies
+ * - React (SVG rendering)
+ * @lifecycle
+ * - Presentational component used in Foreign/Global Dashboard Headers.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from 'react';
 
+// =============================
+// Main Component
+// =============================
 export default function ForeignGauge({ score, state }) {
-    // Score: 0-100 (Higher = Risk-On/Bullish)
+    // 0-100 Score (Higher = Risk-On/Bullish)
 
-    // SVG Geometry
+    // Visual Config
     const radius = 80;
     const strokeWidth = 10;
     const circumference = Math.PI * radius; // Semi-circle
     const clampedScore = Math.min(100, Math.max(0, score));
     const offset = circumference - (clampedScore / 100) * circumference;
 
-    // Color Logic (Higher = Better/Risk-On)
+    // Color Logic
     const getColorValues = (s) => {
         if (s < 30) return { stroke: "#ef4444", label: "Risk-Off", glow: "shadow-red-500/50" }; // Red
         if (s < 50) return { stroke: "#f59e0b", label: "Caution", glow: "shadow-amber-500/50" }; // Amber
@@ -23,6 +45,7 @@ export default function ForeignGauge({ score, state }) {
     return (
         <div className="flex flex-col items-center w-full">
             <div className="relative w-[200px] h-[110px] group">
+                {/* SVG Canvas */}
                 <svg width="200" height="110" className="overflow-visible">
                     <defs>
                         <linearGradient id="foreignGaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -40,7 +63,13 @@ export default function ForeignGauge({ score, state }) {
                     </defs>
 
                     {/* Track */}
-                    <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#1e293b" strokeWidth={strokeWidth} strokeLinecap="round" />
+                    <path
+                        d="M 20 100 A 80 80 0 0 1 180 100"
+                        fill="none"
+                        stroke="#1e293b"
+                        strokeWidth={strokeWidth}
+                        strokeLinecap="round"
+                    />
 
                     {/* Value Arc */}
                     <path
@@ -55,14 +84,14 @@ export default function ForeignGauge({ score, state }) {
                         className="transition-all duration-1000 ease-out"
                     />
 
-                    {/* Labels */}
+                    {/* Axis Labels */}
                     <g className="text-[9px] font-bold fill-slate-500 select-none">
                         <text x="25" y="115" textAnchor="start">FEAR</text>
                         <text x="175" y="115" textAnchor="end">GREED</text>
                     </g>
                 </svg>
 
-                {/* Center Text */}
+                {/* Center Labels */}
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center translate-y-2">
                     <div className="text-4xl font-bold text-slate-100 tracking-tighter drop-shadow-lg">
                         {clampedScore}

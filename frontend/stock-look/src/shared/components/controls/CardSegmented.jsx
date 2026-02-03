@@ -1,13 +1,29 @@
+/**
+ * @file CardSegmented.jsx
+ * @purpose Premium segmented control switch.
+ * @responsibilities
+ * - Renders a horizontal list of toggleable options.
+ * - Provides visual feedback for active/inactive states.
+ * - Supports controlled input management.
+ * @key_exports
+ * - CardSegmented (Default)
+ * @dependencies
+ * - React
+ * @lifecycle
+ * - Used in Filters, View Toggles, and Settings.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from "react";
 
-/**
- * CardSegmented
- * ----------------------------------
- * Premium segmented control
- * - Card-styled
- * - No dropdown
- * - Fully controlled
- */
+// =============================
+// Component
+// =============================
+
 export default function CardSegmented({
   value,
   onChange,

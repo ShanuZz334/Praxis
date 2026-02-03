@@ -1,3 +1,24 @@
+/**
+ * @file PBRatioChart.jsx
+ * @purpose Visualizes Price-to-Book ratio trends.
+ * @responsibilities
+ * - Renders AreaChart of Historical PB Ratio.
+ * - Computes and displays Valuation Percentile Gauge (implied or separate).
+ * - Highlights book value relationship.
+ * @key_exports
+ * - PBRatioChart (Default)
+ * @dependencies
+ * - Recharts, ChartTooltip
+ * - chartUtils (formatChartDate)
+ * @lifecycle
+ * - Used in Valuation dashboard, specifically for Banking/Financials.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useMemo } from 'react';
 import {
     AreaChart,
@@ -12,12 +33,10 @@ import {
 import { RechartsTooltipWrapper } from '../ChartTooltip';
 import { formatChartDate } from '@/shared/utils/chartUtils';
 
-/**
- * PBRatioChart
- *
- * Primary: Historical PB Ratio Area Chart
- * Supporting: Valuation Percentile Gauge
- */
+// =============================
+// Component
+// =============================
+
 export default function PBRatioChart({ data = [], height = 400 }) {
     // 1. Prepare Data
     const chartData = useMemo(() => {

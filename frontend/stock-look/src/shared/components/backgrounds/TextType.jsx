@@ -1,8 +1,34 @@
+/**
+ * @file TextType.jsx
+ * @purpose Renders a typewriter-style text animation for dynamic content display.
+ * @responsibilities
+ * - Types out text character by character with configurable speed.
+ * - Supports deleting/backspacing and looping animations.
+ * - Manages cursor blinking and visibility states.
+ * - Handles variable typing speeds for natural feel.
+ * @key_exports
+ * - TextType (Default)
+ * @dependencies
+ * - gsap (Animation engine)
+ * - TextType.css (Cursor styles)
+ * @lifecycle
+ * - Used in heroes, headers, or dynamic messaging components.
+ * @date 2026-02-03
+ */
+
 'use client';
+
+// =============================
+// Imports
+// =============================
 
 import { useEffect, useRef, useState, createElement, useMemo, useCallback } from 'react';
 import { gsap } from 'gsap';
 import './TextType.css';
+
+// =============================
+// Component
+// =============================
 
 const TextType = ({
   text,
@@ -98,7 +124,7 @@ const TextType = ({
 
           setCurrentTextIndex(prev => (prev + 1) % textArray.length);
           setCurrentCharIndex(0);
-          timeout = setTimeout(() => {}, pauseDuration);
+          timeout = setTimeout(() => { }, pauseDuration);
         } else {
           timeout = setTimeout(() => {
             setDisplayedText(prev => prev.slice(0, -1));

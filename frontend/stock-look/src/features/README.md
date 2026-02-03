@@ -1,6 +1,86 @@
-# Features Directory
+# Features Architecture
 
-This directory contains all feature modules organized by domain. Each feature is self-contained with its own UI, logic, and data.
+The `src/features` directory contains the core business capabilities of the application, organized by domain. This architecture enables modularity, maintainability, and clear boundaries between different parts of the system.
+
+## 📁 Directory Structure
+
+```graphql
+features/
+├── 🔐 auth/           # Authentication & Authorization
+├── 📊 dashboard/      # Main Application Modules
+└── 👤 profile/        # User Profile Management
+```
+
+---
+
+## 🔐 Auth Feature (`src/features/auth`)
+
+Handles all user authentication flows including login, registration, and session management.
+
+- **pages/**: `Login.jsx`, `SignUp.jsx` - Main entry points.
+- **components/**: Reusable auth forms and inputs.
+- **hooks/**: Custom hooks for auth state.
+
+---
+
+## 📊 Dashboard Features (`src/features/dashboard`)
+
+The heart of the application, split into distinct functional domains.
+
+### Core Modules
+
+| Feature | Description | Key Components |
+| :--- | :--- | :--- |
+| **master/** | Main landing dashboard. | `MasterDashboard`, `StockyEngine` |
+| **technical/** | Technical analysis & indicators. | `TechnicalPage`, `TechnicalCard`, `TechnicalModal` |
+| **fundamentals/** | Company financial data. | `FundamentalPage`, `FundamentalCard` |
+| **options/** | Derivatives & Greeks analysis. | `OptionsPage`, `OptionsChain` |
+| **foreign/** | Global market indices & correlations.| `ForeignPage`, `GlobalRiskEngine` |
+| **events/** | News & Economic Calendar. | `EventsPage`, `NewsFeed` |
+| **journal/** | Trading log & performance notes. | `JournalPage`, `TradeLogTable` |
+| **wallet/** | P&L tracking & performance stats. | `WalletPage`, `PerformanceMap` |
+| **manual/** | User documentation & help. | `ManualDashboard`, `TopicDetail` |
+| **settings/** | App configuration & preferences. | `SettingsPage` |
+| **messages/** | User notifications & alerts. | `MessagesPage`, `MessageCard` |
+| **about/** | App version & release info. | `AboutPage` |
+| **routes/** | Internal dashboard routing. | `DashboardRoutes` |
+
+### Standard Module Structure
+
+All dashboard features strictly follow this 3-layer architecture:
+
+1.  **UI Layer (`ui/`)**
+    *   Pure React components.
+    *   Responsible for rendering and user interaction.
+    *   No complex business logic.
+
+2.  **Engine Layer (`engine/`)**
+    *   Pure JavaScript business logic.
+    *   Calculations, algorithms, and data transformations.
+    *   Testable and framework-independent.
+
+3.  **Data Layer (`data/`)**
+    *   Static configuration, mock data, and API schemas.
+    *   Single source of truth for constants.
+
+---
+
+## 👤 Profile Feature (`src/features/profile`)
+
+Manages user-specific data outside of global settings.
+
+*   `ProfilePhotoSelector.jsx`: Component for uploading/managing user avatars.
+
+---
+
+## 🛠️ Standardization Rules
+
+All files within `src/features` adhere to the **Strict Codebase Standardization** protocol:
+
+1.  **Professional Headers**: Every file begins with a JSDoc-style header defining purpose, responsibilities, exports, and dependencies.
+2.  **Sectioned Code**: Code is logically grouped (Imports, Constants, Logic, Render).
+3.  **No Inline Comments**: Code is self-documenting; comments explain "why", not "what".
+4.  **Production Grade**: Clean imports, strict linting, and optimized performance.
 
 ## Structure
 

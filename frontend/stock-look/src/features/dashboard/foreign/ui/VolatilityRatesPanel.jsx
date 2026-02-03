@@ -1,6 +1,31 @@
+/**
+ * @file VolatilityRatesPanel.jsx
+ * @purpose Detail panel for Rates (Bond Market) and Volatility (VIX).
+ * @responsibilities
+ * - Displays VIX, VIX9D, VVIX and credit spreads (HY/IG).
+ * - Displays US 2Y, 10Y and Real Yields.
+ * - Shows Yield Curve shape (Inverted vs steepening).
+ * - Highlights anomalies (e.g., High Stress).
+ * @key_exports
+ * - VolatilityRatesPanel (Default Component)
+ * @dependencies
+ * - React
+ * @lifecycle
+ * - Rendered in Dashboard/Foreign.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 
+// =============================
+// Main Component
+// =============================
 export default function VolatilityRatesPanel({ volatility, rates }) {
+    if (!volatility || !rates) return null;
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
@@ -81,6 +106,9 @@ export default function VolatilityRatesPanel({ volatility, rates }) {
     );
 }
 
+// =============================
+// Helper Component
+// =============================
 function MetricBox({ label, value, sub, delta, color = "text-slate-200" }) {
     return (
         <div className="bg-slate-900/30 border border-slate-800/50 rounded-xl p-3 flex flex-col justify-between h-full min-w-0">

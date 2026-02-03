@@ -1,10 +1,36 @@
+/**
+ * @file MobileQuickNav.jsx
+ * @purpose Gesture-activated quick navigation menu overlay.
+ * @responsibilities
+ * - Appears on long-press of the menu button.
+ * - Provides instant access to key routes via icons.
+ * - Includes a quick theme toggle.
+ * - Uses Framer Motion for smooth entry/exit animations.
+ * @key_exports
+ * - MobileQuickNav (Default)
+ * @dependencies
+ * - framer-motion
+ * - ThemeContext
+ * - MobileThemeToggle
+ * @lifecycle
+ * - Conditionally rendered by MobileHeader.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from "react";
+import { motion } from "framer-motion";
+
 import { SIDE_MENU_DATA } from "../../utils/data";
 import { useTheme } from "../../context/ThemeContext";
-
 import MobileThemeToggle from "../../components/ui/MobileThemeToggle";
 
-import { motion } from "framer-motion";
+// =============================
+// Component
+// =============================
 
 const MobileQuickNav = ({ activePath, hoveredPath }) => {
     const { theme } = useTheme();

@@ -1,3 +1,18 @@
+/**
+ * @file WalletAIInsights.jsx
+ * @purpose Renders AI-driven insights and strategic directives for the portfolio.
+ * @responsibilities
+ * - Generates natural language analysis of portfolio health.
+ * - Displays actionable recommendations (e.g., "Reduce Options Size").
+ * @key_exports
+ * - WalletAIInsights (Default)
+ * @dependencies
+ * - riskEngine
+ * @lifecycle
+ * - Rendered by WalletPage (Optional/Expanded view).
+ * @date 2026-02-03
+ */
+
 import React from "react";
 import { generateWalletInsights } from "../engine/riskEngine";
 

@@ -1,3 +1,26 @@
+/**
+ * @file Navbar.jsx
+ * @purpose Main desktop top navigation bar.
+ * @responsibilities
+ * - Displays market indices (NIFTY/SENSEX) and account balance summaries.
+ * - Provides global actions: Search, Notifications, Settings, Theme Toggle.
+ * - Links to external brokers (NSE, Zerodha).
+ * - Manages sidebar toggle state.
+ * @key_exports
+ * - Navbar (Default)
+ * @dependencies
+ * - UserContext, ThemeContext
+ * - ThemeToggle
+ * - Internal mock data (fakeFundData)
+ * @lifecycle
+ * - Rendered by DashboardLayout on desktop viewports.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useContext } from "react";
 import { FiBell, FiSettings, FiSun, FiMoon } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +38,10 @@ import zerodhaLogo from "@/assets/images/zerodha.png";
 import logo from "@/assets/images/logo1.png";
 import logoBgless from "@/assets/icons/logo_bgless.png";
 import ThemeToggle from "@/shared/components/ui/ThemeToggle";
+
+// =============================
+// Component
+// =============================
 
 const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();

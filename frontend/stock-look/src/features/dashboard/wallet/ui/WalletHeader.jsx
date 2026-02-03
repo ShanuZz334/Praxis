@@ -1,12 +1,22 @@
+/**
+ * @file WalletHeader.jsx
+ * @purpose Top-level summary component for the Wallet feature.
+ * @responsibilities
+ * - Displays active capital, P&L, trading mode, and risk monitor.
+ * - Matches styling of GlobalHeader for consistency.
+ * @key_exports
+ * - WalletHeader (Default)
+ * @dependencies
+ * - PortalTooltip
+ * @lifecycle
+ * - Rendered by WalletPage.
+ * @date 2026-02-03
+ */
+
 import React from "react";
 import { HelpCircle, ArrowUp } from "lucide-react";
 import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 import { typography } from "@/shared/global/styles/typography";
-
-/* --------------------------------------------------------------------------
-   WALLET HEADER
-   Matches styling of GlobalHeader for consistency.
--------------------------------------------------------------------------- */
 
 const STYLES = {
     BORDER_OUTER: "border-border-default",

@@ -1,10 +1,30 @@
+/**
+ * @file LiquidityGauge.jsx
+ * @purpose Semi-circular gauge for visualizing system liquidity.
+ * @responsibilities
+ * - Uses HTML5 Canvas for high-performance gauge rendering.
+ * - Visualizes liquidity Surplus vs Deficit.
+ * - Animates gauge needle and value updates.
+ * @key_exports
+ * - LiquidityGauge (Default)
+ * @dependencies
+ * - framer-motion (for container animation)
+ * @lifecycle
+ * - Real-time liquidity monitor in Macro/Liquidity views.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
-/**
- * LiquidityGauge
- * Semi-circular gauge for system liquidity (surplus/deficit)
- */
+// =============================
+// Component
+// =============================
+
 export default function LiquidityGauge({
     value = 0, // in ₹ Cr
     max = 200000, // max expected surplus/deficit

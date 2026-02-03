@@ -1,8 +1,35 @@
+/**
+ * @file ManualSectionLayout.jsx
+ * @purpose The split-view layout for browsing specific manual sections (e.g., Technical, Fundamental).
+ * @responsibilities
+ * - Displays a list of topics on the left (searchable).
+ * - Displays the detailed content of the selected topic on the right.
+ * - Handles navigation back to the main Manual Dashboard.
+ * @key_exports
+ * - ManualSectionLayout (Default Component)
+ * @dependencies
+ * - React, useState, useMemo
+ * - react-router-dom (useParams, useNavigate)
+ * - lucide-react (Icons)
+ * - manualData (Content Source)
+ * - TopicDetail (Right Pane)
+ * @lifecycle
+ * - Rendered when navigating to /dashboard/manual/:section
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Search, ArrowLeft, ChevronRight } from "lucide-react";
 import { MANUAL_CONTENT, MANUAL_SECTIONS } from "../data/manualData";
 import TopicDetail from "./TopicDetail";
+
+// =============================
+// Main Component
+// =============================
 
 export default function ManualSectionLayout() {
     const { section } = useParams();
@@ -10,11 +37,11 @@ export default function ManualSectionLayout() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedTopicId, setSelectedTopicId] = useState(null);
 
-    // Get Data
+    // --- Data Retrieval ---
     const sectionData = MANUAL_CONTENT[section];
     const sectionMeta = MANUAL_SECTIONS.find(s => s.id === section);
 
-    // Filter Topics
+    // --- Filter Logic ---
     const filteredTopics = useMemo(() => {
         if (!sectionData) return [];
         return sectionData.topics.filter(t =>
@@ -25,6 +52,7 @@ export default function ManualSectionLayout() {
 
     const activeTopic = sectionData?.topics.find(t => t.id === selectedTopicId);
 
+    // --- Render Guard ---
     if (!sectionData) {
         return <div className="p-8 text-text-primary">Section Not Found</div>;
     }
@@ -36,7 +64,7 @@ export default function ManualSectionLayout() {
             <div className="flex items-center gap-4 mb-6 shrink-0">
                 <button
                     onClick={() => navigate('/dashboard/manual')}
-                    className="p-2 rounded-lg bg-background-surface hover:bg-background-elevated text-text-secondary hover:text-text-primary transition-colors border border-border-default"
+                    className="p-2 rounded-lg bg-background-surface hover:bg-background-elevated text-text-secondary hover:text-text-primary transition-colors border border-border-default shadow-sm active:scale-95"
                 >
                     <ArrowLeft size={18} />
                 </button>
@@ -53,10 +81,10 @@ export default function ManualSectionLayout() {
             <div className="flex-1 flex flex-col md:flex-row gap-4 md:gap-6 min-h-0">
 
                 {/* LEFT: Search & List (Mobile: Top Half, Desktop: Left Side) */}
-                <div className="w-full md:w-5/12 lg:w-4/12 flex flex-col h-[45%] md:h-full min-h-0 bg-background-card border border-border-default rounded-xl overflow-hidden shrink-0">
+                <div className="w-full md:w-5/12 lg:w-4/12 flex flex-col h-[45%] md:h-full min-h-0 bg-background-card border border-border-default rounded-xl overflow-hidden shrink-0 shadow-lg">
 
                     {/* Search Bar */}
-                    <div className="p-4 border-b border-border-default shrink-0">
+                    <div className="p-4 border-b border-border-default shrink-0 bg-background-elevated">
                         <div className="relative">
                             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
                             <input
@@ -70,7 +98,7 @@ export default function ManualSectionLayout() {
                     </div>
 
                     {/* Scrollable List */}
-                    <div className="flex-1 overflow-y-auto p-4 invisibleScroll space-y-3">
+                    <div className="flex-1 overflow-y-auto p-4 invisibleScroll space-y-3 bg-background-card">
                         {filteredTopics.map((topic) => (
                             <div
                                 key={topic.id}
@@ -79,11 +107,11 @@ export default function ManualSectionLayout() {
                                     relative h-20 p-3 rounded-2xl border cursor-pointer group transition-all duration-200 overflow-hidden shrink-0
                                     ${selectedTopicId === topic.id
                                         ? 'bg-blue-500/10 border-blue-500/40 shadow-[0_4px_12px_rgba(59,130,246,0.1)]'
-                                        : 'bg-background-card border-border-default hover:border-border-subtle shadow-md'}
+                                        : 'bg-background-surface border-border-default hover:border-border-subtle shadow-sm hover:shadow-md'}
                                 `}
                             >
                                 {/* Inner Glow for Depth */}
-                                <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-background-surface to-transparent" />
+                                <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-background-surface to-transparent opacity-50" />
 
                                 <div className="relative z-10 flex flex-col justify-between h-full">
                                     <div className="flex items-center justify-between">
@@ -92,7 +120,7 @@ export default function ManualSectionLayout() {
                                         </span>
                                         {selectedTopicId === topic.id && <ChevronRight size={14} className="text-blue-500" />}
                                     </div>
-                                    <p className="text-[10px] text-text-tertiary line-clamp-2">
+                                    <p className="text-[10px] text-text-tertiary line-clamp-2 leading-relaxed">
                                         {topic.description}
                                     </p>
                                 </div>
@@ -108,7 +136,7 @@ export default function ManualSectionLayout() {
                 </div>
 
                 {/* RIGHT: Detail View (Mobile: Bottom Half, Desktop: Right Side) */}
-                <div className="flex-1 h-[55%] md:h-full bg-background-card border border-border-default rounded-xl p-4 md:p-8 overflow-hidden min-h-0">
+                <div className="flex-1 h-[55%] md:h-full bg-background-card border border-border-default rounded-xl p-4 md:p-8 overflow-hidden min-h-0 shadow-lg relative">
                     <TopicDetail topic={activeTopic} />
                 </div>
 

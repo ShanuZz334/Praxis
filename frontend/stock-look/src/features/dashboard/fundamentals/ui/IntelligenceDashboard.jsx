@@ -1,19 +1,32 @@
-import React, { useMemo } from 'react';
+/**
+ * @file IntelligenceDashboard.jsx
+ * @purpose Top-level intelligence summary panel.
+ * @responsibilities
+ * - Displays high-impact "Tailwinds" (Green) and "Risks" (Red).
+ * - Animates entry using Framer Motion.
+ * @key_exports
+ * - IntelligenceDashboard (Default Component)
+ * @dependencies
+ * - Framer Motion
+ * @lifecycle
+ * - UNUSED / DEPRECATED (Logic moved to GlobalHeader, but keeping file as per safety rules).
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+import React from 'react';
 import { motion } from 'framer-motion';
 import { staggerContainer, slideUp } from '@/shared/utils/chartAnimations';
 
-/**
- * IntelligenceDashboard
- * Top-level intelligence panel showing overall score, regime, tailwinds, risks, and confidence
- */
+// =============================
+// Main Component
+// =============================
 export default function IntelligenceDashboard({ intelligence }) {
     if (!intelligence) return null;
 
-    const { overallScore, regime, tailwinds, risks, confidence } = intelligence;
-
-    // Get score color
-    const scoreColor = overallScore > 70 ? '#22c55e' : overallScore > 40 ? '#fbbf24' : '#ef4444';
-    const scoreLabel = overallScore > 70 ? 'Strong' : overallScore > 40 ? 'Moderate' : 'Weak';
+    const { tailwinds, risks } = intelligence;
 
     return (
         <motion.div
@@ -22,9 +35,10 @@ export default function IntelligenceDashboard({ intelligence }) {
             initial="hidden"
             animate="visible"
         >
-            {/* Tailwinds & Risks Only */}
+            {/* TAILWINDS & RISKS GRID */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Top Tailwinds */}
+
+                {/* 1. TAILWINDS */}
                 <motion.div variants={slideUp}>
                     <div className="flex items-center gap-2 mb-3">
                         <span className="text-green-400 text-lg">🚀</span>
@@ -55,7 +69,7 @@ export default function IntelligenceDashboard({ intelligence }) {
                     </div>
                 </motion.div>
 
-                {/* Top Risks */}
+                {/* 2. RISKS */}
                 <motion.div variants={slideUp}>
                     <div className="flex items-center gap-2 mb-3">
                         <span className="text-red-400 text-lg">⚠️</span>

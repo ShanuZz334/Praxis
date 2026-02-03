@@ -1,8 +1,18 @@
 /**
- * TECHNICAL INDICATORS CONFIGURATION (1-100)
- * Defines metadata, weights, and reliability for the institutional technical engine.
- * 
- * Mapped to 6 Main Sections: Trend, Momentum, Volatility, Volume, Breadth, Structure
+ * @file indicatorsConfig.js
+ * @purpose Defines the configuration, weights, and simulation logic for technical indicators.
+ * @responsibilities
+ * - Stores metadata for 100+ technical indicators.
+ * - Simulates live data values for development/demo purposes.
+ * - Maps indicators to 6 main categories (Trend, Momentum, Volatility, Volume, Breadth, Structure).
+ * @key_exports
+ * - technicalIndicatorsConfig
+ * - generateLiveTechnicalData
+ * @dependencies
+ * - None (Pure configuration & logic)
+ * @lifecycle
+ * - Core configuration loaded by TechnicalPage and engine.
+ * @date 2026-02-03
  */
 
 export const technicalIndicatorsConfig = [
@@ -260,7 +270,10 @@ export const technicalIndicatorsConfig = [
 // Total credits for Technical page
 export const TOTAL_TECHNICAL_CREDITS = 500;
 
-// Helper to generate realistic history
+// =============================
+// Helper Functions
+// =============================
+
 // SEEDED RANDOM for consistency across pages
 let _seed = 5678;
 function seededRandom() {
@@ -279,7 +292,10 @@ function generateHistory(baseValue, volatility, count = 7) {
     return history.reverse(); // Newest first
 }
 
-// SIMULATION ENGINE: Generates realistic institutional-grade data
+// =============================
+// Simulation Engine
+// =============================
+
 export function generateLiveTechnicalData() {
     _seed = 5678; // Reset seed for deterministic output across pages
     // Market Context BASE (e.g., Nifty 50 Index level)

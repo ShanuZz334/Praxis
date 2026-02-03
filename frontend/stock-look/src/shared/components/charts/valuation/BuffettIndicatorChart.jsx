@@ -1,12 +1,33 @@
+/**
+ * @file BuffettIndicatorChart.jsx
+ * @purpose Visualizes Market Cap to GDP ratio (Buffett Indicator).
+ * @responsibilities
+ * - Renders AreaChart of the ratio over time.
+ * - Highlights valuation zones (Undervalued, Fair, Overvalued).
+ * - Provides AI-driven interpretation of current market valuation.
+ * @key_exports
+ * - BuffettIndicatorChart (Default)
+ * @dependencies
+ * - Recharts, ChartTooltip
+ * - chartUtils (formatChartDate)
+ * @lifecycle
+ * - Core Valuation indicator in Macro/Valuation dashboards.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { RechartsTooltipWrapper } from '../ChartTooltip';
 import { formatChartDate } from '@/shared/utils/chartUtils';
 
-/**
- * BuffettIndicatorChart
- * Market Cap to GDP Timeline with Buffett zones
- */
+// =============================
+// Component
+// =============================
+
 export default function BuffettIndicatorChart({
     data = [],
     height = 300,

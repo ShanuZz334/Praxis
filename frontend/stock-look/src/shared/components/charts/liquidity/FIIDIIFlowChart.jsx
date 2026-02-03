@@ -1,12 +1,33 @@
+/**
+ * @file FIIDIIFlowChart.jsx
+ * @purpose Visualizes institutional investment flows (FII vs DII).
+ * @responsibilities
+ * - Renders ComposedChart with Area (daily flow) and Line (cumulative).
+ * - Comparatively displays Foreign vs Domestic flows.
+ * - Provides immediate net flow calculation and insight.
+ * @key_exports
+ * - FIIDIIFlowChart (Default)
+ * @dependencies
+ * - Recharts, ChartTooltip
+ * - chartUtils (formatChartDate)
+ * @lifecycle
+ * - Core component of Liquidity Analysis dashboard.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from 'react';
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { RechartsTooltipWrapper } from '../ChartTooltip';
 import { formatChartDate } from '@/shared/utils/chartUtils';
 
-/**
- * FIIDIIFlowChart
- * FII/DII Flow Momentum with cumulative flows
- */
+// =============================
+// Component
+// =============================
+
 export default function FIIDIIFlowChart({
     data = [],
     height = 300,

@@ -1,22 +1,46 @@
+/**
+ * @file FxCommoditiesRow.jsx
+ * @purpose Renders FX and Commodities Overview panel.
+ * @responsibilities
+ * - Displays the DXY (Dollar Index) status and trends.
+ * - Lists key FX pairs (USDJPY, EURUSD, etc.).
+ * - Visualizes key commodities (Oil, Gold, Copper) with trend indicators.
+ * - Provides immediate visual feedback on currency/commodity pressure.
+ * @key_exports
+ * - FxCommoditiesRow (Default Component)
+ * @dependencies
+ * - React
+ * @lifecycle
+ * - Rendered by GlobalMetricsDesk.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 
+// =============================
+// Helper Functions
+// =============================
+const getPressureTag = (name) => {
+    if (['Brent Crude', 'Gold'].includes(name)) return 'Inflation / Safe Haven';
+    if (['Copper', 'Silver'].includes(name)) return 'Growth Proxy';
+    return 'Macro Factor';
+};
+
+// =============================
+// Main Component
+// =============================
 export default function FxCommoditiesRow({ fx, commodities }) {
-
-    // Helper to get Pressure Tag
-    const getPressureTag = (name) => {
-        if (['Brent Crude', 'Gold'].includes(name)) return 'Inflation / Safe Haven';
-        if (['Copper', 'Silver'].includes(name)) return 'Growth Proxy';
-        return 'Macro Factor';
-    };
-
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-            {/* 1. FX & DOLLAR */}
+            {/* 1. FX & DOLLAR PANEL */}
             <div className="relative overflow-hidden bg-[#0f172a]/40 backdrop-blur-sm border border-slate-800/60 rounded-2xl flex flex-col shadow-sm">
                 <div className="flex h-full flex-col p-6 space-y-6">
 
-                    {/* HEADER */}
+                    {/* Header */}
                     <div className="flex justify-between items-start">
                         <div>
                             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Signal</div>
@@ -27,9 +51,9 @@ export default function FxCommoditiesRow({ fx, commodities }) {
                         <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest text-right">Dollar & FX Pressure</div>
                     </div>
 
-                    {/* BODY: DXY + FX Pairs */}
+                    {/* Body: DXY + Pairs */}
                     <div className="flex-1 space-y-6">
-                        {/* DXY Dominant */}
+                        {/* Primary Metric: DXY */}
                         <div>
                             <div className="text-[10px] text-slate-500 uppercase mb-2 font-bold tracking-widest">DXY Index</div>
                             <div className="flex items-baseline gap-3">
@@ -40,7 +64,7 @@ export default function FxCommoditiesRow({ fx, commodities }) {
                             </div>
                         </div>
 
-                        {/* Secondary FX Grid */}
+                        {/* Secondary Metrics: Pairs */}
                         <div className="grid grid-cols-3 gap-4 border-t border-slate-800/30 pt-4">
                             {fx.pairs.map((p, i) => (
                                 <div key={i} className="text-left">
@@ -56,7 +80,7 @@ export default function FxCommoditiesRow({ fx, commodities }) {
                         </div>
                     </div>
 
-                    {/* FOOTER: Interpretation */}
+                    {/* Footer: Insight */}
                     <div className="mt-auto border-t border-slate-800/50 pt-4">
                         <div className="text-[10px] text-slate-500 uppercase mb-2 font-bold tracking-widest">Interpretation</div>
                         <div className="text-sm font-bold text-slate-200 leading-snug break-words">
@@ -67,14 +91,14 @@ export default function FxCommoditiesRow({ fx, commodities }) {
                 </div>
             </div>
 
-            {/* 2. COMMODITIES */}
+            {/* 2. COMMODITIES PANEL */}
             <div className="relative overflow-hidden bg-[#0f172a]/40 backdrop-blur-sm border border-slate-800/60 rounded-2xl flex flex-col shadow-sm">
                 <div className="flex h-full flex-col p-6 space-y-6">
 
-                    {/* HEADER */}
+                    {/* Header */}
                     <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest text-right">Commodity Complex</div>
 
-                    {/* BODY */}
+                    {/* Body: List */}
                     <div className="flex-1 space-y-3">
                         {commodities.map((item, i) => (
                             <div key={i} className="flex items-center justify-between p-3 bg-slate-900/30 rounded-xl border border-slate-800/50 hover:border-slate-700/50 transition-colors">
@@ -95,7 +119,6 @@ export default function FxCommoditiesRow({ fx, commodities }) {
                         ))}
                     </div>
 
-                    {/* Empty Footer preserved for structure if needed, or omitted if no interpretation */}
                 </div>
             </div>
 

@@ -1,14 +1,33 @@
+/**
+ * @file MeanReversionBandChart.jsx
+ * @purpose Statistical valuation bands (Standard Deviations) around a mean.
+ * @responsibilities
+ * - Renders AreaChart with Mean, +1/2 SD, -1/2 SD bands.
+ * - Visualizes extreme overextension or undervaluation.
+ * - Can be applied to PE, PB, or any mean-reverting metric.
+ * @key_exports
+ * - MeanReversionBandChart (Default)
+ * @dependencies
+ * - Recharts, ChartTooltip
+ * - chartUtils (calculateStatisticalBands, getZoneColor)
+ * @lifecycle
+ * - Advanced valuation tool for deep-dive analysis.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useMemo } from 'react';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { RechartsTooltipWrapper } from '../ChartTooltip';
 import { calculateStatisticalBands, formatChartDate, getZoneColor } from '@/shared/utils/chartUtils';
 
-/**
- * MeanReversionBandChart
- * 
- * Primary: PE/PB Mean Reversion with statistical bands
- * Supporting: Z-Score Sparkline (Standard Deviations from Mean)
- */
+// =============================
+// Component
+// =============================
+
 export default function MeanReversionBandChart({
     data = [],
     metricLabel = 'PE Ratio',

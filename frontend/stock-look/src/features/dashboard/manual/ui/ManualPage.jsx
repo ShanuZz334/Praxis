@@ -1,12 +1,38 @@
+/**
+ * @file ManualPage.jsx
+ * @purpose The root wrapper for the Manual feature.
+ * @responsibilities
+ * - Acts as the layout container if needed.
+ * - Currently serves as a pass-through or index redirect depending on routing configuration.
+ * - Maintains consistency with other feature page architectures.
+ * @key_exports
+ * - ManualPage (Default Component)
+ * @dependencies
+ * - React
+ * @lifecycle
+ * - Main route for /dashboard/manual.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
+import ManualDashboard from "./ManualDashboard";
+
+// =============================
+// Main Component
+// =============================
 
 export default function ManualPage() {
     return (
-        <div className="p-4 md:p-6 pb-20 animate-in fade-in duration-500 max-w-[1920px] mx-auto min-h-screen text-text-primary">
-            <h1 className="text-2xl font-bold tracking-tight mb-4">Manual</h1>
-            <div className="bg-background-card border border-border-default rounded-2xl p-6 shadow-md">
-                <p className="text-text-secondary">Documentation and Manual content will appear here.</p>
-            </div>
+        <div className="max-w-[1920px] mx-auto min-h-screen">
+            {/* 
+              Currently rendering the Dashboard directly. 
+              If sub-routes are handled by a Router in App.jsx, 
+              this might just be the Index Page.
+            */}
+            <ManualDashboard />
         </div>
     );
 }

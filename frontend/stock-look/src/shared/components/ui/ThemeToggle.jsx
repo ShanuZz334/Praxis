@@ -1,6 +1,31 @@
+/**
+ * @file ThemeToggle.jsx
+ * @purpose Animated day/night switch for global theme control.
+ * @responsibilities
+ * - Provides a visual toggle UI for Light/Dark mode.
+ * - Uses SVG masks for smooth Sun-to-Moon morphing animations.
+ * - Accessible via label/input pattern.
+ * @key_exports
+ * - ThemeToggle (Default)
+ * @dependencies
+ * - ThemeContext
+ * - ThemeToggle.css (Animation Logic)
+ * @lifecycle
+ * - Main persistence toggle in Navbar.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import './ThemeToggle.css';
+
+// =============================
+// Component
+// =============================
 
 export default function ThemeToggle() {
     const { theme, toggleTheme } = useTheme();

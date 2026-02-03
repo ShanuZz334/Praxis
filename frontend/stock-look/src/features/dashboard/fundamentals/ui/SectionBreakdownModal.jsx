@@ -1,8 +1,54 @@
+/**
+ * @file SectionBreakdownModal.jsx
+ * @purpose Displays a detailed breakdown of Fundamental Sections (Valuation, Macro, etc.).
+ * @responsibilities
+ * - Renders a modal with a breakdown table.
+ * - Shows calculated scores, weights, and contributions.
+ * @key_exports
+ * - SectionBreakdownModal (Default Component)
+ * @dependencies
+ * - sections.config.js (for weights)
+ * @lifecycle
+ * - Rendered by FundamentalPage (optional drill-down).
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { SECTION_WEIGHTS } from "../engine/sections.config";
 
+// =============================
+// Helpers
+// =============================
+function getScoreColor(score) {
+    if (score >= 70) return "#059669"; // Emerald 600
+    if (score >= 40) return "#d97706"; // Amber 600
+    return "#dc2626"; // Red 600
+}
+
+function getSectionDescription(key) {
+    const map = {
+        Valuation: "Price vs Earnings, Book, Sales",
+        Earnings: "Growth, revisions & quality",
+        Macro: "GDP, Rates, Inflation context",
+        Liquidity: "DII/FII flows & market depth",
+        Sector: "Relative strength & rotation",
+        Corporate: "Governance, dividends & buybacks",
+        Global: "US/EU market correlation",
+        Risk: "VIX, spreads & volatility"
+    };
+    return map[key] || "General metrics";
+}
+
+// =============================
+// Main Component
+// =============================
 export default function SectionBreakdownModal({ open, onClose, sections }) {
+
+    // Scroll Lock
     useEffect(() => {
         if (!open) return;
         const onKey = (e) => e.key === "Escape" && onClose();
@@ -16,9 +62,8 @@ export default function SectionBreakdownModal({ open, onClose, sections }) {
 
     if (!open || !sections) return null;
 
-    // Convert sections object to array of { name, score, weight }
+    // Logic: Flatten Data
     const breakdown = Object.keys(SECTION_WEIGHTS).map((key) => {
-        // Score is -1 to 1. Convert to 0-100
         const rawScore = sections[key] || 0;
         const scorePct = Math.round(((rawScore + 1) / 2) * 100);
 
@@ -41,7 +86,7 @@ export default function SectionBreakdownModal({ open, onClose, sections }) {
             {/* MODAL */}
             <div className="relative w-full max-w-2xl bg-background-card/85 border border-border-default backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
 
-                {/* Header */}
+                {/* HEADER */}
                 <div className="flex items-center justify-between p-6 border-b border-border-subtle bg-transparent">
                     <h2 className="text-xl font-bold text-text-primary">Fundamental Score Breakdown</h2>
                     <button
@@ -52,9 +97,9 @@ export default function SectionBreakdownModal({ open, onClose, sections }) {
                     </button>
                 </div>
 
-                {/* Content */}
+                {/* CONTENT */}
                 <div className="p-6">
-                    {/* Table Header */}
+                    {/* TABLE HEADER */}
                     <div className="grid grid-cols-12 text-xs uppercase tracking-widest font-bold text-text-tertiary pb-2 border-b border-border-default mb-2">
                         <div className="col-span-4">Category</div>
                         <div className="col-span-2 text-right">Weight</div>
@@ -62,6 +107,7 @@ export default function SectionBreakdownModal({ open, onClose, sections }) {
                         <div className="col-span-4 pl-4">Contribution</div>
                     </div>
 
+                    {/* ROWS */}
                     <div className="space-y-1">
                         {breakdown.map((item) => (
                             <div key={item.name} className="grid grid-cols-12 items-center py-3 border-b border-border-subtle last:border-0 hover:bg-background-subtle px-2 -mx-2 rounded transition group">
@@ -107,24 +153,4 @@ export default function SectionBreakdownModal({ open, onClose, sections }) {
         </div>,
         document.body
     );
-}
-
-function getScoreColor(score) {
-    if (score >= 70) return "#059669"; // Emerald 600
-    if (score >= 40) return "#d97706"; // Amber 600
-    return "#dc2626"; // Red 600
-}
-
-function getSectionDescription(key) {
-    const map = {
-        Valuation: "Price vs Earnings, Book, Sales",
-        Earnings: "Growth, revisions & quality",
-        Macro: "GDP, Rates, Inflation context",
-        Liquidity: "DII/FII flows & market depth",
-        Sector: "Relative strength & rotation",
-        Corporate: "Governance, dividends & buybacks",
-        Global: "US/EU market correlation",
-        Risk: "VIX, spreads & volatility"
-    };
-    return map[key] || "General metrics";
 }

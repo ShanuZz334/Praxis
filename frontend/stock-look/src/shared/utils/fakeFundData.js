@@ -1,8 +1,34 @@
+/**
+ * @file fakeFundData.js
+ * @purpose Comprehensive mock data for all dashboard features.
+ * @responsibilities
+ * - Provides realistic market data (indices, options, movers, sectors).
+ * - Supplies fundamental data (FII/DII, VIX, macro indicators).
+ * - Generates technical data (sentiment, breadth, PCR, liquidity).
+ * - Includes global markets, currency strength, and economic events.
+ * @key_exports
+ * - Market: niftySeries, bankNiftySeries, sgxNifty, worldMarkets
+ * - Options: optionsSummary, optionChainSummary, pcrTrend
+ * - Fundamental: fundamentalGaugeScore, fiiDiiData, institutionalHoldings
+ * - Technical: vixData, sentimentData, marketBreadthDeep, liquidityMonitorData
+ * - Macro: macroData, gsecYieldCurve, currencyStrength
+ * - Events: earningsCalendar, economicEventsData
+ * @dependencies
+ * - fakeCandles (generate10MinCandles)
+ * @lifecycle
+ * - Used across all dashboard features for demo and testing.
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
+
 import { generate10MinCandles } from "./fakeCandles";
 
-/* =====================================================
-   MARKET INDICES (WITH 10-MIN CANDLES)
-===================================================== */
+// =============================
+// Market Indices
+// =============================
 
 export const niftySeries = {
   symbol: "NIFTY 50",
@@ -15,7 +41,6 @@ export const niftySeries = {
   prevHigh: 26220,
   prevLow: 25880,
 
-  // 10-min candles × 5 trading days
   candles: generate10MinCandles(25950, 5),
 };
 
@@ -30,11 +55,38 @@ export const bankNiftySeries = {
   prevHigh: 57400,
   prevLow: 56350,
 
-  // 10-min candles × 5 trading days
   candles: generate10MinCandles(56200, 5),
 };
 
-/* ---------- OPTIONS CE / PE (5 each + format) ---------- */
+export const sgxNifty = {
+  value: 26280,
+  change: +42,
+  percent: +0.16,
+  high: 26340,
+  low: 26110,
+  prevClose: 26238,
+  trend: "Bullish",
+
+  history: [25980, 26010, 26080, 26120, 26090, 26150, 26200,
+    26240, 26210, 26280, 26230, 26260, 26290, 26280]
+};
+
+export const worldMarkets = [
+  { name: "SPX", value: 6870.39, change: 13.26, percent: 0.19 },
+  { name: "DAX", value: 24028.14, change: 146.11, percent: 0.61 },
+  { name: "NIKKEI", value: 50620, change: 10, percent: 0.02 },
+  { name: "CAC", value: 8112.4, change: -15.9, percent: -0.20 },
+  { name: "FTSE", value: 7540.3, change: 6.3, percent: 0.08 },
+  { name: "HANG SENG", value: 17890.4, change: 42.1, percent: 0.24 },
+  { name: "NASDAQ", value: 18920.5, change: 112.4, percent: 0.59 },
+  { name: "SHANGHAI", value: 3178.4, change: -4.2, percent: -0.13 },
+  { name: "KOSPI", value: 2610.2, change: 8.1, percent: 0.31 },
+  { name: "TAIEX", value: 20255.8, change: -12.5, percent: -0.06 },
+];
+
+// =============================
+// Options Data
+// =============================
 
 export const optionsSummary = {
   ce: [
@@ -54,9 +106,38 @@ export const optionsSummary = {
   ],
 };
 
+export const optionChainSummary = {
+  pcr: 0.92,
+  maxPain: 26700,
 
+  highestOICE: {
+    strike: 27000,
+    oi: 12.5,
+  },
 
-/* ---------- MARKET MOVERS (10 each) ---------- */
+  highestOIPE: {
+    strike: 26500,
+    oi: 14.8,
+  },
+
+  ivCE: 11.2,
+  ivPE: 13.6,
+
+  trend: "Neutral",
+};
+
+export const pcrTrend = {
+  current: 0.92,
+  history: [0.98, 0.96, 0.94, 0.93, 0.91, 0.92],
+  signal: "Neutral",
+  avg5: 0.94,
+  extreme: "0.80 (oversold)",
+  zone: "Neutral Zone",
+};
+
+// =============================
+// Market Movers
+// =============================
 
 export const movers = {
   topGainers: [
@@ -85,47 +166,55 @@ export const movers = {
     { symbol: "SBIN", price: 692, percent: -0.2 },
   ],
 };
-export const worldMarkets = [
-  { name: "SPX", value: 6870.39, change: 13.26, percent: 0.19 },
-  { name: "DAX", value: 24028.14, change: 146.11, percent: 0.61 },
-  { name: "NIKKEI", value: 50620, change: 10, percent: 0.02 },
-  { name: "CAC", value: 8112.4, change: -15.9, percent: -0.20 },
-  { name: "FTSE", value: 7540.3, change: 6.3, percent: 0.08 },
 
-  // Extra 5 (scrollable)
-  { name: "HANG SENG", value: 17890.4, change: 42.1, percent: 0.24 },
-  { name: "NASDAQ", value: 18920.5, change: 112.4, percent: 0.59 },
-  { name: "SHANGHAI", value: 3178.4, change: -4.2, percent: -0.13 },
-  { name: "KOSPI", value: 2610.2, change: 8.1, percent: 0.31 },
-  { name: "TAIEX", value: 20255.8, change: -12.5, percent: -0.06 },
-];
+// =============================
+// Fundamental Data
+// =============================
 
-export const accountOverview = {
-  opening_balance: 125000,
-  closing_balance: 78000,
-  openTrades: 4,
-  closedTrades: 18,
-  profitToday: 2100,
-  monthlyPnL: 18650,   // NEW
-};
-/* -------------------- FUNDAMENTAL GAUGE -------------------- */
 export const fundamentalGaugeScore = {
-  score: 32,     // Fundamental strength out of 100
+  score: 32,
   max: 100,
 };
 
-/* -------------------- FII / DII DATA -------------------- */
 export const fiiDiiData = {
   fiiBuy: 1250,
   fiiSell: 890,
   diiBuy: 740,
   diiSell: 920,
-  fiiNet: 1250 - 890, // +360
-  diiNet: 740 - 920,  // -180
+  fiiNet: 1250 - 890,
+  diiNet: 740 - 920,
 
-  highFii1M: 820,   // NEW (example)
-  highDii1M: 540,   // NEW (example)
+  highFii1M: 820,
+  highDii1M: 540,
 };
+
+export const institutionalHoldings = {
+  top3: [
+    { name: "Foreign Inst.", holding: 22.4 },
+    { name: "Mutual Funds", holding: 18.9 },
+    { name: "Insurance", holding: 9.3 },
+  ],
+  netChange: 1.3,
+  holdingHistory: [47, 48, 49, 50, 51, 50.6],
+  fii1M: 5200,
+  dii1M: 3100,
+  promoterHold: 54.3,
+  pledge: 1.1,
+};
+
+export const earningsCalendar = {
+  upcoming: [
+    { symbol: "RELI", company: "Reliance Ind", date: "2025-12-10", estimateChange: +1.2 },
+    { symbol: "TCS", company: "Tata Consultancy", date: "2025-12-11", estimateChange: -0.4 },
+    { symbol: "HDFC", company: "HDFC Bank", date: "2025-12-12", estimateChange: +0.6 },
+    { symbol: "INFY", company: "Infosys", date: "2025-12-12", estimateChange: +0.1 },
+    { symbol: "LT", company: "Larsen & Toubro", date: "2025-12-13", estimateChange: -0.3 },
+  ],
+};
+
+// =============================
+// Technical Data
+// =============================
 
 export const vixData = {
   value: 16.52,
@@ -138,6 +227,55 @@ export const vixData = {
   high52Week: 29.5,
   low52Week: 10.2,
 };
+
+export const sentimentData = {
+  score: 61,
+  bias: "Mildly Bullish",
+  fearGreed: "Neutral",
+  pcrSentiment: "Neutral",
+  volatilityMood: "Calm",
+  globalRisk: "Moderate",
+  breadth: 56
+};
+
+export const marketBreadthDeep = {
+  advancing: 1824,
+  declining: 1456,
+  newHighs: 120,
+  newLows: 34,
+  ratio: "1.25",
+};
+
+export const liquidityMonitorData = {
+  turnover: 24600,
+  change: 2.8,
+  turnoverHistory: [22000, 23500, 24000, 25000, 24600],
+  cashVolume: 58000,
+  foContracts: 12.5,
+  delivery: 38,
+  liqScore: 76,
+  spread: 0.12,
+  volumeShock: +18,
+  liqRating: "High",
+};
+
+export const shortInterestData = {
+  total: 128.4,
+  change: -0.8,
+  history: [130, 129, 128.5, 128.6, 128.4],
+  daysToCover: 5.2,
+};
+
+export const volTermStructure = {
+  iv1m: 12.4,
+  iv3m: 13.2,
+  iv6m: 14.8,
+  history: [11.5, 12.0, 12.8, 13.5, 13.9, 14.8],
+};
+
+// =============================
+// Sector & Macro Data
+// =============================
 
 export const sectorPerformance = [
   { name: "IT", change: 1.8 },
@@ -191,78 +329,26 @@ export const macroData = [
   }
 ];
 
-
-
-export const sgxNifty = {
-  value: 26280,
-  change: +42,
-  percent: +0.16,
-  high: 26340,
-  low: 26110,
-  prevClose: 26238,
-  trend: "Bullish",
-
-  // NEW → 14-day history
-  history: [25980, 26010, 26080, 26120, 26090, 26150, 26200, 
-            26240, 26210, 26280, 26230, 26260, 26290, 26280]
-};
-
-
-/* -------------------- OPTION CHAIN SUMMARY -------------------- */
-export const optionChainSummary = {
-  pcr: 0.92,
-  maxPain: 26700,
-
-  highestOICE: {
-    strike: 27000,
-    oi: 12.5, // lakh OI
-  },
-
-  highestOIPE: {
-    strike: 26500,
-    oi: 14.8, // lakh OI
-  },
-
-  ivCE: 11.2,
-  ivPE: 13.6,
-
-  trend: "Neutral", // Bullish / Bearish / Neutral
-};
-
-export const sentimentData = {
-  score: 61,
-  bias: "Mildly Bullish",
-  fearGreed: "Neutral",
-  pcrSentiment: "Neutral",
-  volatilityMood: "Calm",
-  globalRisk: "Moderate",
-  breadth: 56  // 56% of stocks advancing
-};
-/* ---------- NEW: Fundamental widgets fake data ---------- */
-
-export const institutionalHoldings = {
-  top3: [
-    { name: "Foreign Inst.", holding: 22.4 },
-    { name: "Mutual Funds", holding: 18.9 },
-    { name: "Insurance", holding: 9.3 },
-  ],
-  netChange: 1.3,
-  holdingHistory: [47, 48, 49, 50, 51, 50.6],
-  fii1M: 5200,
-  dii1M: 3100,
-  promoterHold: 54.3,
-  pledge: 1.1,
-};
-
-export const earningsCalendar = {
-  upcoming: [
-    { symbol: "RELI", company: "Reliance Ind", date: "2025-12-10", estimateChange: +1.2 },
-    { symbol: "TCS", company: "Tata Consultancy", date: "2025-12-11", estimateChange: -0.4 },
-    { symbol: "HDFC", company: "HDFC Bank", date: "2025-12-12", estimateChange: +0.6 },
-    { symbol: "INFY", company: "Infosys", date: "2025-12-12", estimateChange: +0.1 },
-    { symbol: "LT", company: "Larsen & Toubro", date: "2025-12-13", estimateChange: -0.3 },
+export const gsecYieldCurve = {
+  tenors: [
+    { tenor: "2Y", yield: 6.2, history: [6.1, 6.12, 6.15, 6.18, 6.19, 6.2] },
+    { tenor: "5Y", yield: 6.8, history: [6.6, 6.65, 6.7, 6.75, 6.78, 6.8] },
+    { tenor: "10Y", yield: 7.18, history: [7.0, 7.05, 7.1, 7.15, 7.16, 7.18] },
   ],
 };
+
+export const currencyStrength = {
+  items: [
+    { code: "USD", name: "US Dollar", change: +0.3, history: [82.8, 82.9, 83.0, 83.05, 83.1, 83.12], color: "#4ade80" },
+    { code: "EUR", name: "Euro", change: -0.2, history: [88.5, 88.3, 88.6, 88.7, 88.6, 88.5], color: "#60a5fa" },
+    { code: "JPY", name: "Yen", change: +0.1, history: [0.57, 0.58, 0.58, 0.59, 0.58, 0.59], color: "#facc15" },
+    { code: "GBP", name: "British Pound", change: -0.2, history: [103.5, 103.2, 103.0, 102.8, 102.9, 103.1], color: "#60a5fa" }
+  ],
+};
+
+// =============================
+// Events & Calendar
+// =============================
 
 export const economicEventsData = {
   events: [
@@ -274,70 +360,22 @@ export const economicEventsData = {
   ],
 };
 
-export const liquidityMonitorData = {
-    turnover: 24600,
-  change: 2.8,
-  turnoverHistory: [22000, 23500, 24000, 25000, 24600],
-  cashVolume: 58000,
-  foContracts: 12.5,
-  delivery: 38,
-  liqScore: 76,
-  spread: 0.12,
-volumeShock: +18,
-liqRating: "High",
+// =============================
+// Account & Wallet Data
+// =============================
 
-
+export const accountOverview = {
+  opening_balance: 125000,
+  closing_balance: 78000,
+  openTrades: 4,
+  closedTrades: 18,
+  profitToday: 2100,
+  monthlyPnL: 18650,
 };
 
-export const shortInterestData = {
-  total: 128.4,
-  change: -0.8,
-  history: [130, 129, 128.5, 128.6, 128.4],
-  daysToCover: 5.2,
-};
-
-export const volTermStructure = {
-  iv1m: 12.4,
-  iv3m: 13.2,
-  iv6m: 14.8,
-  history: [11.5, 12.0, 12.8, 13.5, 13.9, 14.8],
-};
-
-export const currencyStrength = {
-  items: [
-    { code: "USD", name: "US Dollar", change: +0.3, history: [82.8,82.9,83.0,83.05,83.1,83.12], color: "#4ade80" },
-    { code: "EUR", name: "Euro", change: -0.2, history: [88.5,88.3,88.6,88.7,88.6,88.5], color: "#60a5fa" },
-    { code: "JPY", name: "Yen", change: +0.1, history: [0.57,0.58,0.58,0.59,0.58,0.59], color: "#facc15" },
-   {code: "GBP",name: "British Pound",change: -0.2,history: [103.5, 103.2, 103.0, 102.8, 102.9, 103.1],color: "#60a5fa"}
-
-  ],
-};
-
-export const marketBreadthDeep = {
-  advancing: 1824,
-  declining: 1456,
-  newHighs: 120,
-  newLows: 34,
-  ratio: "1.25",
-};
-
-export const pcrTrend = {
-  current: 0.92,
-  history: [0.98, 0.96, 0.94, 0.93, 0.91, 0.92],
-  signal: "Neutral",
-  avg5: 0.94,
-  extreme: "0.80 (oversold)",
-  zone: "Neutral Zone",
-
-};
-
-export const gsecYieldCurve = {
-  tenors: [
-    { tenor: "2Y", yield: 6.2, history: [6.1,6.12,6.15,6.18,6.19,6.2] },
-    { tenor: "5Y", yield: 6.8, history: [6.6,6.65,6.7,6.75,6.78,6.8] },
-    { tenor: "10Y", yield: 7.18, history: [7.0,7.05,7.1,7.15,7.16,7.18] },
-  ],
-};
+// =============================
+// Composite Indicators
+// =============================
 
 export const globalSentimentComposite = {
   score: 58,
@@ -345,11 +383,11 @@ export const globalSentimentComposite = {
   volRegime: "Normal",
   history: [52, 54, 55, 56, 57, 58],
 };
-// -------------------- OVERALL STOCKY GAUGE (STATIC VALUES) --------------------
+
 export const overallGaugeData = {
-  fundamental: fundamentalGaugeScore.score,  // dynamic from fundamental gauge
-  technical: 68,     
-  foreignMarket: 58, 
-  options: 62,       
-  events: 55       
+  fundamental: fundamentalGaugeScore.score,
+  technical: 68,
+  foreignMarket: 58,
+  options: 62,
+  events: 55
 };

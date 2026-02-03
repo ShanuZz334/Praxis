@@ -1,6 +1,28 @@
+/**
+ * @file FundamentalPage.jsx
+ * @purpose Main Controller for the Fundamental Analysis Dashboard.
+ * @responsibilities
+ * - Fetches market data using `useFundamentals`.
+ * - Orchestrates the Intelligence Engine (`evaluateFundamentals`) to score data.
+ * - Manages view state (Sectioned vs Flat) and sorting preferences.
+ * - Renders the `GlobalHeader` with high-level insights.
+ * - Renders the `FundamentalGrid` for detailed metrics.
+ * @key_exports
+ * - FundamentalPage (Default Component)
+ * @dependencies
+ * - GlobalHeader: Shared UI for top-level stats.
+ * - FundamentalGrid: Main content area.
+ * - evaluateFundamentals: Engine logic.
+ * @lifecycle
+ * - Route: /dashboard/fundamental
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useState, useMemo } from "react";
 import { GlobalCard } from "@/shared/components/ui/GlobalCard";
-// import FundamentalHeader from "./FundamentalHeader"; // DEPRECATED
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import { FUNDAMENTAL_SECTIONS } from "../data/fundamentalData";
 import { TOTAL_FUNDAMENTAL_CREDITS } from "../engine/cards.config";
@@ -9,14 +31,19 @@ import { evaluateFundamentals } from "../engine";
 import FundamentalGrid from "./FundamentalGrid";
 import FundamentalModal from "./FundamentalModal";
 
+// =============================
+// Main Component
+// =============================
 export default function FundamentalPage() {
   const { marketData, loading, error } = useFundamentals();
+
+  // State Management
   const [viewMode, setViewMode] = useState("sectioned");
   const [sortMode, setSortMode] = useState("score_desc");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCard, setSelectedCard] = useState(null);
 
-  // --- 1. Processing Logic (Corrected) ---
+  // --- Intelligence Engine Execution ---
   const intelligence = useMemo(() => {
     if (!marketData) return null;
     return evaluateFundamentals(marketData);
@@ -26,7 +53,7 @@ export default function FundamentalPage() {
   const sections = intelligence?.sections || {};
   const cards = intelligence?.cards || [];
 
-  // Filter Cards
+  // --- Filtering Logic ---
   const filteredCards = useMemo(() => {
     if (!searchQuery) return cards;
     const lower = searchQuery.toLowerCase();
@@ -36,13 +63,14 @@ export default function FundamentalPage() {
     );
   }, [cards, searchQuery]);
 
-  // --- 2. Adapt to Global Header Contract ---
+  // --- GlobalHeader Adapters ---
 
-  // Regime Logic (Fundamental Specific mapped to Global Object)
+  // 1. Regime Object
   const regimeObj = useMemo(() => {
     let label = "Balanced";
     let desc = "Mixed signals found";
     let color = "text-state-neutral-text";
+
     if (overallScore >= 70) {
       label = "Risk-On";
       desc = "Favorable macro backdrop";
@@ -52,12 +80,11 @@ export default function FundamentalPage() {
       desc = "Capital preservation mode";
       color = "text-state-bearish-text";
     }
-    return { label, desc, color, confidence: 92 }; // Mock conf
+    return { label, desc, color, confidence: 92 };
   }, [overallScore]);
 
-  // Sections for Bar Chart
+  // 2. Bar Chart Sections
   const globalStartSections = useMemo(() => {
-    // Map dictionary { Valuation: 0.5 } to Array [{ id:Valuation, normalizedScore: 75 }]
     return Object.entries(sections).map(([key, val]) => ({
       id: key,
       label: key.substring(0, 3).toUpperCase(),
@@ -66,25 +93,40 @@ export default function FundamentalPage() {
     }));
   }, [sections]);
 
-  // Mock Tailwinds/Risks for Header (In real app, extract from cards)
-  const topTailwinds = useMemo(() => cards.filter(c => c.normalized > 0.2).slice(0, 3).map(c => ({
-    id: c.id, label: c.label, value: Math.round(c.normalized * 100), sub: "High Impact"
-  })), [cards]);
+  // 3. Top Movers (Tailwinds/Risks)
+  const topTailwinds = useMemo(() => cards
+    .filter(c => c.normalized > 0.2)
+    .slice(0, 3)
+    .map(c => ({
+      id: c.id,
+      label: c.label,
+      value: Math.round(c.normalized * 100),
+      sub: "High Impact"
+    })), [cards]);
 
-  const topRisks = useMemo(() => cards.filter(c => c.normalized < -0.2).slice(0, 3).map(c => ({
-    id: c.id, label: c.label, value: Math.round(Math.abs(c.normalized) * 100), sub: "Cyclical Drag"
-  })), [cards]);
+  const topRisks = useMemo(() => cards
+    .filter(c => c.normalized < -0.2)
+    .slice(0, 3)
+    .map(c => ({
+      id: c.id,
+      label: c.label,
+      value: Math.round(Math.abs(c.normalized) * 100),
+      sub: "Cyclical Drag"
+    })), [cards]);
 
+  // --- Error & Loading States ---
   if (loading) return <div className="p-8 text-white">Initializing Intelligence Engine...</div>;
   if (error) return <div className="p-8 text-red-400">Error: {error}</div>;
 
+  // --- Render ---
   return (
     <div className="p-4 md:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen">
 
+      {/* HEADER SECTION */}
       <GlobalHeader
         title="Fundamental Composite"
         score={overallScore}
-        prevScore={overallScore - 2.5} // Mock prev
+        prevScore={overallScore - 2.5}
         regime={regimeObj}
         integrity={{ coverage: "36/36", source: "NSE/BSE", freshness: "Realtime" }}
 
@@ -120,13 +162,14 @@ export default function FundamentalPage() {
         manualLink="/dashboard/manual/fundamental"
       />
 
-      {/* MODAL (Deep Dive) */}
+      {/* DETAILED MODAL */}
       <FundamentalModal
         open={!!selectedCard}
         onClose={() => setSelectedCard(null)}
         card={selectedCard}
       />
 
+      {/* DATA GRID */}
       <div className="mt-8">
         <FundamentalGrid
           cards={filteredCards}

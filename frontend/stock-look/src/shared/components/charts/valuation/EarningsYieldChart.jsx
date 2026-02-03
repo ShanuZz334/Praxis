@@ -1,12 +1,33 @@
+/**
+ * @file EarningsYieldChart.jsx
+ * @purpose Compares Earnings Yield vs Bond Yields (Equity Risk Premium).
+ * @responsibilities
+ * - Renders ComposedChart with Earnings Yield and 10Y G-Sec Yield.
+ * - Visualizes ERP spread as a shaded area.
+ * - Colors spread based on attractiveness (Green/Red).
+ * @key_exports
+ * - EarningsYieldChart (Default)
+ * @dependencies
+ * - Recharts, ChartTooltip
+ * - chartUtils (formatChartDate)
+ * @lifecycle
+ * - Key Valuation metric for Asset Allocation decisions.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from 'react';
 import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { RechartsTooltipWrapper } from '../ChartTooltip';
 import { formatChartDate } from '@/shared/utils/chartUtils';
 
-/**
- * EarningsYieldChart
- * Earnings Yield vs 10Y G-Sec with ERP spread
- */
+// =============================
+// Component
+// =============================
+
 export default function EarningsYieldChart({
     data = [],
     height = 300,

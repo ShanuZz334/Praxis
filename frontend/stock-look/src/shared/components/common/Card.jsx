@@ -1,12 +1,42 @@
+/**
+ * @file Card.jsx
+ * @purpose Fundamental container component for the design system.
+ * @responsibilities
+ * - Provides the base styling for all cards (padding, rounding, shadows).
+ * - Handles theme-aware styling (Light vs Dark mode).
+ * - Supports "gradient border" effects in dark mode via ThemeContext.
+ * - Responsive grid spanning support.
+ * @key_exports
+ * - Card (Default)
+ * @dependencies
+ * - ThemeContext
+ * - clsx
+ * @lifecycle
+ * - Used ubiquitously across the application application-wide.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useContext } from "react";
 import clsx from "clsx";
 import { ThemeContext } from "@/shared/context/ThemeContext";
+
+// =============================
+// Constants
+// =============================
 
 const spanMap = {
   1: "lg:col-span-1",
   2: "lg:col-span-2",
   3: "lg:col-span-3",
 };
+
+// =============================
+// Component
+// =============================
 
 const Card = ({
   children,

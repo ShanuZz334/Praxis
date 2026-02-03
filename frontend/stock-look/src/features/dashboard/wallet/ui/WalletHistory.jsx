@@ -1,3 +1,18 @@
+/**
+ * @file WalletHistory.jsx
+ * @purpose Ledger of wallet events and audit trail.
+ * @responsibilities
+ * - Lists chronological wallet events (e.g., "Margin Call Warning", "Deposit").
+ * - Collapsible implementation.
+ * @key_exports
+ * - WalletHistory (Default)
+ * @dependencies
+ * - None (Pure UI)
+ * @lifecycle
+ * - Rendered by WalletPage (Future/Expanded).
+ * @date 2026-02-03
+ */
+
 import React, { useState } from "react";
 
 export default function WalletHistory({ history }) {

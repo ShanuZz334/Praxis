@@ -1,22 +1,46 @@
+/**
+ * @file masterData.js
+ * @purpose Provides centralized mock data for the Master Dashboard feature.
+ * @responsibilities
+ * - Stores mock scores for various system components (Technical, Options, Fundamental, etc.).
+ * - simulataes derived top-level states for risk monitoring.
+ * - Provides summaries/snapshots for individual dashboard pages.
+ * - Offers actionable daily guidance and pro desk picks.
+ * @key_exports
+ * - MOCK_MASTER_DATA (Constant)
+ * @dependencies
+ * - None
+ * @lifecycle
+ * - Imported by MasterDashboard and other UI components for display.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Mock Data Configuration
+// =============================
+
 export const MOCK_MASTER_DATA = {
-    // Component Scores for the Master Gauge logic
+    // --- Component Scores ---
+    // Normalized 0-100 scores for system gauges
     components: {
-        technical: 82,    // 0-100
-        options: 65,      // 0-100
-        fundamental: 78,  // 0-100
-        events: 40,       // 0-100 (Inverted: Low Score = High Risk, handled in engine)
-        global: 74        // 0-100
+        technical: 82,    // Strong Bullish
+        options: 65,      // Moderately Bullish
+        fundamental: 78,  // Strong Fundamental Support
+        events: 40,       // Caution / Risk (Low score = High Risk context)
+        global: 74        // Supportive Global Cues
     },
 
-    // Derived Top-Level State (Calculated by Engine, but mocked here for snapshots)
+    // --- Risk Monitor State ---
+    // Derived states (mocked here, usually calculated by engine)
     riskMonitor: {
         volatility: "Stable",
         eventRisk: "Approaching (FOMC)",
         liquidity: "Healthy",
-        status: "Normal" // Normal, Elevated, High Risk
+        status: "Normal" // Enum: Normal, Elevated, High Risk
     },
 
-    // Summaries of individual pages
+    // --- Module Snapshots ---
+    // Brief summaries for dashboard cards
     snapshots: {
         fundamental: { score: 78, tailwind: "Earnings Growth", risk: "Valuation Premium", regime: "Quality Growth" },
         technical: { score: 82, trend: "Strong Uptrend", signal: "Nifty Breakout", weak: "Midcap Lag" },
@@ -26,7 +50,8 @@ export const MOCK_MASTER_DATA = {
         journal: { score: 82, mistake: "FOMO Entry", alert: "Maintain Size Discipline" }
     },
 
-    // Daily Actionable Guidance
+    // --- Actionable Guidance ---
+    // Daily pre-market plan and execution operational rules
     readiness: {
         bias: "Bullish",
         confidence: 76,
@@ -47,7 +72,8 @@ export const MOCK_MASTER_DATA = {
         }
     },
 
-    // Signal Alignment Matrix
+    // --- Signal Alignment ---
+    // Multi-factor confirmation matrix
     alignment: [
         { engine: "Technical", bias: "Bullish", strength: "High" },
         { engine: "Options", bias: "Bullish", strength: "Medium" },
@@ -56,7 +82,8 @@ export const MOCK_MASTER_DATA = {
         { engine: "Global", bias: "Bullish", strength: "Medium" }
     ],
 
-    // Pro Desk Picks (Replaces Top Ideas)
+    // --- Pro Desk Picks ---
+    // Curated high-probability setups
     proDeskPicks: {
         calls: [
             { strike: "22650 CE", dte: "2DTE", price: "32.49", change: "+0.23", oi: "+14246" },
@@ -70,6 +97,8 @@ export const MOCK_MASTER_DATA = {
         ]
     },
 
+    // --- Real-time Alerts ---
+    // Feed of critical system notifications
     alerts: [
         { id: 1, type: "warning", text: "Event Risk: US CPI in 24h. Reduce overnight leverage.", time: "10m ago" },
         { id: 2, type: "info", text: "Options Gamma Flip detected at 22400. Expect volatility expansion.", time: "25m ago" },

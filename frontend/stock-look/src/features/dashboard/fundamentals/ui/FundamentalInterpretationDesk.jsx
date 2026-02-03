@@ -1,6 +1,24 @@
+/**
+ * @file FundamentalInterpretationDesk.jsx
+ * @purpose Left panel of the detail modal, providing "How to Read" guidance.
+ * @responsibilities
+ * - Maps metrics to educational content (Usage, Interpretation, Pro Tips).
+ * - Explains what specific fundamental categories (Valuation, Macro, etc.) actually mean.
+ * @key_exports
+ * - FundamentalInterpretationDesk (Default Component)
+ * @lifecycle
+ * - Rendered in FundamentalModal.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from 'react';
 
-// Static Educational Content Map for Fundamentals
+// =============================
+// Content Map
+// =============================
 const getEducationalContent = (category, label) => {
     const Cat = (category || '').toLowerCase();
 
@@ -69,26 +87,18 @@ const getEducationalContent = (category, label) => {
     };
 };
 
+// =============================
+// Main Component
+// =============================
 export default function FundamentalInterpretationDesk({ card }) {
     if (!card) return null;
 
     const edu = getEducationalContent(card.category, card.label);
 
     return (
-        <div className="
-            w-full lg:w-[280px] shrink-0
-            flex flex-col gap-4
-            animate-in fade-in slide-in-from-right-4 duration-500
-        ">
-            <div className="
-                relative overflow-hidden
-                bg-background-tooltip
-                border border-border-default
-                rounded-2xl
-                p-5
-                shadow-2xl
-                flex flex-col gap-5
-            ">
+        <div className="w-full lg:w-[280px] shrink-0 flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className="relative overflow-hidden bg-background-tooltip border border-border-default rounded-2xl p-5 shadow-2xl flex flex-col gap-5">
+
                 {/* HEADER */}
                 <div className="flex items-center gap-3 mb-2">
                     <div className="w-6 h-6 rounded-md bg-background-elevated flex items-center justify-center border border-border-subtle text-accent-primary text-xs font-bold font-serif italic">i</div>
@@ -99,7 +109,7 @@ export default function FundamentalInterpretationDesk({ card }) {
                 <div>
                     <h3 className="text-xs font-bold text-text-primary mb-1.5 uppercase tracking-wide opacity-50">Definition</h3>
                     <p className="text-xs text-text-secondary leading-relaxed font-normal">
-                        {card.desc || edu.usage}
+                        {card.description || card.desc || edu.usage}
                     </p>
                 </div>
 
@@ -114,7 +124,7 @@ export default function FundamentalInterpretationDesk({ card }) {
                     </div>
                 </div>
 
-                {/* 3. MAJOR POINT / PRO TIP */}
+                {/* 3. PRO INSIGHT */}
                 <div className="relative pl-1">
                     <div className="absolute left-0 top-1 bottom-1 w-0.5 bg-amber-500/40 rounded-full" />
                     <div className="pl-4">

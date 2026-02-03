@@ -1,3 +1,20 @@
+/**
+ * @file SettingsPage.jsx
+ * @purpose Centralized settings management for the user account and application preferences.
+ * @responsibilities
+ * - Manages user profile (Avatar, Name, Email/OTP).
+ * - Configures Broker integrations (API Keys).
+ * - Controls Notifications and Trading Preferences.
+ * - Handles Security (Password Change, Account Deletion).
+ * @key_exports
+ * - SettingsPage (Default)
+ * @dependencies
+ * - UserContext, ThemeContext, userService
+ * @lifecycle
+ * - Route: /dashboard/settings
+ * @date 2026-02-03
+ */
+
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {

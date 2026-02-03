@@ -1,16 +1,33 @@
+/**
+ * @file PortalTooltip.jsx
+ * @purpose Renders tooltip content into a top-level React Portal.
+ * @responsibilities
+ * - Teleports tooltip content to `document.body` to avoid z-index/overflow clipping.
+ * - Auto-calculates positioning relative to the trigger element.
+ * - Flips placement (top/bottom) based on viewport availability.
+ * - Inherits global theme context explicitly.
+ * @key_exports
+ * - PortalTooltip (Default)
+ * @dependencies
+ * - React (createPortal, hooks)
+ * - ThemeContext
+ * @lifecycle
+ * - Wraps elements needing contextual help text.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useTheme } from "@/shared/context/ThemeContext";
 
-/**
- * PortalTooltip
- * 
- * Renders tooltip content into a portal (document.body) to avoid
- * distinct stacking contexts and overflow clipping.
- * 
- * Uses direct ThemeContext access to ensure correct styling (light/dark)
- * even when rendered outside the main app root.
- */
+// =============================
+// Component
+// =============================
+
 export default function PortalTooltip({
     content,
     children,

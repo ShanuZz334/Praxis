@@ -1,11 +1,31 @@
+/**
+ * @file PolicyRateCycleChart.jsx
+ * @purpose Step-line chart for Central Bank (RBI/Fed) policy rates.
+ * @responsibilities
+ * - Visualizes repo rate changes over time using step curve.
+ * - Indicates policy stance (Hawkish/Dovish/Neutral).
+ * - Provides AI interpretation of rate decisions.
+ * @key_exports
+ * - PolicyRateCycleChart (Default)
+ * @dependencies
+ * - Recharts, framer-motion
+ * @lifecycle
+ * - Critical for Macro dashboard to track monetary policy.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from 'recharts';
 import { motion } from 'framer-motion';
 
-/**
- * Policy Rate Cycle Timeline
- * Step-line chart showing repo rate changes
- */
+// =============================
+// Component
+// =============================
+
 export default function PolicyRateCycleChart({ data, height = 300 }) {
     if (!data || data.length === 0) return null;
 
@@ -72,8 +92,8 @@ export default function PolicyRateCycleChart({ data, height = 300 }) {
                     <div>
                         <div className="text-xs text-white/50">Last Change</div>
                         <div className={`text-lg font-bold ${change > 0 ? 'text-red-400' :
-                                change < 0 ? 'text-green-400' :
-                                    'text-white'
+                            change < 0 ? 'text-green-400' :
+                                'text-white'
                             }`}>
                             {change > 0 ? '+' : ''}{change.toFixed(2)}%
                         </div>
@@ -81,8 +101,8 @@ export default function PolicyRateCycleChart({ data, height = 300 }) {
                     <div>
                         <div className="text-xs text-white/50">Stance</div>
                         <div className={`text-sm font-medium ${trend === 'tightening' ? 'text-red-400' :
-                                trend === 'easing' ? 'text-green-400' :
-                                    'text-yellow-400'
+                            trend === 'easing' ? 'text-green-400' :
+                                'text-yellow-400'
                             }`}>
                             {trend === 'tightening' ? '📈 Hawkish' :
                                 trend === 'easing' ? '📉 Dovish' :

@@ -1,3 +1,18 @@
+/**
+ * @file OptionsMarginCard.jsx
+ * @purpose Visualizes options exposure and margin stress tests.
+ * @responsibilities
+ * - Displays Greeks (Delta, Vega, Gamma, Theta).
+ * - Simulates margin impact under volatility shock scenarios.
+ * @key_exports
+ * - OptionsMarginCard (Default)
+ * @dependencies
+ * - Lucide React
+ * @lifecycle
+ * - Rendered by WalletPage (Future/Expanded).
+ * @date 2026-02-03
+ */
+
 import React from "react";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 

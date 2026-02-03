@@ -1,11 +1,31 @@
+/**
+ * @file EarningsRevisionFlow.jsx
+ * @purpose Illustrates analyst earnings revision trends.
+ * @responsibilities
+ * - Renders a diverging bar chart for Upgrades vs. Downgrades.
+ * - Calculates and visualizes Net Revision Score.
+ * - Provides AI-driven insight based on revision momentum.
+ * @key_exports
+ * - EarningsRevisionFlow (Default)
+ * @dependencies
+ * - Recharts, ChartTooltip
+ * @lifecycle
+ * - Used in Earnings Dashboard for sentiment analysis.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { RechartsTooltipWrapper } from '../ChartTooltip';
 
-/**
- * EarningsRevisionFlow
- * Diverging bar chart showing upgrades vs downgrades
- */
+// =============================
+// Component
+// =============================
+
 export default function EarningsRevisionFlow({
     data = [],
     height = 300,

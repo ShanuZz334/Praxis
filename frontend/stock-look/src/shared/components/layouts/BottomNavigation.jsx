@@ -1,7 +1,32 @@
+/**
+ * @file BottomNavigation.jsx
+ * @purpose Mobile-only persistent navigation bar.
+ * @responsibilities
+ * - Displays primary navigation links for mobile users.
+ * - Handles active state highlighting.
+ * - Provides access to the "More" menu drawer.
+ * @key_exports
+ * - BottomNavigation (Default)
+ * @dependencies
+ * - react-router-dom
+ * - Global navigation config.
+ * @lifecycle
+ * - Rendered by DashboardLayout on mobile viewports only.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useContext } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FiGrid, FiTrendingUp, FiActivity, FiBookOpen, FiMenu, FiCreditCard } from "react-icons/fi";
 import { UserContext } from "@/shared/context/UserContext";
+
+// =============================
+// Component
+// =============================
 
 const BottomNavigation = ({ onMoreClick }) => {
     const location = useLocation();

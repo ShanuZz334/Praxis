@@ -1,5 +1,29 @@
+/**
+ * @file SessionConflictModal.jsx
+ * @purpose Security alert for concurrent session detection.
+ * @responsibilities
+ * - Displays a modal when the backend detects a login on another device.
+ * - Forces user acknowledgement (only one button: OK/Logout).
+ * - Locks the screen until resolved.
+ * @key_exports
+ * - SessionConflictModal (Default)
+ * @dependencies
+ * - react-icons (FiAlertTriangle)
+ * @lifecycle
+ * - Triggered by WebSocket or API 401/403 session errors.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from "react";
 import { FiAlertTriangle } from "react-icons/fi";
+
+// =============================
+// Component
+// =============================
 
 const SessionConflictModal = ({ isOpen, onConfirm }) => {
     if (!isOpen) return null;

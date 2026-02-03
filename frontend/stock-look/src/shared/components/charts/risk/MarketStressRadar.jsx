@@ -1,11 +1,31 @@
+/**
+ * @file MarketStressRadar.jsx
+ * @purpose Multi-dimensional view of market risk factors.
+ * @responsibilities
+ * - Renders a RadarChart comparing riskAcross 5 dimensions (VIX, Liquidity, etc.).
+ * - Calculates composite Stress Score.
+ * - Alerts on critical stress levels.
+ * @key_exports
+ * - MarketStressRadar (Default)
+ * @dependencies
+ * - Recharts, ChartTooltip
+ * @lifecycle
+ * - Central component of Risk Management dashboard.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from 'react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip } from 'recharts';
 import { RechartsTooltipWrapper } from '../ChartTooltip';
 
-/**
- * MarketStressRadar
- * Radar chart showing composite market stress across dimensions
- */
+// =============================
+// Component
+// =============================
+
 export default function MarketStressRadar({
     data = {},
     height = 350,

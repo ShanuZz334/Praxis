@@ -1,18 +1,41 @@
+/**
+ * @file AdvancedCandlestickChart.jsx
+ * @purpose Interactive financial chart with AI insights and fundamental overlays.
+ * @responsibilities
+ * - Renders candlestick price data using lightweight-charts.
+ * - Overlays valuation bands (Fair Value, Over/Undervalued).
+ * - Visualizes key events (GDP, Earnings) on the timeline.
+ * - Displays AI-generated insights based on price vs. fundamentals.
+ * - Manages chart resizing and responsive layout.
+ * @key_exports
+ * - AdvancedCandlestickChart (Default)
+ * @dependencies
+ * - lightweight-charts
+ * - framer-motion
+ * @lifecycle
+ * - Core component for Technical and Fundamental analysis pages.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useEffect, useRef, useState } from 'react';
 import { createChart } from 'lightweight-charts';
 import { motion, AnimatePresence } from 'framer-motion';
 
-/**
- * Advanced Candlestick Chart with Fundamental Overlays
- * Features: Valuation bands, regime backgrounds, event markers, AI insights
- */
+// =============================
+// Component
+// =============================
+
 export default function AdvancedCandlestickChart({
     data = [],
     fundamentalData = {},
     events = [],
     showValuationBands = true,
     showEvents = true,
-    timeframeMode = 'medium', // short | medium | long
+    timeframeMode = 'medium',
     height = 500,
 }) {
     const chartContainerRef = useRef(null);

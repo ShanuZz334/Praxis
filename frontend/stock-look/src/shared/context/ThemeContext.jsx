@@ -1,8 +1,40 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+/**
+ * @file ThemeContext.jsx
+ * @purpose Manages the global theme state (Light/Dark mode) and visual effects.
+ * @responsibilities
+ * - Provides `theme`, `vfxPreset`, and `gradientBorder` state to the app.
+ * - Persists customization preferences to LocalStorage.
+ * - Applies theme classes to the HTML root element.
+ * @key_exports
+ * - ThemeContext, ThemeProvider, useTheme
+ * @dependencies
+ * - React (createContext, useContext, useState, useEffect)
+ * @lifecycle
+ * - Wraps the entire application in `App.jsx`.
+ * @date 2026-02-04
+ */
 
-export const ThemeContext = createContext();
+// =============================
+// Imports
+// =============================
+
+import React, { useContext, useEffect, useState } from 'react';
+import { ThemeContext } from './ThemeContextInstance';
+
+// =============================
+// Context Instance Re-export
+// =============================
+
+export { ThemeContext };
+
+// =============================
+// Provider Component
+// =============================
 
 export function ThemeProvider({ children }) {
+
+    // --- State Initialization ---
+
     // Default to 'dark' to respect institutional nature, but check local storage
     const [theme, setTheme] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -31,6 +63,8 @@ export function ThemeProvider({ children }) {
         return true;
     });
 
+    // --- Effects: Persistence & DOM Updates ---
+
     useEffect(() => {
         const root = window.document.documentElement;
         root.classList.remove('light', 'dark');
@@ -47,9 +81,13 @@ export function ThemeProvider({ children }) {
         localStorage.setItem('stocky-gradient-border', gradientBorder);
     }, [gradientBorder]);
 
+    // --- Actions ---
+
     const toggleTheme = () => {
         setTheme(prev => prev === 'dark' ? 'light' : 'dark');
     };
+
+    // --- Render ---
 
     return (
         <ThemeContext.Provider value={{ theme, toggleTheme, vfxPreset, setVfxPreset, gradientBorder, setGradientBorder }}>
@@ -58,6 +96,10 @@ export function ThemeProvider({ children }) {
     );
 }
 
+// =============================
+// Hook Export
+// =============================
+
 export function useTheme() {
     const context = useContext(ThemeContext);
     if (context === undefined) {
@@ -65,3 +107,4 @@ export function useTheme() {
     }
     return context;
 }
+

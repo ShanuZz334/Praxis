@@ -1,6 +1,28 @@
+/**
+ * @file TransmissionEngine.jsx
+ * @purpose Visualizes how Global factors transmit to Local (Indian) market segments.
+ * @responsibilities
+ * - Renders a list of "Transmission Paths" (e.g., Crude -> OMCs).
+ * - Shows transmission thresholds and bias direction.
+ * - Highlights the primary impact segments.
+ * @key_exports
+ * - TransmissionEngine (Default Component)
+ * @dependencies
+ * - Lucide React (Icons)
+ * @lifecycle
+ * - Rendered in Dashboard/Foreign.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 import { ArrowRight, Activity, Zap } from "lucide-react";
 
+// =============================
+// Main Component
+// =============================
 export default function TransmissionEngine({ transmission }) {
     if (!transmission) return null;
 
@@ -15,6 +37,7 @@ export default function TransmissionEngine({ transmission }) {
                 </span>
             </div>
 
+            {/* Content List */}
             <div className="flex-1 grid grid-cols-1 gap-4">
                 {transmission.map((path, i) => (
                     <TransmissionCard key={i} data={path} />
@@ -24,6 +47,9 @@ export default function TransmissionEngine({ transmission }) {
     );
 }
 
+// =============================
+// Helper Component
+// =============================
 function TransmissionCard({ data }) {
     const isBearish = data.bias.includes('Bearish') || data.bias.includes('Start') || data.bias.includes('Risk');
     const color = isBearish ? 'text-red-400' : 'text-emerald-400';

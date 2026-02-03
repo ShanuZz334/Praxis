@@ -1,9 +1,25 @@
 /**
- * Global Structure Engine
- * Handles scoring, regime classification, and section logic for Global indicators.
+ * @file globalHelper.js
+ * @purpose Utilities for calculating Global Market scores, regimes, and insights.
+ * @responsibilities
+ * - Defines weights for different global sections (FX, Indices, Commodities, Rates).
+ * - computes composite scores based on multi-asset inputs.
+ * - Extracts key "Tailwinds" (positive drivers) and "Risks" (negative drivers).
+ * - Determines the overall "Market Regime" (Risk-On / Risk-Off).
+ * @key_exports
+ * - globalSections (Config)
+ * - calculateGlobalComposite (Logic)
+ * - getGlobalRegime (Logic)
+ * @dependencies
+ * - None (Pure utility)
+ * @lifecycle
+ * - Used by globalRiskEngine and UI components.
+ * @date 2026-02-03
  */
 
-// Section weights for Global Structure
+// =============================
+// Configuration
+// =============================
 export const globalSections = [
     { id: "currency", label: "FX", w: 0.30, icon: "💱" },
     { id: "indices", label: "Indices", w: 0.35, icon: "📊" },
@@ -11,14 +27,19 @@ export const globalSections = [
     { id: "rates", label: "Rates", w: 0.15, icon: "📈" }
 ];
 
+// =============================
+// Core Calculation Logic
+// =============================
+
 /**
- * Calculates the composite global structure score based on cards.
- * Uses weighted section averages with reliability factoring.
+ * Calculates a weighted composite score (0-100) from a list of data cards.
+ * @param {Array} cards - Normalized data objects.
+ * @returns {number} Composite Score
  */
 export function calculateGlobalComposite(cards) {
     if (!cards || cards.length === 0) return 50;
 
-    // Group cards by category
+    // 1. Accumulate Scores by Category
     const sectionScores = {};
     const sectionCounts = {};
 
@@ -29,7 +50,7 @@ export function calculateGlobalComposite(cards) {
             sectionCounts[category] = 0;
         }
 
-        // Convert normalized (-1 to 1) to score (0 to 100)
+        // Normalize (-1..1) -> (0..100)
         const score = ((card.normalized + 1) / 2) * 100;
         const reliability = card.creditScore || 0.8;
 
@@ -37,14 +58,14 @@ export function calculateGlobalComposite(cards) {
         sectionCounts[category] += reliability;
     });
 
-    // Calculate weighted composite
+    // 2. Apply Section Weights
     let totalWeightedScore = 0;
     let totalWeight = 0;
 
     globalSections.forEach(section => {
-        const sectionKey = section.label;
-        if (sectionScores[sectionKey] && sectionCounts[sectionKey] > 0) {
-            const avgScore = sectionScores[sectionKey] / sectionCounts[sectionKey];
+        const key = section.label;
+        if (sectionScores[key] && sectionCounts[key] > 0) {
+            const avgScore = sectionScores[key] / sectionCounts[key];
             totalWeightedScore += avgScore * section.w;
             totalWeight += section.w;
         }
@@ -57,7 +78,9 @@ export function calculateGlobalComposite(cards) {
 }
 
 /**
- * Calculate section scores for display
+ * Computes individual category scores for display in the UI.
+ * @param {Array} cards 
+ * @returns {Object} Map of Category -> Score (0-100)
  */
 export function calculateSectionScores(cards) {
     const sectionScores = {};
@@ -77,7 +100,6 @@ export function calculateSectionScores(cards) {
         sectionCounts[category] += reliability;
     });
 
-    // Return averaged scores
     const result = {};
     Object.keys(sectionScores).forEach(section => {
         if (sectionCounts[section] > 0) {
@@ -87,6 +109,10 @@ export function calculateSectionScores(cards) {
 
     return result;
 }
+
+// =============================
+// Insight Extraction
+// =============================
 
 export function extractGlobalTailwinds(cards) {
     return cards
@@ -109,6 +135,10 @@ export function extractGlobalRisks(cards) {
             impact: c.reason
         }));
 }
+
+// =============================
+// Regime Classification
+// =============================
 
 export function getGlobalRegime(score) {
     if (score >= 65) {

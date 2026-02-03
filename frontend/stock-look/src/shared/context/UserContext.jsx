@@ -1,5 +1,26 @@
+/**
+ * @file UserContext.jsx
+ * @purpose Manages global user session and authentication state.
+ * @responsibilities
+ * - Stores `user` profile data and JWT `token`.
+ * - Handles login (`updateUser`) and logout (`clearUser`) actions.
+ * - Monitors session validity via background polling.
+ * - Sanitizes user data (e.g., image URLs) for mixed-content safety.
+ * @key_exports
+ * - UserContext (Context Object)
+ * - UserProvider (Component)
+ * @dependencies
+ * - axiosInstance (for API calls and header management)
+ * @lifecycle
+ * - Core Auth provider wrapping the app.
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
+
 import {
-  createContext,
   useState,
   useEffect,
   useMemo,
@@ -7,10 +28,23 @@ import {
 import axiosInstance from "@/shared/utils/axiosInstance.js";
 import { BASE_URL } from "@/shared/utils/apiPaths.js";
 import SessionConflictModal from "@/shared/components/modals/SessionConflictModal";
+import { UserContext } from './UserContextInstance';
 
-export const UserContext = createContext(null);
+// =============================
+// Context Instance Re-export
+// =============================
 
-// Helper to fix mixed content issues (localhost images in production)
+export { UserContext };
+
+// =============================
+// Helper Functions
+// =============================
+
+/**
+ * Sanitizes user data to fix mixed content and localhost URL issues.
+ * @param {Object} userData 
+ * @returns {Object} Cleaned user data
+ */
 const sanitizeUser = (userData) => {
   if (!userData) return null;
 
@@ -33,14 +67,21 @@ const sanitizeUser = (userData) => {
   return sanitized;
 };
 
+// =============================
+// Provider Component
+// =============================
+
 const UserProvider = ({ children }) => {
+
+  // --- State ---
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showConflictModal, setShowConflictModal] = useState(false);
 
+  // --- Effects: Session Management ---
 
-
+  // Handle 'session-conflict' event triggered by axios interceptor
   useEffect(() => {
     const handleConflict = () => {
       setShowConflictModal(true);
@@ -66,6 +107,7 @@ const UserProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [token, showConflictModal]);
 
+  // Initial Load from LocalStorage
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem("user");
@@ -87,6 +129,7 @@ const UserProvider = ({ children }) => {
     }
   }, []);
 
+  // Update Axios Headers
   useEffect(() => {
     if (token) {
       axiosInstance.defaults.headers.Authorization = `Bearer ${token}`;
@@ -94,6 +137,8 @@ const UserProvider = ({ children }) => {
       delete axiosInstance.defaults.headers.Authorization;
     }
   }, [token]);
+
+  // --- Actions ---
 
   const updateUser = (userData, jwtToken) => {
     const cleanUser = sanitizeUser(userData);
@@ -111,6 +156,8 @@ const UserProvider = ({ children }) => {
     delete axiosInstance.defaults.headers.Authorization;
   };
 
+  // --- Context Value ---
+
   const contextValue = useMemo(
     () => ({
       user,
@@ -121,6 +168,8 @@ const UserProvider = ({ children }) => {
     }),
     [user, token, loading]
   );
+
+  // --- Render ---
 
   return (
     <UserContext.Provider value={contextValue}>
@@ -137,3 +186,4 @@ const UserProvider = ({ children }) => {
 };
 
 export default UserProvider;
+

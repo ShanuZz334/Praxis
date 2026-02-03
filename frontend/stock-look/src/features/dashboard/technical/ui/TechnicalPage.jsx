@@ -1,5 +1,22 @@
+/**
+ * @file TechnicalPage.jsx
+ * @purpose Main entry point for the Technical Intelligence feature.
+ * @responsibilities
+ * - Generates live technical data (100+ indicators).
+ * - Calculates composite scores and section breakdowns.
+ * - Manages view state (Sectioned/Flat) and sorting.
+ * - Integrates GlobalHeader for high-level summary.
+ * @key_exports
+ * - TechnicalPage (Default)
+ * @dependencies
+ * - GlobalHeader, TechnicalGrid, TechnicalModal
+ * - indicatorsConfig, technicalHelper
+ * @lifecycle
+ * - Route: /dashboard/technical
+ * @date 2026-02-03
+ */
+
 import React, { useState, useMemo } from "react";
-// import TechnicalHeader from "./TechnicalHeader"; DEPRECATED
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import TechnicalGrid from "./TechnicalGrid";
 import TechnicalModal from "./TechnicalModal";

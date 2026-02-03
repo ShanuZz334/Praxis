@@ -1,54 +1,71 @@
+/**
+ * @file GlobalHistoryChart.jsx
+ * @purpose Displays a 30-day historical trend chart for Global Indicators.
+ * @responsibilities
+ * - Generates mock historical data based on the card's current trend and volatility profile (until backend ready).
+ * - Visualizes data using a responsive Recharts line chart.
+ * - Adapts coloring based on Bullish/Bearish sentiment.
+ * @key_exports
+ * - GlobalHistoryChart (Default Component)
+ * @dependencies
+ * - recharts: Charting library.
+ * @lifecycle
+ * - Rendered by GlobalStructureModal.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useMemo } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
-/**
- * GlobalHistoryChart
- * 30-day historical chart for Global Structure metrics
- * Generates category-specific mock data patterns
- */
+// =============================
+// Main Component
+// =============================
 export default function GlobalHistoryChart({ card }) {
     if (!card) return null;
 
-    // GENERATE MOCK HISTORY (30 Days)
+    // 1. Mock Data Generation (30 Days)
     const data = useMemo(() => {
         const result = [];
         const today = new Date();
         const startVal = parseFloat(card.raw?.toString().replace(/[^0-9.-]/g, '')) || 100;
         const days = 30;
 
-        // Category-specific volatility and drift patterns
-        let volatility = 0.02; // Default 2%
+        // Volatility Profiles
+        let volatility = 0.02; // Default
         let drift = 0;
 
         const category = card.category?.toLowerCase() || '';
         const norm = card.normalized || 0;
 
-        // Adjust based on category
+        // Adjust params by Asset Class
         if (category.includes('currency')) {
-            volatility = 0.015; // Forex: Lower daily volatility
+            volatility = 0.015;
             drift = norm > 0.3 ? 0.003 : norm < -0.3 ? -0.003 : 0;
         } else if (category.includes('indices')) {
-            volatility = 0.025; // Indices: Moderate volatility
+            volatility = 0.025;
             drift = norm > 0.2 ? 0.005 : norm < -0.2 ? -0.005 : 0;
         } else if (category.includes('commodities')) {
-            volatility = 0.035; // Commodities: Higher volatility
+            volatility = 0.035;
             drift = norm > 0.2 ? 0.004 : norm < -0.2 ? -0.004 : 0;
         } else if (category.includes('rates') || category.includes('volatility')) {
-            volatility = 0.04; // Rates/VIX: Highest volatility
+            volatility = 0.04;
             drift = norm > 0.3 ? 0.006 : norm < -0.3 ? -0.006 : 0;
         }
 
+        // Generate Series Backwards
         let series = [];
         let val = startVal;
 
-        // Walk backwards 30 days to generate history
         for (let i = 0; i < days; i++) {
             val = val / (1 + drift);
             val = val + (Math.random() - 0.5) * volatility * val;
             series.unshift(val);
         }
 
-        // Map to date objects
+        // Map to Recharts Objects
         for (let i = 0; i < days; i++) {
             const date = new Date(today);
             date.setDate(date.getDate() - (days - 1 - i));
@@ -61,19 +78,20 @@ export default function GlobalHistoryChart({ card }) {
         return result;
     }, [card]);
 
-    // Color Logic based on normalized score
+    // 2. Visual Logic
     const norm = card.normalized || 0;
-    let color = '#d97706'; // Amber 600
+    let color = '#d97706'; // Neutral (Amber)
     let signalLabel = 'Neutral';
 
     if (norm > 0.3) {
-        color = '#059669'; // Emerald 600
+        color = '#059669'; // Bullish (Emerald)
         signalLabel = 'Bullish';
     } else if (norm < -0.3) {
-        color = '#dc2626'; // Red 600
+        color = '#dc2626'; // Bearish (Red)
         signalLabel = 'Bearish';
     }
 
+    // 3. Render
     return (
         <div className="w-full h-full min-h-[300px] flex flex-col">
             <div className="flex justify-between items-center mb-4 px-2">

@@ -1,12 +1,34 @@
+/**
+ * @file ChartTooltip.jsx
+ * @purpose Specialized tooltip for data visualization.
+ * @responsibilities
+ * - Displays data point values on hover.
+ * - Shows delta context and zone-based coloring.
+ * - Supports custom Recharts payloads via wrapper.
+ * @key_exports
+ * - ChartTooltip (Default)
+ * - RechartsTooltipWrapper
+ * @dependencies
+ * - framer-motion
+ * - chartUtils (formatNumber, formatChartDate)
+ * @lifecycle
+ * - Rendered by Chart libraries (Recharts/Lightweight) on interaction.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { tooltipVariants } from '@/shared/utils/chartAnimations';
 import { formatNumber, formatChartDate, getZoneColor } from '@/shared/utils/chartUtils';
 
-/**
- * ChartTooltip - Intelligent tooltip for charts
- * Shows value, context, delta, and interpretation
- */
+// =============================
+// Component
+// =============================
+
 export default function ChartTooltip({
     active = false,
     payload = [],

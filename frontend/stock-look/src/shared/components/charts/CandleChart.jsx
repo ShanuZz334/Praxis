@@ -1,4 +1,28 @@
+/**
+ * @file CandleChart.jsx
+ * @purpose Lightweight SVG-based candlestick visualization.
+ * @responsibilities
+ * - Renders a static or simple candlestick chart using SVG.
+ * - Optimized for performance in grid views or small containers.
+ * - Auto-scales to fit the provided height.
+ * @key_exports
+ * - CandleChart (Default)
+ * @dependencies
+ * - React
+ * @lifecycle
+ * - Used in Lists, Cards, or where interactive charts are overkill.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from "react";
+
+// =============================
+// Component
+// =============================
 
 const CandleChart = ({ candles = [], height = 120 }) => {
   if (!candles.length) return null;

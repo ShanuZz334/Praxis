@@ -1,26 +1,47 @@
+/**
+ * @file GlobalMetricsDesk.jsx
+ * @purpose AI-powered analysis card for specific metrics.
+ * @responsibilities
+ * - Generates live AI insights based on metric values and thresholds.
+ * - Determines "Market Regime" (Risk-On, Inflationary, etc.).
+ * - Assesses "Impact on India" (Positive, Negative, Mixed).
+ * - Visualizes data quality confidence.
+ * @key_exports
+ * - GlobalMetricsDesk (Default Component)
+ * @dependencies
+ * - React
+ * @lifecycle
+ * - Rendered in Modals or Details view.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from 'react';
 
-/**
- * GlobalMetricsDesk
- * AI-powered analysis panel for global metrics
- * Provides market context and impact assessment on Indian markets
- */
+// =============================
+// Main Component
+// =============================
 export default function GlobalMetricsDesk({ card }) {
     if (!card) return null;
 
-    // Derive Context
+    // 1. Context Derivation
     const norm = card.normalized || 0;
     const category = card.category?.toLowerCase() || '';
     const label = card.label?.toLowerCase() || '';
 
-    // AI LOGIC - Generate dynamic insights based on metric and signal
+    // 2. Logic Initialization
     let insightText = "Global metric is neutral, suggesting balanced market conditions.";
     let contextText = "Monitor for directional breakout.";
     let sentimentColor = "text-text-tertiary";
     let impactOnIndia = "Neutral";
     let regime = "Balanced";
 
-    // CURRENCY LOGIC
+    // 3. Category Specific Logic
+    // ------------------------------------------
+
+    // --- CURRENCY ---
     if (category.includes('currency')) {
         if (label.includes('dxy') || label.includes('dollar')) {
             if (norm > 0.3) {
@@ -55,7 +76,6 @@ export default function GlobalMetricsDesk({ card }) {
                 regime = "Risk-Off";
             }
         } else {
-            // Generic currency
             if (norm > 0.3) {
                 insightText = `Currency strength (${card.raw}) reflects relative economic outperformance.`;
                 sentimentColor = "text-state-bullish-text";
@@ -67,8 +87,7 @@ export default function GlobalMetricsDesk({ card }) {
             }
         }
     }
-
-    // GLOBAL INDICES LOGIC
+    // --- INDICES ---
     else if (category.includes('indices')) {
         if (norm > 0.3) {
             insightText = `${card.label} strength (${card.raw}) signals positive global risk appetite. Nifty likely to follow with 1-day lag.`;
@@ -88,8 +107,7 @@ export default function GlobalMetricsDesk({ card }) {
             impactOnIndia = "Neutral";
         }
     }
-
-    // COMMODITIES LOGIC
+    // --- COMMODITIES ---
     else if (category.includes('commodities')) {
         if (label.includes('gold')) {
             if (norm > 0.3) {
@@ -134,7 +152,6 @@ export default function GlobalMetricsDesk({ card }) {
                 regime = "Slowdown";
             }
         } else {
-            // Generic commodity
             if (norm > 0.3) {
                 insightText = `Commodity strength (${card.raw}) reflects supply tightness or demand surge.`;
                 sentimentColor = "text-amber-600";
@@ -146,8 +163,7 @@ export default function GlobalMetricsDesk({ card }) {
             }
         }
     }
-
-    // RATES & VOLATILITY LOGIC
+    // --- RATES & VOLATILITY ---
     else if (category.includes('rates') || category.includes('volatility')) {
         if (label.includes('10y') || label.includes('yield')) {
             if (norm > 0.3) {
@@ -194,28 +210,18 @@ export default function GlobalMetricsDesk({ card }) {
         }
     }
 
+    // 4. Render
     return (
-        <div className="
-            w-[260px] shrink-0
-            flex flex-col gap-4
-            animate-in fade-in slide-in-from-right-4 duration-500
-        ">
-            {/* GLASS CONTAINER */}
-            <div className="
-                bg-background-tooltip
-                border border-border-default
-                rounded-2xl
-                p-6
-                shadow-xl
-                flex flex-col gap-6
-            ">
-                {/* HEADER LABEL */}
+        <div className="w-[260px] shrink-0 flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className="bg-background-tooltip border border-border-default rounded-2xl p-6 shadow-xl flex flex-col gap-6">
+
+                {/* Header */}
                 <div className="flex items-center gap-3 border-b border-border-subtle pb-2 mb-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse box-shadow-purple" />
                     <span className="text-[10px] font-black text-purple-600 uppercase tracking-[0.2em]">AI Analysis</span>
                 </div>
 
-                {/* 1. AI INSIGHT (Dynamic) */}
+                {/* Analysis Block */}
                 <div>
                     <div className={`text-[13px] font-medium leading-relaxed mb-4 ${sentimentColor}`}>
                         <span className="text-2xl mr-2 align-middle opacity-50">
@@ -233,7 +239,7 @@ export default function GlobalMetricsDesk({ card }) {
 
                 <div className="h-px bg-gradient-to-r from-transparent via-border-subtle to-transparent" />
 
-                {/* 2. IMPACT & REGIME */}
+                {/* Impact & Regime Block */}
                 <div className="space-y-3">
                     <div className="flex justify-between items-center">
                         <div>
@@ -252,7 +258,7 @@ export default function GlobalMetricsDesk({ card }) {
                         </div>
                     </div>
 
-                    {/* Reliability Badge */}
+                    {/* Quality Confidence */}
                     <div className="bg-background-elevated rounded-lg p-2 flex items-center justify-between">
                         <span className="text-[9px] text-text-tertiary uppercase tracking-wider">Data Quality</span>
                         <div className="flex items-center gap-2">
@@ -269,11 +275,10 @@ export default function GlobalMetricsDesk({ card }) {
                     </div>
                 </div>
 
-                {/* DECORATIVE FOOTER */}
+                {/* Footer */}
                 <div className="mt-2 pt-4 border-t border-border-subtle text-[9px] text-text-tertiary opacity-30 text-center uppercase tracking-[0.2em]">
                     Stocky Global AI
                 </div>
-
             </div>
         </div>
     );

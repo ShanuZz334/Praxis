@@ -1,17 +1,37 @@
+/**
+ * @file FundamentalHistoryChart.jsx
+ * @purpose Renders a 30-day historical trend using Recharts.
+ * @responsibilities
+ * - Generates visual trend data based on the current signal (Bullish/Bearish).
+ * - Adapts chart color to the signal.
+ * @key_exports
+ * - FundamentalHistoryChart (Default Component)
+ * @dependencies
+ * - Recharts
+ * @lifecycle
+ * - Rendered inside FundamentalModal (Desktop) or Detail View.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useMemo } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
+// =============================
+// Main Component
+// =============================
 export default function FundamentalHistoryChart({ trend = 'neutral', baseValue = 50, label = 'Metric' }) {
 
-    // GENERATE MOCK HISTORY (30 Days)
+    // --- Data Generation ---
     const data = useMemo(() => {
         const result = [];
         const today = new Date();
         const startVal = parseFloat(baseValue) || 50;
 
-        // Configuration for 30 days
         const days = 30;
-        const volatility = startVal * 0.05; // 5% noise
+        const volatility = startVal * 0.05;
 
         let drift = 0;
         const safeTrend = (trend || '').toLowerCase();
@@ -21,14 +41,14 @@ export default function FundamentalHistoryChart({ trend = 'neutral', baseValue =
         let series = [];
         let val = startVal;
 
-        // Walk backwards 30 days
+        // Backward simulation
         for (let i = 0; i < days; i++) {
             val = val / (1 + drift);
             val = val + (Math.random() - 0.5) * volatility;
             series.unshift(val);
         }
 
-        // Map to object
+        // Map to date objects
         for (let i = 0; i < days; i++) {
             const date = new Date(today);
             date.setDate(date.getDate() - (days - 1 - i));
@@ -41,9 +61,9 @@ export default function FundamentalHistoryChart({ trend = 'neutral', baseValue =
         return result;
     }, [trend, baseValue]);
 
-    // Color Logic
+    // --- Visual Config ---
     const safeTrend = (trend || '').toLowerCase();
-    let color = 'var(--state-warning-main)'; // default/neutralish or warning? Old was amber.
+    let color = 'var(--state-warning-main)';
     if (safeTrend.includes('bull') || safeTrend.includes('top') || safeTrend.includes('high')) color = 'var(--state-bullish-main)';
     if (safeTrend.includes('bear') || safeTrend.includes('bottom') || safeTrend.includes('low')) color = 'var(--state-bearish-main)';
 

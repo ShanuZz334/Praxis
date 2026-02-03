@@ -1,3 +1,25 @@
+/**
+ * @file AboutPage.jsx
+ * @purpose Informational landing page detailing the Stocky ecosystem's philosophy, features, and target audience.
+ * @responsibilities
+ * - Presents the core value proposition of the platform.
+ * - Displays philosophy cards and platform comparisons.
+ * - Provides audience segmentation (Who it's for vs. Who it's not for).
+ * - Surfaces system versioning and developer contact information.
+ * @key_exports
+ * - AboutPage (Default): The main container component for the About view.
+ * @dependencies
+ * - lucide-react: Specialized iconography for visual storytelling.
+ * - react: Core UI library.
+ * @lifecycle
+ * - Rendered by the dashboard router as a informational view.
+ * - Utilizes CSS-only entry animations for visual engagement.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 import {
     Shield,
@@ -7,18 +29,93 @@ import {
     CheckCircle2,
     XCircle,
     BrainCircuit,
-    ArrowRight,
-    Github,
     Mail,
     Code2,
     Terminal
 } from "lucide-react";
 
+// =============================
+// Helper Components
+// =============================
+
+/**
+ * PhilosophyCard
+ * Renders a specialized card featuring an icon and a core architectural principle.
+ */
+function PhilosophyCard({ icon, title, desc, color, bg, border }) {
+    const Icon = icon;
+    return (
+        <div className={`
+            group p-6 rounded-2xl bg-background-card border border-border-default 
+            hover:border-opacity-50 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl
+            ${border}
+        `}>
+            <div className={`w-12 h-12 rounded-xl ${bg} ${color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                <Icon size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-text-primary mb-2 group-hover:text-blue-500 transition-colors">
+                {title}
+            </h3>
+            <p className="text-sm text-text-secondary leading-relaxed group-hover:text-text-primary">
+                {desc}
+            </p>
+        </div>
+    );
+}
+
+/**
+ * ComparisonRow
+ * Displays a side-by-side comparison between legacy retail tools and the Stocky ecosystem.
+ */
+function ComparisonRow({ old, new: isNew }) {
+    return (
+        <div className="grid grid-cols-2 text-sm border-border-default group hover:bg-background-surface transition-colors">
+            <div className="p-4 text-text-tertiary border-r border-border-default flex items-center gap-2">
+                <XCircle size={14} className="shrink-0 opacity-50" />
+                <span className="line-through decoration-text-tertiary">{old}</span>
+            </div>
+            <div className="p-4 text-text-primary font-medium flex items-center gap-2">
+                <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                {isNew}
+            </div>
+        </div>
+    );
+}
+
+/**
+ * CheckItem
+ * Renders a success-variant list item for audience profile inclusion.
+ */
+function CheckItem({ text }) {
+    return (
+        <li className="flex items-start gap-3 text-text-secondary">
+            <CheckCircle2 size={18} className="text-emerald-500 mt-0.5 shrink-0" />
+            <span>{text}</span>
+        </li>
+    );
+}
+
+/**
+ * CrossItem
+ * Renders a failure-variant list item for audience profile exclusion.
+ */
+function CrossItem({ text }) {
+    return (
+        <li className="flex items-start gap-3 text-text-tertiary">
+            <XCircle size={18} className="text-red-500 mt-0.5 shrink-0" />
+            <span>{text}</span>
+        </li>
+    );
+}
+
+// =============================
+// Main Component
+// =============================
 export default function AboutPage() {
     return (
         <div className="min-h-screen w-full relative pb-20 overflow-hidden font-sans text-text-primary">
 
-            {/* BACKGROUND VFX */}
+            {/* Background Visual Effects */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]" />
                 <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] bg-purple-600/5 rounded-full blur-[100px]" />
@@ -27,7 +124,7 @@ export default function AboutPage() {
 
             <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 pt-24 pb-12 md:py-20 space-y-12 md:space-y-24 animate-in fade-in duration-700">
 
-                {/* 1. HERO SECTION */}
+                {/* Hero / Value Proposition Section */}
                 <div className="text-center max-w-3xl mx-auto space-y-6">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 text-xs font-bold uppercase tracking-widest animate-in slide-in-from-bottom-4 duration-700 delay-100">
                         <Terminal size={12} />
@@ -46,7 +143,7 @@ export default function AboutPage() {
                     </p>
                 </div>
 
-                {/* 2. CORE PHILOSOPHY GRID */}
+                {/* Foundational Pillars Section */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 animate-in slide-in-from-bottom-8 duration-700 delay-500">
                     <PhilosophyCard
                         icon={Shield}
@@ -82,7 +179,7 @@ export default function AboutPage() {
                     />
                 </div>
 
-                {/* 3. THE DIFFERENCE ENGINE (Comparison) */}
+                {/* Ecosystem Differentiation Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center animate-in slide-in-from-bottom-8 duration-700 delay-700">
                     <div className="space-y-6">
                         <h2 className="text-3xl font-bold text-text-primary">
@@ -109,7 +206,6 @@ export default function AboutPage() {
                         </div>
                     </div>
 
-                    {/* Comparison Table */}
                     <div className="bg-background-card border border-border-default rounded-2xl overflow-hidden shadow-2xl">
                         <div className="grid grid-cols-2 text-sm font-bold uppercase tracking-widest border-b border-border-default">
                             <div className="p-4 text-text-tertiary bg-background-surface">Retail Tools</div>
@@ -125,9 +221,8 @@ export default function AboutPage() {
                     </div>
                 </div>
 
-                {/* 4. AUDIENCE PROFILE */}
+                {/* User Segmentation Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-bottom-8 duration-700 delay-1000">
-                    {/* Who It Is For */}
                     <div className="p-8 rounded-3xl bg-emerald-500/[0.02] border border-emerald-500/20 relative overflow-hidden group hover:border-emerald-500/30 transition-colors">
                         <div className="absolute top-0 right-0 p-6 opacity-10">
                             <CheckCircle2 size={120} className="text-emerald-500" />
@@ -143,7 +238,6 @@ export default function AboutPage() {
                         </ul>
                     </div>
 
-                    {/* Who It Is NOT For */}
                     <div className="p-8 rounded-3xl bg-red-500/[0.02] border border-red-500/20 relative overflow-hidden group hover:border-red-500/30 transition-colors">
                         <div className="absolute top-0 right-0 p-6 opacity-10">
                             <XCircle size={120} className="text-red-500" />
@@ -160,7 +254,7 @@ export default function AboutPage() {
                     </div>
                 </div>
 
-                {/* 5. FOOTER / CREDITS */}
+                {/* Navigation / Metadata Utility Section */}
                 <div className="border-t border-border-default pt-8 md:pt-12 flex flex-col md:flex-row justify-between items-center gap-6 text-sm text-text-tertiary animate-in fade-in duration-1000 delay-1000">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-background-surface">
@@ -185,62 +279,5 @@ export default function AboutPage() {
 
             </div>
         </div>
-    );
-}
-
-// -------------------------------------------------------------
-// SUB COMPONENTS
-// -------------------------------------------------------------
-
-function PhilosophyCard({ icon: Icon, title, desc, color, bg, border }) {
-    return (
-        <div className={`
-            group p-6 rounded-2xl bg-background-card border border-border-default 
-            hover:border-opacity-50 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl
-            ${border}
-        `}>
-            <div className={`w-12 h-12 rounded-xl ${bg} ${color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                <Icon size={24} />
-            </div>
-            <h3 className="text-lg font-bold text-text-primary mb-2 group-hover:text-blue-500 transition-colors">
-                {title}
-            </h3>
-            <p className="text-sm text-text-secondary leading-relaxed group-hover:text-text-primary">
-                {desc}
-            </p>
-        </div>
-    );
-}
-
-function ComparisonRow({ old, new: isNew }) {
-    return (
-        <div className="grid grid-cols-2 text-sm border-border-default group hover:bg-background-surface transition-colors">
-            <div className="p-4 text-text-tertiary border-r border-border-default flex items-center gap-2">
-                <XCircle size={14} className="shrink-0 opacity-50" />
-                <span className="line-through decoration-text-tertiary">{old}</span>
-            </div>
-            <div className="p-4 text-text-primary font-medium flex items-center gap-2">
-                <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                {isNew}
-            </div>
-        </div>
-    );
-}
-
-function CheckItem({ text }) {
-    return (
-        <li className="flex items-start gap-3 text-text-secondary">
-            <CheckCircle2 size={18} className="text-emerald-500 mt-0.5 shrink-0" />
-            <span>{text}</span>
-        </li>
-    );
-}
-
-function CrossItem({ text }) {
-    return (
-        <li className="flex items-start gap-3 text-text-tertiary">
-            <XCircle size={18} className="text-red-500 mt-0.5 shrink-0" />
-            <span>{text}</span>
-        </li>
     );
 }

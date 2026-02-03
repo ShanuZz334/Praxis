@@ -1,7 +1,25 @@
+/**
+ * @file cards.config.js
+ * @purpose Registry of all Fundamental Cards/Metrics used in the system.
+ * @responsibilities
+ * - Defines metadata (ID, Label, Category, Unit).
+ * - Assigns "Credit Allocations" and "Credit Scores" (Reliability) for weighting.
+ * - Grouped by logical sections (Valuation, Macro, etc.).
+ * @key_exports
+ * - FUNDAMENTAL_CARDS
+ * - TOTAL_FUNDAMENTAL_CREDITS
+ * @lifecycle
+ * - Static configuration loaded by `index.js`.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Card Definitions
+// =============================
 export const FUNDAMENTAL_CARDS = [
-  /* =========================
+  /* -----------------------------------------------------
      SECTION 1: VALUATION
-  ========================= */
+  ----------------------------------------------------- */
   {
     id: "nifty_pe",
     label: "NIFTY PE Ratio",
@@ -48,9 +66,9 @@ export const FUNDAMENTAL_CARDS = [
     creditAllocation: 13,
   },
 
-  /* =========================
+  /* -----------------------------------------------------
      SECTION 2: EARNINGS & PROFITABILITY
-  ========================= */
+  ----------------------------------------------------- */
   {
     id: "eps_yoy",
     label: "EPS YoY Growth",
@@ -97,9 +115,9 @@ export const FUNDAMENTAL_CARDS = [
     creditAllocation: 9,
   },
 
-  /* =========================
+  /* -----------------------------------------------------
      SECTION 3: MACRO
-  ========================= */
+  ----------------------------------------------------- */
   {
     id: "gdp",
     label: "GDP Growth",
@@ -155,9 +173,9 @@ export const FUNDAMENTAL_CARDS = [
     creditAllocation: 10,
   },
 
-  /* =========================
+  /* -----------------------------------------------------
      SECTION 4: LIQUIDITY & FLOWS
-  ========================= */
+  ----------------------------------------------------- */
   {
     id: "fii",
     label: "FII Net Flow",
@@ -204,9 +222,9 @@ export const FUNDAMENTAL_CARDS = [
     creditAllocation: 8,
   },
 
-  /* =========================
+  /* -----------------------------------------------------
      SECTION 5: SECTOR & BREADTH
-  ========================= */
+  ----------------------------------------------------- */
   {
     id: "sector_valuation",
     label: "Sector Valuation Spread",
@@ -244,9 +262,9 @@ export const FUNDAMENTAL_CARDS = [
     creditAllocation: 8,
   },
 
-  /* =========================
+  /* -----------------------------------------------------
      SECTION 6: CORPORATE & POLICY
-  ========================= */
+  ----------------------------------------------------- */
   {
     id: "policy_tailwinds",
     label: "Govt Capex Push",
@@ -284,9 +302,9 @@ export const FUNDAMENTAL_CARDS = [
     creditAllocation: 6,
   },
 
-  /* =========================
+  /* -----------------------------------------------------
      SECTION 7: GLOBAL CONTEXT
-  ========================= */
+  ----------------------------------------------------- */
   {
     id: "global_growth",
     label: "Global Growth Pulse",
@@ -324,9 +342,9 @@ export const FUNDAMENTAL_CARDS = [
     creditAllocation: 9,
   },
 
-  /* =========================
+  /* -----------------------------------------------------
      SECTION 8: RISK & STRESS
-  ========================= */
+  ----------------------------------------------------- */
   {
     id: "sovereign_risk",
     label: "Sovereign Risk Proxy",
@@ -356,6 +374,7 @@ export const FUNDAMENTAL_CARDS = [
   },
 ];
 
-// Total credits allocated across all fundamental cards
+// =============================
+// Constants
+// =============================
 export const TOTAL_FUNDAMENTAL_CREDITS = 300;
-

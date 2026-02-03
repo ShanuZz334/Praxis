@@ -1,25 +1,49 @@
+/**
+ * @file TechnicalGrid.jsx
+ * @purpose Renders the grid of technical indicator cards.
+ * @responsibilities
+ * - Displays cards in Sectioned (grouped) or Flat layout.
+ * - Handles sorting (Strength, Weakness, Credit).
+ * - Provides mobile navigation for sections.
+ * @key_exports
+ * - TechnicalGrid (Default)
+ * @dependencies
+ * - TechnicalCard
+ * @lifecycle
+ * - Rendered by TechnicalPage.
+ * @date 2026-02-03
+ */
+
 import React from "react";
 import TechnicalCard from "./TechnicalCard";
 import { technicalSections } from "@/features/dashboard/technical/engine/technicalHelper";
 
+// =============================
+// Component
+// =============================
+
 export default function TechnicalGrid({
-    cards, // Already filtered by parent
+    cards,
     onCardClick,
     viewMode = "sectioned",
     sortMode = "score_desc",
     searchQuery = ""
 }) {
-    // Helper to sort cards
+
+    // =============================
+    // Helper Functions
+    // =============================
+
     const sortCards = (list, mode) => {
         const arr = [...list];
         switch (mode) {
-            case 'score_desc': // Strongest Signal (Most Bullish)
+            case 'score_desc':
                 return arr.sort((a, b) => (b.normalized || 0) - (a.normalized || 0));
-            case 'score_asc': // Weakest Signal (Most Bearish)
+            case 'score_asc':
                 return arr.sort((a, b) => (a.normalized || 0) - (b.normalized || 0));
-            case 'rel_desc': // High Credit
+            case 'rel_desc':
                 return arr.sort((a, b) => (b.creditAllocation || 0) - (a.creditAllocation || 0));
-            case 'rel_asc': // Low Credit
+            case 'rel_asc':
                 return arr.sort((a, b) => (a.creditAllocation || 0) - (b.creditAllocation || 0));
             default:
                 return arr;
@@ -39,6 +63,10 @@ export default function TechnicalGrid({
 
     // Section Order (using the config from helper or indicatorConfig orders)
     const SECTION_ORDER = ["Trend", "Momentum", "Volatility", "Volume", "Breadth", "Structure"];
+
+    // =============================
+    // Render Layer
+    // =============================
 
     return (
         <div className="space-y-6">

@@ -1,33 +1,61 @@
-import React, { useMemo } from 'react';
+/**
+ * @file OptionsGauge.jsx
+ * @purpose Visual gauge for the Options Positioning Score.
+ * @responsibilities
+ * - Renders an SVG semi-circle gauge to visualize the composite score (0-100).
+ * - Displays a gradient track indicating Bearish (Red) to Bullish (Green) zones.
+ * - Provides detailed breakdown of metrics via a hovering tooltip.
+ * - Animates the needle/arc position based on score updates.
+ * @key_exports
+ * - OptionsGauge (Default Component)
+ * @dependencies
+ * - PortalTooltip: For contextual details.
+ * @lifecycle
+ * - Rendered by OptionsHeader.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+import React from 'react';
 import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 
+// =============================
+// Main Component
+// =============================
 export default function OptionsGauge({ scoreData }) {
-    // Expecting scoreData = { score, details: { netDelta, gammaFlip, putWall, callWall, ivRank, breakdown } }
-
+    // Default Fallback
     const { score = 50, details = {} } = scoreData || {};
 
-    // SVG Geometry
+    // =============================
+    // Geometry & Visual Logic
+    // =============================
     const radius = 80;
     const strokeWidth = 10;
-    const center = 100;
-    const circumference = Math.PI * radius; // Semi-circle
-
+    const circumference = Math.PI * radius; // Semi-circle arc
     const clampedScore = Math.min(100, Math.max(0, score));
     const offset = circumference - (clampedScore / 100) * circumference;
 
-    // Color Logic (5 Zones)
-    // 0-30 Red, 30-45 Amber, 45-55 Neutral, 55-70 Green, 70+ Neon
-    const getColorValues = (s) => {
-        if (s < 30) return { stroke: "#ef4444", label: "Bearish Bias", glow: "shadow-red-500/50" };
-        if (s < 45) return { stroke: "#f59e0b", label: "Defensive", glow: "shadow-amber-500/50" };
-        if (s <= 55) return { stroke: "#94a3b8", label: "Neutral", glow: "shadow-slate-500/50" };
-        if (s <= 70) return { stroke: "#22c55e", label: "Bullish", glow: "shadow-green-500/50" };
-        return { stroke: "#34d399", label: "Aggressive Bullish", glow: "shadow-emerald-400/80" }; // Neon
+    // Color Zones Logic
+    // 0-30: Bearish (Red)
+    // 30-45: Defensive (Amber)
+    // 45-55: Neutral (Slate)
+    // 55-70: Bullish (Green)
+    // 70+: Aggressive (Neon)
+    const getVisualProps = (s) => {
+        if (s < 30) return { stroke: "#ef4444", label: "Bearish Bias", color: "text-red-400" };
+        if (s < 45) return { stroke: "#f59e0b", label: "Defensive", color: "text-blue-300" }; // "Defensive" often implies caution
+        if (s <= 55) return { stroke: "#94a3b8", label: "Neutral", color: "text-blue-300" };
+        if (s <= 70) return { stroke: "#22c55e", label: "Bullish", color: "text-emerald-300" };
+        return { stroke: "#34d399", label: "Aggressive Bullish", color: "text-emerald-300" };
     };
 
-    const visual = getColorValues(clampedScore);
+    const visual = getVisualProps(clampedScore);
 
+    // =============================
     // Tooltip Content
+    // =============================
     const tooltipContent = (
         <div className="space-y-3 min-w-[180px]">
             <div className="flex justify-between items-center border-b border-white/10 pb-2">
@@ -37,11 +65,26 @@ export default function OptionsGauge({ scoreData }) {
                 </span>
             </div>
             <div className="space-y-1.5 text-[10px] text-white/70">
-                <div className="flex justify-between"><span>Net Delta</span> <span className="font-mono text-white">{details.netDelta?.toLocaleString() || '--'}</span></div>
-                <div className="flex justify-between"><span>Gamma Flip</span> <span className="font-mono text-white">{details.gammaFlip?.toLocaleString() || '--'}</span></div>
-                <div className="flex justify-between"><span>Put Wall</span> <span className="font-mono text-red-300">{details.putWall?.toLocaleString() || '--'}</span></div>
-                <div className="flex justify-between"><span>Call Wall</span> <span className="font-mono text-green-300">{details.callWall?.toLocaleString() || '--'}</span></div>
-                <div className="flex justify-between"><span>IV Rank</span> <span className="font-mono text-yellow-300">{details.ivRank || '--'}</span></div>
+                <div className="flex justify-between">
+                    <span>Net Delta</span>
+                    <span className="font-mono text-white">{details.netDelta?.toLocaleString() || '--'}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span>Gamma Flip</span>
+                    <span className="font-mono text-white">{details.gammaFlip?.toLocaleString() || '--'}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span>Put Wall</span>
+                    <span className="font-mono text-red-300">{details.putWall?.toLocaleString() || '--'}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span>Call Wall</span>
+                    <span className="font-mono text-green-300">{details.callWall?.toLocaleString() || '--'}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span>IV Rank</span>
+                    <span className="font-mono text-yellow-300">{details.ivRank || '--'}</span>
+                </div>
             </div>
             <div className="text-[9px] text-white/30 italic pt-1 border-t border-white/5 text-center">
                 Updates every 60s
@@ -49,13 +92,15 @@ export default function OptionsGauge({ scoreData }) {
         </div>
     );
 
+    // =============================
+    // Render
+    // =============================
     return (
         <div className="flex flex-col items-center w-full">
-            {/* GAUGE AREA */}
+            {/* GAUGE SVG */}
             <PortalTooltip content={tooltipContent}>
                 <div className="relative w-[200px] h-[110px] cursor-help group">
                     <svg width="200" height="110" className="overflow-visible">
-                        {/* DEFS for Gradients */}
                         <defs>
                             <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                                 <stop offset="0%" stopColor="#ef4444" />
@@ -73,7 +118,7 @@ export default function OptionsGauge({ scoreData }) {
                             </filter>
                         </defs>
 
-                        {/* Background Track (Dark) */}
+                        {/* Background Track */}
                         <path
                             d="M 20 100 A 80 80 0 0 1 180 100"
                             fill="none"
@@ -82,7 +127,7 @@ export default function OptionsGauge({ scoreData }) {
                             strokeLinecap="round"
                         />
 
-                        {/* Value Arc (Color + Glow) */}
+                        {/* Active Arc */}
                         <path
                             d="M 20 100 A 80 80 0 0 1 180 100"
                             fill="none"
@@ -95,7 +140,7 @@ export default function OptionsGauge({ scoreData }) {
                             className="transition-all duration-1000 ease-out opacity-90 group-hover:opacity-100"
                         />
 
-                        {/* Ticks (Bearish, Neutral, Bullish) */}
+                        {/* Labels */}
                         <g className="text-[8px] font-bold fill-white/20 select-none">
                             <text x="25" y="115" textAnchor="start">BEARISH</text>
                             <text x="100" y="65" textAnchor="middle">NEUTRAL</text>
@@ -103,7 +148,7 @@ export default function OptionsGauge({ scoreData }) {
                         </g>
                     </svg>
 
-                    {/* Center Value */}
+                    {/* Center Text */}
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center translate-y-2">
                         <div className="text-4xl font-bold text-white tracking-tighter drop-shadow-lg transition-all">
                             {clampedScore.toFixed(0)}
@@ -111,14 +156,14 @@ export default function OptionsGauge({ scoreData }) {
                         <div className="text-[10px] uppercase tracking-widest font-bold text-white/50 mb-0.5">
                             Positioning Score
                         </div>
-                        <div className={`text-[9px] font-medium transition-colors ${visual.score < 30 ? 'text-red-400' : visual.score > 70 ? 'text-emerald-300' : 'text-blue-300'}`}>
+                        <div className={`text-[9px] font-medium transition-colors ${visual.color}`}>
                             {visual.label}
                         </div>
                     </div>
                 </div>
             </PortalTooltip>
 
-            {/* DATA CONTEXT STRIP */}
+            {/* BREAKDOWN STRIP */}
             <div className="w-full mt-6 grid grid-cols-3 gap-2 px-2">
                 {(details.breakdown || []).map((item, i) => (
                     <div key={i} className="flex flex-col items-center bg-white/[0.02] rounded py-1.5 border border-white/5">

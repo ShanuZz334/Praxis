@@ -1,3 +1,21 @@
+/**
+ * @file riskEngine.js
+ * @purpose Provides logic for risk assessment and portfolio insights.
+ * @responsibilities
+ * - Calculates risk regime scores based on drawdown and allocation.
+ * - Runs margin stress tests for volatility scenarios.
+ * - Generates natural language insights on portfolio health.
+ * @key_exports
+ * - calculateRiskRegime
+ * - runMarginStressTest
+ * - generateWalletInsights
+ * @dependencies
+ * - None (Pure Logic)
+ * @lifecycle
+ * - Used by WalletPage to drive UI feedback.
+ * @date 2026-02-03
+ */
+
 export function calculateRiskRegime(data) {
     const { drawdown, allocation, pnl } = data;
 

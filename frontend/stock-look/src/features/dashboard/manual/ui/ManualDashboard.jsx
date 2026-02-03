@@ -1,7 +1,32 @@
+/**
+ * @file ManualDashboard.jsx
+ * @purpose The index page for the Stocky Manual (Knowledge Base).
+ * @responsibilities
+ * - Displays a grid of all available knowledge modules (Dashboard, Technical, Fundamental, etc.).
+ * - Provides navigation to specific section layouts.
+ * - Shows a brief overview of what the Manual offers.
+ * @key_exports
+ * - ManualDashboard (Default Component)
+ * @dependencies
+ * - React, useNavigate
+ * - MANUAL_SECTIONS (manualData)
+ * - lucide-react (Icons)
+ * @lifecycle
+ * - Rendered by ManualPage or as a route component.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { MANUAL_SECTIONS } from "../data/manualData";
 import { HelpCircle } from "lucide-react";
+import { MANUAL_SECTIONS } from "../data/manualData";
+
+// =============================
+// Main Component
+// =============================
 
 export default function ManualDashboard() {
     const navigate = useNavigate();

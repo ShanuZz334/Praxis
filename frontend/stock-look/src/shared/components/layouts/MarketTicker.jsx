@@ -1,5 +1,29 @@
+/**
+ * @file MarketTicker.jsx
+ * @purpose Displays a scrolling marquee of key market indices.
+ * @responsibilities
+ * - Renders real-time or mock market data in a persistent banner.
+ * - Designed primarily for mobile views or secondary headers.
+ * - Visualizes positive/negative trends with color coding.
+ * @key_exports
+ * - MarketTicker (Default)
+ * @dependencies
+ * - React, react-icons
+ * @lifecycle
+ * - Rendered by Layouts where market context is needed globally.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from "react";
 import { FiBriefcase, FiTrendingUp, FiTrendingDown } from "react-icons/fi";
+
+// =============================
+// Component
+// =============================
 
 const MarketTicker = () => {
     // Mock data - would come from context/store in real app

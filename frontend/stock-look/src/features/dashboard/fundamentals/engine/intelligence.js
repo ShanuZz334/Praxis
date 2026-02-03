@@ -1,13 +1,29 @@
 /**
- * Intelligence Engine
- * Auto-generates market verdicts, regime detection, and confidence scoring
+ * @file intelligence.js
+ * @purpose Intelligence Engine for Fundamental Analysis.
+ * @responsibilities
+ * - Auto-generates market verdicts and natural language summaries.
+ * - Extracts "Tailwinds" (positive drivers) and "Risks" (negative drivers).
+ * - Calibrates confidence scores based on data completeness and freshness.
+ * @key_exports
+ * - generateIntelligence
+ * - extractTopTailwinds
+ * - extractTopRisks
+ * @dependencies
+ * - sentiment.js: For regime classification utils.
+ * @lifecycle
+ * - Consumed by dashboard UI to show insights.
+ * @date 2026-02-03
  */
 
+// =============================
+// Imports
+// =============================
 import { classifyFundamentalScore } from './sentiment';
 
-/**
- * Inverse metrics (higher value = worse for markets)
- */
+// =============================
+// Constants
+// =============================
 const INVERSE_METRICS = [
     'npa',
     'cpi',
@@ -18,291 +34,134 @@ const INVERSE_METRICS = [
     'sovereign_risk',
 ];
 
-/**
- * Check if metric is inverse (higher = bad)
- */
+// =============================
+// Helpers
+// =============================
 function isInverseMetric(cardId) {
     return INVERSE_METRICS.includes(cardId);
 }
 
-/**
- * Get effective score (accounting for inverse metrics)
- */
 function getEffectiveScore(card) {
-    // For inverse metrics, flip the normalized score
-    // High NPA (normalized > 0) is actually bad, so we want it negative
+    // Flip score for inverse metrics (e.g., High NPA is negative)
     return isInverseMetric(card.id) ? -card.normalized : card.normalized;
 }
 
-/**
- * Calculate overall fundamental score from all cards
- */
-export function calculateOverallScore(cards) {
-    if (!cards || cards.length === 0) return 0;
-
-    let totalWeightedScore = 0;
-    let totalWeight = 0;
-
-    cards.forEach(card => {
-        // New logic: score is already card.normalized * card.creditScore
-        // We want to aggregate the raw scores
-        // But wait, the engine/index.js does the aggregation now.
-        // This function might be vestigial or used for the dashboard summary if engine didn't do it.
-        // Let's make it consistent with the engine.
-
-        // Actually, we should rely on the engine's score passed down if possible.
-        // But for safe-keeping here:
-        const weight = card.creditScore || 0.5;
-        const normalized = card.normalized || 0;
-
-        // [-1 to 1] range score
-        totalWeightedScore += normalized * weight;
-        totalWeight += weight;
-    });
-
-    const avgScore = totalWeight > 0 ? totalWeightedScore / totalWeight : 0;
-    // Map [-1, 1] to [0, 100]
-    return Math.round(((avgScore + 1) / 2) * 100);
+function getIconForMetric(metricId) {
+    const iconMap = {
+        nifty_pe: '📊', nifty_pb: '📈', earnings_yield: '💰', mcap_gdp: '🏦',
+        eps_yoy: '📈', forward_eps: '🔮', earnings_revision: '📝', sector_earnings: '🏭',
+        gdp: '🇮🇳', cpi: '🌡️', repo: '🏛️', fiscal_deficit: '💵',
+        fii: '🌍', dii: '🏠', system_liquidity: '💧', mf_flows: '👥',
+        sector_valuation: '🎯', sector_growth: '🚀', cyc_def: '⚖️',
+        corp_debt: '💳', credit_growth: '📊', policy_tailwinds: '🏛️',
+        global_growth: '🌐', crude: '🛢️', usdinr: '💱', global_liq: '🌊',
+        sovereign_risk: '⚠️', npa: '🏦', reform_momentum: '⚡',
+    };
+    return iconMap[metricId] || '📌';
 }
 
-// ... (existing determineMarketRegime)
-
-/**
- * Determine market regime based on key indicators
- */
+// =============================
+// Core Logic: Regime Calculation
+// =============================
 export function determineMarketRegime(cards) {
-    if (!cards || cards.length === 0) {
-        return {
-            regime: 'neutral',
-            label: 'Neutral',
-            color: '#fbbf24',
-            icon: '⚖️',
-            description: 'Balanced market conditions',
-        };
-    }
+    if (!cards || cards.length === 0) return createNeutralRegime();
 
-    // Key indicators for regime detection
-    const fiiCard = cards.find(c => c.id === 'fii');
-    const diiCard = cards.find(c => c.id === 'dii');
-    const vixCard = cards.find(c => c.id === 'vix');
-    const cycDefCard = cards.find(c => c.id === 'cyc_def');
-    const liquidityCard = cards.find(c => c.id === 'system_liquidity');
-
-    // Calculate regime score (-1 to 1)
+    // Key indicators focus
+    const keyIndicators = ['fii', 'dii', 'system_liquidity', 'cyc_def', 'vix'];
     let regimeScore = 0;
     let factorCount = 0;
 
-    if (fiiCard) {
-        regimeScore += fiiCard.normalized;
-        factorCount++;
-    }
+    cards.forEach(c => {
+        if (keyIndicators.includes(c.id)) {
+            // Invert VIX logic
+            const val = c.id === 'vix' ? -c.normalized : c.normalized;
+            regimeScore += val;
+            factorCount++;
+        }
+    });
 
-    if (diiCard) {
-        regimeScore += diiCard.normalized;
-        factorCount++;
-    }
+    const avg = factorCount > 0 ? regimeScore / factorCount : 0;
 
-    if (liquidityCard) {
-        regimeScore += liquidityCard.normalized;
-        factorCount++;
-    }
-
-    if (cycDefCard) {
-        regimeScore += cycDefCard.normalized;
-        factorCount++;
-    }
-
-    if (vixCard) {
-        regimeScore -= vixCard.normalized; // Inverted (high VIX = risk-off)
-        factorCount++;
-    }
-
-    const avgRegimeScore = factorCount > 0 ? regimeScore / factorCount : 0;
-
-    // Determine regime
-    if (avgRegimeScore > 0.3) {
-        return {
-            regime: 'risk-on',
-            label: 'Risk-On',
-            color: '#22c55e',
-            icon: '🚀',
-            description: 'Strong bullish momentum - favorable for equities',
-        };
-    } else if (avgRegimeScore < -0.3) {
-        return {
-            regime: 'risk-off',
-            label: 'Risk-Off',
-            color: '#ef4444',
-            icon: '⚠️',
-            description: 'Defensive positioning - caution advised',
-        };
-    } else {
-        return {
-            regime: 'neutral',
-            label: 'Neutral',
-            color: '#fbbf24',
-            icon: '⚖️',
-            description: 'Mixed signals - stock-specific opportunities',
-        };
-    }
+    if (avg > 0.3) return { regime: 'risk-on', label: 'Risk-On', color: '#22c55e', icon: '🚀', description: 'Strong bullish momentum - favorable for equities' };
+    if (avg < -0.3) return { regime: 'risk-off', label: 'Risk-Off', color: '#ef4444', icon: '⚠️', description: 'Defensive positioning - caution advised' };
+    return createNeutralRegime();
 }
 
-/**
- * Extract top tailwinds (positive factors)
- */
+function createNeutralRegime() {
+    return { regime: 'neutral', label: 'Neutral', color: '#fbbf24', icon: '⚖️', description: 'Mixed signals - stock-specific opportunities' };
+}
+
+// =============================
+// Insight Extractors
+// =============================
 export function extractTopTailwinds(cards, count = 3) {
     if (!cards || cards.length === 0) return [];
 
-    // Get cards with positive effective scores
-    const tailwindCards = cards
-        .map(card => ({
-            ...card,
-            effectiveScore: getEffectiveScore(card), // Already handles inverse flipping
-            // New pct: use the contribution score or normalized score?
-            // User likely wants to see how 'strong' the signal is. 
-            // Let's use |normalized| * creditScore as percentage contribution
-            // Or just normalized mapped to 0-100.
-            // Let's use the explicit 'score' property which is normalized * creditScore.
-            // Actually, let's just show the normalized strength scaled by reliability.
-            contributionPct: Math.abs(getEffectiveScore(card)) * (card.creditScore || 0.5) * 100
-        }))
-        .filter(c => c.effectiveScore > 0.1) // Positive threshold
-        .sort((a, b) => b.contributionPct - a.contributionPct)
-        .slice(0, count);
-
-    return tailwindCards.map(card => ({
-        id: card.id,
-        label: card.label,
-        score: card.effectiveScore,
-        creditPct: card.contributionPct, // Display this
-        icon: getIconForMetric(card.id),
-        color: '#22c55e',
-    }));
-}
-
-/**
- * Extract top risks (negative factors)
- */
-export function extractTopRisks(cards, count = 3) {
-    if (!cards || cards.length === 0) return [];
-
-    // Get cards with negative effective scores
-    const riskCards = cards
+    return cards
         .map(card => ({
             ...card,
             effectiveScore: getEffectiveScore(card),
             contributionPct: Math.abs(getEffectiveScore(card)) * (card.creditScore || 0.5) * 100
         }))
-        .filter(c => c.effectiveScore < -0.1) // Negative threshold
-        .sort((a, b) => b.contributionPct - a.contributionPct) // Sort by magnitude
-        .slice(0, count);
+        .filter(c => c.effectiveScore > 0.1)
+        .sort((a, b) => b.contributionPct - a.contributionPct)
+        .slice(0, count)
+        .map(formatInsightCard);
+}
 
-    return riskCards.map(card => ({
+export function extractTopRisks(cards, count = 3) {
+    if (!cards || cards.length === 0) return [];
+
+    return cards
+        .map(card => ({
+            ...card,
+            effectiveScore: getEffectiveScore(card),
+            contributionPct: Math.abs(getEffectiveScore(card)) * (card.creditScore || 0.5) * 100
+        }))
+        .filter(c => c.effectiveScore < -0.1)
+        .sort((a, b) => b.contributionPct - a.contributionPct)
+        .slice(0, count)
+        .map(c => ({ ...formatInsightCard(c), color: '#ef4444' }));
+}
+
+function formatInsightCard(card) {
+    return {
         id: card.id,
         label: card.label,
         score: card.effectiveScore,
-        creditPct: card.contributionPct, // Display this
+        creditPct: card.contributionPct,
         icon: getIconForMetric(card.id),
-        color: '#ef4444',
-    }));
+        color: '#22c55e',
+    };
 }
 
-/**
- * Calculate confidence score based on data freshness & completeness
- */
+// =============================
+// Confidence Scoring
+// =============================
 export function calculateConfidence(cards, dataTimestamp = Date.now()) {
     if (!cards || cards.length === 0) return 0;
-
-    // Factors affecting confidence:
-    // 1. Data completeness (% of cards with data)
-    // 2. Data freshness (how recent is the data)
-    // 3. Data quality (variance in scores)
 
     const totalCards = cards.length;
     const cardsWithData = cards.filter(c => c.raw !== null && c.raw !== undefined).length;
     const completeness = (cardsWithData / totalCards) * 100;
 
-    // Assume data is fresh if within last 24 hours
     const dataAge = Date.now() - dataTimestamp;
     const hoursOld = dataAge / (1000 * 60 * 60);
-    const freshness = Math.max(0, 100 - (hoursOld / 24) * 50); // Decay over 48 hours
+    const freshness = Math.max(0, 100 - (hoursOld / 24) * 50);
 
-    // Overall confidence
     const confidence = (completeness * 0.7 + freshness * 0.3);
-
     return Math.min(100, Math.max(0, confidence));
 }
 
-/**
- * Get icon for metric
- */
-function getIconForMetric(metricId) {
-    const iconMap = {
-        // Valuation
-        nifty_pe: '📊',
-        nifty_pb: '📈',
-        earnings_yield: '💰',
-        mcap_gdp: '🏦',
-
-        // Earnings
-        eps_yoy: '📈',
-        forward_eps: '🔮',
-        earnings_revision: '📝',
-        sector_earnings: '🏭',
-
-        // Macro
-        gdp: '🇮🇳',
-        cpi: '🌡️',
-        repo: '🏛️',
-        fiscal_deficit: '💵',
-
-        // Liquidity
-        fii: '🌍',
-        dii: '🏠',
-        system_liquidity: '💧',
-        mf_flows: '👥',
-
-        // Sector
-        sector_valuation: '🎯',
-        sector_growth: '🚀',
-        cyc_def: '⚖️',
-
-        // Corporate
-        corp_debt: '💳',
-        credit_growth: '📊',
-        policy_tailwinds: '🏛️',
-
-        // Global
-        global_growth: '🌐',
-        crude: '🛢️',
-        usdinr: '💱',
-        global_liq: '🌊',
-
-        // Risk
-        sovereign_risk: '⚠️',
-        npa: '🏦',
-        reform_momentum: '⚡',
-    };
-
-    return iconMap[metricId] || '📌';
-}
-
-/**
- * Generate market intelligence summary
- */
+// =============================
+// Main Export
+// =============================
 export function generateIntelligence(cards) {
-    const overallScore = calculateOverallScore(cards);
-    const regime = determineMarketRegime(cards);
-    const tailwinds = extractTopTailwinds(cards);
-    const risks = extractTopRisks(cards);
-    const confidence = calculateConfidence(cards);
-
     return {
-        overallScore,
-        regime,
-        tailwinds,
-        risks,
-        confidence,
+        regime: determineMarketRegime(cards),
+        tailwinds: extractTopTailwinds(cards),
+        risks: extractTopRisks(cards),
+        confidence: calculateConfidence(cards),
         timestamp: Date.now(),
     };
 }

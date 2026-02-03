@@ -1,5 +1,27 @@
+/**
+ * @file PerformanceAnalytics.jsx
+ * @purpose Visualization of trading performance metrics (Expectancy, Profit Factor).
+ * @responsibilities
+ * - Displays high-level system viability stats.
+ * - Shows strategy-specific performance breakdowns.
+ * - Uses responsive cards for data presentation.
+ * @key_exports
+ * - PerformanceAnalytics (Default Component)
+ * @dependencies
+ * - lucide-react (Icons)
+ * @lifecycle
+ * - Rendered by JournalPage (Sidebar).
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
-import { TrendingUp, Activity, BarChart2 } from "lucide-react";
+
+// =============================
+// Main Component
+// =============================
 
 export default function PerformanceAnalytics({ analytics }) {
     if (!analytics) return null;

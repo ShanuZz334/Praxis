@@ -1,5 +1,28 @@
+/**
+ * @file OptionsPage.jsx
+ * @purpose Main entry point for the Options Analytics Dashboard.
+ * @responsibilities
+ * - Orchestrates data flow using the simulators and engines.
+ * - Computes top-level composite scores (Positioning, Regime).
+ * - Manages view states (Grid vs List, Searching, Sorting).
+ * - Renders the `GlobalHeader`, `OptionsChainLayout`, `OptionsGrid`, and `OptionsModal`.
+ * @key_exports
+ * - OptionsPage (Default Component)
+ * @dependencies
+ * - GlobalHeader: Top-level metrics.
+ * - OptionsChainLayout: Chain visualization.
+ * - OptionsGrid: Card grid.
+ * - optionsSimulator: Data source.
+ * - optionsHelper: Calculation logic.
+ * @lifecycle
+ * - Route target for "/dashboard/options".
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useState, useMemo } from "react";
-// import OptionsHeader from "./OptionsHeader"; DEPRECATED
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import OptionsGrid from "./OptionsGrid";
 import OptionsModal from "./OptionsModal";
@@ -14,33 +37,37 @@ import {
     optionsSections
 } from "@/features/dashboard/options/engine/optionsHelper";
 
+// =============================
+// Main Component
+// =============================
 export default function OptionsPage() {
+    // State
     const [selectedCard, setSelectedCard] = useState(null);
     const [viewMode, setViewMode] = useState("sectioned");
     const [sortMode, setSortMode] = useState("score_desc");
     const [searchQuery, setSearchQuery] = useState("");
 
-    // 1. GENERATE DATA (Real-time Simulation)
+    // 1. Data Generation (Simulation)
     const { cards, metrics, chain } = useMemo(() => generateOptionsDashboardData(), []);
 
-    // 2. FILTERING LOGIC
+    // 2. Filtering Logic (Search)
     const filteredCards = useMemo(() => {
         if (!searchQuery) return cards;
         const lower = searchQuery.toLowerCase();
         return cards.filter(c => c.label.toLowerCase().includes(lower));
     }, [cards, searchQuery]);
 
-    // 3. COMPOSITE SCORE (Detailed)
+    // 3. Composite Score Calculation
     const positioning = useMemo(() => calculatePositioningScore(metrics), [metrics]);
     const score = positioning.score;
 
-    // 4. GLOBAL HEADER ADAPTERS
+    // 4. Metric Extraction for Header
     const regime = useMemo(() => getOptionsRegime(score, metrics), [score, metrics]);
     const tailwinds = useMemo(() => extractOptionsTailwinds(cards).map(t => ({ ...t, value: Math.round(t.score * 100) })), [cards]);
     const risks = useMemo(() => extractOptionsRisks(cards).map(r => ({ ...r, value: Math.round(Math.abs(r.score) * 100) })), [cards]);
 
+    // 5. Section Scoring
     const globalSections = useMemo(() => {
-        // Calculate Section Scores based on Cards
         return optionsSections.map(sec => {
             const secCards = cards.filter(c => c.category === sec.id);
             if (!secCards.length) return { ...sec, normalizedScore: 0, rawScore: 0 };
@@ -51,20 +78,19 @@ export default function OptionsPage() {
             return {
                 id: sec.id,
                 label: sec.label.substring(0, 3).toUpperCase(),
-                normalizedScore: Math.round(((avg + 1) / 2) * 100),
+                normalizedScore: Math.round(((avg + 1) / 2) * 100), // Map -1..1 to 0..100 roughly
                 rawScore: avg
             };
         });
     }, [cards]);
 
-
-    // 5. ADVANCED PICKS
+    // 6. Strategy Picks
     const picks = useMemo(() => getAdvancedTopPicks(chain, metrics.spot), [chain, metrics.spot]);
 
     return (
         <div className="p-4 md:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">
 
-            {/* HEADER */}
+            {/* Global Header (Unified Dashboard Style) */}
             <GlobalHeader
                 title="Options Sentiment"
                 score={score}
@@ -76,10 +102,12 @@ export default function OptionsPage() {
                 tailwinds={tailwinds}
                 risks={risks}
 
-                // CREDIT SYSTEM INTEGRATION
+                // Credit System
                 totalCredits={TOTAL_OPTIONS_CREDITS}
-                cards={filteredCards} // Pass cards for Signal Integrity calculation
+                cards={filteredCards}
+                creditLabel="Greeks"
 
+                // Controls
                 controls={{
                     search: searchQuery,
                     onSearchChange: setSearchQuery,
@@ -106,10 +134,10 @@ export default function OptionsPage() {
                 manualLink="/dashboard/manual/options"
             />
 
-            {/* VISUAL SPACER */}
+            {/* Divider */}
             <div className="w-full h-px bg-white/5" />
 
-            {/* OPTIONS CHAIN TABLE */}
+            {/* Deep Dive: Chain Layout */}
             <OptionsChainLayout
                 chain={chain}
                 picks={picks}
@@ -117,7 +145,7 @@ export default function OptionsPage() {
                 metrics={metrics}
             />
 
-            {/* GRID */}
+            {/* Metrics Grid */}
             <OptionsGrid
                 cards={filteredCards}
                 onCardClick={setSelectedCard}
@@ -125,7 +153,7 @@ export default function OptionsPage() {
                 sortMode={sortMode}
             />
 
-            {/* MODAL */}
+            {/* Detail Modal */}
             <OptionsModal
                 open={!!selectedCard}
                 onClose={() => setSelectedCard(null)}

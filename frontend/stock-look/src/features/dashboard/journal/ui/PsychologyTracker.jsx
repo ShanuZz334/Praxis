@@ -1,5 +1,50 @@
+/**
+ * @file PsychologyTracker.jsx
+ * @purpose Monitors and displays emotional state metrics.
+ * @responsibilities
+ * - Visualizes emotional heatmap (Calm vs Rushed/Frustrated).
+ * - Tracks rule adherence percentage.
+ * - Provides behavioral feedback.
+ * @key_exports
+ * - PsychologyTracker (Default Component)
+ * @dependencies
+ * - None
+ * @lifecycle
+ * - Rendered by JournalPage (Sidebar).
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
-import { Brain } from "lucide-react";
+
+// =============================
+// Helper Components
+// =============================
+
+function EmotionBar({ label, value, total, color }) {
+    const pct = Math.round((value / total) * 100) || 0;
+
+    return (
+        <div>
+            <div className="flex justify-between items-end mb-1">
+                <span className="text-[10px] font-bold text-text-secondary uppercase">{label}</span>
+                <span className="text-[10px] font-mono font-bold text-text-primary">{value}</span>
+            </div>
+            <div className="h-2 w-full bg-background-surface/50 border border-border-subtle rounded-full overflow-hidden">
+                <div
+                    className={`h-full rounded-full opacity-100 ${color}`}
+                    style={{ width: `${pct}%` }}
+                />
+            </div>
+        </div>
+    );
+}
+
+// =============================
+// Main Component
+// =============================
 
 export default function PsychologyTracker({ psychology }) {
     if (!psychology) return null;
@@ -26,25 +71,6 @@ export default function PsychologyTracker({ psychology }) {
                 <div className="mt-4 pt-3 border-t border-border-default text-center">
                     <div className="text-[10px] text-text-secondary italic uppercase tracking-widest font-medium opacity-80">"Good process requires a calm state."</div>
                 </div>
-            </div>
-        </div>
-    );
-}
-
-function EmotionBar({ label, value, total, color }) {
-    const pct = Math.round((value / total) * 100) || 0;
-
-    return (
-        <div>
-            <div className="flex justify-between items-end mb-1">
-                <span className="text-[10px] font-bold text-text-secondary uppercase">{label}</span>
-                <span className="text-[10px] font-mono font-bold text-text-primary">{value}</span>
-            </div>
-            <div className="h-2 w-full bg-background-surface/50 border border-border-subtle rounded-full overflow-hidden">
-                <div
-                    className={`h-full rounded-full opacity-100 ${color}`}
-                    style={{ width: `${pct}%` }}
-                />
             </div>
         </div>
     );

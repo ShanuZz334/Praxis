@@ -1,5 +1,31 @@
+/**
+ * @file tailwind.config.js
+ * @purpose Tailwind CSS configuration for the Stocky application.
+ * @responsibilities
+ * - Extends Tailwind with custom color tokens from CSS variables.
+ * - Configures dark mode class strategy.
+ * - Defines custom font families and box shadows.
+ * - Integrates with global palette and font definitions.
+ * @key_exports
+ * - Tailwind configuration object (default export)
+ * @dependencies
+ * - ./src/shared/global/styles/palette.js - Color palette
+ * - ./src/shared/global/styles/fonts.js - Font definitions
+ * @lifecycle
+ * - Loaded by Tailwind CSS during build and development.
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
+
 import { colors as paletteColors } from "./src/shared/global/styles/palette.js";
 import { fonts } from "./src/shared/global/styles/fonts.js";
+
+// =============================
+// Tailwind Configuration
+// =============================
 
 export default {
   darkMode: "class",
@@ -23,18 +49,13 @@ export default {
           primary: "var(--text-primary)",
           secondary: "var(--text-secondary)",
           tertiary: "var(--text-tertiary)",
+          brand: "var(--text-brand)",
         },
         border: {
           default: "var(--border-default)",
           subtle: "var(--border-subtle)",
-          hover: "var(--border-hover)",      // Override palette
-          active: "var(--border-active)",    // Override palette
-        },
-        text: {
-          primary: "var(--text-primary)",
-          secondary: "var(--text-secondary)",
-          tertiary: "var(--text-tertiary)",
-          brand: "var(--text-brand)",        // Override palette
+          hover: "var(--border-hover)",
+          active: "var(--border-active)",
         },
         state: {
           bullish: {
@@ -53,9 +74,9 @@ export default {
             text: "var(--state-neutral-text)",
           },
           warning: {
-            main: "var(--state-warning-main)",       // Override
-            surface: "var(--state-warning-surface)", // Override
-            text: "var(--state-warning-text)",       // Override
+            main: "var(--state-warning-main)",
+            surface: "var(--state-warning-surface)",
+            text: "var(--state-warning-text)",
           },
         },
         reliability: {

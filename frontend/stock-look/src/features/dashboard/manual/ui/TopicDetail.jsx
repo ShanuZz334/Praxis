@@ -1,5 +1,28 @@
+/**
+ * @file TopicDetail.jsx
+ * @purpose Renders the full details of a selected manual topic.
+ * @responsibilities
+ * - Displays title, description, and market alpha (insights).
+ * - Shows calculation formulas and model weights.
+ * - Provides detailed interpretation frameworks.
+ * @key_exports
+ * - TopicDetail (Default Component)
+ * @dependencies
+ * - React, lucide-react (Icons)
+ * @lifecycle
+ * - Rendered by ManualSectionLayout (Right Pane).
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
-import { Info, Calculator, Scale, BookOpen, Lightbulb, Activity, ArrowRight } from "lucide-react";
+import { Calculator, Scale, BookOpen, Lightbulb, Activity } from "lucide-react";
+
+// =============================
+// Main Component
+// =============================
 
 export default function TopicDetail({ topic }) {
     if (!topic) {
@@ -16,11 +39,11 @@ export default function TopicDetail({ topic }) {
 
             {/* 1. HERO HEADER */}
             <div className="mb-6 md:mb-8 relative group">
-                <div className="absolute -left-4 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-transparent opacity-50 rounded-full" />
-                <h2 className="text-2xl md:text-4xl font-bold text-text-primary mb-2 md:mb-3 tracking-tight group-hover:text-blue-500 transition-colors">
+                <div className="absolute -left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-transparent opacity-50 rounded-full" />
+                <h2 className="text-2xl md:text-3xl font-bold text-text-primary mb-2 md:mb-3 tracking-tight group-hover:text-blue-500 transition-colors">
                     {topic.title}
                 </h2>
-                <div className="text-sm md:text-lg text-text-secondary leading-relaxed font-light">
+                <div className="text-sm md:text-base text-text-secondary leading-relaxed font-light">
                     {topic.description}
                 </div>
             </div>
@@ -28,12 +51,12 @@ export default function TopicDetail({ topic }) {
             <div className="space-y-6">
 
                 {/* 2. CORE INTERPRETATION CARD */}
-                <div className="bg-background-elevated border border-border-default rounded-xl overflow-hidden shadow-2xl">
-                    <div className="bg-background-surface border-b border-border-default p-4 flex items-center gap-2">
+                <div className="bg-background-elevated border border-border-default rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                    <div className="bg-background-surface border-b border-border-default p-3 md:p-4 flex items-center gap-2">
                         <BookOpen size={16} className="text-text-tertiary" />
                         <span className="text-xs font-bold text-text-tertiary uppercase tracking-widest">Interpretation Framework</span>
                     </div>
-                    <div className="p-6">
+                    <div className="p-4 md:p-6">
                         <div className="prose prose-slate dark:prose-invert max-w-none text-text-secondary dark:text-text-tertiary text-sm leading-7">
                             {topic.interpretation}
                         </div>
@@ -43,7 +66,7 @@ export default function TopicDetail({ topic }) {
                 {/* 3. MARKET ALPHA (INSIGHT) */}
                 <div className="relative overflow-hidden rounded-xl border border-amber-500/20 bg-amber-500/[0.03] dark:bg-amber-500/5 p-6 group transition-all hover:bg-amber-500/[0.05] dark:hover:bg-amber-500/10">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Lightbulb size={120} className="text-amber-500" />
+                        <Lightbulb size={100} className="text-amber-500" />
                     </div>
 
                     <div className="relative z-10">
@@ -58,15 +81,15 @@ export default function TopicDetail({ topic }) {
                 </div>
 
                 {/* 4. TECHNICAL SPECS GRID */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     {/* Calculation */}
                     <div className="bg-background-elevated border border-border-default rounded-xl p-5 flex flex-col hover:border-blue-500/30 transition-colors group">
                         <div className="flex items-center gap-2 mb-4 text-text-secondary dark:text-text-tertiary group-hover:text-blue-500 transition-colors">
                             <Calculator size={16} />
                             <span className="text-xs font-bold uppercase tracking-widest">Formula</span>
                         </div>
-                        <div className="mt-auto bg-background-card rounded-lg p-3 border border-border-default">
-                            <code className="text-xs font-mono text-text-tertiary break-words">
+                        <div className="mt-auto bg-background-card rounded-lg p-3 border border-border-default break-all">
+                            <code className="text-xs font-mono text-text-tertiary">
                                 {topic.calculation || "N/A"}
                             </code>
                         </div>
@@ -90,7 +113,7 @@ export default function TopicDetail({ topic }) {
                 </div>
 
                 {/* 5. FOOTER META */}
-                <div className="flex items-center gap-2 pt-6 border-t border-border-default text-xs text-text-secondary dark:text-text-tertiary font-mono uppercase tracking-tight">
+                <div className="flex items-center gap-2 pt-6 border-t border-border-default text-xs text-text-secondary dark:text-text-tertiary font-mono uppercase tracking-tight opacity-50">
                     <Activity size={12} />
                     <span>System ID: {topic.id}</span>
                 </div>

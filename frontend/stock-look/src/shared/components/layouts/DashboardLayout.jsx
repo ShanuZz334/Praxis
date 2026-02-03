@@ -1,3 +1,25 @@
+/**
+ * @file DashboardLayout.jsx
+ * @purpose Main application shell for the authenticated dashboard.
+ * @responsibilities
+ * - Manages the responsive sidebar and top navbar.
+ * - Handles viewport-specific layout adjustments (Mobile Drawer vs Desktop Sidebar).
+ * - Renders global background visual effects based on theme.
+ * - Wraps all dashboard feature routes.
+ * @key_exports
+ * - DashboardLayout (Default)
+ * @dependencies
+ * - Navbar, SideMenu, MobileHeader (Layout Components)
+ * - UserContext, ThemeContext (Global State)
+ * @lifecycle
+ * - Parent route for all /dashboard/* paths.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React, { useState, useContext, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
@@ -8,10 +30,18 @@ import DashboardRoutes from "@/features/dashboard/routes/DashboardRoutes";
 import { UserContext } from "@/shared/context/UserContext";
 import { useTheme } from "@/shared/context/ThemeContext";
 
+// =============================
+// Constants
+// =============================
+
 const COLLAPSED_WIDTH = 64;
 const EXPANDED_WIDTH = 200;
 const NAVBAR_HEIGHT = 73;
-const MOBILE_HEADER_HEIGHT = 72; // h-18 = 18 * 4px = 72px
+const MOBILE_HEADER_HEIGHT = 72;
+
+// =============================
+// Component
+// =============================
 
 const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(true);

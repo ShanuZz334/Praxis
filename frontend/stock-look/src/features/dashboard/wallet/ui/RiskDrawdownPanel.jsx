@@ -1,3 +1,18 @@
+/**
+ * @file RiskDrawdownPanel.jsx
+ * @purpose Advanced drawdown monitoring and risk protocol visualization.
+ * @responsibilities
+ * - Visualizes drawdown with a ring chart and critical zones.
+ * - Lists active risk protocols and their status (Armed/Triggered).
+ * @key_exports
+ * - RiskDrawdownPanel (Default)
+ * @dependencies
+ * - Lucide React
+ * @lifecycle
+ * - Rendered by WalletPage (Future/Expanded).
+ * @date 2026-02-03
+ */
+
 import React from "react";
 import { ShieldAlert, AlertTriangle, CheckCircle, Lock } from "lucide-react";
 

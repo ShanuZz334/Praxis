@@ -1,36 +1,55 @@
+/**
+ * @file FundamentalGrid.jsx
+ * @purpose Renders the grid of Fundamental Cards, supporting multiple view modes.
+ * @responsibilities
+ * - Supports 'Flat' view (all cards ranked) and 'Sectioned' view (categorized).
+ * - Handles complex sorting logic (Strongest/Weakest/Reliability).
+ * - Provides category navigation for Mobile.
+ * @key_exports
+ * - FundamentalGrid (Default Component)
+ * @dependencies
+ * - FundamentalCard: Metric display.
+ * - fundamentalData: For section definitions.
+ * @lifecycle
+ * - Rendered in FundamentalPage.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useMemo } from 'react';
 import FundamentalCard from './FundamentalCard';
 import { FUNDAMENTAL_SECTIONS } from '../data/fundamentalData';
 
+// =============================
+// Main Component
+// =============================
 export default function FundamentalGrid({ cards, viewMode, sortMode = "score_desc", onCardClick }) {
 
-  // --- Sorting Logic ---
+  // --- Logic: Sorting ---
   const sortCards = (list) => {
     const arr = [...list];
     switch (sortMode) {
-      case 'score_desc': // Strongest (Bullish) descending
+      case 'score_desc':
         return arr.sort((a, b) => (b.normalized || 0) - (a.normalized || 0));
-      case 'score_asc': // Weakest (Bearish) ascending (most negative first)
+      case 'score_asc':
         return arr.sort((a, b) => (a.normalized || 0) - (b.normalized || 0));
-      case 'rel_desc': // High Credit
+      case 'rel_desc':
         return arr.sort((a, b) => (b.creditAllocation || 0) - (a.creditAllocation || 0));
-      case 'rel_asc': // Low Credit
+      case 'rel_asc':
         return arr.sort((a, b) => (a.creditAllocation || 0) - (b.creditAllocation || 0));
       default:
         return arr;
     }
   };
 
-  // Group cards by section for "Sectioned" view
+  // --- Logic: Grouping ---
   const sections = useMemo(() => {
     if (viewMode !== 'sectioned') return null;
 
-    // Initialize groups based on constant order
     const groups = {};
-    FUNDAMENTAL_SECTIONS.forEach(sec => {
-      groups[sec.id] = [];
-    });
-    // Add "Other" fallback
+    FUNDAMENTAL_SECTIONS.forEach(sec => { groups[sec.id] = []; });
     groups['Other'] = [];
 
     cards.forEach(card => {
@@ -43,7 +62,7 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
   }, [cards, viewMode]);
 
   /* ------------------------------------------------------------
-     RENDER: FLAT VIEW
+     FLAT VIEW
      ------------------------------------------------------------ */
   if (viewMode === 'flat') {
     const sortedFlat = sortCards(cards);
@@ -66,11 +85,12 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
   }
 
   /* ------------------------------------------------------------
-     RENDER: SECTIONED VIEW
+     SECTIONED VIEW
      ------------------------------------------------------------ */
   return (
     <div className="space-y-6">
-      {/* Category Navigator (Mobile/Tablet Only) */}
+
+      {/* Mobile/Tablet Navigator */}
       {viewMode === "sectioned" && (
         <div className="lg:hidden flex overflow-x-auto gap-2 pb-2 -mx-1 px-1 custom-scrollbar-hidden sticky top-0 bg-background-app/80 backdrop-blur-md z-30 py-3">
           {FUNDAMENTAL_SECTIONS.map(section => {
@@ -91,6 +111,7 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
         </div>
       )}
 
+      {/* Sections Map */}
       <div className="space-y-6 md:space-y-12">
         {FUNDAMENTAL_SECTIONS.map(section => {
           const rawList = sections[section.id];
@@ -100,7 +121,7 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
 
           return (
             <div key={section.id} id={`section-${section.id}`} className="animate-in fade-in slide-in-from-bottom-4 duration-500 scroll-mt-20">
-              {/* Section Header */}
+              {/* Header */}
               <div className="flex items-center justify-center gap-4 mb-3 md:mb-6">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-bold text-text-primary uppercase tracking-widest">{section.label}</span>
@@ -110,7 +131,7 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
                 </div>
               </div>
 
-              {/* Grid */}
+              {/* Card Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 md:gap-4">
                 {sectionCards.map(card => (
                   <FundamentalCard

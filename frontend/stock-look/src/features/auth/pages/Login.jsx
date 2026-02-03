@@ -1,3 +1,27 @@
+/**
+ * @file Login.jsx
+ * @purpose Primary user authentication portal for existing account access.
+ * @responsibilities
+ * - Captures and validates user credentials (email, password).
+ * - Interfaces with the backend auth API for session creation.
+ * - Updates global user context upon successful authentication.
+ * - Manages local UI states (loading, errors, input data).
+ * @key_exports
+ * - Login (Default): Secondary navigation target for authentication.
+ * @dependencies
+ * - axiosInstance: Pre-configured API client.
+ * - UserContext: For updating global session state.
+ * - API_PATHS: Centralized endpoint registry.
+ * - validateEmail: Utility for RFC-compliant email validation.
+ * @lifecycle
+ * - Rendered by AppRoutes within AuthLayout.
+ * - Transitions to Dashboard upon successful login.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -5,19 +29,30 @@ import axiosInstance from "@/shared/utils/axiosInstance";
 import { API_PATHS } from "@/shared/utils/apiPaths";
 import { UserContext } from "@/shared/context/UserContext";
 import { validateEmail } from "@/shared/utils/helper";
-
 import Loader from "@/shared/components/ui/Loader";
 
+// =============================
+// Main Component
+// =============================
 const Login = () => {
+  // -----------------------------
+  // State & Context
+  // -----------------------------
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-
   const [isLoading, setIsLoading] = useState(false);
 
   const { updateUser } = useContext(UserContext);
   const navigate = useNavigate();
 
+  // -----------------------------
+  // Event Handlers
+  // -----------------------------
+  /**
+   * handleLogin
+   * Processes the submission of the login form.
+   */
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -40,10 +75,7 @@ const Login = () => {
       });
 
       const { user, token } = res.data;
-
-      // Single source of truth → context
       updateUser(user, token);
-
       navigate("/dashboard/home");
     } catch (err) {
       setError(
@@ -55,6 +87,9 @@ const Login = () => {
     }
   };
 
+  // -----------------------------
+  // Component UI
+  // -----------------------------
   return (
     <div className="w-full max-w-[335px] md:max-w-md mx-auto p-2 md:p-0">
       <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
@@ -65,7 +100,7 @@ const Login = () => {
       </p>
 
       <form onSubmit={handleLogin} className="space-y-3 md:space-y-3">
-        {/* Email */}
+        {/* Email Section */}
         <div>
           <label className="text-xs text-white/70 block mb-2">
             Email
@@ -81,7 +116,7 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Password */}
+        {/* Password Section */}
         <div>
           <label className="text-xs text-white/70 block mb-2">
             Password
@@ -101,6 +136,7 @@ const Login = () => {
           <p className="text-red-400 text-sm">{error}</p>
         )}
 
+        {/* Action Section */}
         <button
           type="submit"
           disabled={isLoading}
@@ -128,4 +164,7 @@ const Login = () => {
   );
 };
 
+// =============================
+// Exports
+// =============================
 export default Login;

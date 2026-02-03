@@ -1,13 +1,30 @@
+/**
+ * @file SectorEarningsMatrix.jsx
+ * @purpose Grid visualization of sector earnings quality and momentum.
+ * @responsibilities
+ * - Renders a matrix of sector cards sorted by Sector Score.
+ * - Color-cases sectors based on earnings strength (Green to Red).
+ * - Displays key metrics (YoY Growth, Index Contrib, Revision Trend).
+ * @key_exports
+ * - SectorEarningsMatrix (Default)
+ * @dependencies
+ * - framer-motion
+ * @lifecycle
+ * - Replaces Valuations Heatmap for "Earnings Strength" view.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
+
 import React from 'react';
 import { motion } from 'framer-motion';
 
-/**
- * SectorEarningsMatrix
- * Visualizes Sector Earnings Strength using a scored grid.
- * 
- * Replaces generic Valuation Heatmap for the "Sector Earnings Strength" card.
- * Focuses on Earnings Growth, Contribution, and Revision Momentum.
- */
+// =============================
+// Component
+// =============================
+
 export default function SectorEarningsMatrix({
     sectors = [],
     height = 400,

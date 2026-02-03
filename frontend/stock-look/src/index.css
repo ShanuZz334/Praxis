@@ -1,16 +1,36 @@
-/* =========================================================
-   STOCKY – GLOBAL STYLESHEET (PREMIUM)
-========================================================= */
+/**
+ * @file index.css
+ * @purpose Global stylesheet for the Stocky application.
+ * @responsibilities
+ * - Defines CSS custom properties for light and dark themes.
+ * - Provides base resets and typography configuration.
+ * - Implements premium scrollbar styling.
+ * - Defines gradient border utilities for cards.
+ * - Provides background VFX animations for visual effects.
+ * @key_exports
+ * - CSS custom properties (--bg-*, --text-*, --border-*, --state-*)
+ * - Animation classes (.animate-float-*, .animate-pulse-slow, .animate-drift)
+ * - Utility classes (.card-gradient-border, .no-scrollbar)
+ * @dependencies
+ * - Google Fonts (Inter, Rancho)
+ * - Tailwind CSS
+ * - tw-animate-css
+ * @lifecycle
+ * - Loaded as the root stylesheet in main.jsx.
+ * @date 2026-02-04
+ */
 
-/* ------------------------------
-   FONTS
--------------------------------- */
+/* =============================
+   Font Imports
+   ============================= */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import url("https://fonts.googleapis.com/css2?family=Rancho&display=swap");
 
-/* ------------------------------
-   TAILWIND
--------------------------------- */
+/* =============================
+   Tailwind CSS
+   ============================= */
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -23,9 +43,10 @@
   --color-background-tooltip: var(--bg-tooltip);
 }
 
-/* =========================================================
-   DARK MODE DEFAULT (BASE)
-========================================================= */
+/* =============================
+   Dark Mode Theme Variables
+   ============================= */
+
 :root,
 .dark,
 [data-theme="dark"],
@@ -34,30 +55,26 @@ html[data-theme="dark"] {
   --font-primary: "Inter", system-ui, sans-serif;
   --font-brand: "Rancho", cursive;
 
-  /* Backgrounds */
   --bg-app: #02050e;
   --bg-card: #0b1220;
-  /* Reduced darkness for better contrast */
   --bg-card-primary: #0b1220;
   --bg-card-secondary: #0b1220;
-  /* Match Tooltip (Flattened) */
   --bg-surface: rgba(255, 255, 255, 0.02);
   --bg-elevated: #0b1220;
-  /* Match Tooltip (Flattened) */
   --bg-tooltip: #0b1220;
 
-  /* Borders — 1px, ULTRA FADED (Matching Header) */
   --border-default: rgba(255, 255, 255, 0.15);
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-subtle-translucent: rgba(255, 255, 255, 0.12);
   --border-subtle-faint: rgba(255, 255, 255, 0.05);
+  --border-hover: rgba(255, 255, 255, 0.10);
+  --border-active: rgba(59, 130, 246, 0.5);
 
-  /* Text */
   --text-primary: rgba(255, 255, 255, 0.9);
   --text-secondary: rgba(255, 255, 255, 0.6);
   --text-tertiary: rgba(255, 255, 255, 0.4);
+  --text-brand: #60a5fa;
 
-  /* States */
   --state-bullish-main: #10b981;
   --state-bullish-surface: rgba(16, 185, 129, 0.1);
   --state-bullish-text: #34d399;
@@ -70,17 +87,6 @@ html[data-theme="dark"] {
   --state-neutral-surface: rgba(100, 116, 139, 0.1);
   --state-neutral-text: #e2e8f0;
 
-  /* Accent */
-  --accent-primary: #3b82f6;
-  --accent-glow: rgba(59, 130, 246, 0.4);
-
-  /* Shadows */
-  /* New Strict Tokens */
-  --border-hover: rgba(255, 255, 255, 0.10);
-  --border-active: rgba(59, 130, 246, 0.5);
-
-  --text-brand: #60a5fa;
-
   --state-warning-main: #f59e0b;
   --state-warning-surface: rgba(245, 158, 11, 0.1);
   --state-warning-text: #fbbf24;
@@ -89,17 +95,20 @@ html[data-theme="dark"] {
   --reliability-med: #facc15;
   --reliability-low: #94a3b8;
 
+  --accent-primary: #3b82f6;
+  --accent-glow: rgba(59, 130, 246, 0.4);
+
   --scrollbar-thumb: rgba(255, 255, 255, 0.15);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+
   --shadow-card-3d-hover: 0 8px 30px rgba(30, 27, 255, 0.3);
-  /* Dual-Colored Hover (Blue Left, Violet Right) -- REFINED INTENSITY */
   --shadow-card-gradient-hover: -5px 10px 30px rgba(59, 130, 246, 0.15), 5px 10px 30px rgba(139, 92, 246, 0.15);
 }
 
-/* =========================================================
-   LIGHT MODE (LOCKED – DO NOT CHANGE)
-========================================================= */
+/* =============================
+   Light Mode Theme Variables
+   ============================= */
+
 [data-theme="light"],
 html[data-theme="light"],
 .light {
@@ -110,25 +119,18 @@ html[data-theme="light"],
   --bg-surface: transparent;
   --bg-elevated: transparent;
   --bg-tooltip: #ffffff;
-  /* Faded White */
 
-  /* Darkened for visibility (PITCH BLACK per user request) */
   --border-default: #000000;
   --border-subtle: #000000;
   --border-subtle-translucent: rgba(0, 0, 0, 0.2);
   --border-subtle-faint: rgba(0, 0, 0, 0.1);
-
-  /* New Strict Tokens (Light Mode Overrides) */
   --border-hover: #334155;
-  /* slate-300 */
   --border-active: #3B82F6;
-  /* blue-500 */
 
   --text-primary: #0F172A;
   --text-secondary: #475569;
   --text-tertiary: #64748B;
   --text-brand: #2563EB;
-  /* blue-600 */
 
   --state-bullish-main: #16A34A;
   --state-bullish-surface: rgba(22, 163, 74, 0.1);
@@ -143,32 +145,26 @@ html[data-theme="light"],
   --state-neutral-text: #334155;
 
   --state-warning-main: #D97706;
-  /* amber-600 */
   --state-warning-surface: #FEF3C7;
-  /* amber-100 */
   --state-warning-text: #B45309;
-  /* amber-700 */
 
   --reliability-high: #059669;
-  /* emerald-600 */
   --reliability-med: #D97706;
-  /* amber-600 */
   --reliability-low: #64748B;
-  /* slate-500 */
 
   --accent-primary: #2563EB;
   --accent-glow: rgba(37, 99, 235, 0.2);
 
   --scrollbar-thumb: #94a3b8;
-  /* slate-400 */
   --scrollbar-thumb-hover: #64748b;
-  /* slate-500 */
+
   --shadow-card-3d-hover: 0 25px 50px rgba(0, 0, 0, 0.25);
 }
 
-/* =========================================================
-   BASE RESET
-========================================================= */
+/* =============================
+   Base Reset
+   ============================= */
+
 *,
 *::before,
 *::after {
@@ -186,9 +182,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ------------------------------
-   SCROLLBARS (Premium)
--------------------------------- */
+/* =============================
+   Scrollbar Styling
+   ============================= */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -212,10 +209,10 @@ body {
   scrollbar-width: none;
 }
 
-/* --------------------------------
-   CUSTOM UTILITIES
--------------------------------- */
-/* Gradient Border (Dark Mode Only) */
+/* =============================
+   Gradient Border Utility
+   ============================= */
+
 .dark .card-gradient-border {
   border: 1px solid transparent;
   background:
@@ -225,18 +222,15 @@ body {
   background-clip: padding-box, border-box;
 }
 
-/* Light Mode Fallback (Just standard border) */
 .light .card-gradient-border {
   border: 1px solid var(--border-default);
   background: transparent;
 }
 
+/* =============================
+   Background VFX Animations
+   ============================= */
 
-/* ------------------------------
-   PREMIUM BACKGROUND VFX ANIMATIONS
--------------------------------- */
-
-/* Slow floating animation - 20s cycle */
 @keyframes float-slow {
 
   0%,
@@ -253,7 +247,6 @@ body {
   }
 }
 
-/* Delayed floating - 25s cycle with offset */
 @keyframes float-delayed {
 
   0%,
@@ -274,7 +267,6 @@ body {
   }
 }
 
-/* Reverse floating - 22s cycle */
 @keyframes float-reverse {
 
   0%,
@@ -291,7 +283,6 @@ body {
   }
 }
 
-/* Medium speed float - 18s cycle */
 @keyframes float-medium {
 
   0%,
@@ -304,7 +295,6 @@ body {
   }
 }
 
-/* Fast subtle float - 15s cycle */
 @keyframes float-fast {
 
   0%,
@@ -317,7 +307,6 @@ body {
   }
 }
 
-/* Slow pulse - 8s cycle */
 @keyframes pulse-slow {
 
   0%,
@@ -332,7 +321,6 @@ body {
   }
 }
 
-/* Drift animation - 30s cycle */
 @keyframes drift {
 
   0%,
@@ -353,7 +341,6 @@ body {
   }
 }
 
-/* Apply animations */
 .animate-float-slow {
   animation: float-slow 20s ease-in-out infinite;
 }

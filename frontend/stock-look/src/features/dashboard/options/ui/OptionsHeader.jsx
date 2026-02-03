@@ -1,35 +1,55 @@
+/**
+ * @file OptionsHeader.jsx
+ * @purpose Main Dashboard Header for the Options Module.
+ * @responsibilities
+ * - Unified visualization of the composite "Positioning Score".
+ * - Displays the current Options Market Regime (Gamma/IV environment).
+ * - Highlights Data Integrity and Next Expiry details.
+ * - Extracts and visualizes top "Tailwinds" (Bullish Factors) and "Risks" (Bearish Factors).
+ * @key_exports
+ * - OptionsHeader (Default Component)
+ * @dependencies
+ * - OptionsGauge: Visualization component.
+ * - optionsHelper: Logic for regime and insight extraction.
+ * - PortalTooltip: For context menus.
+ * @lifecycle
+ * - Rendered by OptionsPage.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import CardSegmented from "@/shared/components/controls/CardSegmented";
 import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 import OptionsGauge from "./OptionsGauge";
 import { getOptionsRegime, extractOptionsTailwinds, extractOptionsRisks } from "@/features/dashboard/options/engine/optionsHelper";
 
+// =============================
+// Main Component
+// =============================
 export default function OptionsHeader({
     scoreData, // { score, details }
     cards = [],
     metrics = {}, // { pcr, maxPain, netDelta }
 }) {
     const navigate = useNavigate();
-    // Extract numeric score for other calculations
     const score = scoreData?.score || 50;
 
-    /* ================= REGIME CLASSIFICATION ================= */
+    // Derived Logic
     const regimeData = useMemo(() => getOptionsRegime(score, metrics), [score, metrics]);
-
-    /* ================= INTELLIGENCE (Tailwinds & Risks) ================= */
     const tailwinds = useMemo(() => extractOptionsTailwinds(cards), [cards]);
     const risks = useMemo(() => extractOptionsRisks(cards), [cards]);
 
     return (
         <div className="space-y-6">
-            {/* ================= UNIFIED HEADER BLOCK ================= */}
             <div className="rounded-2xl bg-background-card-primary border border-border-subtle-translucent overflow-hidden shadow-2xl">
 
-                {/* ROW 1: GAUGE, REGIME, INTEGRITY */}
+                {/* ================= SECTION 1: METRICS ROW ================= */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-white/10 border-b border-white/10 bg-white/[0.02]">
 
-                    {/* 1. OPTIONS GAUGE & COMPOSITE */}
+                    {/* COL 1: Gauge & Score */}
                     <div className="p-6 flex flex-col items-center justify-center relative">
                         <div className="absolute top-4 left-4">
                             <div className="text-xs font-semibold uppercase tracking-wider text-white flex items-center gap-2">
@@ -65,7 +85,7 @@ export default function OptionsHeader({
                         </div>
                     </div>
 
-                    {/* 2. REGIME STRIP (Matched to Fundamental) */}
+                    {/* COL 2: Regime & Gamma Viz */}
                     <div className="p-6 flex flex-col justify-center">
                         <div className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-3">Options Regime</div>
                         <div className="mb-4">
@@ -75,7 +95,7 @@ export default function OptionsHeader({
                             <div className="text-xs text-white/40">{regimeData.desc}</div>
                         </div>
 
-                        {/* Gamma Slider Vis */}
+                        {/* Slider Visualization */}
                         <div className="relative h-2 rounded-full bg-gradient-to-r from-red-500 via-slate-700 to-emerald-500 opacity-80">
                             <div
                                 className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-[#0b1220] rounded-full shadow-lg transition-all duration-1000"
@@ -89,7 +109,7 @@ export default function OptionsHeader({
                         </div>
                     </div>
 
-                    {/* 3. DATA INTEGRITY */}
+                    {/* COL 3: Data Integrity */}
                     <div className="p-6 flex flex-col justify-center gap-4">
                         <div className="text-xs font-semibold uppercase tracking-wider text-white/40">Data Integrity</div>
 
@@ -120,12 +140,11 @@ export default function OptionsHeader({
                     </div>
                 </div>
 
-                {/* ROW 2: TAILWINDS & RISKS (ACTIONABLE) */}
+                {/* ================= SECTION 2: INSIGHTS ROW ================= */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-white/5 border-t border-white/5 mx-6 mb-6 rounded-xl overflow-hidden">
-                    {/* TAILWINDS */}
+                    {/* Tailwinds Panel */}
                     <div className="p-5 bg-emerald-900/[0.05] relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-
                         <div className="flex items-center justify-between mb-4 relative z-10">
                             <div className="flex items-center gap-2">
                                 <div className="p-1 rounded bg-emerald-500/10 border border-emerald-500/20">
@@ -134,7 +153,6 @@ export default function OptionsHeader({
                                 <div className="text-emerald-400 text-xs font-bold uppercase tracking-widest">Top Tailwinds</div>
                             </div>
                         </div>
-
                         <div className="space-y-3 relative z-10">
                             {tailwinds.length > 0 ? tailwinds.map(tw => (
                                 <div key={tw.id} className="flex items-center justify-between text-xs group">
@@ -150,10 +168,9 @@ export default function OptionsHeader({
                         </div>
                     </div>
 
-                    {/* RISKS */}
+                    {/* Risks Panel */}
                     <div className="p-5 bg-red-900/[0.05] relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-
                         <div className="flex items-center justify-between mb-4 relative z-10">
                             <div className="flex items-center gap-2">
                                 <div className="p-1 rounded bg-red-500/10 border border-red-500/20">
@@ -162,7 +179,6 @@ export default function OptionsHeader({
                                 <div className="text-red-400 text-xs font-bold uppercase tracking-widest">Key Risks</div>
                             </div>
                         </div>
-
                         <div className="space-y-3 relative z-10">
                             {risks.length > 0 ? risks.map(risk => (
                                 <div key={risk.id} className="flex items-center justify-between text-xs group">
@@ -178,7 +194,6 @@ export default function OptionsHeader({
                         </div>
                     </div>
                 </div>
-
 
             </div>
         </div>

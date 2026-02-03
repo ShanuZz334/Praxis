@@ -1,6 +1,28 @@
+/**
+ * @file GlobalAIInsight.jsx
+ * @purpose High-level AI/Analyst summary of global conditions.
+ * @responsibilities
+ * - Generates natural language insights using `globalRiskEngine`.
+ * - Displays critical strategy directives (e.g., "Maintain bullish bias").
+ * - Shows quantitative bias output for key indices (Nifty, Bank Nifty).
+ * @key_exports
+ * - GlobalAIInsight (Default Component)
+ * @dependencies
+ * - globalRiskEngine: Insight generation logic.
+ * @lifecycle
+ * - Rendered by GlobalMetricsDesk.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 import { generateGlobalInsight } from "../engine/globalRiskEngine";
 
+// =============================
+// Main Component
+// =============================
 export default function GlobalAIInsight({ globalData }) {
     const insight = generateGlobalInsight(globalData);
 
@@ -9,7 +31,6 @@ export default function GlobalAIInsight({ globalData }) {
 
             {/* LEFT: ANALYST VIEW */}
             <div className="lg:col-span-2 bg-background-card/85 backdrop-blur-xl border border-border-default rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
-                {/* Decorative background element */}
                 <div className="absolute top-0 right-0 p-8 opacity-5 text-9xl -rotate-12 transition-transform group-hover:rotate-0 duration-1000">🌍</div>
 
                 <div className="relative z-10">
@@ -46,6 +67,9 @@ export default function GlobalAIInsight({ globalData }) {
     );
 }
 
+// =============================
+// Helper Component
+// =============================
 function BiasRow({ label, value, confidence, color }) {
     return (
         <div className="flex justify-between items-center p-3.5 bg-background-elevated/40 rounded-xl border border-border-subtle hover:border-border-hover transition-colors shadow-sm">

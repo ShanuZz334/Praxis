@@ -1,11 +1,27 @@
 /**
- * Chart Animation Configurations
- * Framer Motion spring configurations for smooth, GPU-accelerated animations
+ * @file chartAnimations.js
+ * @purpose Framer Motion animation configurations for charts and UI elements.
+ * @responsibilities
+ * - Provides spring configurations for smooth animations.
+ * - Defines entrance, exit, and interaction animation variants.
+ * - Supports stagger, fade, slide, scale, and path drawing animations.
+ * - Optimized for GPU acceleration and performance.
+ * @key_exports
+ * - chartEntranceSpring, dataUpdateSpring, smoothTransitionSpring
+ * - chartVariants, staggerContainer, modalVariants, tooltipVariants
+ * - fadeIn, slideUp, scaleOnHover, pathDrawing, shimmer
+ * @dependencies
+ * - Framer Motion (implicit - these are config objects)
+ * @lifecycle
+ * - Used by chart components and modals for consistent animations.
+ * @date 2026-02-04
  */
 
-/**
- * Spring configuration for chart entrance
- */
+// =============================
+// Spring Configurations
+// =============================
+
+
 export const chartEntranceSpring = {
     type: 'spring',
     stiffness: 300,
@@ -13,9 +29,7 @@ export const chartEntranceSpring = {
     mass: 0.8,
 };
 
-/**
- * Spring configuration for data updates
- */
+
 export const dataUpdateSpring = {
     type: 'spring',
     stiffness: 200,
@@ -23,9 +37,7 @@ export const dataUpdateSpring = {
     mass: 1,
 };
 
-/**
- * Spring configuration for smooth transitions
- */
+
 export const smoothTransitionSpring = {
     type: 'spring',
     stiffness: 150,
@@ -33,9 +45,9 @@ export const smoothTransitionSpring = {
     mass: 0.5,
 };
 
-/**
- * Entrance animation variants for charts
- */
+// =============================
+// Animation Variants
+// =============================
 export const chartVariants = {
     hidden: {
         opacity: 0,
@@ -57,9 +69,7 @@ export const chartVariants = {
     },
 };
 
-/**
- * Stagger children animation
- */
+
 export const staggerContainer = {
     hidden: { opacity: 0 },
     visible: {
@@ -71,9 +81,7 @@ export const staggerContainer = {
     },
 };
 
-/**
- * Fade in animation
- */
+
 export const fadeIn = {
     hidden: { opacity: 0 },
     visible: {
@@ -82,9 +90,7 @@ export const fadeIn = {
     },
 };
 
-/**
- * Slide up animation
- */
+
 export const slideUp = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -94,9 +100,9 @@ export const slideUp = {
     },
 };
 
-/**
- * Scale animation for interactive elements
- */
+// =============================
+// Interactive Animations
+// =============================
 export const scaleOnHover = {
     rest: { scale: 1 },
     hover: {
@@ -112,9 +118,7 @@ export const scaleOnHover = {
     },
 };
 
-/**
- * Tooltip animation
- */
+
 export const tooltipVariants = {
     hidden: {
         opacity: 0,
@@ -133,9 +137,7 @@ export const tooltipVariants = {
     },
 };
 
-/**
- * Modal animation
- */
+
 export const modalVariants = {
     hidden: {
         opacity: 0,
@@ -159,17 +161,15 @@ export const modalVariants = {
     },
 };
 
-/**
- * Number counter animation
- */
+// =============================
+// Specialized Animations
+// =============================
 export const counterTransition = {
     duration: 0.8,
     ease: 'easeOut',
 };
 
-/**
- * Path drawing animation for SVG
- */
+
 export const pathDrawing = {
     hidden: {
         pathLength: 0,
@@ -185,9 +185,7 @@ export const pathDrawing = {
     },
 };
 
-/**
- * Shimmer animation for skeleton loaders
- */
+
 export const shimmer = {
     animate: {
         backgroundPosition: ['200% 0', '-200% 0'],

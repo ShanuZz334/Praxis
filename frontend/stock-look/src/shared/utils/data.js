@@ -1,3 +1,22 @@
+/**
+ * @file data.js
+ * @purpose Side menu navigation configuration data.
+ * @responsibilities
+ * - Defines all dashboard navigation items with icons and routes.
+ * - Provides centralized menu structure for SideMenu component.
+ * @key_exports
+ * - SIDE_MENU_DATA
+ * @dependencies
+ * - react-icons/lu (Lucide icons)
+ * @lifecycle
+ * - Used by SideMenu and navigation components.
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
+
 import {
     LuLayoutDashboard,
     LuBookOpen,
@@ -11,6 +30,10 @@ import {
     LuFileText,
     LuInfo,
 } from "react-icons/lu";
+
+// =============================
+// Side Menu Configuration
+// =============================
 
 export const SIDE_MENU_DATA = [
     {

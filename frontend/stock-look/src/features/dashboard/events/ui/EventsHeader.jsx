@@ -1,20 +1,42 @@
+/**
+ * @file EventsHeader.jsx
+ * @purpose Dashboard header component displaying aggregate market sentiment.
+ * @responsibilities
+ * - Visualizes the Net Market Sentiment score (-100 to +100).
+ * - Displays the current Market Regime (e.g., Calm, Vol Expansion).
+ * - Flags high-risk clusters ("Cluster Detected") for immediate attention.
+ * - Shows data integrity status.
+ * @key_exports
+ * - EventsHeader (Default Component)
+ * @dependencies
+ * - PortalTooltip: For contextual help.
+ * - date-fns: For time calculations.
+ * @lifecycle
+ * - Rendered at the top of EventsPage.
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React from "react";
 import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 
+// =============================
+// Main Component
+// =============================
 export default function EventsHeader({
     cluster,
     regime = "Calm", // Calm, Event-Loaded, Binary Risk
     sentimentScore = 0, // -100 to +100
     nextHighImpact, // Event object
 }) {
-
-    // Logic for color/labels based on sentiment score
+    // 1. Color Logic based on Sentiment
     let sentimentColor = "text-yellow-400";
     let sentimentLabel = "Neutral";
     let progressColor = "bg-yellow-500";
 
-    // Scale -100 to +100 for progress bar (0 to 100%)
-    // -100 -> 0%, 0 -> 50%, +100 -> 100%
+    // Progress Bar: Map -100..+100 to 0..100%
     const progressWidth = Math.min(100, Math.max(0, (sentimentScore + 100) / 2));
 
     if (sentimentScore >= 20) {
@@ -31,7 +53,7 @@ export default function EventsHeader({
         <div className="rounded-2xl bg-background-card-primary border border-border-subtle-translucent overflow-hidden shadow-2xl space-y-0">
             <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-white/10">
 
-                {/* 1. SENTIMENT GAUGE */}
+                {/* Section 1: Sentiment Gauge */}
                 <div className="p-6 relative group">
                     <div className="flex justify-between items-start mb-2">
                         <div className="text-xs font-semibold uppercase tracking-wider text-white/40 flex items-center gap-2">
@@ -70,9 +92,11 @@ export default function EventsHeader({
                     </div>
                 </div>
 
-                {/* 2. REGIME & NEXT BIG EVENT */}
+                {/* Section 2: Market Regime & Catalyst */}
                 <div className="p-6 flex flex-col justify-center">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-3">Market Regime</div>
+                    <div className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-3">
+                        Market Regime
+                    </div>
 
                     <div className="flex items-center gap-3 mb-2">
                         <div className="text-2xl font-bold text-white">{regime}</div>
@@ -88,15 +112,19 @@ export default function EventsHeader({
                             <div className="text-[10px] text-white/40 uppercase mb-1">Next Catalyst</div>
                             <div className="flex justify-between items-center">
                                 <span className="text-sm font-semibold text-white/90">{nextHighImpact.title}</span>
-                                <span className="text-xs text-red-400 font-mono font-bold">In {differenceInHours(nextHighImpact)}h</span>
+                                <span className="text-xs text-red-400 font-mono font-bold">
+                                    In {differenceInHours(nextHighImpact)}h
+                                </span>
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* 3. DATA INTEGRITY */}
+                {/* Section 3: Data Integrity */}
                 <div className="p-6 flex flex-col justify-center gap-4">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-white/40">Data Integrity</div>
+                    <div className="text-xs font-semibold uppercase tracking-wider text-white/40">
+                        Data Integrity
+                    </div>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -116,21 +144,29 @@ export default function EventsHeader({
                         </div>
                     </div>
                 </div>
-
             </div>
 
-            {/* CLUSTER WARNING BANNER */}
+            {/* Cluster Warning Banner */}
             {cluster?.detected && (
                 <div className="bg-red-500/10 border-t border-red-500/20 p-2 flex items-center justify-center gap-3 text-xs text-red-300">
                     <span className="font-bold">⚠️ High Volatility Alert:</span>
-                    <span>{cluster.count} High-Impact events detected within {cluster.days} days. Expect IV expansion.</span>
+                    <span>
+                        {cluster.count} High-Impact events detected within {cluster.days} days. Expect IV expansion.
+                    </span>
                 </div>
             )}
         </div>
     );
 }
 
-// Simple helper for hours diff (mock since we don't have the lib imported in this file yet)
+// =============================
+// Helper Functions
+// =============================
+
+/**
+ * differenceInHours
+ * Calculates hours remaining for an event.
+ */
 function differenceInHours(event) {
     if (!event?.date) return 0;
     const diff = new Date(event.date) - new Date();

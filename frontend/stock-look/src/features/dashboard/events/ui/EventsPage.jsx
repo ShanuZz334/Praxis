@@ -1,16 +1,40 @@
+/**
+ * @file EventsPage.jsx
+ * @purpose Main entry point for the Events & News Intelligence feature.
+ * @responsibilities
+ * - Orchestrates data flow between mock sources, scoring engines, and UI components.
+ * - Manages page-level state including search queries and sort modes.
+ * - Calculates global sentiment and market regime based on aggregated news data.
+ * - Renders the `GlobalHeader` and `AdvancedNewsFeed`.
+ * @key_exports
+ * - EventsPage (Default Component)
+ * @dependencies
+ * - GlobalHeader: For high-level metrics visualization.
+ * - AdvancedNewsFeed: For displaying the news stream.
+ * - newsScoring, newsClustering: For data enrichment.
+ * @lifecycle
+ * - Route target for "/dashboard/events".
+ * @date 2026-02-03
+ */
+
+// =============================
+// Imports
+// =============================
 import React, { useMemo, useState } from "react";
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import AdvancedNewsFeed from "./AdvancedNewsFeed";
-import { MOCK_EVENTS, TOTAL_EVENTS_CREDITS } from "../data/eventsData";
 import { MOCK_NEWS } from "../data/newsData";
 import { calculateNewsImpact } from "../engine/newsScoring";
-import { detectNewsClusters } from "../engine/newsClustering";
 
+// =============================
+// Main Component
+// =============================
 export default function EventsPage() {
+    // State
     const [searchQuery, setSearchQuery] = useState("");
-    const [sortMode, setSortMode] = useState("latest"); // Default: Latest to Oldest
+    const [sortMode, setSortMode] = useState("latest"); // Default: Latest
 
-    // 1. Prepare News Data using Agentic AI Scoring
+    // 1. Enrich News Data (Auto-Scoring)
     const enrichedNews = useMemo(() => {
         return MOCK_NEWS.map(n => ({
             ...n,
@@ -18,17 +42,17 @@ export default function EventsPage() {
         }));
     }, []);
 
-    // 2. Compute Scores & Sections for GlobalHeader (using ALL news for the global score)
+    // 2. Compute Global Metrics (Sentiment, Regime, Sections)
     const { globalScore, globalSections, regime, sentimentScore } = useMemo(() => {
-        // A. Filter by Category
+        // A. Categorize
         const categories = {
             'Macro': enrichedNews.filter(n => n.category === 'Macro' || n.category === 'Global'),
             'Policy': enrichedNews.filter(n => n.category === 'Policy'),
-            'Corporate': enrichedNews.filter(n => n.category === 'Corporate'), // Earnings etc
+            'Corporate': enrichedNews.filter(n => n.category === 'Corporate'),
             'Sector': enrichedNews.filter(n => n.breadth === 'Sector')
         };
 
-        // B. Calculate Section Scores (Sum of impacts)
+        // B. Section Scores
         const sectionsKeyed = Object.entries(categories).map(([label, items]) => {
             const sum = items.reduce((acc, curr) => acc + (curr.impactScore || 0), 0);
             return {
@@ -39,17 +63,15 @@ export default function EventsPage() {
             };
         });
 
-        // C. Net Sentiment (Total)
+        // C. Net Sentiment
         const totalNet = enrichedNews.reduce((acc, curr) => acc + (curr.impactScore || 0), 0);
 
-        // D. Context Mapping using GlobalHeader Standards (0-100)
-        // New Logic: Normalize Net Score against Max Potential Score (Count * 10)
-        // Range: -1 (All Bearish) to +1 (All Bullish) -> Mapped to 0..100
+        // D. Contextualize (0-100 Gauge)
         const maxPotential = Math.max(1, enrichedNews.length * 10);
-        const ratio = totalNet / maxPotential; // -1 to 1
+        const ratio = totalNet / maxPotential;
         const normalizedGauge = Math.max(0, Math.min(100, (ratio + 1) * 50));
 
-        // E. Regime Detection
+        // E. Regime Logic
         const absScore = Math.abs(normalizedGauge - 50);
         const regimeLabel = absScore > 30 ? "Strong Trend" : absScore > 10 ? "Accumulation" : "Choppy";
         const regimeColor = normalizedGauge > 60 ? "text-emerald-400" : normalizedGauge < 40 ? "text-red-400" : "text-yellow-400";
@@ -67,16 +89,8 @@ export default function EventsPage() {
         };
     }, [enrichedNews]);
 
-    // 3. Derive Top Movers for Header (Tailwinds & Risks)
+    // 3. Identify Tailwinds & Risks (Top Movers)
     const { tailwinds, risks } = useMemo(() => {
-        // Use filtered items if we want the lists to update, but typically Tailwinds/Risks are GLOBAL concepts.
-        // User asked for "data accoring to the hashtags".
-        // If I filter by "Oil", I probably expect Tailwinds to show Oil news.
-        // Let's use filteredAndSortedNews for this too? No, logic depends on variable scope availability.
-        // `filteredAndSortedNews` is defined BELOW. 
-        // I need to hoist `filteredAndSortedNews` or move this standard logic below it.
-        // For safety/cleanliness, I will use `enrichedNews` (Global) for Tailwinds/Risks for now, 
-        // as "Top Tailwinds" usually refers to the 'Market' context, not the 'Search Result' context.
         const sorted = [...enrichedNews].sort((a, b) => (b.impactScore || 0) - (a.impactScore || 0));
 
         const topBulls = sorted.filter(n => n.impactScore > 0).slice(0, 3).map(n => ({
@@ -89,18 +103,18 @@ export default function EventsPage() {
         const topBears = sorted.filter(n => n.impactScore < 0).reverse().slice(0, 3).map(n => ({
             id: n.id,
             label: n.title,
-            value: Math.abs(n.impactScore), // Display absolute value for the list
+            value: Math.abs(n.impactScore),
             sub: n.category
         }));
 
         return { tailwinds: topBulls, risks: topBears };
     }, [enrichedNews]);
 
-    // 4. FILTERING & SORTING logic for the Feed
+    // 4. Filtering & Sorting Logic
     const filteredAndSortedNews = useMemo(() => {
         let items = [...enrichedNews];
 
-        // Search Filter (Hashtags focus)
+        // Search
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
             items = items.filter(n => {
@@ -110,14 +124,9 @@ export default function EventsPage() {
             });
         }
 
-        // Sorting
-        // "rel_desc" -> High Credit -> Most Positive (e.g. +10 to -10)
-        // "rel_asc" -> Low Credit -> Most Negative (e.g. -10 to +10)
-        // "latest"   -> Date Descending (Default)
+        // Sort
         items.sort((a, b) => {
             if (sortMode === 'latest') {
-                // Assuming timestamp exists. If mock data lacks it, won't sort (or will default order).
-                // Mock news usually has timestamp.
                 return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
             }
             const scoreA = a.impactScore || 0;
@@ -128,14 +137,13 @@ export default function EventsPage() {
         return items;
     }, [enrichedNews, searchQuery, sortMode]);
 
-    // Construct "Cards" for Signal Integrity
-    // Use filteredAndSortedNews to ensure counts match visible table.
-    // Map -10..10 to via /4 to ensure anything > 0.8 becomes > 0.2 (Bull/Bear).
+    // 5. Construct Signal Cards for GlobalHeader
     const signalCards = useMemo(() => filteredAndSortedNews.map(n => ({
         ...n,
         normalized: (n.impactScore || 0) / 4
     })), [filteredAndSortedNews]);
 
+    // Handlers
     const handleReset = () => {
         setSearchQuery("");
         setSortMode("latest");
@@ -149,20 +157,19 @@ export default function EventsPage() {
                 score={globalScore}
                 prevScore={globalScore - (sentimentScore * 0.1)}
                 regime={regime}
-
                 sections={globalSections}
 
-                // Dynamic Tailwinds & Risks
+                // AI Insights
                 tailwinds={tailwinds}
                 risks={risks}
 
-                // Integrity: Use filtered length
+                // Integrity & Credits
                 integrity={{ coverage: "Global Sources", source: "AI Aggregation", freshness: "Realtime" }}
                 totalCredits={filteredAndSortedNews.length}
                 creditLabel="News"
                 cards={signalCards}
 
-                // Controls Wiring
+                // Controls
                 controls={{
                     search: searchQuery,
                     onSearchChange: setSearchQuery,
@@ -175,17 +182,23 @@ export default function EventsPage() {
                     ],
                     matchCount: filteredAndSortedNews.length
                 }}
+
+                // Info Popover Content
                 infoContent={
                     <div className="w-80">
                         <div className="flex items-center gap-2 mb-2 border-b border-border-default pb-2">
-                            <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Events & News Module</span>
+                            <span className="text-xs font-bold text-text-primary uppercase tracking-wider">
+                                Events & News Module
+                            </span>
                         </div>
                         <p className="text-xs text-text-secondary leading-relaxed">
                             The Events module uses NLP to score news sentiment, policy shifts, and earnings reports, clustering them into bullish or bearish market drivers.
                         </p>
                         <div className="mt-3 pt-2 border-t border-border-default flex items-center gap-1.5 text-[10px] text-blue-400 font-bold uppercase tracking-wide">
                             <span>Click to read full manual</span>
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
                         </div>
                     </div>
                 }

@@ -1,29 +1,41 @@
 /**
- * Fundamental Scoring Sections & Weights
- * Total must sum to 1.0 (100%)
+ * @file sections.config.js
+ * @purpose Configuration for Fundamental Sections and their relative weights.
+ * @responsibilities
+ * - Defines the weight distribution for the composite score calculation.
+ * - Ensures weights sum to 1.0 (100%).
+ * @key_exports
+ * - SECTION_WEIGHTS
+ * @lifecycle
+ * - Loaded by `index.js` for weighted aggregation.
+ * @date 2026-02-03
  */
+
+// =============================
+// Weight Configuration
+// =============================
 export const SECTION_WEIGHTS = {
-    // 🧱 SECTION 1: VALUATION (15%)
+    // 15% - Core Valuation
     Valuation: 0.15,
 
-    // 🧱 SECTION 2: EARNINGS & PROFITABILITY (20%)
+    // 20% - Earnings Power
     Earnings: 0.20,
 
-    // 🧱 SECTION 3: MACRO (20%)
+    // 20% - Macro Environment
     Macro: 0.20,
 
-    // 🧱 SECTION 4: LIQUIDITY & FLOWS (20%)
+    // 20% - Liquidity Dynamics
     Liquidity: 0.20,
 
-    // 🧱 SECTION 5: SECTOR & BREADTH (10%)
+    // 10% - Sector Health
     Sector: 0.10,
 
-    // 🧱 SECTION 6: CORPORATE & POLICY (5%)
+    // 5% - Corporate Health
     Corporate: 0.05,
 
-    // 🧱 SECTION 7: GLOBAL CONTEXT (5%)
+    // 5% - Global Factors
     Global: 0.05,
 
-    // 🧱 SECTION 8: RISK & STRESS (5%)
+    // 5% - Systemic Risk
     Risk: 0.05,
 };
