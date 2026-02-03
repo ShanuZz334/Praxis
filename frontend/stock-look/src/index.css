@@ -36,10 +36,10 @@ html[data-theme="dark"] {
 
   /* Backgrounds */
   --bg-app: #02050e;
-  --bg-card: #0f172a;
+  --bg-card: #0b1220;
   /* Reduced darkness for better contrast */
-  --bg-card-primary: #0f172a;
-  --bg-card-secondary: #0f172a;
+  --bg-card-primary: #0b1220;
+  --bg-card-secondary: #0b1220;
   /* Match Tooltip (Flattened) */
   --bg-surface: rgba(255, 255, 255, 0.02);
   --bg-elevated: #0b1220;
@@ -91,7 +91,10 @@ html[data-theme="dark"] {
 
   --scrollbar-thumb: rgba(255, 255, 255, 0.15);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
   --shadow-card-3d-hover: 0 8px 30px rgba(30, 27, 255, 0.3);
+  /* Dual-Colored Hover (Blue Left, Violet Right) -- REFINED INTENSITY */
+  --shadow-card-gradient-hover: -5px 10px 30px rgba(59, 130, 246, 0.15), 5px 10px 30px rgba(139, 92, 246, 0.15);
 }
 
 /* =========================================================
@@ -163,9 +166,9 @@ html[data-theme="light"],
   --shadow-card-3d-hover: 0 25px 50px rgba(0, 0, 0, 0.25);
 }
 
-/* ------------------------------
+/* =========================================================
    BASE RESET
--------------------------------- */
+========================================================= */
 *,
 *::before,
 *::after {
@@ -199,6 +202,26 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
 }
+
+/* --------------------------------
+   CUSTOM UTILITIES
+-------------------------------- */
+/* Gradient Border (Dark Mode Only) */
+.dark .card-gradient-border {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--bg-card-primary), var(--bg-card-primary)) padding-box,
+    linear-gradient(to right, #3b82f6, #8b5cf6) border-box;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+/* Light Mode Fallback (Just standard border) */
+.light .card-gradient-border {
+  border: 1px solid var(--border-default);
+  background: transparent;
+}
+
 
 /* ------------------------------
    PREMIUM BACKGROUND VFX ANIMATIONS

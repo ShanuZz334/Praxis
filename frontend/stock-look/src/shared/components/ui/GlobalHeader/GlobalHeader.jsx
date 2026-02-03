@@ -110,7 +110,7 @@ export default function GlobalHeader({
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* MAIN BLOCK */}
-            <div className={`relative rounded-2xl border ${STYLES.BORDER_OUTER} md:dark:border-[var(--border-default)] dark:border-blue-500 shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden bg-transparent`}>
+            <div className={`relative rounded-2xl border border-[var(--border-default)] dark:border-[#3b82f6] md:dark:border-[var(--border-default)] shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden bg-transparent`}>
 
                 {/* TOP ROW: GAUGE | REGIME | INTEGRITY */}
                 <div className={`grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x ${STYLES.DIVIDE} bg-transparent min-h-0 lg:min-h-[220px]`}>

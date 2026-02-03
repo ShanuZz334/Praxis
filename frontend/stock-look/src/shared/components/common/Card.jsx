@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useContext } from "react";
 import clsx from "clsx";
+import { ThemeContext } from "@/shared/context/ThemeContext";
 
 const spanMap = {
   1: "lg:col-span-1",
@@ -13,6 +14,10 @@ const Card = ({
   span = 1,
   borderless = false,
 }) => {
+  const { theme, gradientBorder } = useContext(ThemeContext);
+
+  const isGradientEnabled = theme === 'dark' && gradientBorder;
+
   return (
     <div
       className={clsx(
@@ -26,10 +31,12 @@ const Card = ({
           ? "bg-transparent shadow-none"
           : `
             /* ---------- THEME DEPLOYMENT (FIXED) ---------- */
-            bg-[var(--bg-card-primary)]
-            border-2 dark:border border-[var(--border-subtle)]
+            /* ---------- THEME DEPLOYMENT (FIXED) ---------- */
+            ${isGradientEnabled
+            ? "card-gradient-border dark:hover:shadow-[var(--shadow-card-gradient-hover)]"
+            : "bg-[var(--bg-card-primary)] border-2 dark:border border-[var(--border-subtle)] hover:border-border-hover dark:hover:border-border-subtle-translucent"
+          }
             shadow-sm dark:shadow-none
-            hover:border-border-hover dark:hover:border-border-subtle-translucent
             hover:shadow-[var(--shadow-card-3d-hover)]
             hover:-translate-y-2
           `,

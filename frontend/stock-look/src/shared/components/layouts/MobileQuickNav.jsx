@@ -2,7 +2,9 @@ import React from "react";
 import { SIDE_MENU_DATA } from "../../utils/data";
 import { useTheme } from "../../context/ThemeContext";
 
-import ThemeToggle from "../../components/ui/ThemeToggle";
+import MobileThemeToggle from "../../components/ui/MobileThemeToggle";
+
+import { motion } from "framer-motion";
 
 const MobileQuickNav = ({ activePath, hoveredPath }) => {
     const { theme } = useTheme();
@@ -10,19 +12,33 @@ const MobileQuickNav = ({ activePath, hoveredPath }) => {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-start pl-4">
-            {/* Backdrop (Optional, maybe transparent or dimmed) */}
-            <div className={`absolute inset-0 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 animate-in fade-in`} />
+            {/* Backdrop */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className={`absolute inset-0 bg-black/20 backdrop-blur-[2px]`}
+            />
 
             {/* Icon Strip */}
-            <div className={`
-                relative z-10 flex flex-col items-center justify-center gap-3 px-3 py-6 h-auto max-h-[85vh] overflow-y-auto rounded-2xl no-scrollbar
-                transition-all duration-300 animate-in slide-in-from-left-4
-                ${isDark ? 'bg-[#0b1220]/60 backdrop-blur-md border border-white/10' : 'bg-white/60 backdrop-blur-md border border-gray-200'}
-                shadow-2xl
-            `}>
+            <motion.div
+                initial={{ x: -20, opacity: 0, scale: 0.95 }}
+                animate={{ x: 0, opacity: 1, scale: 1 }}
+                exit={{ x: -20, opacity: 0, scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className={`
+                    relative z-10 flex flex-col items-center justify-center gap-3 px-3 py-6 h-auto max-h-[85vh] overflow-y-auto rounded-2xl no-scrollbar
+                    ${isDark ? 'bg-[#0C1224]/80 backdrop-blur-md border border-white/10' : 'bg-white/60 backdrop-blur-md border border-gray-200'}
+                    shadow-2xl
+                `}
+            >
                 {/* Theme Toggle at Top */}
-                <div className="pb-2 border-b border-white/10 w-full flex justify-center">
-                    <ThemeToggle />
+                <div
+                    className="pb-2 border-b border-white/10 w-full flex justify-center"
+                    data-quick-nav-path="theme-toggle"
+                >
+                    <MobileThemeToggle />
                 </div>
 
                 {SIDE_MENU_DATA.filter(i => i.key !== 'logout').map((item) => {
@@ -44,18 +60,21 @@ const MobileQuickNav = ({ activePath, hoveredPath }) => {
                         </div>
                     );
                 })}
-            </div>
+            </motion.div>
 
             {/* Helper Text (Optional) */}
             <div className="absolute left-24 top-1/2 -translate-y-1/2 pointer-events-none">
-                <div className={`
-                    px-4 py-2 rounded-lg backdrop-blur-md shadow-lg font-bold text-sm
-                    opacity-0 animate-in fade-in slide-in-from-left-2 duration-300
-                    ${hoveredPath ? 'opacity-100' : 'opacity-0'}
-                    ${isDark ? 'bg-slate-900/80 text-white' : 'bg-white/80 text-slate-900'}
-                `}>
+                <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: hoveredPath ? 1 : 0, x: hoveredPath ? 0 : -10 }}
+                    transition={{ duration: 0.2 }}
+                    className={`
+                        px-4 py-2 rounded-lg backdrop-blur-md shadow-lg font-bold text-sm
+                        ${isDark ? 'bg-[#0C1224]/80 text-white' : 'bg-white/80 text-slate-900'}
+                    `}
+                >
                     {SIDE_MENU_DATA.find(i => i.path === hoveredPath)?.label || ""}
-                </div>
+                </motion.div>
             </div>
         </div>
     );

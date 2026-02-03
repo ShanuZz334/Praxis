@@ -46,7 +46,7 @@ import { useTheme } from "../../../../shared/context/ThemeContext";
 const SettingsPage = () => {
     // Context
     const { user, updateUser, token, } = useContext(UserContext);
-    const { theme, toggleTheme, vfxPreset, setVfxPreset } = useTheme();
+    const { theme, toggleTheme, vfxPreset, setVfxPreset, gradientBorder, setGradientBorder } = useTheme();
 
     // UI State
     const [activeTab, setActiveTab] = useState("account");
@@ -568,10 +568,8 @@ const SettingsPage = () => {
         }
     };
 
-    const borderColor = theme === 'dark' ? 'var(--border-default)' : '#64748b';
-
     return (
-        <div className="min-h-screen p-3 sm:p-4 text-text-primary md:p-8 font-sans [--border-default:rgba(0,0,0,0.2)] [--border-subtle:rgba(0,0,0,0.1)] dark:[--border-default:rgba(255,255,255,0.20)] dark:[--border-subtle:rgba(255,255,255,0.12)]">
+        <div className="min-h-screen p-3 sm:p-4 text-text-primary md:p-8 font-sans">
             <div className="mx-auto max-w-6xl">
 
                 {/* Header */}
@@ -636,8 +634,7 @@ const SettingsPage = () => {
 
                     {/* Main Content Area */}
                     <div
-                        className="rounded-2xl border bg-transparent p-4 sm:p-6 lg:p-8 shadow-xl shadow-black/5 backdrop-blur-sm"
-                        style={{ borderColor }}
+                        className="rounded-2xl border border-border-default bg-transparent p-4 sm:p-6 lg:p-8 shadow-xl shadow-black/5 backdrop-blur-sm"
                     >
 
                         {/* --- ACCOUNT TAB --- */}
@@ -683,8 +680,7 @@ const SettingsPage = () => {
                                             type="text"
                                             value={formData.fullName}
                                             onChange={(e) => handleInputChange("fullName", e.target.value)}
-                                            className="w-full rounded-lg border bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:bg-transparent focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
-                                            style={{ borderColor }}
+                                            className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:bg-transparent focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -705,8 +701,7 @@ const SettingsPage = () => {
                                                 type="email"
                                                 value={formData.email}
                                                 disabled // Not directly editable needs OTP flow trigger
-                                                className="w-full cursor-not-allowed rounded-lg border bg-transparent/50 px-4 py-2.5 text-text-secondary text-sm md:text-base"
-                                                style={{ borderColor }}
+                                                className="w-full cursor-not-allowed rounded-lg border border-border-default bg-transparent/50 px-4 py-2.5 text-text-secondary text-sm md:text-base"
                                             />
                                             <button
                                                 onClick={() => setShowEmailChangeModal(true)}
@@ -750,8 +745,7 @@ const SettingsPage = () => {
                                 </div>
 
                                 <div
-                                    className="border-t pt-8"
-                                    style={{ borderColor }}
+                                    className="border-t border-border-default pt-8"
                                 >
                                     <h3 className="mb-4 flex items-center gap-2 text-lg font-medium">
                                         <FiLink2 className="text-blue-500" /> Broker Integration
@@ -769,9 +763,8 @@ const SettingsPage = () => {
                                                             onClick={() => handleInputChange("broker", broker.value)}
                                                             className={`flex flex-col items-center gap-1.5 md:gap-2 rounded-xl p-2 md:p-3 transition-all border ${formData.broker === broker.value
                                                                 ? 'bg-blue-500/10 border-blue-500/50 shadow-md shadow-blue-500/5'
-                                                                : 'bg-transparent border-[var(--border-default)] hover:bg-transparent hover:border-[var(--border-default)] hover:shadow-lg hover:-translate-y-0.5'
+                                                                : 'bg-transparent border-border-default hover:bg-transparent hover:border-border-default hover:shadow-lg hover:-translate-y-0.5'
                                                                 }`}
-                                                            style={{ borderColor: formData.broker === broker.value ? undefined : borderColor }}
                                                         >
                                                             <div className="h-8 w-8 md:h-10 md:w-10 flex items-center justify-center p-1">
                                                                 {broker.image ? (
@@ -797,8 +790,7 @@ const SettingsPage = () => {
                                                             value={formData.apiKey}
                                                             onChange={(e) => handleInputChange("apiKey", e.target.value)}
                                                             placeholder="Enter your broker API key"
-                                                            className="w-full rounded-lg border bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
-                                                            style={{ borderColor }}
+                                                            className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
                                                         />
                                                     </div>
                                                 )}
@@ -813,8 +805,7 @@ const SettingsPage = () => {
                                                             value={formData.apiSecret}
                                                             onChange={(e) => handleInputChange("apiSecret", e.target.value)}
                                                             placeholder="Enter your broker API secret"
-                                                            className="w-full rounded-lg border bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
-                                                            style={{ borderColor }}
+                                                            className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
@@ -824,8 +815,7 @@ const SettingsPage = () => {
                                                             value={formData.clientId}
                                                             onChange={(e) => handleInputChange("clientId", e.target.value)}
                                                             placeholder="Your broker client ID"
-                                                            className="w-full rounded-lg border bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
-                                                            style={{ borderColor }}
+                                                            className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
                                                         />
                                                     </div>
                                                 </div>
@@ -903,14 +893,13 @@ const SettingsPage = () => {
 
                                         {/* Right Side: Connected Brokers Display */}
                                         <div
-                                            className="w-full lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l pt-10 lg:pt-0 lg:pl-10"
-                                            style={{ borderColor }}
+                                            className="w-full lg:w-72 shrink-0 border-t border-border-default lg:border-t-0 lg:border-l pt-10 lg:pt-0 lg:pl-10"
                                         >
                                             <div className="sticky top-6">
                                                 <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-tertiary mb-6 flex items-center gap-2">
-                                                    <div className="h-px flex-1 bg-[var(--border-subtle)]" style={{ backgroundColor: borderColor }}></div>
+                                                    <div className="h-px flex-1 bg-border-subtle"></div>
                                                     Active Connections
-                                                    <div className="h-px flex-1 bg-[var(--border-subtle)]" style={{ backgroundColor: borderColor }}></div>
+                                                    <div className="h-px flex-1 bg-border-subtle"></div>
                                                 </h4>
 
                                                 <div className="space-y-4">
@@ -928,8 +917,7 @@ const SettingsPage = () => {
                                                         />
                                                     ) : (
                                                         <div
-                                                            className="rounded-2xl border border-dashed p-8 text-center bg-transparent"
-                                                            style={{ borderColor }}
+                                                            className="rounded-2xl border border-dashed border-border-default p-8 text-center bg-transparent"
                                                         >
                                                             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-transparent mb-3">
                                                                 <FiLink2 className="text-text-tertiary text-xl" />
@@ -979,7 +967,7 @@ const SettingsPage = () => {
                                         { id: "portfolioAlerts", label: "Portfolio Updates", desc: "Daily P&L and position summaries" },
                                         { id: "systemMessages", label: "System Messages", desc: "Maintenance and platform updates" },
                                     ].map(item => (
-                                        <div key={item.id} className="flex items-center justify-between rounded-lg border bg-transparent p-4 transition-all hover:bg-transparent" style={{ borderColor }}>
+                                        <div key={item.id} className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 transition-all hover:bg-transparent">
                                             <div>
                                                 <p className="font-medium">{item.label}</p>
                                                 <p className="text-sm text-text-secondary">{item.desc}</p>
@@ -1000,7 +988,7 @@ const SettingsPage = () => {
                                         { id: "deliveryApp", label: "In-App Push", icon: FiBell },
                                         { id: "deliveryEmail", label: "Email Digest", icon: FiUser },
                                     ].map(item => (
-                                        <div key={item.id} className="flex items-center justify-between rounded-lg border bg-transparent p-4 transition-all hover:bg-transparent" style={{ borderColor }}>
+                                        <div key={item.id} className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 transition-all hover:bg-transparent">
                                             <div className="flex items-center gap-3">
                                                 <item.icon className="text-text-secondary" />
                                                 <span className="font-medium">{item.label}</span>
@@ -1025,7 +1013,7 @@ const SettingsPage = () => {
                                     <p className="text-sm text-text-secondary">Manage your password and account security</p>
                                 </div>
 
-                                <div className="rounded-xl border bg-transparent p-4 md:p-6" style={{ borderColor }}>
+                                <div className="rounded-xl border border-border-default bg-transparent p-4 md:p-6">
                                     <h3 className="mb-4 text-lg font-medium">Update Password</h3>
                                     <div className="grid gap-4 md:grid-cols-2">
                                         <div className="space-y-2 md:col-span-2">
@@ -1034,8 +1022,7 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.currentPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                                                className="w-full rounded-lg border bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all text-sm md:text-base"
-                                                style={{ borderColor }}
+                                                className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all text-sm md:text-base"
                                             />
                                         </div>
 
@@ -1045,8 +1032,7 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.newPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                                                className="w-full rounded-lg border bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
-                                                style={{ borderColor }}
+                                                className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -1055,8 +1041,7 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={passwordData.confirmPassword}
                                                 onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                                                className="w-full rounded-lg border bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
-                                                style={{ borderColor }}
+                                                className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
                                             />
                                         </div>
                                     </div>
@@ -1120,7 +1105,6 @@ const SettingsPage = () => {
                                                     key={mode.id}
                                                     onClick={() => handleTradingModeSelect(mode.id)}
                                                     className={`group relative flex md:flex-col items-center gap-3 rounded-xl border p-4 md:p-6 text-left md:text-center transition-all duration-300 ${activeClass}`}
-                                                    style={{ borderColor: settings.tradingMode === mode.id ? 'transparent' : borderColor }}
                                                 >
                                                     <mode.icon className={`h-6 w-6 md:h-8 md:w-8 shrink-0 transition-colors duration-300 ${isActive ? "text-white" : "text-text-tertiary group-hover:text-text-primary"}`} />
                                                     <div>
@@ -1136,11 +1120,11 @@ const SettingsPage = () => {
                                 {/* Theme Toggle */}
                                 <div className="pt-4">
                                     <h3 className="mb-4 text-sm font-medium text-text-secondary">Appearance</h3>
-                                    <div className="flex items-center justify-between rounded-lg border bg-transparent p-4" style={{ borderColor }}>
+                                    <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4">
                                         <div>
                                             <p className="font-medium text-text-primary">Theme Preference</p>
                                         </div>
-                                        <div className="flex items-center gap-2 bg-transparent p-1 rounded-lg border" style={{ borderColor }}>
+                                        <div className="flex items-center gap-2 bg-transparent p-1 rounded-lg border border-border-default">
                                             <button
                                                 onClick={() => theme === 'dark' && toggleTheme()}
                                                 className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-all ${theme === 'light' ? "bg-white text-blue-600 font-medium shadow-md shadow-black/5" : "text-text-tertiary hover:text-text-primary"
@@ -1157,6 +1141,26 @@ const SettingsPage = () => {
                                             </button>
                                         </div>
                                     </div>
+
+                                    {/* Gradient Border Toggle */}
+                                    {theme === 'dark' && (
+                                        <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div>
+                                                <p className="font-medium text-text-primary">Gradient Borders</p>
+                                                <p className="text-xs text-text-secondary mt-0.5">Enable premium blue-violet borders around cards</p>
+                                            </div>
+                                            <button
+                                                onClick={() => setGradientBorder(!gradientBorder)}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${gradientBorder ? 'bg-blue-600' : 'bg-slate-700'
+                                                    }`}
+                                            >
+                                                <span
+                                                    className={`${gradientBorder ? 'translate-x-6' : 'translate-x-1'
+                                                        } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
+                                                />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* VFX Customization (Dark Mode Only) */}
@@ -1231,7 +1235,7 @@ const SettingsPage = () => {
             {
                 showEmailOtpModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                        <div className="w-full max-w-md rounded-2xl border bg-white dark:bg-[#0b1220] p-6 shadow-2xl animate-in zoom-in-95 duration-200" style={{ borderColor }}>
+                        <div className="w-full max-w-md rounded-2xl border border-border-default bg-white dark:bg-[#0b1220] p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-lg font-bold text-text-primary">Change Email Address</h3>
                                 <button onClick={() => setShowEmailOtpModal(false)}><FiX className="text-text-secondary hover:text-text-primary" /></button>
@@ -1243,8 +1247,7 @@ const SettingsPage = () => {
                                     <input
                                         type="email"
                                         placeholder="New Email Address"
-                                        className="w-full rounded-lg border bg-transparent px-4 py-3 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
-                                        style={{ borderColor }}
+                                        className="w-full rounded-lg border border-border-default bg-transparent px-4 py-3 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') initiateEmailChange(e.currentTarget.value)
                                         }}
@@ -1270,8 +1273,7 @@ const SettingsPage = () => {
                                         maxLength={6}
                                         onChange={(e) => setEmailOtp(e.target.value)}
                                         placeholder="000 000"
-                                        className="w-full rounded-lg border bg-transparent px-4 py-3 text-center text-xl tracking-widest text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10"
-                                        style={{ borderColor }}
+                                        className="w-full rounded-lg border border-border-default bg-transparent px-4 py-3 text-center text-xl tracking-widest text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10"
                                     />
                                     <div className="flex justify-between text-xs text-text-tertiary">
                                         <span>Expires in 5:00</span>
@@ -1305,7 +1307,7 @@ const SettingsPage = () => {
             {
                 showVerifyEmailOtpModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                        <div className="w-full max-w-md rounded-2xl border bg-white dark:bg-[#0b1220] p-6 shadow-2xl animate-in zoom-in-95 duration-200" style={{ borderColor }}>
+                        <div className="w-full max-w-md rounded-2xl border border-border-default bg-white dark:bg-[#0b1220] p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-bold text-text-primary uppercase tracking-tight">Verify Email</h3>
                                 <button onClick={() => setShowVerifyEmailOtpModal(false)}><FiX className="text-text-secondary hover:text-text-primary shadow-sm" /></button>
@@ -1322,8 +1324,7 @@ const SettingsPage = () => {
                                         maxLength={6}
                                         onChange={(e) => setEmailOtp(e.target.value)}
                                         placeholder="000 000"
-                                        className="w-full rounded-lg border bg-transparent px-4 py-4 text-center text-2xl font-bold tracking-[0.5em] text-text-primary focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-text-tertiary/20"
-                                        style={{ borderColor }}
+                                        className="w-full rounded-lg border border-border-default bg-transparent px-4 py-4 text-center text-2xl font-bold tracking-[0.5em] text-text-primary focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-text-tertiary/20"
                                     />
                                 </div>
                                 <div className="flex justify-between text-[10px] text-text-tertiary uppercase font-medium tracking-wider">
@@ -1378,8 +1379,7 @@ const SettingsPage = () => {
                                         value={pendingEmail}
                                         onChange={(e) => setPendingEmail(e.target.value)}
                                         placeholder="your.email@example.com"
-                                        className="w-full rounded-lg border bg-transparent px-4 py-3 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10"
-                                        style={{ borderColor }}
+                                        className="w-full rounded-lg border border-border-default bg-transparent px-4 py-3 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10"
                                     />
                                 </div>
 
@@ -1389,8 +1389,7 @@ const SettingsPage = () => {
                                             setShowEmailChangeModal(false);
                                             setPendingEmail("");
                                         }}
-                                        className="flex-1 rounded-lg border bg-transparent py-3 text-sm font-medium text-text-secondary hover:bg-transparent hover:text-text-primary transition-all"
-                                        style={{ borderColor }}
+                                        className="flex-1 rounded-lg border border-border-default bg-transparent py-3 text-sm font-medium text-text-secondary hover:bg-transparent hover:text-text-primary transition-all"
                                     >
                                         Cancel
                                     </button>
@@ -1437,8 +1436,7 @@ const SettingsPage = () => {
                                     value={deleteConfirmText}
                                     onChange={(e) => setDeleteConfirmText(e.target.value)}
                                     placeholder="Type DELETE here"
-                                    className="w-full rounded-lg border bg-transparent px-4 py-3 text-center text-text-primary focus:border-red-500 focus:outline-none focus:shadow-lg focus:shadow-red-500/10"
-                                    style={{ borderColor }}
+                                    className="w-full rounded-lg border border-border-default bg-transparent px-4 py-3 text-center text-text-primary focus:border-red-500 focus:outline-none focus:shadow-lg focus:shadow-red-500/10"
                                 />
 
                                 <div className="flex gap-3 pt-2">
@@ -1448,8 +1446,7 @@ const SettingsPage = () => {
                                             setDeleteConfirmText("");
                                         }}
                                         disabled={isDeleting}
-                                        className="flex-1 rounded-lg border bg-transparent py-3 text-sm font-medium text-text-secondary hover:bg-transparent hover:text-text-primary transition-all"
-                                        style={{ borderColor }}
+                                        className="flex-1 rounded-lg border border-border-default bg-transparent py-3 text-sm font-medium text-text-secondary hover:bg-transparent hover:text-text-primary transition-all"
                                     >
                                         Cancel
                                     </button>
@@ -1486,12 +1483,10 @@ const ConnectedBrokerCard = ({ broker, clientId, onClick, loading }) => {
             type="button"
             onClick={onClick}
             disabled={loading}
-            className="w-full text-left group relative flex items-center gap-4 rounded-2xl border bg-gradient-to-br from-transparent to-transparent p-4 transition-all duration-300 hover:border-blue-500 hover:bg-transparent hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-wait"
-            style={{ borderColor: borderColor }}
+            className="w-full text-left group relative flex items-center gap-4 rounded-2xl border border-border-default bg-gradient-to-br from-transparent to-transparent p-4 transition-all duration-300 hover:border-blue-500 hover:bg-transparent hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-wait"
         >
             <div
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-transparent border group-hover:border-blue-500/20 transition-all"
-                style={{ borderColor: borderColor }}
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-transparent border border-border-default group-hover:border-blue-500/20 transition-all"
             >
                 {loading ? (
                     <div className="animate-spin text-blue-500">

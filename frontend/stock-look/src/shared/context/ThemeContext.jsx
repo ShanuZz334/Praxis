@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-const ThemeContext = createContext();
+export const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
     // Default to 'dark' to respect institutional nature, but check local storage
@@ -22,6 +22,15 @@ export function ThemeProvider({ children }) {
         return 'midnight';
     });
 
+    const [gradientBorder, setGradientBorder] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('stocky-gradient-border');
+            if (saved) return saved === 'true';
+            return true;
+        }
+        return true;
+    });
+
     useEffect(() => {
         const root = window.document.documentElement;
         root.classList.remove('light', 'dark');
@@ -34,12 +43,16 @@ export function ThemeProvider({ children }) {
         localStorage.setItem('stocky-vfx-preset', vfxPreset);
     }, [vfxPreset]);
 
+    useEffect(() => {
+        localStorage.setItem('stocky-gradient-border', gradientBorder);
+    }, [gradientBorder]);
+
     const toggleTheme = () => {
         setTheme(prev => prev === 'dark' ? 'light' : 'dark');
     };
 
     return (
-        <ThemeContext.Provider value={{ theme, toggleTheme, vfxPreset, setVfxPreset }}>
+        <ThemeContext.Provider value={{ theme, toggleTheme, vfxPreset, setVfxPreset, gradientBorder, setGradientBorder }}>
             {children}
         </ThemeContext.Provider>
     );
