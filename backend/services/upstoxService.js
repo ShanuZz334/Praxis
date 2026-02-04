@@ -1,14 +1,50 @@
+/**
+ * @file upstoxService.js
+ * @purpose Upstox broker API integration service.
+ * @responsibilities
+ * - Builds OAuth authorization URLs for Upstox login
+ * - Exchanges authorization codes for access tokens
+ * - Handles token refresh before expiry
+ * - Stores tokens securely in database
+ * - Provides generic API request wrapper with auto-refresh
+ * - Fetches live market prices and option chain data
+ * @key_exports
+ * - authUrl - Generates Upstox OAuth URL
+ * - exchangeCodeForToken - Exchanges auth code for tokens
+ * - refreshToken - Refreshes expired access token
+ * - requestUpstox - Generic API request with auto-refresh
+ * - fetchLivePrice - Fetches live market quote
+ * - fetchOptionChain - Fetches option chain data
+ * @dependencies
+ * - axios - HTTP client
+ * - Token - Token storage model
+ * - querystring - URL encoding
+ * @lifecycle
+ * - Called by broker controllers
+ * - Requires UPSTOX_CLIENT_ID, UPSTOX_CLIENT_SECRET, UPSTOX_REDIRECT_URI environment variables
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
 import axios from "axios";
 import Token from "../models/Token.js";
 import qs from "querystring";
 
+// =============================
+// Environment Variables
+// =============================
 const {
   UPSTOX_CLIENT_ID,
   UPSTOX_CLIENT_SECRET,
   UPSTOX_REDIRECT_URI
 } = process.env;
 
-// Build authorization URL
+// =============================
+// OAuth Flow
+// =============================
+
 export const authUrl = () => {
   const params = new URLSearchParams({
     response_type: "code",
@@ -21,7 +57,6 @@ export const authUrl = () => {
   return `https://api.upstox.com/v2/login/authorization/dialog?${params.toString()}`;
 };
 
-// Exchange auth code for access token
 export async function exchangeCodeForToken(code) {
   const tokenEndpoint = "https://api.upstox.com/v2/login/authorization/token";
 
@@ -52,7 +87,10 @@ export async function exchangeCodeForToken(code) {
   return token;
 }
 
-// Refresh token
+// =============================
+// Token Management
+// =============================
+
 export async function refreshToken(refreshTokenValue) {
   const tokenEndpoint = "https://api.upstox.com/v2/login/authorization/token";
 
@@ -82,13 +120,15 @@ export async function refreshToken(refreshTokenValue) {
   return token;
 }
 
-// Generic Upstox API requester
+// =============================
+// API Requests
+// =============================
+
 export async function requestUpstox(endpoint, opts = {}) {
   let token = await Token.findOne({ provider: "upstox" });
 
   if (!token) throw new Error("Upstox token not found. Login again.");
 
-  // Refresh before expiry (60 sec early)
   if (token.expiresAt < new Date(Date.now() + 60000)) {
     token = await refreshToken(token.refreshToken);
   }
@@ -108,12 +148,14 @@ export async function requestUpstox(endpoint, opts = {}) {
 
   return res.data;
 }
+
 export async function fetchLivePrice(symbol) {
   return requestUpstox(
     "https://api.upstox.com/v2/market-quote/quotes",
     { params: { symbol } }
   );
 }
+
 export async function fetchOptionChain(identifier) {
   return requestUpstox(
     "https://api.upstox.com/v2/option-chain",

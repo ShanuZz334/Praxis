@@ -1,6 +1,32 @@
+/**
+ * @file authMiddleware.js
+ * @purpose JWT authentication middleware for protected routes.
+ * @responsibilities
+ * - Validates JWT tokens from Authorization header
+ * - Verifies user existence in database
+ * - Implements single-session enforcement via activeToken check
+ * - Attaches authenticated user to request object
+ * - Handles token expiration and invalid token errors
+ * @key_exports
+ * - protect - Express middleware function
+ * @dependencies
+ * - jsonwebtoken - JWT verification
+ * - User - User model
+ * @lifecycle
+ * - Applied to protected routes in route definitions
+ * - Requires JWT_SECRET environment variable
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
+// =============================
+// Middleware Function
+// =============================
 export const protect = async (req, res, next) => {
     let token;
 
@@ -24,7 +50,6 @@ export const protect = async (req, res, next) => {
             return res.status(401).json({ message: "User no longer exists" });
         }
 
-        // Single Session Check
         if (user.activeToken !== token) {
             return res.status(401).json({ message: "Internal Session Conflict: This account is logged in on another device. Please log in again." });
         }

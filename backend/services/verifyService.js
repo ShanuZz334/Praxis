@@ -1,32 +1,58 @@
+/**
+ * @file verifyService.js
+ * @purpose Email OTP and TOTP verification service.
+ * @responsibilities
+ * - Generates and sends 6-digit email OTPs via SMTP
+ * - Implements rate limiting (max 3 requests per hour)
+ * - Securely stores hashed OTPs in database
+ * - Verifies OTPs with attempt limits (max 5 attempts)
+ * - Handles master TOTP verification for admin access
+ * - Uses constant-time comparison for security
+ * @key_exports
+ * - sendEmailOTP - Generates and sends OTP to email
+ * - verifyEmailOTP - Verifies OTP with attempt tracking
+ * - verifyMasterTOTP - Verifies admin TOTP token
+ * @dependencies
+ * - mailer - Email sending utility
+ * - otplib - TOTP verification
+ * - crypto - Hashing and secure comparison
+ * - EmailOtp - OTP storage model
+ * @lifecycle
+ * - Called by authController and userController
+ * - Requires OTP_EXPIRY_MINUTES and TOTP_MASTER_SECRET environment variables
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
 import { sendOTPEmail } from '../utils/mailer.js';
 import { verifySync } from 'otplib';
 import crypto from 'crypto';
 import EmailOtp from '../models/EmailOtp.js';
 
-/**
- * Hashing helper for OTPs (SHA-256)
- * @param {string} otp 
- * @returns {string} - Hex digest
- */
+// =============================
+// Hashing Utilities
+// =============================
+
 const hashOtp = (otp) => {
     return crypto.createHash('sha256').update(otp).digest('hex');
 };
 
-/**
- * Sends a production-ready OTP with rate limiting and secure storage
- */
+// =============================
+// Email OTP Management
+// =============================
+
 export const sendEmailOTP = async (email) => {
     const normalizedEmail = email.toLowerCase();
     const now = new Date();
     const expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES) || 5;
     const expiresAt = new Date(now.getTime() + expiryMinutes * 60000);
 
-    // 1. Rate Limiting Check (Max 3 requests per hour)
     const oneHourAgo = new Date(now.getTime() - 60 * 60000);
     const existingOtp = await EmailOtp.findOne({ email: normalizedEmail });
 
     if (existingOtp) {
-        // Reset count if last request was > 1 hour ago
         if (existingOtp.lastRequested < oneHourAgo) {
             existingOtp.requestCount = 0;
         }
@@ -36,11 +62,9 @@ export const sendEmailOTP = async (email) => {
         }
     }
 
-    // 2. Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpHash = hashOtp(otp);
 
-    // 3. Store Hashed OTP securely
     await EmailOtp.findOneAndUpdate(
         { email: normalizedEmail },
         {
@@ -53,7 +77,6 @@ export const sendEmailOTP = async (email) => {
         { upsert: true, new: true }
     );
 
-    // 4. Send Email via SMTP
     const result = await sendOTPEmail(normalizedEmail, otp);
 
     if (!result.success) {
@@ -63,28 +86,22 @@ export const sendEmailOTP = async (email) => {
     return true;
 };
 
-/**
- * Verifies OTP with attempt limits and secure hashing
- */
 export const verifyEmailOTP = async (email, otp, keep = false) => {
     const normalizedEmail = email.toLowerCase();
     const otpRecord = await EmailOtp.findOne({ email: normalizedEmail });
 
     if (!otpRecord) return false;
 
-    // 1. Expiry Check
     if (new Date() > otpRecord.expiresAt) {
         await EmailOtp.deleteOne({ email: normalizedEmail });
         return false;
     }
 
-    // 2. Max Attempts Check (Max 5 attempts)
     if (otpRecord.attempts >= 5) {
-        await EmailOtp.deleteOne({ email: normalizedEmail }); // Lockout: delete OTP
+        await EmailOtp.deleteOne({ email: normalizedEmail });
         return false;
     }
 
-    // 3. Constant-time comparison for safety
     const hashedInput = hashOtp(otp);
     const isValid = crypto.timingSafeEqual(
         Buffer.from(otpRecord.otpHash),
@@ -96,7 +113,6 @@ export const verifyEmailOTP = async (email, otp, keep = false) => {
             await EmailOtp.deleteOne({ email: normalizedEmail });
         }
     } else {
-        // Increment attempts on failure
         await EmailOtp.updateOne(
             { email: normalizedEmail },
             { $inc: { attempts: 1 } }
@@ -106,9 +122,10 @@ export const verifyEmailOTP = async (email, otp, keep = false) => {
     return isValid;
 };
 
-/**
- * Master TOTP Verification (Legacy/Admin)
- */
+// =============================
+// TOTP Verification
+// =============================
+
 export const verifyMasterTOTP = (token) => {
     const secret = process.env.TOTP_MASTER_SECRET ? process.env.TOTP_MASTER_SECRET.trim() : null;
 

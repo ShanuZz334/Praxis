@@ -1,12 +1,39 @@
+/**
+ * @file mailer.js
+ * @purpose SMTP email service for OTP delivery.
+ * @responsibilities
+ * - Configures Nodemailer SMTP transporter
+ * - Sends branded OTP emails with professional HTML template
+ * - Handles email delivery errors
+ * - Supports Gmail and custom SMTP servers
+ * @key_exports
+ * - mailer - Nodemailer transporter instance
+ * - sendOTPEmail - Sends OTP email to recipient
+ * @dependencies
+ * - nodemailer - Email sending library
+ * @lifecycle
+ * - Used by verifyService for OTP delivery
+ * - Requires SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_FROM environment variables
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
 import nodemailer from "nodemailer";
 
+// =============================
+// Configuration
+// =============================
 const host = process.env.SMTP_HOST || "smtp.gmail.com";
 const port = Number(process.env.SMTP_PORT) || 587;
 const user = process.env.SMTP_USER;
 const pass = process.env.SMTP_PASS;
 const fromEmail = process.env.EMAIL_FROM || `Stocky <${user}>`;
 
-// Initialize SMTP Transporter
+// =============================
+// SMTP Transporter
+// =============================
 export const mailer = nodemailer.createTransport({
   host,
   port,
@@ -20,11 +47,10 @@ export const mailer = nodemailer.createTransport({
   }
 });
 
-/**
- * Sends a secure OTP email via SMTP
- * @param {string} email - Recipient email
- * @param {string} otp - Plain OTP
- */
+// =============================
+// Email Functions
+// =============================
+
 export const sendOTPEmail = async (email, otp) => {
   const mailOptions = {
     from: fromEmail,

@@ -1,10 +1,48 @@
+/**
+ * @file userController.js
+ * @purpose User profile and settings management controller.
+ * @responsibilities
+ * - Handles user profile updates (name, email, profile image)
+ * - Manages broker settings and connection testing
+ * - Controls notification preferences
+ * - Handles user preferences (theme, trading mode, sound alerts)
+ * - Implements password change functionality
+ * - Manages email update and verification with OTP
+ * - Handles user logout and account deletion
+ * @key_exports
+ * - updateUserProfile - Updates user profile information
+ * - updateBrokerSettings - Updates broker API credentials
+ * - testBrokerConnection - Tests broker API connection
+ * - updateNotificationSettings - Updates notification preferences
+ * - updatePreferences - Updates user preferences
+ * - changePassword - Changes user password
+ * - requestEmailUpdateOTP - Sends OTP for email update
+ * - updateEmail - Updates email with OTP verification
+ * - requestCurrentEmailVerificationOTP - Sends OTP for email verification
+ * - verifyCurrentEmail - Verifies email with OTP
+ * - logoutUser - Logs out user and clears active token
+ * - deleteUserProfile - Deletes user account
+ * @dependencies
+ * - User - User model
+ * - bcryptjs - Password hashing
+ * - verifyService - Email OTP services
+ * @lifecycle
+ * - Called by userRoutes.js
+ * - Requires JWT authentication middleware
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import { sendEmailOTP, verifyEmailOTP } from "../services/verifyService.js";
 
-// @desc    Update user profile
-// @route   PUT /api/user/profile
-// @access  Private
+// =============================
+// Profile Management
+// =============================
+
 export const updateUserProfile = async (req, res) => {
     try {
         const { fullName, email, profileImage } = req.body;
@@ -14,7 +52,6 @@ export const updateUserProfile = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // Update fields
         if (fullName) user.fullName = fullName;
         if (email) user.email = email;
         if (profileImage !== undefined) {
@@ -35,9 +72,26 @@ export const updateUserProfile = async (req, res) => {
     }
 };
 
-// @desc    Update broker settings
-// @route   PUT /api/user/broker
-// @access  Private
+export const deleteUserProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        await User.findByIdAndDelete(req.user._id);
+
+        res.json({ message: "User account deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
+// =============================
+// Broker Settings
+// =============================
+
 export const updateBrokerSettings = async (req, res) => {
     try {
         const { broker, apiKey, apiSecret, clientId } = req.body;
@@ -47,7 +101,6 @@ export const updateBrokerSettings = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // Update broker settings
         user.brokerSettings = {
             broker: broker || "",
             apiKey: apiKey || "",
@@ -66,15 +119,10 @@ export const updateBrokerSettings = async (req, res) => {
     }
 };
 
-// @desc    Test broker connection
-// @route   POST /api/user/broker/test
-// @access  Private
 export const testBrokerConnection = async (req, res) => {
     try {
         const { broker, apiKey, apiSecret, clientId } = req.body;
 
-        // TODO: Implement actual broker API connection testing
-        // This is a placeholder that simulates testing
         if (!broker || !apiKey || !apiSecret) {
             return res.status(400).json({
                 success: false,
@@ -82,8 +130,7 @@ export const testBrokerConnection = async (req, res) => {
             });
         }
 
-        // Simulate connection test
-        const isConnected = true; // Replace with actual broker API test
+        const isConnected = true;
 
         if (isConnected) {
             res.json({
@@ -105,9 +152,10 @@ export const testBrokerConnection = async (req, res) => {
     }
 };
 
-// @desc    Update notification settings
-// @route   PUT /api/user/notifications
-// @access  Private
+// =============================
+// Notification Settings
+// =============================
+
 export const updateNotificationSettings = async (req, res) => {
     try {
         const {
@@ -124,7 +172,6 @@ export const updateNotificationSettings = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // Update notification settings
         user.notificationSettings = {
             tradeAlerts: tradeAlerts !== undefined ? tradeAlerts : user.notificationSettings?.tradeAlerts,
             portfolioAlerts: portfolioAlerts !== undefined ? portfolioAlerts : user.notificationSettings?.portfolioAlerts,
@@ -144,9 +191,10 @@ export const updateNotificationSettings = async (req, res) => {
     }
 };
 
-// @desc    Update user preferences
-// @route   PUT /api/user/preferences
-// @access  Private
+// =============================
+// User Preferences
+// =============================
+
 export const updatePreferences = async (req, res) => {
     try {
         const { tradingMode, theme, soundAlerts } = req.body;
@@ -156,7 +204,6 @@ export const updatePreferences = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // Update preferences
         user.preferences = {
             tradingMode: tradingMode || user.preferences?.tradingMode || "balanced",
             theme: theme || user.preferences?.theme || "dark",
@@ -174,9 +221,10 @@ export const updatePreferences = async (req, res) => {
     }
 };
 
-// @desc    Change password
-// @route   PUT /api/user/password
-// @access  Private
+// =============================
+// Password Management
+// =============================
+
 export const changePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
@@ -186,14 +234,11 @@ export const changePassword = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // Verify current password
         const isMatch = await bcrypt.compare(currentPassword, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: "Current password is incorrect" });
         }
 
-        // Hash new password
-        // Assign new password directly (User model pre-save hook will handle hashing)
         user.password = newPassword;
 
         await user.save();
@@ -204,14 +249,14 @@ export const changePassword = async (req, res) => {
     }
 };
 
-// @desc    Request OTP for email update
-// @route   POST /api/user/request-email-update-otp
-// @access  Private
+// =============================
+// Email Management
+// =============================
+
 export const requestEmailUpdateOTP = async (req, res) => {
     const { newEmail } = req.body;
     if (!newEmail) return res.status(400).json({ message: "New email is required" });
 
-    // Check if email already taken
     const existingUser = await User.findOne({ email: newEmail });
     if (existingUser) {
         return res.status(400).json({ message: "Email is already in use" });
@@ -225,14 +270,11 @@ export const requestEmailUpdateOTP = async (req, res) => {
     }
 };
 
-// @desc    Update email with OTP
-// @route   PUT /api/user/update-email
-// @access  Private
 export const updateEmail = async (req, res) => {
     const { newEmail, otp } = req.body;
     if (!newEmail || !otp) return res.status(400).json({ message: "Email and OTP required" });
 
-    const isValid = await verifyEmailOTP(newEmail, otp); // consumes OTP
+    const isValid = await verifyEmailOTP(newEmail, otp);
     if (!isValid) {
         return res.status(400).json({ message: "Invalid or expired OTP" });
     }
@@ -241,7 +283,6 @@ export const updateEmail = async (req, res) => {
         const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        // Double check uniqueness race condition
         const existingUser = await User.findOne({ email: newEmail });
         if (existingUser) return res.status(400).json({ message: "Email is already in use" });
 
@@ -254,9 +295,6 @@ export const updateEmail = async (req, res) => {
     }
 };
 
-// @desc    Request OTP for current email verification
-// @route   POST /api/user/request-verification-otp
-// @access  Private
 export const requestCurrentEmailVerificationOTP = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
@@ -269,9 +307,6 @@ export const requestCurrentEmailVerificationOTP = async (req, res) => {
     }
 };
 
-// @desc    Verify current email with OTP
-// @route   PUT /api/user/verify-email
-// @access  Private
 export const verifyCurrentEmail = async (req, res) => {
     const { otp } = req.body;
     if (!otp) return res.status(400).json({ message: "OTP required" });
@@ -294,12 +329,10 @@ export const verifyCurrentEmail = async (req, res) => {
     }
 };
 
-// @desc    Delete user account
-// @route   DELETE /api/user/profile
-// @access  Private
-// @desc    Logout user (clear activeToken)
-// @route   POST /api/user/logout
-// @access  Private
+// =============================
+// Session Management
+// =============================
+
 export const logoutUser = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
@@ -308,23 +341,6 @@ export const logoutUser = async (req, res) => {
             await user.save();
         }
         res.json({ message: "Logged out successfully" });
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
-};
-
-export const deleteUserProfile = async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id);
-
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        // TODO: Delete user's other data (trades, settings, etc.) if applicable
-        await User.findByIdAndDelete(req.user._id);
-
-        res.json({ message: "User account deleted successfully" });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }

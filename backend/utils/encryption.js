@@ -1,14 +1,37 @@
+/**
+ * @file encryption.js
+ * @purpose AES-256-CBC encryption utility for sensitive data.
+ * @responsibilities
+ * - Encrypts sensitive data (broker API keys, secrets, client IDs)
+ * - Decrypts encrypted data for use
+ * - Uses AES-256-CBC algorithm with random IVs
+ * - Stores IV with encrypted data for decryption
+ * @key_exports
+ * - encrypt - Encrypts plain text
+ * - decrypt - Decrypts encrypted text
+ * @dependencies
+ * - crypto - Node.js crypto module
+ * @lifecycle
+ * - Used by brokerController for credential encryption
+ * - Requires ENCRYPTION_KEY environment variable (32 bytes)
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
 import crypto from 'crypto';
 
-// Encryption key must be 32 bytes for AES-256
+// =============================
+// Configuration
+// =============================
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex').slice(0, 32);
-const IV_LENGTH = 16; // For AES, this is always 16
+const IV_LENGTH = 16;
 
-/**
- * Encrypt sensitive data using AES-256-CBC
- * @param {string} text - Plain text to encrypt
- * @returns {string} - Encrypted text in format: iv:encryptedData
- */
+// =============================
+// Encryption Functions
+// =============================
+
 function encrypt(text) {
     if (!text) return '';
 
@@ -18,15 +41,9 @@ function encrypt(text) {
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
 
-    // Return iv and encrypted data separated by ':'
     return iv.toString('hex') + ':' + encrypted;
 }
 
-/**
- * Decrypt encrypted data
- * @param {string} text - Encrypted text in format: iv:encryptedData
- * @returns {string} - Decrypted plain text
- */
 function decrypt(text) {
     if (!text) return '';
 
@@ -42,4 +59,7 @@ function decrypt(text) {
     return decrypted;
 }
 
+// =============================
+// Exports
+// =============================
 export { encrypt, decrypt };

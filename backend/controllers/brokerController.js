@@ -1,28 +1,51 @@
+/**
+ * @file brokerController.js
+ * @purpose Broker integration and credential management controller.
+ * @responsibilities
+ * - Saves and retrieves encrypted broker credentials
+ * - Tests broker API connections
+ * - Validates broker-specific credential formats
+ * - Handles OAuth flow requirements for supported brokers
+ * - Supports multiple brokers: Zerodha, Upstox, Angel One, ICICI Direct, HDFC Sec, Kotak Sec, 5Paisa, Groww, Sharekhan, Motilal
+ * @key_exports
+ * - saveBrokerCredentials - Saves encrypted broker API credentials
+ * - getBrokerCredentials - Retrieves and decrypts broker credentials
+ * - testBrokerConnection - Tests broker API connection and validates credentials
+ * @dependencies
+ * - User - User model
+ * - encryption - Encrypt/decrypt utilities
+ * @lifecycle
+ * - Called by brokerRoutes.js
+ * - Requires JWT authentication middleware
+ * - Requires UPSTOX_REDIRECT_URI environment variable for Upstox OAuth
+ * @date 2026-02-04
+ */
+
+// =============================
+// Imports
+// =============================
 import { encrypt, decrypt } from '../utils/encryption.js';
 import User from '../models/User.js';
 
-/**
- * Save broker credentials
- * @route POST /api/broker/credentials
- */
+// =============================
+// Credential Management
+// =============================
+
 export const saveBrokerCredentials = async (req, res) => {
     try {
         const { broker, apiKey, apiSecret, clientId } = req.body;
         const userId = req.user.id;
 
-        // Validate required fields
         if (!broker || !apiKey || !apiSecret) {
             return res.status(400).json({
                 error: 'Missing required fields: broker, apiKey, apiSecret'
             });
         }
 
-        // Encrypt sensitive data
         const encryptedApiKey = encrypt(apiKey);
         const encryptedApiSecret = encrypt(apiSecret);
         const encryptedClientId = clientId ? encrypt(clientId) : null;
 
-        // Update user's broker credentials
         const updatedUser = await User.findByIdAndUpdate(
             userId,
             {
@@ -51,22 +74,16 @@ export const saveBrokerCredentials = async (req, res) => {
     }
 };
 
-/**
- * Get user's broker credentials (decrypted)
- * @route GET /api/broker/credentials
- */
 export const getBrokerCredentials = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // Explicitly select the fields that are marked select: false
         const user = await User.findById(userId).select('+apiKey +apiSecret +clientId');
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Decrypt credentials
         const credentials = {
             broker: user.broker || '',
             apiKey: user.apiKey ? decrypt(user.apiKey) : '',
@@ -84,10 +101,10 @@ export const getBrokerCredentials = async (req, res) => {
     }
 };
 
-/**
- * Test broker connection
- * @route POST /api/broker/test
- */
+// =============================
+// Connection Testing
+// =============================
+
 export const testBrokerConnection = async (req, res) => {
     try {
         const { broker, apiKey, apiSecret, clientId } = req.body;
@@ -111,7 +128,6 @@ export const testBrokerConnection = async (req, res) => {
                 result = await testAngelOneConnection(apiKey, apiSecret, clientId);
                 break;
             default:
-                // Handle basic validation for other brokers
                 if (['icicidirect', 'hdfcsec', 'kotaksec', '5paisa', 'groww', 'sharekhan', 'motilal'].includes(broker.toLowerCase())) {
                     result = {
                         success: true,
@@ -139,7 +155,10 @@ export const testBrokerConnection = async (req, res) => {
     }
 };
 
-// Helper functions
+// =============================
+// Broker-Specific Validators
+// =============================
+
 async function testZerodhaConnection(apiKey, apiSecret) {
     try {
         if (apiKey && apiKey.length > 5) {

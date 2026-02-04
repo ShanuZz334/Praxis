@@ -1,6 +1,7 @@
 {
-  "name": "expense-tracker-backend",
+  "name": "stocky-backend",
   "version": "1.0.0",
+  "description": "Institutional-grade trading intelligence platform backend with broker integration, OTP verification, and secure credential management",
   "type": "module",
   "main": "server.js",
   "scripts": {
@@ -8,7 +9,16 @@
     "dev": "nodemon server.js",
     "mail-trap": "node scripts/local-smtp.js"
   },
-  "keywords": [],
+  "keywords": [
+    "trading",
+    "stocks",
+    "broker-integration",
+    "upstox",
+    "zerodha",
+    "angelone",
+    "technical-analysis",
+    "options-trading"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -34,6 +44,5 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
-  },
-  "description": ""
+  }
 }
