@@ -27,7 +27,8 @@ import {
     extractTechnicalTailwinds,
     extractTechnicalRisks
 } from "@/features/dashboard/technical/engine/technicalHelper";
-import { generateLiveTechnicalData, TOTAL_TECHNICAL_CREDITS } from "@/features/dashboard/technical/engine/indicatorsConfig";
+import { generateLiveTechnicalData } from "@/features/dashboard/technical/engine/indicatorsConfig";
+import { TOTAL_TECHNICAL_CREDITS } from "@/config/credits/technicalCredits";
 
 export default function TechnicalPage() {
     const [viewMode, setViewMode] = useState("sectioned");

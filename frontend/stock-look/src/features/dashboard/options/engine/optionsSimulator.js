@@ -18,11 +18,15 @@
 // =============================
 // Constants
 // =============================
+import { TOTAL_OPTIONS_CREDITS as TOTAL_CREDITS } from '../../../../config/credits/optionsCredits.js';
+
 const SPOT_PRICE = 22450.00; // Mock NIFTY Spot
 const INTEREST_RATE = 0.07;  // 7% Risk Free
 const DAYS_TO_EXPIRY = 2.5;  // 2.5 Days left
 const ATM_IV = 13.5;         // 13.5% VIX/IV
-export const TOTAL_OPTIONS_CREDITS = 120; // 12 cards * avg 10 credits
+
+// Re-export for backward compatibility
+export const TOTAL_OPTIONS_CREDITS = TOTAL_CREDITS;
 
 // =============================
 // Mathematical Helpers

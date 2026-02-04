@@ -20,12 +20,11 @@
 // =============================
 // Configuration
 // =============================
-export const globalSections = [
-    { id: "currency", label: "FX", w: 0.30, icon: "💱" },
-    { id: "indices", label: "Indices", w: 0.35, icon: "📊" },
-    { id: "commodities", label: "Commod", w: 0.20, icon: "🛢️" },
-    { id: "rates", label: "Rates", w: 0.15, icon: "📈" }
-];
+
+import { globalSections as baseSections } from '../../../../config/weights/foreignSectionWeights.js';
+
+// Re-export for backward compatibility
+export const globalSections = baseSections;
 
 // =============================
 // Core Calculation Logic

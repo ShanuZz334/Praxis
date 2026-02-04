@@ -1,3 +1,5 @@
+import { TOTAL_FOREIGN_CREDITS as TOTAL_CREDITS } from '../../../../config/credits/foreignCredits.js';
+
 // Card-based data structure for Global Structure page
 export const GLOBAL_STRUCTURE_CARDS = [
     // Currency
@@ -251,8 +253,10 @@ export const GLOBAL_STRUCTURE_CARDS = [
     }
 ];
 
-// Total credits allocated across all global cards
-export const TOTAL_GLOBAL_CREDITS = 150;
+// Re-export for backward compatibility
+export const TOTAL_FOREIGN_CREDITS = TOTAL_CREDITS;
+export const TOTAL_GLOBAL_CREDITS = TOTAL_CREDITS; // Alias for Master Dashboard
+
 
 // Section definitions
 export const GLOBAL_SECTIONS = {

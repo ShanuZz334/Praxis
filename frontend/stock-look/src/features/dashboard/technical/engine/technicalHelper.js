@@ -21,14 +21,10 @@
 // Configuration Constants
 // =============================
 
-export const technicalSections = [
-    { id: 'Trend', label: 'Trend', w: 0.25, icon: '📈' },
-    { id: 'Momentum', label: 'Mom', w: 0.20, icon: '🚀' },
-    { id: 'Volatility', label: 'Vol', w: 0.15, icon: '⚡' },
-    { id: 'Volume', label: 'Vol', w: 0.15, icon: '📊' },
-    { id: 'Breadth', label: 'Brd', w: 0.15, icon: '🌍' },
-    { id: 'Structure', label: 'Str', w: 0.10, icon: '🏗️' }
-];
+import { technicalSections as baseSections } from '@/config/weights/sectionWeights.js';
+
+// Re-export for backward compatibility
+export const technicalSections = baseSections;
 
 // =============================
 // Core Scoring Logic

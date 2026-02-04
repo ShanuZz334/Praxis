@@ -18,11 +18,11 @@
 // =============================
 // Constants
 // =============================
-export const optionsSections = [
-    { id: 'Open Interest', label: 'Open Interest', w: 0.4 },
-    { id: 'Greeks', label: 'Greeks', w: 0.35 },
-    { id: 'Volatility', label: 'Volatility', w: 0.25 }
-];
+
+import { optionsSections as baseSections } from '../../../../config/weights/optionsSectionWeights.js';
+
+// Re-export for backward compatibility
+export const optionsSections = baseSections;
 
 // =============================
 // Scoring Logic

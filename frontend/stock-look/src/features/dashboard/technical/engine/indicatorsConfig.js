@@ -267,8 +267,8 @@ export const technicalIndicatorsConfig = [
     { id: 'FINAL_MASTER', label: 'MASTER TECH SCORE', category: 'Trend', weight: 1.00, reliability: 0.99, creditAllocation: 5, desc: 'THE FINAL VERDICT' }
 ];
 
-// Total credits for Technical page
-export const TOTAL_TECHNICAL_CREDITS = 500;
+// Total credits for Technical page (dynamically calculated)
+export const TOTAL_TECHNICAL_CREDITS = technicalIndicatorsConfig.reduce((sum, indicator) => sum + (indicator.creditAllocation || 0), 0);
 
 // =============================
 // Helper Functions
