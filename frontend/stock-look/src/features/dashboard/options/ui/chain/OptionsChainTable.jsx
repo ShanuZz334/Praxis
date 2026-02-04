@@ -18,14 +18,12 @@
 // =============================
 // Imports
 // =============================
-import React, { useState } from "react";
-import OptionsHoverCard from "./OptionsHoverCard";
+import React from "react";
 
 // =============================
 // Main Component
 // =============================
 export default function OptionsChainTable({ chain, spotPrice, onOptionSelect }) {
-    const [hoverData, setHoverData] = useState(null);
 
     // 1. Strike Filtering (Optimization)
     // Find ATM index to slice relevant range (+/- 15 strikes)
@@ -37,27 +35,10 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect }) 
     const viewChain = chain.slice(start, end);
 
     // 2. Interaction Handlers
-    const handleMouseEnter = (e, data, type, strike) => {
-        // Only show hover card on desktop
-        if (window.innerWidth >= 768) {
-            const rect = e.currentTarget.getBoundingClientRect();
-            setHoverData({
-                data,
-                type,
-                strike,
-                position: { x: rect.left, y: rect.top }
-            });
-        }
-    };
-
     const handleClick = (data, type, strike) => {
         if (onOptionSelect) {
             onOptionSelect(data, type, strike);
         }
-    };
-
-    const handleMouseLeave = () => {
-        setHoverData(null);
     };
 
     // 3. Render
@@ -109,8 +90,6 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect }) 
                                     {/* CALLS DATA */}
                                     <div
                                         className="grid grid-cols-[70px_50px_50px_35px_35px] lg:grid-cols-[70px_50px_50px_45px_35px_35px] p-2 text-right gap-2 items-center justify-end cursor-pointer hover:bg-green-500/5 transition-colors"
-                                        onMouseEnter={(e) => handleMouseEnter(e, row.call, 'call', row.strike)}
-                                        onMouseLeave={handleMouseLeave}
                                         onClick={() => handleClick(row.call, 'call', row.strike)}
                                     >
                                         <span className="text-state-bullish-text font-mono font-bold">{row.call.ltp}</span>
@@ -131,8 +110,6 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect }) 
                                     {/* PUTS DATA */}
                                     <div
                                         className="grid grid-cols-[35px_35px_50px_50px_70px] lg:grid-cols-[35px_35px_45px_50px_50px_70px] p-2 text-left gap-2 items-center justify-start cursor-pointer hover:bg-red-500/5 transition-colors"
-                                        onMouseEnter={(e) => handleMouseEnter(e, row.put, 'put', row.strike)}
-                                        onMouseLeave={handleMouseLeave}
                                         onClick={() => handleClick(row.put, 'put', row.strike)}
                                     >
                                         <span className="text-text-tertiary text-[10px]">{row.put.delta.toFixed(2)}</span>
@@ -150,16 +127,6 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect }) 
                     </div>
                 </div>
             </div>
-
-            {/* HOVER POPUP */}
-            {hoverData && (
-                <OptionsHoverCard
-                    data={hoverData.data}
-                    position={hoverData.position}
-                    type={hoverData.type}
-                    strike={hoverData.strike}
-                />
-            )}
         </div>
     );
 }

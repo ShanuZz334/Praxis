@@ -70,7 +70,7 @@ export default function OptionsGrid({
     if (viewMode === 'flat') {
         const sortedFlat = sortCards(cards, sortMode);
         return (
-            <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-500">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 animate-in fade-in duration-500 gap-4">
                 {sortedFlat.map((card) => (
                     <OptionsCard
                         key={card.id}
@@ -129,7 +129,7 @@ export default function OptionsGrid({
                         </div>
 
                         {/* Grid */}
-                        <div className="grid gap-3 md:gap-4 grid-cols-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                             {sortedSectionCards.map((card) => (
                                 <OptionsCard
                                     key={card.id}
