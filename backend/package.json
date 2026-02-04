@@ -37,7 +37,6 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.12",
     "otplib": "^13.1.1",
-    "qrcode": "^1.5.4",
     "smtp-server": "^3.18.0",
     "technicalindicators": "^3.1.0",
     "xlsx": "^0.18.5"
