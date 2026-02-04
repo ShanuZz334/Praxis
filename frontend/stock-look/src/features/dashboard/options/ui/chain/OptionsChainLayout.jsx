@@ -56,93 +56,93 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                         </div>
 
                         {/* Detail Content */}
-                        <div className="flex-1 overflow-y-auto no-scrollbar space-y-5">
+                        <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 pt-1">
                             {/* Primary Stats Grid: 2-col on Mobile, 1-col on Laptop */}
-                            <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
-                                <div className="p-3 bg-background-surface rounded-xl border border-border-default hover:border-border-hover transition-all shadow-sm group">
-                                    <div className="text-[10px] text-text-tertiary uppercase mb-1.5 font-bold tracking-wider">LTP</div>
-                                    <div className="text-xl font-bold text-text-primary leading-none tabular-nums italic">₹{selectedOption.data.ltp}</div>
+                            <div className="grid grid-cols-2 lg:grid-cols-1 gap-x-4 gap-y-3 px-1">
+                                <div className="group">
+                                    <div className="text-[9px] text-text-tertiary uppercase mb-0.5 font-bold tracking-wider">LTP</div>
+                                    <div className="text-lg font-bold text-text-primary leading-none tabular-nums italic">₹{selectedOption.data.ltp}</div>
                                 </div>
-                                <div className="p-3 bg-background-surface rounded-xl border border-border-default hover:border-border-hover transition-all shadow-sm group">
-                                    <div className="text-[10px] text-text-tertiary uppercase mb-1.5 font-bold tracking-wider">Change</div>
-                                    <div className={`text-sm font-bold leading-none ${selectedOption.data.oiChg >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                <div className="group">
+                                    <div className="text-[9px] text-text-tertiary uppercase mb-0.5 font-bold tracking-wider">Change</div>
+                                    <div className={`text-xs font-bold leading-none ${selectedOption.data.oiChg >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                                         {selectedOption.data.oiChg > 0 ? '+' : ''}{selectedOption.data.oiChg}%
                                     </div>
                                 </div>
-                                <div className="p-3 bg-background-surface rounded-xl border border-border-default hover:border-border-hover transition-all shadow-sm group">
-                                    <div className="text-[10px] text-text-tertiary uppercase mb-1.5 font-bold tracking-wider">OI</div>
-                                    <div className="text-sm font-mono font-bold text-text-primary leading-none">{(selectedOption.data.oi / 1000).toFixed(1)}k</div>
+                                <div className="group">
+                                    <div className="text-[9px] text-text-tertiary uppercase mb-0.5 font-bold tracking-wider">OI</div>
+                                    <div className="text-xs font-mono font-bold text-text-primary leading-none">{(selectedOption.data.oi / 1000).toFixed(1)}k</div>
                                 </div>
-                                <div className="p-3 bg-background-surface rounded-xl border border-border-default hover:border-border-hover transition-all shadow-sm group">
-                                    <div className="text-[10px] text-text-tertiary uppercase mb-1.5 font-bold tracking-wider">Volume</div>
-                                    <div className="text-sm font-mono font-bold text-text-primary leading-none text-ellipsis overflow-hidden">{selectedOption.data.vol}</div>
+                                <div className="group">
+                                    <div className="text-[9px] text-text-tertiary uppercase mb-0.5 font-bold tracking-wider">Volume</div>
+                                    <div className="text-xs font-mono font-bold text-text-primary leading-none text-ellipsis overflow-hidden">{selectedOption.data.vol}</div>
                                 </div>
                             </div>
 
-                            {/* IV Individual Card */}
-                            <div className="p-3 bg-orange-500/5 rounded-xl border border-orange-500/10 flex justify-between items-center group hover:bg-orange-500/10 transition-colors">
-                                <span className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider">Implied Vol (IV)</span>
-                                <span className="text-orange-500 font-mono font-bold text-sm leading-none">{selectedOption.data.iv}%</span>
+                            {/* IV (Integrated) */}
+                            <div className="flex justify-between items-center px-1 border-t border-border-default/20 pt-3">
+                                <span className="text-[9px] text-text-tertiary uppercase font-bold tracking-wider">Implied Vol (IV)</span>
+                                <span className="text-orange-500 font-mono font-bold text-xs leading-none">{selectedOption.data.iv}%</span>
                             </div>
 
                             {/* Greeks Section */}
-                            <div className="pt-2">
-                                <div className="text-[10px] text-text-tertiary uppercase mb-4 border-b border-border-default pb-2 font-bold tracking-widest flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                            <div className="pt-1">
+                                <div className="text-[9px] text-text-tertiary uppercase mb-3 border-b border-border-default/20 pb-1.5 font-bold tracking-widest flex items-center gap-1.5">
+                                    <div className="w-1 h-1 rounded-full bg-blue-500" />
                                     Greek Metrics
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3 text-xs">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 text-xs px-1">
                                     {/* Delta */}
-                                    <div className="bg-blue-500/5 p-3 rounded-xl border border-blue-500/10 flex flex-col gap-2.5 group hover:bg-blue-500/10 transition-all">
+                                    <div className="flex flex-col gap-1.5 group transition-all">
                                         <div className="flex justify-between items-center text-blue-500 font-bold">
-                                            <span className="text-[10px] uppercase tracking-wider">Delta</span>
-                                            <span className="font-mono text-xs">{(selectedOption.data.delta || 0).toFixed(3)}</span>
+                                            <span className="text-[9px] uppercase tracking-wider">Delta</span>
+                                            <span className="font-mono text-[11px]">{(selectedOption.data.delta || 0).toFixed(3)}</span>
                                         </div>
-                                        <div className="w-full bg-blue-500/20 h-1 rounded-full overflow-hidden">
+                                        <div className="w-full bg-blue-500/10 h-0.5 rounded-full overflow-hidden">
                                             <div
-                                                className="bg-blue-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(59,130,246,0.4)]"
+                                                className="bg-blue-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(59,130,246,0.3)]"
                                                 style={{ width: `${Math.min(Math.abs(selectedOption.data.delta || 0) * 100, 100)}%` }}
                                             />
                                         </div>
                                     </div>
 
                                     {/* Gamma */}
-                                    <div className="bg-purple-500/5 p-3 rounded-xl border border-purple-500/10 flex flex-col gap-2.5 group hover:bg-purple-500/10 transition-all">
+                                    <div className="flex flex-col gap-1.5 group transition-all">
                                         <div className="flex justify-between items-center text-purple-500 font-bold">
-                                            <span className="text-[10px] uppercase tracking-wider">Gamma</span>
-                                            <span className="font-mono text-xs">{(selectedOption.data.gamma || 0).toFixed(4)}</span>
+                                            <span className="text-[9px] uppercase tracking-wider">Gamma</span>
+                                            <span className="font-mono text-[11px]">{(selectedOption.data.gamma || 0).toFixed(4)}</span>
                                         </div>
-                                        <div className="w-full bg-purple-500/20 h-1 rounded-full overflow-hidden">
+                                        <div className="w-full bg-purple-500/10 h-0.5 rounded-full overflow-hidden">
                                             <div
-                                                className="bg-purple-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(168,85,247,0.4)]"
+                                                className="bg-purple-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(168,85,247,0.3)]"
                                                 style={{ width: `${Math.min((selectedOption.data.gamma || 0) * 5000, 100)}%` }}
                                             />
                                         </div>
                                     </div>
 
                                     {/* Theta */}
-                                    <div className="bg-orange-500/5 p-3 rounded-xl border border-orange-500/10 flex flex-col gap-2.5 group hover:bg-orange-500/10 transition-all">
+                                    <div className="flex flex-col gap-1.5 group transition-all">
                                         <div className="flex justify-between items-center text-orange-500 font-bold">
-                                            <span className="text-[10px] uppercase tracking-wider">Theta</span>
-                                            <span className="font-mono text-xs">{(selectedOption.data.theta || 0).toFixed(2)}</span>
+                                            <span className="text-[9px] uppercase tracking-wider">Theta</span>
+                                            <span className="font-mono text-[11px]">{(selectedOption.data.theta || 0).toFixed(2)}</span>
                                         </div>
-                                        <div className="w-full bg-orange-500/20 h-1 rounded-full overflow-hidden">
+                                        <div className="w-full bg-orange-500/10 h-0.5 rounded-full overflow-hidden">
                                             <div
-                                                className="bg-orange-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(249,115,22,0.4)]"
+                                                className="bg-orange-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(249,115,22,0.3)]"
                                                 style={{ width: `${Math.min(Math.abs(selectedOption.data.theta || 0) * 5, 100)}%` }}
                                             />
                                         </div>
                                     </div>
 
                                     {/* Vega */}
-                                    <div className="bg-teal-500/5 p-3 rounded-xl border border-teal-500/10 flex flex-col gap-2.5 group hover:bg-teal-500/10 transition-all">
+                                    <div className="flex flex-col gap-1.5 group transition-all">
                                         <div className="flex justify-between items-center text-teal-500 font-bold">
-                                            <span className="text-[10px] uppercase tracking-wider">Vega</span>
-                                            <span className="font-mono text-xs">{(selectedOption.data.vega || 0).toFixed(2)}</span>
+                                            <span className="text-[9px] uppercase tracking-wider">Vega</span>
+                                            <span className="font-mono text-[11px]">{(selectedOption.data.vega || 0).toFixed(2)}</span>
                                         </div>
-                                        <div className="w-full bg-teal-500/20 h-1 rounded-full overflow-hidden">
+                                        <div className="w-full bg-teal-500/10 h-0.5 rounded-full overflow-hidden">
                                             <div
-                                                className="bg-teal-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(20,184,166,0.4)]"
+                                                className="bg-teal-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(20,184,166,0.3)]"
                                                 style={{ width: `${Math.min((selectedOption.data.vega || 0) * 15, 100)}%` }}
                                             />
                                         </div>
@@ -154,78 +154,78 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
                 ) : (
                     /* MODE B: MARKET CONTEXT (Default) */
                     <>
-                        <div className="text-xs font-bold text-text-tertiary uppercase tracking-widest border-b border-border-default pb-2.5 mb-1 flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50" />
+                        <div className="text-[9px] font-bold text-text-tertiary uppercase tracking-widest border-b border-border-default/20 pb-1.5 mb-3 flex items-center gap-1.5">
+                            <div className="w-1 h-1 rounded-full bg-emerald-500" />
                             Market Context
                         </div>
 
                         {/* Stats Grid: 2-col on Mobile, 1-col on Sidebar */}
-                        <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
+                        <div className="grid grid-cols-2 lg:grid-cols-1 gap-y-4 gap-x-3 px-1">
                             {/* SPOT */}
-                            <div className="p-3 bg-background-surface rounded-xl border border-border-default hover:border-border-hover transition-all group col-span-2 lg:col-span-1 shadow-sm">
-                                <div className="flex items-center gap-1.5 mb-1.5">
-                                    <span className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider">Spot Price</span>
+                            <div className="group col-span-2 lg:col-span-1">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                    <span className="text-[9px] text-text-tertiary uppercase font-bold tracking-wider">Spot Price</span>
                                     <PortalTooltip content={<div className="text-xs text-text-secondary">Current underlying index price.</div>}>
-                                        <div className="p-0.5 rounded-full hover:bg-background-app cursor-help transition-colors">
+                                        <div className="p-0.5 rounded-full hover:bg-background-surface cursor-help transition-colors">
                                             <svg className="w-2.5 h-2.5 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                         </div>
                                     </PortalTooltip>
                                 </div>
-                                <div className="text-2xl font-bold text-text-primary tracking-tight leading-none tabular-nums italic">₹{spotPrice.toLocaleString()}</div>
+                                <div className="text-xl font-bold text-text-primary tracking-tight leading-none tabular-nums italic">₹{spotPrice.toLocaleString()}</div>
                             </div>
 
                             {/* PCR */}
-                            <div className="p-3 bg-background-surface rounded-xl border border-border-default hover:border-border-hover transition-all group shadow-sm">
+                            <div className="group border-t border-border-default/20 pt-3 lg:border-0 lg:pt-0">
                                 <div className="flex items-center gap-1.5 mb-1.5">
-                                    <span className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider">PCR</span>
+                                    <span className="text-[9px] text-text-tertiary uppercase font-bold tracking-wider">PCR</span>
                                     <PortalTooltip content={<div className="text-xs text-text-secondary">Put-Call Ratio.<br /><span className="text-emerald-500">{' > 1.0'}</span>: Bullish Support (Oversold)<br /><span className="text-red-500">{' < 0.7'}</span>: Bearish Resistance</div>}>
-                                        <div className="p-0.5 rounded-full hover:bg-background-app cursor-help transition-colors">
+                                        <div className="p-0.5 rounded-full hover:bg-background-surface cursor-help transition-colors">
                                             <svg className="w-2.5 h-2.5 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                         </div>
                                     </PortalTooltip>
                                 </div>
-                                <div className={`text-xl font-mono font-bold leading-none mb-2 ${(metrics.pcr || 1) > 1.1 ? 'text-emerald-500' : (metrics.pcr || 1) < 0.7 ? 'text-red-500' : 'text-text-primary'}`}>
+                                <div className={`text-lg font-mono font-bold leading-none mb-2 ${(metrics.pcr || 1) > 1.1 ? 'text-emerald-500' : (metrics.pcr || 1) < 0.7 ? 'text-red-500' : 'text-text-primary'}`}>
                                     {metrics.pcr?.toFixed(2)}
                                 </div>
-                                <div className="w-full bg-background-app h-1 rounded-full overflow-hidden">
+                                <div className="w-full bg-background-surface h-0.5 rounded-full overflow-hidden">
                                     <div
-                                        className={`h-full transition-all duration-700 ease-out ${(metrics.pcr || 1) > 1.1 ? 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]' : (metrics.pcr || 1) < 0.7 ? 'bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.5)]' : 'bg-blue-500'}`}
+                                        className={`h-full transition-all duration-700 ease-out ${(metrics.pcr || 1) > 1.1 ? 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.3)]' : (metrics.pcr || 1) < 0.7 ? 'bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.3)]' : 'bg-blue-500'}`}
                                         style={{ width: `${Math.min((metrics.pcr || 1) * 50, 100)}%` }}
                                     />
                                 </div>
                             </div>
 
                             {/* MAX PAIN */}
-                            <div className="p-3 bg-background-surface rounded-xl border border-border-default hover:border-border-hover transition-all group shadow-sm">
+                            <div className="group border-t border-border-default/20 pt-3 lg:border-0 lg:pt-0">
                                 <div className="flex items-center gap-1.5 mb-1.5">
-                                    <span className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider">Max Pain</span>
+                                    <span className="text-[9px] text-text-tertiary uppercase font-bold tracking-wider">Max Pain</span>
                                     <PortalTooltip content={<div className="text-xs text-text-secondary">Strike price where option writers lose the least.<br />Functions as a market magnet.</div>}>
-                                        <div className="p-0.5 rounded-full hover:bg-background-app cursor-help transition-colors">
+                                        <div className="p-0.5 rounded-full hover:bg-background-surface cursor-help transition-colors">
                                             <svg className="w-2.5 h-2.5 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                         </div>
                                     </PortalTooltip>
                                 </div>
-                                <div className="text-xl font-mono font-bold text-orange-500 leading-none">
+                                <div className="text-lg font-mono font-bold text-orange-500 leading-none">
                                     {metrics.maxPain}
                                 </div>
                             </div>
 
                             {/* IV RANK */}
-                            <div className="p-3 bg-background-surface rounded-xl border border-border-default hover:border-border-hover transition-all group col-span-2 lg:col-span-1 shadow-sm">
+                            <div className="group col-span-2 lg:col-span-1 border-t border-border-default/20 pt-3">
                                 <div className="flex items-center gap-1.5 mb-1.5">
-                                    <span className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider">IV Rank</span>
+                                    <span className="text-[9px] text-text-tertiary uppercase font-bold tracking-wider">IV Rank</span>
                                     <PortalTooltip content={<div className="text-xs text-text-secondary">Current Implied Volatility vs 1-Year Range.<br /><span className="text-red-600">High (&gt;60)</span>: Options Expensive<br /><span className="text-emerald-600">Low (&lt;30)</span>: Options Cheap</div>}>
-                                        <div className="p-0.5 rounded-full hover:bg-background-app cursor-help transition-colors">
+                                        <div className="p-0.5 rounded-full hover:bg-background-surface cursor-help transition-colors">
                                             <svg className="w-2.5 h-2.5 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                         </div>
                                     </PortalTooltip>
                                 </div>
-                                <div className={`text-xl font-mono font-bold leading-none mb-2 ${(metrics.ivRank || 34) > 60 ? 'text-red-600' : (metrics.ivRank || 34) < 30 ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                    {metrics.ivRank || 34}<span className="text-[10px] text-text-tertiary font-normal align-top ml-0.5">%</span>
+                                <div className={`text-lg font-mono font-bold leading-none mb-2 ${(metrics.ivRank || 34) > 60 ? 'text-red-600' : (metrics.ivRank || 34) < 30 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                    {metrics.ivRank || 34}<span className="text-[9px] text-text-tertiary font-normal align-top ml-0.5">%</span>
                                 </div>
-                                <div className="w-full bg-background-app h-1 rounded-full overflow-hidden">
+                                <div className="w-full bg-background-surface h-0.5 rounded-full overflow-hidden">
                                     <div
-                                        className={`h-full transition-all duration-700 ease-out ${(metrics.ivRank || 34) > 60 ? 'bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.5)]' : (metrics.ivRank || 34) < 30 ? 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]' : 'bg-amber-500 shadow-[0_0_4px_rgba(245,158,11,0.5)]'}`}
+                                        className={`h-full transition-all duration-700 ease-out ${(metrics.ivRank || 34) > 60 ? 'bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.3)]' : (metrics.ivRank || 34) < 30 ? 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.3)]' : 'bg-amber-500 shadow-[0_0_4px_rgba(245,158,11,0.3)]'}`}
                                         style={{ width: `${Math.min(metrics.ivRank || 34, 100)}%` }}
                                     />
                                 </div>
