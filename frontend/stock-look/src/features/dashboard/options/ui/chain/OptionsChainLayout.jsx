@@ -32,10 +32,10 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics })
     const [selectedOption, setSelectedOption] = React.useState(null);
 
     return (
-        <div className="w-full flex flex-col lg:flex-row gap-4 mt-6 mb-6">
+        <div className="w-full flex flex-col lg:flex-row gap-3 mt-4 mb-6">
 
             {/* ================= LEFT PANEL: CONTEXT / DETAILS ================= */}
-            <div className="w-full lg:w-64 shrink-0 bg-background-card rounded-xl border border-border-default p-4 flex flex-col gap-4 min-h-[300px] lg:h-[600px]">
+            <div className="w-full lg:w-60 shrink-0 bg-background-card rounded-xl border border-border-default p-3 flex flex-col gap-3 min-h-[300px] lg:h-[600px]">
 
                 {/* MODE A: DETAIL VIEW (If Option Selected) */}
                 {selectedOption ? (
