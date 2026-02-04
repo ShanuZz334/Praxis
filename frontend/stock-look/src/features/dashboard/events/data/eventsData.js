@@ -15,10 +15,13 @@
  * @date 2026-02-03
  */
 
+import { TOTAL_EVENTS_CREDITS as TOTAL_CREDITS } from '../../../../config/credits/eventsCredits.js';
+
 // =============================
 // Constants & Config
 // =============================
-export const TOTAL_EVENTS_CREDITS = 100;
+// Re-export for backward compatibility
+export const TOTAL_EVENTS_CREDITS = TOTAL_CREDITS;
 
 // =============================
 // Mock Data Definition

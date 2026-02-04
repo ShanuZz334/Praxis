@@ -375,6 +375,9 @@ export const FUNDAMENTAL_CARDS = [
 ];
 
 // =============================
-// Constants
+// Import from centralized config
 // =============================
-export const TOTAL_FUNDAMENTAL_CREDITS = 300;
+import { TOTAL_FUNDAMENTALS_CREDITS as TOTAL_CREDITS } from '../../../../config/credits/fundamentalsCredits.js';
+
+// Re-export for backward compatibility
+export const TOTAL_FUNDAMENTAL_CREDITS = TOTAL_CREDITS;

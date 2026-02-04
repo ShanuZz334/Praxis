@@ -12,30 +12,9 @@
  */
 
 // =============================
-// Weight Configuration
+// Import from centralized config
 // =============================
-export const SECTION_WEIGHTS = {
-    // 15% - Core Valuation
-    Valuation: 0.15,
+import { SECTION_WEIGHTS as baseSectionWeights } from '../../../../config/weights/fundamentalsSectionWeights.js';
 
-    // 20% - Earnings Power
-    Earnings: 0.20,
-
-    // 20% - Macro Environment
-    Macro: 0.20,
-
-    // 20% - Liquidity Dynamics
-    Liquidity: 0.20,
-
-    // 10% - Sector Health
-    Sector: 0.10,
-
-    // 5% - Corporate Health
-    Corporate: 0.05,
-
-    // 5% - Global Factors
-    Global: 0.05,
-
-    // 5% - Systemic Risk
-    Risk: 0.05,
-};
+// Re-export for backward compatibility
+export const SECTION_WEIGHTS = baseSectionWeights;
