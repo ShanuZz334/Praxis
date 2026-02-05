@@ -18,7 +18,8 @@
 // =============================
 // Constants
 // =============================
-import { TOTAL_OPTIONS_CREDITS as TOTAL_CREDITS } from '../../../../config/credits/optionsCredits.js';
+import { OPTIONS_RELIABILITY, TOTAL_OPTIONS_CREDITS as _TOTAL_CREDITS } from '../../../../config/reliability';
+import { getCreditFromReliability } from '@/shared/global/logic/signals';
 
 const SPOT_PRICE = 22450.00; // Mock NIFTY Spot
 const INTEREST_RATE = 0.07;  // 7% Risk Free
@@ -26,7 +27,7 @@ const DAYS_TO_EXPIRY = 2.5;  // 2.5 Days left
 const ATM_IV = 13.5;         // 13.5% VIX/IV
 
 // Re-export for backward compatibility
-export const TOTAL_OPTIONS_CREDITS = TOTAL_CREDITS;
+export const TOTAL_OPTIONS_CREDITS = _TOTAL_CREDITS;
 
 // =============================
 // Mathematical Helpers
@@ -173,31 +174,32 @@ export function generateOptionsDashboardData() {
     });
 
     // 4. Construct Card Data
-    const cards = [
+    // 4. Construct Card Data
+    const baseCards = [
         // --- Open Interest ---
         {
             id: 'max_pain', label: 'Max Pain', value: maxPainStrike, unit: '',
             change: '+100', interpretation: maxPainStrike > SPOT_PRICE ? 'Bullish Pull' : 'Bearish Drag',
             trend: maxPainStrike > SPOT_PRICE ? 'up' : 'down',
             normalized: maxPainStrike > SPOT_PRICE ? 0.7 : 0.3,
-            category: 'Open Interest', creditAllocation: 12
+            category: 'Open Interest'
         },
         {
             id: 'pcr', label: 'PCR (Total)', value: pcr.toFixed(2), unit: 'x',
             change: '+0.05', interpretation: pcr > 1 ? 'Bullish Support' : 'Bearish Resist',
             trend: pcr > 1 ? 'up' : 'down',
             normalized: Math.min(1, pcr / 1.5),
-            category: 'Open Interest', creditAllocation: 10
+            category: 'Open Interest'
         },
         {
             id: 'call_wall', label: 'Call Wall', value: 23000, unit: 'Strk',
             change: 'Firm', interpretation: 'Major Resistance', trend: 'neutral',
-            normalized: 0.2, category: 'Open Interest', creditAllocation: 10
+            normalized: 0.2, category: 'Open Interest'
         },
         {
             id: 'put_wall', label: 'Put Wall', value: 22000, unit: 'Strk',
             change: 'Strong', interpretation: 'Major Support', trend: 'up',
-            normalized: 0.8, category: 'Open Interest', creditAllocation: 10
+            normalized: 0.8, category: 'Open Interest'
         },
 
         // --- Greeks ---
@@ -206,50 +208,59 @@ export function generateOptionsDashboardData() {
             change: '+12%', interpretation: netDelta > 0 ? 'Long Positioning' : 'Short Positioning',
             trend: netDelta > 0 ? 'up' : 'down',
             normalized: netDelta > 0 ? 0.8 : 0.2,
-            category: 'Greeks', creditAllocation: 12
+            category: 'Greeks'
         },
         {
             id: 'net_gamma', label: 'Gamma Exposure', value: formattedGex, unit: '$Bn',
             change: '-5%', interpretation: parseFloat(formattedGex) > 0 ? 'Long Vol likely' : 'Short Vol',
             trend: parseFloat(formattedGex) > 0 ? 'up' : 'down',
-            normalized: 0.6, category: 'Greeks', creditAllocation: 10
+            normalized: 0.6, category: 'Greeks'
         },
         {
             id: 'theta_decay', label: 'Theta Decay', value: '-12.5', unit: 'Cr/Day',
             change: 'Accelerating', interpretation: 'Time decay working for writers',
-            trend: 'down', normalized: 0.5, category: 'Greeks', creditAllocation: 8
+            trend: 'down', normalized: 0.5, category: 'Greeks'
         },
         {
             id: 'vega_risk', label: 'Vega Risk', value: 'Medium', unit: '',
             change: 'Stable', interpretation: 'Moderate sensitivity to IV spike',
-            trend: 'neutral', normalized: 0.5, category: 'Greeks', creditAllocation: 8
+            trend: 'neutral', normalized: 0.5, category: 'Greeks'
         },
 
         // --- Volatility ---
         {
             id: 'atm_iv', label: 'ATM IV', value: ATM_IV.toFixed(2), unit: '%',
             change: '-0.5%', interpretation: 'Cooling Off', trend: 'down',
-            normalized: 0.7, category: 'Volatility', creditAllocation: 8
+            normalized: 0.7, category: 'Volatility'
         },
         {
             id: 'iv_rank', label: 'IV Rank', value: '32', unit: '/100',
             change: '-2', interpretation: 'Low-Medium Vol Regime', trend: 'neutral',
-            normalized: 0.6, category: 'Volatility', creditAllocation: 10
+            normalized: 0.6, category: 'Volatility'
         },
         {
             id: 'iv_skew', label: 'IV Skew', value: '4.2%', unit: 'Put>Call',
             change: 'Steepening', interpretation: 'Hedging demand rising', trend: 'down',
-            normalized: 0.3, category: 'Volatility', creditAllocation: 12
+            normalized: 0.3, category: 'Volatility'
         },
         {
             id: 'hv_iv_spread', label: 'HV-IV Spread', value: '+1.2', unit: 'pts',
             change: '', interpretation: 'Options fairly priced', trend: 'neutral',
-            normalized: 0.5, category: 'Volatility', creditAllocation: 8
+            normalized: 0.5, category: 'Volatility'
         }
     ];
 
+    // Dynamic mapping with centralized Reliability scores
     return {
-        cards,
+        cards: baseCards.map(card => {
+            const reliability = OPTIONS_RELIABILITY[card.id] || 0.5;
+            return {
+                ...card,
+                creditScore: reliability, // Sync with reliability logic
+                reliability,
+                creditAllocation: getCreditFromReliability(reliability)
+            };
+        }),
         chain,
         metrics: {
             pcr,

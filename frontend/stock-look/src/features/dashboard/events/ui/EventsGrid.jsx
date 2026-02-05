@@ -39,30 +39,30 @@ export default function EventsGrid({ newsItems, onNewsClick }) {
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
-            {sortedNews.map((news) => {
-                const score = news.impactScore || 0;
+            {sortedNews.map((item) => {
+                const score = item.impactScore || 0;
                 const absScore = Math.abs(score);
+                const isEvent = item.type === 'event';
 
                 // 2. Sentiment Mapping
                 const sentiment = score > 0 ? "Bullish" : score < 0 ? "Bearish" : "Neutral";
                 const sentimentIcon = score > 0 ? "▲" : score < 0 ? "▼" : "•";
 
-                // 3. Normalize Score for UI Gauge (0 to 1)
-                // -10 -> 0 (Red), 0 -> 0.5 (Mid), +10 -> 1 (Green)
-                // This maps the bipolar -10..+10 range to the unipolar 0..1 range expected by some gauges.
-                const gaugeValue = (score + 10) / 20;
+                // 3. Normalize Score for UI Gauge (0..1)
+                const gaugeValue = isEvent ? (score / 10) : ((score + 10) / 20);
 
                 return (
                     <GlobalCard
-                        key={news.id}
-                        label={news.title}
-                        raw={`${news.source} • ${formatTime(news.timestamp)}`}
+                        key={item.id}
+                        label={item.title}
+                        raw={isEvent ? `${item.category} • Scheduled` : `${item.source} • ${formatTime(item.timestamp)}`}
                         unit=""
                         normalized={gaugeValue}
-                        creditAllocation={Math.round(absScore)} // Visual weight
-                        totalPageCredits={10}
-                        reason={`${sentimentIcon} ${sentiment}: ${news.takeaway}`}
-                        onClick={() => onNewsClick?.(news)}
+                        creditAllocation={item.creditAllocation || Math.round(absScore)}
+                        totalPageCredits={TOTAL_EVENTS_CREDITS}
+                        reason={isEvent ? `R: ${item.reliability}` : (item.aiDecision || `${sentimentIcon} ${sentiment}: ${item.takeaway}`)}
+                        aiBadge={item.aiConfidence ? `${item.aiConfidence}% AI` : null}
+                        onClick={() => onNewsClick?.(item)}
                     />
                 );
             })}

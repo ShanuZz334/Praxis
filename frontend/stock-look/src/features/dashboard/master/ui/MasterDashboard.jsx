@@ -34,27 +34,35 @@ import ProDeskPicks from "./ProDeskPicks";
 
 // Engine & Data
 import { MOCK_MASTER_DATA } from "../data/masterData";
-import { calculateStockyScore, deriveMasterRegime, getRegimeColor } from "../engine/stockyEngine";
+import { calculateStockyScore, deriveMasterRegime, deriveMasterGauge } from "../engine/stockyEngine";
+import { getNonMasterGaugeLabel, getNonMasterRegimeLabel } from "@/shared/global/logic/labelMappings";
+
+import {
+    TOTAL_TECHNICAL_CREDITS,
+    TOTAL_FUNDAMENTALS_CREDITS,
+    TOTAL_OPTIONS_CREDITS,
+    TOTAL_FOREIGN_CREDITS,
+    TOTAL_EVENTS_CREDITS
+} from "@/config/reliability";
 
 // Technical
-import { generateLiveTechnicalData, TOTAL_TECHNICAL_CREDITS } from "@/features/dashboard/technical/engine/indicatorsConfig";
+import { generateLiveTechnicalData } from "@/features/dashboard/technical/engine/indicatorsConfig";
 import { calculateTechnicalComposite } from "@/features/dashboard/technical/engine/technicalHelper";
 
 // Fundamentals
-import { TOTAL_FUNDAMENTAL_CREDITS } from "@/features/dashboard/fundamentals/engine/cards.config";
 import { useFundamentals } from "@/features/dashboard/fundamentals/hooks/useFundamentals";
 import { evaluateFundamentals } from "@/features/dashboard/fundamentals/engine";
 
 // Foreign / Global
-import { GLOBAL_STRUCTURE_CARDS, TOTAL_GLOBAL_CREDITS } from "@/features/dashboard/foreign/data/globalData";
+import { GLOBAL_STRUCTURE_CARDS } from "@/features/dashboard/foreign/data/globalData";
 import { calculateGlobalComposite } from "@/features/dashboard/foreign/engine/globalHelper";
 
 // Options
-import { generateOptionsDashboardData, TOTAL_OPTIONS_CREDITS } from "@/features/dashboard/options/engine/optionsSimulator";
+import { generateOptionsDashboardData } from "@/features/dashboard/options/engine/optionsSimulator";
 import { calculatePositioningScore } from "@/features/dashboard/options/engine/optionsHelper";
 
 // Events
-import { MOCK_EVENTS, TOTAL_EVENTS_CREDITS } from "@/features/dashboard/events/data/eventsData";
+import { MOCK_EVENTS } from "@/features/dashboard/events/data/eventsData";
 import { MOCK_NEWS } from "@/features/dashboard/events/data/newsData";
 import { calculateNewsImpact } from "@/features/dashboard/events/engine/newsScoring";
 
@@ -83,16 +91,21 @@ export default function MasterDashboard() {
     // Global
     const globalCards = GLOBAL_STRUCTURE_CARDS;
 
-    // Events (News Processing)
+    // Events (Combined Events + News)
     const eventCards = useMemo(() => {
-        return MOCK_NEWS.map(n => {
-            const impact = n.impactScore || calculateNewsImpact(n);
+        const processedEvents = MOCK_EVENTS.map(e => ({ ...e, module: "Events", type: "event" }));
+        const processedNews = MOCK_NEWS.map(n => {
+            const aiData = calculateNewsImpact(n);
             return {
                 ...n,
-                impactScore: impact,
-                normalized: (impact || 0) / 4
+                module: "Events",
+                type: "news",
+                impactScore: aiData.score, // Extract raw score for consistency
+                aiData: aiData,           // Store full object for UI
+                normalized: (aiData.score || 0) / 4
             };
         });
+        return [...processedEvents, ...processedNews];
     }, []);
 
     // --- 2. Score Calculation ---
@@ -104,7 +117,7 @@ export default function MasterDashboard() {
     const fundamentalScore = useMemo(() => {
         if (!marketData) return 50;
         const intel = evaluateFundamentals(marketData);
-        return intel ? intel.gauge : 50;
+        return intel ? intel.score : 50;
     }, [marketData]);
 
     // Options Score
@@ -116,16 +129,31 @@ export default function MasterDashboard() {
     // Global Score
     const globalScore = useMemo(() => calculateGlobalComposite(globalCards), [globalCards]);
 
-    // Events Score (Sentiment-based)
+    // Events Score (Blended Event Impact + News Sentiment)
     const eventsScore = useMemo(() => {
-        const newsImpactSum = eventCards.reduce((acc, curr) => acc + (curr.impactScore || 0), 0);
-        const netSentiment = Math.round(newsImpactSum * 1.5);
-        return Math.max(0, Math.min(100, 50 + (netSentiment / 2)));
+        const eventsOnly = eventCards.filter(c => c.type === 'event');
+        const newsOnly = eventCards.filter(c => c.type === 'news');
+
+        // 1. Hard Event Impact (Scheduled)
+        const eventImpact = eventsOnly.reduce((acc, curr) => acc + ((curr.impactScore || 5) * (curr.reliability || 0.5)), 0) / (eventsOnly.length || 1);
+
+        // 2. News Sentiment (Real-time)
+        // Note: impactScore is now the extracted .score number from aiData
+        const newsImpactSum = newsOnly.reduce((acc, curr) => acc + (curr.impactScore || 0), 0);
+        const newsSentiment = Math.max(-20, Math.min(20, newsImpactSum));
+
+        // 3. Composite Gauge (Directional Score)
+        // newsSentiment is -20 to +20. Map it to a 0-100 scale centered at 50, 
+        // with eventImpact (0-10) acting as a multiplier for intensity.
+        const baseScore = 50;
+        const intensity = (eventImpact / 10); // 0.0 to 1.0
+        return Math.round(Math.max(0, Math.min(100, baseScore + (newsSentiment * 2.5 * intensity))));
     }, [eventCards]);
 
     // Dynamic Components Object
+    // Dynamic Components Object
     const dynamicComponents = useMemo(() => ({
-        technical: technicalScore,
+        technical: technicalScore.score || 50,
         fundamental: fundamentalScore,
         options: optionsScore,
         global: globalScore,
@@ -134,8 +162,37 @@ export default function MasterDashboard() {
 
     // --- 3. Master Gauge & Regime ---
 
-    const stockyScore = useMemo(() => calculateStockyScore(dynamicComponents), [dynamicComponents]);
-    const masterRegime = useMemo(() => deriveMasterRegime(stockyScore, MOCK_MASTER_DATA.riskMonitor.volatility), [stockyScore]);
+    const stockyIntel = useMemo(() => calculateStockyScore(dynamicComponents), [dynamicComponents]);
+    const stockyScore = stockyIntel.score;
+    const masterGauge = useMemo(() => deriveMasterGauge(stockyScore), [stockyScore]);
+    const masterRegime = useMemo(() => deriveMasterRegime(stockyScore), [stockyScore]);
+
+    // Snapshot Mappings (Live Data for Module Grid)
+    const snapshots = useMemo(() => {
+        const techScoreNum = technicalScore.score || 50;
+        const techReg = getNonMasterRegimeLabel(techScoreNum);
+        const techG = getNonMasterGaugeLabel(techScoreNum);
+
+        const fundReg = getNonMasterRegimeLabel(fundamentalScore);
+        const fundG = getNonMasterGaugeLabel(fundamentalScore);
+
+        const optReg = getNonMasterRegimeLabel(optionsScore);
+        const optG = getNonMasterGaugeLabel(optionsScore);
+
+        const globReg = getNonMasterRegimeLabel(globalScore);
+        const globG = getNonMasterGaugeLabel(globalScore);
+
+        const evtReg = getNonMasterRegimeLabel(eventsScore);
+        const evtG = getNonMasterGaugeLabel(eventsScore);
+
+        return {
+            fundamental: { score: fundamentalScore, regime: fundReg.label, gauge: fundG.label, color: fundG.color },
+            technical: { score: techScoreNum, trend: techReg.label, gauge: techG.label, color: techG.color },
+            options: { score: optionsScore, positioning: optReg.label, gauge: optG.label, color: optG.color },
+            events: { score: eventsScore, nextCatalyst: evtReg.label, gauge: evtG.label, color: evtG.color },
+            global: { score: globalScore, usTrend: globReg.label, gauge: globG.label, color: globG.color }
+        };
+    }, [technicalScore, fundamentalScore, optionsScore, globalScore, eventsScore]);
 
     // --- 4. Unified Card Stream ---
 
@@ -149,14 +206,14 @@ export default function MasterDashboard() {
 
     // --- 5. Metrics & Config ---
 
-    const totalCredits = TOTAL_TECHNICAL_CREDITS + TOTAL_FUNDAMENTAL_CREDITS + TOTAL_GLOBAL_CREDITS + TOTAL_OPTIONS_CREDITS + eventCards.length;
+    const totalCredits = TOTAL_TECHNICAL_CREDITS + TOTAL_FUNDAMENTALS_CREDITS + TOTAL_FOREIGN_CREDITS + TOTAL_OPTIONS_CREDITS + TOTAL_EVENTS_CREDITS;
 
     const creditBreakdown = {
         "Technical": TOTAL_TECHNICAL_CREDITS,
-        "Fundamental": TOTAL_FUNDAMENTAL_CREDITS,
+        "Fundamental": TOTAL_FUNDAMENTALS_CREDITS,
         "Options": TOTAL_OPTIONS_CREDITS,
-        "Global Macro": TOTAL_GLOBAL_CREDITS,
-        "Events": eventCards.length
+        "Global Macro": TOTAL_FOREIGN_CREDITS,
+        "Events": TOTAL_EVENTS_CREDITS
     };
 
     const globalSections = useMemo(() => [
@@ -191,12 +248,11 @@ export default function MasterDashboard() {
             <GlobalHeader
                 title="Stocky Composite"
                 score={stockyScore}
-                prevScore={stockyScore - 4.2}
+                prevScore={stockyIntel.prevScore}
+                gauge={masterGauge}
                 regime={{
-                    label: masterRegime,
-                    desc: "Algorithmically determined market phase",
-                    color: getRegimeColor(masterRegime),
-                    confidence: 89
+                    ...masterRegime,
+                    confidence: stockyIntel.confidence
                 }}
                 integrity={{ coverage: "5/5 Engines", source: "Cross-Asset", freshness: "Realtime" }}
                 sections={globalSections}
@@ -210,7 +266,7 @@ export default function MasterDashboard() {
             />
 
             {/* Feature Module Snapshots */}
-            <ModuleSnapshotGrid snapshots={MOCK_MASTER_DATA.snapshots} />
+            <ModuleSnapshotGrid snapshots={snapshots} />
 
             {/* Trading Plan & Readiness */}
             <TradeReadinessPanel readiness={MOCK_MASTER_DATA.readiness} />

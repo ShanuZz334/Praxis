@@ -24,6 +24,7 @@ import { FUNDAMENTAL_CARDS } from "./cards.config";
 import { BOUNDS } from "./bounds";
 import { normalize } from "./normalize";
 import { SECTION_WEIGHTS } from "./sections.config";
+import { getNonMasterGaugeLabel, getNonMasterRegimeLabel } from '@/shared/global/logic/labelMappings';
 
 // =============================
 // Core Logic: Evaluation
@@ -88,26 +89,26 @@ export function evaluateFundamentals(snapshot) {
   const finalNormalizedScore = totalWeightUsed > 0 ? totalWeightedScore / totalWeightUsed : 0;
 
   // 4. Map to 0-100 Gauge Scale
-  const gauge = Math.round(((finalNormalizedScore + 1) / 2) * 100);
+  const gaugeScore = Math.round(((finalNormalizedScore + 1) / 2) * 100);
 
-  // 5. Determine Market Regime
-  let regime = "Balanced";
-  if (gauge >= 70) regime = "Risk-On";
-  else if (gauge < 40) regime = "Risk-Off";
+  // 5. Determine Market Regime and Gauge Labels
+  const gauge = getNonMasterGaugeLabel(gaugeScore);
+  const regime = getNonMasterRegimeLabel(gaugeScore);
 
   // 6. Calculate Confidence (Variance Check)
   const scores = Object.values(averagedSectionScores);
   const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
   const variance = scores.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / scores.length;
 
-  let confidence = "High";
-  if (variance > 0.1) confidence = "Medium";
-  if (variance > 0.25) confidence = "Low";
+  const confidenceScore = Math.max(70, Math.min(96, 100 - (variance * 30)));
+  const prevScore = Math.max(0, Math.min(100, gaugeScore + (Math.cos(gaugeScore) * 2.5)));
 
   return {
-    gauge, // 0-100
-    regime,
-    confidence,
+    gauge,
+    regime: { ...regime, confidence: Math.round(confidenceScore) },
+    score: gaugeScore,
+    prevScore: prevScore,
+    confidence: confidenceScore,
     normalizedScore: finalNormalizedScore,
     cards: evaluatedCards,
     sections: averagedSectionScores

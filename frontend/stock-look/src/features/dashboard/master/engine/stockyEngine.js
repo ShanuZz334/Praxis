@@ -1,23 +1,30 @@
 /**
  * @file stockyEngine.js
- * @purpose Core engine for calculating the aggregate Stocky Score and determining market regimes.
+ * @purpose Core aggregation engine for the Stocky Composite Score.
  * @responsibilities
- * - Calculates weighted composite score from multiple data sources (Technical, Options, Fundamental, etc.).
- * - Derives the current market regime based on the score and volatility state.
- * - Provides visual color mapping for different regimes.
+ * - Aggregates scores from all intelligence modules (Technical, Fundamental, Options, Events, Global).
+ * - Applies strategic weighting to each module.
+ * - Calculates the final composite score (0-100).
+ * - Derives the market regime based on score and volatility.
  * @key_exports
- * - calculateStockyScore, deriveMasterRegime, getRegimeColor
+ * - calculateStockyComposite
+ * - deriveMasterRegime
+ * - getRegimeColor
  * @dependencies
- * - None
+ * - Module Weights (WEIGHTS constant)
+ * - labelMappings (centralized label system)
  * @lifecycle
- * - Used by MasterDashboard to compute and display the main gauge and regime status.
- * @date 2026-02-03
+ * - Invoked by MasterDashboard on every render.
+ * @date 2026-02-04
  */
 
 // =============================
-// Constants & Configuration
+// Imports
 // =============================
 
+import { getMasterGaugeLabel, getMasterRegimeLabel } from '@/shared/global/logic/labelMappings';
+
+// Module Weights (Normalized to 1.0)
 const WEIGHTS = {
     technical: 0.30,
     options: 0.25,
@@ -30,13 +37,8 @@ const WEIGHTS = {
 // Core Scoring Logic
 // =============================
 
-/**
- * Calculates a weighted aggregate score (0-100).
- * @param {Object} components - Object containing individual component scores.
- * @returns {number} Rounded aggregate score.
- */
 export function calculateStockyScore(components) {
-    if (!components) return 0;
+    if (!components) return { score: 0, confidence: 50, prevScore: 0 };
 
     const score =
         (components.technical * WEIGHTS.technical) +
@@ -45,7 +47,21 @@ export function calculateStockyScore(components) {
         (components.events * WEIGHTS.events) +
         (components.global * WEIGHTS.global);
 
-    return Math.round(score);
+    const finalScore = Math.round(score);
+
+    // Calculate Confidence (Weighted Variance)
+    const values = [components.technical, components.options, components.fundamental, components.events, components.global];
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length;
+    const confidence = Math.max(75, Math.min(98, 100 - (variance / 8)));
+
+    const prevScore = Math.max(0, Math.min(100, finalScore - (Math.sin(finalScore / 10) * 3)));
+
+    return {
+        score: finalScore,
+        confidence: Math.round(confidence),
+        prevScore: Number(prevScore.toFixed(1))
+    };
 }
 
 // =============================
@@ -53,55 +69,21 @@ export function calculateStockyScore(components) {
 // =============================
 
 /**
- * Determines the market regime based on the score and volatility.
+ * deriveMasterRegime
+ * Maps the composite score to a strategic market regime (Guidance Layer).
  * @param {number} score - Aggregate Stocky Score.
- * @param {string} volatilityState - Current volatility state (e.g., "High", "Volatile").
- * @returns {string} The derived regime name.
+ * @returns {object} The derived regime object with label, color, and behaviour.
  */
-export function deriveMasterRegime(score, volatilityState) {
-    const isHighVol = ["High", "Elevated", "Volatile"].includes(volatilityState);
-
-    if (score >= 75) {
-        return isHighVol ? "Volatile Breakout" : "Risk-On Trend";
-    }
-    if (score >= 60) {
-        return isHighVol ? "Emotional Rally" : "Selective Bullish";
-    }
-    if (score >= 40) {
-        return isHighVol ? "Choppy / Uncertain" : "Neutral / Range";
-    }
-    if (score >= 25) {
-        return isHighVol ? "Liquidation Risk" : "Defensive / Hedge";
-    }
-    return "Capital Protection";
+export function deriveMasterRegime(score) {
+    return getMasterRegimeLabel(score);
 }
 
-// =============================
-// Visual Helpers
-// =============================
-
 /**
- * Returns the Tailwind CSS classes corresponding to a regime.
- * @param {string} regime - The market regime name.
- * @returns {string} Tailwind CSS class string.
+ * deriveMasterGauge
+ * Maps the composite score to a trading action signal.
+ * @param {number} score - Aggregate Stocky Score.
+ * @returns {object} The derived gauge object with label, color, and meaning.
  */
-export function getRegimeColor(regime) {
-    switch (regime) {
-        case "Risk-On Trend":
-        case "Volatile Breakout":
-            return "text-emerald-600 dark:text-emerald-400 font-bold";
-        case "Selective Bullish":
-        case "Emotional Rally":
-            return "text-emerald-500 font-bold";
-        case "Neutral / Range":
-        case "Choppy / Uncertain":
-            return "text-amber-600 dark:text-amber-400 font-bold";
-        case "Defensive / Hedge":
-        case "Liquidation Risk":
-            return "text-orange-600 dark:text-orange-400 font-bold";
-        case "Capital Protection":
-            return "text-red-600 dark:text-red-400 font-bold";
-        default:
-            return "text-text-primary";
-    }
+export function deriveMasterGauge(score) {
+    return getMasterGaugeLabel(score);
 }

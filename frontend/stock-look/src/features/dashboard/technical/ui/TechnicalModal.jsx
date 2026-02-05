@@ -40,12 +40,18 @@ export default function TechnicalModal({ open, onClose, children, card }) {
 
     if (!open || !card) return null;
 
-    // Reliability tier for footer (matched logic)
-    const relVal = card.creditScore ? card.creditScore * 10 : 8.5;
-    let relTier = 'Low';
-    let relColor = 'text-slate-400';
-    if (relVal >= 8) { relTier = 'High'; relColor = 'text-green-400'; }
-    else if (relVal >= 6) { relTier = 'Medium'; relColor = 'text-yellow-400'; }
+    // Reliability characterisation for footer (Elite, Prime, Strategic, Standard, Micro)
+    const rel = card.reliability || 0.5;
+    let relTier = 'Standard';
+    let relColor = 'text-text-tertiary';
+
+    if (rel >= 0.95) { relTier = 'Elite'; relColor = 'text-state-bullish-text'; }
+    else if (rel >= 0.85) { relTier = 'Prime'; relColor = 'text-state-bullish-text/90'; }
+    else if (rel >= 0.70) { relTier = 'Strategic'; relColor = 'text-amber-500'; }
+    else if (rel >= 0.45) { relTier = 'Standard'; relColor = 'text-text-tertiary'; }
+    else { relTier = 'Micro'; relColor = 'text-text-tertiary/70'; }
+
+    const relVal = rel * 10;
 
     // =============================
     // Render Layer
@@ -159,14 +165,14 @@ export default function TechnicalModal({ open, onClose, children, card }) {
                                 </div>
                             </div>
                             <div>
-                                <div className="text-text-tertiary uppercase tracking-wider mb-1">Reliability</div>
-                                <div className={`font-medium ${relColor.replace('text-green-400', 'text-state-bullish-text').replace('text-yellow-400', 'text-amber-600').replace('text-slate-400', 'text-text-tertiary')}`}>
-                                    {relTier} ({relVal.toFixed(1)}/10)
+                                <div className="text-text-tertiary uppercase tracking-wider mb-1">R Score</div>
+                                <div className={`font-medium ${relColor}`}>
+                                    {relTier} ({Number(relVal || 0).toFixed(1)}/10)
                                 </div>
                             </div>
                             <div>
                                 <div className="text-text-tertiary uppercase tracking-wider mb-1 md:mb-1">Impact</div>
-                                <div className="font-mono text-text-primary">{(card.weight || 1).toFixed(2)}x</div>
+                                <div className="font-mono text-text-primary">{Number(card.weight || 1).toFixed(2)}x</div>
                             </div>
                             <div>
                                 <div className="text-text-tertiary uppercase tracking-wider mb-1">Category</div>

@@ -102,13 +102,13 @@ export const MOCK_MASTER_DATA = {
     alerts: [
         { id: 1, type: "warning", text: "Event Risk: US CPI in 24h. Reduce overnight leverage.", time: "10m ago" },
         { id: 2, type: "info", text: "Options Gamma Flip detected at 22400. Expect volatility expansion.", time: "25m ago" },
-        { id: 3, type: "tip", text: "Pro Tip: When VIX > 15, prefer credit spreads over debit spreads to capture premium decay.", time: "1h ago" },
+        { id: 3, type: "tip", text: "Strategy Tip: When VIX > 15, prefer credit spreads over debit spreads to capture premium decay.", time: "1h ago" },
         { id: 4, type: "social", text: "Institutional flow detected in Nifty IT. Rotating out of Banks?", time: "2h ago" },
-        { id: 5, type: "tip", text: "Trick: Use the 15m VWAP as a dynamic support level for intraday trend following.", time: "4h ago" },
+        { id: 5, type: "tip", text: "Expert Insight: Use the 15m VWAP as a dynamic support level for intraday trend following.", time: "4h ago" },
         { id: 6, type: "warning", text: "High Put-Call Ratio at 1.35. Potential reversal signal brewing.", time: "5h ago" },
         { id: 7, type: "info", text: "FII net buyers for 3rd consecutive session. Momentum building.", time: "6h ago" },
         { id: 8, type: "social", text: "Smart money accumulating Pharma stocks. Sector rotation underway?", time: "7h ago" },
-        { id: 9, type: "tip", text: "Pro Tip: Set stop-loss at previous day's low for swing trades to manage risk.", time: "8h ago" },
+        { id: 9, type: "tip", text: "Strategy Tip: Set stop-loss at previous day's low for swing trades to manage risk.", time: "8h ago" },
         { id: 10, type: "info", text: "Nifty holding above 20-day EMA. Bullish structure intact.", time: "9h ago" }
     ]
 };

@@ -13,6 +13,7 @@ import {
     extractGlobalTailwinds,
     extractGlobalRisks,
     getGlobalRegime,
+    getGlobalGauge,
     globalSections
 } from "../engine/globalHelper";
 
@@ -28,9 +29,14 @@ export default function ForeignPage() {
         []
     );
 
-    // Get regime
+    // Get regime & gauge
     const regime = useMemo(() =>
         getGlobalRegime(compositeScore),
+        [compositeScore]
+    );
+
+    const gauge = useMemo(() =>
+        getGlobalGauge(compositeScore),
         [compositeScore]
     );
 
@@ -90,7 +96,8 @@ export default function ForeignPage() {
             <GlobalHeader
                 title="Global Structure"
                 score={compositeScore}
-                prevScore={compositeScore - 3.5}
+                prevScore={regime.prevScore}
+                gauge={gauge}
                 regime={regime}
                 integrity={{
                     coverage: "22 Indicators",

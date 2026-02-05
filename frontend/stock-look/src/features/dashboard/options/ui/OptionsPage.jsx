@@ -32,6 +32,7 @@ import {
     calculatePositioningScore,
     getAdvancedTopPicks,
     getOptionsRegime,
+    getOptionsGauge,
     extractOptionsTailwinds,
     extractOptionsRisks,
     optionsSections
@@ -62,9 +63,10 @@ export default function OptionsPage() {
     const score = positioning.score;
 
     // 4. Metric Extraction for Header
-    const regime = useMemo(() => getOptionsRegime(score, metrics), [score, metrics]);
-    const tailwinds = useMemo(() => extractOptionsTailwinds(cards).map(t => ({ ...t, value: Math.round(t.score * 100) })), [cards]);
-    const risks = useMemo(() => extractOptionsRisks(cards).map(r => ({ ...r, value: Math.round(Math.abs(r.score) * 100) })), [cards]);
+    const regime = useMemo(() => getOptionsRegime(score), [score]);
+    const gauge = useMemo(() => getOptionsGauge(score), [score]);
+    const tailwinds = useMemo(() => extractOptionsTailwinds(cards), [cards]);
+    const risks = useMemo(() => extractOptionsRisks(cards), [cards]);
 
     // 5. Section Scoring
     const globalSections = useMemo(() => {
@@ -94,8 +96,9 @@ export default function OptionsPage() {
             <GlobalHeader
                 title="Options Sentiment"
                 score={score}
-                prevScore={score - 4.2}
-                regime={{ ...regime, confidence: 78 }}
+                prevScore={positioning.prevScore}
+                gauge={gauge}
+                regime={{ ...regime, confidence: positioning.confidence }}
                 integrity={{ coverage: "NIFTY/BANKNIFTY", source: "Chain", freshness: "Realtime" }}
 
                 sections={globalSections}

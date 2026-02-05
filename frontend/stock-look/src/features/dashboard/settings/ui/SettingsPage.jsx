@@ -63,7 +63,18 @@ import { useTheme } from "../../../../shared/context/ThemeContext";
 const SettingsPage = () => {
     // Context
     const { user, updateUser, token, } = useContext(UserContext);
-    const { theme, toggleTheme, vfxPreset, setVfxPreset, gradientBorder, setGradientBorder } = useTheme();
+    const {
+        theme,
+        toggleTheme,
+        vfxPreset,
+        setVfxPreset,
+        gradientBorder,
+        setGradientBorder,
+        tradingMode,
+        setTradingMode,
+        tradingModeVfx,
+        setTradingModeVfx
+    } = useTheme();
 
     // UI State
     const [activeTab, setActiveTab] = useState("account");
@@ -167,6 +178,9 @@ const SettingsPage = () => {
                 setInitialFormData(loadedFormData);
                 setSettings(loadedSettings);
                 setInitialSettings(loadedSettings);
+
+                // Sync with ThemeContext
+                setTradingMode(loadedSettings.tradingMode);
 
                 setIsEmailVerified(userData.isEmailVerified || user?.isEmailVerified || false);
             } catch {
@@ -324,11 +338,13 @@ const SettingsPage = () => {
             setShowAggressiveWarning(true);
         } else {
             setSettings(prev => ({ ...prev, tradingMode: mode }));
+            setTradingMode(mode);
         }
     };
 
     const confirmAggressiveMode = () => {
         setSettings(prev => ({ ...prev, tradingMode: "aggressive" }));
+        setTradingMode("aggressive");
         setShowAggressiveWarning(false);
     };
 
@@ -514,6 +530,18 @@ const SettingsPage = () => {
                     fullName: formData.fullName,
                     email: formData.email,
                     profileImage: formData.profileImage,
+                    notificationSettings: {
+                        tradeAlerts: settings.tradeAlerts,
+                        portfolioAlerts: settings.portfolioAlerts,
+                        systemMessages: settings.systemMessages,
+                        deliveryApp: settings.deliveryApp,
+                        deliveryEmail: settings.deliveryEmail
+                    },
+                    preferences: {
+                        tradingMode: settings.tradingMode,
+                        theme: settings.theme,
+                        soundAlerts: settings.soundAlerts
+                    }
                 };
                 updateUser(updatedUser, token);
             }
@@ -1165,21 +1193,41 @@ const SettingsPage = () => {
 
                                     {/* Gradient Border Toggle */}
                                     {theme === 'dark' && (
-                                        <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <div>
-                                                <p className="font-medium text-text-primary">Gradient Borders</p>
-                                                <p className="text-xs text-text-secondary mt-0.5">Enable premium blue-violet borders around cards</p>
+                                        <div className="space-y-3 mt-3">
+                                            <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div>
+                                                    <p className="font-medium text-text-primary">Gradient Borders</p>
+                                                    <p className="text-xs text-text-secondary mt-0.5">Enable premium blue-violet borders around cards</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => setGradientBorder(!gradientBorder)}
+                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${gradientBorder ? 'bg-blue-600' : 'bg-slate-700'
+                                                        }`}
+                                                >
+                                                    <span
+                                                        className={`${gradientBorder ? 'translate-x-6' : 'translate-x-1'
+                                                            } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
+                                                    />
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={() => setGradientBorder(!gradientBorder)}
-                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${gradientBorder ? 'bg-blue-600' : 'bg-slate-700'
-                                                    }`}
-                                            >
-                                                <span
-                                                    className={`${gradientBorder ? 'translate-x-6' : 'translate-x-1'
-                                                        } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
-                                                />
-                                            </button>
+
+                                            {/* Mode-Synced Aesthetics Toggle */}
+                                            <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div>
+                                                    <p className="font-medium text-text-primary">Mode-Synced Aesthetics</p>
+                                                    <p className="text-xs text-text-secondary mt-0.5">Adapt gradient border colors to your Trading Mode</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => setTradingModeVfx(!tradingModeVfx)}
+                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${tradingModeVfx ? 'bg-indigo-600' : 'bg-slate-700'
+                                                        }`}
+                                                >
+                                                    <span
+                                                        className={`${tradingModeVfx ? 'translate-x-6' : 'translate-x-1'
+                                                            } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
+                                                    />
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>

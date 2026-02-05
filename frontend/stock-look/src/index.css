@@ -98,6 +98,9 @@ html[data-theme="dark"] {
   --accent-primary: #3b82f6;
   --accent-glow: rgba(59, 130, 246, 0.4);
 
+  --gradient-start: #3b82f6;
+  --gradient-end: #8b5cf6;
+
   --scrollbar-thumb: rgba(255, 255, 255, 0.15);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
 
@@ -217,7 +220,7 @@ body {
   border: 1px solid transparent;
   background:
     linear-gradient(var(--bg-card-primary), var(--bg-card-primary)) padding-box,
-    linear-gradient(to right, #3b82f6, #8b5cf6) border-box;
+    linear-gradient(to right, var(--gradient-start), var(--gradient-end)) border-box;
   background-origin: border-box;
   background-clip: padding-box, border-box;
 }

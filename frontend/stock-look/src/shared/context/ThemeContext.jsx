@@ -63,6 +63,24 @@ export function ThemeProvider({ children }) {
         return true;
     });
 
+    const [tradingMode, setTradingMode] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('stocky-trading-mode');
+            if (saved) return saved;
+            return 'balanced';
+        }
+        return 'balanced';
+    });
+
+    const [tradingModeVfx, setTradingModeVfx] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('stocky-trading-mode-vfx');
+            if (saved) return saved === 'true';
+            return false;
+        }
+        return false;
+    });
+
     // --- Effects: Persistence & DOM Updates ---
 
     useEffect(() => {
@@ -81,6 +99,41 @@ export function ThemeProvider({ children }) {
         localStorage.setItem('stocky-gradient-border', gradientBorder);
     }, [gradientBorder]);
 
+    useEffect(() => {
+        localStorage.setItem('stocky-trading-mode', tradingMode);
+    }, [tradingMode]);
+
+    useEffect(() => {
+        localStorage.setItem('stocky-trading-mode-vfx', tradingModeVfx);
+    }, [tradingModeVfx]);
+
+    // NEW: Sync Trading Mode Visuals
+    useEffect(() => {
+        const root = window.document.documentElement;
+
+        if (tradingModeVfx) {
+            switch (tradingMode) {
+                case 'conservative':
+                    root.style.setProperty('--gradient-start', '#10b981'); // Emerald 500
+                    root.style.setProperty('--gradient-end', '#06b6d4');   // Cyan 500
+                    break;
+                case 'aggressive':
+                    root.style.setProperty('--gradient-start', '#ef4444'); // Red 500
+                    root.style.setProperty('--gradient-end', '#f97316');   // Orange 500
+                    break;
+                case 'balanced':
+                default:
+                    root.style.setProperty('--gradient-start', '#3b82f6'); // Blue 500
+                    root.style.setProperty('--gradient-end', '#8b5cf6');   // Violet 500
+                    break;
+            }
+        } else {
+            // Restore defaults
+            root.style.setProperty('--gradient-start', '#3b82f6');
+            root.style.setProperty('--gradient-end', '#8b5cf6');
+        }
+    }, [tradingMode, tradingModeVfx]);
+
     // --- Actions ---
 
     const toggleTheme = () => {
@@ -90,7 +143,18 @@ export function ThemeProvider({ children }) {
     // --- Render ---
 
     return (
-        <ThemeContext.Provider value={{ theme, toggleTheme, vfxPreset, setVfxPreset, gradientBorder, setGradientBorder }}>
+        <ThemeContext.Provider value={{
+            theme,
+            toggleTheme,
+            vfxPreset,
+            setVfxPreset,
+            gradientBorder,
+            setGradientBorder,
+            tradingMode,
+            setTradingMode,
+            tradingModeVfx,
+            setTradingModeVfx
+        }}>
             {children}
         </ThemeContext.Provider>
     );

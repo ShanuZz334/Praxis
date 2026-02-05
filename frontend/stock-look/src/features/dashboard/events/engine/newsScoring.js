@@ -20,80 +20,92 @@
 
 /**
  * calculateNewsImpact
- * Determines the numerical impact score of a news item.
+ * Advanced NLP-simulating engine that determines market impact.
  * @param {Object} newsItem - The news data object.
- * @returns {number} - A score representing magnitude and direction (-10 to +10).
+ * @returns {Object} { score, confidence, intensity, decision }
  */
 export function calculateNewsImpact(newsItem) {
-    if (!newsItem) return 0;
+    if (!newsItem) return { score: 0, confidence: 50, intensity: 'Neutral', decision: 'No Data' };
 
-    // 1. Source Credibility (25%)
-    let sourceScore = 5;
+    const text = (newsItem.title + " " + (newsItem.takeaway || "")).toLowerCase();
+
+    // 1. NLP Sentiment Intensity Analysis
+    const sentiment = analyzeDeepSentiment(text);
+
+    // 2. Source Credibility Logic
+    let sourceWeight = 0.5;
     const s = newsItem.source.toLowerCase();
-    if (s.includes('bloomberg') || s.includes('reuters') || s.includes('rbi')) sourceScore = 10;
-    else if (s.includes('nse') || s.includes('cnbc')) sourceScore = 8;
-    else sourceScore = 4;
+    if (s.includes('rbi') || s.includes('fed') || s.includes('sebi')) sourceWeight = 1.2;
+    if (s.includes('bloomberg') || s.includes('reuters')) sourceWeight = 1.0;
+    if (s.includes('press release')) sourceWeight = 0.8;
 
-    // 2. Keyword Sentiment Analysis (AI Simulation) ("Direction")
-    const sentiment = analyzeHeaderSentiment(newsItem.title, newsItem.takeaway);
-    const directionMult = sentiment.bias === "Bullish" ? 1 : sentiment.bias === "Bearish" ? -1 : 0.2; // Neutral slight positive bias for normal news
+    // 3. Significance & Context Magnitude
+    const sensitivity = newsItem.sensitivity === 'High' ? 1.5 :
+        newsItem.sensitivity === 'Medium' ? 1.0 : 0.6;
 
-    // 3. Significance Magnitude (30%)
-    const sensitivity = newsItem.sensitivity === 'High' ? 10 :
-        newsItem.sensitivity === 'Medium' ? 6 : 3;
+    const surprise = (newsItem.surpriseFactor || 5) / 5; // Normalized around 1.0
 
-    // 4. Surprise Factor (25%ish - implicit weight adjustments)
-    const surprise = newsItem.surpriseFactor || 5;
+    // 4. Final Score Calculation
+    // Base Score (sentiment.score) * Source * Sensitivity * Surprise
+    let finalScore = sentiment.score * sourceWeight * sensitivity * surprise;
 
-    // 5. Historical Reaction (25%ish - implicit weight adjustments)
-    const history = newsItem.historicalReactionScore || 5;
+    // Clip to -10 to +10 range
+    finalScore = Math.max(-10, Math.min(10, finalScore));
 
+    // 5. AI Confidence & Decision Logic
+    const confidence = calculateConfidence(newsItem, sentiment.keywordsFound);
+    const intensityLabel = Math.abs(finalScore) > 7 ? 'Extreme' : Math.abs(finalScore) > 4 ? 'High' : 'Moderate';
+    const decisionPrefix = finalScore > 2 ? 'Bullish' : finalScore < -2 ? 'Bearish' : 'Neutral';
 
-    // Calculates MAGNITUDE (How big is the news?)
-    const magnitude =
-        (sourceScore * 0.20) +
-        (sensitivity * 0.30) +
-        (surprise * 0.25) +
-        (history * 0.25);
-
-    // Final Score = Magnitude * Direction
-    const finalScore = parseFloat((magnitude * directionMult).toFixed(1));
-    return finalScore;
+    return {
+        score: parseFloat(finalScore.toFixed(1)),
+        confidence,
+        intensity: intensityLabel,
+        decision: `AI Decision: ${intensityLabel} ${decisionPrefix}`,
+        sentiment: sentiment.bias
+    };
 }
 
-// =============================
-// Helper Functions
-// =============================
+/**
+ * analyzeDeepSentiment
+ * Simulates advanced NLP by checking for intensity clusters.
+ */
+function analyzeDeepSentiment(text) {
+    const weights = {
+        // High Intensity Bearish
+        "crash": -4, "panic": -4, "crisis": -4, "bloodbath": -5, "plunge": -3, "emergency": -3, "unexpectedly": -2,
+        // Standard Bearish
+        "hike": -2, "inflation": -1.5, "miss": -1.5, "deficit": -1.5, "war": -3, "shortfall": -1, "negative": -1, "selling": -1,
+        "raises": -1.5, "higher": -1, "pressure": -1, "slowdown": -1.5, "weak": -1,
+        // High Intensity Bullish
+        "soars": 4, "record": 3, "mega": 3, "breakthrough": 4, "surges": 3, "unprecedented": 2, "goldmine": 4,
+        // Standard Bullish
+        "cut": 2, "stimulus": 2, "beat": 1.5, "growth": 1.5, "rally": 1.5, "inflow": 1, "buying": 1, "support": 1, "easing": 1,
+        "upgrade": 1.5, "strong": 1, "expansion": 1, "recovery": 1
+    };
+
+    let totalScore = 0;
+    let keywordsFound = 0;
+
+    Object.entries(weights).forEach(([word, weight]) => {
+        if (text.includes(word)) {
+            totalScore += weight;
+            keywordsFound++;
+        }
+    });
+
+    const bias = totalScore > 0 ? "Bullish" : totalScore < 0 ? "Bearish" : "Neutral";
+    return { score: totalScore, bias, keywordsFound };
+}
 
 /**
- * analyzeHeaderSentiment
- * Simple heuristic-based sentiment analysis ("AI" Simulation).
- * @param {string} title 
- * @param {string} takeaway 
- * @returns {Object} { bias: 'Bullish'|'Bearish'|'Neutral', score: number }
+ * calculateConfidence
+ * Determines AI's certainty based on data freshness and keyword density.
  */
-function analyzeHeaderSentiment(title, takeaway) {
-    const text = (title + " " + takeaway).toLowerCase();
-
-    // Bearish Signal Words
-    const bearishKeywords = [
-        "hike", "inflation", "war", "tension", "conflict", "crash", "plunge",
-        "miss", "down", "spikes", "yields rise", "selling", "outflow", "ban",
-        "restriction", "deficit", "debt", "insolvency", "default", "crisis", "fear"
-    ];
-
-    // Bullish Signal Words
-    const bullishKeywords = [
-        "cut", "stimulus", "growth", "record", "beat", "rally", "up", "soars",
-        "inflow", "buying", "acquisition", "expansion", "profit", "bonus",
-        "dividend", "upgrade", "stable", "cools", "easing", "support"
-    ];
-
-    let score = 0;
-    bearishKeywords.forEach(word => { if (text.includes(word)) score -= 1; });
-    bullishKeywords.forEach(word => { if (text.includes(word)) score += 1; });
-
-    if (score > 0) return { bias: "Bullish", score };
-    if (score < 0) return { bias: "Bearish", score };
-    return { bias: "Neutral", score };
+function calculateConfidence(item, keywords) {
+    let base = 60;
+    if (keywords > 2) base += 20;
+    if (item.sensitivity === 'High') base += 10;
+    if (item.source.includes('Bloomberg') || item.source.includes('RBI')) base += 5;
+    return Math.min(98, base);
 }

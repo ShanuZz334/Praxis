@@ -142,14 +142,14 @@ export default function FundamentalModal({ open, onClose, card }) {
                 </div>
               </div>
               <div>
-                <div className="text-text-tertiary uppercase tracking-wider mb-1">Reliability</div>
+                <div className="text-text-tertiary uppercase tracking-wider mb-1 px-1">Confidence</div>
                 <div className={`font-medium ${relColor}`}>
-                  {relTier} ({relVal.toFixed(1)}/10)
+                  {relTier} ({Number(relVal || 0).toFixed(1)}/10)
                 </div>
               </div>
               <div>
                 <div className="text-text-tertiary uppercase tracking-wider mb-1 md:mb-1">Impact</div>
-                <div className="font-mono text-text-primary">{(card.weight || 1).toFixed(2)}x</div>
+                <div className="font-mono text-text-primary">{Number(card.weight || 1).toFixed(2)}x</div>
               </div>
               <div>
                 <div className="text-text-tertiary uppercase tracking-wider mb-1">Category</div>

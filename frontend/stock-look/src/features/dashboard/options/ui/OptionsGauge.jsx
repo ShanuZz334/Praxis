@@ -61,7 +61,7 @@ export default function OptionsGauge({ scoreData }) {
             <div className="flex justify-between items-center border-b border-white/10 pb-2">
                 <span className="text-xs font-bold text-white uppercase">Positioning Score</span>
                 <span className={`text-xs font-mono font-bold ${visual.stroke === '#ef4444' ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {clampedScore.toFixed(0)}
+                    {Number(clampedScore || 0).toFixed(0)}
                 </span>
             </div>
             <div className="space-y-1.5 text-[10px] text-white/70">
@@ -151,7 +151,7 @@ export default function OptionsGauge({ scoreData }) {
                     {/* Center Text */}
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center translate-y-2">
                         <div className="text-4xl font-bold text-white tracking-tighter drop-shadow-lg transition-all">
-                            {clampedScore.toFixed(0)}
+                            {Number(clampedScore || 50).toFixed(0)}
                         </div>
                         <div className="text-[10px] uppercase tracking-widest font-bold text-white/50 mb-0.5">
                             Positioning Score

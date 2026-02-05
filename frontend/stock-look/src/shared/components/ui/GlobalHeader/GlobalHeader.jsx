@@ -52,6 +52,7 @@ export default function GlobalHeader({
     prevScore = 0,
 
     // Context
+    gauge = null, // Custom gauge object { label, color, meaning }
     regime = { label: "Neutral", desc: "No clear dominance", confidence: 0, color: "text-text-secondary" },
     integrity = { coverage: "100%", source: "Primary", freshness: "Realtime" },
 
@@ -80,9 +81,10 @@ export default function GlobalHeader({
     // Credit System
     totalCredits = 0, // Total credits for this page (e.g. 300)
     creditBreakdown = null, // { Technical: 500, Options: 120... }
-    creditLabel = "Credits", // Customizable label (e.g. "News", "Stocks")
+    creditLabel = "R Credits", // Customizable label (e.g. "R Credits", "Stocks")
     cards = [],        // All cards to calculate signal counts
     enableBreakdown = false, // Toggle to show hover details (Dashboard only)
+    enableActionPulse = false, // If true, shows the Trading Action Pulse indicator (Dashboard only)
 
     // Controls
     controls = {
@@ -101,7 +103,9 @@ export default function GlobalHeader({
     const compositeState = getCompositeState(score);
 
     // 2. Delta Logic
-    const deltaRaw = (score - (prevScore || score));
+    const scoreNum = Number(score || 0);
+    const prevScoreNum = Number(prevScore || scoreNum);
+    const deltaRaw = scoreNum - prevScoreNum;
     const deltaVal = Math.abs(deltaRaw).toFixed(1);
     const deltaSign = deltaRaw > 0 ? "+" : deltaRaw < 0 ? "-" : "";
     const deltaColor = deltaRaw > 0 ? "text-emerald-600 dark:text-emerald-400" : deltaRaw < 0 ? "text-red-600 dark:text-red-400" : "text-text-tertiary";
@@ -165,12 +169,15 @@ export default function GlobalHeader({
                         </div>
 
                         <div className="flex flex-row items-center md:items-baseline gap-2 md:gap-3 mb-3 md:mb-4 text-left">
-                            <div className={`${typography.number.giant} text-5xl md:text-6xl lg:text-7xl`}>{score.toFixed(0)}</div>
+                            <div className={`${typography.number.giant} text-5xl md:text-6xl lg:text-7xl tracking-tighter`}>{Number(score || 0).toFixed(0)}</div>
                             <div className="flex flex-col justify-end h-full pb-1">
-                                <div className={`text-base md:text-lg font-bold ${compositeState.className} transition-colors duration-500`}>
-                                    {compositeState.label}
+                                <div
+                                    className={`text-base md:text-lg font-bold transition-colors duration-500 uppercase tracking-wide`}
+                                    style={{ color: gauge?.color || compositeState.color || 'var(--text-primary)' }}
+                                >
+                                    {gauge ? gauge.label : compositeState.label}
                                 </div>
-                                <div className="text-[9px] md:text-[10px] text-text-tertiary font-mono">/ 100.00</div>
+                                <div className="text-[9px] md:text-[10px] text-text-tertiary font-mono tracking-widest opacity-60">/ 100.00</div>
                             </div>
                         </div>
 
@@ -179,7 +186,7 @@ export default function GlobalHeader({
                             <div className={`text-xs font-bold ${regime.color || 'text-text-primary'}`}>{regime.label}</div>
                             <div className="w-1 h-1 rounded-full bg-text-tertiary opacity-30" />
                             <div className="text-[10px] text-text-secondary font-mono">
-                                {regime.confidence}% Conf
+                                {Number(regime.confidence || 0).toFixed(0)}% Conf
                             </div>
                         </div>
 
@@ -194,12 +201,17 @@ export default function GlobalHeader({
                         <div className={`${typography.label.sm} mb-3`}>Market Regime</div>
                         <div className="mb-4">
                             <div className="flex items-center gap-3 mb-1">
-                                <div className={`text-2xl font-bold ${regime.color || 'text-text-primary'}`}>{regime.label}</div>
+                                <div
+                                    className={`text-2xl font-bold transition-colors duration-500`}
+                                    style={{ color: regime.color?.startsWith('#') ? regime.color : undefined }}
+                                >
+                                    {regime.label}
+                                </div>
                                 <div className="text-xs px-1.5 py-0.5 rounded bg-background-surface text-text-secondary font-mono">
-                                    {regime.confidence}% Conf
+                                    {Number(regime.confidence || 0).toFixed(0)}% Conf
                                 </div>
                             </div>
-                            <div className="text-xs text-text-tertiary">{regime.desc}</div>
+                            <div className="text-xs text-text-tertiary">{regime.behaviour || regime.description || regime.desc}</div>
                         </div>
                         {/* Simple Linear Scale */}
                         <div className="relative h-2 rounded-full bg-gradient-to-r from-red-600 via-amber-500 to-emerald-600 opacity-80">

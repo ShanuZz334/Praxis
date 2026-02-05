@@ -62,7 +62,7 @@ export default function TechnicalGrid({
     }, [cards]);
 
     // Section Order (using the config from helper or indicatorConfig orders)
-    const SECTION_ORDER = ["Trend", "Momentum", "Volatility", "Volume", "Breadth", "Structure"];
+    const SECTION_ORDER = technicalSections.map(s => s.id);
 
     // =============================
     // Render Layer

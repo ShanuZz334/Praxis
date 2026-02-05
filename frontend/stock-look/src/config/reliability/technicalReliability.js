@@ -1,0 +1,123 @@
+/**
+ * @file technicalReliability.js
+ * @purpose Central source of truth for Technical Indicator Reliability scores.
+ */
+
+export const TECHNICAL_RELIABILITY = {
+    // Trend
+    't_ema_cross': 0.90,
+    't_golden_cross': 0.95,
+    't_adx': 0.85,
+    't_supertrend': 0.90,
+    't_ichimoku': 0.85,
+    't_consistency': 0.80,
+    't_adx': 0.85,
+    'vw_anchor': 0.92,
+    'vw_reclaim': 0.90,
+    'r_sar': 0.80,
+    'r_stretch': 0.75,
+    'ex_age': 0.85,
+
+    // Momentum
+    'm_rsi': 0.85,
+    'm_rsi_slope': 0.80,
+    'm_macd_hist': 0.90,
+    'm_macd_cross': 0.85,
+    'm_stoch': 0.75,
+    'm_roc': 0.80,
+    'm_thrust': 0.85,
+    'm_rsi_range': 0.88,
+    'm_macd_impulse': 0.90,
+    'm_ppo': 0.80,
+    'm_klinger': 0.78,
+    'm_tsi': 0.85,
+    'r_rsi_div': 0.90,
+    'r_macd_div': 0.88,
+    'or_break': 0.92,
+    'or_fail': 0.88,
+    'ms_open': 0.85,
+    'ms_close': 0.88,
+    'ms_accel': 0.85,
+    'ms_stall': 0.80,
+    'ms_mom_rej': 0.85,
+
+    // Volatility
+    'v_atr_trend': 0.85,
+    'v_bb_width': 0.80,
+    'v_bb_bias': 0.75,
+    'v_hist_vol': 0.80,
+    'v_regime': 0.90,
+    'vw_band': 0.88,
+    'vw_meanrev': 0.80,
+    'r_risk': 0.90,
+    'rr_shift': 0.92,
+    'rr_dd': 0.90,
+    'rr_tail': 0.88,
+    'rr_comp': 0.95,
+
+    // Volume
+    'vol_rel': 0.80,
+    'vol_obv': 0.85,
+    'vol_obv_div': 0.80,
+    'vol_accdist': 0.85,
+    'vol_vwap_dev': 0.90,
+    'vw_accept': 0.80,
+    'mp_vah': 0.90,
+    'mp_poc': 0.88,
+    'mp_comp': 0.90,
+    'bk_vol': 0.85,
+    'r_vol_climax': 0.85,
+    'ms_auction': 0.85,
+    'ms_time': 0.88,
+
+    // Structure
+    's_hhhl': 0.85,
+    's_swing': 0.90,
+    's_bos': 0.92,
+    's_choch': 0.85,
+    's_bias': 0.90,
+    's_range': 0.85,
+    's_trendline': 0.80,
+    's_sr_quality': 0.85,
+    'f_382': 0.80,
+    'f_50': 0.78,
+    'f_618': 0.85,
+    'f_cluster': 0.90,
+    'f_ext': 0.80,
+    'f_depth': 0.75,
+    'sess_hold': 0.90,
+    'vm_qual': 0.92,
+    'bk_55d': 0.92,
+    'bk_fail': 0.92,
+    'bk_retest': 0.90,
+    'tp_bull': 0.90,
+    'tp_bear': 0.90,
+    'tp_liq': 0.90,
+    'tp_comp': 0.92,
+    'ms_comp': 0.95,
+    'st_comp': 0.95,
+    'rg_comp': 0.95,
+    'fc_comp': 0.95,
+
+    // Breadth
+    's_breadth': 0.90,
+    's_ad_mom': 0.85,
+    'rs_bn': 0.92,
+    'rs_mid': 0.90,
+    'rs_mom': 0.85,
+    'rs_breadth': 0.92,
+    'sec_clock': 0.92,
+    'sec_align': 0.90,
+    'sec_risk': 0.92,
+    'sec_health': 0.93,
+    'im_risk': 0.93,
+    'gv_agree': 0.92,
+
+    // Governors & Master
+    'gv_main': 0.98,
+    'gv_convict': 0.95,
+    'gv_risk_adj': 0.98,
+    'FINAL_MASTER': 0.99
+};
+
+export default TECHNICAL_RELIABILITY;

@@ -61,6 +61,17 @@ export const colors = {
         high: "#10b981",
         med: "#facc15", // yellow-400
         low: "#94a3b8", // slate-400
+    },
+
+    // Action-Oriented Signals (Professional Gradient)
+    actions: {
+        strongBuy: "#10b981",   // Emerald (Matches "Strong Trend" text)
+        buy: "#22c55e",         // Bright Green
+        accumulate: "#84cc16",  // Lime Green
+        hold: "#eab308",        // Muted Yellow
+        caution: "#f97316",     // Orange
+        sell: "#ef4444",        // Red
+        exit: "#b91c1c",        // Deep Red
     }
 };
 

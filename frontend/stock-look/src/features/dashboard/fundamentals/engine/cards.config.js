@@ -1,22 +1,10 @@
-/**
- * @file cards.config.js
- * @purpose Registry of all Fundamental Cards/Metrics used in the system.
- * @responsibilities
- * - Defines metadata (ID, Label, Category, Unit).
- * - Assigns "Credit Allocations" and "Credit Scores" (Reliability) for weighting.
- * - Grouped by logical sections (Valuation, Macro, etc.).
- * @key_exports
- * - FUNDAMENTAL_CARDS
- * - TOTAL_FUNDAMENTAL_CREDITS
- * @lifecycle
- * - Static configuration loaded by `index.js`.
- * @date 2026-02-03
- */
+import { FUNDAMENTALS_RELIABILITY, TOTAL_FUNDAMENTALS_CREDITS as _TOTAL_CREDITS } from '@/config/reliability';
+import { getCreditFromReliability } from '@/shared/global/logic/signals';
 
 // =============================
 // Card Definitions
 // =============================
-export const FUNDAMENTAL_CARDS = [
+const _baseCards = [
   /* -----------------------------------------------------
      SECTION 1: VALUATION
   ----------------------------------------------------- */
@@ -374,10 +362,15 @@ export const FUNDAMENTAL_CARDS = [
   },
 ];
 
-// =============================
-// Import from centralized config
-// =============================
-import { TOTAL_FUNDAMENTALS_CREDITS as TOTAL_CREDITS } from '../../../../config/credits/fundamentalsCredits.js';
+// Dynamic Export with Tiered Credits derived from centralized Reliability source
+export const FUNDAMENTAL_CARDS = _baseCards.map(card => {
+  const reliability = FUNDAMENTALS_RELIABILITY[card.id] || 0.5;
+  return {
+    ...card,
+    creditScore: reliability, // Internal legacy sync
+    reliability,
+    creditAllocation: getCreditFromReliability(reliability)
+  };
+});
 
-// Re-export for backward compatibility
-export const TOTAL_FUNDAMENTAL_CREDITS = TOTAL_CREDITS;
+export const TOTAL_FUNDAMENTAL_CREDITS = _TOTAL_CREDITS;

@@ -15,18 +15,19 @@
  * @date 2026-02-03
  */
 
-import { TOTAL_EVENTS_CREDITS as TOTAL_CREDITS } from '../../../../config/credits/eventsCredits.js';
+import { EVENTS_RELIABILITY, TOTAL_EVENTS_CREDITS as _TOTAL_CREDITS } from '../../../../config/reliability';
+import { getCreditFromReliability } from '@/shared/global/logic/signals';
 
 // =============================
 // Constants & Config
 // =============================
 // Re-export for backward compatibility
-export const TOTAL_EVENTS_CREDITS = TOTAL_CREDITS;
+export const TOTAL_EVENTS_CREDITS = _TOTAL_CREDITS;
 
 // =============================
 // Mock Data Definition
 // =============================
-export const MOCK_EVENTS = [
+const _baseEvents = [
     {
         id: 'e1',
         title: 'India CPI Inflation',
@@ -109,7 +110,16 @@ export const MOCK_EVENTS = [
         marketSensitivity: 'High',
         historicalImpact: { ivSpike: 40, niftyMove: 2.5 },
         surpriseFrequency: 9,
-        globalCorrelation: 5,
-        creditAllocation: 20
+        globalCorrelation: 5
     }
 ];
+
+// Dynamic Export with Tiered Credits derived from centralized Reliability source
+export const MOCK_EVENTS = _baseEvents.map(event => {
+    const reliability = EVENTS_RELIABILITY[event.id] || 0.5;
+    return {
+        ...event,
+        reliability,
+        creditAllocation: getCreditFromReliability(reliability)
+    };
+});

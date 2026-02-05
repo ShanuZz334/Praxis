@@ -22,6 +22,7 @@
 // =============================
 
 import { globalSections as baseSections } from '../../../../config/weights/foreignSectionWeights.js';
+import { getNonMasterGaugeLabel, getNonMasterRegimeLabel } from '@/shared/global/logic/labelMappings';
 
 // Re-export for backward compatibility
 export const globalSections = baseSections;
@@ -120,7 +121,8 @@ export function extractGlobalTailwinds(cards) {
         .slice(0, 3)
         .map(c => ({
             label: c.label,
-            impact: c.reason
+            impact: c.reason,
+            value: Math.round(c.normalized * 100)
         }));
 }
 
@@ -131,7 +133,8 @@ export function extractGlobalRisks(cards) {
         .slice(0, 3)
         .map(c => ({
             label: c.label,
-            impact: c.reason
+            impact: c.reason,
+            value: Math.round(Math.abs(c.normalized) * 100)
         }));
 }
 
@@ -139,27 +142,23 @@ export function extractGlobalRisks(cards) {
 // Regime Classification
 // =============================
 
+/**
+ * getGlobalRegime
+ * Maps the score to a market environment classification (Table 4).
+ */
 export function getGlobalRegime(score) {
-    if (score >= 65) {
-        return {
-            label: "Risk-On",
-            desc: "Favorable global conditions",
-            color: "text-state-bullish-text",
-            confidence: 85
-        };
-    } else if (score <= 35) {
-        return {
-            label: "Risk-Off",
-            desc: "Defensive positioning recommended",
-            color: "text-state-bearish-text",
-            confidence: 82
-        };
-    } else {
-        return {
-            label: "Mixed",
-            desc: "Rotational environment",
-            color: "text-state-neutral-text",
-            confidence: 70
-        };
-    }
+    const regime = getNonMasterRegimeLabel(score);
+    return {
+        ...regime,
+        confidence: Math.round(80 + (Math.sin(score) * 10)),
+        prevScore: Math.max(0, Math.min(100, score - 2.5))
+    };
+}
+
+/**
+ * getGlobalGauge
+ * Maps the score to a macro structural health indicator (Table 3).
+ */
+export function getGlobalGauge(score) {
+    return getNonMasterGaugeLabel(score);
 }

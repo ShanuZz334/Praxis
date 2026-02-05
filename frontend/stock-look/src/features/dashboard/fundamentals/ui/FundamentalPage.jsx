@@ -49,7 +49,9 @@ export default function FundamentalPage() {
     return evaluateFundamentals(marketData);
   }, [marketData]);
 
-  const overallScore = intelligence?.gauge || 0;
+  const activeGauge = intelligence?.gauge || { label: "Balanced Structure", color: "#64748B" };
+  const activeRegime = intelligence?.regime || { label: "Balanced Phase", description: "Mixed environment", color: "#64748B" };
+  const overallScore = intelligence?.score || 0;
   const sections = intelligence?.sections || {};
   const cards = intelligence?.cards || [];
 
@@ -62,26 +64,6 @@ export default function FundamentalPage() {
       (c.category && c.category.toLowerCase().includes(lower))
     );
   }, [cards, searchQuery]);
-
-  // --- GlobalHeader Adapters ---
-
-  // 1. Regime Object
-  const regimeObj = useMemo(() => {
-    let label = "Balanced";
-    let desc = "Mixed signals found";
-    let color = "text-state-neutral-text";
-
-    if (overallScore >= 70) {
-      label = "Risk-On";
-      desc = "Favorable macro backdrop";
-      color = "text-state-bullish-text";
-    } else if (overallScore < 40) {
-      label = "Risk-Off";
-      desc = "Capital preservation mode";
-      color = "text-state-bearish-text";
-    }
-    return { label, desc, color, confidence: 92 };
-  }, [overallScore]);
 
   // 2. Bar Chart Sections
   const globalStartSections = useMemo(() => {
@@ -126,8 +108,9 @@ export default function FundamentalPage() {
       <GlobalHeader
         title="Fundamental Composite"
         score={overallScore}
-        prevScore={overallScore - 2.5}
-        regime={regimeObj}
+        prevScore={intelligence?.prevScore || 50}
+        gauge={activeGauge}
+        regime={activeRegime}
         integrity={{ coverage: "36/36", source: "NSE/BSE", freshness: "Realtime" }}
 
         sections={globalStartSections}

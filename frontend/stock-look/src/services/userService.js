@@ -176,23 +176,37 @@ export const verifyCurrentEmail = async (otp) => {
 };
 
 // =============================
-// Settings Mock Exports
+// Settings API Operations
 // =============================
 
-export const updateBrokerSettings = async () => {
-    return { success: true };
+export const updateBrokerSettings = async (brokerData) => {
+    try {
+        const response = await axiosInstance.put("/api/v1/user/broker", brokerData);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating broker settings:', error);
+        throw error;
+    }
 };
 
-export const testBrokerConnection = async () => {
-    return { success: true };
+export const updateNotificationSettings = async (notificationData) => {
+    try {
+        const response = await axiosInstance.put("/api/v1/user/notifications", notificationData);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating notification settings:', error);
+        throw error;
+    }
 };
 
-export const updateNotificationSettings = async () => {
-    return { success: true };
-};
-
-export const updatePreferences = async () => {
-    return { success: true };
+export const updatePreferences = async (preferenceData) => {
+    try {
+        const response = await axiosInstance.put("/api/v1/user/preferences", preferenceData);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating preferences:', error);
+        throw error;
+    }
 };
 
 // =============================

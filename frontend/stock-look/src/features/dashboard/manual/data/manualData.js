@@ -125,7 +125,7 @@ export const MANUAL_CONTENT = {
                 title: "Conviction Meter",
                 description: "Measures the agreement between different intelligence engines.",
                 calculation: "Standard Deviation of component scores.",
-                weight: "Reliability Metric",
+                weight: "R-Metric",
                 interpretation: "High Conviction: All engines (Tech, Fund, Opt) agree. Low Conviction: Signals are conflicting.",
                 proTip: "High Conviction trades allow for larger position sizing. Low Conviction requires reduced sizing."
             },

@@ -1,7 +1,8 @@
-import { TOTAL_FOREIGN_CREDITS as TOTAL_CREDITS } from '../../../../config/credits/foreignCredits.js';
+import { FOREIGN_RELIABILITY, TOTAL_FOREIGN_CREDITS as _TOTAL_CREDITS } from '../../../../config/reliability';
+import { getCreditFromReliability } from '@/shared/global/logic/signals';
 
 // Card-based data structure for Global Structure page
-export const GLOBAL_STRUCTURE_CARDS = [
+const _baseCards = [
     // Currency
     {
         id: "dxy",
@@ -254,10 +255,19 @@ export const GLOBAL_STRUCTURE_CARDS = [
 ];
 
 // Re-export for backward compatibility
-export const TOTAL_FOREIGN_CREDITS = TOTAL_CREDITS;
-export const TOTAL_GLOBAL_CREDITS = TOTAL_CREDITS; // Alias for Master Dashboard
+export const TOTAL_FOREIGN_CREDITS = _TOTAL_CREDITS;
+export const TOTAL_GLOBAL_CREDITS = _TOTAL_CREDITS; // Alias for Master Dashboard
 
-
+// Dynamic mapping with centralized Reliability scores
+export const GLOBAL_STRUCTURE_CARDS = _baseCards.map(card => {
+    const reliability = FOREIGN_RELIABILITY[card.id] || 0.5;
+    return {
+        ...card,
+        creditScore: reliability, // Internal sync
+        reliability,
+        creditAllocation: getCreditFromReliability(reliability)
+    };
+});
 // Section definitions
 export const GLOBAL_SECTIONS = {
     currency: {

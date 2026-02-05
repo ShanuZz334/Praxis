@@ -24,11 +24,12 @@ import {
     calculateTechnicalComposite,
     technicalSections,
     getTechnicalRegime,
+    getTechnicalGauge,
     extractTechnicalTailwinds,
     extractTechnicalRisks
 } from "@/features/dashboard/technical/engine/technicalHelper";
 import { generateLiveTechnicalData } from "@/features/dashboard/technical/engine/indicatorsConfig";
-import { TOTAL_TECHNICAL_CREDITS } from "@/config/credits/technicalCredits";
+import { TOTAL_TECHNICAL_CREDITS } from "@/config/reliability";
 
 export default function TechnicalPage() {
     const [viewMode, setViewMode] = useState("sectioned");
@@ -79,22 +80,22 @@ export default function TechnicalPage() {
         }));
     }, [sectionsObj]);
 
-    const regimeData = useMemo(() => getTechnicalRegime(compositeScore || 50), [compositeScore]);
-    const tailwinds = useMemo(() => extractTechnicalTailwinds(technicalCards).map(t => ({ ...t, value: t.creditPct.toFixed(0) })), [technicalCards]);
-    const risks = useMemo(() => extractTechnicalRisks(technicalCards).map(r => ({ ...r, value: r.creditPct.toFixed(0) })), [technicalCards]);
+    const regimeData = useMemo(() => getTechnicalRegime(compositeScore.score || 50), [compositeScore]);
+    const gaugeData = useMemo(() => getTechnicalGauge(compositeScore.score || 50), [compositeScore]);
+    const tailwinds = useMemo(() => extractTechnicalTailwinds(technicalCards), [technicalCards]);
+    const risks = useMemo(() => extractTechnicalRisks(technicalCards), [technicalCards]);
 
     return (
         <div className="p-4 md:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">
             {/* GLOBAL HEADER */}
             <GlobalHeader
                 title="Technical Composite"
-                score={compositeScore || 0}
-                prevScore={(compositeScore || 50) - 1.5} // Mock prev
+                score={compositeScore.score || 0}
+                prevScore={compositeScore.prevScore || 50}
+                gauge={gaugeData}
                 regime={{
-                    label: regimeData.label,
-                    desc: regimeData.desc,
-                    color: regimeData.color,
-                    confidence: 85
+                    ...regimeData,
+                    confidence: compositeScore.confidence || 85
                 }}
                 integrity={{ coverage: "200/200", source: "Primary Feed", freshness: "Realtime" }}
 

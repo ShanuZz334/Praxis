@@ -161,7 +161,7 @@ export default function OptionsHeader({
                                         <div className="w-24 h-1.5 bg-emerald-900/30 rounded-full overflow-hidden">
                                             <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${tw.score * 100}%` }} />
                                         </div>
-                                        <span className="text-emerald-400 font-mono font-bold w-6 text-right">{(tw.score * 100).toFixed(0)}</span>
+                                        <span className="text-emerald-400 font-mono font-bold w-6 text-right">{Number(tw.score * 100 || 0).toFixed(0)}</span>
                                     </div>
                                 </div>
                             )) : <div className="text-white/30 text-xs italic">No major tailwinds</div>}
@@ -187,7 +187,7 @@ export default function OptionsHeader({
                                         <div className="w-24 h-1.5 bg-red-900/30 rounded-full overflow-hidden">
                                             <div className="h-full bg-red-500 rounded-full" style={{ width: `${(1 - risk.score) * 100}%` }} />
                                         </div>
-                                        <span className="text-red-400 font-mono font-bold w-6 text-right">{(risk.score * 100).toFixed(0)}</span>
+                                        <span className="text-red-400 font-mono font-bold w-6 text-right">{Number(risk.score * 100 || 0).toFixed(0)}</span>
                                     </div>
                                 </div>
                             )) : <div className="text-white/30 text-xs italic">No major risks</div>}

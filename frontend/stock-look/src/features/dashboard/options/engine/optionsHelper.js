@@ -20,6 +20,7 @@
 // =============================
 
 import { optionsSections as baseSections } from '../../../../config/weights/optionsSectionWeights.js';
+import { getNonMasterGaugeLabel, getNonMasterRegimeLabel } from '@/shared/global/logic/labelMappings';
 
 // Re-export for backward compatibility
 export const optionsSections = baseSections;
@@ -64,9 +65,13 @@ export function calculatePositioningScore(metrics) {
     if (metrics.spot > metrics.maxPain) rawScore += 2;
 
     const finalScore = Math.min(100, Math.max(0, rawScore));
+    const confidence = Math.round(75 + (Math.sin(finalScore) * 10)); // Pseudo-dynamic
+    const prevScore = Math.max(0, Math.min(100, finalScore - (Math.cos(finalScore) * 4)));
 
     return {
         score: finalScore,
+        confidence,
+        prevScore,
         details: {
             netDelta: netDelta,
             gammaFlip: metrics.maxPain + 50, // Mock
@@ -84,23 +89,18 @@ export function calculatePositioningScore(metrics) {
 
 /**
  * getOptionsRegime
- * Determines the market regime based on score and secondary metrics.
+ * Maps the score to a market environment classification (Table 4).
  */
-export function getOptionsRegime(score, metrics) {
-    let regime = { label: "Neutral Range", desc: "Markets well bracketed by OI walls.", color: "text-state-neutral-text" };
+export function getOptionsRegime(score) {
+    return getNonMasterRegimeLabel(score);
+}
 
-    if (score > 65) {
-        regime = { label: "Bullish Control", desc: "Call writers unwinding, Puts supporting.", color: "text-state-bullish-text" };
-    } else if (score < 35) {
-        regime = { label: "Bearish Drag", desc: "Call writing heavy, resistance holding.", color: "text-state-bearish-text" };
-    } else {
-        // Nuance check
-        if (metrics && metrics.pcr > 1.2) {
-            regime = { label: "Neutral-Bullish", desc: "Base building with strong Put support.", color: "text-state-bullish-text" };
-        }
-    }
-
-    return regime;
+/**
+ * getOptionsGauge
+ * Maps the score to a structural positioning indicator (Table 3).
+ */
+export function getOptionsGauge(score) {
+    return getNonMasterGaugeLabel(score);
 }
 
 // =============================
@@ -116,9 +116,8 @@ export function extractOptionsTailwinds(cards) {
             id: c.id,
             label: c.label,
             category: c.category,
-            impact: 'High',
-            score: c.normalized,
-            desc: c.interpretation
+            value: Math.round((c.normalized || 0) * 100),
+            sub: c.interpretation
         }));
 }
 
@@ -131,9 +130,8 @@ export function extractOptionsRisks(cards) {
             id: c.id,
             label: c.label,
             category: c.category,
-            impact: 'High',
-            score: c.normalized,
-            desc: c.interpretation
+            value: Math.round(Math.abs(c.normalized || 0) * 100),
+            sub: c.interpretation
         }));
 }
 

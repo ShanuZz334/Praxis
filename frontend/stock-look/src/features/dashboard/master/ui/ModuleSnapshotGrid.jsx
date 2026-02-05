@@ -48,6 +48,8 @@ const renderCard = (id, label, data, reasonKey, totalModuleCredits) => {
             creditScore={0.9} // High reliability assumption for top-level summaries
             creditAllocation={totalModuleCredits}
             reason={reason}
+            signal={data.gauge} // Priority given to dynamic gauge label
+            color={data.color}  // Priority given to dynamic gauge color
             onClick={() => { }} // Placeholder for future navigation
         />
     );

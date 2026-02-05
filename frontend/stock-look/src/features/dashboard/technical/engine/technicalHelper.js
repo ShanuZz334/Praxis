@@ -22,6 +22,7 @@
 // =============================
 
 import { technicalSections as baseSections } from '@/config/weights/sectionWeights.js';
+import { getNonMasterGaugeLabel, getNonMasterRegimeLabel } from '@/shared/global/logic/labelMappings';
 
 // Re-export for backward compatibility
 export const technicalSections = baseSections;
@@ -31,7 +32,7 @@ export const technicalSections = baseSections;
 // =============================
 
 export function calculateTechnicalComposite(cards = []) {
-    if (!cards || cards.length === 0) return 50;
+    if (!cards || cards.length === 0) return { score: 50, confidence: 80, prevScore: 50 };
 
     let totalWeightedScore = 0;
     let totalWeight = 0;
@@ -49,42 +50,43 @@ export function calculateTechnicalComposite(cards = []) {
         totalWeight += weight * reliability;
     });
 
-    if (totalWeight === 0) return 50;
+    if (totalWeight === 0) return { score: 50, confidence: 80, prevScore: 50 };
 
     const composite = totalWeightedScore / totalWeight;
 
     // Clamp between 0 and 100
-    return Math.min(100, Math.max(0, composite));
+    const finalScore = Math.min(100, Math.max(0, composite));
+
+    // Calculate Confidence (Standard Deviation based)
+    const normalizedScores = cards.map(c => c.normalized || 0);
+    const mean = normalizedScores.reduce((a, b) => a + b, 0) / (normalizedScores.length || 1);
+    const variance = normalizedScores.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (normalizedScores.length || 1);
+    const confidence = Math.max(70, Math.min(98, 100 - (variance * 40))); // 70-98 range
+
+    // Predictable Offset for Trend (Prev Score)
+    const prevScore = Math.max(0, Math.min(100, finalScore + (Math.sin(finalScore) * 3)));
+
+    return {
+        score: Number(finalScore.toFixed(1)),
+        confidence: Math.round(confidence),
+        prevScore: Number(prevScore.toFixed(1))
+    };
 }
 
 /**
- * Derived Technical Regime based on score
+ * getTechnicalRegime
+ * Maps the score to a market environment classification (Table 4).
  */
 export function getTechnicalRegime(score) {
-    if (score >= 65) return {
-        label: "Trend Following",
-        desc: "Strong directional conviction",
-        color: "text-state-bullish-text",
-        bg: "bg-emerald-500"
-    };
-    if (score <= 35) return {
-        label: "Distribution",
-        desc: "Selling pressure dominant",
-        color: "text-state-bearish-text",
-        bg: "bg-red-500"
-    };
-    if (score >= 45 && score <= 55) return {
-        label: "Chop / Noise",
-        desc: "Lack of clear direction",
-        color: "text-state-neutral-text",
-        bg: "bg-slate-500"
-    };
-    return {
-        label: "Mean Reversion",
-        desc: "Counter-trend opportunities",
-        color: "text-state-neutral-text",
-        bg: "bg-yellow-500"
-    };
+    return getNonMasterRegimeLabel(score);
+}
+
+/**
+ * getTechnicalGauge
+ * Maps the score to a structural health indicator (Table 3).
+ */
+export function getTechnicalGauge(score) {
+    return getNonMasterGaugeLabel(score);
 }
 
 /**
@@ -138,9 +140,9 @@ export function extractTechnicalTailwinds(cards = [], count = 3) {
             id: c.id,
             label: c.label,
             category: c.category,
-            creditPct: c.displayPct, // Used for UI display "+41%"
+            value: c.displayPct, // Used for UI display "+41%"
             icon: getIconForTechCategory(c.category),
-            desc: "Bullish Driver"
+            sub: c.category
         }));
 }
 
@@ -164,8 +166,8 @@ export function extractTechnicalRisks(cards = [], count = 3) {
             id: c.id,
             label: c.label,
             category: c.category,
-            creditPct: c.displayPct, // Used for UI display "-33%"
+            value: c.displayPct, // Used for UI display "-33%"
             icon: getIconForTechCategory(c.category),
-            desc: "Bearish Drag"
+            sub: c.category
         }));
 }

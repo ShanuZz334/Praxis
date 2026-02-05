@@ -59,7 +59,7 @@ export default function IntelligenceDashboard({ intelligence }) {
                                         <span className="text-sm text-white/90">{tw.label}</span>
                                     </div>
                                     <div className="text-sm font-semibold text-green-400">
-                                        {tw.creditPct.toFixed(0)}%
+                                        {Number(tw.creditPct || 0).toFixed(0)}%
                                     </div>
                                 </motion.div>
                             ))
@@ -90,7 +90,7 @@ export default function IntelligenceDashboard({ intelligence }) {
                                         <span className="text-sm text-white/90">{risk.label}</span>
                                     </div>
                                     <div className="text-sm font-semibold text-red-400">
-                                        {risk.creditPct.toFixed(0)}%
+                                        {Number(risk.creditPct || 0).toFixed(0)}%
                                     </div>
                                 </motion.div>
                             ))
