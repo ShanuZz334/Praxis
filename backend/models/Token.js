@@ -25,6 +25,7 @@ import mongoose from "mongoose";
 // Schema Definition
 // =============================
 const tokenSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   provider: { type: String, required: true },
   accessToken: { type: String },
   refreshToken: { type: String },

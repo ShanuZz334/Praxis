@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { generateIntelligence } from "@/features/dashboard/fundamentals/engine/intelligence";
 import CardSegmented from "@/shared/components/controls/CardSegmented";
 import PortalTooltip from "@/shared/components/ui/PortalTooltip";
+import AiInsightSection from "@/shared/components/ui/AiInsightSection";
 
 // =============================
 // Main Component
@@ -126,10 +127,10 @@ export default function FundamentalHeader({
             {/* Section contributions bar chart omitted for brevity in deprecated file */}
           </div>
 
-          <div className="p-6 flex flex-col justify-center">
-            <div className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-3">Market Regime</div>
-            <div className="text-2xl font-bold text-white mb-1">{regimeLabel}</div>
-            <div className="text-xs text-white/40">{regimeDesc}</div>
+          <div className="p-0 flex flex-col justify-center">
+            <AiInsightSection 
+                actionType={regimeLabel}
+            />
           </div>
 
           <div className="p-6 flex flex-col justify-center gap-4">

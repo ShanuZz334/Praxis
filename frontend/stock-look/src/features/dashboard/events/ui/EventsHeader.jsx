@@ -21,6 +21,7 @@
 // =============================
 import React from "react";
 import PortalTooltip from "@/shared/components/ui/PortalTooltip";
+import AiInsightSection from "@/shared/components/ui/AiInsightSection";
 
 // =============================
 // Main Component
@@ -92,32 +93,11 @@ export default function EventsHeader({
                     </div>
                 </div>
 
-                {/* Section 2: Market Regime & Catalyst */}
-                <div className="p-6 flex flex-col justify-center">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-3">
-                        Market Regime
-                    </div>
-
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="text-2xl font-bold text-white">{regime}</div>
-                        {regime === 'Vol Expansion' && (
-                            <div className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                                Vega Long
-                            </div>
-                        )}
-                    </div>
-
-                    {nextHighImpact && (
-                        <div className="mt-2 p-3 rounded bg-white/5 border border-white/5">
-                            <div className="text-[10px] text-white/40 uppercase mb-1">Next Catalyst</div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm font-semibold text-white/90">{nextHighImpact.title}</span>
-                                <span className="text-xs text-red-400 font-mono font-bold">
-                                    In {differenceInHours(nextHighImpact)}h
-                                </span>
-                            </div>
-                        </div>
-                    )}
+                {/* Section 2: AI INSIGHT */}
+                <div className="p-0 flex flex-col justify-center">
+                    <AiInsightSection 
+                        actionType={regime}
+                    />
                 </div>
 
                 {/* Section 3: Data Integrity */}

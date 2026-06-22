@@ -11,7 +11,6 @@ export const TECHNICAL_RELIABILITY = {
     't_supertrend': 0.90,
     't_ichimoku': 0.85,
     't_consistency': 0.80,
-    't_adx': 0.85,
     'vw_anchor': 0.92,
     'vw_reclaim': 0.90,
     'r_sar': 0.80,

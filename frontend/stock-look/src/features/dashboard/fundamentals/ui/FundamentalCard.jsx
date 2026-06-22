@@ -52,7 +52,9 @@ export default function FundamentalCard({ card, onClick }) {
     normalized,
     creditScore,
     creditAllocation,
-    id
+    id,
+    multiplier,
+    isFocused
   } = card;
 
   // derived props
@@ -73,6 +75,8 @@ export default function FundamentalCard({ card, onClick }) {
       totalPageCredits={300}
       signal={signal}
       color={color}
+      multiplier={multiplier}
+      isFocused={isFocused}
     />
   );
 }

@@ -70,7 +70,8 @@ axiosInstance.interceptors.response.use(
       const message = error.response.data?.message || "";
 
       if (message.includes("Internal Session Conflict")) {
-        window.dispatchEvent(new CustomEvent('session-conflict', { detail: message }));
+        const token = error.config?.headers?.Authorization || "";
+        window.dispatchEvent(new CustomEvent('session-conflict', { detail: { message, token } }));
         return Promise.reject(error);
       }
 

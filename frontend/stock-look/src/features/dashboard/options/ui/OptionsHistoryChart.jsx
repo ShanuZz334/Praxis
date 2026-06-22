@@ -17,50 +17,68 @@
 // =============================
 // Imports
 // =============================
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import axiosInstance from '@/shared/utils/axiosInstance';
+import { API_PATHS } from '@/shared/utils/apiPaths';
 
 // =============================
 // Main Component
 // =============================
-export default function OptionsHistoryChart({ trend = 'neutral', baseValue = 100, label = 'Metric' }) {
+export default function OptionsHistoryChart({ id, trend = 'neutral', baseValue = 100, label = 'Metric' }) {
 
     // =============================
     // Mock Data Generation
     // =============================
-    const data = useMemo(() => {
-        const result = [];
-        const today = new Date();
-        const startVal = parseFloat(baseValue) || 100;
+    // =============================
+    // Data Fetching
+    // =============================
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-        // Configuration
-        const volatility = startVal * 0.05; // 5% daily random noise
-        const drift = trend === 'up' ? 0.03 : trend === 'down' ? -0.03 : 0; // 3% directional drift
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!id && !label) return;
 
-        // Generate series backwards from current value
-        let series = [];
-        let val = startVal;
+            try {
+                const metricKey = id || label.replace(/\s+/g, '_').toLowerCase();
+                const res = await axiosInstance.get(`${API_PATHS.CHARTS.GET_DATA(metricKey)}?days=7`);
 
-        for (let i = 0; i < 7; i++) {
-            // Reverse the drift to find previous day's likely value
-            val = val / (1 + drift);
-            // Add noise
-            val = val + (Math.random() - 0.5) * volatility;
-            series.unshift(val);
-        }
+                if (res.data && res.data.length > 0) {
+                    setData(res.data);
+                    setLoading(false);
+                    return;
+                }
+            } catch (err) {
+                console.warn("Using simulated 7-day data");
+            }
 
-        // Map to Recharts format
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - (6 - i));
-            result.push({
-                date: date.toLocaleDateString('en-US', { weekday: 'short' }),
-                value: parseFloat(series[i].toFixed(3))
-            });
-        }
-
-        return result;
-    }, [trend, baseValue]);
+            // --- Fallback Simulation ---
+            const result = [];
+            const today = new Date();
+            const startVal = parseFloat(baseValue) || 100;
+            const volatility = startVal * 0.05;
+            const drift = trend === 'up' ? 0.03 : trend === 'down' ? -0.03 : 0;
+            let series = [];
+            let val = startVal;
+            for (let i = 0; i < 7; i++) {
+                val = val / (1 + drift);
+                val = val + (Math.random() - 0.5) * volatility;
+                series.unshift(val);
+            }
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - (6 - i));
+                result.push({
+                    date: date.toLocaleDateString('en-US', { weekday: 'short' }),
+                    value: parseFloat(series[i].toFixed(3))
+                });
+            }
+            setData(result);
+            setLoading(false);
+        };
+        fetchData();
+    }, [id, label, trend, baseValue]);
 
     // Visual Config
     const color = trend === 'up' ? '#059669' : trend === 'down' ? '#dc2626' : '#d97706'; // Emerald, Red, Amber

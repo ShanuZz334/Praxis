@@ -32,6 +32,8 @@ import SignUp from "@/features/auth/pages/SignUp";
 import { UserContext } from "@/shared/context/UserContext";
 import AuthLayout from "@/shared/components/layouts/AuthLayout";
 import DashboardLayout from "@/shared/components/layouts/DashboardLayout";
+import UpstoxCallback from "@/features/admin/pages/UpstoxCallback";
+
 
 // =============================
 // Utility / Guard Functions
@@ -77,7 +79,14 @@ const AppRoutes = () => {
           }
         />
 
+        <Route
+          path="/oauth/upstox/callback"
+          element={<UpstoxCallback />}
+        />
+
         {/* Authenticated Dashboard Scope */}
+
+
         <Route
           path="/dashboard/*"
           element={

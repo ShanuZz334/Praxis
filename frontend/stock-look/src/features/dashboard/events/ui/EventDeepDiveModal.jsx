@@ -152,7 +152,7 @@ export default function EventDeepDiveModal({ open, onClose, event }) {
     return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             {/* Backdrop */}
-            <div className="fixed inset-0 bg-black/10 backdrop-blur-sm transition-opacity" onClick={onClose} />
+            <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
             {/* Modal Container */}
             <div className="relative flex flex-col lg:flex-row items-stretch justify-center gap-4 lg:gap-6 max-w-[1400px] w-full h-[85vh] lg:h-[600px] pointer-events-none overflow-y-auto lg:overflow-visible">

@@ -124,6 +124,7 @@ export default function OptionsModal({ open, onClose, card }) {
                     <div className="w-full md:flex-1 p-4 md:p-6 flex flex-col bg-transparent relative group min-h-[300px]">
                         <div className="w-full h-full relative z-10">
                             <OptionsHistoryChart
+                                id={card.id}
                                 trend={card.trend}
                                 baseValue={card.value}
                                 label={card.label}

@@ -17,6 +17,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import { useTheme } from "@/shared/context/ThemeContext";
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import TechnicalGrid from "./TechnicalGrid";
 import TechnicalModal from "./TechnicalModal";
@@ -32,13 +33,14 @@ import { generateLiveTechnicalData } from "@/features/dashboard/technical/engine
 import { TOTAL_TECHNICAL_CREDITS } from "@/config/reliability";
 
 export default function TechnicalPage() {
+    const { tradingMode } = useTheme();
     const [viewMode, setViewMode] = useState("sectioned");
     const [sortMode, setSortMode] = useState("score_desc");
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCard, setSelectedCard] = useState(null);
 
     // Generate Full 100-Indicator Dataset
-    const technicalCards = useMemo(() => generateLiveTechnicalData(), []);
+    const technicalCards = useMemo(() => generateLiveTechnicalData(tradingMode), [tradingMode]);
 
     // Filter Logic
     const filteredCards = useMemo(() => {
@@ -149,5 +151,4 @@ export default function TechnicalPage() {
             />
         </div>
     );
-
 }

@@ -57,11 +57,17 @@ export function calculateTechnicalComposite(cards = []) {
     // Clamp between 0 and 100
     const finalScore = Math.min(100, Math.max(0, composite));
 
-    // Calculate Confidence (Standard Deviation based)
-    const normalizedScores = cards.map(c => c.normalized || 0);
-    const mean = normalizedScores.reduce((a, b) => a + b, 0) / (normalizedScores.length || 1);
-    const variance = normalizedScores.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (normalizedScores.length || 1);
-    const confidence = Math.max(70, Math.min(98, 100 - (variance * 40))); // 70-98 range
+    // Calculate High-Precision Confidence (Weighted Variance Damping)
+    // Measures signal alignment relative to strategic weight and reliability.
+    const weightedVariance = cards.reduce((acc, card) => {
+        const cardScore = card.score !== undefined ? card.score : 50;
+        const weight = card.weight || 1;
+        const reliability = card.creditScore || 0.5;
+        return acc + (weight * reliability * Math.pow(cardScore - finalScore, 2));
+    }, 0) / (totalWeight || 1);
+
+    // Inverse Mapping: Calibration divisor 25.0 for multi-signal granularity.
+    const confidence = Math.max(70, Math.min(98, 100 - (weightedVariance / 25.0)));
 
     // Predictable Offset for Trend (Prev Score)
     const prevScore = Math.max(0, Math.min(100, finalScore + (Math.sin(finalScore) * 3)));

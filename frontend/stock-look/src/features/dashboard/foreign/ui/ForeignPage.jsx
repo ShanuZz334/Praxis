@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useTheme } from "@/shared/context/ThemeContext";
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import GlobalStructureGrid from "./GlobalStructureGrid";
 import GlobalStructureModal from "./GlobalStructureModal";
@@ -18,6 +19,7 @@ import {
 } from "../engine/globalHelper";
 
 export default function ForeignPage() {
+    const { tradingMode } = useTheme();
     const [viewMode, setViewMode] = useState("sectioned");
     const [sortMode, setSortMode] = useState("score_desc");
     const [searchQuery, setSearchQuery] = useState("");
@@ -25,14 +27,14 @@ export default function ForeignPage() {
 
     // Calculate composite score
     const compositeScore = useMemo(() =>
-        calculateGlobalComposite(GLOBAL_STRUCTURE_CARDS),
-        []
+        calculateGlobalComposite(GLOBAL_STRUCTURE_CARDS, tradingMode),
+        [tradingMode]
     );
 
     // Get regime & gauge
     const regime = useMemo(() =>
-        getGlobalRegime(compositeScore),
-        [compositeScore]
+        getGlobalRegime(compositeScore, GLOBAL_STRUCTURE_CARDS, tradingMode),
+        [compositeScore, tradingMode]
     );
 
     const gauge = useMemo(() =>
@@ -53,8 +55,8 @@ export default function ForeignPage() {
 
     // Calculate section scores
     const sectionScores = useMemo(() =>
-        calculateSectionScores(GLOBAL_STRUCTURE_CARDS),
-        []
+        calculateSectionScores(GLOBAL_STRUCTURE_CARDS, tradingMode),
+        [tradingMode]
     );
 
     // Format sections for GlobalHeader with scores

@@ -21,6 +21,8 @@
 
 import { optionsSections as baseSections } from '../../../../config/weights/optionsSectionWeights.js';
 import { getNonMasterGaugeLabel, getNonMasterRegimeLabel } from '@/shared/global/logic/labelMappings';
+import { getOptionsWeights } from '@/config/weights/optionsWeights';
+import { TRADING_MODES } from '@/config/tradingModes';
 
 // Re-export for backward compatibility
 export const optionsSections = baseSections;
@@ -33,17 +35,29 @@ export const optionsSections = baseSections;
  * calculatePositioningScore
  * Institutional logic to calculate a single bullish/bearish score (0-100).
  */
-export function calculatePositioningScore(metrics) {
+export function calculatePositioningScore(metrics, mode = TRADING_MODES.BALANCED) {
     if (!metrics) return { score: 50, details: {} };
 
+    // Fetch active weights based on mode
+    const activeWeights = getOptionsWeights(mode);
+
+    // Map internal keys to config IDs and get their relative weights
+    const componentWeights = {
+        delta: activeWeights.net_delta || 0.12,
+        gamma: activeWeights.net_gamma || 0.10,
+        pcr: activeWeights.pcr || 0.10,
+        skew: activeWeights.iv_skew || 0.12,
+        maxPain: activeWeights.max_pain || 0.12
+    };
+
+    // Calculate total weight for normalization
+    const totalW = Object.values(componentWeights).reduce((a, b) => a + b, 0);
+
     // 1. Net Delta (Normalized)
-    // Assume Net Delta of +/- 1M is extreme.
     const netDelta = metrics.netDelta || 0;
     const normDelta = Math.min(100, Math.max(0, ((netDelta + 1000000) / 2000000) * 100)); // 0 = -1M, 50 = 0, 100 = +1M
 
     // 2. Put/Call OI Imbalance (PCR)
-    // PCR > 1 often indicates bullish support (Put writing).
-    // Normalize PCR 0.5 to 1.5 -> 0 to 100
     const pcr = metrics.pcr || 1;
     const normPCR = Math.min(100, Math.max(0, (pcr - 0.5) * 100));
 
@@ -52,20 +66,33 @@ export function calculatePositioningScore(metrics) {
     const ivSkew = 45; // Slightly bearish skew
     const maxPainDist = 60; // Fairly close
 
-    // FORMULA: Weighted Average
+    // FORMULA: Normalized Weighted Average
     let rawScore = (
-        (normDelta * 0.30) +
-        (gammaExposure * 0.25) +
-        (normPCR * 0.20) +
-        (ivSkew * 0.15) +
-        (maxPainDist * 0.10)
-    );
+        (normDelta * componentWeights.delta) +
+        (gammaExposure * componentWeights.gamma) +
+        (normPCR * componentWeights.pcr) +
+        (ivSkew * componentWeights.skew) +
+        (maxPainDist * componentWeights.maxPain)
+    ) / (totalW || 1);
 
     // Contextual Adjustment (Spot vs Max Pain)
     if (metrics.spot > metrics.maxPain) rawScore += 2;
 
     const finalScore = Math.min(100, Math.max(0, rawScore));
-    const confidence = Math.round(75 + (Math.sin(finalScore) * 10)); // Pseudo-dynamic
+    // High-Precision Confidence (Weighted Variance Damping)
+    // Measures alignment between Greeks, PCR, and Max Pain positioning.
+    const components = [
+        { val: normDelta, w: componentWeights.delta / totalW },
+        { val: gammaExposure, w: componentWeights.gamma / totalW },
+        { val: normPCR, w: componentWeights.pcr / totalW },
+        { val: ivSkew, w: componentWeights.skew / totalW },
+        { val: maxPainDist, w: componentWeights.maxPain / totalW }
+    ];
+
+    const weightedVariance = components.reduce((acc, c) => acc + (c.w * Math.pow(c.val - finalScore, 2)), 0);
+
+    // Calibrated for low-noise Options signals.
+    const confidence = Math.max(75, Math.min(98, 100 - (weightedVariance / 10.0)));
     const prevScore = Math.max(0, Math.min(100, finalScore - (Math.cos(finalScore) * 4)));
 
     return {

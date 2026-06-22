@@ -21,6 +21,7 @@
 import React from "react";
 import { Activity, ShieldAlert } from "lucide-react";
 import { getRegimeColor } from "../engine/stockyEngine";
+import AiInsightSection from "@/shared/components/ui/AiInsightSection";
 
 // =============================
 // Helper Components
@@ -103,36 +104,12 @@ export default function StockyGaugeSection({ score, regime, risk, readiness }) {
                 </div>
             </div>
 
-            {/* 2. REGIME & CONTEXT (Strategist Brief) */}
-            <div className="lg:col-span-2 bg-[#0b1220] border border-white/5 rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col justify-center relative">
-                <div className="flex justify-between items-start mb-2">
-                    <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Market Regime Identifier</div>
-                    <div className="text-[10px] bg-white/[0.02] px-2 py-0.5 rounded text-slate-400 font-bold border border-white/[0.05] uppercase">
-                        Phase: {score > 50 ? 'Expansion' : 'Contraction'}
-                    </div>
-                </div>
-
-                <div className="flex-1 flex flex-col justify-center">
-                    <h2 className={`text-4xl font-bold mb-2 tracking-tight ${regimeColor}`}>{regime}</h2>
-                    <p className="text-sm text-slate-400 font-medium max-w-lg mb-6">
-                        {regime === "Risk-On Trend" ? "Broad participation with low volatility. Deploy capital aggressively." :
-                            regime === "Volatile Breakout" ? "Fast moves with expanding ranges. Focus on momentum and tight stops." :
-                                regime === "Selective Bullish" ? "Market is rising but breadth is thinning. Focus on high-quality setups." :
-                                    regime === "Emotional Rally" ? "FOMO-driven moves with high volatility. Be wary of sharp reversals." :
-                                        regime === "Neutral / Range" ? "Mean reversion dominant. Sell resistance and buy support." :
-                                            regime === "Choppy / Uncertain" ? "Unpredictable price action with whipsaws. Stay on the sidelines." :
-                                                regime === "Defensive / Hedge" ? "Risk-off environment. Protect capital and consider hedging." :
-                                                    regime === "Liquidation Risk" ? "Heavy selling with high volatility. Exit weak positions immediately." :
-                                                        regime === "Capital Protection" ? "Extreme risk. Sit in cash and wait for stability." :
-                                                            "Current structure implies mixed signals. Reduce position sizing."}
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-3 gap-6 border-t border-white/5 pt-4">
-                    <ContextStat label="Tech Trend" value="Bullish" color="text-emerald-400" />
-                    <ContextStat label="Event Risk" value="Elevated" color="text-amber-400" />
-                    <ContextStat label="Global Sync" value="Supportive" color="text-emerald-400" />
-                </div>
+            {/* 2. AI INSIGHT (Replaces Regime & Context) */}
+            <div className="lg:col-span-2 bg-[#0b1220] border border-white/5 rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col justify-center relative overflow-hidden">
+                <AiInsightSection 
+                    actionType={regime}
+                    confidence={readiness?.confidence}
+                />
             </div>
 
             {/* 3. RISK MONITOR (Constraint Box) */}

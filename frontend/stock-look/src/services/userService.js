@@ -189,6 +189,16 @@ export const updateBrokerSettings = async (brokerData) => {
     }
 };
 
+export const updateDataApiSettings = async (apiData) => {
+    try {
+        const response = await axiosInstance.post("/api/intelligence/credentials", apiData);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating data API settings:', error);
+        throw error;
+    }
+};
+
 export const updateNotificationSettings = async (notificationData) => {
     try {
         const response = await axiosInstance.put("/api/v1/user/notifications", notificationData);

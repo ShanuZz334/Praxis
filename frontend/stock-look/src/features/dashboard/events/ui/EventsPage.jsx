@@ -20,13 +20,15 @@
 // =============================
 // Imports
 // =============================
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import AdvancedNewsFeed from "./AdvancedNewsFeed";
 import { MOCK_EVENTS, TOTAL_EVENTS_CREDITS } from "../data/eventsData";
 import { MOCK_NEWS } from "../data/newsData";
 import { calculateNewsImpact } from "../engine/newsScoring";
 import { getNonMasterGaugeLabel, getNonMasterRegimeLabel } from "@/shared/global/logic/labelMappings";
+import axiosInstance from "@/shared/utils/axiosInstance";
+import { API_PATHS } from "@/shared/utils/apiPaths";
 
 // =============================
 // Main Component
@@ -35,10 +37,28 @@ export default function EventsPage() {
     // State
     const [searchQuery, setSearchQuery] = useState("");
     const [sortMode, setSortMode] = useState("latest"); // Default: Latest
+    const [realEvents, setRealEvents] = useState([]);
+
+    // Fetch Real Events on Mount
+    useEffect(() => {
+        const fetchEvents = async () => {
+            try {
+                const res = await axiosInstance.get(API_PATHS.EVENTS.GET_ALL);
+                if (res.data && Array.isArray(res.data)) {
+                    setRealEvents(res.data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch events:", err);
+            }
+        };
+        fetchEvents();
+    }, []);
 
     // 1. Enrich & Combine Data (Scheduled Events + News)
     const combinedSignals = useMemo(() => {
-        const events = MOCK_EVENTS.map(e => ({ ...e, type: 'event' }));
+        // Use real events if available, otherwise fallback to mock
+        const sourceEvents = realEvents.length > 0 ? realEvents : MOCK_EVENTS;
+        const events = sourceEvents.map(e => ({ ...e, type: 'event' }));
         const news = MOCK_NEWS.map(n => {
             const aiData = calculateNewsImpact(n);
             return {

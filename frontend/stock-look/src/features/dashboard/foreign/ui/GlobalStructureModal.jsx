@@ -52,7 +52,7 @@ export default function GlobalStructureModal({ open, onClose, card }) {
         <div className={`fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4 ${theme}`}>
             {/* Backdrop */}
             <div
-                className="fixed inset-0 bg-black/10 backdrop-blur-sm transition-opacity"
+                className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm transition-opacity"
                 onClick={onClose}
             />
 
@@ -110,7 +110,7 @@ export default function GlobalStructureModal({ open, onClose, card }) {
                         <div className="w-full min-h-[300px] md:min-h-[400px] h-[350px] md:h-[450px] border border-border-subtle rounded-xl bg-background-elevated/40 p-3 md:p-4 relative group">
                             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border-subtle to-transparent opacity-50" />
                             <div className="w-full h-full rounded-lg overflow-hidden relative z-10">
-                                <GlobalHistoryChart card={card} />
+                                <GlobalHistoryChart card={card} id={card.id} />
                             </div>
                         </div>
 

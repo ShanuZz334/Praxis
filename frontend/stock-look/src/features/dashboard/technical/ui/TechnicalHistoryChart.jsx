@@ -20,48 +20,71 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 // Component
 // =============================
 
-export default function TechnicalHistoryChart({ trend = 'neutral', baseValue = 50, label = 'Indicator' }) {
+import axiosInstance from '@/shared/utils/axiosInstance';
+import { API_PATHS } from '@/shared/utils/apiPaths';
+
+export default function TechnicalHistoryChart({ id, trend = 'neutral', baseValue = 50, label = 'Indicator' }) {
 
     // =============================
     // Logic & Memoization
     // =============================
 
-    const data = useMemo(() => {
-        const result = [];
-        const today = new Date();
-        const startVal = parseFloat(baseValue) || 50;
+    // =============================
+    // State & Effects
+    // =============================
+    const [data, setData] = React.useState([]);
+    const [loading, setLoading] = React.useState(true);
 
-        // Configuration for 30 days
-        const days = 30;
-        const volatility = startVal * 0.05; // 5% noise
+    React.useEffect(() => {
+        const fetchData = async () => {
+            if (!id && !label) return;
 
-        let drift = 0;
-        const safeTrend = (trend || '').toLowerCase();
-        if (safeTrend.includes('bull') || safeTrend.includes('up') || safeTrend.includes('positive')) drift = 0.01;
-        if (safeTrend.includes('bear') || safeTrend.includes('down') || safeTrend.includes('negative')) drift = -0.01;
+            try {
+                // Try fetching from backend
+                const metricKey = id || label; // Fallback to label if id missing
+                const res = await axiosInstance.get(API_PATHS.CHARTS.GET_DATA(metricKey));
 
-        let series = [];
-        let val = startVal;
+                if (res.data && res.data.length > 0) {
+                    setData(res.data);
+                    setLoading(false);
+                    return;
+                }
+            } catch (err) {
+                console.warn("Failed to fetch chart data, falling back to simulation", err);
+            }
 
-        // Walk backwards 30 days
-        for (let i = 0; i < days; i++) {
-            val = val / (1 + drift);
-            val = val + (Math.random() - 0.5) * volatility;
-            series.unshift(val);
-        }
+            // --- Fallback Simulation (Original Logic) ---
+            const result = [];
+            const today = new Date();
+            const startVal = parseFloat(baseValue) || 50;
+            const days = 30;
+            const volatility = startVal * 0.05;
+            let drift = 0;
+            const safeTrend = (trend || '').toLowerCase();
+            if (safeTrend.includes('bull') || safeTrend.includes('up') || safeTrend.includes('positive')) drift = 0.01;
+            if (safeTrend.includes('bear') || safeTrend.includes('down') || safeTrend.includes('negative')) drift = -0.01;
 
-        // Map to object
-        for (let i = 0; i < days; i++) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - (days - 1 - i));
-            result.push({
-                date: date.toLocaleDateString('en-US', { disable_month: 'short', day: 'numeric' }),
-                value: parseFloat(series[i].toFixed(3))
-            });
-        }
+            let series = [];
+            let val = startVal;
+            for (let i = 0; i < days; i++) {
+                val = val / (1 + drift);
+                val = val + (Math.random() - 0.5) * volatility;
+                series.unshift(val);
+            }
+            for (let i = 0; i < days; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - (days - 1 - i));
+                result.push({
+                    date: date.toLocaleDateString('en-US', { disable_month: 'short', day: 'numeric' }),
+                    value: parseFloat(series[i].toFixed(3))
+                });
+            }
+            setData(result);
+            setLoading(false);
+        };
 
-        return result;
-    }, [trend, baseValue]);
+        fetchData();
+    }, [id, label, trend, baseValue]);
 
     // Color Logic
     const safeTrend = (trend || '').toLowerCase();

@@ -40,6 +40,8 @@ export default function OptionsCard({ card, onClick }) {
             normalized={card.normalized}
             creditAllocation={card.creditAllocation || 10}
             totalPageCredits={TOTAL_OPTIONS_CREDITS}
+            multiplier={card.multiplier}
+            isFocused={card.isFocused}
 
             // Trend Indicator (Optional)
             trend={card.change}

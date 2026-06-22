@@ -22,6 +22,7 @@
 // Imports
 // =============================
 import React, { useState, useMemo } from "react";
+import { useTheme } from "@/shared/context/ThemeContext";
 import { GlobalCard } from "@/shared/components/ui/GlobalCard";
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import { FUNDAMENTAL_SECTIONS } from "../data/fundamentalData";
@@ -35,6 +36,7 @@ import FundamentalModal from "./FundamentalModal";
 // Main Component
 // =============================
 export default function FundamentalPage() {
+  const { tradingMode } = useTheme();
   const { marketData, loading, error } = useFundamentals();
 
   // State Management
@@ -46,8 +48,8 @@ export default function FundamentalPage() {
   // --- Intelligence Engine Execution ---
   const intelligence = useMemo(() => {
     if (!marketData) return null;
-    return evaluateFundamentals(marketData);
-  }, [marketData]);
+    return evaluateFundamentals(marketData, tradingMode);
+  }, [marketData, tradingMode]);
 
   const activeGauge = intelligence?.gauge || { label: "Balanced Structure", color: "#64748B" };
   const activeRegime = intelligence?.regime || { label: "Balanced Phase", description: "Mixed environment", color: "#64748B" };

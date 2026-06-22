@@ -17,66 +17,85 @@
 // =============================
 // Imports
 // =============================
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import axiosInstance from '@/shared/utils/axiosInstance';
+import { API_PATHS } from '@/shared/utils/apiPaths';
 
 // =============================
 // Main Component
 // =============================
-export default function GlobalHistoryChart({ card }) {
+export default function GlobalHistoryChart({ card, id }) {
     if (!card) return null;
 
     // 1. Mock Data Generation (30 Days)
-    const data = useMemo(() => {
-        const result = [];
-        const today = new Date();
-        const startVal = parseFloat(card.raw?.toString().replace(/[^0-9.-]/g, '')) || 100;
-        const days = 30;
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-        // Volatility Profiles
-        let volatility = 0.02; // Default
-        let drift = 0;
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!card) return;
 
-        const category = card.category?.toLowerCase() || '';
-        const norm = card.normalized || 0;
+            try {
+                // Try fetching from backend
+                const metricKey = id || card.label;
+                const res = await axiosInstance.get(API_PATHS.CHARTS.GET_DATA(metricKey));
 
-        // Adjust params by Asset Class
-        if (category.includes('currency')) {
-            volatility = 0.015;
-            drift = norm > 0.3 ? 0.003 : norm < -0.3 ? -0.003 : 0;
-        } else if (category.includes('indices')) {
-            volatility = 0.025;
-            drift = norm > 0.2 ? 0.005 : norm < -0.2 ? -0.005 : 0;
-        } else if (category.includes('commodities')) {
-            volatility = 0.035;
-            drift = norm > 0.2 ? 0.004 : norm < -0.2 ? -0.004 : 0;
-        } else if (category.includes('rates') || category.includes('volatility')) {
-            volatility = 0.04;
-            drift = norm > 0.3 ? 0.006 : norm < -0.3 ? -0.006 : 0;
-        }
+                if (res.data && res.data.length > 0) {
+                    setData(res.data);
+                    setLoading(false);
+                    return;
+                }
+            } catch (err) {
+                console.warn("Failed to fetch chart data, falling back to simulation", err);
+            }
 
-        // Generate Series Backwards
-        let series = [];
-        let val = startVal;
+            // --- Fallback Simulation (Original Logic) ---
+            const result = [];
+            const today = new Date();
+            const startVal = parseFloat(card.raw?.toString().replace(/[^0-9.-]/g, '')) || 100;
+            const days = 30;
 
-        for (let i = 0; i < days; i++) {
-            val = val / (1 + drift);
-            val = val + (Math.random() - 0.5) * volatility * val;
-            series.unshift(val);
-        }
+            // Volatility Profiles (Original)
+            let volatility = 0.02;
+            let drift = 0;
+            const category = card.category?.toLowerCase() || '';
+            const norm = card.normalized || 0;
+            if (category.includes('currency')) {
+                volatility = 0.015;
+                drift = norm > 0.3 ? 0.003 : norm < -0.3 ? -0.003 : 0;
+            } else if (category.includes('indices')) {
+                volatility = 0.025;
+                drift = norm > 0.2 ? 0.005 : norm < -0.2 ? -0.005 : 0;
+            } else if (category.includes('commodities')) {
+                volatility = 0.035;
+                drift = norm > 0.2 ? 0.004 : norm < -0.2 ? -0.004 : 0;
+            } else if (category.includes('rates') || category.includes('volatility')) {
+                volatility = 0.04;
+                drift = norm > 0.3 ? 0.006 : norm < -0.3 ? -0.006 : 0;
+            }
 
-        // Map to Recharts Objects
-        for (let i = 0; i < days; i++) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - (days - 1 - i));
-            result.push({
-                date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                value: parseFloat(series[i].toFixed(3))
-            });
-        }
+            let series = [];
+            let val = startVal;
+            for (let i = 0; i < days; i++) {
+                val = val / (1 + drift);
+                val = val + (Math.random() - 0.5) * volatility * val;
+                series.unshift(val);
+            }
+            for (let i = 0; i < days; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - (days - 1 - i));
+                result.push({
+                    date: date.toLocaleDateString('en-US', { disable_month: 'short', day: 'numeric' }),
+                    value: parseFloat(series[i].toFixed(3))
+                });
+            }
+            setData(result);
+            setLoading(false);
+        };
 
-        return result;
-    }, [card]);
+        fetchData();
+    }, [card, id]);
 
     // 2. Visual Logic
     const norm = card.normalized || 0;

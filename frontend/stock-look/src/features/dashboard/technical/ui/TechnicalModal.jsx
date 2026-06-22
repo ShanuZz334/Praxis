@@ -139,6 +139,7 @@ export default function TechnicalModal({ open, onClose, children, card }) {
 
                             <div className="w-full h-full rounded-lg overflow-hidden relative z-10">
                                 <TechnicalHistoryChart
+                                    id={card.id}
                                     trend={card.signal}
                                     baseValue={card.raw}
                                     label={card.label}

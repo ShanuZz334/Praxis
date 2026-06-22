@@ -94,6 +94,8 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
                                         creditAllocation={card.creditAllocation}
                                         totalPageCredits={TOTAL_GLOBAL_CREDITS}
                                         reason={card.reason}
+                                        multiplier={card.multiplier}
+                                        isFocused={card.isFocused}
                                         onClick={() => onCardClick?.(card)}
                                     />
                                 ))}
@@ -121,6 +123,8 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
                     creditAllocation={card.creditAllocation}
                     totalPageCredits={TOTAL_GLOBAL_CREDITS}
                     reason={card.reason}
+                    multiplier={card.multiplier}
+                    isFocused={card.isFocused}
                     onClick={() => onCardClick?.(card)}
                 />
             ))}

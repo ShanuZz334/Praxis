@@ -24,12 +24,14 @@
 import React, { useContext, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { VerificationContext } from "@/shared/context/VerificationContextInstance";
+import { UserContext } from "@/shared/context/UserContext";
 
 import AuthBackground from "@/features/auth/components/AuthBackground";
 import GlitchText from "@/shared/components/backgrounds/GlitchText";
 import TextType from "@/shared/components/backgrounds/TextType";
 
 import stockTips from "@/shared/constants/stockTips";
+import DemoModeModal from "@/shared/components/modals/DemoModeModal";
 
 // =============================
 // Component
@@ -39,8 +41,23 @@ const AuthLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isVerifying, verifyCredentials, loading, error, resetVerification, email } = useContext(VerificationContext);
+  const { updateUser } = useContext(UserContext);
 
   const [totp, setTotp] = useState("");
+  const [showDemoModal, setShowDemoModal] = useState(false);
+
+  const handleDemoConfirm = () => {
+    setShowDemoModal(false);
+    updateUser({
+      _id: "demo_user_id_123",
+      fullName: "Demo User",
+      email: "demo@stocky.app",
+      profileImage: "https://ui-avatars.com/api/?name=Demo+User&background=random",
+      role: "user",
+      isDemo: true
+    }, "demo-token-123456");
+    navigate("/dashboard/home");
+  };
 
   const isSignup = location.pathname === "/signup";
   const isLogin = location.pathname === "/login";
@@ -164,6 +181,15 @@ const AuthLayout = ({ children }) => {
 
               {/* Login / Signup buttons */}
               <div className="flex items-center justify-end w-full mb-6 gap-3">
+                {isSignup && (
+                  <button
+                    onClick={() => setShowDemoModal(true)}
+                    className="px-5 py-2 rounded-full text-sm font-bold transition-all bg-[#1E1BFF] text-white hover:bg-[#1720cc] shadow-[0_0_15px_rgba(30,27,255,0.4)]"
+                  >
+                    Demo
+                  </button>
+                )}
+
                 <button
                   onClick={() => navigate("/login")}
                   className={`px-5 py-2 rounded-full text-sm font-bold transition-all
@@ -249,6 +275,11 @@ const AuthLayout = ({ children }) => {
           </div>
         </div>
       </div>
+
+      <DemoModeModal 
+        isOpen={showDemoModal} 
+        onConfirm={handleDemoConfirm} 
+      />
     </div>
   );
 };

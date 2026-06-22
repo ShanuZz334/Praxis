@@ -18,7 +18,7 @@
 // =============================
 // Imports
 // =============================
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import JournalAIInsights from "./JournalAIInsights";
 import JournalHeader from "./JournalHeader";
@@ -29,6 +29,8 @@ import PsychologyTracker from "./PsychologyTracker";
 import TradeDeepDive from "./TradeDeepDive";
 import TradingNotesModal from "./TradingNotesModal";
 import { MOCK_JOURNAL_DATA } from "../data/journalData";
+import axiosInstance from "@/shared/utils/axiosInstance";
+import { API_PATHS } from "@/shared/utils/apiPaths";
 
 // =============================
 // Main Component
@@ -37,6 +39,45 @@ import { MOCK_JOURNAL_DATA } from "../data/journalData";
 export default function JournalPage() {
     const [selectedTrade, setSelectedTrade] = useState(null);
     const [isNotesOpen, setIsNotesOpen] = useState(false);
+    const [realLogs, setRealLogs] = useState([]);
+    const [realAnalytics, setRealAnalytics] = useState(null);
+    const [realNotes, setRealNotes] = useState({});
+
+    // Fetch Real Journal Data
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [logsRes, analyticsRes, notesRes] = await Promise.all([
+                    axiosInstance.get(API_PATHS.JOURNAL.GET_LOGS),
+                    axiosInstance.get(API_PATHS.JOURNAL.ANALYTICS),
+                    axiosInstance.get(API_PATHS.JOURNAL.GET_NOTES)
+                ]);
+
+                if (logsRes.data && Array.isArray(logsRes.data)) {
+                    setRealLogs(logsRes.data);
+                }
+                if (analyticsRes.data) {
+                    setRealAnalytics(analyticsRes.data);
+                }
+                if (notesRes.data) {
+                    setRealNotes(notesRes.data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch journal data:", err);
+            }
+        };
+        fetchData();
+    }, []);
+
+    // Merge Real Data with Mock Fallbacks
+    const displayTrades = realLogs.length > 0 ? realLogs : MOCK_JOURNAL_DATA.trades;
+    // Map backend analytics to frontend structure if needed, or use mock if null
+    // Here we assume backend analytics might need mapping or just use mock for complex nested structures initially
+    // For simplicity, we'll keep using mock analytics structure but override values if we had a mapper.
+    // Given the simple backed analytics, we might just stick to displayTrades for the table for now.
+
+    // Notes Merge (Favor Real)
+    const displayNotes = Object.keys(realNotes).length > 0 ? realNotes : MOCK_JOURNAL_DATA.dailyNotes;
 
     return (
         <div className="pb-20 animate-in fade-in duration-500 min-h-screen font-sans">
@@ -62,7 +103,7 @@ export default function JournalPage() {
                     {/* Left: Execution Log (75%) */}
                     <div className="xl:col-span-3">
                         <TradeLogTable
-                            trades={MOCK_JOURNAL_DATA.trades}
+                            trades={displayTrades}
                             onSelectTrade={setSelectedTrade}
                         />
                     </div>
@@ -88,9 +129,10 @@ export default function JournalPage() {
                 {isNotesOpen && (
                     <TradingNotesModal
                         key="notes-modal"
-                        trades={MOCK_JOURNAL_DATA.trades}
-                        notes={MOCK_JOURNAL_DATA.dailyNotes}
+                        trades={displayTrades}
+                        notes={displayNotes}
                         onClose={() => setIsNotesOpen(false)}
+                        onNotesUpdate={setRealNotes} // Pass updater to refresh state locally if needed
                     />
                 )}
             </AnimatePresence>

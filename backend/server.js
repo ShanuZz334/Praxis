@@ -27,15 +27,26 @@
 // =============================
 
 import "dotenv/config";
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
+import { checkConnection } from "./config/postgres.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
-import brokerRoutes from "./routes/brokerRoutes.js";
+import chartRoutes from "./routes/chartRoutes.js";
+import eventRoutes from "./routes/eventRoutes.js";
+import optionsRoutes from "./routes/optionsRoutes.js";
+import journalRoutes from "./routes/journalRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import collectorRoutes from "./routes/collectorRoutes.js";
+import healthRoutes from "./routes/healthRoutes.js";
+import oauthRoutes from "./routes/oauthRoutes.js";
+
 
 // =============================
 // Express App Setup
@@ -65,10 +76,13 @@ app.use(cors({
             callback(new Error('Not allowed by CORS'));
         }
     },
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization", "x-signup-token"]
 }));
+
+// Enable pre-flight for all routes
+app.options(/.*/, cors());
 
 app.use(express.json());
 
@@ -77,6 +91,7 @@ app.use(express.json());
 // =============================
 
 connectDB();
+checkConnection();
 
 // =============================
 // Routes
@@ -88,7 +103,16 @@ app.get("/", (req, res) => {
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/user", userRoutes);
-app.use("/api/broker", brokerRoutes);
+app.use("/api/v1/charts", chartRoutes);
+app.use("/api/v1/events", eventRoutes);
+app.use("/api/v1/options", optionsRoutes);
+app.use("/api/v1/journal", journalRoutes);
+app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/collect", collectorRoutes);
+app.use("/api/v1/health", healthRoutes);
+app.use("/api/v1/oauth", oauthRoutes);
+
+
 
 // =============================
 // Static Files

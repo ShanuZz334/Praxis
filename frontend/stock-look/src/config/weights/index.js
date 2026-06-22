@@ -13,6 +13,7 @@
 
 import { getCurrentMode, TRADING_MODES } from '../tradingModes.js';
 import { getTechnicalWeights, TECHNICAL_WEIGHTS } from './technicalWeights.js';
+import { MASTER_WEIGHTS } from './masterWeights.js';
 
 // =============================
 // Unified Weight Getter
@@ -28,6 +29,8 @@ export const getWeights = (feature, userPreferences = null) => {
     const mode = getCurrentMode(userPreferences);
 
     switch (feature.toLowerCase()) {
+        case 'master':
+            return MASTER_WEIGHTS;
         case 'technical':
             return getTechnicalWeights(mode);
         // Add other features as they're implemented
@@ -43,11 +46,13 @@ export const getWeights = (feature, userPreferences = null) => {
 
 export {
     TECHNICAL_WEIGHTS,
-    getTechnicalWeights
+    getTechnicalWeights,
+    MASTER_WEIGHTS
 };
 
 export default {
     getWeights,
     TECHNICAL_WEIGHTS,
-    getTechnicalWeights
+    getTechnicalWeights,
+    MASTER_WEIGHTS
 };

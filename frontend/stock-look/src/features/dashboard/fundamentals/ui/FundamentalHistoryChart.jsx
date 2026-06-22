@@ -16,50 +16,71 @@
 // =============================
 // Imports
 // =============================
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import axiosInstance from '@/shared/utils/axiosInstance';
+import { API_PATHS } from '@/shared/utils/apiPaths';
 
 // =============================
 // Main Component
 // =============================
-export default function FundamentalHistoryChart({ trend = 'neutral', baseValue = 50, label = 'Metric' }) {
+export default function FundamentalHistoryChart({ id, trend = 'neutral', baseValue = 50, label = 'Metric' }) {
 
     // --- Data Generation ---
-    const data = useMemo(() => {
-        const result = [];
-        const today = new Date();
-        const startVal = parseFloat(baseValue) || 50;
+    // --- Data Generation ---
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-        const days = 30;
-        const volatility = startVal * 0.05;
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!id && !label) return;
 
-        let drift = 0;
-        const safeTrend = (trend || '').toLowerCase();
-        if (safeTrend.includes('bull') || safeTrend.includes('top') || safeTrend.includes('high')) drift = 0.01;
-        if (safeTrend.includes('bear') || safeTrend.includes('bottom') || safeTrend.includes('low')) drift = -0.01;
+            try {
+                // Try fetching from backend
+                const metricKey = id || label;
+                const res = await axiosInstance.get(API_PATHS.CHARTS.GET_DATA(metricKey));
 
-        let series = [];
-        let val = startVal;
+                if (res.data && res.data.length > 0) {
+                    setData(res.data);
+                    setLoading(false);
+                    return;
+                }
+            } catch (err) {
+                console.warn("Failed to fetch chart data, falling back to simulation", err);
+            }
 
-        // Backward simulation
-        for (let i = 0; i < days; i++) {
-            val = val / (1 + drift);
-            val = val + (Math.random() - 0.5) * volatility;
-            series.unshift(val);
-        }
+            // --- Fallback Simulation (Original Logic) ---
+            const result = [];
+            const today = new Date();
+            const startVal = parseFloat(baseValue) || 50;
+            const days = 30;
+            const volatility = startVal * 0.05;
+            let drift = 0;
+            const safeTrend = (trend || '').toLowerCase();
+            if (safeTrend.includes('bull') || safeTrend.includes('top') || safeTrend.includes('high')) drift = 0.01;
+            if (safeTrend.includes('bear') || safeTrend.includes('bottom') || safeTrend.includes('low')) drift = -0.01;
 
-        // Map to date objects
-        for (let i = 0; i < days; i++) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - (days - 1 - i));
-            result.push({
-                date: date.toLocaleDateString('en-US', { disable_month: 'short', day: 'numeric' }),
-                value: parseFloat(series[i].toFixed(3))
-            });
-        }
+            let series = [];
+            let val = startVal;
+            for (let i = 0; i < days; i++) {
+                val = val / (1 + drift);
+                val = val + (Math.random() - 0.5) * volatility;
+                series.unshift(val);
+            }
+            for (let i = 0; i < days; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - (days - 1 - i));
+                result.push({
+                    date: date.toLocaleDateString('en-US', { disable_month: 'short', day: 'numeric' }),
+                    value: parseFloat(series[i].toFixed(3))
+                });
+            }
+            setData(result);
+            setLoading(false);
+        };
 
-        return result;
-    }, [trend, baseValue]);
+        fetchData();
+    }, [id, label, trend, baseValue]);
 
     // --- Visual Config ---
     const safeTrend = (trend || '').toLowerCase();

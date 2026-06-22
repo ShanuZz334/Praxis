@@ -25,6 +25,7 @@ import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowUp, ArrowDown, HelpCircle, ArrowRight } from "lucide-react";
 
+import AiInsightSection from "@/shared/components/ui/AiInsightSection";
 import CardSegmented from "@/shared/components/controls/CardSegmented";
 import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 import { getCompositeState, getSignalState } from "@/shared/global/logic/signals";
@@ -141,7 +142,7 @@ export default function GlobalHeader({
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* MAIN BLOCK */}
-            <div className={`relative rounded-2xl border border-[var(--border-default)] dark:border-[#3b82f6] md:dark:border-[var(--border-default)] shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden bg-transparent`}>
+            <div className={`relative rounded-2xl border border-[var(--border-default)] dark:border-[#3b82f6] md:dark:border-[var(--border-default)] shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden bg-background-card`}>
 
                 {/* TOP ROW: GAUGE | REGIME | INTEGRITY */}
                 <div className={`grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x ${STYLES.DIVIDE} bg-transparent min-h-0 lg:min-h-[220px]`}>
@@ -196,30 +197,12 @@ export default function GlobalHeader({
                         </div>
                     </div>
 
-                    {/* B. REGIME */}
-                    <div className="hidden md:flex p-6 flex-col justify-center">
-                        <div className={`${typography.label.sm} mb-3`}>Market Regime</div>
-                        <div className="mb-4">
-                            <div className="flex items-center gap-3 mb-1">
-                                <div
-                                    className={`text-2xl font-bold transition-colors duration-500`}
-                                    style={{ color: regime.color?.startsWith('#') ? regime.color : undefined }}
-                                >
-                                    {regime.label}
-                                </div>
-                                <div className="text-xs px-1.5 py-0.5 rounded bg-background-surface text-text-secondary font-mono">
-                                    {Number(regime.confidence || 0).toFixed(0)}% Conf
-                                </div>
-                            </div>
-                            <div className="text-xs text-text-tertiary">{regime.behaviour || regime.description || regime.desc}</div>
-                        </div>
-                        {/* Simple Linear Scale */}
-                        <div className="relative h-2 rounded-full bg-gradient-to-r from-red-600 via-amber-500 to-emerald-600 opacity-80">
-                            <div
-                                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-background-app rounded-full shadow-lg transition-all duration-1000"
-                                style={{ left: `${Math.max(5, Math.min(95, score))}%` }}
-                            />
-                        </div>
+                    {/* B. AI INSIGHT (Replaces Regime) */}
+                    <div className="hidden md:block p-0">
+                        <AiInsightSection 
+                            actionType={regime.label} 
+                            confidence={Number(regime.confidence || 0).toFixed(0)} 
+                        />
                     </div>
 
                     {/* C. INTEGRITY */}
@@ -364,7 +347,7 @@ function SectionBar({ sections }) {
 function ImpactList({ title, items, type }) {
     const isBull = type === 'bull';
     const colorClass = isBull ? "text-emerald-700 dark:text-emerald-500" : "text-red-700 dark:text-red-500";
-    const bgClass = isBull ? "bg-state-bullish-surface" : "bg-state-bearish-surface";
+    const bgClass = "bg-transparent";
     const badgeText = isBull ? "BULLISH DRIVERS" : "BEARISH DRIVERS";
     const valColor = isBull ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-red-600 dark:text-red-400 font-bold";
 

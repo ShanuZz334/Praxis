@@ -180,7 +180,6 @@ const TradeMobileCard = memo(function TradeMobileCard({ trade, onClick }) {
                         <CheckCircle size={10} /> Compliant
                     </span>
                 )}
-                <ChevronRight size={14} className="text-text-tertiary" />
             </div>
         </div>
     );

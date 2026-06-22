@@ -30,7 +30,9 @@ export default function TechnicalCard({ card, onClick }) {
         unit,
         normalized,
         creditScore,
-        trendState
+        trendState,
+        multiplier,
+        isFocused
     } = card;
 
     const reason = trendState || "Stable";
@@ -46,6 +48,8 @@ export default function TechnicalCard({ card, onClick }) {
             creditScore={creditScore}
             creditAllocation={card.creditAllocation}
             totalPageCredits={200}
+            multiplier={multiplier}
+            isFocused={isFocused}
         />
     );
 }

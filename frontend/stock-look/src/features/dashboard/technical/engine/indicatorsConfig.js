@@ -1,5 +1,7 @@
 import { TECHNICAL_RELIABILITY, TOTAL_TECHNICAL_CREDITS as _TOTAL_CREDITS } from '@/config/reliability';
 import { getCreditFromReliability } from '@/shared/global/logic/signals';
+import { getTechnicalWeights } from '@/config/weights/technicalWeights';
+import { TRADING_MODES } from '@/config/tradingModes';
 
 const _baseIndicators = [
     // --- SECTION A: TREND (Mapped to Trend) ---
@@ -292,13 +294,25 @@ function generateHistory(baseValue, volatility, count = 7) {
 // Simulation Engine
 // =============================
 
-export function generateLiveTechnicalData() {
+export function generateLiveTechnicalData(mode = TRADING_MODES.BALANCED) {
     _seed = 5678; // Reset seed for deterministic output across pages
+
+    // Fetch mode-specific weights
+    const modeWeights = getTechnicalWeights(mode);
+
     // Market Context BASE (e.g., Nifty 50 Index level)
     const BASE_PRICE = 21450 + (seededRandom() * 200 - 100);
     const cardCount = technicalIndicatorsConfig.length;
 
     return technicalIndicatorsConfig.map(config => {
+        const weight = modeWeights[config.id] !== undefined ? modeWeights[config.id] : config.weight;
+        const baseWeight = config.weight || 0.05;
+
+        let multiplier = weight / baseWeight;
+        if (mode === TRADING_MODES.BALANCED) multiplier = 1.0;
+
+        const isFocused = mode !== TRADING_MODES.BALANCED && multiplier > 1.1;
+
         let raw = 0;
         let unit = '';
         let normalized = 0; // -1 to 1
@@ -395,6 +409,9 @@ export function generateLiveTechnicalData() {
 
         return {
             ...config,
+            weight, // Mode-aware weight
+            multiplier, // For UI feedback
+            isFocused,  // For UI highlight
             normalized, // Internal Logic
             raw: typeof raw === 'number' ? raw.toFixed(2) : raw, // UI Display
             unit, // UI Display

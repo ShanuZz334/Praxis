@@ -22,12 +22,15 @@
 // =============================
 // Imports
 // =============================
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useTheme } from "@/shared/context/ThemeContext";
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import OptionsGrid from "./OptionsGrid";
 import OptionsModal from "./OptionsModal";
 import OptionsChainLayout from "./chain/OptionsChainLayout";
 import { generateOptionsDashboardData, TOTAL_OPTIONS_CREDITS } from "@/features/dashboard/options/engine/optionsSimulator";
+import axiosInstance from "@/shared/utils/axiosInstance";
+import { API_PATHS } from "@/shared/utils/apiPaths";
 import {
     calculatePositioningScore,
     getAdvancedTopPicks,
@@ -43,13 +46,43 @@ import {
 // =============================
 export default function OptionsPage() {
     // State
+    const { tradingMode } = useTheme();
     const [selectedCard, setSelectedCard] = useState(null);
     const [viewMode, setViewMode] = useState("sectioned");
     const [sortMode, setSortMode] = useState("score_desc");
     const [searchQuery, setSearchQuery] = useState("");
+    const [realChain, setRealChain] = useState(null);
 
-    // 1. Data Generation (Simulation)
-    const { cards, metrics, chain } = useMemo(() => generateOptionsDashboardData(), []);
+    // Fetch Real Options Chain
+    useEffect(() => {
+        const fetchChain = async () => {
+            try {
+                // Defaulting to NIFTY for the dashboard view
+                const res = await axiosInstance.get(API_PATHS.OPTIONS.GET_CHAIN('NIFTY'));
+                if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+                    setRealChain(res.data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch options chain:", err);
+            }
+        };
+        fetchChain();
+    }, []);
+
+    // 1. Data Generation (Simulation or Real)
+    const { cards, metrics, chain } = useMemo(() => {
+        const simData = generateOptionsDashboardData(tradingMode);
+
+        if (realChain) {
+            // If real chain exists, inject it. 
+            // Note: In a full implementation, we'd also recalculate metrics/cards based on this real chain.
+            // For now, we'll swap the chain for the deep-dive view but keep simulated top-level metrics 
+            // to ensure the dashboard remains fully populated without extensive refactoring of the engine.
+            return { ...simData, chain: realChain };
+        }
+
+        return simData;
+    }, [tradingMode, realChain]);
 
     // 2. Filtering Logic (Search)
     const filteredCards = useMemo(() => {
@@ -59,7 +92,7 @@ export default function OptionsPage() {
     }, [cards, searchQuery]);
 
     // 3. Composite Score Calculation
-    const positioning = useMemo(() => calculatePositioningScore(metrics), [metrics]);
+    const positioning = useMemo(() => calculatePositioningScore(metrics, tradingMode), [metrics, tradingMode]);
     const score = positioning.score;
 
     // 4. Metric Extraction for Header
@@ -68,19 +101,20 @@ export default function OptionsPage() {
     const tailwinds = useMemo(() => extractOptionsTailwinds(cards), [cards]);
     const risks = useMemo(() => extractOptionsRisks(cards), [cards]);
 
-    // 5. Section Scoring
+    // 5. Section Scoring (Weighted by Card Weight)
     const globalSections = useMemo(() => {
         return optionsSections.map(sec => {
             const secCards = cards.filter(c => c.category === sec.id);
             if (!secCards.length) return { ...sec, normalizedScore: 0, rawScore: 0 };
 
-            const sum = secCards.reduce((acc, c) => acc + (c.normalized || 0), 0);
-            const avg = sum / secCards.length;
+            const weightedSum = secCards.reduce((acc, c) => acc + ((c.normalized || 0) * (c.weight || 1)), 0);
+            const totalWeight = secCards.reduce((acc, c) => acc + (c.weight || 1), 0);
+            const avg = totalWeight > 0 ? weightedSum / totalWeight : 0;
 
             return {
                 id: sec.id,
                 label: sec.label.substring(0, 3).toUpperCase(),
-                normalizedScore: Math.round(((avg + 1) / 2) * 100), // Map -1..1 to 0..100 roughly
+                normalizedScore: Math.round(((avg + 1) / 2) * 100),
                 rawScore: avg
             };
         });

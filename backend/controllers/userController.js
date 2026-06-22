@@ -45,6 +45,16 @@ import { sendEmailOTP, verifyEmailOTP } from "../services/verifyService.js";
 
 export const updateUserProfile = async (req, res) => {
     try {
+        if (req.user.isDemo) {
+            return res.json({
+                _id: req.user._id,
+                fullName: req.body.fullName || req.user.fullName,
+                email: req.body.email || req.user.email,
+                profileImage: req.body.profileImage !== undefined ? req.body.profileImage : req.user.profileImage,
+                isEmailVerified: true,
+            });
+        }
+
         const { fullName, email, profileImage } = req.body;
         const user = await User.findById(req.user._id);
 
@@ -74,6 +84,10 @@ export const updateUserProfile = async (req, res) => {
 
 export const deleteUserProfile = async (req, res) => {
     try {
+        if (req.user.isDemo) {
+            return res.json({ message: "User account deleted successfully" });
+        }
+
         const user = await User.findById(req.user._id);
 
         if (!user) {
@@ -94,6 +108,18 @@ export const deleteUserProfile = async (req, res) => {
 
 export const updateBrokerSettings = async (req, res) => {
     try {
+        if (req.user.isDemo) {
+            return res.json({
+                message: "Broker settings updated successfully",
+                brokerSettings: {
+                    broker: req.body.broker || "",
+                    apiKey: req.body.apiKey || "",
+                    apiSecret: req.body.apiSecret || "",
+                    clientId: req.body.clientId || "",
+                },
+            });
+        }
+
         const { broker, apiKey, apiSecret, clientId } = req.body;
         const user = await User.findById(req.user._id);
 
@@ -166,6 +192,19 @@ export const updateNotificationSettings = async (req, res) => {
             deliveryEmail
         } = req.body;
 
+        if (req.user.isDemo) {
+            return res.json({
+                message: "Notification settings updated successfully",
+                notificationSettings: {
+                    tradeAlerts: tradeAlerts !== undefined ? tradeAlerts : true,
+                    portfolioAlerts: portfolioAlerts !== undefined ? portfolioAlerts : true,
+                    systemMessages: systemMessages !== undefined ? systemMessages : true,
+                    deliveryApp: deliveryApp !== undefined ? deliveryApp : true,
+                    deliveryEmail: deliveryEmail !== undefined ? deliveryEmail : true,
+                },
+            });
+        }
+
         const user = await User.findById(req.user._id);
 
         if (!user) {
@@ -198,6 +237,18 @@ export const updateNotificationSettings = async (req, res) => {
 export const updatePreferences = async (req, res) => {
     try {
         const { tradingMode, theme, soundAlerts } = req.body;
+
+        if (req.user.isDemo) {
+            return res.json({
+                message: "Preferences updated successfully",
+                preferences: {
+                    tradingMode: tradingMode || "balanced",
+                    theme: theme || "dark",
+                    soundAlerts: soundAlerts !== undefined ? soundAlerts : true,
+                },
+            });
+        }
+
         const user = await User.findById(req.user._id);
 
         if (!user) {
@@ -227,6 +278,10 @@ export const updatePreferences = async (req, res) => {
 
 export const changePassword = async (req, res) => {
     try {
+        if (req.user.isDemo) {
+            return res.json({ message: "Password changed successfully" });
+        }
+
         const { currentPassword, newPassword } = req.body;
         const user = await User.findById(req.user._id);
 
@@ -254,6 +309,9 @@ export const changePassword = async (req, res) => {
 // =============================
 
 export const requestEmailUpdateOTP = async (req, res) => {
+    if (req.user && req.user.isDemo) {
+        return res.status(200).json({ message: "OTP sent to new email" });
+    }
     const { newEmail } = req.body;
     if (!newEmail) return res.status(400).json({ message: "New email is required" });
 
@@ -271,6 +329,9 @@ export const requestEmailUpdateOTP = async (req, res) => {
 };
 
 export const updateEmail = async (req, res) => {
+    if (req.user && req.user.isDemo) {
+        return res.json({ message: "Email updated successfully", email: req.body.newEmail });
+    }
     const { newEmail, otp } = req.body;
     if (!newEmail || !otp) return res.status(400).json({ message: "Email and OTP required" });
 
@@ -297,6 +358,9 @@ export const updateEmail = async (req, res) => {
 
 export const requestCurrentEmailVerificationOTP = async (req, res) => {
     try {
+        if (req.user && req.user.isDemo) {
+            return res.status(200).json({ message: "Verification OTP sent to your email" });
+        }
         const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -308,6 +372,9 @@ export const requestCurrentEmailVerificationOTP = async (req, res) => {
 };
 
 export const verifyCurrentEmail = async (req, res) => {
+    if (req.user && req.user.isDemo) {
+        return res.json({ message: "Email verified successfully", isEmailVerified: true });
+    }
     const { otp } = req.body;
     if (!otp) return res.status(400).json({ message: "OTP required" });
 
@@ -335,6 +402,9 @@ export const verifyCurrentEmail = async (req, res) => {
 
 export const logoutUser = async (req, res) => {
     try {
+        if (req.user && req.user.isDemo) {
+            return res.json({ message: "Logged out successfully" });
+        }
         const user = await User.findById(req.user._id);
         if (user) {
             user.activeToken = null;

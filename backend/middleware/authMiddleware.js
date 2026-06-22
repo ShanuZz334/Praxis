@@ -41,6 +41,21 @@ export const protect = async (req, res, next) => {
         return res.status(401).json({ message: "Not authorized, no token" });
     }
 
+    if (token === "demo-token-123456") {
+        req.user = {
+            _id: "demo_user_id_123",
+            fullName: "Demo User",
+            email: "demo@stocky.app",
+            profileImage: "https://ui-avatars.com/api/?name=Demo+User&background=random",
+            role: "user",
+            isDemo: true,
+            brokerSettings: {},
+            notificationSettings: {},
+            preferences: { theme: 'dark', tradingMode: 'balanced', soundAlerts: true }
+        };
+        return next();
+    }
+
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 

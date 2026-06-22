@@ -20,6 +20,8 @@
 // =============================
 import { OPTIONS_RELIABILITY, TOTAL_OPTIONS_CREDITS as _TOTAL_CREDITS } from '../../../../config/reliability';
 import { getCreditFromReliability } from '@/shared/global/logic/signals';
+import { getOptionsWeights } from '@/config/weights/optionsWeights';
+import { TRADING_MODES } from '@/config/tradingModes';
 
 const SPOT_PRICE = 22450.00; // Mock NIFTY Spot
 const INTEREST_RATE = 0.07;  // 7% Risk Free
@@ -137,8 +139,9 @@ function generateOptionChain() {
 // Dashboard Data Aggregator
 // =============================
 
-export function generateOptionsDashboardData() {
+export function generateOptionsDashboardData(mode = TRADING_MODES.BALANCED) {
     const chain = generateOptionChain();
+    const activeWeights = getOptionsWeights(mode);
 
     // 1. PCR & Max Pain
     let totalCE = 0, totalPE = 0;
@@ -254,9 +257,19 @@ export function generateOptionsDashboardData() {
     return {
         cards: baseCards.map(card => {
             const reliability = OPTIONS_RELIABILITY[card.id] || 0.5;
+            const weight = activeWeights[card.id] !== undefined ? activeWeights[card.id] : 0.08; // fallback
+
+            let multiplier = weight / 0.08;
+            if (mode === TRADING_MODES.BALANCED) multiplier = 1.0;
+
+            const isFocused = mode !== TRADING_MODES.BALANCED && multiplier > 1.1;
+
             return {
                 ...card,
-                creditScore: reliability, // Sync with reliability logic
+                weight, // Mode-aware weight
+                multiplier,
+                isFocused,
+                creditScore: reliability,
                 reliability,
                 creditAllocation: getCreditFromReliability(reliability)
             };

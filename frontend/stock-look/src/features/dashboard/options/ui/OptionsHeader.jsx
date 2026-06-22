@@ -25,6 +25,7 @@ import { useNavigate } from "react-router-dom";
 import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 import OptionsGauge from "./OptionsGauge";
 import { getOptionsRegime, extractOptionsTailwinds, extractOptionsRisks } from "@/features/dashboard/options/engine/optionsHelper";
+import AiInsightSection from "@/shared/components/ui/AiInsightSection";
 
 // =============================
 // Main Component
@@ -85,28 +86,11 @@ export default function OptionsHeader({
                         </div>
                     </div>
 
-                    {/* COL 2: Regime & Gamma Viz */}
-                    <div className="p-6 flex flex-col justify-center">
-                        <div className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-3">Options Regime</div>
-                        <div className="mb-4">
-                            <div className="flex items-center gap-3 mb-1">
-                                <div className={`text-xl font-bold ${regimeData.color}`}>{regimeData.label}</div>
-                            </div>
-                            <div className="text-xs text-white/40">{regimeData.desc}</div>
-                        </div>
-
-                        {/* Slider Visualization */}
-                        <div className="relative h-2 rounded-full bg-gradient-to-r from-red-500 via-slate-700 to-emerald-500 opacity-80">
-                            <div
-                                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-[#0b1220] rounded-full shadow-lg transition-all duration-1000"
-                                style={{ left: `${Math.max(5, Math.min(95, score || 50))}%` }}
-                            />
-                        </div>
-                        <div className="flex justify-between text-[10px] text-white/20 mt-2 font-mono">
-                            <span>Negative Gamma</span>
-                            <span>Neutral</span>
-                            <span>Positive Gamma</span>
-                        </div>
+                    {/* COL 2: AI INSIGHT */}
+                    <div className="p-0 flex flex-col justify-center overflow-hidden">
+                        <AiInsightSection 
+                            actionType={regimeData.label}
+                        />
                     </div>
 
                     {/* COL 3: Data Integrity */}

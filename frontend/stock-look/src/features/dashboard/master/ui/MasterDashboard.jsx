@@ -22,6 +22,7 @@
 // Imports
 // =============================
 import React, { useMemo } from "react";
+import { useTheme } from "@/shared/context/ThemeContext";
 
 // Shared UI
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
@@ -71,21 +72,22 @@ import { calculateNewsImpact } from "@/features/dashboard/events/engine/newsScor
 // =============================
 
 export default function MasterDashboard() {
+    const { tradingMode } = useTheme();
 
     // --- 1. Data Aggregation ---
 
     // Technical
-    const technicalCards = useMemo(() => generateLiveTechnicalData(), []);
+    const technicalCards = useMemo(() => generateLiveTechnicalData(tradingMode), [tradingMode]);
 
     // Fundamental
     const { marketData } = useFundamentals();
     const fundamentalCards = useMemo(() => {
         if (!marketData) return [];
-        return evaluateFundamentals(marketData)?.cards || [];
-    }, [marketData]);
+        return evaluateFundamentals(marketData, tradingMode)?.cards || [];
+    }, [marketData, tradingMode]);
 
     // Options
-    const optionsData = useMemo(() => generateOptionsDashboardData(), []);
+    const optionsData = useMemo(() => generateOptionsDashboardData(tradingMode), [tradingMode]);
     const optionsCards = optionsData.cards || [];
 
     // Global
@@ -116,18 +118,18 @@ export default function MasterDashboard() {
     // Fundamental Score
     const fundamentalScore = useMemo(() => {
         if (!marketData) return 50;
-        const intel = evaluateFundamentals(marketData);
+        const intel = evaluateFundamentals(marketData, tradingMode);
         return intel ? intel.score : 50;
-    }, [marketData]);
+    }, [marketData, tradingMode]);
 
     // Options Score
     const optionsScore = useMemo(() => {
         if (!optionsData || !optionsData.metrics) return 50;
-        return calculatePositioningScore(optionsData.metrics).score;
-    }, [optionsData]);
+        return calculatePositioningScore(optionsData.metrics, tradingMode).score;
+    }, [optionsData, tradingMode]);
 
     // Global Score
-    const globalScore = useMemo(() => calculateGlobalComposite(globalCards), [globalCards]);
+    const globalScore = useMemo(() => calculateGlobalComposite(globalCards, tradingMode), [globalCards, tradingMode]);
 
     // Events Score (Blended Event Impact + News Sentiment)
     const eventsScore = useMemo(() => {

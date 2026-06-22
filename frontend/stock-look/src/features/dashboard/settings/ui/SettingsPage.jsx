@@ -33,7 +33,9 @@ import {
     FiSun,
     FiMoon,
     FiChevronDown,
-    FiMap
+    FiMap,
+    FiWifi,
+    FiDatabase
 } from "react-icons/fi";
 import { UserContext } from "../../../../shared/context/UserContext";
 import {
@@ -47,7 +49,7 @@ import {
     updateEmail,
     requestCurrentEmailVerificationOTP,
     verifyCurrentEmail,
-    deleteUserProfile,
+    deleteUserProfile
 } from "../../../../services/userService";
 import Loader from "../../../../shared/components/ui/Loader";
 
@@ -62,6 +64,7 @@ import { useTheme } from "../../../../shared/context/ThemeContext";
 
 const SettingsPage = () => {
     // Context
+    const navigate = useNavigate();
     const { user, updateUser, token, } = useContext(UserContext);
     const {
         theme,
@@ -469,7 +472,6 @@ const SettingsPage = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState("");
     const [isDeleting, setIsDeleting] = useState(false);
-    const navigate = useNavigate();
     const { clearUser: contextClearUser } = useContext(UserContext);
 
     const handleDeleteAccount = async () => {
@@ -793,14 +795,17 @@ const SettingsPage = () => {
                                 <div
                                     className="border-t border-border-default pt-8"
                                 >
-                                    <h3 className="mb-4 flex items-center gap-2 text-lg font-medium">
-                                        <FiLink2 className="text-blue-500" /> Broker Integration
-                                    </h3>
+                                    <div className="mb-6">
+                                        <h3 className="flex items-center gap-2 text-xl font-bold">
+                                            <FiZap className="text-amber-500" /> Auto-Trading Execution
+                                        </h3>
+                                        <p className="text-xs text-text-secondary mt-1">Connect your broker for direct order routing and live portfolio syncing.</p>
+                                    </div>
                                     <div className="flex flex-col lg:flex-row gap-10">
                                         {/* Left Side: Configuration Form */}
                                         <div className="flex-1 space-y-6">
-                                            <div className="space-y-3">
-                                                <label className="text-sm font-medium text-text-secondary">Select Broker</label>
+                                            <div className="space-y-4">
+                                                <label className="text-[10px] font-bold uppercase tracking-widest text-text-tertiary">Select Primary Execution Broker</label>
                                                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3">
                                                     {AVAILABLE_BROKERS.map((broker) => (
                                                         <button
@@ -824,6 +829,32 @@ const SettingsPage = () => {
                                                             </span>
                                                         </button>
                                                     ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4 pt-4 border-t border-border-default">
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-[10px] font-bold uppercase tracking-widest text-text-tertiary">Data & Intelligence Feeds</label>
+                                                </div>
+                                                <div
+                                                    onClick={() => navigate("/dashboard/admin")}
+                                                    className="group cursor-pointer relative overflow-hidden bg-blue-100/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded-2xl p-6 flex items-center justify-between hover:border-[#1E1BFF]/40 dark:hover:border-blue-400/60 hover:shadow-xl hover:shadow-blue-500/10 dark:hover:shadow-blue-500/20 transition-all duration-500"
+                                                >
+                                                    {/* Background Glow */}
+                                                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#1E1BFF]/10 dark:bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none group-hover:bg-[#1E1BFF]/20 dark:group-hover:bg-blue-400/20 transition-colors duration-500" />
+                                                    
+                                                    <div className="flex items-center gap-5 relative z-10">
+                                                        <div className="h-12 w-12 bg-[#1E1BFF] rounded-xl flex items-center justify-center text-white text-xl group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-md shadow-[#1E1BFF]/20">
+                                                            <FiDatabase />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="text-base font-extrabold text-black dark:text-white">Data Acquisition Center</h3>
+                                                            <p className="text-[#1E1BFF] dark:text-blue-300 text-[11px] mt-1 font-bold tracking-wide">Manage 30+ Market APIs & 10+ Web Scrapers.</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="h-8 w-8 rounded-full flex items-center justify-center text-[#1E1BFF] dark:text-blue-400 group-hover:bg-[#1E1BFF] group-hover:text-white transition-all duration-300 relative z-10">
+                                                        <FiLink2 size={16} />
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -1304,25 +1335,25 @@ const SettingsPage = () => {
             {
                 showEmailOtpModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                        <div className="w-full max-w-md rounded-2xl border border-border-default bg-white dark:bg-[#0b1220] p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="w-full max-w-md rounded-2xl border border-gray-200 dark:border-border-default bg-white dark:bg-[#0b1220] p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-lg font-bold text-text-primary">Change Email Address</h3>
-                                <button onClick={() => setShowEmailOtpModal(false)}><FiX className="text-text-secondary hover:text-text-primary" /></button>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Change Email Address</h3>
+                                <button onClick={() => setShowEmailOtpModal(false)}><FiX className="text-slate-400 dark:text-text-secondary hover:text-slate-700 dark:hover:text-text-primary" /></button>
                             </div>
 
                             {!pendingEmail ? (
                                 <div className="space-y-4">
-                                    <p className="text-sm text-text-secondary">Enter your new email address. We will send a verification code.</p>
+                                    <p className="text-sm text-slate-600 dark:text-slate-300">Enter your new email address. We will send a verification code.</p>
                                     <input
                                         type="email"
                                         placeholder="New Email Address"
-                                        className="w-full rounded-lg border border-border-default bg-transparent px-4 py-3 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all"
+                                        className="w-full rounded-lg border border-gray-300 dark:border-border-default bg-gray-50 dark:bg-transparent px-4 py-3 text-slate-900 dark:text-text-primary placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#1E1BFF] focus:outline-none focus:ring-1 focus:ring-[#1E1BFF]/20 transition-all"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') initiateEmailChange(e.currentTarget.value)
                                         }}
                                     />
                                     <button
-                                        className="w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-500 shadow-md shadow-blue-600/20"
+                                        className="w-full rounded-lg bg-[#1E1BFF] py-3 font-medium text-white hover:bg-[#1720cc] shadow-md shadow-blue-600/20"
                                         onClick={(e) => {
                                             const input = e.currentTarget.previousElementSibling;
                                             initiateEmailChange(input.value);
@@ -1333,8 +1364,8 @@ const SettingsPage = () => {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <p className="text-sm text-text-secondary">
-                                        Enter the 6-digit code sent to <span className="text-text-primary font-medium">{pendingEmail}</span>
+                                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                                        Enter the 6-digit code sent to <span className="text-slate-900 dark:text-white font-medium">{pendingEmail}</span>
                                     </p>
                                     <input
                                         type="text"
@@ -1342,18 +1373,18 @@ const SettingsPage = () => {
                                         maxLength={6}
                                         onChange={(e) => setEmailOtp(e.target.value)}
                                         placeholder="000 000"
-                                        className="w-full rounded-lg border border-border-default bg-transparent px-4 py-3 text-center text-xl tracking-widest text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10"
+                                        className="w-full rounded-lg border border-gray-300 dark:border-border-default bg-gray-50 dark:bg-transparent px-4 py-3 text-center text-xl tracking-widest text-slate-900 dark:text-text-primary placeholder:text-gray-300 focus:border-[#1E1BFF] focus:outline-none focus:ring-1 focus:ring-[#1E1BFF]/20"
                                     />
-                                    <div className="flex justify-between text-xs text-text-tertiary">
+                                    <div className="flex justify-between text-xs text-slate-500 dark:text-text-tertiary">
                                         <span>Expires in 5:00</span>
                                         {otpTimer > 0 ? (
                                             <span>Resend in {otpTimer}s</span>
                                         ) : (
-                                            <button className="text-blue-500 hover:underline">Resend Code</button>
+                                            <button className="text-[#1E1BFF] hover:underline">Resend Code</button>
                                         )}
                                     </div>
                                     <button
-                                        className="w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-500 disabled:opacity-50 shadow-md shadow-blue-600/20"
+                                        className="w-full rounded-lg bg-[#1E1BFF] py-3 font-medium text-white hover:bg-[#1720cc] disabled:opacity-50 shadow-md shadow-blue-600/20"
                                         disabled={emailOtp.length !== 6}
                                         onClick={verifyEmailChange}
                                     >
@@ -1361,7 +1392,7 @@ const SettingsPage = () => {
                                     </button>
                                     <button
                                         onClick={() => setPendingEmail("")}
-                                        className="w-full text-sm text-text-secondary hover:text-text-primary transition-colors"
+                                        className="w-full text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-text-primary transition-colors"
                                     >
                                         Change Email Address
                                     </button>
@@ -1375,15 +1406,15 @@ const SettingsPage = () => {
             {/* Verify Current Email OTP Modal */}
             {
                 showVerifyEmailOtpModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                        <div className="w-full max-w-md rounded-2xl border border-border-default bg-white dark:bg-[#0b1220] p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="w-full max-w-md rounded-2xl border border-gray-200 dark:border-border-default bg-white dark:bg-[#0b1220] p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-bold text-text-primary uppercase tracking-tight">Verify Email</h3>
-                                <button onClick={() => setShowVerifyEmailOtpModal(false)}><FiX className="text-text-secondary hover:text-text-primary shadow-sm" /></button>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-tight">Verify Email</h3>
+                                <button onClick={() => setShowVerifyEmailOtpModal(false)}><FiX className="text-gray-500 dark:text-text-secondary hover:text-gray-900 dark:hover:text-text-primary" /></button>
                             </div>
 
                             <div className="space-y-4">
-                                <p className="text-sm text-text-secondary">
+                                <p className="text-sm text-gray-600 dark:text-text-secondary">
                                     Enter the 6-digit code sent to your email to enable trade alerts.
                                 </p>
                                 <div className="relative group">
@@ -1393,15 +1424,15 @@ const SettingsPage = () => {
                                         maxLength={6}
                                         onChange={(e) => setEmailOtp(e.target.value)}
                                         placeholder="000 000"
-                                        className="w-full rounded-lg border border-border-default bg-transparent px-4 py-4 text-center text-2xl font-bold tracking-[0.5em] text-text-primary focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-text-tertiary/20"
+                                        className="w-full rounded-lg border border-gray-300 dark:border-border-default bg-gray-50 dark:bg-transparent px-4 py-4 text-center text-2xl font-bold tracking-[0.5em] text-gray-900 dark:text-text-primary focus:border-[#1E1BFF] focus:outline-none focus:ring-1 focus:ring-[#1E1BFF]/30 transition-all placeholder:text-gray-300 dark:placeholder:text-text-tertiary/20"
                                     />
                                 </div>
-                                <div className="flex justify-between text-[10px] text-text-tertiary uppercase font-medium tracking-wider">
+                                <div className="flex justify-between text-[10px] text-gray-500 dark:text-text-tertiary uppercase font-medium tracking-wider">
                                     <span>5:00 MINUTES UNTIL EXPIRE</span>
                                     {otpTimer > 0 ? (
                                         <span>RESEND IN {otpTimer}S</span>
                                     ) : (
-                                        <button onClick={handleInitiateVerification} className="text-blue-500 hover:underline">RESEND NOW</button>
+                                        <button onClick={handleInitiateVerification} className="text-[#1E1BFF] hover:underline">RESEND NOW</button>
                                     )}
                                 </div>
                                 <button
@@ -1435,20 +1466,20 @@ const SettingsPage = () => {
                             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 mb-4">
                                 <FiAlertCircle className="h-8 w-8 text-blue-500" />
                             </div>
-                            <h3 className="text-center text-xl font-bold text-text-primary">Change Email Address</h3>
-                            <p className="mt-2 text-center text-text-secondary text-sm">
+                            <h3 className="text-center text-xl font-bold text-slate-900 dark:text-white">Change Email Address</h3>
+                            <p className="mt-2 text-center text-slate-500 dark:text-slate-300 text-sm">
                                 Enter your new email address. We'll send you a verification code to confirm the change.
                             </p>
 
                             <div className="mt-6 space-y-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-text-secondary">New Email Address</label>
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">New Email Address</label>
                                     <input
                                         type="email"
                                         value={pendingEmail}
                                         onChange={(e) => setPendingEmail(e.target.value)}
                                         placeholder="your.email@example.com"
-                                        className="w-full rounded-lg border border-border-default bg-transparent px-4 py-3 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10"
+                                        className="w-full rounded-lg border border-gray-300 dark:border-border-default bg-gray-50 dark:bg-transparent px-4 py-3 text-slate-900 dark:text-text-primary placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#1E1BFF] focus:outline-none focus:ring-1 focus:ring-[#1E1BFF]/20"
                                     />
                                 </div>
 
@@ -1458,7 +1489,7 @@ const SettingsPage = () => {
                                             setShowEmailChangeModal(false);
                                             setPendingEmail("");
                                         }}
-                                        className="flex-1 rounded-lg border border-border-default bg-transparent py-3 text-sm font-medium text-text-secondary hover:bg-transparent hover:text-text-primary transition-all"
+                                        className="flex-1 rounded-lg border border-slate-200 dark:border-border-default bg-white dark:bg-slate-800 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
                                     >
                                         Cancel
                                     </button>
@@ -1472,7 +1503,7 @@ const SettingsPage = () => {
                                             }
                                         }}
                                         disabled={!pendingEmail || !pendingEmail.includes("@")}
-                                        className="flex-1 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50 shadow-lg shadow-blue-600/20"
+                                        className="flex-1 rounded-lg bg-[#1E1BFF] py-3 text-sm font-semibold text-white hover:bg-[#1720cc] disabled:opacity-50 shadow-lg shadow-blue-600/20"
                                     >
                                         Send Verification Code
                                     </button>
@@ -1491,21 +1522,21 @@ const SettingsPage = () => {
                             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 mb-4">
                                 <FiAlertCircle className="h-8 w-8 text-red-500" />
                             </div>
-                            <h3 className="text-center text-xl font-bold text-text-primary">Delete your account?</h3>
-                            <p className="mt-2 text-center text-text-secondary">
+                            <h3 className="text-center text-xl font-bold text-slate-900 dark:text-white">Delete your account?</h3>
+                            <p className="mt-2 text-center text-slate-500 dark:text-slate-300">
                                 This action is permanent and cannot be undone. All your trades, settings, and profile data will be forever lost.
                             </p>
 
                             <div className="mt-6 space-y-4">
-                                <p className="text-sm text-center text-text-secondary">
-                                    Please type <span className="font-bold text-text-primary tracking-widest">DELETE</span> to confirm
+                                <p className="text-sm text-center text-slate-500 dark:text-slate-400">
+                                    Please type <span className="font-bold text-slate-900 dark:text-white tracking-widest">DELETE</span> to confirm
                                 </p>
                                 <input
                                     type="text"
                                     value={deleteConfirmText}
                                     onChange={(e) => setDeleteConfirmText(e.target.value)}
                                     placeholder="Type DELETE here"
-                                    className="w-full rounded-lg border border-border-default bg-transparent px-4 py-3 text-center text-text-primary focus:border-red-500 focus:outline-none focus:shadow-lg focus:shadow-red-500/10"
+                                    className="w-full rounded-lg border border-gray-300 dark:border-border-default bg-gray-50 dark:bg-transparent px-4 py-3 text-center text-slate-900 dark:text-text-primary placeholder:text-gray-400 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500/20"
                                 />
 
                                 <div className="flex gap-3 pt-2">
@@ -1515,7 +1546,7 @@ const SettingsPage = () => {
                                             setDeleteConfirmText("");
                                         }}
                                         disabled={isDeleting}
-                                        className="flex-1 rounded-lg border border-border-default bg-transparent py-3 text-sm font-medium text-text-secondary hover:bg-transparent hover:text-text-primary transition-all"
+                                        className="flex-1 rounded-lg border border-slate-200 dark:border-border-default bg-white dark:bg-slate-800 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
                                     >
                                         Cancel
                                     </button>

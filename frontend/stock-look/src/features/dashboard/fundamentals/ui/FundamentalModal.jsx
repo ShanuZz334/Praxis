@@ -118,6 +118,7 @@ export default function FundamentalModal({ open, onClose, card }) {
             ">
               <div className="w-full h-full rounded-lg overflow-hidden relative z-10">
                 <FundamentalHistoryChart
+                  id={card.id}
                   trend={card.signal}
                   baseValue={card.raw}
                   label={card.label}

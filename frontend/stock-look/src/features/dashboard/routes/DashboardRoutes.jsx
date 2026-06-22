@@ -37,6 +37,8 @@ import ManualSectionLayout from "@/features/dashboard/manual/ui/ManualSectionLay
 import AboutPage from "@/features/dashboard/about/ui/AboutPage";
 import SettingsPage from "@/features/dashboard/settings/ui/SettingsPage";
 import MessagesPage from "@/features/dashboard/messages/ui/MessagesPage";
+import AdminDashboard from "@/features/admin/pages/AdminDashboard";
+import UpstoxCallback from "@/features/admin/pages/UpstoxCallback";
 
 // Effects
 import MenuSync from "@/shared/components/effects/MenuSync";
@@ -172,6 +174,7 @@ const DashboardRoutes = ({ setActiveMenu }) => {
         }
       />
 
+
       <Route
         path="messages"
         element={
@@ -181,6 +184,27 @@ const DashboardRoutes = ({ setActiveMenu }) => {
           </>
         }
       />
+      <Route
+        path="messages"
+        element={
+          <>
+            <MenuSync menu="messages" setActiveMenu={setActiveMenu} />
+            <MessagesPage />
+          </>
+        }
+      />
+
+      <Route
+        path="admin"
+        element={
+          <>
+            <MenuSync menu="settings" setActiveMenu={setActiveMenu} />
+            <AdminDashboard />
+          </>
+        }
+      />
+
+      <Route path="/oauth/upstox/callback" element={<UpstoxCallback />} />
     </Routes>
   );
 };

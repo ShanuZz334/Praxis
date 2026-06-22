@@ -37,6 +37,38 @@ export const API_PATHS = {
     UPLOAD_IMAGE: "/api/v1/user/upload-image",
     UPLOAD_IMAGE_PUBLIC: "/api/v1/user/upload-image-public",
   },
+
+  CHARTS: {
+    GET_DATA: (metricKey) => `/api/v1/charts/${metricKey}`,
+  },
+
+  EVENTS: {
+    GET_ALL: "/api/v1/events",
+  },
+
+  OPTIONS: {
+    GET_CHAIN: (symbol) => `/api/v1/options/${symbol}`,
+  },
+
+  JOURNAL: {
+    GET_LOGS: "/api/v1/journal",
+    ANALYTICS: "/api/v1/journal/analytics",
+    GET_NOTES: "/api/v1/journal/notes",
+    SAVE_NOTE: "/api/v1/journal/notes",
+  },
+
+  ADMIN: {
+    CREDENTIALS: "/api/v1/admin/credentials",
+    TOGGLE_CREDENTIAL: (provider) => `/api/v1/admin/credentials/${provider}/toggle`,
+  },
+
+  COLLECT: {
+    RUN: "/api/v1/collect/run",
+  },
+
+  HEALTH: {
+    PROVIDERS: "/api/v1/health/providers",
+  },
 };
 
 

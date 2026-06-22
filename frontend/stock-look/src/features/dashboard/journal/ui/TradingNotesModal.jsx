@@ -27,6 +27,8 @@ import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast, Toaster } from "react-hot-toast";
+import axiosInstance from "@/shared/utils/axiosInstance";
+import { API_PATHS } from "@/shared/utils/apiPaths";
 
 dayjs.extend(isBetween);
 
@@ -59,7 +61,7 @@ function MetricBox({ label, value, color = "text-text-primary", sub }) {
 // Main Component
 // =============================
 
-export default function TradingNotesModal({ trades, notes, onClose }) {
+export default function TradingNotesModal({ trades, notes, onClose, onNotesUpdate }) {
     const today = dayjs().format("YYYY-MM-DD");
     const [selectedDate, setSelectedDate] = useState(today);
     const [viewYear, setViewYear] = useState(dayjs().year());
@@ -101,7 +103,7 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
         document.execCommand('foreColor', false, color);
     };
 
-    const handleSaveNote = () => {
+    const handleSaveNote = async () => {
         try {
             const content = editorRef.current.innerHTML;
             if (!content || content === "<br>") {
@@ -109,7 +111,17 @@ export default function TradingNotesModal({ trades, notes, onClose }) {
                 return;
             }
 
-            setLocalNotes(prev => ({ ...prev, [selectedDate]: content }));
+            // Optimistic UI Update
+            const updatedNotes = { ...localNotes, [selectedDate]: content };
+            setLocalNotes(updatedNotes);
+            if (onNotesUpdate) onNotesUpdate(updatedNotes); // Update parent state
+
+            // API Call
+            await axiosInstance.post(API_PATHS.JOURNAL.SAVE_NOTE, {
+                date: selectedDate,
+                content: content
+            });
+
             setIsEditingToday(false);
 
             toast.success("Session entry committed and sealed.", {

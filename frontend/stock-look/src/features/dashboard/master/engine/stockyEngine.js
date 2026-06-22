@@ -23,15 +23,7 @@
 // =============================
 
 import { getMasterGaugeLabel, getMasterRegimeLabel } from '@/shared/global/logic/labelMappings';
-
-// Module Weights (Normalized to 1.0)
-const WEIGHTS = {
-    technical: 0.30,
-    options: 0.25,
-    fundamental: 0.20,
-    global: 0.15,
-    events: 0.10
-};
+import { MASTER_WEIGHTS } from '@/config/weights/masterWeights';
 
 // =============================
 // Core Scoring Logic
@@ -41,19 +33,26 @@ export function calculateStockyScore(components) {
     if (!components) return { score: 0, confidence: 50, prevScore: 0 };
 
     const score =
-        (components.technical * WEIGHTS.technical) +
-        (components.options * WEIGHTS.options) +
-        (components.fundamental * WEIGHTS.fundamental) +
-        (components.events * WEIGHTS.events) +
-        (components.global * WEIGHTS.global);
+        (components.technical * MASTER_WEIGHTS.technical) +
+        (components.options * MASTER_WEIGHTS.options) +
+        (components.fundamental * MASTER_WEIGHTS.fundamental) +
+        (components.events * MASTER_WEIGHTS.events) +
+        (components.global * MASTER_WEIGHTS.global);
 
     const finalScore = Math.round(score);
 
-    // Calculate Confidence (Weighted Variance)
-    const values = [components.technical, components.options, components.fundamental, components.events, components.global];
-    const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length;
-    const confidence = Math.max(75, Math.min(98, 100 - (variance / 8)));
+    // Calculate High-Precision Confidence (Weighted Variance Damping)
+    // This measures signal alignment across modules relative to their strategic importance.
+    const weightedVariance =
+        MASTER_WEIGHTS.technical * Math.pow(components.technical - score, 2) +
+        MASTER_WEIGHTS.options * Math.pow(components.options - score, 2) +
+        MASTER_WEIGHTS.fundamental * Math.pow(components.fundamental - score, 2) +
+        MASTER_WEIGHTS.events * Math.pow(components.events - score, 2) +
+        MASTER_WEIGHTS.global * Math.pow(components.global - score, 2);
+
+    // Inverse Linear Mapping: High Variance = Low Confidence.
+    // Divisor 6.5 calibrated for high sensitivity to divergence in core modules.
+    const confidence = Math.max(75, Math.min(98, 100 - (weightedVariance / 6.5)));
 
     const prevScore = Math.max(0, Math.min(100, finalScore - (Math.sin(finalScore / 10) * 3)));
 

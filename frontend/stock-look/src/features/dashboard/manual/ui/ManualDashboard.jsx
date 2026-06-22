@@ -22,7 +22,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { HelpCircle } from "lucide-react";
-import { MANUAL_SECTIONS } from "../data/manualData";
+import { MANUAL_SECTIONS, MANUAL_CONTENT } from "../data/manualData";
 
 // =============================
 // Main Component
@@ -74,9 +74,11 @@ export default function ManualDashboard() {
                             <div className="h-[125px]">
                                 <div className="flex items-center gap-3 mb-3">
                                     <section.icon className="w-6 h-6 text-blue-500/80 group-hover:text-blue-400 group-hover:scale-110 transition-all duration-300" />
-                                    <h2 className="text-lg font-bold text-text-primary group-hover:text-blue-400 transition-colors tracking-tight">
-                                        {section.label}
-                                    </h2>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <h2 className="text-lg font-bold text-text-primary group-hover:text-blue-400 transition-colors tracking-tight">
+                                            {section.label}
+                                        </h2>
+                                    </div>
                                 </div>
 
                                 <p className="text-text-secondary text-[13px] leading-relaxed line-clamp-3">

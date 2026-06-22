@@ -66,6 +66,17 @@ const UserSchema = new mongoose.Schema(
         brokerRefreshToken: { type: String, select: false },
         brokerTokenExpiry: { type: Date },
         activeToken: { type: String, default: null },
+        apiCatalog: {
+            type: Map,
+            of: {
+                apiKey: { type: String },
+                apiSecret: { type: String },
+                clientId: { type: String },
+                lastConnected: { type: Date },
+                status: { type: String, default: 'inactive' }
+            },
+            default: {}
+        },
     },
     { timestamps: true }
 );

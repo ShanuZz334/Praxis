@@ -40,6 +40,8 @@ export function GlobalCard({
   score,
   creditScore = 0.8,
   creditAllocation,
+  multiplier = 1,
+  isFocused = false,
 
   signal,
   color,
@@ -68,13 +70,16 @@ export function GlobalCard({
   return (
     <Card
       className={cn(
-        "relative group h-[140px] md:h-[160px]",
+        "relative group h-[140px] md:h-[160px] transition-all duration-300",
 
         /* Light mode hover (unchanged) */
         "hover:border-border-hover",
 
         /* Dark mode FIX — stop thick borders */
         "dark:hover:border-border-subtle-translucent",
+
+        /* FOCUS STYLE: For mode-aware emphasis */
+        isFocused && "border-blue-500/50 shadow-[0_0_12px_rgba(59,130,246,0.2)] dark:border-blue-400/40 dark:shadow-[0_0_15px_rgba(59,130,246,0.15)]",
 
         /* Reliability dim */
         reliability.label === "Low" && "opacity-80 hover:opacity-100",
@@ -118,9 +123,20 @@ export function GlobalCard({
               )}
             </div>
 
-            {/* RIGHT: Credit */}
-            <div className="shrink-0 text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded border border-border-subtle bg-background-surface text-text-secondary">
-              {creditAllocation || "?"}
+            {/* RIGHT: Credit & Multiplier */}
+            <div className="flex flex-col items-end gap-1">
+              <div className="shrink-0 text-[10px] uppercase font-mono font-bold px-1.5 py-0.5 rounded border border-border-default bg-background-elevated text-text-primary shadow-sm">
+                {creditAllocation || "?"}
+              </div>
+              {multiplier !== 1 && (
+                <div className={cn(
+                  "text-[9px] font-bold px-1 rounded flex items-center gap-0.5",
+                  multiplier > 1 ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"
+                )}>
+                  {multiplier > 1 ? "↑" : "↓"}
+                  x{multiplier.toFixed(1)}
+                </div>
+              )}
             </div>
           </div>
 
