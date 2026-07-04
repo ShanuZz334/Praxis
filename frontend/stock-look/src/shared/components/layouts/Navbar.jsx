@@ -36,7 +36,7 @@ import {
 import nseLogo from "@/assets/images/nse.png";
 import zerodhaLogo from "@/assets/images/zerodha.png";
 import logo from "@/assets/images/logo1.png";
-import logoBgless from "@/assets/icons/logo_bgless.png";
+import logoBgless from "@/assets/icons/Stocky logo blue bgless.png";
 import ThemeToggle from "@/shared/components/ui/ThemeToggle";
 
 // =============================

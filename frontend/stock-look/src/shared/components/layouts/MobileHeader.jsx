@@ -27,7 +27,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 
 import GlitchText from "@/shared/components/backgrounds/GlitchText";
-import logoBgless from "@/assets/icons/logo_bgless.png";
+import logoBgless from "@/assets/icons/Stocky logo blue bgless.png";
 import { useTheme } from "../../context/ThemeContext";
 import MobileQuickNav from "./MobileQuickNav";
 
@@ -175,7 +175,7 @@ const MobileHeader = ({ onMenuClick }) => {
                     <img
                         src={logoBgless}
                         alt="Menu"
-                        className="w-12 h-12 transition-transform hover:scale-110 pointer-events-none" // prevent img from capturing drag
+                        className="w-12 h-12 scale-[1.4] transition-transform hover:scale-[1.5] pointer-events-none" // prevent img from capturing drag
                     />
                 </button>
 
