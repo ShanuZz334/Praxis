@@ -140,22 +140,24 @@ export default function GlobalHeader({
     }, [cards]);
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* MAIN BLOCK */}
-            <div className={`relative rounded-2xl border border-[var(--border-default)] dark:border-[#3b82f6] md:dark:border-[var(--border-default)] shadow-[0_8px_24px_rgba(0,0,0,0.45)] overflow-hidden bg-background-card`}>
+            <div className="relative md:rounded-2xl md:border md:border-[var(--border-default)] md:dark:border-[var(--border-default)] md:shadow-[0_8px_24px_rgba(0,0,0,0.45)] md:overflow-hidden md:bg-background-card flex flex-col md:block">
 
                 {/* TOP ROW: GAUGE | REGIME | INTEGRITY */}
-                <div className={`grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x ${STYLES.DIVIDE} bg-transparent min-h-0 lg:min-h-[220px]`}>
+                <div 
+                    className="flex flex-col lg:grid lg:grid-cols-3 md:divide-y-0 bg-transparent min-h-0 lg:min-h-[220px] gap-3 md:gap-0 lg:border-b lg:border-border-subtle"
+                >
 
                     {/* A. GAUGE */}
-                    <div className="p-4 md:p-6 group relative flex flex-col md:block">
-                        <div className="flex justify-between items-start mb-2">
-                            <div className={`${typography.label.sm} flex items-center gap-2`}>
-                                {title}
+                    <div className="p-3 md:p-6 group relative flex flex-col md:block bg-background-card rounded-2xl border border-border-default shadow-md md:bg-transparent md:border-0 md:shadow-none md:rounded-none lg:border-r lg:border-border-subtle">
+                        <div className="flex justify-between items-start mb-2 gap-2">
+                            <div className={`${typography.label.sm} flex items-center gap-2 min-w-0 text-[10px] md:text-[11px]`}>
+                                <span className="truncate">{title}</span>
                                 <PortalTooltip content={infoContent}>
                                     <button
                                         onClick={() => navigate(manualLink)}
-                                        className="text-text-tertiary hover:text-blue-400 transition-colors cursor-pointer"
+                                        className="text-text-tertiary hover:text-blue-400 transition-colors cursor-pointer shrink-0"
                                     >
                                         <HelpCircle className="w-4 h-4" />
                                     </button>
@@ -163,17 +165,17 @@ export default function GlobalHeader({
                             </div>
 
                             {/* Delta Pill */}
-                            <div className={`flex items-center gap-1 ${deltaColor} bg-background-surface px-2 py-1 rounded text-[10px] font-mono border ${STYLES.BORDER_INNER}`}>
+                            <div className={`flex items-center gap-1 ${deltaColor} bg-background-surface px-1.5 md:px-2 py-1 rounded text-[10px] font-mono border ${STYLES.BORDER_INNER} shrink-0`}>
                                 <span className="font-bold">{deltaSign}{deltaVal}%</span>
-                                <span className="opacity-70 ml-1 italic lowercase">vs prev</span>
+                                <span className="hidden sm:inline opacity-70 ml-1 italic lowercase">vs prev</span>
                             </div>
                         </div>
 
-                        <div className="flex flex-row items-center md:items-baseline gap-2 md:gap-3 mb-3 md:mb-4 text-left">
-                            <div className={`${typography.number.giant} text-5xl md:text-6xl lg:text-7xl tracking-tighter`}>{Number(score || 0).toFixed(0)}</div>
+                        <div className="flex flex-row items-center md:items-baseline gap-2 md:gap-3 mb-1 text-left">
+                            <div className={`${typography.number.giant} text-4xl md:text-6xl lg:text-7xl tracking-tighter`}>{Number(score || 0).toFixed(0)}</div>
                             <div className="flex flex-col justify-end h-full pb-1">
                                 <div
-                                    className={`text-base md:text-lg font-bold transition-colors duration-500 uppercase tracking-wide`}
+                                    className={`text-sm md:text-lg font-bold transition-colors duration-500 uppercase tracking-wide`}
                                     style={{ color: gauge?.color || compositeState.color || 'var(--text-primary)' }}
                                 >
                                     {gauge ? gauge.label : compositeState.label}
@@ -182,9 +184,31 @@ export default function GlobalHeader({
                             </div>
                         </div>
 
+                        {/* Middle Metrics Row - Only for main dashboard */}
+                        {title?.toUpperCase() === "STOCKY COMPOSITE" && (
+                            <div className="hidden md:flex items-center justify-between mt-0 mb-2 border border-border-default bg-background-surface/50 rounded-lg py-1 px-1.5 divide-x divide-border-default max-w-[280px]">
+                                <div className="flex items-center gap-1 px-1.5 first:pl-0 last:pr-0">
+                                    <span className="text-text-secondary text-[9px] uppercase font-bold tracking-wider">Trend</span>
+                                    <ArrowUp className="w-3 h-3 text-emerald-500" />
+                                </div>
+                                <div className="flex items-center gap-1 px-1.5 first:pl-0 last:pr-0">
+                                    <span className="text-text-secondary text-[9px] uppercase font-bold tracking-wider">Momentum</span>
+                                    <ArrowRight className="w-3 h-3 text-emerald-500" />
+                                </div>
+                                <div className="flex items-center gap-1 px-1.5 first:pl-0 last:pr-0">
+                                    <span className="text-text-secondary text-[9px] uppercase font-bold tracking-wider">Risk</span>
+                                    <span className="text-[9px] font-bold text-emerald-500">Low</span>
+                                </div>
+                                <div className="flex items-center gap-1 px-1.5 first:pl-0 last:pr-0">
+                                    <span className="text-text-secondary text-[9px] uppercase font-bold tracking-wider">Vol</span>
+                                    <span className="text-[9px] font-bold text-amber-500">Med</span>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Mobile Regime Indicator */}
-                        <div className="flex lg:hidden items-center gap-2 mt-1 mb-2 px-2 py-1.5 rounded-lg bg-background-surface/50 border border-border-subtle w-fit">
-                            <div className={`text-xs font-bold ${regime.color || 'text-text-primary'}`}>{regime.label}</div>
+                        <div className="flex lg:hidden items-center gap-2 mt-2 mb-1 px-3 py-1.5 rounded-xl bg-background-surface/50 border border-border-subtle w-fit">
+                            <div className={`text-[11px] font-bold ${regime.color || 'text-text-primary'}`}>{regime.label}</div>
                             <div className="w-1 h-1 rounded-full bg-text-tertiary opacity-30" />
                             <div className="text-[10px] text-text-secondary font-mono">
                                 {Number(regime.confidence || 0).toFixed(0)}% Conf
@@ -206,8 +230,10 @@ export default function GlobalHeader({
                     </div>
 
                     {/* C. INTEGRITY */}
-                    <div className="p-4 md:p-6 flex flex-col justify-between gap-3 md:gap-2">
-                        <div className={typography.label.sm}>Signal Integrity</div>
+                    <div 
+                        className="p-3 md:p-6 flex flex-col justify-between gap-2 md:gap-2 bg-background-card rounded-2xl border border-border-default shadow-md md:bg-transparent md:border-0 md:shadow-none md:rounded-none lg:border-l lg:border-border-subtle"
+                    >
+                        <div className={`${typography.label.sm} uppercase text-[10px] md:text-[11px]`}>Signal Integrity</div>
 
                         {/* TOP SECTION: Signal Status */}
                         <div className="space-y-3">
@@ -264,13 +290,17 @@ export default function GlobalHeader({
                 </div>
 
                 {/* MIDDLE ROW: TAILWINDS & RISKS */}
-                <div className={`hidden md:grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x ${STYLES.DIVIDE} border-t ${STYLES.BORDER_DIVIDER}`}>
+                <div className={`hidden md:grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x ${STYLES.DIVIDE}`}>
                     <ImpactList title="Top Tailwinds" items={tailwinds} type="bull" />
                     <ImpactList title="Key Risks" items={risks} type="bear" />
                 </div>
 
                 {/* BOTTOM ROW: CONTROLS (Integrated) */}
-                {controls && <HeaderControls controls={controls} />}
+                {controls && (
+                    <div className="hidden md:block bg-background-card rounded-2xl p-3 border border-border-default shadow-md md:bg-transparent md:border-0 md:shadow-none md:rounded-none md:p-0 md:border-t md:border-border-subtle mt-3 md:mt-0">
+                        <HeaderControls controls={controls} />
+                    </div>
+                )}
 
             </div>
         </div>
@@ -355,8 +385,8 @@ function ImpactList({ title, items, type }) {
         <div className={`p-5 ${bgClass} h-[240px] flex flex-col`}>
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                    <span className={`${colorClass} text-xs font-bold uppercase tracking-wider`}>{title}</span>
-                    <span className={`text-[10px] text-text-tertiary px-1 border ${STYLES.BORDER_INNER} rounded`}>{badgeText}</span>
+                    <span className={`${colorClass} text-[10px] md:text-[11px] font-bold uppercase tracking-wider`}>{title}</span>
+                    <span className={`text-[9px] md:text-[10px] text-text-tertiary px-1 border ${STYLES.BORDER_INNER} rounded`}>{badgeText}</span>
                 </div>
             </div>
             <div className="space-y-2">
@@ -378,9 +408,18 @@ function ImpactList({ title, items, type }) {
     );
 }
 
+export function MobileHeaderControls({ controls }) {
+    if (!controls) return null;
+    return (
+        <div className="md:hidden bg-background-card rounded-2xl p-3 border border-border-default shadow-md mt-3 mb-3">
+            <HeaderControls controls={controls} />
+        </div>
+    );
+}
+
 function HeaderControls({ controls }) {
     return (
-        <div className={`flex flex-col md:flex-row justify-between items-center border-t ${STYLES.BORDER_DIVIDER} pt-4 p-4 text-text-primary bg-transparent`}>
+        <div className="flex flex-col md:flex-row justify-between items-center md:pt-4 md:p-4 text-text-primary bg-transparent">
             {/* LEFT: Search */}
             <div className="relative group w-full md:w-64 transition-all focus-within:md:w-80 mb-3 md:mb-0 shrink-0">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-tertiary">

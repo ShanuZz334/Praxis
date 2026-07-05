@@ -161,6 +161,14 @@ export default function FundamentalPage() {
           viewMode={viewMode}
           sortMode={sortMode}
           onCardClick={setSelectedCard}
+          controls={{
+            search: searchQuery,
+            onSearchChange: setSearchQuery,
+            viewMode,
+            onViewChange: setViewMode,
+            sortMode,
+            onSortChange: setSortMode
+          }}
         />
       </div>
     </div>

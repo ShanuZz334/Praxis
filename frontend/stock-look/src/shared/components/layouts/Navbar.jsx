@@ -58,12 +58,12 @@ const Navbar = ({ onToggleSidebar }) => {
       "
     >
       {/* LEFT COLUMN — SIDEBAR TOGGLE */}
-      <div className="w-17 h-full flex items-center justify-center">
+      <div className="w-16 h-full flex items-center justify-center">
         <button
           onClick={onToggleSidebar}
           aria-label="Toggle sidebar"
           className="
-            w-25 h-25
+            w-14 h-14
             flex items-center justify-center
             rounded-xl
             transition-all
@@ -73,7 +73,7 @@ const Navbar = ({ onToggleSidebar }) => {
           <img
             src={logoBgless}
             alt="Menu"
-            className="w-17 h-17 transition-transform hover:scale-110"
+            className="w-[50px] h-[50px] transition-transform hover:scale-110"
           />
         </button>
       </div>

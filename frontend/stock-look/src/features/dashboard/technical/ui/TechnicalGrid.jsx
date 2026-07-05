@@ -17,6 +17,7 @@
 import React from "react";
 import TechnicalCard from "./TechnicalCard";
 import { technicalSections } from "@/features/dashboard/technical/engine/technicalHelper";
+import { MobileHeaderControls } from '@/shared/components/ui/GlobalHeader/GlobalHeader';
 
 // =============================
 // Component
@@ -27,7 +28,8 @@ export default function TechnicalGrid({
     onCardClick,
     viewMode = "sectioned",
     sortMode = "score_desc",
-    searchQuery = ""
+    searchQuery = "",
+    controls
 }) {
 
     // =============================
@@ -90,6 +92,9 @@ export default function TechnicalGrid({
                     })}
                 </div>
             )}
+
+            {/* Mobile Search & Sort Controls - after section tabs */}
+            <MobileHeaderControls controls={controls} />
             {viewMode === "flat" ? (
                 <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 md:gap-4">
                     {cards.length === 0 && searchQuery ? (

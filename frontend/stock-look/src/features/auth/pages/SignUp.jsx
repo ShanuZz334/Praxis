@@ -131,7 +131,7 @@ const SignUp = () => {
   // -----------------------------
   return (
     <div className="w-full max-w-[320px] md:max-w-md mx-auto p-2 md:p-0">
-      <div className="text-center mb-5 md:mb-6">
+      <div className="hidden md:block text-center mb-5 md:mb-6">
         <h2 className="text-2xl md:text-3xl font-semibold text-white mb-2">
           Create Account
         </h2>
@@ -262,7 +262,7 @@ const SignUp = () => {
           {isSigningUp ? <Loader size="xxs" color="white" /> : "Sign Up"}
         </button>
 
-        <p className="text-center text-white/60 text-sm pt-2">
+        <p className="hidden md:block text-center text-white/60 text-sm pt-2">
           Already have an account?{" "}
           <button
             type="button"

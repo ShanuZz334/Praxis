@@ -141,6 +141,15 @@ export default function TechnicalPage() {
                 viewMode={viewMode}
                 sortMode={sortMode}
                 searchQuery={searchQuery}
+                controls={{
+                    search: searchQuery,
+                    onSearchChange: setSearchQuery,
+                    viewMode,
+                    onViewChange: setViewMode,
+                    sortMode,
+                    onSortChange: setSortMode,
+                    matchCount: filteredCards.length
+                }}
             />
 
             {/* MODAL */}

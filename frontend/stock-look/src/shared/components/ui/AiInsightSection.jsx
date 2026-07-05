@@ -185,12 +185,12 @@ export default function AiInsightSection({
                 }}
             />
             
-            <div className="relative z-10 flex flex-col h-full justify-center">
+            <div className="relative z-10 flex flex-col h-full justify-between">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <Sparkles className={`w-4 h-4 ${textColor} animate-pulse`} />
-                        <span className="text-xs font-bold uppercase tracking-widest text-text-tertiary">AI Insight</span>
+                        <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-text-tertiary">AI Insight</span>
                     </div>
                     {confidence && (
                         <div className="text-[10px] px-2 py-0.5 rounded bg-background-surface border border-border-subtle text-text-secondary font-mono">
@@ -246,7 +246,7 @@ export default function AiInsightSection({
                                 key="text"
                                 initial={{ opacity: 0, y: 5 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="text-sm text-text-secondary leading-relaxed font-medium whitespace-pre-wrap overflow-y-auto max-h-[140px] pr-2 custom-scrollbar"
+                                className="text-sm text-text-secondary leading-relaxed font-medium whitespace-pre-wrap overflow-y-auto h-full pr-2 custom-scrollbar"
                             >
                                 {displayedText}
                                 {displayedText.length < currentInsightCache.length && (

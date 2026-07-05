@@ -188,6 +188,15 @@ export default function OptionsPage() {
                 onCardClick={setSelectedCard}
                 viewMode={viewMode}
                 sortMode={sortMode}
+                controls={{
+                    search: searchQuery,
+                    onSearchChange: setSearchQuery,
+                    viewMode,
+                    onViewChange: setViewMode,
+                    sortMode,
+                    onSortChange: setSortMode,
+                    matchCount: filteredCards.length
+                }}
             />
 
             {/* Detail Modal */}

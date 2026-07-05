@@ -28,6 +28,7 @@ import { AnimatePresence } from "framer-motion";
 
 import GlitchText from "@/shared/components/backgrounds/GlitchText";
 import logoBgless from "@/assets/icons/Stocky logo blue bgless.png";
+import logoBlackBgless from "@/assets/icons/stocky logo balck bgless.png";
 import { useTheme } from "../../context/ThemeContext";
 import MobileQuickNav from "./MobileQuickNav";
 
@@ -155,7 +156,7 @@ const MobileHeader = ({ onMenuClick }) => {
 
             <div className={`
                 fixed top-3 left-3 right-3 z-50 
-                h-16 flex items-center justify-between pl-0.5 pr-2 
+                h-14 flex items-center justify-between pl-1 pr-3 
                 rounded-2xl backdrop-blur-xl border transition-all duration-300 md:hidden
                 ${theme === 'dark'
                     ? 'bg-[#0C1224]/80 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]'
@@ -169,34 +170,32 @@ const MobileHeader = ({ onMenuClick }) => {
                             onMenuClick();
                         }
                     }}
-                    className="p-1 -ml-1.5 transition-all hover:opacity-80 active:scale-95 select-none touch-none"
+                    className="p-1 transition-all hover:opacity-80 active:scale-95 select-none touch-none"
                     aria-label="Menu"
                 >
                     <img
-                        src={logoBgless}
+                        src={theme === 'light' ? logoBlackBgless : logoBgless}
                         alt="Menu"
-                        className="w-12 h-12 scale-[1.4] transition-transform hover:scale-[1.5] pointer-events-none" // prevent img from capturing drag
+                        className="w-8 h-8 scale-[1.3] transition-transform hover:scale-[1.4] pointer-events-none" // prevent img from capturing drag
                     />
                 </button>
 
-                {/* Center: Brand Static Glitch Text */}
+                {/* Center: Brand Text (No Glitch) */}
                 <div className="flex items-center justify-center">
-                    <GlitchText
-                        speed={1}
-                        enableShadows={false}
-                        enableOnHover={true}
-                        className="text-3xl font-extrabold text-[#1E1BFF]"
+                    <span 
+                        className={`text-2xl font-extrabold ${theme === 'light' ? 'text-black' : 'text-[#1E1BFF]'}`}
+                        style={{ fontFamily: "'Rancho', cursive" }}
                     >
                         Stocky
-                    </GlitchText>
+                    </span>
                 </div>
 
                 <button
                     onClick={() => navigate("/dashboard/settings")}
-                    className="p-1 -mr-1 text-text-secondary hover:text-text-primary transition-colors"
+                    className="p-1 text-text-secondary hover:text-text-primary transition-colors"
                     aria-label="Settings"
                 >
-                    <FiSettings className="text-2xl" />
+                    <FiSettings className="text-xl" />
                 </button>
 
             </div>

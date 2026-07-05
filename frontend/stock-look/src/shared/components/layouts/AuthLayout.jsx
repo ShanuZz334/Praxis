@@ -77,7 +77,7 @@ const AuthLayout = ({ children }) => {
 
             {/* LEFT SIDE */}
             <div
-              className={`md:w-1/2 p-6 md:p-10 transition-all duration-500
+              className={`md:w-1/2 p-2 md:p-10 transition-all duration-500
               bg-linear-to-br from-white/10 to-white/10.5
               ${isLogin ? "rounded-b-[60px] md:rounded-r-[180px] md:rounded-bl-none" : "rounded-b-[60px] md:rounded-r-[90px] md:rounded-bl-none"}`}
             >
@@ -162,7 +162,7 @@ const AuthLayout = ({ children }) => {
                       Stocky
                     </GlitchText>
 
-                    <div className="h-[22px] overflow-hidden text-white/80 text-sm tracking-wide">
+                    <div className="hidden md:block h-[22px] overflow-hidden text-white/80 text-sm tracking-wide">
                       <TextType
                         text={stockTips}
                         typingSpeed={90}
@@ -177,7 +177,7 @@ const AuthLayout = ({ children }) => {
             </div>
 
             {/* RIGHT SIDE */}
-            <div className={`md:w-1/2 p-6 md:p-10 flex-col items-center justify-center ${isVerifying ? "hidden md:flex" : "flex"}`}>
+            <div className={`md:w-1/2 p-2 md:p-10 flex-col items-center justify-center ${isVerifying ? "hidden md:flex" : "flex"}`}>
 
               {/* Login / Signup buttons */}
               <div className="flex items-center justify-end w-full mb-6 gap-3">
@@ -214,7 +214,7 @@ const AuthLayout = ({ children }) => {
               </div>
 
               {/* Auth Form */}
-              <div className="w-full max-w-[335px] md:max-w-[400px] p-6 md:p-8">
+              <div className="w-full max-w-[335px] md:max-w-[400px] p-2 md:p-8">
                 {children}
               </div>
 

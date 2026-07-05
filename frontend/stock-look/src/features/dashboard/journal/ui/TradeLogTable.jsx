@@ -138,46 +138,46 @@ const TradeMobileCard = memo(function TradeMobileCard({ trade, onClick }) {
     return (
         <div
             onClick={onClick}
-            className="bg-background-surface border border-border-default rounded-xl p-3 active:scale-98 transition-transform shadow-sm"
+            className="bg-background-surface border border-border-default rounded-xl p-2.5 active:scale-98 transition-transform shadow-sm"
         >
             {/* Header: Instrument & Outcome */}
-            <div className="flex justify-between items-start mb-3">
+            <div className="flex justify-between items-start mb-2">
                 <div>
-                    <div className="text-sm font-bold text-text-primary">{trade.instrument}</div>
-                    <div className="text-[10px] text-text-tertiary font-mono mt-0.5">
+                    <div className="text-[12px] font-bold text-text-primary">{trade.instrument}</div>
+                    <div className="text-[9px] text-text-tertiary font-mono mt-0.5">
                         {new Date(trade.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                 </div>
-                <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${isWin ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                <div className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${isWin ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
                     {trade.rMultiple}R
                 </div>
             </div>
 
             {/* Metrics Row */}
-            <div className="flex items-center gap-4 text-[10px] text-text-secondary mb-3">
+            <div className="flex items-center gap-3 text-[10px] text-text-secondary mb-2">
                 <div className="flex flex-col">
                     <span className="text-text-tertiary uppercase text-[8px] font-bold">Side</span>
-                    <span className={`font-bold ${trade.direction === 'Long' ? 'text-emerald-500' : 'text-red-500'}`}>{trade.direction}</span>
+                    <span className={`font-bold text-[10px] ${trade.direction === 'Long' ? 'text-emerald-500' : 'text-red-500'}`}>{trade.direction}</span>
                 </div>
                 <div className="flex flex-col">
                     <span className="text-text-tertiary uppercase text-[8px] font-bold">Risk</span>
-                    <span className="font-mono">{trade.riskPct}%</span>
+                    <span className="font-mono text-[10px]">{trade.riskPct}%</span>
                 </div>
                 <div className="flex flex-col">
                     <span className="text-text-tertiary uppercase text-[8px] font-bold">Strategy</span>
-                    <span>{trade.strategy}</span>
+                    <span className="text-[10px]">{trade.strategy}</span>
                 </div>
             </div>
 
             {/* Footer: Compliance */}
-            <div className="flex justify-between items-center border-t border-border-subtle pt-2 mt-2">
+            <div className="flex justify-between items-center border-t border-border-subtle pt-1.5">
                 {hasError ? (
-                    <span className="text-[9px] font-bold text-red-400 uppercase flex items-center gap-1">
-                        <AlertTriangle size={10} /> {trade.execution.errors[0]}
+                    <span className="text-[8px] font-bold text-red-400 uppercase flex items-center gap-1">
+                        <AlertTriangle size={9} /> {trade.execution.errors[0]}
                     </span>
                 ) : (
-                    <span className="text-[9px] font-bold text-emerald-500 uppercase flex items-center gap-1">
-                        <CheckCircle size={10} /> Compliant
+                    <span className="text-[8px] font-bold text-emerald-500 uppercase flex items-center gap-1">
+                        <CheckCircle size={9} /> Compliant
                     </span>
                 )}
             </div>
@@ -235,23 +235,23 @@ export default function TradeLogTable({ trades, onSelectTrade }) {
             <div className="relative z-10 flex flex-col h-full">
 
                 {/* TOOLBAR */}
-                <div className="px-5 py-4 border-b border-border-default flex items-center justify-between bg-background-surface">
-                    <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-text-primary uppercase tracking-widest">Execution Log</span>
-                        <span className="px-1.5 py-0.5 rounded bg-background-floor text-[10px] font-mono text-text-secondary">{filteredTrades.length}</span>
+                <div className="px-3.5 py-3 border-b border-border-default flex items-center justify-between bg-background-surface">
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-text-primary uppercase tracking-widest">Execution Log</span>
+                        <span className="px-1.5 py-0.5 rounded bg-background-floor text-[9px] font-mono text-text-secondary">{filteredTrades.length}</span>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         {/* Violations Toggle */}
                         <button
                             onClick={() => setShowViolations(!showViolations)}
-                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded text-[9px] md:text-[10px] font-bold uppercase transition-all ${showViolations
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-bold uppercase transition-all ${showViolations
                                 ? "bg-red-500/20 text-red-400 border border-red-500/30"
                                 : "bg-background-card text-text-secondary border border-border-default hover:bg-background-surface shadow-sm"
                                 }`}
                         >
-                            <AlertTriangle size={11} className={isMobile ? "w-3 h-3" : ""} />
-                            {showViolations ? (isMobile ? "Violations" : "Filtering Violations") : (isMobile ? "Filter" : "Filter Violations")}
+                            <AlertTriangle size={10} />
+                            {showViolations ? "Violations" : "Filter"}
                         </button>
                     </div>
                 </div>

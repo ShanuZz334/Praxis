@@ -33,6 +33,9 @@ import TradeReadinessPanel from "./TradeReadinessPanel";
 import SignalAlignmentMatrix from "./SignalAlignmentMatrix";
 import ProDeskPicks from "./ProDeskPicks";
 
+import MobileDashboardLayout from "./mobile/MobileDashboardLayout";
+import { getSignalState } from "@/shared/global/logic/signals";
+
 // Engine & Data
 import { MOCK_MASTER_DATA } from "../data/masterData";
 import { calculateStockyScore, deriveMasterRegime, deriveMasterGauge } from "../engine/stockyEngine";
@@ -241,10 +244,24 @@ export default function MasterDashboard() {
         ];
     }, []);
 
+    // --- 6. Mobile Signal Counts ---
+    const signalCounts = useMemo(() => {
+        let bulls = 0, bears = 0, neutrals = 0;
+        allCards.forEach(card => {
+            const state = getSignalState(card.normalized || 0);
+            if (state?.label === 'Bullish') bulls++;
+            else if (state?.label === 'Bearish') bears++;
+            else neutrals++;
+        });
+        return { bulls, bears, neutrals };
+    }, [allCards]);
+
     // --- Render ---
 
     return (
-        <div className="p-4 sm:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto h-full space-y-4 md:space-y-6">
+        <>
+        {/* DESKTOP VIEW */}
+        <div className="hidden lg:block p-4 sm:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto h-full space-y-4 md:space-y-6">
 
             {/* Global Header / Composite Gauge */}
             <GlobalHeader
@@ -280,5 +297,23 @@ export default function MasterDashboard() {
             </div>
 
         </div>
+
+        {/* MOBILE VIEW */}
+        <div className="block lg:hidden">
+            <MobileDashboardLayout 
+                stockyScore={stockyScore}
+                prevScore={stockyIntel.prevScore}
+                masterGauge={masterGauge}
+                masterRegime={{
+                    ...masterRegime,
+                    confidence: stockyIntel.confidence
+                }}
+                snapshots={snapshots}
+                totalCredits={totalCredits}
+                signalCounts={signalCounts}
+                integrity={{ coverage: "5/5 Engines", source: "Cross-Asset", freshness: "Realtime" }}
+            />
+        </div>
+        </>
     );
 }

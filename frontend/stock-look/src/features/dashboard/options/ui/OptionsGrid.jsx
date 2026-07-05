@@ -22,6 +22,7 @@
 import React, { useMemo } from "react";
 import OptionsCard from "./OptionsCard";
 import { optionsSections } from "@/features/dashboard/options/engine/optionsHelper";
+import { MobileHeaderControls } from '@/shared/components/ui/GlobalHeader/GlobalHeader';
 
 // =============================
 // Main Component
@@ -30,7 +31,8 @@ export default function OptionsGrid({
     cards,
     onCardClick,
     viewMode = "sectioned",
-    sortMode = "score_desc"
+    sortMode = "score_desc",
+    controls
 }) {
 
     // =============================
@@ -106,6 +108,9 @@ export default function OptionsGrid({
                     );
                 })}
             </div>
+
+            {/* Mobile Search & Sort Controls - after section tabs */}
+            <MobileHeaderControls controls={controls} />
 
             {/* Sections Loop */}
             {optionsSections.map((section) => {

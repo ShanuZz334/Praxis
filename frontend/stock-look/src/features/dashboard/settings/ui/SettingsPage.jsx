@@ -620,10 +620,10 @@ const SettingsPage = () => {
             <div className="mx-auto max-w-6xl">
 
                 {/* Header */}
-                <div className="mb-6 md:mb-8 flex items-end justify-between">
+                <div className="mb-4 md:mb-8 flex items-end justify-between">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Settings</h1>
-                        <p className="mt-1 text-xs md:text-sm text-text-secondary">Manage your account and customization</p>
+                        <h1 className="text-xl md:text-3xl font-bold tracking-tight">Settings</h1>
+                        <p className="mt-0.5 text-[11px] md:text-sm text-text-secondary">Manage your account and customization</p>
                     </div>
                 </div>
 
@@ -660,7 +660,7 @@ const SettingsPage = () => {
                     </div>
                 )}
 
-                <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
+                <div className="grid gap-4 md:gap-8 lg:grid-cols-[220px_1fr]">
 
                     {/* Sidebar / Tabs Navigation */}
                     <nav className="flex md:flex-col gap-1 overflow-x-auto pb-2 md:pb-0 md:overflow-visible scrollbar-hide -mx-1 px-1">
@@ -668,37 +668,35 @@ const SettingsPage = () => {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-2 md:gap-3 rounded-xl px-4 py-2.5 md:py-3 text-left text-sm font-medium transition-all duration-300 shrink-0 ${activeTab === tab.id
+                                className={`flex items-center gap-2 rounded-xl px-3 py-2 md:px-4 md:py-3 text-left text-xs md:text-sm font-medium transition-all duration-300 shrink-0 ${activeTab === tab.id
                                     ? "bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-500/40 shadow-sm text-blue-500"
-                                    : "text-text-secondary hover:bg-transparent hover:text-text-primary border border-transparent hover:border-[var(--border-default)] hover:shadow-sm hover:-translate-y-0.5"
+                                    : "text-text-secondary hover:bg-transparent hover:text-text-primary border border-transparent hover:border-[var(--border-default)] hover:shadow-sm"
                                     }`}
                             >
-                                <tab.icon className={`h-4 w-4 md:h-5 md:w-5 transition-colors duration-300 ${activeTab === tab.id ? "text-blue-500" : "group-hover:text-blue-500"}`} />
+                                <tab.icon className={`h-3.5 w-3.5 md:h-4 md:w-4 transition-colors duration-300 ${activeTab === tab.id ? "text-blue-500" : ""}`} />
                                 <span className="whitespace-nowrap">{tab.label}</span>
                             </button>
                         ))}
                     </nav>
 
                     {/* Main Content Area */}
-                    <div
-                        className="rounded-2xl border border-border-default bg-transparent p-4 sm:p-6 lg:p-8 shadow-xl shadow-black/5 backdrop-blur-sm"
-                    >
+                    <div className="rounded-2xl border border-border-default bg-transparent p-3.5 sm:p-5 lg:p-8 shadow-xl shadow-black/5 backdrop-blur-sm">
 
                         {/* --- ACCOUNT TAB --- */}
                         {activeTab === "account" && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div className="space-y-5 md:space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div>
-                                    <h2 className="text-xl font-semibold">Profile Information</h2>
-                                    <p className="text-sm text-text-secondary">Update your public profile and details</p>
+                                    <h2 className="text-base md:text-xl font-semibold">Profile Information</h2>
+                                    <p className="text-[11px] md:text-sm text-text-secondary">Update your public profile and details</p>
                                 </div>
 
-                                <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6">
-                                    <div className="relative h-20 w-20 md:h-24 md:w-24 overflow-hidden rounded-full bg-gradient-to-br from-blue-600 to-purple-600 p-[2px]">
+                                <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-6">
+                                    <div className="relative h-16 w-16 md:h-24 md:w-24 overflow-hidden rounded-full bg-gradient-to-br from-blue-600 to-purple-600 p-[2px]">
                                         <div className="flex h-full w-full items-center justify-center rounded-full bg-transparent">
                                             {formData.profileImage ? (
                                                 <img src={formData.profileImage} alt="Profile" className="h-full w-full rounded-full object-cover" />
                                             ) : (
-                                                <span className="text-xl md:text-2xl font-bold">{formData.fullName?.[0]?.toUpperCase() || "U"}</span>
+                                                <span className="text-lg md:text-2xl font-bold">{formData.fullName?.[0]?.toUpperCase() || "U"}</span>
                                             )}
                                         </div>
                                     </div>
@@ -712,35 +710,35 @@ const SettingsPage = () => {
                                         />
                                         <button
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="text-sm font-medium text-blue-500 hover:text-blue-400"
+                                            className="text-xs md:text-sm font-medium text-blue-500 hover:text-blue-400"
                                         >
                                             Upload New Picture
                                         </button>
-                                        <p className="mt-1 text-xs text-text-tertiary">JPG, GIF or PNG. Max size 2MB.</p>
+                                        <p className="mt-0.5 text-[10px] md:text-xs text-text-tertiary">JPG, GIF or PNG. Max size 2MB.</p>
                                     </div>
                                 </div>
 
-                                <div className="grid gap-6 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-text-secondary">Full Name</label>
+                                <div className="grid gap-4 md:gap-6 md:grid-cols-2">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] md:text-sm font-medium text-text-secondary">Full Name</label>
                                         <input
                                             type="text"
                                             value={formData.fullName}
                                             onChange={(e) => handleInputChange("fullName", e.target.value)}
                                             placeholder="Enter your full name"
-                                            className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:bg-transparent focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
+                                            className="w-full rounded-lg border border-border-default bg-transparent px-3 py-2 md:px-4 md:py-2.5 text-sm text-text-primary focus:border-blue-500 focus:outline-none focus:bg-transparent focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-text-secondary flex items-center justify-between w-full">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] md:text-sm font-medium text-text-secondary flex items-center justify-between w-full">
                                             <span>Email Address</span>
                                             {isEmailVerified ? (
-                                                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-500 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                                                    <FiCheck size={11} className="shrink-0" /> Verified
+                                                <span className="inline-flex items-center gap-1 text-[9px] md:text-[10px] font-bold bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                                                    <FiCheck size={10} className="shrink-0" /> Verified
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 px-2.5 py-0.5 rounded-full border border-yellow-500/20">
-                                                    <FiAlertCircle size={11} className="shrink-0" /> Unverified
+                                                <span className="inline-flex items-center gap-1 text-[9px] md:text-[10px] font-bold bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 px-2 py-0.5 rounded-full border border-yellow-500/20">
+                                                    <FiAlertCircle size={10} className="shrink-0" /> Unverified
                                                 </span>
                                             )}
                                         </label>
@@ -748,41 +746,37 @@ const SettingsPage = () => {
                                             <input
                                                 type="email"
                                                 value={formData.email}
-                                                disabled // Not directly editable needs OTP flow trigger
-                                                className="w-full cursor-not-allowed rounded-lg border border-border-default bg-transparent/50 px-4 py-2.5 text-text-secondary text-sm md:text-base"
+                                                disabled
+                                                className="w-full cursor-not-allowed rounded-lg border border-border-default bg-transparent/50 px-3 py-2 md:px-4 md:py-2.5 text-text-secondary text-sm"
                                             />
                                             <button
                                                 onClick={() => setShowEmailChangeModal(true)}
-                                                className="w-full sm:shrink-0 sm:w-auto rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95"
+                                                className="w-full sm:shrink-0 sm:w-auto rounded-lg bg-blue-600 px-4 py-2 text-xs md:text-sm font-medium text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95"
                                             >
                                                 Change
                                             </button>
                                         </div>
 
                                         {!isEmailVerified && (
-                                            <div className="mt-3 p-4 rounded-xl border border-blue-500/30 shadow-none">
-                                                <div className="flex items-start gap-4">
-                                                    <div className="h-10 w-10 shrink-0 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                                                        <FiShield className="text-blue-500 text-lg" />
+                                            <div className="mt-2 p-3 rounded-xl border border-blue-500/30">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="h-8 w-8 shrink-0 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                                                        <FiShield className="text-blue-500 text-sm" />
                                                     </div>
                                                     <div className="flex-1">
-                                                        <p className="text-sm font-semibold text-text-primary">Verify your mail</p>
-                                                        <p className="text-xs text-text-secondary mt-1 leading-relaxed">
+                                                        <p className="text-[11px] md:text-sm font-semibold text-text-primary">Verify your mail</p>
+                                                        <p className="text-[10px] md:text-xs text-text-secondary mt-0.5 leading-relaxed">
                                                             Verifying your email allows us to send you clean trade alerts and critical security notifications.
                                                         </p>
                                                         <button
                                                             onClick={handleInitiateVerification}
                                                             disabled={verifyingEmail}
-                                                            className="mt-3 text-sm font-bold text-blue-500 hover:text-blue-400 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                                                            className="mt-2 text-xs font-bold text-blue-500 hover:text-blue-400 flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
                                                         >
                                                             {verifyingEmail ? (
-                                                                <>
-                                                                    <Loader size="xxs" color="blue" /> Requesting...
-                                                                </>
+                                                                <><Loader size="xxs" color="blue" /> Requesting...</>
                                                             ) : (
-                                                                <>
-                                                                    Verify Now <i className="bx bx-right-arrow-alt text-lg"></i>
-                                                                </>
+                                                                <>Verify Now <i className="bx bx-right-arrow-alt text-base"></i></>
                                                             )}
                                                         </button>
                                                     </div>

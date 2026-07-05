@@ -21,11 +21,12 @@
 import React, { useMemo } from 'react';
 import FundamentalCard from './FundamentalCard';
 import { FUNDAMENTAL_SECTIONS } from '../data/fundamentalData';
+import { MobileHeaderControls } from '@/shared/components/ui/GlobalHeader/GlobalHeader';
 
 // =============================
 // Main Component
 // =============================
-export default function FundamentalGrid({ cards, viewMode, sortMode = "score_desc", onCardClick }) {
+export default function FundamentalGrid({ cards, viewMode, sortMode = "score_desc", onCardClick, controls }) {
 
   // --- Logic: Sorting ---
   const sortCards = (list) => {
@@ -110,6 +111,9 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
           })}
         </div>
       )}
+
+      {/* Mobile Search & Sort Controls - shown AFTER section tabs */}
+      <MobileHeaderControls controls={controls} />
 
       {/* Sections Map */}
       <div className="space-y-6 md:space-y-12">
