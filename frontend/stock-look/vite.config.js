@@ -55,12 +55,12 @@ export default defineConfig({
         display: "standalone",
         icons: [
           {
-            src: "stocky_icon.png",
+            src: "stocky_logo_white.png",
             sizes: "192x192",
             type: "image/png"
           },
           {
-            src: "stocky_icon.png",
+            src: "stocky_logo_white.png",
             sizes: "512x512",
             type: "image/png"
           }
