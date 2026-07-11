@@ -141,7 +141,7 @@ export default function TradeDeepDive({ trade, onClose }) {
                     {/* 4. ELITE VERDICT */}
                     {trade.verdict && (
                         <div className="mt-6 p-4 rounded-xl bg-blue-500/[0.05] border border-blue-500/20">
-                            <div className="text-[10px] uppercase font-bold text-blue-400 mb-1">Stocky AI Verdict</div>
+                            <div className="text-[10px] uppercase font-bold text-blue-400 mb-1">Praxis AI Verdict</div>
                             <div className="text-lg font-bold text-text-primary">{trade.verdict}</div>
                         </div>
                     )}

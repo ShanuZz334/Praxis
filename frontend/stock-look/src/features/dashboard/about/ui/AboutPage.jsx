@@ -139,7 +139,7 @@ export default function AboutPage() {
                     </h1>
 
                     <p className="text-sm md:text-xl text-text-secondary leading-relaxed animate-in slide-in-from-bottom-4 duration-700 delay-300 max-w-xl mx-auto md:max-w-3xl">
-                        Stocky is not a signal service. It is an <span className="text-blue-500 font-medium">institutional-grade decision support system</span> designed to align market context, probability, and risk execution.
+                        Praxis is not a signal service. It is an <span className="text-blue-500 font-medium">institutional-grade decision support system</span> designed to align market context, probability, and risk execution.
                     </p>
                 </div>
 
@@ -183,12 +183,12 @@ export default function AboutPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center animate-in slide-in-from-bottom-8 duration-700 delay-700">
                     <div className="space-y-6">
                         <h2 className="text-3xl font-bold text-text-primary">
-                            Why <span className="text-blue-500">Stocky</span>?
+                            Why <span className="text-blue-500">Praxis</span>?
                         </h2>
                         <p className="text-text-secondary leading-relaxed text-lg">
                             Most retail tools flood you with noise—endless alerts, lagging indicators, and "buy/sell" signals with zero context.
                             <br /><br />
-                            Stocky is built differently. It's built to answer the question:
+                            Praxis is built differently. It's built to answer the question:
                             <span className="text-text-primary italic font-medium"> "Is this trade structurally sound?"</span>
                         </p>
 
@@ -199,7 +199,7 @@ export default function AboutPage() {
                                 <div>
                                     <h4 className="text-lg font-bold text-text-primary mb-1">The "Edge"</h4>
                                     <p className="text-sm text-text-secondary">
-                                        Stocky's edge lies in synthesis. It doesn't just look at price. It looks at Volatility (Options), Valuation (Fundamentals), and Macros (Global) simultaneously.
+                                        Praxis's edge lies in synthesis. It doesn't just look at price. It looks at Volatility (Options), Valuation (Fundamentals), and Macros (Global) simultaneously.
                                     </p>
                                 </div>
                             </div>
@@ -209,7 +209,7 @@ export default function AboutPage() {
                     <div className="bg-background-card border border-border-default rounded-2xl overflow-hidden shadow-2xl">
                         <div className="grid grid-cols-2 text-sm font-bold uppercase tracking-widest border-b border-border-default">
                             <div className="p-4 text-text-tertiary bg-background-surface">Retail Tools</div>
-                            <div className="p-4 text-blue-500 bg-blue-500/10">Stocky Ecosystem</div>
+                            <div className="p-4 text-blue-500 bg-blue-500/10">Praxis Ecosystem</div>
                         </div>
                         <div className="divide-y divide-border-default">
                             <ComparisonRow old="Lagging Indicators" new="Predictive Volatility Models" />
@@ -267,8 +267,8 @@ export default function AboutPage() {
                     </div>
 
                     <div className="flex gap-6">
-                        <a href="mailto:stocky.prop@gmail.com" className="flex items-center gap-2 hover:text-blue-500 transition-colors">
-                            <Mail size={16} /> stocky.prop@gmail.com
+                        <a href="mailto:praxis.prop@gmail.com" className="flex items-center gap-2 hover:text-blue-500 transition-colors">
+                            <Mail size={16} /> praxis.prop@gmail.com
                         </a>
                         <div className="flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />

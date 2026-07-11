@@ -13,65 +13,12 @@ import AddCredentialModal from "../components/AddCredentialModal";
 // ============================================
 // PROVIDER METADATA (Official APIs)
 // ============================================
-const PROVIDER_META = {
-    // ---- Fundamentals & Market Data ----
-    "FMP": { name: "Financial Modeling Prep", desc: "Detailed balance sheets & cash flow statements.", icon: Database },
-    "TWELVEDATA": { name: "Twelve Data", desc: "International equity & ETF coverage.", icon: Globe },
-    "ALPHAVANTAGE": { name: "Alpha Vantage", desc: "Advanced technical indicators & historical data.", icon: TrendingUp },
-    "FINNHUB": { name: "Finnhub", desc: "Alternative data & sentiment analysis.", icon: Radar },
-    "TIINGO": { name: "Tiingo", desc: "End-of-day prices & crypto feeds.", icon: Box },
-    "IEXCLOUD": { name: "IEX Cloud", desc: "Institutional equity data & stats.", icon: Server },
-    "YAHOO_FINANCE": { name: "Yahoo Finance API", desc: "Legacy pricing & volume fallback.", icon: BarChart3 },
-    "SIMFIN": { name: "SimFin", desc: "Machine-readable fundamental data.", icon: FileText },
-    "SEC_EDGAR": { name: "SEC EDGAR API", desc: "Official regulatory filings.", icon: Shield },
-
-    // ---- Options & Derivatives ----
-    "POLYGON": { name: "Polygon.io", desc: "Institutional-grade options chain data & NBBO.", icon: Layers },
-    "ORATS": { name: "ORATS", desc: "Advanced options backtesting & implied volatility.", icon: Activity },
-    "THETADATA": { name: "ThetaData", desc: "Tick-level historical options data.", icon: Database },
-    "UNUSUAL_WHALES": { name: "Unusual Whales", desc: "Dark pool prints & options flow.", icon: Zap },
-    "OPTIONMETRICS": { name: "OptionMetrics", desc: "Historical implied volatility surfaces.", icon: BarChart3 },
-
-    // ---- Brokers & Execution ----
-    "UPSTOX": { name: "Upstox", desc: "Primary Indian market data & order execution.", icon: ArrowRightLeft },
-    "ZERODHA": { name: "Zerodha Kite", desc: "Indian market historical & live WebSocket.", icon: Briefcase },
-    "ANGELONE": { name: "AngelOne SmartAPI", desc: "Trading execution & historical charting.", icon: ArrowRightLeft },
-    "INTERACTIVE_BROKERS": { name: "Interactive Brokers", desc: "Global market access & portfolio.", icon: Globe },
-    "CHARLES_SCHWAB": { name: "Charles Schwab", desc: "US Equities & Options routing.", icon: Briefcase },
-    "ALPACA": { name: "Alpaca API", desc: "Algorithmic trading execution (US/Crypto).", icon: Cpu },
-
-    // ---- Macro & Economic ----
-    "FRED": { name: "FRED", desc: "Federal Reserve Economic Data.", icon: Activity },
-    "WORLD_BANK": { name: "World Bank API", desc: "Global macro indicators & GDP.", icon: Globe },
-    "OECD": { name: "OECD API", desc: "International economic statistics.", icon: BarChart3 },
-
-    // ---- News & Sentiment ----
-    "NEWSAPI": { name: "News API", desc: "Global financial news & event tracking.", icon: Newspaper },
-    "BENZINGA": { name: "Benzinga Pro", desc: "Real-time financial news & squawk.", icon: Zap },
-    "STOCKTWITS": { name: "StockTwits", desc: "Retail sentiment metrics & ticker volume.", icon: MessageCircle },
-    "TWITTER": { name: "X (Twitter) API", desc: "Real-time social sentiment streams.", icon: MessageCircle },
-
-    // ---- Alternative & Crypto ----
-    "QUIVER_QUANT": { name: "Quiver Quant", desc: "Congress & Corporate insider trading.", icon: ShieldCheck },
-    "GLASSNODE": { name: "Glassnode", desc: "Crypto on-chain analytics.", icon: Link },
-    "COINGECKO": { name: "CoinGecko", desc: "Cryptocurrency pricing & market cap.", icon: Box },
-};
+const PROVIDER_META = {};
 
 // ============================================
 // SCRAPER METADATA (Web Scrapers)
 // ============================================
-const SCRAPER_META = {
-    "NSE_SCRAPER": { name: "NSE India Scraper", desc: "Live option chain & market breadth.", icon: Pickaxe },
-    "BSE_SCRAPER": { name: "BSE India Scraper", desc: "Corporate announcements & delivery.", icon: Pickaxe },
-    "INVESTING_COM": { name: "Investing.com", desc: "Global economic calendars & futures.", icon: Globe },
-    "TRADINGVIEW": { name: "TradingView", desc: "Technical ideas & aggregated indicators.", icon: Activity },
-    "SEC_CRAWLER": { name: "SEC Crawler", desc: "Automated 10-K/10-Q text extraction.", icon: Bot },
-    "WSB_SCRAPER": { name: "WallStreetBets", desc: "Subreddit mentions & retail flow tracker.", icon: TerminalSquare },
-    "GOOGLE_NEWS": { name: "Google News", desc: "Unofficial news aggregation fallback.", icon: Newspaper },
-    "MONEYCONTROL": { name: "MoneyControl", desc: "Indian market news & bulk deals.", icon: FileText },
-    "YAHOO_SCRAPER": { name: "Yahoo Options", desc: "Fallback options chain scraping.", icon: Layers },
-    "FINVIZ": { name: "Finviz Scraper", desc: "Stock screener aggregates.", icon: Search },
-};
+const SCRAPER_META = {};
 
 const AdminDashboard = () => {
     const [providers, setProviders] = useState([]);
@@ -126,7 +73,7 @@ const AdminDashboard = () => {
                     </h1>
                     <h2 className="text-gray-400 text-sm font-medium tracking-wide uppercase flex items-center gap-2">
                         <Database size={14} className="text-blue-500" />
-                        Securely manage {Object.keys(PROVIDER_META).length} APIs and {Object.keys(SCRAPER_META).length} Scrapers
+                        Securely manage APIs and Scrapers
                     </h2>
                 </div>
 
@@ -232,25 +179,31 @@ const AdminDashboard = () => {
 
             {/* Providers Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 pb-20">
-                {Object.entries(currentMeta).map(([key, meta]) => {
-                    const healthData = providers.find(p => p.provider === key);
-                    
-                    return (
-                        <div key={key} className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" style={{ animationDelay: `${Math.random() * 200}ms` }}>
-                            <CredentialCard
-                                providerKey={key}
-                                meta={meta}
-                                healthData={healthData}
-                                onCheckConnection={handleCheckConnection}
-                                checking={checking}
-                                onConfigure={() => {
-                                    setSelectedProvider(key);
-                                    setIsModalOpen(true);
-                                }}
-                            />
-                        </div>
-                    );
-                })}
+                {Object.entries(currentMeta).length === 0 ? (
+                    <div className="col-span-full py-12 text-center text-text-muted border border-dashed border-border-subtle rounded-2xl">
+                        No {activeTab === 'api' ? 'APIs' : 'Scrapers'} configured.
+                    </div>
+                ) : (
+                    Object.entries(currentMeta).map(([key, meta]) => {
+                        const healthData = providers.find(p => p.provider === key);
+                        
+                        return (
+                            <div key={key} className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" style={{ animationDelay: `${Math.random() * 200}ms` }}>
+                                <CredentialCard
+                                    providerKey={key}
+                                    meta={meta}
+                                    healthData={healthData}
+                                    onCheckConnection={handleCheckConnection}
+                                    checking={checking}
+                                    onConfigure={() => {
+                                        setSelectedProvider(key);
+                                        setIsModalOpen(true);
+                                    }}
+                                />
+                            </div>
+                        );
+                    })
+                )}
             </div>
             
             <AddCredentialModal 

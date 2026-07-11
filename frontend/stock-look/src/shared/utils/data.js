@@ -65,6 +65,14 @@ export const SIDE_MENU_DATA = [
         path: "/dashboard/options",
     },
     {
+        id: "04a",
+        key: "pai",
+        label: "PAI",
+        icon: null,
+        customIcon: "pai",
+        path: "/dashboard/pai",
+    },
+    {
         id: "05",
         key: "events",
         label: "EVENTS",
@@ -92,19 +100,13 @@ export const SIDE_MENU_DATA = [
         icon: LuNotebook,
         path: "/dashboard/journal",
     },
+
     {
         id: "09",
         key: "manual",
         label: "MANUAL",
         icon: LuFileText,
         path: "/dashboard/manual",
-    },
-    {
-        id: "10",
-        key: "about",
-        label: "ABOUT",
-        icon: LuInfo,
-        path: "/dashboard/about",
     },
     {
         id: "11",

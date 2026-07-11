@@ -36,7 +36,6 @@ const BottomNavigation = ({ onMoreClick }) => {
         { id: "dashboard", label: "Dashboard", icon: FiGrid, path: "/dashboard/home" },
         { id: "options", label: "Options", icon: FiActivity, path: "/dashboard/options" },
         { id: "technical", label: "Technical", icon: FiTrendingUp, path: "/dashboard/technical" },
-        { id: "journal", label: "Journal", icon: FiBookOpen, path: "/dashboard/journal" },
         // { id: "wallet", label: "Wallet", icon: FiCreditCard, path: "/dashboard/wallet" }, // Future
         { id: "more", label: "More", icon: FiMenu, action: onMoreClick },
     ];

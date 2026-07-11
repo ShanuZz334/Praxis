@@ -21,9 +21,10 @@
 // Imports
 // =============================
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowUp, ArrowDown, HelpCircle, ArrowRight } from "lucide-react";
+import { FlipContainer, FlipTrigger } from "@/shared/components/common/FlipContainer";
 
 import AiInsightSection from "@/shared/components/ui/AiInsightSection";
 import CardSegmented from "@/shared/components/controls/CardSegmented";
@@ -99,6 +100,7 @@ export default function GlobalHeader({
     }
 }) {
     const navigate = useNavigate();
+    const [isFlipped, setIsFlipped] = useState(false);
 
     // 1. Composite Logic
     const compositeState = getCompositeState(score);
@@ -140,9 +142,19 @@ export default function GlobalHeader({
     }, [cards]);
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* MAIN BLOCK */}
-            <div className="relative md:rounded-2xl md:border md:border-[var(--border-default)] md:dark:border-[var(--border-default)] md:shadow-[0_8px_24px_rgba(0,0,0,0.45)] md:overflow-hidden md:bg-background-card flex flex-col md:block">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
+            <FlipContainer
+                isFlipped={isFlipped}
+                className="w-full h-full"
+                front={
+                    <div className="relative md:rounded-2xl md:border md:border-[var(--border-default)] md:dark:border-[var(--border-default)] md:shadow-[0_8px_24px_rgba(0,0,0,0.45)] md:overflow-hidden md:bg-background-card flex flex-col md:block">
+                        {/* FLIP BUTTON FRONT */}
+                        <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20">
+                            <FlipTrigger 
+                                onClick={() => setIsFlipped(true)} 
+                                className="text-[var(--color-praxis-blue)] hover:text-[var(--color-praxis-blue)]"
+                            />
+                        </div>
 
                 {/* TOP ROW: GAUGE | REGIME | INTEGRITY */}
                 <div 
@@ -154,14 +166,6 @@ export default function GlobalHeader({
                         <div className="flex justify-between items-start mb-2 gap-2">
                             <div className={`${typography.label.sm} flex items-center gap-2 min-w-0 text-[10px] md:text-[11px]`}>
                                 <span className="truncate">{title}</span>
-                                <PortalTooltip content={infoContent}>
-                                    <button
-                                        onClick={() => navigate(manualLink)}
-                                        className="text-text-tertiary hover:text-blue-400 transition-colors cursor-pointer shrink-0"
-                                    >
-                                        <HelpCircle className="w-4 h-4" />
-                                    </button>
-                                </PortalTooltip>
                             </div>
 
                             {/* Delta Pill */}
@@ -301,8 +305,22 @@ export default function GlobalHeader({
                         <HeaderControls controls={controls} />
                     </div>
                 )}
-
             </div>
+            }
+            back={
+                <div className="relative w-full h-full min-h-[300px] md:rounded-2xl md:border md:border-[var(--border-default)] md:shadow-[0_8px_24px_rgba(0,0,0,0.45)] md:overflow-hidden md:bg-background-card flex flex-col items-center justify-center">
+                    <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20">
+                        <FlipTrigger 
+                            onClick={() => setIsFlipped(false)} 
+                            className="text-[var(--color-praxis-blue)] hover:text-[var(--color-praxis-blue)]"
+                        />
+                    </div>
+                    <div className="text-text-tertiary text-sm font-mono opacity-50">
+                        Back of Card Content
+                    </div>
+                </div>
+            }
+        />
         </div>
     );
 }

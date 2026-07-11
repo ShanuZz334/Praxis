@@ -64,7 +64,7 @@ const Card = ({
             /* ---------- THEME DEPLOYMENT (FIXED) ---------- */
             ${isGradientEnabled
             ? "card-gradient-border dark:hover:shadow-[var(--shadow-card-gradient-hover)]"
-            : "bg-[var(--bg-card-primary)] border-2 dark:border border-[var(--border-subtle)] hover:border-border-hover dark:hover:border-border-subtle-translucent"
+            : "bg-[var(--bg-card-primary)] border-2 dark:border border-[var(--border-default)] hover:border-border-hover dark:hover:border-border-subtle-translucent"
           }
             shadow-sm dark:shadow-none
             hover:shadow-[var(--shadow-card-3d-hover)]

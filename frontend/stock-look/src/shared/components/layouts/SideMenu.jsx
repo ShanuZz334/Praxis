@@ -27,6 +27,8 @@ import { useNavigate } from "react-router-dom";
 import { SIDE_MENU_DATA } from "../../utils/data";
 import { UserContext } from "../../context/UserContext";
 import { logoutUser } from "../../../services/userService";
+import paiIcon from "@/assets/icons/pai-round-bgless.png";
+import paiLabelImg from "@/assets/icons/pai-label-bgless.png";
 
 // =============================
 // Component
@@ -79,38 +81,74 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false, th
               className={`
                 group flex items-center
                 ${collapsed && !isMobileDrawer ? "justify-center" : "gap-4"}
-                px-4 py-3 rounded-xl
+                ${item.key === 'pai' && collapsed && !isMobileDrawer ? 'px-1' : 'px-4'} ${item.key === 'pai' && !collapsed && !isMobileDrawer ? 'py-1.5' : 'py-3'} rounded-xl
                 transition-all duration-300
                 relative
               `}
             >
-              <item.icon
-                className={`
-                  text-[20px] transition-all duration-300 ease-out transform
-                  ${isActive
-                    ? "text-blue-700 scale-110"
-                    : isDarkDrawer
-                      ? "text-white/80 group-hover:text-white group-hover:scale-115"
-                      : "text-text-tertiary group-hover:text-blue-400 group-hover:scale-115"
-                  }
-                `}
-              />
+              {/* Icon: custom image (e.g. PAI) or standard react-icon */}
+              {item.customIcon === 'pai' ? (
+                collapsed && !isMobileDrawer ? (
+                  // Collapsed: full size, no wrapper needed
+                  <img
+                    src={paiIcon}
+                    alt="PAI"
+                    style={{ width: '48px', height: '48px', minWidth: '48px' }}
+                    className={`flex-shrink-0 object-contain transition-all duration-300 ease-out transform
+                      ${isActive ? "scale-110 opacity-100" : "opacity-70 group-hover:opacity-100 group-hover:scale-110"}
+                    `}
+                  />
+                ) : (
+                  // Expanded: fix icon to 20px slot (same as other icons) — image overflows visually
+                  <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', flexShrink: 0 }}>
+                    <img
+                      src={paiIcon}
+                      alt="PAI"
+                      style={{ width: '32px', height: '32px', minWidth: '32px' }}
+                      className={`flex-shrink-0 object-contain transition-all duration-300 ease-out transform
+                        ${isActive ? "scale-110 opacity-100" : "opacity-70 group-hover:opacity-100 group-hover:scale-110"}
+                      `}
+                    />
+                  </div>
+                )
+              ) : (
+                <item.icon
+                  className={`
+                    text-[20px] transition-all duration-300 ease-out transform
+                    ${isActive
+                      ? "text-blue-700 scale-110"
+                      : isDarkDrawer
+                        ? "text-white/80 group-hover:text-white group-hover:scale-115"
+                        : "text-text-tertiary group-hover:text-blue-400 group-hover:scale-115"
+                    }
+                  `}
+                />
+              )}
 
               {/* LABEL */}
               {(!collapsed || isMobileDrawer) && (
+                item.key === 'pai' ? (
+                  <img
+                    src={paiLabelImg}
+                    alt="PAI"
+                    className="h-8 object-contain transition-all duration-300 group-hover:translate-x-2 group-hover:opacity-100 opacity-90"
+                  />
+                ) : (
                 <span
                   className={`
-                    text-sm font-semibold transition-all duration-300
+                    text-sm transition-all duration-300
+                    font-semibold
                     ${isActive
-                      ? "text-blue-700"
+                      ? 'text-blue-700'
                       : isDarkDrawer
-                        ? "text-white/90 group-hover:text-white group-hover:translate-x-2"
-                        : "text-text-secondary group-hover:text-blue-400 group-hover:translate-x-2"
+                        ? 'text-white/90 group-hover:text-white group-hover:translate-x-2'
+                        : 'text-text-secondary group-hover:text-blue-400 group-hover:translate-x-2'
                     }
                   `}
                 >
                   {item.label}
                 </span>
+                )
               )}
             </button>
           );

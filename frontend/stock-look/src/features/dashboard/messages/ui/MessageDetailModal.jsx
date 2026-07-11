@@ -22,6 +22,8 @@ import { FiX } from "react-icons/fi";
 // =============================
 
 export default function MessageDetailModal({ message, onClose, formatTimestamp }) {
+    if (!message) return null;
+
     const Icon = message.icon;
 
     return (

@@ -51,7 +51,7 @@ const AuthLayout = ({ children }) => {
     updateUser({
       _id: "demo_user_id_123",
       fullName: "Demo User",
-      email: "demo@stocky.app",
+      email: "demo@praxis.app",
       profileImage: "https://ui-avatars.com/api/?name=Demo+User&background=random",
       role: "user",
       isDemo: true
@@ -159,7 +159,7 @@ const AuthLayout = ({ children }) => {
                       enableOnHover
                       className="text-[3rem] md:text-[clamp(5rem,10vw,12rem)] font-extrabold text-[#1E1BFF]"
                     >
-                      Stocky
+                      Praxis
                     </GlitchText>
 
                     <div className="hidden md:block h-[22px] overflow-hidden text-white/80 text-sm tracking-wide">

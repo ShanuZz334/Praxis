@@ -37,6 +37,9 @@ import {
     FiWifi,
     FiDatabase
 } from "react-icons/fi";
+import {
+    Shield, Layers, Zap, Target, CheckCircle2, XCircle, BrainCircuit, Mail, Code2, Terminal
+} from "lucide-react";
 import { UserContext } from "../../../../shared/context/UserContext";
 import {
     getUserProfile,
@@ -52,13 +55,6 @@ import {
     deleteUserProfile
 } from "../../../../services/userService";
 import Loader from "../../../../shared/components/ui/Loader";
-
-// Broker Logos
-import zerodhaLogo from "../../../../assets/images/zerodha.png";
-import upstoxLogo from "../../../../assets/images/Upstox.png";
-import angelOneLogo from "../../../../assets/images/angel_one.png";
-import kotakLogo from "../../../../assets/images/kotak.png";
-import growwLogo from "../../../../assets/images/groww.png";
 
 import { useTheme } from "../../../../shared/context/ThemeContext";
 
@@ -340,13 +336,13 @@ const SettingsPage = () => {
         if (mode === "aggressive") {
             setShowAggressiveWarning(true);
         } else {
-            setSettings(prev => ({ ...prev, tradingMode: mode }));
+            // UI update only - disconnected from backend
             setTradingMode(mode);
         }
     };
 
     const confirmAggressiveMode = () => {
-        setSettings(prev => ({ ...prev, tradingMode: "aggressive" }));
+        // UI update only - disconnected from backend
         setTradingMode("aggressive");
         setShowAggressiveWarning(false);
     };
@@ -519,7 +515,6 @@ const SettingsPage = () => {
                     deliveryEmail: settings.deliveryEmail
                 }),
                 updatePreferences({
-                    tradingMode: settings.tradingMode,
                     theme: settings.theme,
                     soundAlerts: settings.soundAlerts
                 })
@@ -540,7 +535,6 @@ const SettingsPage = () => {
                         deliveryEmail: settings.deliveryEmail
                     },
                     preferences: {
-                        tradingMode: settings.tradingMode,
                         theme: settings.theme,
                         soundAlerts: settings.soundAlerts
                     }
@@ -576,6 +570,7 @@ const SettingsPage = () => {
         { id: "notifications", label: "Notifications", icon: FiBell },
         { id: "security", label: "Security", icon: FiLock },
         { id: "preferences", label: "Customisation", icon: FiSettings },
+        { id: "about", label: "About", icon: FiInfo },
     ];
 
     if (loading) {
@@ -786,220 +781,26 @@ const SettingsPage = () => {
                                     </div>
                                 </div>
 
-                                <div
-                                    className="border-t border-border-default pt-8"
-                                >
-                                    <div className="mb-6">
-                                        <h3 className="flex items-center gap-2 text-xl font-bold">
-                                            <FiZap className="text-amber-500" /> Auto-Trading Execution
-                                        </h3>
-                                        <p className="text-xs text-text-secondary mt-1">Connect your broker for direct order routing and live portfolio syncing.</p>
-                                    </div>
-                                    <div className="flex flex-col lg:flex-row gap-10">
-                                        {/* Left Side: Configuration Form */}
-                                        <div className="flex-1 space-y-6">
-                                            <div className="space-y-4">
-                                                <label className="text-[10px] font-bold uppercase tracking-widest text-text-tertiary">Select Primary Execution Broker</label>
-                                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3">
-                                                    {AVAILABLE_BROKERS.map((broker) => (
-                                                        <button
-                                                            key={broker.value}
-                                                            type="button"
-                                                            onClick={() => handleInputChange("broker", broker.value)}
-                                                            className={`flex flex-col items-center gap-1.5 md:gap-2 rounded-xl p-2 md:p-3 transition-all border ${formData.broker === broker.value
-                                                                ? 'bg-blue-500/10 border-blue-500/50 shadow-md shadow-blue-500/5'
-                                                                : 'bg-transparent border-border-default hover:bg-transparent hover:border-border-default hover:shadow-lg hover:-translate-y-0.5'
-                                                                }`}
-                                                        >
-                                                            <div className="h-8 w-8 md:h-10 md:w-10 flex items-center justify-center p-1">
-                                                                {broker.image ? (
-                                                                    <img src={broker.image} alt={broker.label} className="h-full w-full object-contain filter drop-shadow-md" />
-                                                                ) : (
-                                                                    <span className="text-lg md:text-xl">{broker.icon}</span>
-                                                                )}
-                                                            </div>
-                                                            <span className={`text-[9px] md:text-[10px] font-bold tracking-tight text-center transition-colors uppercase ${formData.broker === broker.value ? 'text-blue-500' : 'text-text-tertiary'}`}>
-                                                                {broker.label}
-                                                            </span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-4 pt-4 border-t border-border-default">
-                                                <div className="flex items-center justify-between">
-                                                    <label className="text-[10px] font-bold uppercase tracking-widest text-text-tertiary">Data & Intelligence Feeds</label>
-                                                </div>
-                                                <div
-                                                    onClick={() => navigate("/dashboard/admin")}
-                                                    className="group cursor-pointer relative overflow-hidden bg-blue-100/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded-2xl p-6 flex items-center justify-between hover:border-[#1E1BFF]/40 dark:hover:border-blue-400/60 hover:shadow-xl hover:shadow-blue-500/10 dark:hover:shadow-blue-500/20 transition-all duration-500"
-                                                >
-                                                    {/* Background Glow */}
-                                                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#1E1BFF]/10 dark:bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none group-hover:bg-[#1E1BFF]/20 dark:group-hover:bg-blue-400/20 transition-colors duration-500" />
-                                                    
-                                                    <div className="flex items-center gap-5 relative z-10">
-                                                        <div className="h-12 w-12 bg-[#1E1BFF] rounded-xl flex items-center justify-center text-white text-xl group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-md shadow-[#1E1BFF]/20">
-                                                            <FiDatabase />
-                                                        </div>
-                                                        <div>
-                                                            <h3 className="text-base font-extrabold text-black dark:text-white">Data Acquisition Center</h3>
-                                                            <p className="text-[#1E1BFF] dark:text-blue-300 text-[11px] mt-1 font-bold tracking-wide">Manage 30+ Market APIs & 10+ Web Scrapers.</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="h-8 w-8 rounded-full flex items-center justify-center text-[#1E1BFF] dark:text-blue-400 group-hover:bg-[#1E1BFF] group-hover:text-white transition-all duration-300 relative z-10">
-                                                        <FiLink2 size={16} />
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid gap-6 md:grid-cols-2">
-                                                {formData.broker && (
-                                                    <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-300">
-                                                        <label className="text-sm font-medium text-text-secondary">API Key</label>
-                                                        <input
-                                                            type="password"
-                                                            value={formData.apiKey}
-                                                            onChange={(e) => handleInputChange("apiKey", e.target.value)}
-                                                            placeholder="Enter your broker API key"
-                                                            className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {formData.broker && (
-                                                <div className="grid gap-6 md:grid-cols-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-medium text-text-secondary">API Secret</label>
-                                                        <input
-                                                            type="password"
-                                                            value={formData.apiSecret}
-                                                            onChange={(e) => handleInputChange("apiSecret", e.target.value)}
-                                                            placeholder="Enter your broker API secret"
-                                                            className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-medium text-text-secondary">Client ID</label>
-                                                        <input
-                                                            type="text"
-                                                            value={formData.clientId}
-                                                            onChange={(e) => handleInputChange("clientId", e.target.value)}
-                                                            placeholder="Your broker client ID"
-                                                            className="w-full rounded-lg border border-border-default bg-transparent px-4 py-2.5 text-text-primary focus:border-blue-500 focus:outline-none focus:shadow-lg focus:shadow-blue-500/10 transition-all duration-200"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {formData.broker && (
-                                                <div className="space-y-4">
-                                                    <p className="text-xs text-text-secondary">
-                                                        {formData.broker === 'zerodha' && (
-                                                            <a href="https://kite.trade/docs/connect/v3/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                                                                How to get Zerodha API credentials →
-                                                            </a>
-                                                        )}
-                                                        {formData.broker === 'upstox' && (
-                                                            <a href="https://upstox.com/developer/api-documentation/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                                                                How to get Upstox API credentials →
-                                                            </a>
-                                                        )}
-                                                        {formData.broker === 'angelone' && (
-                                                            <a href="https://smartapi.angelbroking.com/docs" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                                                                How to get Angel One API credentials →
-                                                            </a>
-                                                        )}
-                                                    </p>
-
-                                                    {/* Test Connection Button */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={testBrokerConnection}
-                                                        disabled={!formData.broker || !formData.apiKey || !formData.apiSecret || testingConnection}
-                                                        className="w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/20"
-                                                    >
-                                                        {testingConnection ? (
-                                                            <span className="flex items-center justify-center gap-2">
-                                                                <Loader size="sm" color="white" />
-                                                                Testing Connection...
-                                                            </span>
-                                                        ) : (
-                                                            'Test Connection'
-                                                        )}
-                                                    </button>
-
-                                                    {/* Connection Status */}
-                                                    {connectionStatus && (
-                                                        <div className={`p-4 rounded-lg border ${connectionStatus.success
-                                                            ? 'bg-green-500/10 border-green-500/20'
-                                                            : 'bg-red-500/10 border-red-500/20'
-                                                            }`}>
-                                                            <div className="flex items-start gap-3">
-                                                                {connectionStatus.success ? (
-                                                                    <FiCheck className="text-green-500 text-xl flex-shrink-0 mt-0.5" />
-                                                                ) : (
-                                                                    <FiAlertCircle className="text-red-500 text-xl flex-shrink-0 mt-0.5" />
-                                                                )}
-                                                                <div className="flex-1">
-                                                                    <p className={`text-sm font-medium ${connectionStatus.success ? 'text-green-500' : 'text-red-500'
-                                                                        }`}>
-                                                                        {connectionStatus.message}
-                                                                    </p>
-                                                                    {connectionStatus.requiresOAuth && (
-                                                                        <button
-                                                                            onClick={() => window.open(connectionStatus.loginUrl, '_blank')}
-                                                                            className="mt-2 text-xs text-blue-500 hover:underline"
-                                                                        >
-                                                                            Complete OAuth Login →
-                                                                        </button>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
+                                <div className="border-t border-border-default pt-8">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-text-tertiary">Data & Intelligence Feeds</label>
                                         </div>
-
-                                        {/* Right Side: Connected Brokers Display */}
                                         <div
-                                            className="w-full lg:w-72 shrink-0 border-t border-border-default lg:border-t-0 lg:border-l pt-10 lg:pt-0 lg:pl-10"
+                                            onClick={() => navigate("/dashboard/admin")}
+                                            className="group cursor-pointer relative overflow-hidden bg-transparent border border-border-default rounded-2xl p-6 flex items-center justify-between hover:border-border-subtle hover:bg-background-elevated transition-all duration-300"
                                         >
-                                            <div className="sticky top-6">
-                                                <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-tertiary mb-6 flex items-center gap-2">
-                                                    <div className="h-px flex-1 bg-border-subtle"></div>
-                                                    Active Connections
-                                                    <div className="h-px flex-1 bg-border-subtle"></div>
-                                                </h4>
-
-                                                <div className="space-y-4">
-                                                    {initialFormData.broker ? (
-                                                        <ConnectedBrokerCard
-                                                            broker={initialFormData.broker}
-                                                            clientId={initialFormData.clientId}
-                                                            onClick={() => handleInstantConnect({
-                                                                broker: initialFormData.broker,
-                                                                apiKey: initialFormData.apiKey,
-                                                                apiSecret: initialFormData.apiSecret,
-                                                                clientId: initialFormData.clientId
-                                                            })}
-                                                            loading={testingConnection}
-                                                        />
-                                                    ) : (
-                                                        <div
-                                                            className="rounded-2xl border border-dashed border-border-default p-8 text-center bg-transparent"
-                                                        >
-                                                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-transparent mb-3">
-                                                                <FiLink2 className="text-text-tertiary text-xl" />
-                                                            </div>
-                                                            <p className="text-xs text-text-secondary font-medium">No brokers connected yet</p>
-                                                            <p className="text-[10px] text-text-tertiary mt-1">Configure your broker on the left to start trading</p>
-                                                        </div>
-                                                    )}
-
-
+                                            <div className="flex items-center gap-5 relative z-10">
+                                                <div className="h-12 w-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 text-xl group-hover:scale-110 transition-transform duration-300">
+                                                    <FiDatabase />
                                                 </div>
+                                                <div>
+                                                    <h3 className="text-base font-extrabold text-text-primary">Data Acquisition Center</h3>
+                                                    <p className="text-text-secondary text-[11px] mt-1 font-bold tracking-wide">Manage 30+ Market APIs & 10+ Web Scrapers.</p>
+                                                </div>
+                                            </div>
+                                            <div className="h-8 w-8 rounded-full flex items-center justify-center text-text-tertiary group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 relative z-10">
+                                                <FiLink2 size={16} />
                                             </div>
                                         </div>
                                     </div>
@@ -1290,6 +1091,145 @@ const SettingsPage = () => {
                                 )}
                             </div>
                         )}
+
+                        {/* --- ABOUT TAB --- */}
+                        {activeTab === "about" && (
+                            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                {/* Hero */}
+                                <div className="text-center space-y-4">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 text-xs font-bold uppercase tracking-widest">
+                                        <Terminal size={12} />
+                                        System Version 2.0
+                                    </div>
+                                    <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-text-primary leading-tight">
+                                        Precision Intelligence{" "}
+                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-emerald-500">
+                                            For Discretionary Traders
+                                        </span>
+                                    </h2>
+                                    <p className="text-sm text-text-secondary leading-relaxed max-w-2xl mx-auto">
+                                        Praxis is not a signal service. It is an{" "}
+                                        <span className="text-blue-500 font-medium">institutional-grade decision support system</span>{" "}
+                                        designed to align market context, probability, and risk execution.
+                                    </p>
+                                </div>
+
+                                {/* Pillars */}
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {[
+                                        { icon: Shield, title: "Risk First", desc: "Capital preservation is the axiom.", color: "text-emerald-400", bg: "bg-emerald-500/5", border: "hover:border-emerald-500/30" },
+                                        { icon: Layers, title: "Context Aware", desc: "Signals filtered through regime logic.", color: "text-blue-400", bg: "bg-blue-500/5", border: "hover:border-blue-500/30" },
+                                        { icon: BrainCircuit, title: "Process Driven", desc: "Systematizing discretion with frameworks.", color: "text-purple-400", bg: "bg-purple-500/5", border: "hover:border-purple-500/30" },
+                                        { icon: Target, title: "Execution Focus", desc: "Tools built for precision entry and exit.", color: "text-amber-400", bg: "bg-amber-500/5", border: "hover:border-amber-500/30" },
+                                    ].map(({ icon: Icon, title, desc, color, bg, border }) => (
+                                        <div key={title} className={`group p-5 rounded-2xl bg-background-card border border-border-default transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${border}`}>
+                                            <div className={`w-10 h-10 rounded-xl ${bg} ${color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300`}>
+                                                <Icon size={20} />
+                                            </div>
+                                            <h3 className="text-sm font-bold text-text-primary mb-1 group-hover:text-blue-500 transition-colors">{title}</h3>
+                                            <p className="text-xs text-text-secondary leading-relaxed">{desc}</p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Why Praxis + Comparison */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                                    <div className="space-y-4">
+                                        <h3 className="text-xl font-bold">Why <span className="text-blue-500">Praxis</span>?</h3>
+                                        <p className="text-sm text-text-secondary leading-relaxed">
+                                            Most retail tools flood you with noise — endless alerts, lagging indicators, and "buy/sell" signals with zero context.
+                                            Praxis is built to answer: <span className="text-text-primary italic font-medium">"Is this trade structurally sound?"</span>
+                                        </p>
+                                        <div className="p-5 rounded-2xl bg-background-card border border-border-default relative overflow-hidden group">
+                                            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <div className="relative z-10 flex items-start gap-3">
+                                                <Zap className="w-6 h-6 text-yellow-500 shrink-0 mt-0.5" />
+                                                <div>
+                                                    <h4 className="text-sm font-bold text-text-primary mb-1">The "Edge"</h4>
+                                                    <p className="text-xs text-text-secondary">Praxis synthesizes Volatility (Options), Valuation (Fundamentals), and Macros (Global) simultaneously.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-background-card border border-border-default rounded-2xl overflow-hidden shadow-xl">
+                                        <div className="grid grid-cols-2 text-xs font-bold uppercase tracking-widest border-b border-border-default">
+                                            <div className="p-3 text-text-tertiary bg-background-surface">Retail Tools</div>
+                                            <div className="p-3 text-blue-500 bg-blue-500/10">Praxis Ecosystem</div>
+                                        </div>
+                                        <div className="divide-y divide-border-default text-xs">
+                                            {[
+                                                ["Lagging Indicators", "Predictive Volatility Models"],
+                                                ["Generic 'Buy' Alerts", "Regime-Filtered Setups"],
+                                                ["Isolated Charts", "Multi-Factor Synthesis"],
+                                                ["Unmanaged Risk", "Dynamic Drawdown Controls"],
+                                                ["Emotional Trading", "Journaled Discipline"],
+                                            ].map(([old, neo]) => (
+                                                <div key={old} className="grid grid-cols-2 hover:bg-background-surface transition-colors">
+                                                    <div className="p-3 text-text-tertiary border-r border-border-default flex items-center gap-2">
+                                                        <XCircle size={12} className="opacity-50 shrink-0" />
+                                                        <span className="line-through">{old}</span>
+                                                    </div>
+                                                    <div className="p-3 text-text-primary font-medium flex items-center gap-2">
+                                                        <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
+                                                        {neo}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Who it's for */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="p-6 rounded-3xl bg-emerald-500/[0.02] border border-emerald-500/20 hover:border-emerald-500/30 transition-colors">
+                                        <h3 className="text-base font-bold text-emerald-500 mb-4 flex items-center gap-2">
+                                            <CheckCircle2 className="w-5 h-5" /> Built For
+                                        </h3>
+                                        <ul className="space-y-3">
+                                            {["Systems traders seeking consistency", "Option sellers managing Greek exposure", "Swing traders focused on fundamentals", "Anyone who journals their execution"].map(t => (
+                                                <li key={t} className="flex items-start gap-2 text-sm text-text-secondary">
+                                                    <CheckCircle2 size={15} className="text-emerald-500 mt-0.5 shrink-0" />{t}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                    <div className="p-6 rounded-3xl bg-red-500/[0.02] border border-red-500/20 hover:border-red-500/30 transition-colors">
+                                        <h3 className="text-base font-bold text-red-500 mb-4 flex items-center gap-2">
+                                            <XCircle className="w-5 h-5" /> Not For
+                                        </h3>
+                                        <ul className="space-y-3">
+                                            {["Gamblers looking for 'guaranteed' calls", "Impulsive zero-day (0DTE) heroes", "People expecting automation/bots", "Those unwilling to manage risk"].map(t => (
+                                                <li key={t} className="flex items-start gap-2 text-sm text-text-tertiary">
+                                                    <XCircle size={15} className="text-red-500 mt-0.5 shrink-0" />{t}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {/* Footer */}
+                                <div className="border-t border-border-default pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-text-tertiary">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-lg bg-background-surface">
+                                            <Code2 size={18} className="text-text-secondary" />
+                                        </div>
+                                        <div>
+                                            <div className="text-text-primary font-medium">Engineered by Shanif</div>
+                                            <div className="text-xs opacity-70">v2.4.0-stable</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-6">
+                                        <a href="mailto:praxis.prop@gmail.com" className="flex items-center gap-2 hover:text-blue-500 transition-colors">
+                                            <Mail size={14} /> praxis.prop@gmail.com
+                                        </a>
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            Systems Operational
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div >
             </div >
@@ -1561,53 +1501,5 @@ const SettingsPage = () => {
     );
 };
 
-// Broker List Data
-const AVAILABLE_BROKERS = [
-    { value: "zerodha", label: "Zerodha", icon: "🟦", image: zerodhaLogo },
-    { value: "upstox", label: "Upstox", icon: "🟪", image: upstoxLogo },
-    { value: "angelone", label: "Angel One", icon: "🔴", image: angelOneLogo },
-    { value: "kotaksec", label: "Kotak Securities", icon: "🔴", image: kotakLogo },
-    { value: "groww", label: "Groww", icon: "🟢", image: growwLogo }
-];
-
-const ConnectedBrokerCard = ({ broker, clientId, onClick, loading }) => {
-    const brokerInfo = AVAILABLE_BROKERS.find(b => b.value === broker) || { label: broker, icon: "🏦" };
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            disabled={loading}
-            className="w-full text-left group relative flex items-center gap-4 rounded-2xl border border-border-default bg-gradient-to-br from-transparent to-transparent p-4 transition-all duration-300 hover:border-blue-500 hover:bg-transparent hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-wait"
-        >
-            <div
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-transparent border border-border-default group-hover:border-blue-500/20 transition-all"
-            >
-                {loading ? (
-                    <div className="animate-spin text-blue-500">
-                        <i className="bx bx-loader-alt text-xl"></i>
-                    </div>
-                ) : (
-                    brokerInfo.image ? (
-                        <img src={brokerInfo.image} alt={brokerInfo.label} className="h-7 w-7 object-contain group-hover:scale-110 transition-transform" />
-                    ) : (
-                        <span className="text-2xl">{brokerInfo.icon}</span>
-                    )
-                )}
-            </div>
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                    <p className="font-semibold text-text-primary truncate">{brokerInfo.label}</p>
-                    <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'bg-blue-500' : 'bg-emerald-500'} shadow-[0_0_8px_rgba(16,185,129,0.5)]`}></span>
-                </div>
-                <p className="text-[10px] text-text-secondary font-mono mt-0.5 truncate uppercase tracking-tighter">ID: {clientId || 'ID_UNKNOWN'}</p>
-            </div>
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20 whitespace-nowrap">
-                    {loading ? 'CONNECTING' : 'CONNECT'}
-                </div>
-            </div>
-        </button>
-    );
-};
 
 export default SettingsPage;

@@ -9,7 +9,6 @@
  * @key_exports
  * - Tailwind configuration object (default export)
  * @dependencies
- * - ./src/shared/global/styles/palette.js - Color palette
  * - ./src/shared/global/styles/fonts.js - Font definitions
  * @lifecycle
  * - Loaded by Tailwind CSS during build and development.
@@ -20,7 +19,6 @@
 // Imports
 // =============================
 
-import { colors as paletteColors } from "./src/shared/global/styles/palette.js";
 import { fonts } from "./src/shared/global/styles/fonts.js";
 
 // =============================
@@ -34,7 +32,6 @@ export default {
   theme: {
     extend: {
       colors: {
-        ...paletteColors,
         background: {
           app: "var(--bg-app)",
           card: "var(--bg-card)",

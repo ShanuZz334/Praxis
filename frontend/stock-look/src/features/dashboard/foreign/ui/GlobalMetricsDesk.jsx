@@ -277,7 +277,7 @@ export default function GlobalMetricsDesk({ card }) {
 
                 {/* Footer */}
                 <div className="mt-2 pt-4 border-t border-border-subtle text-[9px] text-text-tertiary opacity-30 text-center uppercase tracking-[0.2em]">
-                    Stocky Global AI
+                    Praxis Global AI
                 </div>
             </div>
         </div>

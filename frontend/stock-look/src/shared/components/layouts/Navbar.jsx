@@ -2,7 +2,7 @@
  * @file Navbar.jsx
  * @purpose Main desktop top navigation bar.
  * @responsibilities
- * - Displays market indices (NIFTY/SENSEX) and account balance summaries.
+ * - Displays market indices (NIFTY/SENSEX) and account balance summaries (Empty State).
  * - Provides global actions: Search, Notifications, Settings, Theme Toggle.
  * - Links to external brokers (NSE, Zerodha).
  * - Manages sidebar toggle state.
@@ -11,41 +11,26 @@
  * @dependencies
  * - UserContext, ThemeContext
  * - ThemeToggle
- * - Internal mock data (fakeFundData)
  * @lifecycle
  * - Rendered by DashboardLayout on desktop viewports.
- * @date 2026-02-03
  */
 
-// =============================
-// Imports
-// =============================
-
 import React, { useContext } from "react";
-import { FiBell, FiSettings, FiSun, FiMoon } from "react-icons/fi";
+import { FiBell, FiSettings } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import { UserContext } from "@/shared/context/UserContext";
 import { useTheme } from "@/shared/context/ThemeContext";
 
-import {
-  niftySeries,
-  bankNiftySeries,
-  accountOverview,
-} from "@/shared/utils/fakeFundData";
-
 import nseLogo from "@/assets/images/nse.png";
-import zerodhaLogo from "@/assets/images/zerodha.png";
-import logo from "@/assets/images/logo1.png";
-import logoBgless from "@/assets/icons/Stocky logo blue bgless.png";
+import upstoxLogo from "@/assets/images/Upstox.png";
+import logo1Bgless from "@/assets/icons/praxis logo 1 bgless.png"; // light mode P icon (black)
+import logo2Bgless from "@/assets/icons/praxis logo 2 bgless.png"; // dark mode P icon (blue)
+import praxisBgless1 from "@/assets/icons/praxis bgless 1.png"; // light mode Praxis text (black)
+import praxisBgless2 from "@/assets/icons/praxis bgless 2.png"; // dark mode Praxis text (blue)
 import ThemeToggle from "@/shared/components/ui/ThemeToggle";
-
-// =============================
-// Component
-// =============================
 
 const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
 
   return (
     <header
@@ -71,50 +56,50 @@ const Navbar = ({ onToggleSidebar }) => {
           "
         >
           <img
-            src={logoBgless}
+            src={theme === 'light' ? logo1Bgless : logo2Bgless}
             alt="Menu"
             className="w-[50px] h-[50px] transition-transform hover:scale-110"
           />
         </button>
       </div>
 
-      {/* LEFT CONTENT — MARKET DATA */}
+      {/* LEFT CONTENT — MARKET DATA (CLEAN STATE) */}
       <div className="flex items-center gap-6 px-4">
         <div className="hidden sm:flex flex-col text-xs leading-tight">
           <span className="text-text-secondary">NIFTY 50</span>
-          <span className="text-emerald-500 font-semibold">
-            ₹{niftySeries.latest} +{niftySeries.change}%
+          <span className="text-text-tertiary font-semibold">
+            —
           </span>
         </div>
 
         <div className="hidden md:flex flex-col text-xs leading-tight">
           <span className="text-text-secondary">BANK NIFTY</span>
-          <span className="text-red-500 font-semibold">
-            ₹{bankNiftySeries.latest} {bankNiftySeries.change}%
+          <span className="text-text-tertiary font-semibold">
+            —
           </span>
         </div>
 
         <div className="hidden lg:flex flex-col text-xs leading-tight">
           <span className="text-text-secondary">
-            Balance: ₹{accountOverview.closing_balance.toLocaleString()}
+            Balance: —
           </span>
-          <span className="text-emerald-500 font-semibold">
-            Today +₹{accountOverview.profitToday}
+          <span className="text-text-tertiary font-semibold">
+            Today: —
           </span>
         </div>
       </div>
 
-      {/* CENTER — STOCKY LOGO */}
+      {/* CENTER — PRAXIS LOGO */}
       <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
         {/* Mobile: Blue Text */}
         <span className="md:hidden text-2xl font-bold text-blue-500 tracking-tight">
-          Stocky
+          Praxis
         </span>
-        {/* Desktop: Image Logo */}
+        {/* Desktop: Theme-aware Praxis written logo */}
         <img
-          src={logo}
-          alt="Stocky"
-          className="hidden md:block h-34"
+          src={theme === 'light' ? praxisBgless1 : praxisBgless2}
+          alt="Praxis"
+          className="hidden md:block h-16 object-contain scale-[1.3]"
         />
       </div>
 
@@ -133,15 +118,15 @@ const Navbar = ({ onToggleSidebar }) => {
           />
         </button>
 
-        {/* Zerodha */}
+        {/* Upstox */}
         <button
           className="text-text-tertiary transition-colors"
-          onClick={() => window.open("https://kite.zerodha.com", "_blank")}
+          onClick={() => window.open("https://pro.upstox.com", "_blank")}
         >
           <img
-            src={zerodhaLogo}
-            alt="Zerodha"
-            className="w-7 h-7 object-contain transition-transform hover:scale-110"
+            src={upstoxLogo}
+            alt="Upstox"
+            className="w-9 h-9 object-contain transition-transform hover:scale-110"
           />
         </button>
 

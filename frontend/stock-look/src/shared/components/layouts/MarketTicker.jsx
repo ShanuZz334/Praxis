@@ -7,32 +7,17 @@
  * - Visualizes positive/negative trends with color coding.
  * @key_exports
  * - MarketTicker (Default)
- * @dependencies
- * - React, react-icons
  * @lifecycle
  * - Rendered by Layouts where market context is needed globally.
- * @date 2026-02-03
  */
 
-// =============================
-// Imports
-// =============================
-
 import React from "react";
-import { FiBriefcase, FiTrendingUp, FiTrendingDown } from "react-icons/fi";
-
-// =============================
-// Component
-// =============================
 
 const MarketTicker = () => {
-    // Mock data - would come from context/store in real app
-    const marketData = [
-        { symbol: "NIFTY 50", value: "21,456.70", change: "+0.45%", isUp: true },
-        { symbol: "BANKNIFTY", value: "47,890.15", change: "-0.12%", isUp: false },
-        { symbol: "SENSEX", value: "71,500.30", change: "+0.38%", isUp: true },
-        { symbol: "VIX", value: "13.45", change: "-1.20%", isUp: false },
-    ];
+    // Empty state - waiting for real data injection
+    const marketData = [];
+
+    if (marketData.length === 0) return null; // Don't render if no data
 
     return (
         <div className="fixed top-0 left-0 right-0 z-50 bg-[#02050e]/95 backdrop-blur-md border-b border-white/5 md:hidden">

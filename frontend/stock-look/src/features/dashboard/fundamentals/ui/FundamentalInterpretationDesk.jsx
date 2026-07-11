@@ -139,7 +139,7 @@ export default function FundamentalInterpretationDesk({ card }) {
 
                 {/* DECORATIVE */}
                 <div className="mt-auto pt-4 border-t border-border-subtle text-[9px] text-text-tertiary opacity-30 text-center uppercase tracking-[0.3em] font-light">
-                    Stocky Fundamentals
+                    Praxis Fundamentals
                 </div>
             </div>
         </div>

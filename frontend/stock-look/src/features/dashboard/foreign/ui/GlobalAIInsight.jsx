@@ -59,7 +59,7 @@ export default function GlobalAIInsight({ globalData }) {
                 </div>
 
                 <div className="mt-2 pt-4 border-t border-border-subtle text-center">
-                    <span className="text-[8px] font-black text-text-tertiary uppercase tracking-[0.3em] opacity-30">Stocky Intelligence Engine v4.0</span>
+                    <span className="text-[8px] font-black text-text-tertiary uppercase tracking-[0.3em] opacity-30">Praxis Intelligence Engine v4.0</span>
                 </div>
             </div>
 

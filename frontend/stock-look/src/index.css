@@ -26,6 +26,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import url("https://fonts.googleapis.com/css2?family=Rancho&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&display=swap');
 
 /* =============================
    Tailwind CSS
@@ -41,6 +42,16 @@
   --color-background-subtle: var(--bg-subtle);
   --color-background-card: var(--bg-card);
   --color-background-tooltip: var(--bg-tooltip);
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Praxis Standard Palette */
+  --color-praxis-blue: #2E5BFF;
+  --color-praxis-green: #22C55E;
+  --color-praxis-amber: #F59E0B;
+  --color-praxis-red: #E5484D;
+  --color-praxis-violet: #8B5CF6;
+  --color-praxis-cyan: #06B6D4;
+  --color-praxis-neutral: #94A3B8;
 }
 
 /* =============================
@@ -75,25 +86,25 @@ html[data-theme="dark"] {
   --text-tertiary: rgba(255, 255, 255, 0.4);
   --text-brand: #60a5fa;
 
-  --state-bullish-main: #10b981;
-  --state-bullish-surface: rgba(16, 185, 129, 0.1);
-  --state-bullish-text: #34d399;
+  --state-bullish-main: var(--color-praxis-green);
+  --state-bullish-surface: rgba(34, 197, 94, 0.1);
+  --state-bullish-text: var(--color-praxis-green);
 
-  --state-bearish-main: #ef4444;
-  --state-bearish-surface: rgba(239, 68, 68, 0.1);
-  --state-bearish-text: #f87171;
+  --state-bearish-main: var(--color-praxis-red);
+  --state-bearish-surface: rgba(229, 72, 77, 0.1);
+  --state-bearish-text: var(--color-praxis-red);
 
-  --state-neutral-main: #64748b;
-  --state-neutral-surface: rgba(100, 116, 139, 0.1);
-  --state-neutral-text: #e2e8f0;
+  --state-neutral-main: var(--color-praxis-neutral);
+  --state-neutral-surface: rgba(148, 163, 184, 0.1);
+  --state-neutral-text: var(--color-praxis-neutral);
 
-  --state-warning-main: #f59e0b;
+  --state-warning-main: var(--color-praxis-amber);
   --state-warning-surface: rgba(245, 158, 11, 0.1);
-  --state-warning-text: #fbbf24;
+  --state-warning-text: var(--color-praxis-amber);
 
-  --reliability-high: #10b981;
-  --reliability-med: #facc15;
-  --reliability-low: #94a3b8;
+  --reliability-high: var(--color-praxis-green);
+  --reliability-med: var(--color-praxis-amber);
+  --reliability-low: var(--color-praxis-neutral);
 
   --accent-primary: #3b82f6;
   --accent-glow: rgba(59, 130, 246, 0.4);
@@ -135,25 +146,25 @@ html[data-theme="light"],
   --text-tertiary: #64748B;
   --text-brand: #2563EB;
 
-  --state-bullish-main: #16A34A;
-  --state-bullish-surface: rgba(22, 163, 74, 0.1);
-  --state-bullish-text: #059669;
+  --state-bullish-main: var(--color-praxis-green);
+  --state-bullish-surface: rgba(34, 197, 94, 0.1);
+  --state-bullish-text: #16A34A; /* slightly darker for light mode text */
 
-  --state-bearish-main: #DC2626;
-  --state-bearish-surface: rgba(220, 38, 38, 0.1);
-  --state-bearish-text: #dc2626;
+  --state-bearish-main: var(--color-praxis-red);
+  --state-bearish-surface: rgba(229, 72, 77, 0.1);
+  --state-bearish-text: #D92D20;
 
-  --state-neutral-main: #64748B;
+  --state-neutral-main: var(--color-praxis-neutral);
   --state-neutral-surface: #E2E8F0;
-  --state-neutral-text: #334155;
+  --state-neutral-text: #475569;
 
-  --state-warning-main: #D97706;
-  --state-warning-surface: #FEF3C7;
+  --state-warning-main: var(--color-praxis-amber);
+  --state-warning-surface: rgba(245, 158, 11, 0.1);
   --state-warning-text: #B45309;
 
-  --reliability-high: #059669;
-  --reliability-med: #D97706;
-  --reliability-low: #64748B;
+  --reliability-high: var(--color-praxis-green);
+  --reliability-med: var(--color-praxis-amber);
+  --reliability-low: var(--color-praxis-neutral);
 
   --accent-primary: #2563EB;
   --accent-glow: rgba(37, 99, 235, 0.2);

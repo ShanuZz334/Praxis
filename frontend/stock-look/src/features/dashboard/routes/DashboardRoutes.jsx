@@ -31,7 +31,6 @@ import OptionsPage from "@/features/dashboard/options/ui/OptionsPage";
 import EventsPage from "@/features/dashboard/events/ui/EventsPage";
 import WalletPage from "@/features/dashboard/wallet/ui/WalletPage";
 import ForeignPage from "@/features/dashboard/foreign/ui/ForeignPage";
-import JournalPage from "@/features/dashboard/journal/ui/JournalPage";
 import ManualDashboard from "@/features/dashboard/manual/ui/ManualDashboard";
 import ManualSectionLayout from "@/features/dashboard/manual/ui/ManualSectionLayout";
 import AboutPage from "@/features/dashboard/about/ui/AboutPage";
@@ -39,6 +38,8 @@ import SettingsPage from "@/features/dashboard/settings/ui/SettingsPage";
 import MessagesPage from "@/features/dashboard/messages/ui/MessagesPage";
 import AdminDashboard from "@/features/admin/pages/AdminDashboard";
 import UpstoxCallback from "@/features/admin/pages/UpstoxCallback";
+import JournalPage from "@/features/dashboard/journal/ui/JournalPage";
+import PaiPage from "@/features/dashboard/pai/ui/PaiPage";
 
 // Effects
 import MenuSync from "@/shared/components/effects/MenuSync";
@@ -93,6 +94,17 @@ const DashboardRoutes = ({ setActiveMenu }) => {
         }
       />
 
+      {/* PAI */}
+      <Route
+        path="pai"
+        element={
+          <>
+            <MenuSync menu="pai" setActiveMenu={setActiveMenu} />
+            <PaiPage />
+          </>
+        }
+      />
+
       <Route
         path="events"
         element={
@@ -125,6 +137,7 @@ const DashboardRoutes = ({ setActiveMenu }) => {
         }
       />
 
+      {/* Journal */}
       <Route
         path="journal"
         element={

@@ -27,8 +27,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 
 import GlitchText from "@/shared/components/backgrounds/GlitchText";
-import logoBgless from "@/assets/icons/Stocky logo blue bgless.png";
-import logoBlackBgless from "@/assets/icons/stocky logo balck bgless.png";
+import logo1Bgless from "@/assets/icons/praxis logo 1 bgless.png"; // light mode P icon (black)
+import logo2Bgless from "@/assets/icons/praxis logo 2 bgless.png"; // dark mode P icon (blue)
 import { useTheme } from "../../context/ThemeContext";
 import MobileQuickNav from "./MobileQuickNav";
 
@@ -133,15 +133,30 @@ const MobileHeader = ({ onMenuClick }) => {
             }
         };
 
+        const handleTouchCancel = (e) => {
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
+            }
+            if (isQuickNavActiveRef.current) {
+                setIsQuickNavActive(false);
+                setHoveredPath(null);
+                isQuickNavActiveRef.current = false;
+                hoveredPathRef.current = null;
+            }
+        };
+
         // Passive: false is crucial for preventing scroll
         button.addEventListener('touchstart', handleTouchStart, { passive: true });
         button.addEventListener('touchmove', handleTouchMove, { passive: false });
         button.addEventListener('touchend', handleTouchEnd, { passive: false });
+        button.addEventListener('touchcancel', handleTouchCancel, { passive: false });
 
         return () => {
             button.removeEventListener('touchstart', handleTouchStart);
             button.removeEventListener('touchmove', handleTouchMove);
             button.removeEventListener('touchend', handleTouchEnd);
+            button.removeEventListener('touchcancel', handleTouchCancel);
         };
     }, [navigate, toggleTheme]);
 
@@ -174,7 +189,7 @@ const MobileHeader = ({ onMenuClick }) => {
                     aria-label="Menu"
                 >
                     <img
-                        src={theme === 'light' ? logoBlackBgless : logoBgless}
+                        src={theme === 'light' ? logo1Bgless : logo2Bgless}
                         alt="Menu"
                         className="w-8 h-8 scale-[1.3] transition-transform hover:scale-[1.4] pointer-events-none" // prevent img from capturing drag
                     />
@@ -186,7 +201,7 @@ const MobileHeader = ({ onMenuClick }) => {
                         className={`text-2xl font-extrabold ${theme === 'light' ? 'text-black' : 'text-[#1E1BFF]'}`}
                         style={{ fontFamily: "'Rancho', cursive" }}
                     >
-                        Stocky
+                        Praxis
                     </span>
                 </div>
 

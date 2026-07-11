@@ -33,7 +33,7 @@ export default function TopicDetail({ topic }) {
             {/* 1. HERO HEADER */}
             <div className="mb-6 flex flex-col xl:flex-row xl:items-start justify-between gap-6">
                 <div className="flex-1">
-                    <h1 className="text-2xl font-bold text-white mb-3 tracking-tight">
+                    <h1 className="text-2xl font-bold text-text-primary mb-3 tracking-tight">
                         {topic.title}
                     </h1>
                     <div className="text-[13px] text-text-secondary leading-relaxed max-w-3xl whitespace-pre-wrap">
@@ -45,24 +45,24 @@ export default function TopicDetail({ topic }) {
             <div className="space-y-4 max-w-[1000px]">
 
                 {/* 2. CORE INTERPRETATION CARD */}
-                <div className="bg-[#121020] border border-purple-500/20 rounded-xl p-5 md:p-6">
+                <div className="bg-background-card border border-border-default rounded-xl p-5 md:p-6">
                     <div className="flex items-center gap-2 mb-6">
-                        <div className="p-1 rounded bg-purple-500/20 text-purple-400">
+                        <div className="p-1 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400">
                             <Activity size={14} />
                         </div>
-                        <h3 className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Interpretation Framework</h3>
+                        <h3 className="text-[10px] font-bold text-text-primary uppercase tracking-widest">Interpretation Framework</h3>
                     </div>
                     
                     {topic.interpretationVisual ? (
                         <div className="mb-6">
                             {/* Visual Scale Line */}
-                            <div className="relative h-[2px] w-full bg-white/5 rounded-full mb-4 mx-auto">
+                            <div className="relative h-[2px] w-full bg-border-default rounded-full mb-4 mx-auto">
                                 <div className="absolute inset-0 bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500 rounded-full" />
                                 {/* Scale markers (dots) */}
                                 {topic.interpretationVisual.map((item, idx) => {
                                     const leftPct = (idx / (topic.interpretationVisual.length - 1)) * 100;
                                     return (
-                                        <div key={idx} className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-[#111827] border-2 border-white rounded-full" style={{ left: `calc(${leftPct}% - 4px)` }} />
+                                        <div key={idx} className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-background-surface border-2 border-text-primary rounded-full" style={{ left: `calc(${leftPct}% - 4px)` }} />
                                     );
                                 })}
                             </div>
@@ -71,7 +71,7 @@ export default function TopicDetail({ topic }) {
                             <div className="flex justify-between w-full">
                                 {topic.interpretationVisual.map((item, idx) => (
                                     <div key={idx} className="flex flex-col items-center text-center w-1/5">
-                                        <div className="text-[11px] font-bold text-white mb-0.5">{item.range}</div>
+                                        <div className="text-[11px] font-bold text-text-primary mb-0.5">{item.range}</div>
                                         <div className={`text-[10px] font-bold ${item.color}`}>{item.label}</div>
                                     </div>
                                 ))}
@@ -85,13 +85,13 @@ export default function TopicDetail({ topic }) {
                 </div>
 
                 {/* 3. MARKET ALPHA (INSIGHT) */}
-                <div className="bg-[#161208] border border-amber-500/20 rounded-xl p-5">
+                <div className="bg-background-card border border-border-default rounded-xl p-5">
                     <div className="flex items-start gap-3">
-                        <div className="p-1.5 rounded bg-amber-500/20 text-amber-500">
+                        <div className="p-1.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-500">
                             <Lightbulb size={14} />
                         </div>
                         <div>
-                            <h4 className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-2">Market Alpha Insight</h4>
+                            <h4 className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest mb-2">Market Alpha Insight</h4>
                             <p className="text-[12px] text-text-secondary font-serif italic leading-relaxed whitespace-pre-wrap">
                                 "{topic.proTip}"
                             </p>
@@ -103,12 +103,12 @@ export default function TopicDetail({ topic }) {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     
                     {/* Left Col: Calculation / Framework */}
-                    <div className="lg:col-span-2 bg-[#0c1017] border border-white/5 rounded-xl p-5">
+                    <div className="lg:col-span-2 bg-background-card border border-border-default rounded-xl p-5">
                         <div className="flex items-center gap-2 mb-4">
-                            <div className="p-1 rounded bg-blue-500/20 text-blue-400">
+                            <div className="p-1 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400">
                                 {topic.isBehavioral ? <BookOpen size={14} /> : <Calculator size={14} />}
                             </div>
-                            <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">
+                            <span className="text-[10px] font-bold text-text-primary uppercase tracking-widest">
                                 {topic.isBehavioral ? "Behavioral Framework" : "How It's Calculated"}
                             </span>
                         </div>
@@ -138,39 +138,39 @@ export default function TopicDetail({ topic }) {
                     {/* Right Col: Metadata Stack */}
                     <div className="lg:col-span-1 space-y-3">
                         {topic.dataSources && (
-                            <div className="bg-[#0c1017] border border-white/5 rounded-xl p-4 flex items-start gap-3">
-                                <div className="mt-0.5 text-blue-400/70"><Database size={14} /></div>
+                            <div className="bg-background-card border border-border-default rounded-xl p-4 flex items-start gap-3">
+                                <div className="mt-0.5 text-blue-600/70 dark:text-blue-400/70"><Database size={14} /></div>
                                 <div>
-                                    <div className="text-[9px] font-bold text-white/80 uppercase tracking-widest mb-1">Data Sources</div>
+                                    <div className="text-[9px] font-bold text-text-primary uppercase tracking-widest mb-1">Data Sources</div>
                                     <div className="text-[11px] text-text-secondary leading-relaxed">{topic.dataSources}</div>
                                 </div>
                             </div>
                         )}
                         {topic.updateFrequency && (
-                            <div className="bg-[#0c1017] border border-white/5 rounded-xl p-4 flex items-start gap-3">
-                                <div className="mt-0.5 text-emerald-400/70"><Clock size={14} /></div>
+                            <div className="bg-background-card border border-border-default rounded-xl p-4 flex items-start gap-3">
+                                <div className="mt-0.5 text-emerald-600/70 dark:text-emerald-400/70"><Clock size={14} /></div>
                                 <div>
-                                    <div className="text-[9px] font-bold text-white/80 uppercase tracking-widest mb-1">Update Frequency</div>
+                                    <div className="text-[9px] font-bold text-text-primary uppercase tracking-widest mb-1">Update Frequency</div>
                                     <div className="text-[11px] text-text-secondary leading-relaxed whitespace-pre-wrap">{topic.updateFrequency}</div>
                                 </div>
                             </div>
                         )}
                         {topic.confidenceImpact && (
-                            <div className="bg-[#0c1017] border border-white/5 rounded-xl p-4 flex items-start gap-3">
-                                <div className="mt-0.5 text-amber-400/70"><ShieldAlert size={14} /></div>
+                            <div className="bg-background-card border border-border-default rounded-xl p-4 flex items-start gap-3">
+                                <div className="mt-0.5 text-amber-600/70 dark:text-amber-400/70"><ShieldAlert size={14} /></div>
                                 <div>
-                                    <div className="text-[9px] font-bold text-white/80 uppercase tracking-widest mb-1">Confidence Impact</div>
+                                    <div className="text-[9px] font-bold text-text-primary uppercase tracking-widest mb-1">Confidence Impact</div>
                                     <div className="text-[11px] text-text-secondary leading-relaxed">{topic.confidenceImpact}</div>
                                 </div>
                             </div>
                         )}
                         {!topic.dataSources && !topic.updateFrequency && !topic.confidenceImpact && (
-                            <div className="bg-[#0c1017] border border-white/5 rounded-xl p-4 h-full flex flex-col justify-center">
+                            <div className="bg-background-card border border-border-default rounded-xl p-4 h-full flex flex-col justify-center">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <Scale size={14} className="text-purple-400" />
-                                    <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Model Weighting</span>
+                                    <Scale size={14} className="text-purple-600 dark:text-purple-400" />
+                                    <span className="text-[10px] font-bold text-text-primary uppercase tracking-widest">Model Weighting</span>
                                 </div>
-                                <div className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 tracking-tighter">
+                                <div className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500 tracking-tighter">
                                     {topic.weight}
                                 </div>
                             </div>
