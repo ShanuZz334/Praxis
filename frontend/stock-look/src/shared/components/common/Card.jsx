@@ -43,6 +43,7 @@ const Card = ({
   className,
   span = 1,
   borderless = false,
+  ...props
 }) => {
   const { theme, gradientBorder } = useContext(ThemeContext);
 
@@ -50,6 +51,7 @@ const Card = ({
 
   return (
     <div
+      {...props}
       className={clsx(
         `
         relative

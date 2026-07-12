@@ -1,0 +1,87 @@
+import React, { useState } from 'react';
+import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+
+export default function PcrOiCard({ initialData = null }) {
+    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || 0.95);
+    const [trend, setTrend] = useState(initialData?.trend || "Stable");
+
+    const configData = getIndicatorConfig('pcr_oi');
+
+    // Calculate Bias and Score
+    let score = 50;
+    let bias = "Neutral";
+    let confidence = "90%";
+    let sentiment = "Neutral";
+
+    if (currentValue > 1.30) {
+        bias = "Contrarian Warning";
+        score = 85;
+        sentiment = "Overbought";
+    } else if (currentValue >= 1.00 && currentValue <= 1.30) {
+        bias = "Bullish";
+        score = 80;
+        sentiment = "Bullish";
+    } else if (currentValue >= 0.80 && currentValue < 1.00) {
+        bias = "Neutral";
+        score = 60;
+        sentiment = "Neutral";
+    } else {
+        bias = "Bearish";
+        score = 25;
+        sentiment = "Bearish";
+    }
+
+    // AI Insight
+    let aiInsightText = "";
+    if (currentValue > 1.30) {
+        aiInsightText = "Explain that sentiment has become excessively bullish and a contrarian reversal risk exists.";
+    } else if (currentValue >= 1.00) {
+        aiInsightText = "Explain that Put positioning exceeds Call positioning, indicating bullish sentiment.";
+    } else if (currentValue >= 0.80) {
+        aiInsightText = "Explain that options positioning remains balanced.";
+    } else {
+        aiInsightText = "Explain that Call positioning dominates, reflecting bearish market sentiment.";
+    }
+
+    const whyItMatters = [
+        "Measures institutional options sentiment.",
+        "Identifies bullish and bearish positioning.",
+        "Detects sentiment extremes.",
+        "Confirms trend direction.",
+        "Widely followed by professional options traders."
+    ];
+
+    const handleSave = (val) => {
+        const n = parseFloat(val);
+        if (!isNaN(n)) setCurrentValue(n);
+    };
+
+    return (
+        <IndicatorCard
+            config={{ 
+                title: "Put-Call Ratio (OI)", 
+                category: "Put-Call Ratio", 
+                mode: "MANUAL", 
+                creditScore: configData.creditScore, 
+                updateTime: "--:--", 
+                source: configData.source, 
+                aiModel: configData.aiModel 
+            }}
+            data={{ 
+                currentValueObj: { label: "PCR (OI)", value: currentValue.toFixed(2) }, 
+                details: [
+                    { label: "Trend", value: trend },
+                    { label: "Sentiment", value: sentiment }
+                ], 
+                score, 
+                bias, 
+                confidence, 
+                impactWeight: configData.impactWeight 
+            }}
+            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "PCR (OI)" }}
+            insights={{ aiInsight: aiInsightText, whyItMatters }}
+            onSave={handleSave}
+        />
+    );
+}

@@ -61,7 +61,7 @@ function ScoreRangeBar({ score }) {
 // =============================
 // Helper: Header
 // =============================
-function IndicatorHeader({ title, category, mode, creditScore, updateTime }) {
+function IndicatorHeader({ title, category, mode, creditScore, updateTime, missingManualCount }) {
   const isAuto = mode?.toUpperCase() === "AUTO";
   return (
     <div className="flex justify-between items-start mb-4">
@@ -80,7 +80,11 @@ function IndicatorHeader({ title, category, mode, creditScore, updateTime }) {
           {/* CR Badge */}
           <div className="flex items-center gap-1">
             <span className="px-1.5 py-0.5 border border-border-default rounded text-[10px] font-mono bg-background-elevated">{creditScore}</span>
-            <span className="text-[10px] text-text-secondary font-bold">CR</span>
+            {missingManualCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/30">
+                    {missingManualCount}
+                </span>
+            )}
           </div>
         </div>
         <span className="text-[9px] text-text-tertiary">Updated {updateTime}</span>
@@ -102,13 +106,7 @@ function MetricsGrid({
   currentValueObj, 
   onSave 
 }) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(currentValueObj?.value || "");
-
-  const handleSave = () => {
-    setEditing(false);
-    if(onSave) onSave(val);
-  }
+  // Inline edit state removed to enforce centralized GlobalHeader manual overrides
 
   // Common styles for the grid rows
   const rowClass = "flex justify-between items-center py-1";
@@ -118,43 +116,35 @@ function MetricsGrid({
   return (
     <div className="flex flex-col gap-0.5">
       
-      {/* Dynamic details injected specifically (e.g. MACD Line, Signal Line) */}
-      {details?.map((d, i) => (
-        <div key={i} className={rowClass}>
-          <span className={labelClass}>{d.label}</span>
-          <span className={cn(valClass, "text-blue-400")}>{d.value}</span>
-        </div>
-      ))}
-
-      {/* Current Value (with Edit Support) */}
-      {currentValueObj && (
+      {/* Current Value */}
+      {currentValueObj && currentValueObj.value !== '--' && (
         <div className={cn(rowClass, isManual && "mb-1")}>
           <span className={labelClass}>{currentValueObj.label || "Current Value"}</span>
-          {isManual && editing ? (
-            <div className="flex items-center gap-2">
-              <input 
-                type="text" 
-                value={val} 
-                onChange={e => setVal(e.target.value)}
-                className="bg-background-elevated border border-border-subtle rounded px-2 py-0.5 text-[11px] font-mono w-20 outline-none focus:border-blue-500"
-                autoFocus
-              />
-              <button onClick={handleSave} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-[10px] font-bold tracking-wide transition-colors">
-                Save
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              {isManual && (
-                <button onClick={() => setEditing(true)} className="text-text-tertiary hover:text-text-primary transition-colors p-1">
-                  <Edit2 className="w-3 h-3" />
-                </button>
-              )}
-              <span className={cn(valClass, !isManual && "text-blue-400")}>{currentValueObj.value}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {isManual && (
+              <span className="text-text-tertiary">
+                <Edit2 className="w-3 h-3" />
+              </span>
+            )}
+            <span className={cn(valClass, !isManual && "text-blue-400")}>{currentValueObj.value}</span>
+          </div>
         </div>
       )}
+
+      {/* Dynamic details injected specifically (e.g. MACD Line, Signal Line) */}
+      {details?.filter(d => d && d.value !== '--' && d.value !== null && d.value !== undefined).map((d, i) => (
+        <div key={i} className={rowClass}>
+          <span className={labelClass}>{d.label}</span>
+          <div className="flex items-center gap-2">
+            {d.isManual && (
+              <span className="text-text-tertiary">
+                <Edit2 className="w-3 h-3" />
+              </span>
+            )}
+            <span className={cn(valClass, !d.isManual && "text-blue-400")}>{d.value}</span>
+          </div>
+        </div>
+      ))}
 
       {/* Core Standard Metrics */}
       <div className={rowClass}>
@@ -257,6 +247,11 @@ export function IndicatorCard({
 
   const isManual = config.mode?.toUpperCase() === "MANUAL";
 
+  const missingManualCount = [
+    ...(data?.currentValueObj ? [{ ...data.currentValueObj, isManual: isManual || data.currentValueObj.isManual }] : []),
+    ...(data?.details || [])
+  ].filter(d => d && d.isManual && (d.value === '--' || d.value === null || d.value === undefined)).length;
+
   return (
     <Card 
       className={cn("p-5 overflow-hidden transition-colors cursor-pointer relative", className)} 
@@ -267,6 +262,7 @@ export function IndicatorCard({
         <div className="shrink-0">
           <IndicatorHeader 
             {...config} 
+            missingManualCount={missingManualCount}
           />
         </div>
         

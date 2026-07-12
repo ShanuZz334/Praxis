@@ -5,7 +5,6 @@
  * DATA SOURCES:
  *  - currentFwdPE   → LIVE: Upstox key-ratios API (if available) or MANUAL (forward_pe)
  *  - currentPE      → LIVE: Upstox key-ratios API (for comparison)
- *  - projectedEPS   → MANUAL: manualOverride (projected_eps)
  *
  * MODE:
  *  - AUTO  when currentFwdPE is sourced from Upstox
@@ -116,8 +115,7 @@ export default function ForwardPECard({ data = null, manualOverride, lastUpdated
     const parsedPE = upstoxPEObj?.company_value ? parseFloat(upstoxPEObj.company_value) : null;
     const currentPE = (parsedPE !== null && !isNaN(parsedPE)) ? parsedPE : null;
 
-    // ── Step 3: Resolve Projected EPS (Always Manual) ─────────────────────────
-    const projectedEPS = data?.manualProjectedEps ?? null;
+    // Removed Projected EPS to comply with Zero Clutter Rule
 
     // ── Step 4: Run Engine ────────────────────────────────────────────────────
     const { score, bias, confidence } = scoreForwardPE(currentFwdPE, currentPE);
@@ -147,12 +145,12 @@ export default function ForwardPECard({ data = null, manualOverride, lastUpdated
                     value: displayFwdPE 
                 },
                 details: [
-                    { 
-                        label: 'Projected EPS (Next 12M)', 
-                        value: projectedEPS !== null ? parseFloat(projectedEPS).toFixed(2) : '--', 
-                        isManual: true 
+                    currentPE !== null && { 
+                        label: 'Trailing P/E (Live)', 
+                        value: parseFloat(currentPE).toFixed(2), 
+                        isManual: false 
                     }
-                ],
+                ].filter(Boolean),
                 score,
                 bias,
                 confidence: `${confidence}%`,

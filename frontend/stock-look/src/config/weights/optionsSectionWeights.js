@@ -17,9 +17,11 @@ import { TRADING_MODES, getCurrentMode } from '../tradingModes.js';
 // =============================
 
 export const optionsSections = [
-    { id: 'Open Interest', label: 'Open Interest', w: 0.4 },
-    { id: 'Greeks', label: 'Greeks', w: 0.35 },
-    { id: 'Volatility', label: 'Volatility', w: 0.25 }
+    { id: 'Open Interest', label: 'Open Interest', w: 0.25 },
+    { id: 'Put-Call Ratio', label: 'Put-Call Ratio', w: 0.20 },
+    { id: 'Greeks', label: 'Greeks', w: 0.20 },
+    { id: 'Volatility', label: 'Volatility', w: 0.15 },
+    { id: 'Market Positioning', label: 'Market Positioning', w: 0.20 }
 ];
 
 // =============================
@@ -33,14 +35,18 @@ export const SECTION_MODE_MULTIPLIERS = {
 
     [TRADING_MODES.AGGRESSIVE]: {
         'Open Interest': 1.3,
+        'Put-Call Ratio': 1.2,
         'Greeks': 1.4,
-        'Volatility': 0.7
+        'Volatility': 0.7,
+        'Market Positioning': 1.2
     },
 
     [TRADING_MODES.CONSERVATIVE]: {
         'Open Interest': 1.0,
+        'Put-Call Ratio': 1.0,
         'Greeks': 0.8,
-        'Volatility': 1.5
+        'Volatility': 1.5,
+        'Market Positioning': 1.0
     }
 };
 

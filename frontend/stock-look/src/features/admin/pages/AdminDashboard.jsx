@@ -10,10 +10,18 @@ import { API_PATHS } from "@/shared/utils/apiPaths";
 import CredentialCard from "../components/CredentialCard";
 import AddCredentialModal from "../components/AddCredentialModal";
 
+import { upstoxService } from "@/shared/services/upstoxService";
+
 // ============================================
 // PROVIDER METADATA (Official APIs)
 // ============================================
-const PROVIDER_META = {};
+const PROVIDER_META = {
+    upstox: {
+        name: "Upstox API",
+        desc: "Real-time Market Data Feed V3 & OAuth Integration",
+        icon: Activity
+    }
+};
 
 // ============================================
 // SCRAPER METADATA (Web Scrapers)
@@ -31,12 +39,31 @@ const AdminDashboard = () => {
     const fetchProviderHealth = async () => {
         setLoading(true);
         try {
-            const res = await axiosInstance.get(API_PATHS.HEALTH.PROVIDERS);
-            setProviders(res.data || []);
+            // Check Upstox Status
+            const upstoxStatus = await upstoxService.checkStatus();
+            
+            const liveProviders = [];
+            
+            if (upstoxStatus.connected) {
+                liveProviders.push({
+                    provider: "upstox",
+                    status: "UP",
+                    configured: true,
+                    latency: 45 // mock latency for now
+                });
+            } else {
+                liveProviders.push({
+                    provider: "upstox",
+                    status: "OFFLINE",
+                    configured: false,
+                    latency: 0
+                });
+            }
+
+            setProviders(liveProviders);
         } catch (err) {
             console.error("Failed to fetch provider health:", err);
-            // Mock empty array on fail to allow rendering
-            setProviders([]); 
+            setProviders([{ provider: "upstox", status: "OFFLINE", configured: false, latency: 0 }]); 
         } finally {
             setLoading(false);
         }
@@ -196,8 +223,12 @@ const AdminDashboard = () => {
                                     onCheckConnection={handleCheckConnection}
                                     checking={checking}
                                     onConfigure={() => {
-                                        setSelectedProvider(key);
-                                        setIsModalOpen(true);
+                                        if (key === "upstox") {
+                                            upstoxService.login();
+                                        } else {
+                                            setSelectedProvider(key);
+                                            setIsModalOpen(true);
+                                        }
                                     }}
                                 />
                             </div>

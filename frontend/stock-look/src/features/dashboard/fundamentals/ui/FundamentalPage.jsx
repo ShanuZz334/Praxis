@@ -15,6 +15,7 @@ import React, { useState } from "react";
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import FundamentalGrid from "./FundamentalGrid";
 import FundamentalModal from "./FundamentalModal";
+import CompanySummaryWidget from "./CompanySummaryWidget";
 import UiverseDropdown from '@/shared/components/ui/UiverseDropdown';
 import { FO_INDICES, FO_EQUITIES } from '@/shared/utils/foInstruments';
 import { useFundamentalsData } from '../api/useFundamentalsData';
@@ -75,48 +76,55 @@ export default function FundamentalPage() {
   // Master state for manual overrides
   const [manualOverrides, setManualOverrides] = useState({
       // Valuation
-      pe_ratio: 20.15,
-      pe_hist: 25.0,        // Historical avg PE — manual (not in Upstox)
-      pe_sector: 22.0,      // Sector PE — manual (not in Upstox)
-      forward_pe: 18.5,
-      projected_eps: 120.5, // Projected EPS (Next 12M) — manual (not in Upstox)
-      pb_ratio: 2.5,
-      earnings_yield: 4.8,
+      pe_ratio: null,
+      pe_hist: null,
+      pe_sector: null,
+      forward_pe: null,
+      projected_eps: null,
+      pb_ratio: null,
+      pb_hist: null,
+      pb_sector: null,
+      earnings_yield: null,
+      ey_hist: null,
+      bond_yield: null,
       // Market Health
-      market_cap_gdp: 95.0,
-      dividend_yield: 1.2,
-      earnings_trend: 10.0,
-      fii_dii_flow: 500,
+      market_cap_gdp: null,
+      dividend_yield: null,
+      fii_dii_flow: null,
+      earnings_trend: null,
       // Growth
-      eps_growth: 12.5,
-      revenue_growth: 15.0,
-      profit_growth: 14.2,
-      gdp_growth: 6.5,
-      // Profitability
-      roe: 18.5,
-      roce: 22.0,
-      net_margin: 15.5,
-      operating_margin: 18.0,
-      operating_profit: 5000,
-      revenue: 30000,
-      // Financial Health
-      debt_to_equity: 0.4,
-      total_debt: 8000,
-      shareholders_equity: 20000,
-      free_cash_flow: 1500,
-      operating_cf: 3000,
-      capex: 1500,
-      current_ratio: 1.5,
-      current_assets: 15000,
-      current_liabilities: 10000,
-      interest_coverage: 8.0,
-      ebit: 4000,
-      interest_expense: 500,
+      eps_growth: null,
+      gdp_growth: null,
+      revenue_growth: null,
+      profit_growth: null,
+      // Profitability & Health
+      roe: null,
+      roce: null,
+      net_margin: null,
+      operating_margin: null,
+      operating_profit: null,
+      revenue: null,
+      debt_to_equity: null,
+      total_debt: null,
+      shareholders_equity: null,
+      current_ratio: null,
+      current_assets: null,
+      current_liabilities: null,
+      interest_coverage: null,
+      ebit: null,
+      interest_expense: null,
+      free_cash_flow: null,
+      operating_cf: null,
+      capex: null,
+      face_value: null,
+      high_low: null,
+      current_price: null,
+      book_value: null,
   });
 
   const handleOverrideChange = (key, val) => {
       setManualOverrides(prev => ({ ...prev, [key]: val }));
-      setManualLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setManualLastUpdated(new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }));
   };
 
   // Track when a manual override was last changed
@@ -131,7 +139,22 @@ export default function FundamentalPage() {
 
   const { data: fundamentalsData, loading, error, lastUpdated } = useFundamentalsData(selectedInstrument);
 
-
+  // --- Dynamic Hiding Logic for Fallbacks ---
+  const extractRatioExists = (names) => {
+      const ratiosArray = Array.isArray(fundamentalsData?.ratios) ? fundamentalsData.ratios : [];
+      const obj = ratiosArray.find(r => names.some(n => r.name?.toLowerCase() === n.toLowerCase()));
+      return obj?.company_value !== undefined && obj?.company_value !== null && obj?.company_value !== '';
+  };
+  
+  const hasMarketCap = (fundamentalsData?.company_profile?.market_cap !== undefined && fundamentalsData?.company_profile?.market_cap !== null && fundamentalsData?.company_profile?.market_cap !== '') || extractRatioExists(['market_cap']);
+  const hasBookValue = extractRatioExists(['book value', 'bvps']);
+  const hasFaceValue = fundamentalsData?.company_profile?.face_value !== undefined && fundamentalsData?.company_profile?.face_value !== null && fundamentalsData?.company_profile?.face_value !== '';
+  const hasPeRatio = extractRatioExists(['p/e', 'pe', 'pe ratio']);
+  
+  const incomeStatement = fundamentalsData?.income?.full_statement || [];
+  const validTrendPeriods = incomeStatement.filter(p => !isNaN(parseFloat(p?.['EPS - Basic'])));
+  const hasEarningsTrend = validTrendPeriods.length >= 2;
+  // ------------------------------------------
 
   const fundamentalManualForm = (
       <div className="w-full h-full">
@@ -152,18 +175,127 @@ export default function FundamentalPage() {
               When Upstox does not provide data for a specific metric, it falls back to the manual overrides configured here.
           </p>
           
-          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6">
+              {/* Company Snapshot */}
+              <div className="space-y-2">
+                  <div className="text-xs font-bold text-emerald-500 mb-2">Company Snapshot</div>
+                  {!hasMarketCap && (
+                      <OverrideInput 
+                          label="Market Cap" 
+                          overrideKey="market_cap" 
+                          value={manualOverrides.market_cap}
+                          onChange={handleOverrideChange}
+                      />
+                  )}
+                  {!hasBookValue && (
+                      <OverrideInput 
+                          label="Book Value" 
+                          overrideKey="book_value" 
+                          value={manualOverrides.book_value}
+                          onChange={handleOverrideChange}
+                      />
+                  )}
+                  {!hasFaceValue && (
+                      <OverrideInput 
+                          label="Face Value" 
+                          overrideKey="face_value" 
+                          value={manualOverrides.face_value}
+                          onChange={handleOverrideChange}
+                      />
+                  )}
+                  {!hasPeRatio && (
+                      <OverrideInput 
+                          label="Stock P/E" 
+                          overrideKey="pe_ratio" 
+                          value={manualOverrides.pe_ratio}
+                          onChange={handleOverrideChange}
+                      />
+                  )}
+              </div>
+
+              {/* Dividends */}
+              <div className="space-y-2">
+                  <div className="text-xs font-bold text-pink-500 mb-2">Dividends</div>
+                  <OverrideInput 
+                      label="Dividend Yield (%)" 
+                      overrideKey="dividend_yield" 
+                      value={manualOverrides.dividend_yield}
+                      onChange={handleOverrideChange}
+                  />
+              </div>
+
+              {/* Trends & Flows */}
+              <div className="space-y-2">
+                  <div className="text-xs font-bold text-yellow-500 mb-2">Trends & Flows</div>
+                  {!hasEarningsTrend && (
+                      <OverrideInput 
+                          label="Earnings Trend (CAGR %)" 
+                          overrideKey="earnings_trend" 
+                          value={manualOverrides.earnings_trend}
+                          onChange={handleOverrideChange}
+                      />
+                  )}
+                  <OverrideInput 
+                      label="FII Flow (₹ Cr)" 
+                      overrideKey="fii_flow" 
+                      value={manualOverrides.fii_flow}
+                      onChange={handleOverrideChange}
+                  />
+                  <OverrideInput 
+                      label="DII Flow (₹ Cr)" 
+                      overrideKey="dii_flow" 
+                      value={manualOverrides.dii_flow}
+                      onChange={handleOverrideChange}
+                  />
+              </div>
+
               {/* Valuation */}
               <div className="space-y-2">
                   <div className="text-xs font-bold text-blue-500 mb-2">Valuation</div>
                   {selectedCategory !== "Indices" && (
-                      <OverrideInput 
-                          label="Forward P/E" 
-                          overrideKey="forward_pe" 
-                          value={manualOverrides.forward_pe}
-                          onChange={handleOverrideChange}
-                      />
+                      <>
+                          <OverrideInput 
+                              label="Forward P/E" 
+                              overrideKey="forward_pe" 
+                              value={manualOverrides.forward_pe}
+                              onChange={handleOverrideChange}
+                          />
+                      </>
                   )}
+              </div>
+
+              {/* Macro Indicators */}
+              <div className="space-y-2">
+                  <div className="text-xs font-bold text-purple-500 mb-2">Macro Indicators</div>
+                  <OverrideInput 
+                      label="GDP Growth (%)" 
+                      overrideKey="gdp_growth" 
+                      value={manualOverrides.gdp_growth}
+                      onChange={handleOverrideChange}
+                  />
+                  <OverrideInput 
+                      label="Market Cap to GDP (%)" 
+                      overrideKey="market_cap_gdp" 
+                      value={manualOverrides.market_cap_gdp}
+                      onChange={handleOverrideChange}
+                  />
+                  <OverrideInput 
+                      label="10Y Bond Yield" 
+                      overrideKey="bond_yield" 
+                      value={manualOverrides.bond_yield}
+                      onChange={handleOverrideChange}
+                  />
+              </div>
+
+              {/* Growth */}
+              <div className="space-y-2">
+                  <div className="text-xs font-bold text-orange-500 mb-2">Growth</div>
+                  <OverrideInput 
+                      label="EPS Growth (%)" 
+                      overrideKey="eps_growth" 
+                      value={manualOverrides.eps_growth}
+                      onChange={handleOverrideChange}
+                  />
               </div>
           </div>
       </div>
@@ -214,6 +346,14 @@ export default function FundamentalPage() {
           )
         }}
       />
+
+      {selectedCategory !== "Indices" && (
+        <CompanySummaryWidget 
+            data={fundamentalsData}
+            manualOverrides={manualOverrides}
+            selectedInstrument={selectedInstrument}
+        />
+      )}
 
       {/* DETAILED MODAL */}
       <FundamentalModal

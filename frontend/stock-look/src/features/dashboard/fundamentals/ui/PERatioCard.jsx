@@ -4,15 +4,11 @@
  *
  * DATA SOURCES:
  *  - currentPE   → LIVE: Upstox key-ratios API (data.ratios[].company_value where name = "P/E")
- *  - historicalPE → MANUAL: manualOverride (pe_hist) — not available from Upstox
- *  - sectorPE     → MANUAL: manualOverride (pe_sector) — not available from Upstox
+ *  - sectorPE    → LIVE: Upstox key-ratios API (data.ratios[].sector_value)
  *
  * MODE:
  *  - AUTO  when currentPE is sourced from Upstox
  *  - MANUAL when currentPE falls back to manual override
- *
- * The detail rows (historicalPE, sectorPE) are always manual (no Upstox source).
- * The yellow dot on those rows is rendered by IndicatorCard when detail.isManual = true.
  */
 
 import React from 'react';
@@ -137,10 +133,9 @@ export default function PERatioCard({ data = null, manualOverride, lastUpdated }
     const isLiveData = parsedPE !== null && !isNaN(parsedPE) && parsedPE > 0;
     const currentPE  = isLiveData ? parsedPE : (manualOverride ?? null);
 
-    // ── Step 2: Resolve Historical and Sector PE (Always Manual) ──────────
-    // These are passed via manualOverride object from FundamentalPage
-    const historicalPE = data?.manualPeHist ?? null;      // will be passed from parent
-    const sectorPE     = data?.manualPeSector ?? null;    // will be passed from parent
+    // ── Step 2: Resolve Sector PE (Live from Upstox) ──────────
+    const sectorPE = upstoxPEObj?.sector_value ? parseFloat(upstoxPEObj.sector_value) : null;
+    const historicalPE = null; // Removed to strictly comply with Zero Clutter Rule (NO Fallbacks/Historical inputs)
 
     // ── Step 3: Run Engine ────────────────────────────────────────────────
     const { score, bias, confidence } = scorePERatio(currentPE, historicalPE, sectorPE);
@@ -170,17 +165,12 @@ export default function PERatioCard({ data = null, manualOverride, lastUpdated }
                     value: displayPE,
                 },
                 details: [
-                    {
-                        label: 'Historical Avg P/E',
-                        value: historicalPE !== null ? parseFloat(historicalPE).toFixed(1) : '--',
-                        isManual: true,   // Always manual — rendered with yellow dot by IndicatorCard
-                    },
-                    {
+                    sectorPE !== null && {
                         label: 'Sector P/E',
-                        value: sectorPE !== null ? parseFloat(sectorPE).toFixed(1) : '--',
-                        isManual: true,   // Always manual — rendered with yellow dot by IndicatorCard
-                    },
-                ],
+                        value: parseFloat(sectorPE).toFixed(1),
+                        isManual: false,
+                    }
+                ].filter(Boolean),
                 score,
                 bias,
                 confidence: `${confidence}%`,

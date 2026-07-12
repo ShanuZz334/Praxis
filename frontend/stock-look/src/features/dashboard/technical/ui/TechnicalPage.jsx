@@ -22,7 +22,14 @@ export default function TechnicalPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCard, setSelectedCard] = useState(null);
 
-    const cards = [];
+    const cards = [
+        { id: "dummy_trend", category: "Trend" },
+        { id: "dummy_momentum", category: "Momentum" },
+        { id: "dummy_volatility", category: "Volatility" },
+        { id: "dummy_volume", category: "Volume" },
+        { id: "dummy_structure", category: "Structure" },
+        { id: "dummy_breadth", category: "Breadth" }
+    ];
 
     return (
         <div className="p-4 md:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">

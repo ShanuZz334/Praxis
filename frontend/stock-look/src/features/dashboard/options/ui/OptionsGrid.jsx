@@ -22,7 +22,21 @@
 import React, { useMemo } from "react";
 import OptionsCard from "./OptionsCard";
 import { optionsSections } from "@/features/dashboard/options/engine/optionsHelper";
-import { MobileHeaderControls } from '@/shared/components/ui/GlobalHeader/GlobalHeader';
+
+import AtmIvCard from "./AtmIvCard";
+import IvRankCard from "./IvRankCard";
+import IvPercentileCard from "./IvPercentileCard";
+
+import TotalCallOpenInterestCard from "./TotalCallOpenInterestCard";
+import TotalPutOpenInterestCard from "./TotalPutOpenInterestCard";
+import OpenInterestChangeCard from "./OpenInterestChangeCard";
+import DeltaCard from "./DeltaCard";
+import GammaCard from "./GammaCard";
+import ThetaCard from "./ThetaCard";
+import VegaCard from "./VegaCard";
+import PcrOiCard from "./PcrOiCard";
+import PcrVolumeCard from "./PcrVolumeCard";
+import MaxPainCard from "./MaxPainCard";
 
 // =============================
 // Main Component
@@ -55,10 +69,14 @@ export default function OptionsGrid({
         }
     };
 
+    // Exclude our hardcoded cards
+    const excludeIds = ["total_call_oi", "total_put_oi", "oi_change", "delta", "gamma", "theta", "vega", "pcr_oi", "pcr_volume", "max_pain"];
+    const filteredCards = cards.filter(c => !excludeIds.includes(c.id));
+
     // Memoize categorization
     const grouped = useMemo(() => {
-        const map = {};
-        cards.forEach((card) => {
+        const map = { 'Open Interest': [], 'Greeks': [] }; // Ensure sections with hardcoded cards exist
+        filteredCards.forEach((card) => {
             const sec = card.category || "Other";
             if (!map[sec]) map[sec] = [];
             map[sec].push(card);
@@ -72,14 +90,30 @@ export default function OptionsGrid({
     if (viewMode === 'flat') {
         const sortedFlat = sortCards(cards, sortMode);
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 animate-in fade-in duration-500 gap-4">
-                {sortedFlat.map((card) => (
-                    <OptionsCard
-                        key={card.id}
-                        card={card}
-                        onClick={() => onCardClick(card)}
-                    />
-                ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 items-start animate-in fade-in duration-500">
+                <AtmIvCard />
+                <IvRankCard />
+                <IvPercentileCard />
+                <TotalCallOpenInterestCard />
+                <TotalPutOpenInterestCard />
+                <OpenInterestChangeCard />
+                <DeltaCard />
+                <GammaCard />
+                <ThetaCard />
+                <VegaCard />
+                <PcrOiCard />
+                <PcrVolumeCard />
+                <MaxPainCard />
+                {sortedFlat.map((card) => {
+                    if (['atm_iv', 'iv_rank', 'iv_percentile', 'total_call_oi', 'total_put_oi', 'oi_change', 'delta', 'gamma', 'theta', 'vega', 'pcr_oi', 'pcr_volume', 'max_pain'].includes(card.id) || card.id.startsWith('dummy_')) return null;
+                    return (
+                        <OptionsCard
+                            key={card.id}
+                            card={card}
+                            onClick={() => onCardClick(card)}
+                        />
+                    );
+                })}
             </div>
         );
     }
@@ -93,7 +127,8 @@ export default function OptionsGrid({
             {/* Mobile Category Navigation (Pill Bar) */}
             <div className="lg:hidden flex overflow-x-auto gap-2 pb-2 -mx-1 px-1 custom-scrollbar-hidden sticky top-0 bg-background-app/80 backdrop-blur-md z-30 py-3">
                 {optionsSections.map(section => {
-                    if (!grouped[section.id]?.length) return null;
+                    const hasHardcoded = ['Open Interest', 'Volatility', 'Greeks', 'Put-Call Ratio', 'Market Positioning'].includes(section.id);
+                    if (!hasHardcoded && !grouped[section.id]?.length) return null;
                     return (
                         <button
                             key={section.id}
@@ -109,15 +144,15 @@ export default function OptionsGrid({
                 })}
             </div>
 
-            {/* Mobile Search & Sort Controls - after section tabs */}
-            <MobileHeaderControls controls={controls} />
-
             {/* Sections Loop */}
             {optionsSections.map((section) => {
-                const sectionCards = grouped[section.id];
-                if (!sectionCards || sectionCards.length === 0) return null;
+                const rawList = grouped[section.id];
+                const validDynamicCards = rawList ? rawList.filter(c => !c.id?.startsWith('dummy_')) : [];
+                const hasHardcoded = ['Open Interest', 'Volatility', 'Greeks', 'Put-Call Ratio', 'Market Positioning'].includes(section.id);
+                
+                if (!hasHardcoded && validDynamicCards.length === 0) return null;
 
-                const sortedSectionCards = sortCards(sectionCards, sortMode);
+                const sortedSectionCards = sortCards(validDynamicCards, sortMode);
 
                 return (
                     <div key={section.id} id={`section-${section.id}`} className="animate-in fade-in slide-in-from-bottom-4 duration-500 scroll-mt-20">
@@ -128,20 +163,54 @@ export default function OptionsGrid({
                                     {section.label}
                                 </span>
                                 <span className="text-[10px] px-1.5 py-0.5 rounded border border-border-default bg-background-surface text-text-tertiary font-mono shadow-sm">
-                                    {sectionCards.length}
+                                    {validDynamicCards.length + (section.id === 'Open Interest' ? 3 : section.id === 'Volatility' ? 3 : section.id === 'Greeks' ? 4 : section.id === 'Put-Call Ratio' ? 2 : section.id === 'Market Positioning' ? 1 : 0)}
                                 </span>
                             </div>
                         </div>
 
                         {/* Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                            {sortedSectionCards.map((card) => (
-                                <OptionsCard
-                                    key={card.id}
-                                    card={card}
-                                    onClick={() => onCardClick(card)}
-                                />
-                            ))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 items-start">
+                            {section.id === 'Open Interest' && (
+                                <>
+                                    <TotalCallOpenInterestCard />
+                                    <TotalPutOpenInterestCard />
+                                    <OpenInterestChangeCard />
+                                </>
+                            )}
+                            {section.id === 'Volatility' && (
+                                <>
+                                    <AtmIvCard />
+                                    <IvRankCard />
+                                    <IvPercentileCard />
+                                </>
+                            )}
+                            {section.id === 'Greeks' && (
+                                <>
+                                    <DeltaCard />
+                                    <GammaCard />
+                                    <ThetaCard />
+                                    <VegaCard />
+                                </>
+                            )}
+                            {section.id === 'Put-Call Ratio' && (
+                                <>
+                                    <PcrOiCard />
+                                    <PcrVolumeCard />
+                                </>
+                            )}
+                            {section.id === 'Market Positioning' && (
+                                <MaxPainCard />
+                            )}
+                            {sortedSectionCards.map((card) => {
+                                if (excludeIds.includes(card.id) || card.id.startsWith('dummy_')) return null;
+                                return (
+                                    <OptionsCard
+                                        key={card.id}
+                                        card={card}
+                                        onClick={() => onCardClick(card)}
+                                    />
+                                );
+                            })}
                         </div>
                     </div>
                 );

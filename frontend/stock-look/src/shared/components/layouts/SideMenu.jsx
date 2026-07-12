@@ -34,7 +34,7 @@ import paiLabelImg from "@/assets/icons/pai-label-bgless.png";
 // Component
 // =============================
 
-const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false, theme = 'dark' }) => {
+const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
   const { user, clearUser } = useContext(UserContext);
   const navigate = useNavigate();
 
@@ -53,18 +53,19 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false, th
     navigate(route);
   };
 
-  const isDarkDrawer = isMobileDrawer && theme === 'dark';
+  // Drawer is always desktop in this setup
+  const isDarkDrawer = false;
 
   return (
     <aside
       style={{
-        width: isMobileDrawer ? "100%" : (collapsed ? 69 : 200),
+        width: collapsed ? 69 : 200,
         top: topOffset,
-        height: isMobileDrawer ? "100%" : `calc(100vh - ${topOffset}px)`,
-        position: isMobileDrawer ? "relative" : "fixed",
+        height: `calc(100vh - ${topOffset}px)`,
+        position: "fixed",
       }}
       className={`
-        ${isMobileDrawer ? "" : "fixed left-0 z-40"}
+        fixed left-0 z-40
         flex flex-col
         transition-[width] duration-300 ease-in-out
       `}
@@ -80,15 +81,15 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false, th
               onClick={() => handleClick(item.path)}
               className={`
                 group flex items-center
-                ${collapsed && !isMobileDrawer ? "justify-center" : "gap-4"}
-                ${item.key === 'pai' && collapsed && !isMobileDrawer ? 'px-1' : 'px-4'} ${item.key === 'pai' && !collapsed && !isMobileDrawer ? 'py-1.5' : 'py-3'} rounded-xl
+                ${collapsed ? "justify-center" : "gap-4"}
+                ${item.key === 'pai' && collapsed ? 'px-1' : 'px-4'} ${item.key === 'pai' && !collapsed ? 'py-1.5' : 'py-3'} rounded-xl
                 transition-all duration-300
                 relative
               `}
             >
               {/* Icon: custom image (e.g. PAI) or standard react-icon */}
               {item.customIcon === 'pai' ? (
-                collapsed && !isMobileDrawer ? (
+                collapsed ? (
                   // Collapsed: full size, no wrapper needed
                   <img
                     src={paiIcon}
@@ -126,7 +127,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false, th
               )}
 
               {/* LABEL */}
-              {(!collapsed || isMobileDrawer) && (
+              {!collapsed && (
                 item.key === 'pai' ? (
                   <img
                     src={paiLabelImg}
@@ -140,8 +141,6 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false, th
                     font-semibold
                     ${isActive
                       ? 'text-blue-700'
-                      : isDarkDrawer
-                        ? 'text-white/90 group-hover:text-white group-hover:translate-x-2'
                         : 'text-text-secondary group-hover:text-blue-400 group-hover:translate-x-2'
                     }
                   `}
@@ -160,7 +159,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false, th
         <div
           className={`
             w-full flex items-center
-            ${collapsed && !isMobileDrawer ? "justify-center" : "gap-4 px-4"}
+            ${collapsed ? "justify-center" : "gap-4 px-4"}
             py-3 rounded-xl
             transition
           `}
@@ -180,12 +179,12 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false, th
           )}
 
 
-          {(!collapsed || isMobileDrawer) && (
+          {!collapsed && (
             <div className="leading-tight">
-              <p className={`text-sm font-medium ${isDarkDrawer ? 'text-white' : 'text-text-primary'}`}>
+              <p className={`text-sm font-medium text-text-primary`}>
                 {user?.fullName || "Trader"}
               </p>
-              <p className={`text-xs ${isDarkDrawer ? 'text-white/60' : 'text-text-tertiary'}`}>
+              <p className={`text-xs text-text-tertiary`}>
                 {user?.email || "Active"}
               </p>
             </div>
@@ -200,7 +199,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false, th
             className={`
               w-full mt-2 flex items-center
               group
-              ${collapsed && !isMobileDrawer ? "justify-center" : "gap-4 px-4"}
+              ${collapsed ? "justify-center" : "gap-4 px-4"}
               py-3 rounded-xl
               text-sm text-red-500/80
               transition-all duration-300
@@ -209,7 +208,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, isMobileDrawer = false, th
             `}
           >
             <item.icon className="text-[20px] transition-transform duration-300 group-hover:scale-125 group-hover:rotate-12" />
-            {(!collapsed || isMobileDrawer) && (
+            {!collapsed && (
               <span className="font-semibold transition-transform duration-300 group-hover:translate-x-1">{item.label}</span>
             )}
           </button>

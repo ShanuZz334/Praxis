@@ -20,7 +20,8 @@
 // =============================
 import React from "react";
 import { GlobalCard } from "@/shared/components/ui/GlobalCard/GlobalCard";
-import { TOTAL_OPTIONS_CREDITS } from "@/features/dashboard/options/engine/optionsSimulator";
+
+const TOTAL_OPTIONS_CREDITS = 1000;
 
 // =============================
 // Main Component

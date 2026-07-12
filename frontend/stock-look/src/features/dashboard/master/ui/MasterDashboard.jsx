@@ -16,8 +16,8 @@ import React from "react";
 // Shared UI
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 
-// Mobile layout
-import MobileDashboardLayout from "./mobile/MobileDashboardLayout";
+
+import LiveMarketTicker from "./LiveMarketTicker";
 
 // =============================
 // Main Component
@@ -38,9 +38,8 @@ export default function MasterDashboard() {
     ];
 
     return (
-        <>
-        {/* DESKTOP VIEW */}
-        <div className="hidden lg:block p-4 sm:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto h-full space-y-4 md:space-y-6">
+        <div className="block p-4 sm:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto h-full space-y-4 md:space-y-6">
+            {/* DESKTOP VIEW ONLY */}
 
             {/* Global Header / Composite Gauge */}
             <GlobalHeader
@@ -62,26 +61,5 @@ export default function MasterDashboard() {
             {/* Sub-panels cleared — ready for real data */}
 
         </div>
-
-        {/* MOBILE VIEW */}
-        <div className="block lg:hidden">
-            <MobileDashboardLayout
-                stockyScore={score}
-                prevScore={0}
-                masterGauge={gauge}
-                masterRegime={regime}
-                snapshots={{
-                    fundamental: { score: 0, regime: "—", gauge: "—", color: "#64748B" },
-                    technical:   { score: 0, trend:  "—", gauge: "—", color: "#64748B" },
-                    options:     { score: 0, positioning: "—", gauge: "—", color: "#64748B" },
-                    events:      { score: 0, nextCatalyst: "—", gauge: "—", color: "#64748B" },
-                    global:      { score: 0, usTrend: "—", gauge: "—", color: "#64748B" },
-                }}
-                totalCredits={0}
-                signalCounts={{ bulls: 0, bears: 0, neutrals: 0 }}
-                integrity={{ coverage: "—", source: "—", freshness: "—" }}
-            />
-        </div>
-        </>
     );
 }

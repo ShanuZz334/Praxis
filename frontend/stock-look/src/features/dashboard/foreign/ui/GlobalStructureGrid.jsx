@@ -22,11 +22,22 @@
 import React from "react";
 import { GlobalCard } from "@/shared/components/ui/GlobalCard";
 import { TOTAL_GLOBAL_CREDITS } from "../data/globalData";
+import NasdaqFuturesCard from "./NasdaqFuturesCard";
+import DowFuturesCard from "./DowFuturesCard";
+import BrentCrudeOilCard from "./BrentCrudeOilCard";
+import GoldCard from "./GoldCard";
+import SilverCard from "./SilverCard";
+import VixCard from "./VixCard";
+import BitcoinCard from "./BitcoinCard";
+import UsdInrCard from './UsdInrCard';
+import DxyCard from './DxyCard';
+import Us10yYieldCard from './Us10yYieldCard';
 
 // =============================
 // Main Component
 // =============================
 export default function GlobalStructureGrid({ cards, viewMode, sortMode, sections, onCardClick }) {
+
 
     // Helper: Sort Logic
     const sortCards = (list, mode) => {
@@ -45,7 +56,10 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
         }
     };
 
-    if (!cards || cards.length === 0) {
+    const excludeIds = ['sp_futures', 'nasdaq_futures', 'dow_futures', 'brent_crude_oil', 'gold', 'silver', 'vix', 'bitcoin', 'usd_inr', 'dxy', 'us_10y_yield'];
+    const safeCards = cards ? cards.filter(c => !excludeIds.includes(c.id)) : [];
+
+    if (safeCards.length === 0 && (!cards || cards.length === 0)) {
         return (
             <div className="text-center py-12 text-text-tertiary">
                 No global structure data available
@@ -58,17 +72,21 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
         return (
             <div className="space-y-8">
                 {Object.entries(sections).map(([key, section]) => {
-                    if (!section.cards || section.cards.length === 0) return null;
+                    const filteredSectionCards = section.cards ? section.cards.filter(card =>
+                        safeCards.some(c => c.id === card.id)
+                    ) : [];
 
-                    // Filter section cards based on parent's filtered cards (search)
-                    const filteredSectionCards = section.cards.filter(card =>
-                        cards.some(c => c.id === card.id)
-                    );
-
-                    if (filteredSectionCards.length === 0) return null;
+                    const isUSMarkets = section.id === 'US Markets' || section.label === 'US Markets' || key === 'us_markets' || key === 'americas';
+                    const isCurrency = section.label === "Currency" || key === "currency";
+                    const isRates = section.label === "Rates & Volatility" || key === "rates";
+                    const isCommodities = section.id === 'Commodities' || section.label === 'Commodities' || key === 'commodities';
+                    const isVolatility = section.id === 'Volatility' || section.label === 'Volatility' || key === 'volatility';
+                    const isDigitalAssets = section.id === 'Digital Assets' || section.label === 'Digital Assets' || key === 'digital_assets';
 
                     // Sort section cards
                     const sortedSectionCards = sortCards(filteredSectionCards, sortMode);
+
+                    if (sortedSectionCards.length === 0 && !isCurrency && !isRates && !isUSMarkets && !isCommodities && !isVolatility && !isDigitalAssets) return null;
 
                     return (
                         <div key={key} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -77,13 +95,39 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
                                 <div className="flex items-center gap-3">
                                     <span className="text-sm font-bold text-text-primary uppercase tracking-widest">{section.label}</span>
                                     <span className="text-[10px] px-1.5 py-0.5 rounded border border-border-default bg-background-surface text-text-tertiary font-mono shadow-sm">
-                                        {sortedSectionCards.length}
+                                        {sortedSectionCards.length + (isUSMarkets ? 3 : 0) + (isCurrency ? 2 : 0) + (isRates ? 1 : 0) + (isCommodities ? 3 : 0) + (isVolatility ? 1 : 0) + (isDigitalAssets ? 1 : 0)}
                                     </span>
                                 </div>
                             </div>
                             {/* Grid */}
-                            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
-                                {sortedSectionCards.map((card) => (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 items-start">
+                                {isUSMarkets && (
+                                    <>
+                                        <SpFuturesCard />
+                                        <NasdaqFuturesCard />
+                                        <DowFuturesCard />
+                                    </>
+                                )}
+                                {isCurrency && <UsdInrCard />}
+                                {isCurrency && <DxyCard />}
+                                {isRates && <Us10yYieldCard />}
+                                {isCommodities && (
+                                    <>
+                                        <BrentCrudeOilCard />
+                                        <GoldCard />
+                                        <SilverCard />
+                                    </>
+                                )}
+                                {isVolatility && (
+                                    <VixCard />
+                                )}
+                                {isDigitalAssets && (
+                                    <BitcoinCard />
+                                )}
+                                {sortedSectionCards.map((card) => {
+                                    const excludeIds = ['sp_futures', 'nasdaq_futures', 'dow_futures', 'usd_inr', 'dxy', 'us_10y_yield', 'brent_crude', 'gold', 'silver', 'vix', 'bitcoin'];
+                                    if (excludeIds.includes(card.id) || card.id?.startsWith('dummy_')) return null;
+                                    return (
                                     <GlobalCard
                                         key={card.id}
                                         label={card.label}
@@ -98,7 +142,7 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
                                         isFocused={card.isFocused}
                                         onClick={() => onCardClick?.(card)}
                                     />
-                                ))}
+                                )})}
                             </div>
                         </div>
                     );
@@ -108,11 +152,25 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
     }
 
     // 2. FLAT VIEW
-    const sortedCards = sortCards(cards, sortMode);
+    const sortedCards = sortCards(safeCards, sortMode);
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
-            {sortedCards.map((card) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 items-start">
+            <SpFuturesCard />
+            <NasdaqFuturesCard />
+            <DowFuturesCard />
+            <UsdInrCard />
+            <DxyCard />
+            <Us10yYieldCard />
+            <BrentCrudeOilCard />
+            <GoldCard />
+            <SilverCard />
+            <VixCard />
+            <BitcoinCard />
+            {sortedCards.map((card) => {
+                const excludeIds = ['sp_futures', 'nasdaq_futures', 'dow_futures', 'usd_inr', 'dxy', 'us_10y_yield', 'brent_crude', 'gold', 'silver', 'vix', 'bitcoin'];
+                if (excludeIds.includes(card.id) || card.id?.startsWith('dummy_')) return null;
+                return (
                 <GlobalCard
                     key={card.id}
                     label={card.label}
@@ -127,7 +185,7 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
                     isFocused={card.isFocused}
                     onClick={() => onCardClick?.(card)}
                 />
-            ))}
+            )})}
         </div>
     );
 }

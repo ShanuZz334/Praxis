@@ -21,7 +21,14 @@ export default function ForeignPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCard, setSelectedCard] = useState(null);
 
-    const cards = [];
+    const cards = [
+        { id: "dummy_us_markets", category: "US Markets" },
+        { id: "dummy_commodities", category: "Commodities" },
+        { id: "dummy_currency", category: "Currency" },
+        { id: "dummy_bonds", category: "Bonds" },
+        { id: "dummy_volatility", category: "Volatility" },
+        { id: "dummy_crypto", category: "Digital Assets" }
+    ];
 
     return (
         <div className="p-4 md:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">

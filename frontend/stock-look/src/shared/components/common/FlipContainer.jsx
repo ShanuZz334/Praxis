@@ -1,41 +1,61 @@
 import React from "react";
-import { RotateCcw } from "lucide-react";
+import flipperIcon from "@/assets/icons/flipper.png";
 
 /**
  * @file FlipContainer.jsx
  * @purpose A 3D flippable container matching the Dart implementation.
  */
 
+import { motion } from "framer-motion";
+
 export function FlipContainer({ isFlipped, front, back, className = "" }) {
     return (
-        <div className={`relative w-full h-full ${className}`} style={{ perspective: "1000px" }}>
-            <div
-                className="w-full h-full transition-transform duration-700 relative"
+        <motion.div 
+            layout 
+            className={`relative w-full ${className}`} 
+            style={{ perspective: "1000px" }}
+            transition={{ duration: 0.5, type: "spring", bounce: 0 }}
+        >
+            <motion.div
+                layout
+                className="w-full relative"
+                initial={false}
+                animate={{ rotateY: isFlipped ? 180 : 0 }}
+                transition={{ duration: 0.5, type: "spring", bounce: 0 }}
                 style={{
-                    transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
                     transformStyle: "preserve-3d",
                 }}
             >
                 {/* FRONT */}
                 <div
-                    className="w-full h-full"
-                    style={{ backfaceVisibility: "hidden" }}
+                    className="w-full"
+                    style={{ 
+                        backfaceVisibility: "hidden",
+                        WebkitBackfaceVisibility: "hidden",
+                        position: "relative", // Always relative to hold height
+                        zIndex: isFlipped ? 0 : 1
+                    }}
                 >
                     {front}
                 </div>
 
                 {/* BACK */}
                 <div
-                    className="w-full h-full absolute inset-0"
+                    className="w-full h-full"
                     style={{
                         backfaceVisibility: "hidden",
+                        WebkitBackfaceVisibility: "hidden",
                         transform: "rotateY(180deg)",
+                        position: "absolute", // Always absolute to match front's height
+                        top: 0,
+                        left: 0,
+                        zIndex: isFlipped ? 1 : 0
                     }}
                 >
                     {back}
                 </div>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 }
 
@@ -46,10 +66,10 @@ export function FlipTrigger({ onClick, className = "" }) {
     return (
         <button
             onClick={onClick}
-            className={`p-1.5 rounded-md hover:bg-background-surface/50 transition-colors text-text-tertiary hover:text-text-primary ${className}`}
+            className={`p-0 rounded-md hover:bg-background-surface/50 transition-colors opacity-70 hover:opacity-100 ${className}`}
             title="Flip Card"
         >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <img src={flipperIcon} alt="Flip" className="w-9 h-9 object-contain" />
         </button>
     );
 }

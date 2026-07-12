@@ -129,24 +129,34 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start">
           {/* Hardcoded specialized cards */}
           <PERatioCard
-            data={{ ...data, manualPeHist: manualOverrides?.pe_hist, manualPeSector: manualOverrides?.pe_sector }}
+            data={data}
             manualOverride={manualOverrides?.pe_ratio}
             lastUpdated={data ? liveTime : manualTime}
           />
           {selectedCategory !== "Indices" && (
             <ForwardPECard 
-              data={{ ...data, manualProjectedEps: manualOverrides?.projected_eps }} 
+              data={data} 
               manualOverride={manualOverrides?.forward_pe} 
               lastUpdated={data ? liveTime : manualTime} 
             />
           )}
-          <PBRatioCard data={data} manualOverride={manualOverrides?.pb_ratio} lastUpdated={data ? liveTime : manualTime} />
-          {selectedCategory !== "Indices" && <EarningsYieldCard data={data} manualOverride={manualOverrides?.earnings_yield} lastUpdated={data ? liveTime : manualTime} />}
+          <PBRatioCard 
+            data={data} 
+            manualOverride={manualOverrides?.pb_ratio} 
+            lastUpdated={data ? liveTime : manualTime} 
+          />
+          {selectedCategory !== "Indices" && (
+            <EarningsYieldCard 
+              data={{ ...data, manualBondYield: manualOverrides?.bond_yield }} 
+              manualOverride={manualOverrides?.earnings_yield} 
+              lastUpdated={data ? liveTime : manualTime} 
+            />
+          )}
           <MarketCapGDPCard data={data} manualOverride={manualOverrides?.market_cap_gdp} lastUpdated={manualTime} />
-          <DividendYieldCard data={data} manualOverride={manualOverrides?.dividend_yield} lastUpdated={data ? liveTime : manualTime} />
+          <DividendYieldCard data={{ ...data, manualDyHist: manualOverrides?.dy_hist, manualDySector: manualOverrides?.dy_sector, manualBondYield: manualOverrides?.bond_yield }} manualOverride={manualOverrides?.dividend_yield} lastUpdated={data ? liveTime : manualTime} />
           {selectedCategory !== "Indices" && <EarningsTrendCard data={data} manualOverride={manualOverrides?.earnings_trend} lastUpdated={manualTime} />}
-          <FIIDIIFlowCard data={data} manualOverride={manualOverrides?.fii_dii_flow} lastUpdated={manualTime} />
-          <EPSGrowthCard data={data} manualOverride={manualOverrides?.eps_growth} lastUpdated={data ? liveTime : manualTime} />
+          <FIIDIIFlowCard data={{ ...data, manualDiiFlow: manualOverrides?.dii_flow }} manualOverride={manualOverrides?.fii_flow} lastUpdated={manualTime} />
+          <EPSGrowthCard data={{ ...data, manualEpsHist: manualOverrides?.eps_hist, manualEpsSector: manualOverrides?.eps_sector }} manualOverride={manualOverrides?.eps_growth} lastUpdated={data ? liveTime : manualTime} />
           {selectedCategory !== "Indices" && <RevenueGrowthCard data={data} manualOverride={manualOverrides?.revenue_growth} lastUpdated={data ? liveTime : manualTime} />}
           {selectedCategory !== "Indices" && <ProfitGrowthCard data={data} manualOverride={manualOverrides?.profit_growth} lastUpdated={data ? liveTime : manualTime} />}
           <GDPGrowthCard data={data} manualOverride={manualOverrides?.gdp_growth} lastUpdated={manualTime} />
@@ -253,8 +263,18 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
                         lastUpdated={data ? liveTime : manualTime} 
                       />
                     )}
-                    <PBRatioCard data={data} manualOverride={manualOverrides?.pb_ratio} lastUpdated={data ? liveTime : manualTime} />
-                    {selectedCategory !== "Indices" && <EarningsYieldCard data={data} manualOverride={manualOverrides?.earnings_yield} lastUpdated={data ? liveTime : manualTime} />}
+                    <PBRatioCard 
+                      data={{ ...data, manualPbHist: manualOverrides?.pb_hist, manualPbSector: manualOverrides?.pb_sector }} 
+                      manualOverride={manualOverrides?.pb_ratio} 
+                      lastUpdated={data ? liveTime : manualTime} 
+                    />
+                    {selectedCategory !== "Indices" && (
+                      <EarningsYieldCard 
+                        data={{ ...data, manualEyHist: manualOverrides?.ey_hist, manualBondYield: manualOverrides?.bond_yield }} 
+                        manualOverride={manualOverrides?.earnings_yield} 
+                        lastUpdated={data ? liveTime : manualTime} 
+                      />
+                    )}
                   </>
                 )}
                 {section.id === 'Market Health' && (

@@ -4,6 +4,7 @@
  * @responsibilities
  * - Exports BASE_URL from environment variables.
  * - Defines all API endpoint paths for Auth, Dashboard, Income, Expense, and Image uploads.
+ * Trigger restart
  * - Supports dynamic path generation (e.g., DELETE_INCOME by ID).
  * @key_exports
  * - BASE_URL
@@ -19,7 +20,7 @@
 // Base URL Configuration
 // =============================
 
-export const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+export const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // =============================
 // API Endpoint Paths
@@ -47,7 +48,13 @@ export const API_PATHS = {
   },
 
   OPTIONS: {
-    GET_CHAIN: (symbol) => `/api/v1/options/${symbol}`,
+    GET_CONTRACTS: (instrumentKey) => `/api/v1/upstox/option-contracts?instrument_key=${encodeURIComponent(instrumentKey)}`,
+    GET_CHAIN: (instrumentKey, expiryDate) => `/api/v1/upstox/option-chain?instrument_key=${encodeURIComponent(instrumentKey)}&expiry_date=${encodeURIComponent(expiryDate)}`,
+    GET_GREEKS: (instrumentKeys) => `/api/v1/upstox/option-greeks?instrument_key=${encodeURIComponent(instrumentKeys)}`,
+  },
+
+  FUNDAMENTALS: {
+    GET: (instrumentKey) => `/api/v1/upstox/fundamentals?instrument_key=${encodeURIComponent(instrumentKey)}`,
   },
 
   JOURNAL: {

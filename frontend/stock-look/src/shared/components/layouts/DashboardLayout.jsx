@@ -25,7 +25,6 @@ import { useLocation } from "react-router-dom";
 
 import Navbar from "@/shared/components/layouts/Navbar";
 import SideMenu from "@/shared/components/layouts/SideMenu";
-import MobileHeader from "@/shared/components/layouts/MobileHeader";
 import DashboardRoutes from "@/features/dashboard/routes/DashboardRoutes";
 import { UserContext } from "@/shared/context/UserContext";
 import { useTheme } from "@/shared/context/ThemeContext";
@@ -46,7 +45,6 @@ const MOBILE_HEADER_HEIGHT = 72;
 const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(true);
   const [activeMenu, setActiveMenu] = useState("DASHBOARD");
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const { user } = useContext(UserContext);
   const { theme, vfxPreset } = useTheme();
   const location = useLocation();
@@ -89,9 +87,9 @@ const DashboardLayout = () => {
 
   const sidebarWidth = collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH;
 
-  // Auto-collapse sidebar on route change for desktop
+  // No longer auto-collapsing for mobile menu
   useEffect(() => {
-    setShowMobileMenu(false);
+    // Desktop only layout
   }, [location.pathname]);
 
   return (
@@ -100,7 +98,7 @@ const DashboardLayout = () => {
       {/* LIGHT MODE - SOFT MINT & LAVENDER (LOCKED) */}
       {/* LIGHT MODE - SOFT MINT & LAVENDER (LOCKED) */}
       {theme === "light" && (
-        <div className="hidden md:block fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
           <div className="absolute inset-0">
             <div className="absolute top-[-15%] left-[-15%] w-[800px] h-[800px] bg-gradient-to-br from-blue-400/18 via-blue-300/12 to-transparent rounded-full blur-[140px] animate-float-slow opacity-100" />
             <div className="absolute top-[-20%] left-[20%] w-[850px] h-[850px] bg-gradient-to-b from-emerald-400/22 via-emerald-300/15 to-transparent rounded-full blur-[150px] animate-float-reverse opacity-95" />
@@ -109,14 +107,11 @@ const DashboardLayout = () => {
         </div>
       )}
 
-      {/* MOBILE BACKGROUND - SIMPLE & CLEAN (NO VFX) */}
-      <div className="md:hidden fixed inset-0 -z-10">
-        <div className={`absolute inset-0 ${theme === 'dark' ? 'bg-[#0F1218] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/50 via-[#0F1218] to-[#0F1218]' : 'bg-gray-50/90'}`} />
-      </div>
+
 
       {/* PREMIUM ANIMATED BACKGROUND VFX - VIBRANT (DARK MODE ONLY) */}
       {theme === "dark" && (
-        <div className="hidden md:block fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
           {/* Layer 1: Primary Vibrant Orbs - Slow Float */}
           <div className="absolute inset-0">
             <div className={`absolute top-[-15%] left-[-10%] w-[600px] h-[600px] bg-gradient-to-br ${p.layer1[0]} to-transparent rounded-full blur-[140px] animate-float-slow opacity-100`} />
@@ -149,13 +144,13 @@ const DashboardLayout = () => {
 
       {/* --- DESKTOP LAYOUT COMPONENTS --- */}
 
-      {/* DESKTOP NAVBAR (Hidden on Mobile) */}
-      <div className="hidden md:block">
+      {/* DESKTOP NAVBAR */}
+      <div>
         <Navbar onToggleSidebar={() => setCollapsed((p) => !p)} />
       </div>
 
-      {/* DESKTOP SIDEMENU (Hidden on Mobile) */}
-      <div className="hidden md:block">
+      {/* DESKTOP SIDEMENU */}
+      <div>
         <SideMenu
           collapsed={collapsed}
           activeMenu={activeMenu}
@@ -165,44 +160,15 @@ const DashboardLayout = () => {
       </div>
 
 
-      {/* --- MOBILE LAYOUT COMPONENTS --- */}
-
-      {/* MOBILE TOP HEADER (New Requirement) */}
-      <MobileHeader onMenuClick={() => setShowMobileMenu(true)} />
-
-      {/* MOBILE MENU DRAWER */}
-      <div className={`
-        fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm transition-opacity duration-300 md:hidden
-        ${showMobileMenu ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}
-`} onClick={() => setShowMobileMenu(false)} />
-
-      <div className={`
-        fixed inset-y-0 left-0 z-[61] w-[280px] backdrop-blur-xl shadow-2xl transform transition-transform duration-300 md:hidden
-        ${showMobileMenu ? "translate-x-0" : "-translate-x-full"}
-        ${theme === 'dark' ? 'bg-[#0b1220]/95 border-r border-white/10' : 'bg-white/95 border-r border-gray-200'}
-`}>
-        <div className="h-full pt-safe-area-top pb-safe-area-bottom">
-          <SideMenu
-            collapsed={false}
-            activeMenu={activeMenu}
-            topOffset={0}
-            user={user}
-            isMobileDrawer={true}
-            theme={theme}
-          />
-        </div>
-      </div>
-
-
       {/* --- MAIN CONTENT AREA --- */}
       <main
         className="
           min-h-screen transition-all duration-300 ease-in-out relative z-10
-          pt-[72px] pb-0 md:pt-[60px] md:pb-0
+          pt-[73px] pb-0
         "
         style={{
-          marginLeft: window.innerWidth >= 768 ? sidebarWidth : 0,
-          "--sidebar-width": window.innerWidth >= 768 ? `${sidebarWidth}px` : "0px",
+          marginLeft: sidebarWidth,
+          "--sidebar-width": `${sidebarWidth}px`,
           "--navbar-height": `${NAVBAR_HEIGHT}px`,
         }}
       >
