@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Registered the PBRatioCard within the FundamentalGrid, putting it into both the Flat and Sectioned views immediately following the PE and Forward PE cards.",
+  "EndLine": 25,
+  "Instruction": "Import PBRatioCard along with the other Valuation cards.",
+  "ReplacementContent": "import FundamentalCard from './FundamentalCard';\nimport PERatioCard from './PERatioCard';\nimport ForwardPECard from './ForwardPECard';\nimport PBRatioCard from './PBRatioCard';\nimport { FUNDAMENTAL_SECTIONS } from '../data/fundamentalData';",
+  "StartLine": 22,
+  "TargetContent": "import FundamentalCard from './FundamentalCard';\nimport PERatioCard from './PERatioCard';\nimport ForwardPECard from './ForwardPECard';\nimport { FUNDAMENTAL_SECTIONS } from '../data/fundamentalData';",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Importing PBRatioCard",
+  "toolSummary": "Update FundamentalGrid.jsx"
+}

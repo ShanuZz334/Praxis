@@ -1,0 +1,23 @@
+{
+  "Description": "Removed MobileHeaderControls import and usage from FundamentalGrid.",
+  "Instruction": "Remove MobileHeaderControls from FundamentalGrid.jsx",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 25,
+      "ReplacementContent": "import { GlobalHeader } from '@/shared/components/ui/GlobalHeader/GlobalHeader';",
+      "StartLine": 24,
+      "TargetContent": "import { MobileHeaderControls } from '@/shared/components/ui/GlobalHeader/GlobalHeader';\nimport { GlobalHeader } from '@/shared/components/ui/GlobalHeader/GlobalHeader';"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 117,
+      "ReplacementContent": "",
+      "StartLine": 115,
+      "TargetContent": "      {/* Mobile Controls */}\n      <MobileHeaderControls controls={controls} />\n"
+    }
+  ],
+  "TargetFile": "c:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Cleaning FundamentalGrid mobile code",
+  "toolSummary": "FundamentalGrid mobile code removal"
+}

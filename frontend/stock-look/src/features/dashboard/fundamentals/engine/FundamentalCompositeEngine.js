@@ -1,0 +1,350 @@
+/**
+ * @file FundamentalCompositeEngine.js
+ * @purpose Institutional-grade composite scoring engine for the Fundamental Dashboard.
+ *
+ * Section Aggregation Methods (by financial theory):
+ *   COMPANY MODE (7 sections):
+ *     Valuation        → Weighted Harmonic Mean   (penalizes extreme overvaluation)
+ *     Market Health    → Weighted Geometric Mean  (all factors must align)
+ *     Inst. Flow       → Direct score             (single source)
+ *     Growth           → Trimmed Weighted Mean    (ignores outlier, rewards consistency)
+ *     Macro            → Direct score             (single source)
+ *     Profitability    → Threshold-Gated Mean     (poor ROE/ROCE triggers penalty gate)
+ *     Financial Health → Min-Anchored Blend       (weakest link dominates)
+ *
+ *   INDEX MODE (7 sections):
+ *     Index Valuation  → Weighted Harmonic Mean
+ *     Mkt Breadth      → Direct score
+ *     Inst. Flow       → Direct score
+ *     Volatility/Risk  → Inverse Min-Anchored     (high VIX suppresses entire composite)
+ *     Opt. Sentiment   → Direct score
+ *     Momentum         → Weighted Geometric Mean
+ *     Growth/Macro     → Weighted Mean
+ *
+ *   Composite = Convex-weighted sum of section scores with:
+ *     - Distress penalties (4pts per section < 25)
+ *     - Index VIX cap (if VIX section < 20, composite capped at 45)
+ */
+
+// ─── Title → ID Map ──────────────────────────────────────────────────────────
+export const TITLE_TO_ID = {
+    // Valuation
+    'P/E Ratio':            'pe_ratio',
+    'Forward P/E':          'forward_pe',
+    'P/B Ratio':            'pb_ratio',
+    'Earnings Yield':       'earnings_yield',
+    // Market Health
+    'Market Cap to GDP':    'market_cap_gdp',
+    'Dividend Yield':       'dividend_yield',
+    'Earnings Trend':       'earnings_trend',
+    'FII / DII Flow':       'fii_dii_flow',
+    // Growth
+    'EPS Growth':           'eps_growth',
+    'Revenue Growth':       'revenue_growth',
+    'Profit Growth':        'profit_growth',
+    'GDP Growth':           'gdp_growth',
+    // Profitability
+    'ROE':                  'roe',
+    'ROCE':                 'roce',
+    'Net Margin':           'net_margin',
+    'Operating Margin':     'operating_margin',
+    // Financial Health
+    'Debt to Equity':       'debt_to_equity',
+    'Interest Coverage':    'interest_coverage',
+    'Free Cash Flow':       'free_cash_flow',
+    'Current Ratio':        'current_ratio',
+    // Index-specific
+    'Advance / Decline':    'advance_decline',
+    'India VIX':            'india_vix',
+    'Put-Call Ratio':       'index_pcr',
+    'MACD Momentum':        'index_macd',
+    'MACD Histogram':       'index_macd', // Handling both potential titles
+    '200 DMA Stretch':      'index_200dma',
+};
+
+// ─── Aggregation Utilities ────────────────────────────────────────────────────
+
+function weightedHarmonicMean(items) {
+    const valid = items.filter(({ score }) => score !== null && !isNaN(score));
+    if (!valid.length) return null;
+    const totalW = valid.reduce((s, { weight }) => s + weight, 0);
+    if (!totalW) return 0;
+    const denom = valid.reduce((s, { weight, score }) => s + weight / Math.max(1, score), 0);
+    return denom === 0 ? 0 : totalW / denom;
+}
+
+function weightedGeometricMean(items) {
+    const valid = items.filter(({ score }) => score !== null && !isNaN(score));
+    if (!valid.length) return null;
+    const totalW = valid.reduce((s, { weight }) => s + weight, 0);
+    if (!totalW) return 0;
+    const logSum = valid.reduce((s, { weight, score }) => s + weight * Math.log(Math.max(1, score)), 0);
+    return Math.exp(logSum / totalW);
+}
+
+function weightedMean(items) {
+    const valid = items.filter(({ score }) => score !== null && !isNaN(score));
+    if (!valid.length) return null;
+    const totalW = valid.reduce((s, { weight }) => s + weight, 0);
+    if (!totalW) return 0;
+    return valid.reduce((s, { weight, score }) => s + weight * score, 0) / totalW;
+}
+
+function trimmedWeightedMean(items) {
+    const valid = items.filter(({ score }) => score !== null && !isNaN(score));
+    if (!valid.length) return null;
+    if (valid.length <= 2) return weightedMean(valid);
+    const sorted = [...valid].sort((a, b) => a.score - b.score);
+    return weightedMean(sorted.slice(1));
+}
+
+function clamp(val, lo = 0, hi = 100) {
+    return Math.max(lo, Math.min(hi, val));
+}
+
+// ─── Score Labels & Colors ────────────────────────────────────────────────────
+
+export function getScoreLabel(score) {
+    if (score === null || score === undefined) return { label: '—', hexColor: '#4B5563', cssColor: 'text-slate-500' };
+    if (score >= 81) return { label: 'Exceptional', hexColor: '#2E5BFF', cssColor: 'text-[#2E5BFF]' };
+    if (score >= 61) return { label: 'Strong',      hexColor: '#22C55E', cssColor: 'text-[#22C55E]' };
+    if (score >= 41) return { label: 'Balanced',    hexColor: '#94A3B8', cssColor: 'text-[#94A3B8]' };
+    if (score >= 21) return { label: 'Weak',        hexColor: '#F59E0B', cssColor: 'text-[#F59E0B]' };
+    return              { label: 'Poor',        hexColor: '#E5484D', cssColor: 'text-[#E5484D]' };
+}
+
+export function getSectionBarColor(score) {
+    if (score === null || score === undefined) return '#374151';
+    if (score >= 70) return '#10B981';
+    if (score >= 55) return '#6EE7B7';
+    if (score >= 40) return '#F59E0B';
+    if (score >= 25) return '#F97316';
+    return '#EF4444';
+}
+
+// ─── COMPANY MODE — 7 Sections ────────────────────────────────────────────────
+
+function computeCompanySections(scores) {
+    const g = (id) => {
+        const s = scores[id];
+        return (s !== undefined && s !== null && !isNaN(Number(s))) ? Number(s) : null;
+    };
+
+    const valuation = weightedHarmonicMean([
+        { score: g('pe_ratio'),      weight: 0.35 },
+        { score: g('forward_pe'),    weight: 0.30 },
+        { score: g('pb_ratio'),      weight: 0.25 },
+        { score: g('earnings_yield'),weight: 0.10 },
+    ]);
+
+    const earnings = trimmedWeightedMean([
+        { score: g('eps_growth'),     weight: 0.40 },
+        { score: g('revenue_growth'), weight: 0.35 },
+        { score: g('profit_growth'),  weight: 0.25 },
+    ]);
+
+    const macro = g('gdp_growth');
+
+    const liquidity = g('fii_dii_flow');
+
+    const sector = weightedGeometricMean([
+        { score: g('market_cap_gdp'), weight: 0.40 },
+        { score: g('dividend_yield'), weight: 0.25 },
+        { score: g('earnings_trend'), weight: 0.35 },
+    ]);
+
+    const roeS  = g('roe');
+    const roceS = g('roce');
+    let corporate = weightedMean([
+        { score: roeS,             weight: 0.30 },
+        { score: roceS,            weight: 0.30 },
+        { score: g('net_margin'),  weight: 0.20 },
+        { score: g('operating_margin'), weight: 0.20 },
+    ]);
+    if (corporate !== null) {
+        const minQuality = Math.min(roeS ?? 100, roceS ?? 100);
+        if (minQuality < 15) corporate *= 0.50;
+        else if (minQuality < 25) corporate *= 0.72;
+        else if (minQuality < 35) corporate *= 0.88;
+    }
+
+    const deS  = g('debt_to_equity');
+    const icS  = g('interest_coverage');
+    const fcfS = g('free_cash_flow');
+    const crS  = g('current_ratio');
+    const healthItems = [
+        { score: deS,  weight: 0.30 },
+        { score: icS,  weight: 0.30 },
+        { score: fcfS, weight: 0.25 },
+        { score: crS,  weight: 0.15 },
+    ].filter(x => x.score !== null);
+    let global = null; // using financial health for Global/Risk aspect of companies
+    if (healthItems.length > 0) {
+        const mean = weightedMean(healthItems);
+        const minScore = Math.min(...healthItems.map(x => x.score));
+        global = minScore * 0.40 + mean * 0.60;
+    }
+
+    return { valuation, earnings, macro, liquidity, sector, corporate, global };
+}
+
+// ─── INDEX MODE — 7 Sections ──────────────────────────────────────────────────
+
+function computeIndexSections(scores) {
+    const g = (id) => {
+        const s = scores[id];
+        return (s !== undefined && s !== null && !isNaN(Number(s))) ? Number(s) : null;
+    };
+
+    const valuation = weightedHarmonicMean([
+        { score: g('pe_ratio'),       weight: 0.35 },
+        { score: g('pb_ratio'),       weight: 0.30 },
+        { score: g('market_cap_gdp'), weight: 0.25 },
+        { score: g('dividend_yield'), weight: 0.10 },
+    ]);
+
+    const earnings = g('eps_growth'); // Index EPS growth
+
+    const macro = g('gdp_growth');
+
+    const liquidity = g('fii_dii_flow');
+
+    const sector = weightedGeometricMean([ // Market Breadth & Sentiment
+        { score: g('advance_decline'), weight: 0.60 },
+        { score: g('index_pcr'),       weight: 0.40 } // Adding missing Put-Call Ratio
+    ]) || g('advance_decline'); // Fallback if PCR is missing
+
+    const corporate = weightedGeometricMean([ // Momentum / Internal strength
+        { score: g('index_macd'),   weight: 0.50 },
+        { score: g('index_200dma'), weight: 0.50 },
+    ]);
+
+    let global = g('india_vix'); // Volatility & Risk
+    if (global !== null && global < 20) {
+        global *= 0.75;
+    }
+
+    return { valuation, earnings, macro, liquidity, sector, corporate, global };
+}
+
+// ─── Composite Score ──────────────────────────────────────────────────────────
+
+function computeComposite(sections, isIndex) {
+    const validSections = sections.filter(s => s.score !== null);
+    if (!validSections.length) return 0;
+
+    const totalW = validSections.reduce((s, x) => s + x.weight, 0);
+    if (!totalW) return 0;
+
+    let composite = validSections.reduce((s, x) => s + x.weight * x.score, 0) / totalW;
+
+    const distressCount = validSections.filter(x => x.score < 25).length;
+    composite = Math.max(0, composite - distressCount * 4);
+
+    if (isIndex) {
+        // High volatility (VIX spike) pulls down the entire index composite score
+        const globalSection = sections.find(s => s.id === 'global');
+        if (globalSection && globalSection.score !== null && globalSection.score < 20) {
+            composite = Math.min(45, composite);
+        }
+    }
+
+    return clamp(composite, 0, 100);
+}
+
+// ─── Build Result ─────────────────────────────────────────────────────────────
+
+function buildResult(sections, compositeScore) {
+    const roundedScore = Math.round(compositeScore);
+    const { label: regimeLabel, hexColor, cssColor } = getScoreLabel(roundedScore);
+
+    const dataSections = sections.filter(s => s.score !== null).length;
+    const confidence = sections.length > 0 ? Math.round((dataSections / sections.length) * 100) : 0;
+
+    const regime = {
+        label: regimeLabel,
+        description: getRegimeDescription(roundedScore),
+        confidence,
+        color: cssColor,
+        hexColor,
+    };
+
+    // True Impact calculation: Deviation from neutral (50) multiplied by the section's weight.
+    const tailwindImpact = (s) => (s.score - 50) * s.weight;
+    const tailwinds = sections
+        .filter(s => s.score !== null && s.score >= 60) // Broadened slightly to catch high-weight 60+ drivers
+        .sort((a, b) => tailwindImpact(b) - tailwindImpact(a))
+        .slice(0, 3)
+        .map(s => ({
+            id: s.id,
+            label: s.label,
+            value: s.score,
+            sub: `${Math.round(s.weight * 100)}% weight · ${getScoreLabel(s.score).label}`,
+        }));
+
+    const riskImpact = (s) => (50 - s.score) * s.weight;
+    const risks = sections
+        .filter(s => s.score !== null && s.score <= 40)
+        .sort((a, b) => riskImpact(b) - riskImpact(a))
+        .slice(0, 3)
+        .map(s => ({
+            id: s.id,
+            label: s.label,
+            value: s.score,
+            sub: `${Math.round(s.weight * 100)}% weight · ${getScoreLabel(s.score).label}`,
+        }));
+
+    return {
+        sections,
+        compositeScore: roundedScore,
+        regime,
+        tailwinds,
+        risks,
+    };
+}
+
+function getRegimeDescription(score) {
+    if (score >= 85) return 'Exceptional fundamental backdrop. Broad-based strength across all dimensions.';
+    if (score >= 70) return 'Strong fundamentals confirmed. Risk-on environment with solid macro support.';
+    if (score >= 60) return 'Constructive setup. Minor headwinds exist but underlying quality intact.';
+    if (score >= 50) return 'Mixed signals. Stock-specific selection critical. No clear directional bias.';
+    if (score >= 40) return 'Headwinds building. Capital preservation mode warranted on weaker names.';
+    if (score >= 25) return 'Bearish fundamental backdrop. Deterioration across multiple dimensions.';
+    return 'Deep risk-off signal. Fundamental crisis indicators active. Extreme caution advised.';
+}
+
+// ─── Main Exports ─────────────────────────────────────────────────────────────
+
+export function computeCompanyComposite(scores) {
+    const raw = computeCompanySections(scores);
+
+    const sections = [
+        { id: 'valuation', label: 'Valuation', shortLabel: 'VAL', score: raw.valuation !== null ? clamp(Math.round(raw.valuation)) : null, weight: 0.20 },
+        { id: 'earnings',  label: 'Earnings',  shortLabel: 'EAR', score: raw.earnings  !== null ? clamp(Math.round(raw.earnings))  : null, weight: 0.22 },
+        { id: 'macro',     label: 'Macro',     shortLabel: 'MAC', score: raw.macro     !== null ? clamp(Math.round(raw.macro))     : null, weight: 0.05 },
+        { id: 'liquidity', label: 'Liquidity', shortLabel: 'LIQ', score: raw.liquidity !== null ? clamp(Math.round(raw.liquidity)) : null, weight: 0.08 },
+        { id: 'sector',    label: 'Sector',    shortLabel: 'SEC', score: raw.sector    !== null ? clamp(Math.round(raw.sector))    : null, weight: 0.15 },
+        { id: 'corporate', label: 'Corporate', shortLabel: 'COR', score: raw.corporate !== null ? clamp(Math.round(raw.corporate)) : null, weight: 0.18 },
+        { id: 'global',    label: 'Global',    shortLabel: 'GLO', score: raw.global    !== null ? clamp(Math.round(raw.global))    : null, weight: 0.12 },
+    ];
+
+    const composite = computeComposite(sections, false);
+    return buildResult(sections, composite);
+}
+
+export function computeIndexComposite(scores) {
+    const raw = computeIndexSections(scores);
+
+    const sections = [
+        { id: 'valuation', label: 'Valuation', shortLabel: 'VAL', score: raw.valuation !== null ? clamp(Math.round(raw.valuation)) : null, weight: 0.18 },
+        { id: 'earnings',  label: 'Earnings',  shortLabel: 'EAR', score: raw.earnings  !== null ? clamp(Math.round(raw.earnings))  : null, weight: 0.15 },
+        { id: 'macro',     label: 'Macro',     shortLabel: 'MAC', score: raw.macro     !== null ? clamp(Math.round(raw.macro))     : null, weight: 0.10 },
+        { id: 'liquidity', label: 'Liquidity', shortLabel: 'LIQ', score: raw.liquidity !== null ? clamp(Math.round(raw.liquidity)) : null, weight: 0.12 },
+        { id: 'sector',    label: 'Sector',    shortLabel: 'SEC', score: raw.sector    !== null ? clamp(Math.round(raw.sector))    : null, weight: 0.15 },
+        { id: 'corporate', label: 'Corporate', shortLabel: 'COR', score: raw.corporate !== null ? clamp(Math.round(raw.corporate)) : null, weight: 0.15 },
+        { id: 'global',    label: 'Global',    shortLabel: 'GLO', score: raw.global    !== null ? clamp(Math.round(raw.global))    : null, weight: 0.15 },
+    ];
+
+    const composite = computeComposite(sections, true);
+    return buildResult(sections, composite);
+}

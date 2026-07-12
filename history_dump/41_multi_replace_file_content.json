@@ -1,0 +1,23 @@
+{
+  "Description": "Replace FundamentalCard with FundamentalCardRenderer",
+  "Instruction": "Replace both instances of FundamentalCard with FundamentalCardRenderer in FundamentalGrid",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 77,
+      "ReplacementContent": "          <FundamentalCardRenderer\n            key={card.id}\n            card={card}\n            onClick={() => onCardClick(card)}\n            data={data}\n            manualOverrides={manualOverrides}\n            lastUpdated={lastUpdated}\n          />",
+      "StartLine": 73,
+      "TargetContent": "          <FundamentalCard\n            key={card.id}\n            card={card}\n            onClick={() => onCardClick(card)}\n          />"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 141,
+      "ReplacementContent": "                  <FundamentalCardRenderer\n                    key={card.id}\n                    card={card}\n                    onClick={() => onCardClick(card)}\n                    data={data}\n                    manualOverrides={manualOverrides}\n                    lastUpdated={lastUpdated}\n                  />",
+      "StartLine": 137,
+      "TargetContent": "                  <FundamentalCard\n                    key={card.id}\n                    card={card}\n                    onClick={() => onCardClick(card)}\n                  />"
+    }
+  ],
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Replace FundamentalCard renderer",
+  "toolSummary": "Edit FundamentalGrid.jsx"
+}

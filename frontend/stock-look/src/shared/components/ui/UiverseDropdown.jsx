@@ -40,10 +40,10 @@ export default function UiverseDropdown({
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
-                    w-full flex items-center justify-between px-3 py-2 rounded-lg
+                    w-full h-10 flex items-center justify-between px-3 rounded-lg
                     bg-background-surface/30 hover:bg-background-surface/60 transition-colors
                     border border-border-default/50 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20
-                    text-xs text-text-primary shadow-sm
+                    text-sm text-text-primary shadow-sm
                 `}
             >
                 <span className={selectedOption ? "text-text-primary" : "text-text-tertiary"}>
@@ -64,7 +64,7 @@ export default function UiverseDropdown({
                     <div className="p-2 border-b border-border-default/50 sticky top-0 bg-background-tooltip/95 z-10">
                         <input
                             type="text"
-                            className="w-full bg-background-surface/50 border border-border-default/50 rounded-md px-3 py-1.5 text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-blue-500/50"
+                            className="w-full bg-background-surface/50 border border-border-default/50 rounded-md px-3 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-blue-500/50"
                             placeholder="Search..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -85,7 +85,7 @@ export default function UiverseDropdown({
                                         setSearchTerm("");
                                     }}
                                     className={`
-                                        w-full text-left px-3 py-2 text-xs transition-colors
+                                        w-full text-left px-3 py-2 text-sm transition-colors
                                         hover:bg-background-surface/80
                                         ${value === opt.value ? 'bg-blue-500/10 text-blue-500 font-medium' : 'text-text-primary'}
                                     `}

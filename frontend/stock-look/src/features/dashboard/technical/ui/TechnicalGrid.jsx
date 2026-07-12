@@ -121,54 +121,70 @@ export default function TechnicalGrid({
                 </div>
             )}
 
-            {viewMode === "flat" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start">
-                    <RSICard />
-                    <MACDCard />
-                    <StochRSICard />
-                    <WilliamsRCard />
-                    <BBCard />
-                    <ATRCard />
-                    <KCCard />
-                    <CmfCard />
-                    <VolumeSmaCard />
-                    <ObvCard />
-                    <VwapCard />
-                    <SupportCard />
-                    <ResistanceCard />
-                    <TrendlineCard />
-                    <PivotCard />
-                    <FibonacciCard />
-                    <EMA20Card />
-                    <EMA50Card />
-                    <EMA200Card />
-                    <SMA50Card />
-                    <SMA200Card />
-                    <ADXCard />
-                    <SupertrendCard />
-                    <BreadthRatioCard />
-                    <McClellanCard />
-                    <ADLineCard />
-                    <NhnlCard />
-                    <VixCard />
-                    <TrinCard />
-                    {cards.length === 0 && searchQuery ? (
-                        <div className="col-span-4 p-12 text-center text-text-tertiary italic">No technicals found for "{searchQuery}"</div>
-                    ) : (
-                        sortCards(cards, sortMode).map((card) => {
-                            const excludeIds = ['rsi', 'macd', 'stoch_rsi', 'williams_r', 'bb_20_2', 'atr', 'kc', 'cmf', 'volume_sma', 'obv', 'vwap', 'support', 'resistance', 'trendline', 'pivot', 'fibonacci', 'ema_20', 'ema_50', 'ema_200', 'sma_50', 'sma_200', 'adx', 'supertrend', 'breadth_ratio', 'mcclellan', 'ad_line', 'nh_nl', 'india_vix', 'trin'];
-                            if (excludeIds.includes(card.id) || card.id.startsWith('dummy_')) return null;
-                            return (
-                                <TechnicalCard
-                                    key={card.id}
-                                    card={card}
-                                    onClick={() => onCardClick(card)}
-                                />
-                            );
-                        })
-                    )}
-                </div>
-            ) : (
+            {viewMode === "flat" ? (() => {
+                const renderList = [];
+                renderList.push({ id: 'rsi', node: <RSICard /> });
+                renderList.push({ id: 'macd', node: <MACDCard /> });
+                renderList.push({ id: 'stoch_rsi', node: <StochRSICard /> });
+                renderList.push({ id: 'williams_r', node: <WilliamsRCard /> });
+                renderList.push({ id: 'bb_20_2', node: <BBCard /> });
+                renderList.push({ id: 'atr', node: <ATRCard /> });
+                renderList.push({ id: 'kc', node: <KCCard /> });
+                renderList.push({ id: 'cmf', node: <CmfCard /> });
+                renderList.push({ id: 'volume_sma', node: <VolumeSmaCard /> });
+                renderList.push({ id: 'obv', node: <ObvCard /> });
+                renderList.push({ id: 'vwap', node: <VwapCard /> });
+                renderList.push({ id: 'support', node: <SupportCard /> });
+                renderList.push({ id: 'resistance', node: <ResistanceCard /> });
+                renderList.push({ id: 'trendline', node: <TrendlineCard /> });
+                renderList.push({ id: 'pivot', node: <PivotCard /> });
+                renderList.push({ id: 'fibonacci', node: <FibonacciCard /> });
+                renderList.push({ id: 'ema_20', node: <EMA20Card /> });
+                renderList.push({ id: 'ema_50', node: <EMA50Card /> });
+                renderList.push({ id: 'ema_200', node: <EMA200Card /> });
+                renderList.push({ id: 'sma_50', node: <SMA50Card /> });
+                renderList.push({ id: 'sma_200', node: <SMA200Card /> });
+                renderList.push({ id: 'adx', node: <ADXCard /> });
+                renderList.push({ id: 'supertrend', node: <SupertrendCard /> });
+                renderList.push({ id: 'breadth_ratio', node: <BreadthRatioCard /> });
+                renderList.push({ id: 'mcclellan', node: <McClellanCard /> });
+                renderList.push({ id: 'ad_line', node: <ADLineCard /> });
+                renderList.push({ id: 'nh_nl', node: <NhnlCard /> });
+                renderList.push({ id: 'india_vix', node: <VixCard /> });
+                renderList.push({ id: 'trin', node: <TrinCard /> });
+
+                const excludeIds = renderList.map(item => item.id);
+
+                // Merge data from cards array so they can be sorted
+                const flatWithData = renderList.map(item => {
+                    const cData = cards.find(c => c.id === item.id) || { normalized: 0, creditAllocation: 0 };
+                    return { ...item, ...cData };
+                });
+
+                // Add generic cards
+                const dynamicCards = cards.filter(card => !excludeIds.includes(card.id) && !card.id.startsWith('dummy_')).map(card => ({
+                    id: card.id,
+                    ...card,
+                    node: <TechnicalCard key={card.id} card={card} onClick={() => onCardClick(card)} />
+                }));
+                flatWithData.push(...dynamicCards);
+
+                // Filter by search
+                const filteredFlatWithData = flatWithData.filter(item => cards.some(c => c.id === item.id));
+
+                const sortedFlat = sortCards(filteredFlatWithData, sortMode);
+
+                return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start">
+                        {sortedFlat.map(item => (
+                            <React.Fragment key={item.id}>{item.node}</React.Fragment>
+                        ))}
+                        {cards.length === 0 && searchQuery && (
+                            <div className="col-span-4 p-12 text-center text-text-tertiary italic">No technicals found for "{searchQuery}"</div>
+                        )}
+                    </div>
+                );
+            })() : (
                 <div className="space-y-6 md:space-y-10">
                     {SECTION_ORDER.map((section) => {
                         const hardcodedCounts = {

@@ -152,40 +152,56 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
     }
 
     // 2. FLAT VIEW
-    const sortedCards = sortCards(safeCards, sortMode);
+    const renderList = [];
+    renderList.push({ id: 'sp_futures', node: <SpFuturesCard /> });
+    renderList.push({ id: 'nasdaq_futures', node: <NasdaqFuturesCard /> });
+    renderList.push({ id: 'dow_futures', node: <DowFuturesCard /> });
+    renderList.push({ id: 'usd_inr', node: <UsdInrCard /> });
+    renderList.push({ id: 'dxy', node: <DxyCard /> });
+    renderList.push({ id: 'us_10y_yield', node: <Us10yYieldCard /> });
+    renderList.push({ id: 'brent_crude', node: <BrentCrudeOilCard /> });
+    renderList.push({ id: 'gold', node: <GoldCard /> });
+    renderList.push({ id: 'silver', node: <SilverCard /> });
+    renderList.push({ id: 'vix', node: <VixCard /> });
+    renderList.push({ id: 'bitcoin', node: <BitcoinCard /> });
+
+    const renderExcludeIds = renderList.map(item => item.id);
+
+    const flatWithData = renderList.map(item => {
+        const cData = safeCards.find(c => c.id === item.id) || { creditAllocation: 0, normalized: 0 };
+        return { ...item, ...cData };
+    });
+
+    const dynamicCards = safeCards.filter(card => !renderExcludeIds.includes(card.id) && !card.id?.startsWith('dummy_')).map(card => ({
+        id: card.id,
+        ...card,
+        node: <GlobalCard
+            key={card.id}
+            label={card.label}
+            raw={card.raw}
+            unit={card.unit}
+            normalized={card.normalized}
+            creditScore={card.creditScore}
+            creditAllocation={card.creditAllocation}
+            totalPageCredits={TOTAL_GLOBAL_CREDITS}
+            reason={card.reason}
+            multiplier={card.multiplier}
+            isFocused={card.isFocused}
+            onClick={() => onCardClick?.(card)}
+        />
+    }));
+
+    flatWithData.push(...dynamicCards);
+
+    const filteredFlatWithData = flatWithData.filter(item => safeCards.some(c => c.id === item.id));
+
+    const sortedFlat = sortCards(filteredFlatWithData, sortMode);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 items-start">
-            <SpFuturesCard />
-            <NasdaqFuturesCard />
-            <DowFuturesCard />
-            <UsdInrCard />
-            <DxyCard />
-            <Us10yYieldCard />
-            <BrentCrudeOilCard />
-            <GoldCard />
-            <SilverCard />
-            <VixCard />
-            <BitcoinCard />
-            {sortedCards.map((card) => {
-                const excludeIds = ['sp_futures', 'nasdaq_futures', 'dow_futures', 'usd_inr', 'dxy', 'us_10y_yield', 'brent_crude', 'gold', 'silver', 'vix', 'bitcoin'];
-                if (excludeIds.includes(card.id) || card.id?.startsWith('dummy_')) return null;
-                return (
-                <GlobalCard
-                    key={card.id}
-                    label={card.label}
-                    raw={card.raw}
-                    unit={card.unit}
-                    normalized={card.normalized}
-                    creditScore={card.creditScore}
-                    creditAllocation={card.creditAllocation}
-                    totalPageCredits={TOTAL_GLOBAL_CREDITS}
-                    reason={card.reason}
-                    multiplier={card.multiplier}
-                    isFocused={card.isFocused}
-                    onClick={() => onCardClick?.(card)}
-                />
-            )})}
+            {sortedFlat.map(item => (
+                <React.Fragment key={item.id}>{item.node}</React.Fragment>
+            ))}
         </div>
     );
 }

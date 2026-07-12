@@ -145,7 +145,7 @@ export default function PERatioCard({ data = null, manualOverride, lastUpdated }
 
     // ── Step 5: Display Value Formatting ──────────────────────────────────
     const displayPE = currentPE !== null && !isNaN(currentPE)
-        ? parseFloat(currentPE).toFixed(2)
+        ? `${parseFloat(currentPE).toFixed(2)}x`
         : '--';
 
     return (
@@ -167,7 +167,7 @@ export default function PERatioCard({ data = null, manualOverride, lastUpdated }
                 details: [
                     sectorPE !== null && {
                         label: 'Sector P/E',
-                        value: parseFloat(sectorPE).toFixed(1),
+                        value: `${parseFloat(sectorPE).toFixed(2)}x`,
                         isManual: false,
                     }
                 ].filter(Boolean),

@@ -12,6 +12,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { formatDecimal } from '@/shared/utils/formatters';
 
 /**
  * Robust scoring engine for P/B Ratio.
@@ -141,12 +142,12 @@ export default function PBRatioCard({ data = null, manualOverride, lastUpdated }
             data={{
                 currentValueObj: { 
                     label: 'Current PB', 
-                    value: currentPB !== null ? currentPB : '--' 
+                    value: currentPB !== null ? `${formatDecimal(currentPB)}x` : '--' 
                 },
                 details: [
                     sectorPB !== null && {
                         label: 'Sector P/B',
-                        value: parseFloat(sectorPB).toFixed(2),
+                        value: `${formatDecimal(sectorPB)}x`,
                         isManual: false,
                     }
                 ].filter(Boolean),

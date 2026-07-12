@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Injected ForwardPECard into the Flat view.",
+  "EndLine": 74,
+  "Instruction": "Add `<ForwardPECard />` immediately below `<PERatioCard />` in the flat view grid.",
+  "ReplacementContent": "        {/* Render our highly specialized indicator templates first */}\n        <PERatioCard />\n        <ForwardPECard />",
+  "StartLine": 72,
+  "TargetContent": "        {/* Render our highly specialized indicator template first */}\n        <PERatioCard />",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Adding to flat view",
+  "toolSummary": "Update FundamentalGrid.jsx"
+}

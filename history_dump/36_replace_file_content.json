@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Fixed overlap of badges with the flip icon and displayed the company name instead of the instrument key.",
+  "EndLine": 109,
+  "Instruction": "Add mr-10 to the badge container to avoid overlap, and display the instrument label instead of the value.",
+  "ReplacementContent": "          <div className=\"flex items-center justify-between gap-2 mb-4 border-b border-border-default pb-2\">\n              <span className=\"text-xs font-bold text-text-primary uppercase tracking-wider\">Manual Data Overrides</span>\n              <div className=\"flex gap-2 md:gap-3 mr-10\">\n                  <span className=\"text-[9px] md:text-[10px] px-2 py-0.5 rounded border border-border-default bg-background-surface text-blue-400 font-mono shadow-sm\">\n                    {selectedCategory}\n                  </span>\n                  {selectedInstrument && (\n                      <span className=\"text-[9px] md:text-[10px] px-2 py-0.5 rounded border border-border-default bg-background-surface text-emerald-400 font-mono shadow-sm\">\n                        {filteredInstruments.find(i => i.value === selectedInstrument)?.label || selectedInstrument.replace(/_/g, ' ')}\n                      </span>\n                  )}\n              </div>\n          </div>",
+  "StartLine": 98,
+  "TargetContent": "          <div className=\"flex items-center justify-between gap-2 mb-4 border-b border-border-default pb-2\">\n              <span className=\"text-xs font-bold text-text-primary uppercase tracking-wider\">Manual Data Overrides</span>\n              <div className=\"flex gap-2 md:gap-3\">\n                  <span className=\"text-[9px] md:text-[10px] px-2 py-0.5 rounded border border-border-default bg-background-surface text-blue-400 font-mono shadow-sm\">\n                    {selectedCategory}\n                  </span>\n                  {selectedInstrument && (\n                      <span className=\"text-[9px] md:text-[10px] px-2 py-0.5 rounded border border-border-default bg-background-surface text-emerald-400 font-mono shadow-sm\">\n                        {selectedInstrument.replace(/_/g, ' ')}\n                      </span>\n                  )}\n              </div>\n          </div>",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalPage.jsx",
+  "toolAction": "Fix header layout",
+  "toolSummary": "Fix FundamentalPage.jsx"
+}

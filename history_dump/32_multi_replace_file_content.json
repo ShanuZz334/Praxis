@@ -1,0 +1,28 @@
+{
+  "ArtifactMetadata": {
+    "RequestFeedback": false,
+    "Summary": "Pass lastUpdated to FundamentalGrid",
+    "UserFacing": false
+  },
+  "Description": "Passed lastUpdated from the hook down to FundamentalGrid.",
+  "Instruction": "Extract lastUpdated from the hook and pass it to FundamentalGrid.",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 85,
+      "ReplacementContent": "  const { data: fundamentalsData, loading, error, lastUpdated } = useFundamentalsData(selectedInstrument);",
+      "StartLine": 85,
+      "TargetContent": "  const { data: fundamentalsData, loading, error } = useFundamentalsData(selectedInstrument);"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 235,
+      "ReplacementContent": "          selectedCategory={selectedCategory}\n          manualOverrides={manualOverrides}\n          lastUpdated={lastUpdated}\n        />",
+      "StartLine": 233,
+      "TargetContent": "          selectedCategory={selectedCategory}\n          manualOverrides={manualOverrides}\n        />"
+    }
+  ],
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalPage.jsx",
+  "toolAction": "Pass lastUpdated to grid",
+  "toolSummary": "Update FundamentalPage.jsx"
+}

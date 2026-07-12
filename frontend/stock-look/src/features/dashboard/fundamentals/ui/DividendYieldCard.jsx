@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { formatPercentage } from '@/shared/utils/formatters';
 
 function scoreDividendYield(currentYield, bondYield) {
     if (currentYield === null || isNaN(currentYield)) return { score: 0, bias: 'Neutral', confidence: '0%' };
@@ -85,9 +86,9 @@ export default function DividendYieldCard({ data = null, manualOverride, lastUpd
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Dividend Yield (%)', value: currentYield !== null && !isNaN(currentYield) ? currentYield : '--' },
+                currentValueObj: { label: 'Dividend Yield', value: currentYield !== null && !isNaN(currentYield) ? formatPercentage(currentYield) : '--' },
                 details: [
-                    bondYield !== null && !isNaN(bondYield) && { label: '10Y Bond Yield', value: bondYield + '%', isManual: true }
+                    bondYield !== null && !isNaN(bondYield) && { label: '10Y Bond Yield', value: formatPercentage(bondYield), isManual: true }
                 ].filter(Boolean),
                 score: score || 0,
                 bias: bias || 'Neutral',

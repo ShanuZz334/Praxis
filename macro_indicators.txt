@@ -1,0 +1,3381 @@
+Macro Indicators
+
+1. S&P 500 Futures
+Module: Global
+Category: US Markets
+Status: Production Ready
+1. Overview
+Name: S&P 500 Futures
+Short Name: S&P Futures
+Module: Global
+Category: US Markets
+Purpose:
+Tracks the performance of S&P 500 Futures to measure overnight global market sentiment and its potential impact on the Indian equity market before NSE trading begins.
+Based On:
+CME E-mini S&P 500 Futures (ES)
+Importance:
+⭐⭐⭐⭐⭐ (Core Global Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Real-Time (Market Hours)
+Praxis Note:
+S&P 500 Futures are one of the strongest global leading indicators for NIFTY and BANKNIFTY. They should be used to gauge overnight sentiment rather than predict exact market direction. 
+
+2. Data Requirements
+Required Data
+Current Futures Price 
+Previous Close 
+Daily Change 
+Daily Change (%) 
+Session High 
+Session Low 
+Volume 
+Last Updated 
+Minimum Historical Data
+30 Trading Days
+Recommended
+1 Year
+Primary Source
+CME Market Data 
+Upstox Global Feed (if available) 
+Financial Market Data Provider 
+
+3. Industry Standard Calculation
+Formula
+Daily Change = Current Price − Previous Close
+Daily Change (%) =
+
+((Current Price − Previous Close)
+
+÷
+
+Previous Close)
+
+× 100
+Implementation Steps
+Retrieve latest S&P 500 Futures price. 
+Calculate daily point change. 
+Calculate percentage change. 
+Compare against historical average movement. 
+Generate Global Score contribution. 
+Notes
+Use continuous front-month futures contract. 
+Ignore expired contracts. 
+Refresh during global trading hours. 
+
+4. Card Fields
+Current Value
+Current Futures Price
+Daily Change
+Points
+Daily Change (%)
+Percentage
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Global Market Confidence
+Impact Weight
+Very High
+
+5. Praxis Score Logic
+Notes
+Strong overnight gains generally support positive market openings. 
+Strong overnight declines increase downside risk. 
+Confirm with Nasdaq Futures, Dow Futures, and VIX. 
+
+6. Bias Rules
+Gain Above 0.50%
+Bullish
+Range Between -0.50% and +0.50%
+Neutral
+Loss Below -0.50%
+Bearish
+Loss Above -1.50%
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% High trading volume
++5% Nasdaq confirms trend
++5% Dow confirms trend
+Decrease Confidence
+-10% Low liquidity
+-5% Major economic event pending
+-5% Conflicting global indices
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Strong Bearish
+30–60 → Weak
+60–80 → Neutral
+80–100 → Strong Bullish
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+S&P 500 Futures (%)
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Real-Time
+
+10. AI Insight Rules
+Strong Positive Session
+Explain that U.S. futures indicate positive global risk sentiment, supporting a stronger opening for Indian equities.
+Moderately Positive
+Explain that global sentiment remains supportive with moderate buying interest.
+Flat Session
+Explain that global markets are showing limited directional bias.
+Negative Session
+Explain that weaker U.S. futures may increase selling pressure during the Indian session.
+Sharp Sell-off
+Explain that significant weakness in U.S. futures suggests elevated global risk-off sentiment.
+
+11. Why It Matters
+Indicates overnight global market sentiment. 
+Influences NIFTY and BANKNIFTY opening direction. 
+Reflects institutional risk appetite. 
+Confirms global trend strength. 
+Provides early market context before NSE opens. 
+
+12. Trading Impact
+Intraday
+★★★★★
+Swing Trading
+★★★★☆
+Positional Trading
+★★★☆☆
+Options Trading
+★★★★☆
+Best Use
+Evaluating overnight global market sentiment.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Nasdaq Futures 
+Dow Jones Futures 
+US Dollar Index (DXY) 
+CBOE VIX 
+US 10-Year Treasury Yield 
+
+14. Metadata
+Source
+CME / Financial Market Data Provider
+Calculation
+Backend
+Updated
+Real-Time
+Timezone
+America/Chicago (Source)
+Display: Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Futures Price 
+Daily Change 
+Daily Change (%) 
+Current Score 
+Bias 
+Confidence 
+Historical Prices 
+Last Updated 
+Use the continuous front-month contract to avoid expiry-related discontinuities. Cache historical values for trend visualization and score history. If live data is unavailable, display the last successful update with a stale-data indicator.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Very High
+Decision Engine Role
+Global Market Sentiment Assessment
+Primary Use
+Measure overnight global risk sentiment before Indian market opens.
+Bullish Confirmation
+Rising S&P Futures 
+Rising Nasdaq Futures 
+Stable or Falling VIX 
+Bearish Confirmation
+Falling S&P Futures 
+Rising VIX 
+Rising US Treasury Yield 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+S&P 500 Futures should serve as the primary global sentiment indicator within the US Markets category.
+US Markets Hierarchy
+⭐⭐⭐⭐⭐ S&P 500 Futures 
+⭐⭐⭐⭐☆ Nasdaq Futures 
+⭐⭐⭐⭐☆ Dow Jones Futures 
+Engine Rules
+S&P Futures rising + Nasdaq Futures rising → Increase Global Score. 
+S&P Futures falling + Rising VIX → Reduce Global Score. 
+Strong divergence between S&P Futures and Nasdaq Futures → Reduce confidence until confirmed. 
+Always evaluate S&P 500 Futures alongside VIX, DXY, and US Treasury Yield before generating high-confidence global market signals.
+
+2. Nasdaq Futures
+Module: Global
+Category: US Markets
+Status: Production Ready
+1. Overview
+Name: Nasdaq Futures
+Short Name: Nasdaq Futures
+Module: Global
+Category: US Markets
+Purpose:
+Tracks the performance of Nasdaq-100 Futures to measure overnight sentiment in the technology sector and growth-oriented equities. It provides an early indication of global risk appetite and potential impact on Indian IT and technology-related sectors.
+Based On:
+CME E-mini Nasdaq-100 Futures (NQ)
+Importance:
+⭐⭐⭐⭐⭐ (Core Global Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Real-Time (Market Hours)
+Praxis Note:
+Nasdaq Futures are generally more volatile than S&P 500 Futures and are particularly useful for assessing sentiment toward technology and growth stocks. They should always be evaluated alongside S&P 500 Futures and VIX. 
+
+2. Data Requirements
+Required Data
+Current Futures Price 
+Previous Close 
+Daily Change 
+Daily Change (%) 
+Session High 
+Session Low 
+Volume 
+Last Updated 
+Minimum Historical Data
+30 Trading Days
+Recommended
+1 Year
+Primary Source
+CME Market Data 
+Upstox Global Feed (if available) 
+Financial Market Data Provider 
+
+3. Industry Standard Calculation
+Formula
+Daily Change = Current Price − Previous Close
+Daily Change (%) =
+
+((Current Price − Previous Close)
+
+÷
+
+Previous Close)
+
+× 100
+Implementation Steps
+Retrieve the latest Nasdaq Futures price. 
+Calculate daily point change. 
+Calculate percentage change. 
+Compare against historical average movement. 
+Generate Global Score contribution. 
+Notes
+Use the continuous front-month futures contract. 
+Ignore expired contracts. 
+Refresh continuously during market hours. 
+
+4. Card Fields
+Current Value
+Current Futures Price
+Daily Change
+Points
+Daily Change (%)
+Percentage
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Global Market Confidence
+Impact Weight
+Very High
+
+5. Praxis Score Logic
+Notes
+Nasdaq typically exhibits larger percentage moves than the S&P 500. 
+Strong gains support bullish sentiment in technology stocks. 
+Confirm with S&P 500 Futures and VIX. 
+
+6. Bias Rules
+Gain Above 0.75%
+Bullish
+Range Between -0.75% and +0.75%
+Neutral
+Loss Below -0.75%
+Bearish
+Loss Above -2.00%
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% S&P 500 confirms trend
++5% Dow Futures confirm trend
++5% Falling VIX
+Decrease Confidence
+-10% Low liquidity
+-5% Major economic event pending
+-5% Divergence from S&P 500
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Strong Bearish
+30–60 → Weak
+60–80 → Neutral
+80–100 → Strong Bullish
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Nasdaq Futures (%)
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Real-Time
+
+10. AI Insight Rules
+Strong Positive Session
+Explain that technology stocks are leading global risk appetite, supporting positive sentiment for growth sectors.
+Moderately Positive
+Explain that technology markets remain supportive with moderate buying interest.
+Flat Session
+Explain that technology sentiment remains balanced.
+Negative Session
+Explain that weakness in technology futures may pressure IT and growth-oriented sectors.
+Sharp Sell-off
+Explain that strong selling in Nasdaq Futures reflects a broader risk-off environment.
+
+11. Why It Matters
+Measures global technology sector sentiment. 
+Influences Indian IT stocks. 
+Reflects investor appetite for growth assets. 
+Confirms overnight market momentum. 
+Strengthens global sentiment analysis. 
+
+12. Trading Impact
+Intraday
+★★★★★
+Swing Trading
+★★★★☆
+Positional Trading
+★★★☆☆
+Options Trading
+★★★★☆
+Best Use
+Assessing global technology and growth sentiment.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+S&P 500 Futures 
+Dow Jones Futures 
+CBOE VIX 
+US Dollar Index (DXY) 
+US 10-Year Treasury Yield 
+
+14. Metadata
+Source
+CME / Financial Market Data Provider
+Calculation
+Backend
+Updated
+Real-Time
+Timezone
+America/Chicago (Source)
+Display: Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Futures Price 
+Daily Change 
+Daily Change (%) 
+Current Score 
+Bias 
+Confidence 
+Historical Prices 
+Last Updated 
+Use the continuous front-month futures contract. Cache historical values for trend analysis and score history. Display the last successful update if live market data becomes unavailable.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Very High
+Decision Engine Role
+Technology Market Sentiment Assessment
+Primary Use
+Measure overnight sentiment in global technology and growth sectors.
+Bullish Confirmation
+Rising Nasdaq Futures 
+Rising S&P 500 Futures 
+Falling VIX 
+Bearish Confirmation
+Falling Nasdaq Futures 
+Rising VIX 
+Rising US Treasury Yield 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+Nasdaq Futures should serve as the technology sentiment indicator within the US Markets category.
+US Markets Hierarchy
+⭐⭐⭐⭐⭐ S&P 500 Futures 
+⭐⭐⭐⭐☆ Nasdaq Futures 
+⭐⭐⭐⭐☆ Dow Jones Futures 
+Engine Rules
+Nasdaq Futures rising + S&P Futures rising → Increase Global Score. 
+Nasdaq underperforming while S&P remains positive → Reduce confidence due to sector divergence. 
+Nasdaq falling sharply + Rising VIX → Reduce Global Score. 
+Always evaluate Nasdaq Futures alongside S&P 500 Futures, VIX, and US Treasury Yield before generating high-confidence global market signals.
+
+
+
+
+3. Dow Jones Futures
+Module: Global
+Category: US Markets
+Status: Production Ready
+1. Overview
+Name: Dow Jones Futures
+Short Name: Dow Futures
+Module: Global
+Category: US Markets
+Purpose:
+Tracks the performance of Dow Jones Industrial Average Futures to measure overnight sentiment in large-cap industrial and blue-chip companies. It provides insight into institutional risk appetite and overall market stability before the Indian market opens.
+Based On:
+CME E-mini Dow Jones Futures (YM)
+Importance:
+⭐⭐⭐⭐☆ (Core Global Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Real-Time (Market Hours)
+Praxis Note:
+Dow Futures generally exhibit lower volatility than Nasdaq Futures and provide a broader view of institutional confidence in mature, blue-chip companies. They should always be evaluated alongside S&P 500 Futures and Nasdaq Futures. 
+
+2. Data Requirements
+Required Data
+Current Futures Price 
+Previous Close 
+Daily Change 
+Daily Change (%) 
+Session High 
+Session Low 
+Volume 
+Last Updated 
+Minimum Historical Data
+30 Trading Days
+Recommended
+1 Year
+Primary Source
+CME Market Data 
+Upstox Global Feed (if available) 
+Financial Market Data Provider 
+
+3. Industry Standard Calculation
+Formula
+Daily Change = Current Price − Previous Close
+Daily Change (%) =
+
+((Current Price − Previous Close)
+
+÷
+
+Previous Close)
+
+× 100
+Implementation Steps
+Retrieve the latest Dow Futures price. 
+Calculate daily point change. 
+Calculate percentage change. 
+Compare against historical average movement. 
+Generate Global Score contribution. 
+Notes
+Use the continuous front-month futures contract. 
+Ignore expired contracts. 
+Refresh continuously during market hours. 
+
+4. Card Fields
+Current Value
+Current Futures Price
+Daily Change
+Points
+Daily Change (%)
+Percentage
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Global Market Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Dow Futures reflect institutional sentiment toward large-cap stocks. 
+Strong gains generally support positive global sentiment. 
+Confirm with S&P 500 Futures and VIX. 
+
+6. Bias Rules
+Gain Above 0.50%
+Bullish
+Range Between -0.50% and +0.50%
+Neutral
+Loss Below -0.50%
+Bearish
+Loss Above -1.25%
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% S&P 500 confirms trend
++5% Nasdaq confirms trend
++5% Falling VIX
+Decrease Confidence
+-10% Low liquidity
+-5% Major economic event pending
+-5% Divergence from S&P 500
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Strong Bearish
+30–60 → Weak
+60–80 → Neutral
+80–100 → Strong Bullish
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Dow Futures (%)
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Real-Time
+
+10. AI Insight Rules
+Strong Positive Session
+Explain that blue-chip U.S. stocks indicate strong institutional confidence, supporting a positive global market outlook.
+Moderately Positive
+Explain that large-cap stocks continue to support overall market sentiment.
+Flat Session
+Explain that institutional sentiment remains balanced.
+Negative Session
+Explain that weakness in blue-chip stocks may weigh on broader global markets.
+Sharp Sell-off
+Explain that strong selling in Dow Futures indicates a broader shift toward risk-off sentiment.
+
+11. Why It Matters
+Measures institutional confidence in blue-chip companies. 
+Reflects global risk appetite. 
+Confirms overnight market direction. 
+Complements S&P 500 and Nasdaq Futures. 
+Improves global sentiment analysis. 
+
+12. Trading Impact
+Intraday
+★★★★☆
+Swing Trading
+★★★★☆
+Positional Trading
+★★★☆☆
+Options Trading
+★★★★☆
+Best Use
+Evaluating institutional market sentiment.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+S&P 500 Futures 
+Nasdaq Futures 
+CBOE VIX 
+US Dollar Index (DXY) 
+US 10-Year Treasury Yield 
+
+14. Metadata
+Source
+CME / Financial Market Data Provider
+Calculation
+Backend
+Updated
+Real-Time
+Timezone
+America/Chicago (Source)
+Display: Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Futures Price 
+Daily Change 
+Daily Change (%) 
+Current Score 
+Bias 
+Confidence 
+Historical Prices 
+Last Updated 
+Use the continuous front-month futures contract. Cache historical values for trend analysis and score history. Display the most recent successful data update if the live feed becomes unavailable.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+High
+Decision Engine Role
+Blue-Chip Market Sentiment Assessment
+Primary Use
+Measure institutional sentiment through U.S. blue-chip equities before Indian market hours.
+Bullish Confirmation
+Rising Dow Futures 
+Rising S&P 500 Futures 
+Falling VIX 
+Bearish Confirmation
+Falling Dow Futures 
+Rising VIX 
+Rising US Treasury Yield 
+Display Priority
+High
+
+17. Praxis Recommendation
+Dow Jones Futures should serve as the blue-chip market sentiment indicator within the US Markets category.
+US Markets Hierarchy
+⭐⭐⭐⭐⭐ S&P 500 Futures 
+⭐⭐⭐⭐☆ Nasdaq Futures 
+⭐⭐⭐⭐☆ Dow Jones Futures 
+Engine Rules
+Dow Futures rising + S&P Futures rising → Increase Global Score. 
+Dow Futures diverging significantly from S&P Futures → Reduce confidence until confirmed. 
+Dow Futures falling + Rising VIX → Reduce Global Score. 
+Always evaluate Dow Futures alongside S&P 500 Futures, Nasdaq Futures, VIX, and US Treasury Yield before generating high-confidence global market signals.
+
+
+
+
+4. Brent Crude Oil
+Module: Global
+Category: Commodities
+Status: Production Ready
+1. Overview
+Name: Brent Crude Oil
+Short Name: Brent Crude
+Module: Global
+Category: Commodities
+Purpose:
+Tracks the global benchmark price of Brent Crude Oil to evaluate its impact on inflation, energy costs, corporate profitability, and the Indian economy. Since India imports a significant portion of its crude oil requirements, Brent prices have a direct influence on market sentiment.
+Based On:
+ICE Brent Crude Futures
+Importance:
+⭐⭐⭐⭐⭐ (Core Global Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Real-Time
+Praxis Note:
+For India, rising crude prices are generally bearish due to higher import costs and inflationary pressure, while falling crude prices are generally supportive for equities.
+
+2. Data Requirements
+Required Data
+Current Price 
+Previous Close 
+Daily Change 
+Daily Change (%) 
+Session High 
+Session Low 
+Volume 
+Last Updated 
+Minimum Historical Data
+30 Trading Days
+Recommended
+1 Year
+Primary Source
+ICE Market Data 
+TradingView 
+Financial Market Data Provider 
+
+3. Industry Standard Calculation
+Formula
+Daily Change = Current Price − Previous Close
+Daily Change (%) =
+
+((Current Price − Previous Close)
+
+÷
+
+Previous Close)
+
+× 100
+Implementation Steps
+Retrieve latest Brent Crude price. 
+Calculate daily point change. 
+Calculate percentage change. 
+Compare against historical average. 
+Generate Global Score contribution. 
+Notes
+Use continuous front-month Brent Futures. 
+Ignore expired contracts. 
+Refresh continuously during trading hours. 
+
+4. Card Fields
+Current Value
+Brent Crude Price (USD/Barrel)
+Daily Change
+USD
+Daily Change (%)
+Percentage
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Commodity Confidence
+Impact Weight
+Very High
+
+5. Praxis Score Logic
+Notes
+Falling crude generally benefits India. 
+Rising crude increases inflation and import costs. 
+Confirm with USD/INR and DXY. 
+
+6. Bias Rules
+Price Falling
+Bullish
+Stable Price
+Neutral
+Price Rising
+Bearish
+Sharp Price Rise
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+92%
+Increase Confidence
++5% Strong trend
++5% Confirmed by USD/INR
++3% Stable global markets
+Decrease Confidence
+-10% Geopolitical disruptions
+-5% Low trading volume
+-5% High intraday volatility
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → High Inflation Risk
+30–60 → Elevated Costs
+60–80 → Neutral
+80–100 → Favorable
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Brent Crude Price
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Real-Time
+
+10. AI Insight Rules
+Crude Falling
+Explain that lower oil prices reduce inflationary pressure and improve India's import outlook.
+Stable Crude
+Explain that oil prices remain stable with limited macroeconomic impact.
+Crude Rising
+Explain that increasing oil prices may pressure inflation, the rupee, and corporate margins.
+Sharp Rally
+Explain that sustained crude price increases could negatively affect Indian market sentiment.
+
+11. Why It Matters
+Directly impacts India's import bill. 
+Influences inflation and fuel prices. 
+Affects corporate profitability. 
+Impacts INR movement. 
+Strong macroeconomic indicator. 
+
+12. Trading Impact
+Intraday
+★★★★☆
+Swing Trading
+★★★★★
+Positional Trading
+★★★★★
+Options Trading
+★★★★☆
+Best Use
+Evaluating macroeconomic impact on Indian equities.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+USD/INR 
+US Dollar Index (DXY) 
+US 10-Year Treasury Yield 
+India VIX 
+Global Score 
+
+14. Metadata
+Source
+ICE / Financial Market Data Provider
+Calculation
+Backend
+Updated
+Real-Time
+Timezone
+UTC (Source)
+Display: Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Price 
+Daily Change 
+Daily Change (%) 
+Current Score 
+Bias 
+Confidence 
+Historical Prices 
+Last Updated 
+Use the continuous Brent Futures contract. Cache historical prices for trend analysis. If the live feed is unavailable, display the last valid value with a stale-data warning.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Very High
+Decision Engine Role
+Commodity Risk Assessment
+Primary Use
+Measure the macroeconomic impact of crude oil prices on the Indian equity market.
+Bullish Confirmation
+Falling Brent Crude 
+Stable USD/INR 
+Falling DXY 
+Bearish Confirmation
+Rising Brent Crude 
+Rising USD/INR 
+Rising DXY 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+Brent Crude Oil should serve as the primary commodity indicator within the Global module.
+Commodity Hierarchy
+⭐⭐⭐⭐⭐ Brent Crude Oil 
+⭐⭐⭐⭐☆ Gold 
+⭐⭐⭐☆☆ Silver 
+Engine Rules
+Falling Brent Crude + Stable INR → Increase Global Score. 
+Rising Brent Crude + Weak INR → Reduce Global Score. 
+Rising Brent Crude + Rising DXY → Increase macro risk and reduce confidence. 
+Always evaluate Brent Crude alongside USD/INR, DXY, and US Treasury Yield before generating high-confidence global market signals.
+
+
+
+
+
+
+
+
+
+
+5. Gold
+Module: Global
+Category: Commodities
+Status: Production Ready
+1. Overview
+Name: Gold
+Short Name: Gold
+Module: Global
+Category: Commodities
+Purpose:
+Tracks the international price of Gold to assess global risk sentiment, inflation expectations, and safe-haven demand. Gold prices often move inversely to equity market risk appetite and provide valuable macroeconomic context.
+Based On:
+COMEX Gold Futures (GC)
+Importance:
+⭐⭐⭐⭐☆ (Core Global Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Real-Time
+Praxis Note:
+Gold is primarily a risk sentiment indicator, not a directional equity indicator. Rising Gold prices often reflect increasing uncertainty and a shift toward safe-haven assets.
+
+2. Data Requirements
+Required Data
+Current Price 
+Previous Close 
+Daily Change 
+Daily Change (%) 
+Session High 
+Session Low 
+Volume 
+Last Updated 
+Minimum Historical Data
+30 Trading Days
+Recommended
+1 Year
+Primary Source
+COMEX 
+TradingView 
+Financial Market Data Provider 
+
+3. Industry Standard Calculation
+Formula
+Daily Change = Current Price − Previous Close
+Daily Change (%) =
+
+((Current Price − Previous Close)
+
+÷
+
+Previous Close)
+
+× 100
+Implementation Steps
+Retrieve latest Gold price. 
+Calculate daily change. 
+Calculate percentage change. 
+Compare against historical average. 
+Generate Global Score contribution. 
+Notes
+Use continuous front-month Gold Futures. 
+Ignore expired contracts. 
+Refresh continuously during trading hours. 
+
+4. Card Fields
+Current Value
+Gold Price (USD/Ounce)
+Daily Change
+USD
+Daily Change (%)
+Percentage
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Commodity Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Falling Gold generally indicates stronger risk appetite. 
+Rising Gold suggests increasing demand for safe-haven assets. 
+Confirm with VIX and DXY. 
+
+6. Bias Rules
+Gold Falling
+Bullish
+Stable Gold
+Neutral
+Gold Rising
+Bearish
+Sharp Gold Rally
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% Falling VIX
++5% Falling DXY
++5% Rising Equity Futures
+Decrease Confidence
+-10% Major geopolitical event
+-5% Mixed commodity signals
+-5% Thin trading volume
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → High Risk
+30–60 → Cautious
+60–80 → Neutral
+80–100 → Strong Risk-On
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Gold Price
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Real-Time
+
+10. AI Insight Rules
+Gold Falling
+Explain that investors are moving away from safe-haven assets, indicating stronger global risk appetite.
+Stable Gold
+Explain that safe-haven demand remains balanced with limited impact on market sentiment.
+Gold Rising
+Explain that increasing safe-haven demand reflects growing market uncertainty.
+Sharp Rally
+Explain that strong buying in Gold suggests elevated geopolitical or economic concerns.
+
+11. Why It Matters
+Measures global risk sentiment. 
+Tracks safe-haven demand. 
+Reflects inflation expectations. 
+Complements VIX and DXY analysis. 
+Provides macroeconomic context. 
+
+12. Trading Impact
+Intraday
+★★★☆☆
+Swing Trading
+★★★★☆
+Positional Trading
+★★★★★
+Options Trading
+★★★☆☆
+Best Use
+Evaluating global risk sentiment.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+CBOE VIX 
+US Dollar Index (DXY) 
+US 10-Year Treasury Yield 
+S&P 500 Futures 
+Brent Crude Oil 
+
+14. Metadata
+Source
+COMEX / Financial Market Data Provider
+Calculation
+Backend
+Updated
+Real-Time
+Timezone
+UTC (Source)
+Display: Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Price 
+Daily Change 
+Daily Change (%) 
+Current Score 
+Bias 
+Confidence 
+Historical Prices 
+Last Updated 
+Use the continuous Gold Futures contract. Maintain historical data for trend visualization. Display stale-data warnings if live market data becomes unavailable.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+High
+Decision Engine Role
+Global Risk Sentiment Assessment
+Primary Use
+Measure investor preference for safe-haven assets and assess global market risk.
+Bullish Confirmation
+Falling Gold 
+Falling VIX 
+Rising S&P Futures 
+Bearish Confirmation
+Rising Gold 
+Rising VIX 
+Falling Equity Futures 
+Display Priority
+High
+
+17. Praxis Recommendation
+Gold should serve as the primary safe-haven commodity indicator within the Global module.
+Commodity Hierarchy
+⭐⭐⭐⭐⭐ Brent Crude Oil 
+⭐⭐⭐⭐☆ Gold 
+⭐⭐⭐☆☆ Silver 
+Engine Rules
+Falling Gold + Rising Equity Futures → Increase Global Score. 
+Rising Gold + Rising VIX → Reduce Global Score. 
+Rising Gold + Rising DXY → Strengthen risk-off sentiment. 
+Always evaluate Gold alongside VIX, DXY, Brent Crude, and US Equity Futures before generating high-confidence global market signals.
+
+
+
+
+
+
+
+
+
+
+6. Silver
+Module: Global
+Category: Commodities
+Status: Production Ready
+1. Overview
+Name: Silver
+Short Name: Silver
+Module: Global
+Category: Commodities
+Purpose:
+Tracks the international price of Silver to evaluate industrial demand, inflation expectations, and global economic activity. Unlike Gold, Silver has both precious metal and industrial commodity characteristics, making it a useful indicator of economic growth.
+Based On:
+COMEX Silver Futures (SI)
+Importance:
+⭐⭐⭐☆☆ (Supporting Global Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Real-Time
+Praxis Note:
+Silver is generally more volatile than Gold. Rising Silver prices driven by industrial demand are often supportive of global economic growth, while sharp moves driven by uncertainty should be confirmed using Gold and VIX.
+
+2. Data Requirements
+Required Data
+Current Price 
+Previous Close 
+Daily Change 
+Daily Change (%) 
+Session High 
+Session Low 
+Volume 
+Last Updated 
+Minimum Historical Data
+30 Trading Days
+Recommended
+1 Year
+Primary Source
+COMEX 
+TradingView 
+Financial Market Data Provider 
+
+3. Industry Standard Calculation
+Formula
+Daily Change = Current Price − Previous Close
+Daily Change (%) =
+
+((Current Price − Previous Close)
+
+÷
+
+Previous Close)
+
+× 100
+Implementation Steps
+Retrieve latest Silver price. 
+Calculate daily price change. 
+Calculate percentage change. 
+Compare with historical averages. 
+Generate Global Score contribution. 
+Notes
+Use continuous front-month Silver Futures. 
+Ignore expired contracts. 
+Refresh continuously during trading hours. 
+
+4. Card Fields
+Current Value
+Silver Price (USD/Ounce)
+Daily Change
+USD
+Daily Change (%)
+Percentage
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Commodity Confidence
+Impact Weight
+Medium
+
+5. Praxis Score Logic
+Notes
+Rising Silver generally reflects improving industrial demand. 
+Falling Silver may indicate weakening economic expectations. 
+Confirm with Gold and Equity Futures. 
+
+6. Bias Rules
+Silver Rising
+Bullish
+Stable Silver
+Neutral
+Silver Falling
+Bearish
+Sharp Decline
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+88%
+Increase Confidence
++5% Rising Equity Futures
++5% Stable Gold
++5% Strong industrial commodity trend
+Decrease Confidence
+-10% Major geopolitical event
+-5% High commodity volatility
+-5% Divergence from Gold
+Minimum
+60%
+Maximum
+98%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Weak Economy
+30–60 → Soft Demand
+60–80 → Neutral
+80–100 → Strong Growth
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Silver Price
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Real-Time
+
+10. AI Insight Rules
+Silver Rising
+Explain that improving industrial demand is supporting Silver prices, indicating positive global economic sentiment.
+Stable Silver
+Explain that industrial demand remains balanced with limited macroeconomic impact.
+Silver Falling
+Explain that weaker Silver prices may reflect slowing industrial activity or weaker economic expectations.
+Sharp Decline
+Explain that sustained weakness in Silver suggests deteriorating global growth expectations.
+
+11. Why It Matters
+Measures industrial commodity demand. 
+Reflects global economic activity. 
+Complements Gold analysis. 
+Supports macroeconomic assessment. 
+Confirms commodity market trends. 
+
+12. Trading Impact
+Intraday
+★★★☆☆
+Swing Trading
+★★★☆☆
+Positional Trading
+★★★★☆
+Options Trading
+★★★☆☆
+Best Use
+Evaluating industrial commodity demand and global economic sentiment.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Gold 
+Brent Crude Oil 
+S&P 500 Futures 
+US Dollar Index (DXY) 
+CBOE VIX 
+
+14. Metadata
+Source
+COMEX / Financial Market Data Provider
+Calculation
+Backend
+Updated
+Real-Time
+Timezone
+UTC (Source)
+Display: Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Price 
+Daily Change 
+Daily Change (%) 
+Current Score 
+Bias 
+Confidence 
+Historical Prices 
+Last Updated 
+Use the continuous Silver Futures contract. Cache historical prices for trend analysis. If live data becomes unavailable, display the most recent valid data with a stale-data indicator.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Medium
+Decision Engine Role
+Industrial Commodity Assessment
+Primary Use
+Measure industrial demand and global economic momentum through Silver price movements.
+Bullish Confirmation
+Rising Silver 
+Rising Equity Futures 
+Stable Gold 
+Bearish Confirmation
+Falling Silver 
+Falling Equity Futures 
+Rising Gold 
+Display Priority
+Medium
+
+17. Praxis Recommendation
+Silver should serve as the secondary commodity indicator within the Global module.
+Commodity Hierarchy
+⭐⭐⭐⭐⭐ Brent Crude Oil 
+⭐⭐⭐⭐☆ Gold 
+⭐⭐⭐☆☆ Silver 
+Engine Rules
+Rising Silver + Rising S&P Futures → Increase Global Score. 
+Falling Silver + Rising Gold → Reduce Global Score. 
+Divergence between Gold and Silver → Lower confidence until confirmed by other macro indicators. 
+Always evaluate Silver alongside Gold, Brent Crude, and Equity Futures before generating high-confidence global market signals.
+
+
+
+
+
+
+
+
+
+7. USD/INR Exchange Rate
+Module: Global
+Category: Currency
+Status: Production Ready
+1. Overview
+Name: USD/INR Exchange Rate
+Short Name: USD/INR
+Module: Global
+Category: Currency
+Purpose:
+Tracks the exchange rate between the US Dollar and the Indian Rupee to evaluate currency strength, foreign capital flows, import costs, and their impact on the Indian equity market.
+Based On:
+USD/INR Spot Exchange Rate
+Importance:
+⭐⭐⭐⭐⭐ (Core Global Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Real-Time
+Praxis Note:
+A strengthening Rupee (falling USD/INR) is generally positive for Indian equities, while a weakening Rupee (rising USD/INR) increases inflationary pressure, import costs, and FII outflow risk.
+
+2. Data Requirements
+Required Data
+Current Exchange Rate 
+Previous Close 
+Daily Change 
+Daily Change (%) 
+Session High 
+Session Low 
+Last Updated 
+Minimum Historical Data
+30 Trading Days
+Recommended
+1 Year
+Primary Source
+RBI Reference Rate 
+NSE Currency Feed 
+Financial Market Data Provider 
+
+3. Industry Standard Calculation
+Formula
+Daily Change = Current Rate − Previous Close
+Daily Change (%) =
+
+((Current Rate − Previous Close)
+
+÷
+
+Previous Close)
+
+× 100
+Implementation Steps
+Retrieve current USD/INR exchange rate. 
+Calculate daily change. 
+Calculate percentage change. 
+Compare with historical averages. 
+Generate Global Score contribution. 
+Notes
+Use the live spot exchange rate. 
+Refresh during currency market hours. 
+Use RBI closing rate for end-of-day calculations. 
+
+4. Card Fields
+Current Value
+USD/INR Rate
+Daily Change
+₹
+Daily Change (%)
+Percentage
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Currency Confidence
+Impact Weight
+Very High
+
+5. Praxis Score Logic
+Notes
+Falling USD/INR is positive for Indian equities. 
+Rising USD/INR indicates Rupee weakness. 
+Confirm with DXY and Brent Crude. 
+
+6. Bias Rules
+USD/INR Falling
+Bullish
+Stable Exchange Rate
+Neutral
+USD/INR Rising
+Bearish
+Sharp Rupee Weakness
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+92%
+Increase Confidence
++5% Falling DXY
++5% Falling Brent Crude
++3% Positive FII Flows
+Decrease Confidence
+-10% RBI intervention
+-5% High FX volatility
+-5% Geopolitical uncertainty
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Weak INR
+30–60 → Mild Weakness
+60–80 → Stable
+80–100 → Strong INR
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+USD/INR
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Real-Time
+
+10. AI Insight Rules
+USD/INR Falling
+Explain that the Rupee is strengthening against the Dollar, supporting lower import costs and improving market sentiment.
+Stable USD/INR
+Explain that currency markets remain stable with limited impact on equities.
+USD/INR Rising
+Explain that Rupee weakness may increase inflationary pressure and reduce foreign investor confidence.
+Sharp Rise
+Explain that significant Rupee depreciation could negatively affect market sentiment through higher import costs and capital outflow concerns.
+
+11. Why It Matters
+Measures Rupee strength. 
+Influences FII investment flows. 
+Impacts import costs and inflation. 
+Affects corporate earnings. 
+Strong macroeconomic indicator. 
+
+12. Trading Impact
+Intraday
+★★★★☆
+Swing Trading
+★★★★★
+Positional Trading
+★★★★★
+Options Trading
+★★★★☆
+Best Use
+Evaluating currency impact on Indian markets.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+US Dollar Index (DXY) 
+Brent Crude Oil 
+Gold 
+US 10-Year Treasury Yield 
+S&P 500 Futures 
+
+14. Metadata
+Source
+RBI / NSE / Financial Market Data Provider
+Calculation
+Backend
+Updated
+Real-Time
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+
+15. Developer Notes
+Store:
+Current Exchange Rate 
+Daily Change 
+Daily Change (%) 
+Current Score 
+Bias 
+Confidence 
+Historical Exchange Rates 
+Last Updated 
+Cache historical exchange rates for trend analysis. If the live feed becomes unavailable, display the last valid value with a stale-data warning.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Very High
+Decision Engine Role
+Currency Strength Assessment
+Primary Use
+Measure the impact of currency movement on the Indian economy and equity market.
+Bullish Confirmation
+Falling USD/INR 
+Falling DXY 
+Falling Brent Crude 
+Bearish Confirmation
+Rising USD/INR 
+Rising DXY 
+Rising Brent Crude 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+USD/INR should serve as the primary currency indicator within the Global module.
+Currency Hierarchy
+⭐⭐⭐⭐⭐ USD/INR Exchange Rate 
+⭐⭐⭐⭐☆ US Dollar Index (DXY) 
+Engine Rules
+Falling USD/INR + Falling Brent Crude → Increase Global Score. 
+Rising USD/INR + Rising DXY → Reduce Global Score. 
+Rising USD/INR + Rising US Treasury Yield → Increase macroeconomic risk. 
+Always evaluate USD/INR alongside DXY, Brent Crude, and US Treasury Yield before generating high-confidence global market signals.
+
+
+
+
+
+
+
+
+
+8. US Dollar Index (DXY)
+Module: Global
+Category: Currency
+Status: Production Ready
+1. Overview
+Name: US Dollar Index
+Short Name: DXY
+Module: Global
+Category: Currency
+Purpose:
+Tracks the strength of the US Dollar against a basket of major global currencies. A stronger Dollar generally signals global risk aversion, tighter financial conditions, and potential pressure on emerging markets, including India.
+Based On:
+ICE US Dollar Index (DXY)
+Importance:
+⭐⭐⭐⭐⭐ (Core Global Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Real-Time
+Praxis Note:
+A rising DXY is generally bearish for Indian equities as it often leads to foreign capital outflows, Rupee weakness, and tighter global liquidity. A falling DXY is generally supportive for emerging markets.
+
+2. Data Requirements
+Required Data
+Current Index Value 
+Previous Close 
+Daily Change 
+Daily Change (%) 
+Session High 
+Session Low 
+Last Updated 
+Minimum Historical Data
+30 Trading Days
+Recommended
+1 Year
+Primary Source
+ICE Data 
+TradingView 
+Financial Market Data Provider 
+
+3. Industry Standard Calculation
+Formula
+Daily Change = Current Value − Previous Close
+Daily Change (%) =
+
+((Current Value − Previous Close)
+
+÷
+
+Previous Close)
+
+× 100
+Implementation Steps
+Retrieve current DXY value. 
+Calculate daily change. 
+Calculate percentage change. 
+Compare with historical movement. 
+Generate Global Score contribution. 
+Notes
+Use the live DXY Index. 
+Refresh continuously during trading hours. 
+Use official closing value for end-of-day calculations. 
+
+4. Card Fields
+Current Value
+DXY Index
+Daily Change
+Points
+Daily Change (%)
+Percentage
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Currency Confidence
+Impact Weight
+Very High
+
+5. Praxis Score Logic
+Notes
+Falling DXY generally benefits emerging markets. 
+Rising DXY increases pressure on global equities and currencies. 
+Confirm with USD/INR and US Treasury Yield. 
+
+6. Bias Rules
+DXY Falling
+Bullish
+Stable DXY
+Neutral
+DXY Rising
+Bearish
+Sharp Dollar Rally
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+92%
+Increase Confidence
++5% Falling US Treasury Yield
++5% Falling USD/INR
++3% Rising Global Equity Futures
+Decrease Confidence
+-10% Major Federal Reserve event
+-5% High FX volatility
+-5% Mixed global macro signals
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Strong Dollar
+30–60 → Moderate Strength
+60–80 → Neutral
+80–100 → Weak Dollar
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+DXY Index
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Real-Time
+
+10. AI Insight Rules
+DXY Falling
+Explain that the US Dollar is weakening, improving liquidity conditions for emerging markets like India.
+Stable DXY
+Explain that the Dollar remains stable with limited impact on global markets.
+DXY Rising
+Explain that Dollar strength may pressure emerging market currencies and equities.
+Sharp Dollar Rally
+Explain that a strong Dollar typically reduces global risk appetite and may trigger capital outflows from emerging markets.
+
+11. Why It Matters
+Measures global Dollar strength. 
+Influences FII/FPI capital flows. 
+Impacts the Indian Rupee. 
+Reflects global liquidity conditions. 
+One of the most important macroeconomic indicators. 
+
+12. Trading Impact
+Intraday
+★★★★☆
+Swing Trading
+★★★★★
+Positional Trading
+★★★★★
+Options Trading
+★★★★☆
+Best Use
+Evaluating global liquidity and currency strength.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+USD/INR Exchange Rate 
+US 10-Year Treasury Yield 
+Brent Crude Oil 
+Gold 
+S&P 500 Futures 
+
+14. Metadata
+Source
+ICE / Financial Market Data Provider
+Calculation
+Backend
+Updated
+Real-Time
+Timezone
+UTC (Source)
+Display: Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current DXY 
+Daily Change 
+Daily Change (%) 
+Current Score 
+Bias 
+Confidence 
+Historical Values 
+Last Updated 
+Cache historical DXY values for trend analysis. Display a stale-data warning if live market data is unavailable.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Very High
+Decision Engine Role
+Global Liquidity Assessment
+Primary Use
+Measure US Dollar strength and its impact on emerging markets.
+Bullish Confirmation
+Falling DXY 
+Falling USD/INR 
+Falling US Treasury Yield 
+Bearish Confirmation
+Rising DXY 
+Rising USD/INR 
+Rising US Treasury Yield 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+The US Dollar Index (DXY) should serve as the primary global currency strength indicator within the Global module.
+Currency Hierarchy
+⭐⭐⭐⭐⭐ USD/INR Exchange Rate 
+⭐⭐⭐⭐⭐ US Dollar Index (DXY) 
+Engine Rules
+Falling DXY + Falling USD/INR → Increase Global Score. 
+Rising DXY + Rising US Treasury Yield → Reduce Global Score. 
+Rising DXY + Rising Brent Crude → Increase macroeconomic risk. 
+Always evaluate DXY alongside USD/INR, US Treasury Yield, and Brent Crude before generating high-confidence global market signals.
+
+
+
+
+
+
+
+
+
+
+9. US 10-Year Treasury Yield
+Module: Global
+Category: Bonds
+Status: Production Ready
+1. Overview
+Name: US 10-Year Treasury Yield
+Short Name: US10Y Yield
+Module: Global
+Category: Bonds
+Purpose:
+Tracks the yield on the US 10-Year Treasury Note, a global benchmark for interest rates and risk-free returns. Rising yields generally signal tighter financial conditions and can reduce the attractiveness of equities, particularly in emerging markets like India.
+Based On:
+US 10-Year Treasury Note Yield
+Importance:
+⭐⭐⭐⭐⭐ (Core Global Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Real-Time
+Praxis Note:
+The US 10-Year Treasury Yield is one of the most influential macro indicators. Rising yields typically pressure equity markets, while falling yields improve liquidity and support risk assets.
+
+2. Data Requirements
+Required Data
+Current Yield (%) 
+Previous Close 
+Daily Change (bps) 
+Daily Change (%) 
+Session High 
+Session Low 
+Last Updated 
+Minimum Historical Data
+30 Trading Days
+Recommended
+1 Year
+Primary Source
+US Treasury 
+Investing.com 
+Financial Market Data Provider 
+
+3. Industry Standard Calculation
+Formula
+Daily Change (bps) =
+(Current Yield − Previous Yield) × 100
+Daily Change (%) =
+
+((Current Yield − Previous Yield)
+
+÷
+
+Previous Yield)
+
+× 100
+Implementation Steps
+Retrieve current US 10-Year Yield. 
+Calculate basis point (bps) change. 
+Calculate percentage change. 
+Compare against historical movement. 
+Generate Global Score contribution. 
+Notes
+Use the benchmark 10-Year Treasury Yield. 
+Display yield as a percentage. 
+Refresh continuously during US market hours. 
+
+4. Card Fields
+Current Value
+10-Year Yield (%)
+Daily Change
+Basis Points (bps)
+Daily Change (%)
+Percentage
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Macro Confidence
+Impact Weight
+Very High
+
+5. Praxis Score Logic
+Notes
+Falling yields generally support equities. 
+Rising yields increase borrowing costs and reduce market liquidity. 
+Confirm with DXY and S&P Futures. 
+
+6. Bias Rules
+Yield Falling
+Bullish
+Stable Yield
+Neutral
+Yield Rising
+Bearish
+Sharp Yield Spike
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+92%
+Increase Confidence
++5% Falling DXY
++5% Rising S&P Futures
++3% Falling VIX
+Decrease Confidence
+-10% Federal Reserve announcement
+-5% Bond market volatility
+-5% Conflicting macro signals
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Tight Financial Conditions
+30–60 → Elevated Rates
+60–80 → Neutral
+80–100 → Supportive Liquidity
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+US 10-Year Yield
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Real-Time
+
+10. AI Insight Rules
+Yield Falling
+Explain that declining Treasury yields improve liquidity conditions and generally support equity markets.
+Stable Yield
+Explain that bond markets remain stable with limited macroeconomic impact.
+Yield Rising
+Explain that higher Treasury yields increase borrowing costs and may pressure equity valuations.
+Sharp Yield Spike
+Explain that a rapid increase in Treasury yields signals tighter financial conditions and increased downside risk for equities.
+
+11. Why It Matters
+Measures global interest rate expectations. 
+Reflects worldwide liquidity conditions. 
+Influences FII/FPI capital flows. 
+Impacts equity valuations. 
+Critical macroeconomic indicator. 
+
+12. Trading Impact
+Intraday
+★★★★☆
+Swing Trading
+★★★★★
+Positional Trading
+★★★★★
+Options Trading
+★★★★☆
+Best Use
+Evaluating global interest rate and liquidity conditions.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+US Dollar Index (DXY) 
+USD/INR Exchange Rate 
+S&P 500 Futures 
+CBOE VIX 
+Brent Crude Oil 
+
+14. Metadata
+Source
+US Treasury / Financial Market Data Provider
+Calculation
+Backend
+Updated
+Real-Time
+Timezone
+America/New_York (Source)
+Display: Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Yield 
+Daily Change (bps) 
+Daily Change (%) 
+Current Score 
+Bias 
+Confidence 
+Historical Yields 
+Last Updated 
+Store yield values as percentages and calculate basis point movements separately. Cache historical data for trend analysis and dashboard visualization.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Very High
+Decision Engine Role
+Global Interest Rate Assessment
+Primary Use
+Measure global interest rate trends and their impact on equity markets.
+Bullish Confirmation
+Falling Treasury Yield 
+Falling DXY 
+Rising Equity Futures 
+Bearish Confirmation
+Rising Treasury Yield 
+Rising DXY 
+Rising VIX 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+The US 10-Year Treasury Yield should serve as the primary bond market indicator within the Global module.
+Bond Market Hierarchy
+⭐⭐⭐⭐⭐ US 10-Year Treasury Yield 
+Engine Rules
+Falling US 10-Year Yield + Falling DXY → Increase Global Score. 
+Rising US 10-Year Yield + Rising DXY → Reduce Global Score. 
+Rising Yield + Rising VIX → Increase macro risk and lower confidence. 
+Always evaluate Treasury Yields alongside DXY, S&P 500 Futures, and VIX before generating high-confidence global market signals.
+
+
+
+
+
+
+
+
+
+
+
+10. CBOE Volatility Index (VIX)
+Module: Global
+Category: Volatility
+Status: Production Ready
+1. Overview
+Name: CBOE Volatility Index
+Short Name: CBOE VIX
+Module: Global
+Category: Volatility
+Purpose:
+Measures the market's expectation of volatility over the next 30 days based on S&P 500 options. It is widely known as the "Fear Index" and serves as a leading indicator of global market risk sentiment.
+Based On:
+CBOE Volatility Index (VIX)
+Importance:
+⭐⭐⭐⭐⭐ (Core Global Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Real-Time
+Praxis Note:
+Rising VIX indicates increasing uncertainty and risk aversion, while falling VIX suggests improving investor confidence and stable market conditions.
+
+2. Data Requirements
+Required Data
+Current VIX Value 
+Previous Close 
+Daily Change 
+Daily Change (%) 
+Session High 
+Session Low 
+Last Updated 
+Minimum Historical Data
+30 Trading Days
+Recommended
+1 Year
+Primary Source
+CBOE 
+TradingView 
+Financial Market Data Provider 
+
+3. Industry Standard Calculation
+Formula
+Daily Change = Current VIX − Previous Close
+Daily Change (%) =
+
+((Current VIX − Previous Close)
+
+÷
+
+Previous Close)
+
+× 100
+Standard Interpretation
+Implementation Steps
+Retrieve latest VIX value. 
+Calculate daily change. 
+Classify volatility regime. 
+Generate Global Score contribution. 
+Notes
+Use official CBOE VIX values. 
+Refresh during US market hours. 
+Use closing value for end-of-day analysis. 
+
+4. Card Fields
+Current Value
+VIX Index
+Daily Change
+Points
+Daily Change (%)
+Percentage
+Volatility Regime
+Low 
+Normal 
+Elevated 
+Extreme 
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Volatility Confidence
+Impact Weight
+Very High
+
+5. Praxis Score Logic
+Notes
+Lower VIX supports risk-on sentiment. 
+Higher VIX reflects increasing market fear. 
+Confirm with S&P Futures and DXY. 
+
+6. Bias Rules
+VIX Below 20
+Bullish
+VIX Between 20–30
+Neutral
+VIX Above 30
+Bearish
+VIX Above 40
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+95%
+Increase Confidence
++5% Rising S&P Futures
++5% Falling DXY
++3% Falling Treasury Yield
+Decrease Confidence
+-10% Major geopolitical event
+-5% Conflicting global indicators
+-5% Exceptional market volatility
+Minimum
+70%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Extreme Fear
+30–60 → Elevated Risk
+60–80 → Normal
+80–100 → Low Volatility
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+VIX
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Real-Time
+
+10. AI Insight Rules
+VIX Below 15
+Explain that market volatility expectations remain low, indicating strong investor confidence.
+VIX Between 15–20
+Explain that volatility remains within normal levels and market conditions are stable.
+VIX Above 20
+Explain that uncertainty is increasing and traders should expect larger market swings.
+VIX Above 30
+Explain that elevated fear is driving market volatility and risk management becomes increasingly important.
+
+11. Why It Matters
+Measures global market fear. 
+Reflects expected volatility. 
+Confirms overall market sentiment. 
+Helps assess trading risk. 
+One of the world's most widely followed risk indicators. 
+
+12. Trading Impact
+Intraday
+★★★★★
+Swing Trading
+★★★★★
+Positional Trading
+★★★★★
+Options Trading
+★★★★★
+Best Use
+Measuring global market risk and expected volatility.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+S&P 500 Futures 
+Nasdaq Futures 
+US Dollar Index (DXY) 
+US 10-Year Treasury Yield 
+Gold 
+
+14. Metadata
+Source
+CBOE / Financial Market Data Provider
+Calculation
+Backend
+Updated
+Real-Time
+Timezone
+America/New_York (Source)
+Display: Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current VIX 
+Daily Change 
+Daily Change (%) 
+Volatility Regime 
+Current Score 
+Bias 
+Confidence 
+Historical Values 
+Last Updated 
+Maintain historical VIX values for trend visualization. If live data is unavailable, retain the last successful value and display a stale-data indicator.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Critical
+Decision Engine Role
+Global Risk Assessment
+Primary Use
+Measure expected market volatility and global investor risk appetite.
+Bullish Confirmation
+Falling VIX 
+Rising S&P 500 Futures 
+Falling DXY 
+Bearish Confirmation
+Rising VIX 
+Falling Equity Futures 
+Rising Treasury Yield 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+The CBOE VIX should serve as the primary global volatility indicator within the Global module.
+Volatility Hierarchy
+⭐⭐⭐⭐⭐ CBOE VIX 
+Engine Rules
+VIX below 20 + Rising Equity Futures → Increase Global Score. 
+VIX above 30 + Rising DXY → Reduce Global Score. 
+VIX above 40 → Trigger a High Global Risk warning regardless of other indicators. 
+Always evaluate VIX alongside S&P 500 Futures, DXY, and US 10-Year Treasury Yield before generating high-confidence global market signals.
+11. Bitcoin (BTC/USD)
+Module: Global
+Category: Digital Assets
+Status: Production Ready
+1. Overview
+Name: Bitcoin
+Short Name: BTC/USD
+Module: Global
+Category: Digital Assets
+Purpose:
+Tracks the price of Bitcoin as a proxy for global speculative risk appetite. Bitcoin often reflects investor willingness to invest in high-risk assets and can provide early signals of changes in market sentiment.
+Based On:
+Bitcoin Spot Price (BTC/USD)
+Importance:
+⭐⭐⭐☆☆ (Supporting Global Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Real-Time (24×7)
+Praxis Note:
+Bitcoin should be treated as a supplementary risk sentiment indicator, not a primary driver of Indian equities. Its influence should always be confirmed using equity futures, VIX, and DXY.
+
+2. Data Requirements
+Required Data
+Current Price 
+Previous Close 
+Daily Change 
+Daily Change (%) 
+24H High 
+24H Low 
+24H Volume 
+Last Updated 
+Minimum Historical Data
+30 Trading Days
+Recommended
+1 Year
+Primary Source
+Binance 
+Coinbase 
+Financial Market Data Provider 
+
+3. Industry Standard Calculation
+Formula
+Daily Change = Current Price − Previous Close
+Daily Change (%) =
+
+((Current Price − Previous Close)
+
+÷
+
+Previous Close)
+
+× 100
+Implementation Steps
+Retrieve latest BTC/USD price. 
+Calculate daily price change. 
+Calculate percentage change. 
+Compare with historical volatility. 
+Generate Global Score contribution. 
+Notes
+Use spot market prices. 
+Aggregate data from reliable exchanges if required. 
+Refresh continuously (24×7). 
+
+4. Card Fields
+Current Value
+BTC/USD Price
+Daily Change
+USD
+Daily Change (%)
+Percentage
+24H Volume
+Trading Volume
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Risk Sentiment Confidence
+Impact Weight
+Medium
+
+5. Praxis Score Logic
+Notes
+Rising Bitcoin generally reflects stronger risk appetite. 
+Falling Bitcoin often indicates reduced speculative interest. 
+Confirm with Nasdaq Futures and VIX. 
+
+6. Bias Rules
+Bitcoin Rising
+Bullish
+Stable Bitcoin
+Neutral
+Bitcoin Falling
+Bearish
+Sharp Sell-off
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Rising Nasdaq Futures
++5% Falling VIX
++5% Rising S&P 500 Futures
+Decrease Confidence
+-10% Extreme crypto volatility
+-5% Regulatory news
+-5% Divergence from equity markets
+Minimum
+60%
+Maximum
+97%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Risk-Off
+30–60 → Weak
+60–80 → Neutral
+80–100 → Risk-On
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+BTC/USD Price
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Real-Time
+
+10. AI Insight Rules
+Bitcoin Rising
+Explain that investors are showing increased appetite for higher-risk assets, supporting broader market sentiment.
+Stable Bitcoin
+Explain that cryptocurrency markets remain relatively balanced with limited impact on global risk sentiment.
+Bitcoin Falling
+Explain that weakening Bitcoin prices indicate declining speculative risk appetite.
+Sharp Decline
+Explain that strong selling in Bitcoin reflects heightened risk aversion across speculative assets.
+
+11. Why It Matters
+Measures speculative risk appetite. 
+Provides additional global sentiment context. 
+Complements equity futures. 
+Supports macro risk analysis. 
+Helps identify shifts in investor behavior. 
+
+12. Trading Impact
+Intraday
+★★★☆☆
+Swing Trading
+★★★☆☆
+Positional Trading
+★★☆☆☆
+Options Trading
+★★★☆☆
+Best Use
+Supplementary global risk sentiment analysis.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Nasdaq Futures 
+S&P 500 Futures 
+CBOE VIX 
+US Dollar Index (DXY) 
+Gold 
+
+14. Metadata
+Source
+Crypto Exchange / Financial Market Data Provider
+Calculation
+Backend
+Updated
+Real-Time
+Timezone
+UTC
+Display: Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Price 
+Daily Change 
+Daily Change (%) 
+24H Volume 
+Current Score 
+Bias 
+Confidence 
+Historical Prices 
+Last Updated 
+Since Bitcoin trades 24×7, ensure timestamps are normalized to the application timezone. Use the latest available spot price and flag stale data if updates are delayed.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Medium
+Decision Engine Role
+Risk Appetite Assessment
+Primary Use
+Measure speculative investor sentiment and global risk appetite.
+Bullish Confirmation
+Rising Bitcoin 
+Rising Nasdaq Futures 
+Falling VIX 
+Bearish Confirmation
+Falling Bitcoin 
+Rising VIX 
+Falling Nasdaq Futures 
+Display Priority
+Medium
+
+17. Praxis Recommendation
+Bitcoin should serve as the supplementary digital asset indicator within the Global module.
+Digital Asset Hierarchy
+⭐⭐⭐☆☆ Bitcoin (BTC/USD) 
+Engine Rules
+Rising Bitcoin + Rising Nasdaq Futures → Slightly increase Global Score. 
+Falling Bitcoin + Rising VIX → Reduce Global Score confidence. 
+Ignore isolated Bitcoin moves that are not confirmed by broader global markets. 
+Always use Bitcoin as a confirmation indicator, never as the primary driver of the Global Score. 
+
+
+
+
+
+
+$. Global Score Engine
+Module: Global
+Category: Score Engine
+Status: Production Ready
+1. Overview
+Name: Global Score Engine
+Short Name: Global Engine
+Module: Global
+Category: Score Engine
+Purpose:
+Aggregates all Global Market indicators into a single Global Score (0–100) representing international market sentiment, macroeconomic conditions, currency strength, commodities, interest rates, and global risk appetite.
+Based On:
+Weighted average of all Global indicators.
+Importance:
+⭐⭐⭐⭐⭐ (Core Engine)
+Auto / Manual:
+Automatic
+Update Frequency:
+Whenever any Global indicator updates.
+Praxis Note:
+The Global Engine does not calculate individual indicators. It consumes each indicator's Score, Bias, and Confidence to generate the overall Global Score.
+
+2. Data Requirements
+US Markets
+S&P 500 Futures 
+Nasdaq Futures 
+Dow Jones Futures 
+Commodities
+Brent Crude Oil 
+Gold 
+Silver 
+Currency
+USD/INR 
+US Dollar Index (DXY) 
+Bonds
+US 10-Year Treasury Yield 
+Volatility
+CBOE VIX 
+Digital Assets
+Bitcoin (BTC/USD) 
+
+3. Industry Standard Calculation
+Category Score
+Category Score =
+Weighted Average of Indicators
+Final Global Score
+Global Score =
+Weighted Average of Category Scores
+Default Category Weights
+Implementation Steps
+Collect all Global indicator scores. 
+Calculate category scores. 
+Apply category weights. 
+Generate Global Score. 
+Calculate overall Bias and Confidence. 
+Notes
+Ignore unavailable indicators. 
+Normalize weights automatically when data is missing. 
+Never assign zero because an indicator is unavailable. 
+
+4. Card Fields
+Global Score
+0–100
+Category Scores
+US Markets 
+Commodities 
+Currency 
+Bonds 
+Volatility 
+Digital Assets 
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Overall Global Confidence
+Impact Weight
+20% (Decision Engine Default)
+
+5. Praxis Score Logic
+Notes
+Every category contributes proportionally. 
+Missing indicators should not significantly distort the final score. 
+Category weights remain configurable. 
+
+6. Bias Rules
+Score Above 75
+Bullish
+Score Between 55–74
+Neutral
+Score Below 55
+Bearish
+Score Below 35
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+Average confidence of all available Global indicators.
+Increase Confidence
++5% All categories available
++5% Strong agreement across categories
+Decrease Confidence
+-5% Missing category
+-10% Multiple unavailable indicators
+-10% Significant divergence between categories
+Minimum
+50%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Global Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Strong Bearish
+30–60 → Weak
+60–80 → Neutral
+80–100 → Strong Bullish
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Global Score
+Line 2
+Confidence
+History
+30 Trading Days
+Update
+Whenever any Global indicator updates.
+
+10. AI Insight Rules
+Score Above 80
+Explain that global macro conditions strongly support Indian equities.
+Score Between 60–80
+Explain that global indicators remain generally supportive with minor risks.
+Score Between 35–60
+Explain that global indicators are mixed and require caution.
+Score Below 35
+Explain that global macro conditions indicate elevated downside risk.
+Low Confidence
+Mention conflicting or incomplete global data.
+
+11. Why It Matters
+Summarizes global market conditions. 
+Measures international risk appetite. 
+Tracks macroeconomic headwinds. 
+Provides a standardized input for the Decision Engine. 
+Simplifies complex global data into one actionable score. 
+
+12. Trading Impact
+Intraday
+★★★★★
+Swing Trading
+★★★★★
+Positional Trading
+★★★★★
+Options Trading
+★★★★☆
+Best Use
+Evaluating the impact of global markets on Indian equities.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+All Global Indicators 
+Technical Score 
+Fundamentals Score 
+Options Score 
+Events Score 
+
+14. Metadata
+Source
+Calculated
+Calculation
+Backend
+Updated
+Whenever any Global indicator updates
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Global Score 
+Category Scores 
+Overall Confidence 
+Overall Bias 
+Historical Scores 
+Last Updated 
+Recalculate only when an underlying Global indicator changes. Normalize weights automatically if any indicator becomes unavailable. Maintain historical values for dashboard trend visualization.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+20% (Default Decision Engine Weight)
+Relative Importance
+Critical
+Decision Engine Role
+Global Macroeconomic Assessment
+Primary Use
+Provide the Global module output to the Dashboard and Decision Engine.
+Bullish Confirmation
+Global Score >75 
+Confidence >80% 
+Bearish Confirmation
+Global Score <55 
+Confidence >60% 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+The Global Score Engine should be the single output of the Global module.
+Engine Hierarchy
+⭐⭐⭐⭐⭐ Global Indicators
+⬇
+⭐⭐⭐⭐⭐ Category Scores
+⬇
+⭐⭐⭐⭐⭐ Global Score
+⬇
+⭐⭐⭐⭐⭐ Decision Engine
+Engine Rules
+Calculate category scores before calculating the overall Global Score. 
+Normalize weights automatically when indicators are unavailable. 
+Use confidence-weighted aggregation where possible. 
+The Global Score should be consumed directly by the Dashboard and Decision Engine without recalculating any individual indicator. 
+$. Global Dashboard Card
+Module: Global
+Category: Dashboard
+Status: Production Ready
+1. Overview
+Name: Global Dashboard Card
+Short Name: Global Card
+Module: Global
+Category: Dashboard
+Purpose:
+Provides a consolidated view of the overall Global Score, category performance, global market sentiment, macroeconomic conditions, and international risk factors in a single dashboard card.
+Based On:
+Global Score Engine
+Importance:
+⭐⭐⭐⭐⭐ (Primary Dashboard Component)
+Auto / Manual:
+Automatic
+Update Frequency:
+Whenever the Global Score Engine updates.
+Praxis Note:
+This card is display-only. It consumes data from the Global Score Engine and never performs calculations.
+
+2. Data Requirements
+Required Data
+Global Score 
+Global Bias 
+Overall Confidence 
+US Markets Score 
+Commodities Score 
+Currency Score 
+Bonds Score 
+Volatility Score 
+Digital Assets Score 
+Last Updated Timestamp 
+Data Source
+Global Score Engine
+
+3. Industry Standard Calculation
+Calculation
+No independent calculations.
+Consume outputs from:
+Global Score Engine 
+Category Scores 
+Confidence Engine 
+Implementation Steps
+Retrieve Global Engine output. 
+Display latest score and confidence. 
+Display category breakdown. 
+Update charts. 
+Refresh AI Insight. 
+Notes
+Never recalculate indicator values. 
+Dashboard is presentation only. 
+
+4. Card Fields
+Primary
+Global Score 
+Bias 
+Confidence 
+Category Breakdown
+US Markets 
+Commodities 
+Currency 
+Bonds 
+Volatility 
+Digital Assets 
+Visual Components
+Score Range Bar 
+30-Day Average Marker 
+Current Score Pointer 
+Global Trend Chart 
+Additional
+AI Insight 
+Why It Matters 
+Supporting Categories 
+Last Updated 
+
+5. Praxis Score Logic
+Display the score generated by the Global Score Engine.
+No additional scoring logic.
+
+6. Bias Rules
+Display:
+Strong Bullish 
+Bullish 
+Neutral 
+Bearish 
+Strong Bearish 
+Exactly as received from the Global Score Engine.
+
+7. Confidence Logic
+Display:
+Overall Global Confidence.
+No recalculation.
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Global Score
+Average Marker
+30-Day Average
+Color Zones
+0–30 → Strong Bearish
+30–60 → Weak
+60–80 → Neutral
+80–100 → Strong Bullish
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Global Score
+Line 2
+Overall Confidence
+History
+30 Trading Days
+Update
+Whenever the Global Score updates.
+
+10. AI Insight Rules
+Display the AI summary generated from the Global Score Engine.
+Priority order:
+Overall Global Market Sentiment 
+Strongest Category 
+Weakest Category 
+Confidence Warning (if applicable) 
+Maximum:
+3–5 concise sentences.
+
+11. Why It Matters
+Provides a quick overview of global market conditions. 
+Summarizes macroeconomic risk. 
+Highlights the strongest and weakest global factors. 
+Simplifies international market data into a single view. 
+Serves as the primary Global summary for the Dashboard. 
+
+12. Trading Impact
+Intraday
+★★★★★
+Swing Trading
+★★★★★
+Positional Trading
+★★★★★
+Options Trading
+★★★★☆
+Best Use
+Evaluating global macro conditions before trading.
+
+13. Supporting Indicators
+Global Score Engine 
+US Markets 
+Commodities 
+Currency 
+Bonds 
+Volatility 
+Digital Assets 
+
+14. Metadata
+Source
+Global Engine
+Calculation
+None (Display Only)
+Updated
+Whenever the Global Score updates
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Display only.
+Do not calculate:
+Scores 
+Bias 
+Confidence 
+Consume directly from the Global Score Engine.
+Refresh automatically whenever the Global Engine publishes new data.
+Cache previous values to support dashboard history.
+
+16. Praxis Engine Integration ⭐
+Display Priority
+Highest
+Consumes
+Global Score 
+Bias 
+Confidence 
+Category Scores 
+Outputs
+None
+This card is a presentation layer and does not feed back into any engine.
+
+17. Praxis Recommendation
+The Global Dashboard Card should act as the single visualization component for the Global module.
+Display Hierarchy
+⭐⭐⭐⭐⭐ Global Score
+⬇
+Category Breakdown
+⬇
+Trend Chart
+⬇
+AI Insight
+⬇
+Metadata
+Dashboard Rules
+Never perform calculations. 
+Always consume the latest Global Engine output. 
+Refresh automatically after every Global Engine update. 
+Maintain a clean, high-level summary suitable for rapid market assessment. 
+The Dashboard Card should provide users with an instant understanding of current global market conditions while leaving all calculations and business logic to the underlying Global Score Engine.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$. Global AI Engine
+Module: Global
+Category: AI Engine
+Status: Production Ready
+1. Overview
+Name: Global AI Engine
+Short Name: Global AI
+Module: Global
+Category: AI Engine
+Purpose:
+Generate concise, human-readable explanations for the Global module using structured outputs from the Global Score Engine.
+Based On:
+Global Score Engine
+Importance:
+⭐⭐⭐⭐⭐ (Core AI Component)
+Auto / Manual:
+Automatic
+Update Frequency:
+Whenever the Global Score Engine updates.
+Praxis Note:
+The AI Engine never performs calculations or modifies scores. It only explains the outputs generated by the Global Score Engine.
+
+2. Data Requirements
+Required Inputs
+Global Score 
+Global Bias 
+Overall Confidence 
+US Markets Score 
+Commodities Score 
+Currency Score 
+Bonds Score 
+Volatility Score 
+Digital Assets Score 
+Highest Scoring Category 
+Lowest Scoring Category 
+Source
+Global Score Engine
+
+3. Industry Standard Logic
+Workflow
+Receive Global Engine outputs. 
+Identify the strongest category. 
+Identify the weakest category. 
+Generate the overall summary. 
+Add a confidence disclaimer if required. 
+Notes
+No calculations. 
+No predictions. 
+No investment advice. 
+Explanation only. 
+
+4. Card Fields
+AI Summary
+Overall explanation.
+Strengths
+Highest-performing category.
+Weaknesses
+Lowest-performing category.
+Confidence Note
+Displayed only when confidence is below the threshold.
+
+5. Summary Rules
+Notes
+Keep responses objective. 
+Avoid exaggerated language. 
+Limit summaries to 3–5 concise sentences. 
+
+6. Bias Rules
+Bullish
+Highlight supportive global macro conditions and strong international market sentiment.
+Neutral
+Explain that global indicators are mixed or balanced.
+Bearish
+Highlight elevated macroeconomic risks and weaker global market conditions.
+
+7. Confidence Logic
+Confidence >80%
+No disclaimer.
+Confidence 60–80%
+Mention that some global indicators require monitoring.
+Confidence <60%
+Clearly state that conflicting or incomplete global data reduces confidence.
+
+8. Summary Structure
+The AI response should follow this order:
+Overall Global Market Environment 
+Strongest Category 
+Weakest Category 
+Confidence Note (if required) 
+Maximum:
+5 sentences.
+
+9. Insight Refresh
+History
+Store the latest AI summaries.
+Update
+Whenever the Global Score Engine publishes a new score.
+
+10. AI Insight Rules
+US Markets Strong
+Mention that global equity markets are supporting risk appetite.
+Commodities Strong
+Highlight favorable commodity conditions, particularly for India.
+Currency Strong
+Mention supportive currency conditions and improved capital flow outlook.
+Bonds Strong
+Highlight improving liquidity and interest rate conditions.
+Volatility High
+Explain that rising market volatility increases downside risk.
+Digital Assets Strong
+Mention improving speculative risk appetite.
+Multiple Weak Categories
+Summarize the primary global risks affecting the Global Score.
+
+11. Why It Matters
+Converts complex global data into clear insights. 
+Improves dashboard usability. 
+Helps users quickly understand international market conditions. 
+Maintains consistency across all Praxis modules. 
+
+12. Trading Impact
+Direct Trading Impact
+None
+Primary Use
+Interpretation of Global market data.
+
+13. Supporting Components
+Global Score Engine 
+Category Scores 
+Confidence Engine 
+
+14. Metadata
+Source
+Global Score Engine
+Calculation
+None (Explanation Only)
+Updated
+Whenever the Global Score Engine updates
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Do not expose calculation logic. 
+Never modify indicator scores. 
+Generate deterministic summaries from engine outputs. 
+Avoid repeating identical summaries unless the Global Score changes meaningfully. 
+Store previous summaries if AI history is enabled. 
+
+16. Praxis Engine Integration ⭐
+Consumes
+Global Score 
+Bias 
+Confidence 
+Category Scores 
+Outputs
+AI Summary 
+Strengths 
+Weaknesses 
+Confidence Note 
+Display Priority
+High
+The AI Engine is an explanation layer only and does not provide feedback to the Global Score Engine.
+
+
+17. Praxis Recommendation
+The Global AI Engine should act as the natural language explanation layer for the Global module.
+AI Flow
+⭐⭐⭐⭐⭐ Global Score Engine
+⬇
+Category Analysis
+⬇
+Summary Generation
+⬇
+Strengths & Weaknesses
+⬇
+Confidence Note
+AI Rules
+Never calculate indicators. 
+Never generate independent trading signals. 
+Explain only what the Global Score Engine has already determined. 
+Keep explanations concise, factual, and consistent with the calculated scores. 
+The Global AI Engine should ensure that every Global Score is accompanied by a clear, reliable explanation, enabling traders to quickly understand global market sentiment, macroeconomic conditions, and international risk factors without influencing the underlying calculations or decision-making logic.
+
+
+
+Global Engine Weight Configuration (V1)
+This document defines the contribution of each Global indicator to the overall Global Score and how much each indicator can influence the Decision Engine's confidence.
+
+US Markets (Module Weight: 30%)
+Module Total: 30%
+
+Commodities (Module Weight: 20%)
+Module Total: 20%
+
+Currency (Module Weight: 20%)
+Module Total: 20%
+
+
+Bonds (Module Weight: 15%)
+Module Total: 15%
+
+Volatility (Module Weight: 10%)
+Module Total: 10%
+
+Digital Assets (Module Weight: 5%)
+Module Total: 5%
+
+Module Allocation
+Grand Total: 100%
+
+Confidence Modifier Guidelines
+
+Engine Formula
+Global Score
+Global Score
+
+=
+
+Σ (Indicator Score × Engine Weight)
+
+÷
+
+Σ (Engine Weight)
+Confidence
+Confidence
+
+=
+
+Base Confidence
+
++
+
+Positive Modifiers
+
+−
+
+Negative Modifiers
+Final Score Range
+0 – 100
+Final Confidence Range
+0 – 100
+
+Weighting Rationale
+The Global module is designed around the factors that have the greatest influence on Indian equity markets rather than simply global importance.
+S&P 500 Futures (14%) receives the highest weight because it is the strongest overnight indicator for NIFTY and reflects broad U.S. market sentiment. 
+US 10-Year Treasury Yield (15%) carries the single highest individual weight, as global interest rates directly influence liquidity, equity valuations, and foreign capital flows. 
+USD/INR (12%) is highly weighted due to its immediate impact on inflation, import costs, and FII/FPI sentiment in India. 
+CBOE VIX (10%) is the primary global risk indicator and significantly affects overall market confidence. 
+Brent Crude Oil (10%) has a major influence on India's economy because of the country's dependence on crude oil imports. 
+Nasdaq Futures (10%) provide strong confirmation of global technology and growth sentiment, especially relevant for India's IT sector. 
+US Dollar Index (DXY) (8%) measures global Dollar strength and complements USD/INR in assessing capital flow and liquidity conditions. 
+Gold (6%) serves as the primary safe-haven asset and helps identify shifts toward risk-off sentiment. 
+Dow Jones Futures (6%) provide confirmation of institutional confidence in large-cap U.S. equities. 
+Bitcoin (5%) contributes as a supplementary indicator of speculative risk appetite but should never dominate the Global Score. 
+Silver (4%) acts as a supporting industrial commodity indicator with the lowest weighting due to its relatively indirect impact on Indian equities. 
+This weighting structure ensures that global equity markets, interest rates, currencies, and macroeconomic risk drive the Global Score, while commodities and digital assets provide confirmation rather than dominating the Decision Engine. It aligns the Global module with institutional market practices and the specific macroeconomic sensitivities of the Indian market.

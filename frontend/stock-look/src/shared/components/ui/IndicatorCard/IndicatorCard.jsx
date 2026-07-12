@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext, useMemo } from "react";
 import Card from "@/shared/components/common/Card";
+import { FundamentalContext } from "@/features/dashboard/fundamentals/ui/FundamentalContext";
 import { FlipContainer, FlipTrigger } from "@/shared/components/common/FlipContainer";
 import { Star, Lightbulb, Plus, BarChart2, Edit2, Check } from "lucide-react";
 import {
@@ -211,15 +212,29 @@ function ValueChart({ data, valueKey, valueName }) {
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1f2937" />
-          <XAxis dataKey="time" stroke="#4b5563" fontSize={9} tickLine={false} axisLine={false} />
-          <YAxis stroke="#4b5563" fontSize={9} tickLine={false} axisLine={false} />
+          <XAxis 
+            dataKey="date" 
+            stroke="#4b5563" 
+            fontSize={9} 
+            tickLine={false} 
+            axisLine={false}
+            tickFormatter={(val) => {
+               if(!val) return '';
+               // Assuming val is 'YYYY-MM-DD', convert to 'DD MMM'
+               const d = new Date(val);
+               return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            }}
+          />
+          <YAxis yAxisId="left" stroke="#3b82f6" fontSize={9} tickLine={false} axisLine={false} hide />
+          <YAxis yAxisId="right" orientation="right" stroke="#22c55e" fontSize={9} tickLine={false} axisLine={false} domain={[0, 100]} hide />
           <Tooltip 
             contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '4px', fontSize: '10px' }}
             formatter={(value) => (typeof value === 'number' ? value.toFixed(2) : value)}
+            labelFormatter={(label) => label}
           />
-          <ReferenceLine y={50} stroke="#4b5563" strokeDasharray="3 3" />
-          <Line type="monotone" dataKey={valueKey} stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6' }} />
-          <Line type="monotone" dataKey="score" stroke="#22c55e" strokeWidth={2} dot={{ r: 3, fill: '#22c55e' }} />
+          <ReferenceLine yAxisId="right" y={50} stroke="#4b5563" strokeDasharray="3 3" />
+          <Line yAxisId="left" type="monotone" dataKey="raw_value" name={valueName || "Value"} stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6' }} />
+          <Line yAxisId="right" type="monotone" dataKey="score" name="Score" stroke="#22c55e" strokeWidth={2} dot={{ r: 3, fill: '#22c55e' }} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -242,6 +257,36 @@ export function IndicatorCard({
   className
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const context = useContext(FundamentalContext);
+  const historicalData = useMemo(() => {
+     if (context?.snapshots && config?.title) {
+        return context.snapshots[config.title] || [];
+     }
+     return [];
+  }, [context?.snapshots, config?.title]);
+
+  useEffect(() => {
+    const rawVal = data?.currentValueObj?.value;
+    const isMissing = rawVal === undefined || rawVal === null || rawVal === '--' || rawVal === '';
+    
+    // Always dispatch, but send null if the value was cleared
+    const event = new CustomEvent('SAVE_SNAPSHOT', {
+        detail: {
+            card_id: config.title,
+            raw_value: isMissing ? null : parseFloat(rawVal) || 0,
+            score: isMissing ? null : (data?.score || 50),
+            bias: isMissing ? null : (data?.bias || 'Neutral')
+        }
+    });
+    
+    // Delay the dispatch slightly so that parent hooks (like useFundamentalComposite) 
+    // have time to attach their event listeners during the mount phase.
+    const timeoutId = setTimeout(() => {
+        window.dispatchEvent(event);
+    }, 10);
+    
+    return () => clearTimeout(timeoutId);
+  }, [config?.title, data?.currentValueObj?.value, data?.score, data?.bias]);
 
   const toggleExpand = () => setIsExpanded(!isExpanded);
 
@@ -254,7 +299,7 @@ export function IndicatorCard({
 
   return (
     <Card 
-      className={cn("p-5 overflow-hidden transition-colors cursor-pointer relative", className)} 
+      className={cn("p-5 overflow-hidden cursor-pointer relative", className)} 
       onDoubleClick={toggleExpand}
     >
       <div className="flex flex-col h-[380px]">
@@ -301,7 +346,7 @@ export function IndicatorCard({
               >
                 {/* Chart */}
                 <div className="pb-2">
-                  <ValueChart data={chartData?.points} valueKey={chartData?.valueKey} valueName={chartData?.valueName} />
+                  <ValueChart data={historicalData} valueName={chartData?.valueName} />
                 </div>
 
                 {/* AI Insight */}

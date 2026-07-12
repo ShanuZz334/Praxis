@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Added the newly created ForwardPECard component into the FundamentalGrid, registering it beside the standard PE Ratio card under the Valuation section.",
+  "EndLine": 24,
+  "Instruction": "Import ForwardPECard after PERatioCard.",
+  "ReplacementContent": "import PERatioCard from './PERatioCard';\nimport ForwardPECard from './ForwardPECard';\nimport { FUNDAMENTAL_SECTIONS } from '../data/fundamentalData';",
+  "StartLine": 23,
+  "TargetContent": "import PERatioCard from './PERatioCard';\nimport { FUNDAMENTAL_SECTIONS } from '../data/fundamentalData';",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Importing ForwardPECard",
+  "toolSummary": "Update FundamentalGrid.jsx"
+}

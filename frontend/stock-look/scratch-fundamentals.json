@@ -1,0 +1,925 @@
+{
+  "ratios": [
+    {
+      "name": "P/E",
+      "company_value": "14.96",
+      "sector_value": "-190.48"
+    },
+    {
+      "name": "P/B",
+      "company_value": "6.98",
+      "sector_value": "7.18"
+    },
+    {
+      "name": "ROA",
+      "company_value": "27.45%",
+      "sector_value": "-13.98%"
+    },
+    {
+      "name": "ROE",
+      "company_value": "45.89%",
+      "sector_value": "9.3%"
+    },
+    {
+      "name": "ROCE",
+      "company_value": "55.21%",
+      "sector_value": "73.55%"
+    },
+    {
+      "name": "Quick Ratio",
+      "company_value": "2.01",
+      "sector_value": "5.42"
+    },
+    {
+      "name": "EV/EBITDA",
+      "company_value": "10.15",
+      "sector_value": "-613.76"
+    }
+  ],
+  "income": {
+    "type": "consolidated",
+    "time_period": "yearly",
+    "units_in": "crore",
+    "income_statement": [
+      {
+        "category": "revenue",
+        "history": [
+          {
+            "value": 271423,
+            "period": "Mar 2026",
+            "change": "+4.68%"
+          },
+          {
+            "value": 259286,
+            "period": "Mar 2025",
+            "change": "+5.7%"
+          },
+          {
+            "value": 245315,
+            "period": "Mar 2024",
+            "change": "+7.17%"
+          },
+          {
+            "value": 228907,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "category": "operating_profit",
+        "history": [
+          {
+            "value": 65487,
+            "period": "Mar 2026",
+            "change": "+0.24%"
+          },
+          {
+            "value": 65331,
+            "period": "Mar 2025",
+            "change": "+5.38%"
+          },
+          {
+            "value": 61997,
+            "period": "Mar 2024",
+            "change": "+8.94%"
+          },
+          {
+            "value": 56907,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "category": "net_profit",
+        "history": [
+          {
+            "value": 49454,
+            "period": "Mar 2026",
+            "change": "+1.35%"
+          },
+          {
+            "value": 48797,
+            "period": "Mar 2025",
+            "change": "+5.85%"
+          },
+          {
+            "value": 46099,
+            "period": "Mar 2024",
+            "change": "+8.97%"
+          },
+          {
+            "value": 42303,
+            "period": "Mar 2023"
+          }
+        ]
+      }
+    ],
+    "full_statement": [
+      {
+        "particular": "Revenue",
+        "history": [
+          {
+            "value": 267021,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 255324,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 240893,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 225458,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Other Income",
+        "history": [
+          {
+            "value": 4402,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 3962,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 4422,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 3449,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Total Revenue",
+        "history": [
+          {
+            "value": 271423,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 259286,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 245315,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 228907,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Total Expenses",
+        "history": [
+          {
+            "value": 201410,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 193955,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 182360,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 172000,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Profit Before Tax",
+        "history": [
+          {
+            "value": 65487,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 65331,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 61997,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 56907,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Tax",
+        "history": [
+          {
+            "value": 16033,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 16534,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 15898,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 14604,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Profit After Tax",
+        "history": [
+          {
+            "value": 49454,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 48797,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 46099,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 42303,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "EPS - Basic",
+        "history": [
+          {
+            "value": 136.01,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 134.19,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 125.88,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 115.19,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "EPS - Diluted",
+        "history": [
+          {
+            "value": 136.01,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 134.19,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 125.88,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 115.19,
+            "period": "Mar 2023"
+          }
+        ]
+      }
+    ]
+  },
+  "balanceSheet": {
+    "type": "consolidated",
+    "time_period": "yearly",
+    "units_in": "crore",
+    "history": [
+      {
+        "total_asset": 182372,
+        "total_liability": 73894,
+        "period": "Mar 2026"
+      },
+      {
+        "total_asset": 159629,
+        "total_liability": 63858,
+        "period": "Mar 2025"
+      },
+      {
+        "total_asset": 146449,
+        "total_liability": 55130,
+        "period": "Mar 2024"
+      },
+      {
+        "total_asset": 143651,
+        "total_liability": 52445,
+        "period": "Mar 2023"
+      }
+    ],
+    "full_statement": [
+      {
+        "particular": "Non-Current Assets",
+        "history": [
+          {
+            "value": 46667,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 36618,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 33465,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 33381,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Current Assets",
+        "history": [
+          {
+            "value": 135705,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 123011,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 112984,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 110270,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Total Assets",
+        "history": [
+          {
+            "value": 182372,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 159629,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 146449,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 143651,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Current Liabilities",
+        "history": [
+          {
+            "value": 60914,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 53001,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 46104,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 43558,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Net Current Asset",
+        "history": [
+          {
+            "value": 74791,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 70010,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 66880,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 66712,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Non-Current Liabilities",
+        "history": [
+          {
+            "value": 12980,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 10857,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 9026,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 8887,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Equity Capital",
+        "history": [
+          {
+            "value": 108478,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 95771,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 91319,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 91206,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Total Equity & Liabilities",
+        "history": [
+          {
+            "value": 182372,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 159629,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 146449,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 143651,
+            "period": "Mar 2023"
+          }
+        ]
+      }
+    ]
+  },
+  "cashFlow": {
+    "type": "consolidated",
+    "time_period": "yearly",
+    "units_in": "crore",
+    "cash_flow": [
+      {
+        "category": "operating",
+        "history": [
+          {
+            "value": 52094,
+            "period": "Mar 2026",
+            "change": "+6.51%"
+          },
+          {
+            "value": 48908,
+            "period": "Mar 2025",
+            "change": "+10.31%"
+          },
+          {
+            "value": 44338,
+            "period": "Mar 2024",
+            "change": "+5.65%"
+          },
+          {
+            "value": 41965,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "category": "investing",
+        "history": [
+          {
+            "value": -12845,
+            "period": "Mar 2026",
+            "change": "-454.14%"
+          },
+          {
+            "value": -2318,
+            "period": "Mar 2025",
+            "change": "-138.47%"
+          },
+          {
+            "value": 6026,
+            "period": "Mar 2024",
+            "change": "+15351.28%"
+          },
+          {
+            "value": 39,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "category": "financing",
+        "history": [
+          {
+            "value": -42133,
+            "period": "Mar 2026",
+            "change": "+11.18%"
+          },
+          {
+            "value": -47438,
+            "period": "Mar 2025",
+            "change": "+2.26%"
+          },
+          {
+            "value": -48536,
+            "period": "Mar 2024",
+            "change": "-1.37%"
+          },
+          {
+            "value": -47878,
+            "period": "Mar 2023"
+          }
+        ]
+      }
+    ],
+    "full_statement": [
+      {
+        "particular": "Profit before tax",
+        "history": [
+          {
+            "value": 49454,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 48797,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 46099,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 42303,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Income before WC changes",
+        "history": [
+          {
+            "value": 68688,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 67853,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 63709,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 59148,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Change in Assets",
+        "history": [
+          {
+            "value": -4222,
+            "period": "Mar 2026"
+          },
+          {
+            "value": -8511,
+            "period": "Mar 2025"
+          },
+          {
+            "value": -6793,
+            "period": "Mar 2024"
+          },
+          {
+            "value": -7455,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Change in Liabilities",
+        "history": [
+          {
+            "value": 2012,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 5152,
+            "period": "Mar 2025"
+          },
+          {
+            "value": -89,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 3238,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Change in WC",
+        "history": [
+          {
+            "value": -2210,
+            "period": "Mar 2026"
+          },
+          {
+            "value": -3359,
+            "period": "Mar 2025"
+          },
+          {
+            "value": -6882,
+            "period": "Mar 2024"
+          },
+          {
+            "value": -4217,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Cash flow from Operations",
+        "history": [
+          {
+            "value": 52094,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 48908,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 44338,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 41965,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Cash flow from Investing",
+        "history": [
+          {
+            "value": -12845,
+            "period": "Mar 2026"
+          },
+          {
+            "value": -2318,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 6026,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 39,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Cash flow from Financing",
+        "history": [
+          {
+            "value": -42133,
+            "period": "Mar 2026"
+          },
+          {
+            "value": -47438,
+            "period": "Mar 2025"
+          },
+          {
+            "value": -48536,
+            "period": "Mar 2024"
+          },
+          {
+            "value": -47878,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Total Cash Flow",
+        "history": [
+          {
+            "value": -2884,
+            "period": "Mar 2026"
+          },
+          {
+            "value": -848,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 1828,
+            "period": "Mar 2024"
+          },
+          {
+            "value": -5874,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Cash (Start of the year)",
+        "history": [
+          {
+            "value": 8342,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 9016,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 7123,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 12488,
+            "period": "Mar 2023"
+          }
+        ]
+      },
+      {
+        "particular": "Cash (End of the year)",
+        "history": [
+          {
+            "value": 6417,
+            "period": "Mar 2026"
+          },
+          {
+            "value": 8342,
+            "period": "Mar 2025"
+          },
+          {
+            "value": 9016,
+            "period": "Mar 2024"
+          },
+          {
+            "value": 7123,
+            "period": "Mar 2023"
+          }
+        ]
+      }
+    ]
+  },
+  "holdings": [
+    {
+      "category": "promoters",
+      "history": [
+        {
+          "value": 71.77,
+          "period": "Mar 2026"
+        },
+        {
+          "value": 71.77,
+          "period": "Dec 2025"
+        },
+        {
+          "value": 71.77,
+          "period": "Sep 2025"
+        },
+        {
+          "value": 71.77,
+          "period": "Jun 2025"
+        }
+      ]
+    },
+    {
+      "category": "fii",
+      "history": [
+        {
+          "value": 9.66,
+          "period": "Mar 2026"
+        },
+        {
+          "value": 10.37,
+          "period": "Dec 2025"
+        },
+        {
+          "value": 10.33,
+          "period": "Sep 2025"
+        },
+        {
+          "value": 11.47,
+          "period": "Jun 2025"
+        }
+      ]
+    },
+    {
+      "category": "other_dii",
+      "history": [
+        {
+          "value": 7.64,
+          "period": "Mar 2026"
+        },
+        {
+          "value": 7.35,
+          "period": "Dec 2025"
+        },
+        {
+          "value": 7.11,
+          "period": "Sep 2025"
+        },
+        {
+          "value": 6.87,
+          "period": "Jun 2025"
+        }
+      ]
+    },
+    {
+      "category": "retail_and_other",
+      "history": [
+        {
+          "value": 5.16,
+          "period": "Mar 2026"
+        },
+        {
+          "value": 4.99,
+          "period": "Dec 2025"
+        },
+        {
+          "value": 5.21,
+          "period": "Sep 2025"
+        },
+        {
+          "value": 4.75,
+          "period": "Jun 2025"
+        }
+      ]
+    },
+    {
+      "category": "mutual_funds",
+      "history": [
+        {
+          "value": 5.77,
+          "period": "Mar 2026"
+        },
+        {
+          "value": 5.52,
+          "period": "Dec 2025"
+        },
+        {
+          "value": 5.59,
+          "period": "Sep 2025"
+        },
+        {
+          "value": 5.13,
+          "period": "Jun 2025"
+        }
+      ]
+    }
+  ]
+}

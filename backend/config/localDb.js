@@ -129,6 +129,18 @@ export const initLocalDb = () => {
             realized_pnl REAL,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
+
+        -- 8. Card Snapshots (Historical Data)
+        CREATE TABLE IF NOT EXISTS card_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            instrument_key TEXT,
+            card_id TEXT,
+            raw_value REAL,
+            score INTEGER,
+            bias TEXT,
+            snapshot_date DATE DEFAULT CURRENT_DATE,
+            UNIQUE(instrument_key, card_id, snapshot_date)
+        );
     `);
 
     console.log("✅ SQLite Tables Initialized");

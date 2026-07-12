@@ -1,0 +1,21 @@
+{
+  "ArtifactMetadata": {
+    "RequestFeedback": false,
+    "Summary": "Remove dummy cards",
+    "UserFacing": false
+  },
+  "Description": "Removed the dummy cards array from FundamentalPage to fix the ghost counts and empty section headers.",
+  "Instruction": "Set the cards array to empty since all cards are hardcoded in the grid.",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 34,
+      "ReplacementContent": "  const cards = [];",
+      "StartLine": 28,
+      "TargetContent": "  const cards = [\n    { id: \"pe_ratio\", category: \"Valuation\" },\n    { id: \"eps_growth\", category: \"Growth\" },\n    { id: \"roe\", category: \"Profitability\" },\n    { id: \"debt_to_equity\", category: \"Financial Health\" },\n    { id: \"market_cap_gdp\", category: \"Market Health\" }\n  ];"
+    }
+  ],
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalPage.jsx",
+  "toolAction": "Remove dummy cards",
+  "toolSummary": "Update FundamentalPage.jsx"
+}

@@ -8,6 +8,8 @@ When refactoring, updating, or building new indicator cards in the Praxis dashbo
 - **Fail-safes**: If Upstox live data is missing, the component must seamlessly fallback to manual overrides without breaking the app.
 
 ## 2. Manual Overrides Placement
+- **Zero Clutter Rule**: ONLY expose an input box on the backside if the core metric is completely missing from Upstox (e.g. Forward P/E). 
+- **NO Fallbacks & NO Comparisons**: NEVER create manual input boxes for "Fallbacks" or "Historical/Sector Averages" if the primary metric is already fetched from Upstox. The user trusts the Upstox data and strictly wants zero unnecessary inputs.
 - **NEVER** place input boxes or manual form components directly inline on the individual indicator cards.
 - **ONLY** place manual input fields on the "Backside" of the `GlobalHeader` via the `fundamentalManualForm` in `FundamentalPage.jsx`.
 - **Keep it Clean**: Only expose the inputs in the GlobalHeader that actively correspond to cards we have built or explicitly mapped. Do not clutter the UI with inputs for metrics that aren't fully wired up yet.

@@ -1,0 +1,5542 @@
+Fundemental Indicators
+
+1. PE Ratio
+Module: Fundamentals
+Category: Valuation
+Status: Production Ready
+1. Overview
+Name: PE Ratio
+Short Name: PE
+Module: Fundamentals
+Category: Valuation
+Purpose:
+Measures how much investors are willing to pay for each unit of trailing earnings. It helps determine whether the market is trading at an attractive, fair, or expensive valuation relative to its historical range.
+Based On:
+Trailing Twelve Month (TTM) Earnings
+Importance:
+⭐⭐⭐⭐⭐ (Core Valuation Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+Whenever official valuation data is updated.
+Praxis Note:
+PE Ratio should always be interpreted relative to historical valuation levels. It should not generate buy or sell signals on its own and should be confirmed with growth and profitability indicators.
+
+2. Data Requirements
+Required Data
+Current NIFTY PE Ratio 
+Historical PE Values 
+Historical Average PE 
+Minimum Historical Data
+1 Year
+Recommended:
+5 Years
+Primary Source
+NSE Indices 
+NSE Factsheet 
+
+3. Industry Standard Calculation
+Formula
+PE Ratio = Current Market Price / Trailing 12-Month EPS
+Implementation Steps
+Retrieve the latest official NIFTY PE Ratio. 
+Load historical PE values. 
+Calculate the historical average. 
+Compare the current PE with historical valuation. 
+Generate the valuation score. 
+Notes
+Always use Trailing Twelve Month (TTM) earnings. 
+Use the official NSE methodology. 
+Historical comparison is preferred over fixed PE thresholds. 
+
+4. Card Fields
+Current Value
+Current PE Ratio
+Historical Average
+Average PE over the selected lookback period
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Valuation Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Lower valuation generally increases the score. 
+Compare against historical averages instead of fixed PE values. 
+Large deviations should have a stronger impact on the score. 
+
+6. Bias Rules
+PE Below Historical Average
+Bullish
+PE Near Historical Average
+Neutral
+PE Above Historical Average
+Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Official NSE data
++5% Five-year historical comparison
+Decrease Confidence
+-10% Manual entry
+-10% Less than one year of history
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Expensive
+30–60 → Fair Value
+60–80 → Attractive
+80–100 → Undervalued
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+PE Ratio
+Line 2
+Praxis Score
+History
+30 Updates
+Update
+Whenever PE data is refreshed.
+
+10. AI Insight Rules
+PE Below Historical Average
+Explain that market valuations appear attractive compared to historical levels.
+PE Near Historical Average
+Explain that the market is trading close to its long-term valuation.
+PE Above Historical Average
+Explain that valuations are elevated and future returns may depend on earnings growth.
+Low Confidence
+Mention that limited historical data reduces confidence.
+
+11. Why It Matters
+Measures market valuation. 
+Helps identify undervalued and overvalued conditions. 
+Provides long-term market context. 
+Widely followed by institutional investors. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★★☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Long-term valuation assessment.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Forward PE 
+PB Ratio 
+Earnings Yield 
+EPS Growth 
+Revenue Growth 
+
+14. Metadata
+Source
+NSE Indices
+Calculation
+Official PE Ratio
+Updated
+Manual
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current PE Ratio 
+Historical PE Series 
+Historical Average 
+Current Score 
+Confidence 
+Last Updated 
+If PE data is unavailable, display the last valid value with a stale-data warning.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+High (Configurable)
+Decision Engine Role
+Market Valuation
+Primary Use
+Determine whether the market is trading below, near, or above its historical valuation.
+Bullish Confirmation
+Low PE 
+Positive EPS Growth 
+Bearish Confirmation
+High PE 
+Weak Earnings Growth 
+
+17. Praxis Recommendation
+PE Ratio should be the primary valuation indicator in the Fundamentals module.
+Valuation Hierarchy
+⭐⭐⭐⭐⭐ PE Ratio 
+⭐⭐⭐⭐⭐ Forward PE 
+⭐⭐⭐⭐☆ PB Ratio 
+⭐⭐⭐⭐☆ Earnings Yield 
+Engine Rules
+Low PE + Positive EPS Growth → Increase Fundamentals Score. 
+High PE + Weak Earnings Growth → Reduce Fundamentals Score. 
+Confirm PE signals with PB Ratio and Earnings Yield before increasing conviction. 
+PE Ratio should influence the Valuation Score and the overall Fundamentals Score, but it should not be used as a standalone buy or sell indicator. This aligns with the V1 Fundamentals module, where valuation indicators contribute to the Fundamentals Score consumed by the Dashboard and Decision Engine. 
+
+2. Forward PE
+Module: Fundamentals
+Category: Valuation
+Status: Production Ready
+1. Overview
+Name: Forward PE
+Short Name: FWD PE
+Module: Fundamentals
+Category: Valuation
+Purpose:
+Measures the market valuation based on projected future earnings rather than historical earnings. It helps estimate whether current market expectations are optimistic, reasonable, or expensive.
+Based On:
+Estimated Next 12-Month Earnings (Forward EPS)
+Importance:
+⭐⭐⭐⭐⭐ (Core Valuation Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+Whenever official Forward PE data or earnings estimates are updated.
+Praxis Note:
+Forward PE reflects future expectations and should always be interpreted alongside the traditional PE Ratio. A lower Forward PE compared to the current PE often indicates expected earnings growth.
+
+2. Data Requirements
+Required Data
+Current Forward PE 
+Current PE Ratio 
+Estimated Forward EPS 
+Historical Forward PE Values (if available) 
+Minimum Historical Data
+1 Year
+Primary Source
+NSE Indices 
+NSE Factsheet 
+Financial Data Providers 
+
+3. Industry Standard Calculation
+Formula
+Forward PE = Current Market Price / Estimated Next 12-Month EPS
+Implementation Steps
+Obtain the latest Forward PE or projected EPS. 
+Calculate Forward PE if only EPS is available. 
+Compare Forward PE with Current PE. 
+Compare with historical Forward PE levels. 
+Generate the valuation score. 
+Notes
+Use consensus analyst estimates where available. 
+Do not mix TTM EPS with Forward EPS. 
+Use the latest available earnings projections. 
+
+4. Card Fields
+Current Value
+Current Forward PE
+Current PE
+Current Trailing PE
+Premium / Discount
+Difference between PE and Forward PE
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Forecast Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Lower Forward PE indicates expected earnings improvement. 
+Higher Forward PE suggests weaker future earnings expectations. 
+Compare with both historical values and current PE. 
+
+6. Bias Rules
+Forward PE Lower than Current PE
+Bullish
+Forward PE Similar to Current PE
+Neutral
+Forward PE Higher than Current PE
+Bearish
+
+7. Confidence Logic
+Base Confidence
+75%
+Increase Confidence
++10% Multiple analyst estimates available
++5% Consensus estimate
+Decrease Confidence
+-10% Manual entry
+-10% Limited analyst coverage
+-5% Outdated earnings estimates
+Minimum
+55%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Expensive
+30–60 → Fair
+60–80 → Attractive
+80–100 → Undervalued
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Forward PE
+Line 2
+Praxis Score
+History
+30 Updates
+Update
+Whenever Forward PE is refreshed.
+
+10. AI Insight Rules
+Forward PE Lower than Current PE
+Explain that the market expects earnings growth over the coming year.
+Forward PE Near Current PE
+Explain that earnings expectations remain relatively stable.
+Forward PE Higher than Current PE
+Explain that future earnings are expected to weaken.
+Low Confidence
+Mention that forecast-based metrics depend on analyst estimates.
+
+11. Why It Matters
+Measures future market valuation. 
+Reflects earnings expectations. 
+Helps compare current and future valuations. 
+Often identifies improving or deteriorating fundamentals before reported earnings. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★★☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★★☆☆
+Best Use
+Future valuation assessment.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+PE Ratio 
+EPS Growth 
+Revenue Growth 
+Profit Growth 
+Earnings Trend 
+
+14. Metadata
+Source
+NSE / Financial Data Providers
+Calculation
+Official Forward PE or Backend Calculation
+Updated
+Manual
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Forward PE 
+Current PE 
+Estimated EPS 
+Historical Forward PE 
+Current Score 
+Confidence 
+Last Updated 
+Display both PE and Forward PE together to allow quick comparison.
+If Forward EPS is unavailable, display "Not Available" and reduce the Fundamentals confidence.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+High (Configurable)
+Decision Engine Role
+Future Valuation Assessment
+Primary Use
+Measure expected valuation based on future earnings.
+Bullish Confirmation
+Forward PE below Current PE 
+Positive EPS Growth 
+Bearish Confirmation
+Forward PE above Current PE 
+Declining Earnings Trend 
+
+17. Praxis Recommendation
+Forward PE should act as the forward-looking valuation indicator, complementing the traditional PE Ratio.
+Valuation Hierarchy
+⭐⭐⭐⭐⭐ PE Ratio 
+⭐⭐⭐⭐⭐ Forward PE 
+⭐⭐⭐⭐☆ PB Ratio 
+⭐⭐⭐⭐☆ Earnings Yield 
+Engine Rules
+Forward PE < Current PE + Positive EPS Growth → Increase Valuation Score. 
+Forward PE > Current PE + Weak Earnings Trend → Reduce Valuation Score. 
+Use Forward PE to validate whether current market valuations are supported by expected future earnings. 
+Forward PE should strengthen the Valuation Score by incorporating market expectations but should always be evaluated alongside PE Ratio and earnings growth rather than as a standalone signal.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3. PB Ratio (Price-to-Book Ratio)
+Module: Fundamentals
+Category: Valuation
+Status: Production Ready
+1. Overview
+Name: Price-to-Book Ratio
+Short Name: PB Ratio
+Module: Fundamentals
+Category: Valuation
+Purpose:
+Measures how much investors are paying for every ₹1 of net assets (book value). It helps determine whether the market is trading above or below its intrinsic book value.
+Based On:
+Book Value Per Share (BVPS)
+Importance:
+⭐⭐⭐⭐☆ (Core Valuation Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+Whenever official PB Ratio data is updated.
+Praxis Note:
+PB Ratio is most useful when combined with ROE. A high PB with strong ROE can be justified, whereas a high PB with weak ROE may indicate overvaluation.
+
+2. Data Requirements
+Required Data
+Current PB Ratio 
+Book Value Per Share (BVPS) 
+Historical PB Ratio 
+Historical Average PB 
+Minimum Historical Data
+1 Year
+Recommended:
+5 Years
+Primary Source
+NSE Indices 
+NSE Factsheet 
+Company Financial Statements 
+
+3. Industry Standard Calculation
+Formula
+PB Ratio = Current Market Price / Book Value Per Share
+Implementation Steps
+Obtain the latest Book Value Per Share. 
+Calculate or retrieve the official PB Ratio. 
+Compare the current PB with historical averages. 
+Generate the valuation score. 
+Notes
+Use the latest reported Book Value. 
+Historical comparison is preferred over fixed PB thresholds. 
+Compare PB alongside ROE for better interpretation. 
+
+4. Card Fields
+Current Value
+Current PB Ratio
+Historical Average
+Historical Average PB
+Book Value
+Current Book Value Per Share
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Valuation Confidence
+Impact Weight
+Medium-High
+
+5. Praxis Score Logic
+Notes
+Lower PB generally indicates better valuation. 
+High PB should be confirmed with strong profitability (ROE). 
+Historical comparison carries higher priority than fixed values. 
+
+6. Bias Rules
+PB Below Historical Average
+Bullish
+PB Near Historical Average
+Neutral
+PB Above Historical Average
+Bearish
+High PB + High ROE
+Neutral to Bullish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Official NSE data
++5% Five-year historical comparison
++5% ROE available
+Decrease Confidence
+-10% Manual entry
+-10% Less than one year of history
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Expensive
+30–60 → Fair
+60–80 → Attractive
+80–100 → Undervalued
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+PB Ratio
+Line 2
+Praxis Score
+History
+30 Updates
+Update
+Whenever PB data is refreshed.
+
+10. AI Insight Rules
+PB Below Historical Average
+Explain that the market is trading below its historical asset valuation.
+PB Near Historical Average
+Explain that the market is fairly valued relative to its book value.
+PB Above Historical Average
+Explain that investors are paying a premium over the market's net asset value.
+High PB + Strong ROE
+Explain that premium valuation is supported by efficient capital utilization.
+Low Confidence
+Mention that limited financial data reduces confidence.
+
+11. Why It Matters
+Measures valuation relative to net assets. 
+Useful for comparing market value against intrinsic book value. 
+Particularly important for financial institutions. 
+Helps identify undervalued and overvalued markets. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★☆☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Long-term valuation analysis.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+PE Ratio 
+Forward PE 
+ROE 
+Earnings Yield 
+EPS Growth 
+
+14. Metadata
+Source
+NSE Indices
+Calculation
+Official PB Ratio
+Updated
+Manual
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current PB Ratio 
+Historical PB Ratio 
+Historical Average PB 
+Book Value Per Share 
+Current Score 
+Confidence 
+Last Updated 
+If Book Value is unavailable or negative, display "Not Available" and exclude the indicator from score calculation.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Medium-High (Configurable)
+Decision Engine Role
+Asset Valuation
+Primary Use
+Measure whether the market is trading at a premium or discount to its book value.
+Bullish Confirmation
+Low PB 
+Strong ROE 
+Bearish Confirmation
+High PB 
+Weak ROE 
+
+17. Praxis Recommendation
+PB Ratio should be used as the asset valuation indicator within the Valuation module.
+Valuation Hierarchy
+⭐⭐⭐⭐⭐ PE Ratio 
+⭐⭐⭐⭐⭐ Forward PE 
+⭐⭐⭐⭐☆ PB Ratio 
+⭐⭐⭐⭐☆ Earnings Yield 
+Engine Rules
+Low PB + High ROE → Increase Valuation Score. 
+High PB + Weak ROE → Reduce Valuation Score. 
+Low PB + Low ROE → Treat as a potential value trap and keep a neutral bias until profitability improves. 
+Always validate PB Ratio with ROE before assigning a strong bullish valuation. 
+PB Ratio should strengthen the Valuation Score by assessing market value relative to book value and should be interpreted together with profitability indicators rather than as a standalone buy or sell signal.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+4. Earnings Yield
+Module: Fundamentals
+Category: Valuation
+Status: Production Ready
+1. Overview
+Name: Earnings Yield
+Short Name: EY
+Module: Fundamentals
+Category: Valuation
+Purpose:
+Measures the annual earnings generated for every ₹100 invested in the market. It is the inverse of the PE Ratio and helps compare equity returns with fixed-income investments such as government bonds.
+Based On:
+Trailing Twelve Month (TTM) Earnings
+Importance:
+⭐⭐⭐⭐☆ (Supporting Valuation Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+Whenever official earnings or PE data is updated.
+Praxis Note:
+A higher Earnings Yield generally indicates a more attractively valued market. It is particularly useful when compared with the 10-Year Government Bond Yield to assess the Equity Risk Premium.
+
+2. Data Requirements
+Required Data
+Current Earnings Yield 
+Current PE Ratio 
+Historical Earnings Yield 
+Historical Average Earnings Yield 
+Minimum Historical Data
+1 Year
+Recommended:
+5 Years
+Primary Source
+NSE Indices 
+NSE Factsheet 
+Backend Calculation 
+
+3. Industry Standard Calculation
+Formula
+Earnings Yield (%) = (TTM EPS / Current Market Price) × 100
+or
+Earnings Yield (%) = (1 / PE Ratio) × 100
+Implementation Steps
+Obtain the latest PE Ratio. 
+Calculate Earnings Yield. 
+Compare with historical averages. 
+Generate the valuation score. 
+Notes
+Always use TTM Earnings. 
+Calculate directly from the official PE Ratio whenever possible. 
+Display the value as a percentage. 
+
+4. Card Fields
+Current Value
+Current Earnings Yield (%)
+Current PE
+Current PE Ratio
+Historical Average
+Average Earnings Yield
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Valuation Confidence
+Impact Weight
+Medium
+
+5. Praxis Score Logic
+Notes
+Higher Earnings Yield indicates better valuation. 
+Compare against historical averages instead of fixed percentages. 
+Use together with PE Ratio for consistency. 
+
+6. Bias Rules
+Yield Above Historical Average
+Bullish
+Yield Near Historical Average
+Neutral
+Yield Below Historical Average
+Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Official PE data
++5% Five-year historical comparison
+Decrease Confidence
+-10% Manual entry
+-10% Limited historical data
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Expensive
+30–60 → Fair
+60–80 → Attractive
+80–100 → Undervalued
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Earnings Yield (%)
+Line 2
+Praxis Score
+History
+30 Updates
+Update
+Whenever Earnings Yield is refreshed.
+
+10. AI Insight Rules
+Yield Above Historical Average
+Explain that the market is generating relatively higher earnings for its current valuation.
+Yield Near Historical Average
+Explain that market valuation is close to long-term norms.
+Yield Below Historical Average
+Explain that investors are accepting lower earnings relative to current prices, indicating richer valuations.
+Low Confidence
+Mention that limited historical data reduces confidence.
+
+11. Why It Matters
+Provides the inverse perspective of the PE Ratio. 
+Helps compare stock market returns with bond yields. 
+Useful for evaluating market attractiveness. 
+Supports long-term asset allocation decisions. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★☆☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Long-term valuation comparison.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+PE Ratio 
+Forward PE 
+PB Ratio 
+GDP Growth 
+10-Year Government Bond Yield (Future Enhancement) 
+
+14. Metadata
+Source
+Calculated from Official PE Ratio
+Calculation
+Backend
+Updated
+Manual
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Earnings Yield 
+Historical Earnings Yield 
+Historical Average 
+Current Score 
+Confidence 
+Last Updated 
+Calculate automatically whenever the PE Ratio is updated to maintain consistency between both indicators.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Medium (Configurable)
+Relative Importance
+Medium-High
+Decision Engine Role
+Valuation Confirmation
+Primary Use
+Validate market valuation from an earnings return perspective.
+Bullish Confirmation
+High Earnings Yield 
+Low PE Ratio 
+Bearish Confirmation
+Low Earnings Yield 
+High PE Ratio 
+Display Priority
+Medium
+
+17. Praxis Recommendation
+Earnings Yield should act as the confirmation indicator within the Valuation category rather than replacing the PE Ratio.
+Valuation Hierarchy
+⭐⭐⭐⭐⭐ PE Ratio 
+⭐⭐⭐⭐⭐ Forward PE 
+⭐⭐⭐⭐☆ PB Ratio 
+⭐⭐⭐⭐☆ Earnings Yield 
+Engine Rules
+High Earnings Yield + Low PE → Increase Valuation Score. 
+Low Earnings Yield + High PE → Reduce Valuation Score. 
+High Earnings Yield + Strong EPS Growth → Increase long-term investment confidence. 
+Compare Earnings Yield with long-term bond yields (V2 enhancement) to estimate the Equity Risk Premium. 
+Earnings Yield should reinforce the Valuation Score by presenting earnings as an investment return metric and should primarily be used as a confirmation indicator alongside PE Ratio rather than an independent buy or sell signal.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5. EPS Growth
+Module: Fundamentals
+Category: Growth
+Status: Production Ready
+1. Overview
+Name: Earnings Per Share Growth
+Short Name: EPS Growth
+Module: Fundamentals
+Category: Growth
+Purpose:
+Measures the percentage growth in Earnings Per Share (EPS) over the previous reporting period. It indicates whether the market's earnings are improving or deteriorating over time.
+Based On:
+Reported Earnings Per Share (TTM / Annual)
+Importance:
+⭐⭐⭐⭐⭐ (Core Growth Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+After every quarterly earnings season or official EPS update.
+Praxis Note:
+EPS Growth is one of the strongest indicators of fundamental improvement. Consistent positive EPS growth generally supports higher market valuations, while declining EPS growth often signals weakening fundamentals.
+
+2. Data Requirements
+Required Data
+Current EPS 
+Previous EPS 
+EPS Growth (%) 
+Historical EPS Growth 
+Minimum Historical Data
+4 Quarterly Reports
+Recommended:
+3–5 Years
+Primary Source
+NSE Financial Results 
+Company Financial Statements 
+Official Earnings Reports 
+
+3. Industry Standard Calculation
+Formula
+EPS Growth (%) =
+((Current EPS − Previous EPS) / Previous EPS) × 100
+Implementation Steps
+Retrieve the latest reported EPS. 
+Retrieve the comparable previous-period EPS. 
+Calculate percentage growth. 
+Compare against historical growth trends. 
+Generate the Growth Score. 
+Notes
+Prefer Year-over-Year (YoY) comparison. 
+Quarterly comparisons should use the same quarter from the previous year. 
+Exclude one-time extraordinary earnings where possible. 
+
+4. Card Fields
+Current Growth
+Current EPS Growth (%)
+Current EPS
+Latest EPS
+Previous EPS
+Comparable Previous EPS
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Growth Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Higher EPS Growth improves the Growth Score. 
+Stable positive growth is preferred over highly volatile earnings. 
+Negative growth should reduce the Fundamentals Score. 
+
+6. Bias Rules
+EPS Growth > 10%
+Bullish
+EPS Growth 0–10%
+Neutral
+Negative EPS Growth
+Bearish
+Multiple Consecutive Positive Quarters
+Strong Bullish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Four consecutive positive quarters
++5% Audited financial statements
+Decrease Confidence
+-10% Manual entry
+-10% One-time exceptional earnings
+-5% Restated financial results
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+4-Quarter Average Score
+Color Zones
+0–30 → Declining
+30–60 → Weak
+60–80 → Stable
+80–100 → Strong Growth
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+EPS Growth (%)
+Line 2
+Praxis Score
+History
+Last 8 Quarterly Updates
+Update
+After every quarterly earnings release.
+
+10. AI Insight Rules
+Growth Above 20%
+Explain that earnings are growing strongly, supporting long-term market strength.
+Growth Between 10% and 20%
+Explain that earnings growth remains healthy.
+Growth Between 0% and 10%
+Explain that earnings are growing but at a modest pace.
+Negative Growth
+Explain that earnings have weakened compared to the previous period.
+Low Confidence
+Mention that unusual or incomplete financial data may affect reliability.
+
+11. Why It Matters
+Measures earnings momentum. 
+Supports valuation expansion. 
+Indicates improving corporate performance. 
+One of the strongest long-term growth indicators. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★★☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Evaluating long-term earnings momentum.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Revenue Growth 
+Profit Growth 
+PE Ratio 
+Forward PE 
+Earnings Trend 
+
+14. Metadata
+Source
+NSE Financial Results
+Calculation
+Backend
+Updated
+Quarterly
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current EPS 
+Previous EPS 
+EPS Growth (%) 
+Historical EPS Growth 
+Current Score 
+Confidence 
+Last Updated 
+If the previous-period EPS is zero or negative, avoid percentage calculation and display "Not Available" or apply an alternate comparison rule to prevent misleading results.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+High (Configurable)
+Relative Importance
+Very High
+Decision Engine Role
+Corporate Earnings Growth
+Primary Use
+Measure whether company earnings are improving over time.
+Bullish Confirmation
+Positive EPS Growth 
+Positive Revenue Growth 
+Bearish Confirmation
+Negative EPS Growth 
+Declining Profit Growth 
+Display Priority
+High
+
+17. Praxis Recommendation
+EPS Growth should be the primary growth indicator within the Fundamentals module.
+Growth Hierarchy
+⭐⭐⭐⭐⭐ EPS Growth 
+⭐⭐⭐⭐⭐ Revenue Growth 
+⭐⭐⭐⭐☆ Profit Growth 
+⭐⭐⭐⭐☆ GDP Growth 
+Engine Rules
+EPS Growth > 20% + Revenue Growth Positive → Increase Growth Score. 
+Consecutive quarterly EPS growth → Increase Fundamentals confidence. 
+Negative EPS Growth + Declining Profit Growth → Reduce Growth Score. 
+Confirm EPS Growth with Revenue Growth to distinguish genuine business growth from one-time earnings improvements. 
+EPS Growth should be one of the highest-weighted indicators in the Growth category, directly influencing the Fundamentals Score and helping validate whether current market valuations are supported by improving corporate earnings.
+
+
+
+
+
+
+
+
+
+
+
+
+6. Revenue Growth
+Module: Fundamentals
+Category: Growth
+Status: Production Ready
+1. Overview
+Name: Revenue Growth
+Short Name: Revenue Growth
+Module: Fundamentals
+Category: Growth
+Purpose:
+Measures the percentage increase or decrease in revenue compared to the previous comparable reporting period. It indicates whether the underlying business is expanding through higher sales.
+Based On:
+Reported Revenue (Sales)
+Importance:
+⭐⭐⭐⭐⭐ (Core Growth Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+After every quarterly financial results.
+Praxis Note:
+Revenue Growth is one of the cleanest indicators of business expansion. Unlike EPS, it is less affected by accounting adjustments, making it an excellent confirmation of sustainable growth.
+
+2. Data Requirements
+Required Data
+Current Revenue 
+Previous Comparable Revenue 
+Revenue Growth (%) 
+Historical Revenue Growth 
+Minimum Historical Data
+4 Quarterly Reports
+Recommended:
+3–5 Years
+Primary Source
+NSE Financial Results 
+Company Financial Statements 
+Annual Reports 
+
+3. Industry Standard Calculation
+Formula
+Revenue Growth (%) =
+((Current Revenue − Previous Revenue) / Previous Revenue) × 100
+Implementation Steps
+Retrieve the latest reported revenue. 
+Retrieve the comparable previous-period revenue (preferably YoY). 
+Calculate Revenue Growth. 
+Compare with historical growth. 
+Generate the Growth Score. 
+Notes
+Prefer Year-over-Year (YoY) comparison over Quarter-over-Quarter. 
+Use consolidated revenue whenever available. 
+Ignore revenue changes caused solely by accounting restatements. 
+
+4. Card Fields
+Current Growth
+Revenue Growth (%)
+Current Revenue
+Latest Reported Revenue
+Previous Revenue
+Comparable Previous Revenue
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Growth Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Consistent revenue growth is preferred over volatile growth. 
+Positive revenue growth strengthens the Growth Score. 
+Declining revenue should reduce the Fundamentals Score. 
+
+6. Bias Rules
+Revenue Growth >10%
+Bullish
+Revenue Growth 0–10%
+Neutral
+Negative Revenue Growth
+Bearish
+Multiple Consecutive Positive Quarters
+Strong Bullish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Four consecutive positive quarters
++5% Audited financial statements
+Decrease Confidence
+-10% Manual entry
+-10% Restated financial results
+-5% One-time business restructuring
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+4-Quarter Average Score
+Color Zones
+0–30 → Declining
+30–60 → Weak
+60–80 → Stable
+80–100 → Strong Growth
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Revenue Growth (%)
+Line 2
+Praxis Score
+History
+Last 8 Quarterly Updates
+Update
+After every quarterly financial report.
+
+10. AI Insight Rules
+Growth Above 20%
+Explain that the business is expanding rapidly with strong sales growth.
+Growth Between 10% and 20%
+Explain that revenue growth remains healthy and supports future earnings.
+Growth Between 0% and 10%
+Explain that sales continue to grow but at a moderate pace.
+Negative Growth
+Explain that declining revenue indicates weakening business demand.
+Low Confidence
+Mention that incomplete or outdated financial data may reduce reliability.
+
+11. Why It Matters
+Measures business expansion. 
+Confirms demand for products and services. 
+Validates earnings growth. 
+Indicates long-term business momentum. 
+Less affected by accounting adjustments than EPS. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★★☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Evaluating business growth trends.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+EPS Growth 
+Profit Growth 
+Operating Margin 
+Net Margin 
+Forward PE 
+
+14. Metadata
+Source
+NSE Financial Results
+Calculation
+Backend
+Updated
+Quarterly
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Revenue 
+Previous Revenue 
+Revenue Growth (%) 
+Historical Revenue Growth 
+Current Score 
+Confidence 
+Last Updated 
+Prefer consolidated financial statements. If previous-period revenue is unavailable or zero, return "Insufficient Data" instead of calculating growth.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+High (Configurable)
+Relative Importance
+Very High
+Decision Engine Role
+Business Growth Assessment
+Primary Use
+Evaluate whether business sales are expanding consistently.
+Bullish Confirmation
+Positive Revenue Growth 
+Positive EPS Growth 
+Bearish Confirmation
+Negative Revenue Growth 
+Declining Profit Growth 
+Display Priority
+High
+
+17. Praxis Recommendation
+Revenue Growth should act as the primary business expansion indicator in the Growth category.
+Growth Hierarchy
+⭐⭐⭐⭐⭐ EPS Growth 
+⭐⭐⭐⭐⭐ Revenue Growth 
+⭐⭐⭐⭐☆ Profit Growth 
+⭐⭐⭐⭐☆ GDP Growth 
+Engine Rules
+Revenue Growth >15% + EPS Growth Positive → Increase Growth Score. 
+Revenue Growth Positive + Improving Operating Margin → High-confidence business expansion. 
+Revenue Growth Negative + Declining Profit Growth → Reduce Growth Score. 
+Strong EPS Growth without Revenue Growth → Lower confidence and flag possible non-operational earnings improvement. 
+Revenue Growth should directly influence the Growth Score and act as a validation layer for EPS Growth, ensuring that improving earnings are supported by genuine business expansion rather than one-time gains or accounting adjustments.
+
+
+
+
+
+
+
+
+
+7. Profit Growth
+Module: Fundamentals
+Category: Growth
+Status: Production Ready
+1. Overview
+Name: Profit Growth
+Short Name: Profit Growth
+Module: Fundamentals
+Category: Growth
+Purpose:
+Measures the percentage growth in Net Profit compared to the previous comparable reporting period. It indicates whether companies are becoming more profitable over time after accounting for all operating expenses, taxes, and interest.
+Based On:
+Net Profit (PAT - Profit After Tax)
+Importance:
+⭐⭐⭐⭐⭐ (Core Growth Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+After every quarterly financial results.
+Praxis Note:
+Profit Growth should always be evaluated alongside Revenue Growth. Rising profits supported by rising revenue indicate healthy business expansion, while profit growth without revenue growth may result from temporary cost reductions or one-time gains.
+
+2. Data Requirements
+Required Data
+Current Net Profit 
+Previous Comparable Net Profit 
+Profit Growth (%) 
+Historical Profit Growth 
+Minimum Historical Data
+4 Quarterly Reports
+Recommended:
+3–5 Years
+Primary Source
+NSE Financial Results 
+Company Financial Statements 
+Annual Reports 
+
+3. Industry Standard Calculation
+Formula
+Profit Growth (%) =
+((Current Net Profit − Previous Net Profit) / Previous Net Profit) × 100
+Implementation Steps
+Retrieve the latest reported Net Profit. 
+Retrieve the comparable previous-period Net Profit (YoY preferred). 
+Calculate Profit Growth. 
+Compare with historical growth. 
+Generate the Growth Score. 
+Notes
+Prefer Year-over-Year (YoY) comparison. 
+Use consolidated financial statements whenever available. 
+Exclude extraordinary or one-time gains where possible. 
+
+4. Card Fields
+Current Growth
+Profit Growth (%)
+Current Profit
+Latest Net Profit
+Previous Profit
+Comparable Previous Net Profit
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Growth Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Sustained profit growth improves the Fundamentals Score. 
+Stable profit growth is preferred over highly volatile earnings. 
+Negative growth should reduce the Growth Score. 
+
+6. Bias Rules
+Profit Growth >10%
+Bullish
+Profit Growth 0–10%
+Neutral
+Negative Profit Growth
+Bearish
+Multiple Consecutive Positive Quarters
+Strong Bullish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Four consecutive profitable quarters
++5% Revenue Growth also positive
++5% Audited financial statements
+Decrease Confidence
+-10% Manual entry
+-10% One-time exceptional gain
+-5% Financial restatement
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+4-Quarter Average Score
+Color Zones
+0–30 → Declining
+30–60 → Weak
+60–80 → Stable
+80–100 → Strong Growth
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Profit Growth (%)
+Line 2
+Praxis Score
+History
+Last 8 Quarterly Updates
+Update
+After every quarterly financial report.
+
+10. AI Insight Rules
+Growth Above 20%
+Explain that profitability is improving significantly and supports stronger fundamentals.
+Growth Between 10% and 20%
+Explain that profit growth remains healthy.
+Growth Between 0% and 10%
+Explain that profitability is improving at a modest pace.
+Negative Growth
+Explain that profits have declined compared to the previous reporting period.
+Low Confidence
+Mention that one-time items or limited financial data may affect reliability.
+
+11. Why It Matters
+Measures improvement in business profitability. 
+Confirms operational efficiency. 
+Supports long-term valuation. 
+Helps identify sustainable earnings growth. 
+Validates overall business performance. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★★☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Evaluating long-term profitability trends.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Revenue Growth 
+EPS Growth 
+Net Margin 
+Operating Margin 
+ROE 
+
+14. Metadata
+Source
+NSE Financial Results
+Calculation
+Backend
+Updated
+Quarterly
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Net Profit 
+Previous Net Profit 
+Profit Growth (%) 
+Historical Profit Growth 
+Current Score 
+Confidence 
+Last Updated 
+Use consolidated Profit After Tax (PAT) where available. If the previous-period profit is zero or negative, return "Insufficient Data" or use an alternate comparison to avoid misleading percentage growth.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+High (Configurable)
+Relative Importance
+High
+Decision Engine Role
+Profitability Growth Assessment
+Primary Use
+Measure whether corporate profitability is improving over time.
+Bullish Confirmation
+Positive Profit Growth 
+Positive Revenue Growth 
+Bearish Confirmation
+Negative Profit Growth 
+Declining Net Margin 
+Display Priority
+High
+
+17. Praxis Recommendation
+Profit Growth should act as the profitability growth indicator within the Growth category.
+Growth Hierarchy
+⭐⭐⭐⭐⭐ EPS Growth 
+⭐⭐⭐⭐⭐ Revenue Growth 
+⭐⭐⭐⭐☆ Profit Growth 
+⭐⭐⭐⭐☆ GDP Growth 
+Engine Rules
+Profit Growth >15% + Revenue Growth Positive → Increase Growth Score. 
+Profit Growth + Expanding Net Margin → High-confidence business improvement. 
+Profit Growth Negative + Revenue Growth Negative → Reduce Growth Score significantly. 
+Strong Profit Growth without Revenue Growth → Reduce confidence and flag potential one-time gains or cost-cutting effects. 
+Profit Growth should strengthen the Growth Score by measuring improvements in corporate profitability and should be confirmed with Revenue Growth and Margin indicators before assigning a strong bullish outlook.
+
+
+
+
+
+
+
+
+
+8. GDP Growth
+Module: Fundamentals
+Category: Growth
+Status: Production Ready
+1. Overview
+Name: GDP Growth
+Short Name: GDP Growth
+Module: Fundamentals
+Category: Growth
+Purpose:
+Measures the annual growth rate of India's Gross Domestic Product (GDP). It serves as a macroeconomic indicator of overall economic expansion and provides long-term context for equity market performance.
+Based On:
+Real GDP Growth Rate
+Importance:
+⭐⭐⭐⭐☆ (Macro Growth Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+Quarterly (or whenever official GDP data is released)
+Praxis Note:
+GDP Growth reflects the strength of the overall economy rather than individual companies. It should influence the Fundamentals Score with a lower weight than company-specific growth indicators such as EPS Growth and Revenue Growth.
+
+2. Data Requirements
+Required Data
+Current GDP Growth (%) 
+Previous GDP Growth (%) 
+Historical GDP Growth 
+Minimum Historical Data
+8 Quarterly Reports
+Recommended:
+5 Years
+Primary Source
+Ministry of Statistics & Programme Implementation (MoSPI) 
+RBI 
+Government of India 
+
+3. Industry Standard Calculation
+Formula
+GDP Growth (%) =
+((Current GDP − Previous GDP) / Previous GDP) × 100
+Implementation Steps
+Retrieve the latest official GDP Growth. 
+Compare with the previous comparable period. 
+Compare with historical GDP trends. 
+Generate the Growth Score. 
+Notes
+Use Real GDP Growth rather than Nominal GDP. 
+Prefer Year-over-Year (YoY) growth. 
+Use only official government data. 
+
+4. Card Fields
+Current Growth
+GDP Growth (%)
+Previous Growth
+Previous Comparable GDP Growth
+Historical Average
+Historical GDP Growth
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Macro Confidence
+Impact Weight
+Medium
+
+5. Praxis Score Logic
+Notes
+Higher GDP Growth generally supports long-term equity markets. 
+GDP should have a lower weight than company earnings. 
+Economic recessions should significantly reduce the score. 
+
+6. Bias Rules
+GDP Growth >6%
+Bullish
+GDP Growth 4–6%
+Neutral
+GDP Growth <4%
+Bearish
+Negative GDP Growth
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% Official Government release
++5% Consecutive GDP improvement
+Decrease Confidence
+-10% Manual entry
+-5% Preliminary estimate
+Minimum
+70%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+4-Quarter Average Score
+Color Zones
+0–30 → Weak Economy
+30–60 → Slow Growth
+60–80 → Stable Growth
+80–100 → Strong Growth
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+GDP Growth (%)
+Line 2
+Praxis Score
+History
+Last 8 Quarterly Releases
+Update
+After every official GDP release.
+
+10. AI Insight Rules
+GDP Growth Above 8%
+Explain that the economy is expanding strongly, supporting long-term corporate earnings.
+GDP Growth Between 6% and 8%
+Explain that economic growth remains healthy.
+GDP Growth Between 4% and 6%
+Explain that the economy is growing at a stable pace.
+GDP Growth Below 4%
+Explain that economic momentum has slowed and may affect future corporate earnings.
+Negative GDP Growth
+Explain that the economy is contracting, increasing long-term market risk.
+
+11. Why It Matters
+Measures overall economic health. 
+Supports long-term market direction. 
+Influences corporate earnings growth. 
+Provides macroeconomic context for valuations. 
+Helps assess economic cycles. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★☆☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Long-term macroeconomic analysis.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+EPS Growth 
+Revenue Growth 
+Profit Growth 
+Market Cap to GDP 
+FII/DII Flow 
+
+14. Metadata
+Source
+MoSPI / RBI
+Calculation
+Official Government Data
+Updated
+Quarterly
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current GDP Growth 
+Previous GDP Growth 
+Historical GDP Growth 
+Current Score 
+Confidence 
+Last Updated 
+Update only after official GDP releases. Cache historical values for trend analysis and quarterly comparisons.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Medium (Configurable)
+Relative Importance
+Medium
+Decision Engine Role
+Macroeconomic Growth Assessment
+Primary Use
+Measure the strength of the Indian economy and provide macroeconomic context to the Fundamentals module.
+Bullish Confirmation
+GDP Growth above 6% 
+Positive Corporate Earnings Growth 
+Bearish Confirmation
+GDP Growth below 4% 
+Weak Corporate Earnings 
+Display Priority
+Medium
+
+17. Praxis Recommendation
+GDP Growth should serve as the macroeconomic growth indicator within the Growth category.
+Growth Hierarchy
+⭐⭐⭐⭐⭐ EPS Growth 
+⭐⭐⭐⭐⭐ Revenue Growth 
+⭐⭐⭐⭐☆ Profit Growth 
+⭐⭐⭐⭐☆ GDP Growth 
+Engine Rules
+GDP Growth >6% + Positive Corporate Earnings → Increase Growth Score. 
+Improving GDP Growth + Rising FII Inflows → Increase Fundamentals confidence. 
+GDP Growth below 4% + Weak Earnings Growth → Reduce Growth Score. 
+Use GDP Growth as a macro confirmation indicator, not as a standalone market timing signal. 
+GDP Growth should provide economic context for the Growth Score and complement company-level indicators rather than dominate the Fundamentals module.
+
+
+
+
+
+
+
+
+
+
+
+
+
+9. Return on Equity (ROE)
+Module: Fundamentals
+Category: Profitability
+Status: Production Ready
+1. Overview
+Name: Return on Equity
+Short Name: ROE
+Module: Fundamentals
+Category: Profitability
+Purpose:
+Measures how efficiently a company generates profits using shareholders' equity. It indicates management's ability to create returns from invested capital.
+Based On:
+Net Profit After Tax (PAT) and Shareholders' Equity
+Importance:
+⭐⭐⭐⭐⭐ (Core Profitability Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+After every quarterly financial results.
+Praxis Note:
+ROE should always be evaluated together with the PB Ratio. A high ROE can justify a premium valuation, while a low ROE combined with a high PB Ratio may indicate an overvalued market.
+
+2. Data Requirements
+Required Data
+Net Profit After Tax (PAT) 
+Average Shareholders' Equity 
+Current ROE (%) 
+Historical ROE 
+Minimum Historical Data
+4 Quarterly Reports
+Recommended:
+3–5 Years
+Primary Source
+NSE Financial Results 
+Company Financial Statements 
+Annual Reports 
+
+3. Industry Standard Calculation
+Formula
+ROE (%) =
+(Net Profit After Tax ÷ Average Shareholders' Equity) × 100
+Implementation Steps
+Retrieve Net Profit After Tax. 
+Calculate Average Shareholders' Equity. 
+Calculate ROE. 
+Compare with historical ROE. 
+Generate the Profitability Score. 
+Notes
+Use Average Shareholders' Equity where available. 
+Prefer consolidated financial statements. 
+Compare against historical ROE trends rather than a single quarter. 
+
+4. Card Fields
+Current Value
+Current ROE (%)
+Industry Benchmark
+Reference ROE
+Historical Average
+Average ROE
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Profitability Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Higher ROE indicates stronger capital efficiency. 
+Consistent ROE is preferred over temporary spikes. 
+Negative ROE should receive the minimum score. 
+
+6. Bias Rules
+ROE Above 15%
+Bullish
+ROE Between 10%–15%
+Neutral
+ROE Below 10%
+Bearish
+Negative ROE
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Four consecutive profitable quarters
++5% Audited financial statements
++5% Stable ROE trend
+Decrease Confidence
+-10% Manual entry
+-10% Negative equity
+-5% Large one-time profit adjustments
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+4-Quarter Average Score
+Color Zones
+0–30 → Poor
+30–60 → Average
+60–80 → Good
+80–100 → Excellent
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+ROE (%)
+Line 2
+Praxis Score
+History
+Last 8 Quarterly Updates
+Update
+After every quarterly financial report.
+
+10. AI Insight Rules
+ROE Above 20%
+Explain that the company is generating excellent returns on shareholder capital.
+ROE Between 15% and 20%
+Explain that profitability remains strong.
+ROE Between 10% and 15%
+Explain that profitability is healthy but has room for improvement.
+ROE Below 10%
+Explain that returns on shareholder equity are relatively weak.
+Negative ROE
+Explain that the company is currently destroying shareholder value.
+
+11. Why It Matters
+Measures management efficiency. 
+Evaluates capital utilization. 
+Supports valuation analysis. 
+Helps compare companies within the same sector. 
+Widely used by long-term investors. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★☆☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Evaluating long-term profitability.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+PB Ratio 
+ROCE 
+Net Margin 
+Profit Growth 
+EPS Growth 
+
+14. Metadata
+Source
+NSE Financial Results
+Calculation
+Backend
+Updated
+Quarterly
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current ROE 
+Historical ROE 
+Average Shareholders' Equity 
+Current Score 
+Confidence 
+Last Updated 
+If Shareholders' Equity is zero or negative, return "Not Available" and exclude the indicator from score calculation.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+High (Configurable)
+Relative Importance
+Very High
+Decision Engine Role
+Profitability Assessment
+Primary Use
+Measure management's ability to generate returns from shareholder capital.
+Bullish Confirmation
+ROE above 15% 
+Positive Profit Growth 
+Bearish Confirmation
+ROE below 10% 
+Weak Profit Growth 
+Display Priority
+High
+
+17. Praxis Recommendation
+ROE should be the primary profitability indicator within the Fundamentals module.
+Profitability Hierarchy
+⭐⭐⭐⭐⭐ ROE 
+⭐⭐⭐⭐⭐ ROCE 
+⭐⭐⭐⭐☆ Net Margin 
+⭐⭐⭐⭐☆ Operating Margin 
+Engine Rules
+ROE >15% + PB Ratio below historical average → Increase Profitability Score. 
+ROE >20% + Positive EPS Growth → High-confidence profitability. 
+High PB Ratio + Low ROE → Reduce Fundamentals Score due to valuation risk. 
+Confirm ROE with ROCE before assigning a strong bullish profitability signal. 
+ROE should be one of the highest-weighted indicators in the Profitability category, directly influencing the Fundamentals Score by measuring how efficiently shareholder capital is converted into profits.
+
+
+
+
+
+
+
+
+
+
+
+10. Return on Capital Employed (ROCE)
+Module: Fundamentals
+Category: Profitability
+Status: Production Ready
+1. Overview
+Name: Return on Capital Employed
+Short Name: ROCE
+Module: Fundamentals
+Category: Profitability
+Purpose:
+Measures how efficiently a company generates operating profit from the total capital employed in the business. It evaluates management's effectiveness in utilizing both equity and debt to generate returns.
+Based On:
+EBIT (Earnings Before Interest & Tax) and Capital Employed
+Importance:
+⭐⭐⭐⭐⭐ (Core Profitability Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+After every quarterly financial results.
+Praxis Note:
+ROCE is considered a broader profitability metric than ROE because it evaluates returns generated from the entire capital base rather than only shareholder equity.
+
+2. Data Requirements
+Required Data
+EBIT 
+Total Assets 
+Current Liabilities 
+Capital Employed 
+Current ROCE (%) 
+Historical ROCE 
+Minimum Historical Data
+4 Quarterly Reports
+Recommended:
+3–5 Years
+Primary Source
+NSE Financial Results 
+Company Financial Statements 
+Annual Reports 
+
+3. Industry Standard Calculation
+Formula
+ROCE (%) =
+(EBIT ÷ Capital Employed) × 100
+
+Capital Employed =
+Total Assets − Current Liabilities
+Implementation Steps
+Retrieve EBIT. 
+Calculate Capital Employed. 
+Calculate ROCE. 
+Compare with historical ROCE. 
+Generate the Profitability Score. 
+Notes
+Use the latest reported financial statements. 
+Prefer consolidated financials. 
+Compare ROCE against historical trends for consistency. 
+
+4. Card Fields
+Current Value
+Current ROCE (%)
+Capital Employed
+Current Capital Employed
+Historical Average
+Average ROCE
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Profitability Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Higher ROCE indicates efficient capital utilization. 
+Stable ROCE over multiple quarters is preferred. 
+Negative ROCE receives the minimum score. 
+
+6. Bias Rules
+ROCE Above 15%
+Bullish
+ROCE Between 10%–15%
+Neutral
+ROCE Below 10%
+Bearish
+Negative ROCE
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Four consecutive profitable quarters
++5% Stable ROCE trend
++5% Audited financial statements
+Decrease Confidence
+-10% Manual entry
+-10% Negative Capital Employed
+-5% One-time exceptional operating income
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+4-Quarter Average Score
+Color Zones
+0–30 → Poor
+30–60 → Average
+60–80 → Good
+80–100 → Excellent
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+ROCE (%)
+Line 2
+Praxis Score
+History
+Last 8 Quarterly Updates
+Update
+After every quarterly financial report.
+
+10. AI Insight Rules
+ROCE Above 20%
+Explain that the company is generating excellent returns from its total capital.
+ROCE Between 15% and 20%
+Explain that capital utilization remains efficient.
+ROCE Between 10% and 15%
+Explain that returns are healthy but have room for improvement.
+ROCE Below 10%
+Explain that capital is being utilized inefficiently.
+Negative ROCE
+Explain that the business is failing to generate adequate operating returns.
+
+11. Why It Matters
+Measures overall capital efficiency. 
+Evaluates operating performance. 
+Useful for comparing companies with different debt levels. 
+Supports long-term investment decisions. 
+Complements ROE analysis. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★☆☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Evaluating long-term capital efficiency.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+ROE 
+Operating Margin 
+Net Margin 
+Profit Growth 
+Debt to Equity 
+
+14. Metadata
+Source
+NSE Financial Results
+Calculation
+Backend
+Updated
+Quarterly
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current ROCE 
+EBIT 
+Capital Employed 
+Historical ROCE 
+Current Score 
+Confidence 
+Last Updated 
+If Capital Employed is zero or negative, display "Not Available" and exclude the indicator from score calculation.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+High (Configurable)
+Relative Importance
+Very High
+Decision Engine Role
+Capital Efficiency Assessment
+Primary Use
+Measure how efficiently management generates operating profits from invested capital.
+Bullish Confirmation
+ROCE above 15% 
+Positive Operating Margin 
+Positive Profit Growth 
+Bearish Confirmation
+ROCE below 10% 
+Declining Operating Margin 
+Display Priority
+High
+
+17. Praxis Recommendation
+ROCE should be the primary capital efficiency indicator within the Profitability category.
+Profitability Hierarchy
+⭐⭐⭐⭐⭐ ROE 
+⭐⭐⭐⭐⭐ ROCE 
+⭐⭐⭐⭐☆ Net Margin 
+⭐⭐⭐⭐☆ Operating Margin 
+Engine Rules
+ROCE >15% + ROE >15% → Increase Profitability Score. 
+ROCE improving for multiple quarters → Increase Fundamentals confidence. 
+High Debt + Declining ROCE → Reduce Profitability Score. 
+Confirm ROCE with Operating Margin to ensure returns are driven by operational efficiency rather than financial leverage. 
+ROCE should strengthen the Profitability Score by evaluating how effectively a company utilizes its total capital base and should be interpreted together with ROE, Operating Margin, and Debt to Equity for a complete profitability assessment.
+
+
+
+
+
+
+
+
+
+11. Net Margin
+Module: Fundamentals
+Category: Profitability
+Status: Production Ready
+1. Overview
+Name: Net Profit Margin
+Short Name: Net Margin
+Module: Fundamentals
+Category: Profitability
+Purpose:
+Measures the percentage of revenue that remains as net profit after all operating expenses, interest, and taxes. It indicates the company's overall profitability and cost efficiency.
+Based On:
+Net Profit After Tax (PAT) and Revenue
+Importance:
+⭐⭐⭐⭐☆ (Core Profitability Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+After every quarterly financial results.
+Praxis Note:
+Net Margin measures the final profitability of a business. Improving margins over multiple quarters generally indicate better operational efficiency and pricing power.
+
+2. Data Requirements
+Required Data
+Net Profit After Tax (PAT) 
+Total Revenue 
+Current Net Margin (%) 
+Historical Net Margin 
+Minimum Historical Data
+4 Quarterly Reports
+Recommended:
+3–5 Years
+Primary Source
+NSE Financial Results 
+Company Financial Statements 
+Annual Reports 
+
+3. Industry Standard Calculation
+Formula
+Net Margin (%) =
+(Net Profit ÷ Revenue) × 100
+Implementation Steps
+Retrieve Net Profit After Tax. 
+Retrieve Total Revenue. 
+Calculate Net Margin. 
+Compare with historical margins. 
+Generate the Profitability Score. 
+Notes
+Use consolidated financial statements where available. 
+Compare YoY and multi-quarter trends rather than a single quarter. 
+Use reported Net Profit after all expenses and taxes. 
+
+4. Card Fields
+Current Value
+Current Net Margin (%)
+Net Profit
+Current PAT
+Revenue
+Current Revenue
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Profitability Confidence
+Impact Weight
+Medium
+
+5. Praxis Score Logic
+Notes
+Higher margins indicate stronger profitability. 
+Improving margins strengthen the Fundamentals Score. 
+Negative margins receive the minimum score. 
+
+6. Bias Rules
+Margin Above 15%
+Bullish
+Margin Between 10%–15%
+Neutral
+Margin Below 10%
+Bearish
+Negative Margin
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Stable margin improvement
++5% Audited financial statements
++5% Positive Profit Growth
+Decrease Confidence
+-10% Manual entry
+-10% One-time exceptional items
+-5% Financial restatement
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+4-Quarter Average Score
+Color Zones
+0–30 → Weak
+30–60 → Average
+60–80 → Healthy
+80–100 → Excellent
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Net Margin (%)
+Line 2
+Praxis Score
+History
+Last 8 Quarterly Updates
+Update
+After every quarterly financial report.
+
+10. AI Insight Rules
+Margin Above 20%
+Explain that the company is converting a significant portion of revenue into profit.
+Margin Between 15% and 20%
+Explain that profitability remains strong.
+Margin Between 10% and 15%
+Explain that profit margins are healthy but should continue improving.
+Margin Below 10%
+Explain that profitability is relatively weak and cost efficiency may require improvement.
+Negative Margin
+Explain that the business is currently operating at a loss.
+
+11. Why It Matters
+Measures overall profitability. 
+Reflects cost management efficiency. 
+Indicates pricing power. 
+Supports long-term valuation analysis. 
+Helps compare profitability across reporting periods. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★☆☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Evaluating long-term profitability.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Operating Margin 
+Profit Growth 
+ROE 
+ROCE 
+EPS Growth 
+
+14. Metadata
+Source
+NSE Financial Results
+Calculation
+Backend
+Updated
+Quarterly
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Net Margin 
+Historical Net Margin 
+Net Profit 
+Revenue 
+Current Score 
+Confidence 
+Last Updated 
+If Revenue is zero, return "Not Available" instead of calculating the margin.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Medium (Configurable)
+Relative Importance
+High
+Decision Engine Role
+Profitability Assessment
+Primary Use
+Measure the company's ability to convert revenue into net profit.
+Bullish Confirmation
+Expanding Net Margin 
+Positive Profit Growth 
+Bearish Confirmation
+Declining Net Margin 
+Falling Revenue Growth 
+Display Priority
+Medium-High
+
+17. Praxis Recommendation
+Net Margin should act as the overall profitability indicator within the Profitability category.
+Profitability Hierarchy
+⭐⭐⭐⭐⭐ ROE 
+⭐⭐⭐⭐⭐ ROCE 
+⭐⭐⭐⭐☆ Net Margin 
+⭐⭐⭐⭐☆ Operating Margin 
+Engine Rules
+Net Margin increasing for multiple quarters → Increase Profitability Score. 
+Net Margin + Revenue Growth both improving → High-confidence business improvement. 
+Declining Net Margin + Falling Profit Growth → Reduce Profitability Score. 
+Confirm Net Margin with Operating Margin to distinguish operational weakness from financing or tax-related impacts. 
+Net Margin should strengthen the Profitability Score by measuring the company's overall ability to convert revenue into profit and should be interpreted alongside ROE, ROCE, and Operating Margin for a complete profitability assessment.
+
+
+
+
+
+
+
+
+
+
+12. Operating Margin
+Module: Fundamentals
+Category: Profitability
+Status: Production Ready
+1. Overview
+Name: Operating Margin
+Short Name: Operating Margin
+Module: Fundamentals
+Category: Profitability
+Purpose:
+Measures the percentage of revenue remaining after operating expenses but before interest and taxes (EBIT). It evaluates the efficiency of a company's core business operations.
+Based On:
+Operating Profit (EBIT) and Revenue
+Importance:
+⭐⭐⭐⭐☆ (Core Profitability Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+After every quarterly financial results.
+Praxis Note:
+Operating Margin focuses only on operating performance. Unlike Net Margin, it is not affected by financing costs or taxes, making it a better measure of operational efficiency.
+
+2. Data Requirements
+Required Data
+Operating Profit (EBIT) 
+Total Revenue 
+Current Operating Margin (%) 
+Historical Operating Margin 
+Minimum Historical Data
+4 Quarterly Reports
+Recommended:
+3–5 Years
+Primary Source
+NSE Financial Results 
+Company Financial Statements 
+Annual Reports 
+
+3. Industry Standard Calculation
+Formula
+Operating Margin (%) =
+(EBIT ÷ Revenue) × 100
+Implementation Steps
+Retrieve Operating Profit (EBIT). 
+Retrieve Total Revenue. 
+Calculate Operating Margin. 
+Compare with historical margin trends. 
+Generate the Profitability Score. 
+Notes
+Use EBIT before interest and tax. 
+Prefer consolidated financial statements. 
+Compare YoY trends for consistency. 
+
+4. Card Fields
+Current Value
+Current Operating Margin (%)
+Operating Profit
+Current EBIT
+Revenue
+Current Revenue
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Profitability Confidence
+Impact Weight
+Medium
+
+5. Praxis Score Logic
+Notes
+Higher Operating Margin indicates stronger operational efficiency. 
+Improving margins over multiple quarters strengthen the score. 
+Negative operating margins receive the minimum score. 
+
+6. Bias Rules
+Margin Above 18%
+Bullish
+Margin Between 10%–18%
+Neutral
+Margin Below 10%
+Bearish
+Negative Margin
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Stable margin improvement
++5% Positive Revenue Growth
++5% Audited financial statements
+Decrease Confidence
+-10% Manual entry
+-10% One-time operating income
+-5% Financial restatement
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+4-Quarter Average Score
+Color Zones
+0–30 → Weak
+30–60 → Average
+60–80 → Healthy
+80–100 → Excellent
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Operating Margin (%)
+Line 2
+Praxis Score
+History
+Last 8 Quarterly Updates
+Update
+After every quarterly financial report.
+
+10. AI Insight Rules
+Margin Above 25%
+Explain that core business operations are generating excellent profitability.
+Margin Between 18% and 25%
+Explain that operational efficiency remains strong.
+Margin Between 10% and 18%
+Explain that operations are stable but there is room for efficiency improvements.
+Margin Below 10%
+Explain that operating efficiency is relatively weak.
+Negative Margin
+Explain that the core business is currently operating at a loss.
+
+11. Why It Matters
+Measures core business efficiency. 
+Less affected by taxes and financing decisions. 
+Indicates operational strength. 
+Helps evaluate long-term business quality. 
+Confirms sustainable profitability. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★☆☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Evaluating operational efficiency.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Net Margin 
+ROCE 
+ROE 
+Revenue Growth 
+Profit Growth 
+
+14. Metadata
+Source
+NSE Financial Results
+Calculation
+Backend
+Updated
+Quarterly
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Operating Margin 
+Historical Operating Margin 
+Operating Profit (EBIT) 
+Revenue 
+Current Score 
+Confidence 
+Last Updated 
+If Revenue is zero, return "Not Available" instead of calculating the margin. Preserve historical values for trend visualization.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Medium (Configurable)
+Relative Importance
+High
+Decision Engine Role
+Operational Efficiency Assessment
+Primary Use
+Measure how efficiently the company's core business converts revenue into operating profit.
+Bullish Confirmation
+Expanding Operating Margin 
+Positive Revenue Growth 
+Bearish Confirmation
+Declining Operating Margin 
+Declining Revenue Growth 
+Display Priority
+Medium-High
+
+17. Praxis Recommendation
+Operating Margin should serve as the operational profitability indicator within the Profitability category.
+Profitability Hierarchy
+⭐⭐⭐⭐⭐ ROE 
+⭐⭐⭐⭐⭐ ROCE 
+⭐⭐⭐⭐☆ Net Margin 
+⭐⭐⭐⭐☆ Operating Margin 
+Engine Rules
+Operating Margin improving for multiple quarters → Increase Profitability Score. 
+Operating Margin + Revenue Growth both improving → High-confidence operational strength. 
+Declining Operating Margin + Declining Revenue Growth → Reduce Profitability Score. 
+Compare Operating Margin with Net Margin to identify whether changes in profitability are driven by operations or by financing and tax effects. 
+Operating Margin should strengthen the Profitability Score by measuring the efficiency of the company's core operations and should be used alongside ROE, ROCE, and Net Margin to provide a complete assessment of business profitability.
+
+
+
+
+
+
+
+
+
+13. Debt to Equity Ratio
+Module: Fundamentals
+Category: Financial Health
+Status: Production Ready
+1. Overview
+Name: Debt to Equity Ratio
+Short Name: D/E Ratio
+Module: Fundamentals
+Category: Financial Health
+Purpose:
+Measures the proportion of a company's total debt relative to shareholders' equity. It evaluates financial leverage and the company's dependence on borrowed capital.
+Based On:
+Total Debt and Shareholders' Equity
+Importance:
+⭐⭐⭐⭐⭐ (Core Financial Health Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+After every quarterly financial results.
+Praxis Note:
+A lower Debt to Equity Ratio generally indicates stronger financial stability. However, acceptable levels vary across industries, so this indicator should always be interpreted alongside Interest Coverage and Free Cash Flow.
+
+2. Data Requirements
+Required Data
+Total Debt 
+Shareholders' Equity 
+Current Debt to Equity Ratio 
+Historical Debt to Equity Ratio 
+Minimum Historical Data
+4 Quarterly Reports
+Recommended:
+3–5 Years
+Primary Source
+NSE Financial Results 
+Company Balance Sheet 
+Annual Reports 
+
+3. Industry Standard Calculation
+Formula
+Debt to Equity Ratio =
+Total Debt ÷ Shareholders' Equity
+Implementation Steps
+Retrieve Total Debt. 
+Retrieve Shareholders' Equity. 
+Calculate Debt to Equity Ratio. 
+Compare with historical leverage trends. 
+Generate the Financial Health Score. 
+Notes
+Use Total Interest-Bearing Debt. 
+Use consolidated financial statements. 
+Lower values generally indicate lower financial risk. 
+
+4. Card Fields
+Current Value
+Current Debt to Equity Ratio
+Total Debt
+Current Interest-Bearing Debt
+Shareholders' Equity
+Current Equity
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Financial Health Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Lower leverage improves the Financial Health Score. 
+Increasing debt over multiple quarters reduces confidence. 
+Industry-specific exceptions may apply. 
+
+6. Bias Rules
+D/E Below 0.60
+Bullish
+D/E Between 0.60–1.00
+Neutral
+D/E Above 1.00
+Bearish
+D/E Above 2.00
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Stable debt reduction
++5% Positive Free Cash Flow
++5% Audited financial statements
+Decrease Confidence
+-10% Manual entry
+-10% Sharp increase in debt
+-5% Financial restatement
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+4-Quarter Average Score
+Color Zones
+0–30 → High Risk
+30–60 → Moderate Risk
+60–80 → Healthy
+80–100 → Strong Balance Sheet
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Debt to Equity Ratio
+Line 2
+Praxis Score
+History
+Last 8 Quarterly Updates
+Update
+After every quarterly financial report.
+
+10. AI Insight Rules
+D/E Below 0.30
+Explain that the company has a conservative capital structure with low financial leverage.
+D/E Between 0.30 and 0.60
+Explain that debt levels remain healthy and manageable.
+D/E Between 0.60 and 1.00
+Explain that leverage is moderate and should be monitored.
+D/E Above 1.00
+Explain that the company relies significantly on debt financing.
+D/E Above 2.00
+Explain that high leverage increases financial risk, especially during economic slowdowns.
+
+11. Why It Matters
+Measures financial leverage. 
+Evaluates long-term solvency. 
+Assesses balance sheet strength. 
+Indicates borrowing risk. 
+Supports risk-adjusted investment decisions. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★☆☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Evaluating financial stability.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Interest Coverage 
+Free Cash Flow 
+Current Ratio 
+ROCE 
+Net Margin 
+
+14. Metadata
+Source
+NSE Financial Results
+Calculation
+Backend
+Updated
+Quarterly
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Debt to Equity Ratio 
+Total Debt 
+Shareholders' Equity 
+Historical Debt to Equity 
+Current Score 
+Confidence 
+Last Updated 
+If Shareholders' Equity is zero or negative, return "Not Available" and exclude the indicator from score calculation.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+High (Configurable)
+Relative Importance
+High
+Decision Engine Role
+Financial Leverage Assessment
+Primary Use
+Evaluate the company's dependence on borrowed capital.
+Bullish Confirmation
+Low Debt to Equity 
+Positive Free Cash Flow 
+Strong Interest Coverage 
+Bearish Confirmation
+High Debt to Equity 
+Weak Interest Coverage 
+Display Priority
+High
+
+17. Praxis Recommendation
+Debt to Equity Ratio should be the primary leverage indicator within the Financial Health category.
+Financial Health Hierarchy
+⭐⭐⭐⭐⭐ Debt to Equity Ratio 
+⭐⭐⭐⭐⭐ Interest Coverage 
+⭐⭐⭐⭐☆ Free Cash Flow 
+⭐⭐⭐⭐☆ Current Ratio 
+Engine Rules
+D/E <0.60 + Strong Interest Coverage → Increase Financial Health Score. 
+D/E declining for multiple quarters → Increase Fundamentals confidence. 
+D/E >1.00 + Negative Free Cash Flow → Reduce Financial Health Score. 
+High Debt + Weak Interest Coverage → Flag elevated financial risk. 
+Debt to Equity Ratio should be one of the highest-weighted indicators in the Financial Health category, helping assess balance sheet quality and long-term solvency rather than acting as a standalone investment signal.
+
+
+
+
+
+
+
+
+
+14. Interest Coverage Ratio
+Module: Fundamentals
+Category: Financial Health
+Status: Production Ready
+1. Overview
+Name: Interest Coverage Ratio
+Short Name: Interest Coverage
+Module: Fundamentals
+Category: Financial Health
+Purpose:
+Measures a company's ability to meet its interest obligations using its operating earnings. It indicates whether the business generates sufficient profit to comfortably service its debt.
+Based On:
+EBIT (Earnings Before Interest & Tax) and Interest Expense
+Importance:
+⭐⭐⭐⭐⭐ (Core Financial Health Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+After every quarterly financial results.
+Praxis Note:
+A higher Interest Coverage Ratio indicates stronger financial stability. Low coverage suggests increasing financial risk, especially during periods of rising interest rates or declining earnings.
+
+2. Data Requirements
+Required Data
+EBIT 
+Interest Expense 
+Current Interest Coverage Ratio 
+Historical Interest Coverage 
+Minimum Historical Data
+4 Quarterly Reports
+Recommended:
+3–5 Years
+Primary Source
+NSE Financial Results 
+Company Financial Statements 
+Annual Reports 
+
+3. Industry Standard Calculation
+Formula
+Interest Coverage Ratio =
+EBIT ÷ Interest Expense
+Implementation Steps
+Retrieve EBIT. 
+Retrieve Interest Expense. 
+Calculate Interest Coverage Ratio. 
+Compare with historical values. 
+Generate the Financial Health Score. 
+Notes
+Use EBIT before interest and taxes. 
+Use the latest reported interest expense. 
+Higher values indicate stronger debt servicing ability. 
+
+4. Card Fields
+Current Value
+Current Interest Coverage Ratio
+EBIT
+Current Operating Profit
+Interest Expense
+Current Interest Cost
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Financial Health Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Higher coverage improves the Financial Health Score. 
+A ratio below 1.5 indicates elevated financial risk. 
+Consistent improvement over multiple quarters strengthens confidence. 
+
+6. Bias Rules
+Coverage Above 5
+Bullish
+Coverage Between 3–5
+Neutral
+Coverage Below 3
+Bearish
+Coverage Below 1.5
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Stable EBIT growth
++5% Declining debt levels
++5% Audited financial statements
+Decrease Confidence
+-10% Manual entry
+-10% Highly volatile earnings
+-5% Financial restatement
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+4-Quarter Average Score
+Color Zones
+0–30 → High Risk
+30–60 → Moderate Risk
+60–80 → Healthy
+80–100 → Strong Coverage
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Interest Coverage Ratio
+Line 2
+Praxis Score
+History
+Last 8 Quarterly Updates
+Update
+After every quarterly financial report.
+
+10. AI Insight Rules
+Coverage Above 8
+Explain that the company comfortably meets its interest obligations with strong operating earnings.
+Coverage Between 5 and 8
+Explain that debt servicing capacity remains healthy.
+Coverage Between 3 and 5
+Explain that interest obligations are manageable but should be monitored.
+Coverage Below 3
+Explain that debt servicing capacity is weakening.
+Coverage Below 1.5
+Explain that the company may struggle to meet interest obligations if earnings decline further.
+
+11. Why It Matters
+Measures debt servicing capability. 
+Evaluates financial stability. 
+Assesses solvency risk. 
+Indicates resilience during economic downturns. 
+Supports long-term risk analysis. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★☆☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Evaluating debt servicing capability.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Debt to Equity Ratio 
+Free Cash Flow 
+Current Ratio 
+ROCE 
+Operating Margin 
+
+14. Metadata
+Source
+NSE Financial Results
+Calculation
+Backend
+Updated
+Quarterly
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Interest Coverage Ratio 
+EBIT 
+Interest Expense 
+Historical Interest Coverage 
+Current Score 
+Confidence 
+Last Updated 
+If Interest Expense is zero or negligible, display "Not Applicable" instead of calculating the ratio to avoid misleading values.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+High (Configurable)
+Relative Importance
+High
+Decision Engine Role
+Debt Servicing Assessment
+Primary Use
+Evaluate the company's ability to meet interest obligations from operating profits.
+Bullish Confirmation
+Interest Coverage >5 
+Low Debt to Equity 
+Positive Free Cash Flow 
+Bearish Confirmation
+Interest Coverage <3 
+High Debt to Equity 
+Display Priority
+High
+
+17. Praxis Recommendation
+Interest Coverage should act as the primary debt servicing indicator within the Financial Health category.
+Financial Health Hierarchy
+⭐⭐⭐⭐⭐ Debt to Equity Ratio 
+⭐⭐⭐⭐⭐ Interest Coverage 
+⭐⭐⭐⭐☆ Free Cash Flow 
+⭐⭐⭐⭐☆ Current Ratio 
+Engine Rules
+Interest Coverage >5 + Debt to Equity <0.60 → Increase Financial Health Score. 
+Improving Interest Coverage for multiple quarters → Increase Fundamentals confidence. 
+Interest Coverage <3 + Rising Debt → Reduce Financial Health Score. 
+Low Interest Coverage + Negative Free Cash Flow → Trigger a Financial Risk warning. 
+Interest Coverage should significantly influence the Financial Health Score by measuring the company's ability to service debt from operating earnings and should always be interpreted alongside Debt to Equity and Free Cash Flow for a complete assessment of financial stability.
+
+
+
+
+
+
+
+
+
+15. Free Cash Flow (FCF)
+Module: Fundamentals
+Category: Financial Health
+Status: Production Ready
+1. Overview
+Name: Free Cash Flow
+Short Name: FCF
+Module: Fundamentals
+Category: Financial Health
+Purpose:
+Measures the cash generated by a company after funding its operating expenses and capital expenditures. It indicates the company's ability to reinvest, reduce debt, pay dividends, or pursue future growth without relying on external financing.
+Based On:
+Operating Cash Flow and Capital Expenditure
+Importance:
+⭐⭐⭐⭐⭐ (Core Financial Health Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+After every quarterly financial results.
+Praxis Note:
+Positive and consistently growing Free Cash Flow is a strong indicator of financial strength. Companies can report accounting profits while generating weak cash flow, making FCF an important validation metric.
+
+2. Data Requirements
+Required Data
+Operating Cash Flow 
+Capital Expenditure (CapEx) 
+Current Free Cash Flow 
+Historical Free Cash Flow 
+Minimum Historical Data
+4 Quarterly Reports
+Recommended:
+3–5 Years
+Primary Source
+Cash Flow Statement 
+NSE Financial Results 
+Company Financial Statements 
+
+3. Industry Standard Calculation
+Formula
+Free Cash Flow =
+Operating Cash Flow − Capital Expenditure
+Implementation Steps
+Retrieve Operating Cash Flow. 
+Retrieve Capital Expenditure. 
+Calculate Free Cash Flow. 
+Compare with historical FCF. 
+Generate the Financial Health Score. 
+Notes
+Use consolidated cash flow statements. 
+Capital Expenditure should include investments in property, plant, and equipment. 
+Evaluate consistency over multiple quarters rather than a single reporting period. 
+
+4. Card Fields
+Current Value
+Current Free Cash Flow
+Operating Cash Flow
+Current Operating Cash Flow
+Capital Expenditure
+Current CapEx
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Financial Health Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Consistently positive FCF improves the Financial Health Score. 
+Increasing FCF is preferred over volatile cash generation. 
+Negative FCF should be confirmed with Revenue Growth and CapEx before assigning a bearish bias. 
+
+6. Bias Rules
+Positive & Growing FCF
+Bullish
+Stable FCF
+Neutral
+Negative FCF
+Bearish
+Multiple Consecutive Negative Quarters
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Positive FCF for four consecutive quarters
++5% Positive Operating Cash Flow
++5% Audited financial statements
+Decrease Confidence
+-10% Manual entry
+-10% Highly volatile cash flows
+-5% Financial restatement
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+4-Quarter Average Score
+Color Zones
+0–30 → Weak
+30–60 → Improving
+60–80 → Healthy
+80–100 → Strong Cash Generation
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Free Cash Flow
+Line 2
+Praxis Score
+History
+Last 8 Quarterly Updates
+Update
+After every quarterly financial report.
+
+10. AI Insight Rules
+Strong Positive FCF
+Explain that the company is generating healthy excess cash after investments, strengthening financial flexibility.
+Positive FCF
+Explain that cash generation remains healthy and supports future growth.
+Stable FCF
+Explain that cash generation is stable but should continue improving.
+Negative FCF
+Explain that the company is spending more cash than it generates and should be monitored.
+Low Confidence
+Mention that incomplete cash flow data may affect reliability.
+
+11. Why It Matters
+Measures actual cash generation. 
+Evaluates financial flexibility. 
+Supports debt repayment capability. 
+Indicates ability to fund future growth. 
+Confirms earnings quality. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★☆☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Evaluating long-term financial strength.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Debt to Equity Ratio 
+Interest Coverage 
+Current Ratio 
+Profit Growth 
+Operating Margin 
+
+14. Metadata
+Source
+Cash Flow Statement
+Calculation
+Backend
+Updated
+Quarterly
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Free Cash Flow 
+Operating Cash Flow 
+Capital Expenditure 
+Historical Free Cash Flow 
+Current Score 
+Confidence 
+Last Updated 
+Display Free Cash Flow using appropriate currency units (₹ Cr, ₹ Lakh, etc.). Preserve historical values for trend analysis. If either Operating Cash Flow or CapEx is unavailable, return "Insufficient Data".
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+High (Configurable)
+Relative Importance
+High
+Decision Engine Role
+Cash Flow Strength Assessment
+Primary Use
+Evaluate the company's ability to generate excess cash after funding business operations and investments.
+Bullish Confirmation
+Positive Free Cash Flow 
+Low Debt to Equity 
+Strong Interest Coverage 
+Bearish Confirmation
+Negative Free Cash Flow 
+Rising Debt 
+Weak Interest Coverage 
+Display Priority
+High
+
+17. Praxis Recommendation
+Free Cash Flow should serve as the cash flow quality indicator within the Financial Health category.
+Financial Health Hierarchy
+⭐⭐⭐⭐⭐ Debt to Equity Ratio 
+⭐⭐⭐⭐⭐ Interest Coverage 
+⭐⭐⭐⭐☆ Free Cash Flow 
+⭐⭐⭐⭐☆ Current Ratio 
+Engine Rules
+Positive FCF + Strong Interest Coverage → Increase Financial Health Score. 
+Improving FCF for multiple quarters → Increase Fundamentals confidence. 
+Negative FCF + Rising Debt → Reduce Financial Health Score. 
+Negative FCF with strong Revenue Growth may indicate expansion-related investments; reduce bearish conviction until the trend persists. 
+Free Cash Flow should strengthen the Financial Health Score by validating the company's ability to generate sustainable cash and support future growth without excessive reliance on external financing.
+
+
+
+
+
+
+
+
+16. Current Ratio
+Module: Fundamentals
+Category: Financial Health
+Status: Production Ready
+1. Overview
+Name: Current Ratio
+Short Name: Current Ratio
+Module: Fundamentals
+Category: Financial Health
+Purpose:
+Measures a company's ability to meet its short-term obligations using its short-term assets. It evaluates liquidity and indicates whether the business has sufficient working capital to operate efficiently.
+Based On:
+Current Assets and Current Liabilities
+Importance:
+⭐⭐⭐⭐☆ (Core Financial Health Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+After every quarterly financial results.
+Praxis Note:
+A Current Ratio between 1.5 and 3.0 is generally considered healthy for most businesses. Extremely low values may indicate liquidity stress, while excessively high values can suggest inefficient utilization of current assets.
+
+2. Data Requirements
+Required Data
+Current Assets 
+Current Liabilities 
+Current Ratio 
+Historical Current Ratio 
+Minimum Historical Data
+4 Quarterly Reports
+Recommended:
+3–5 Years
+Primary Source
+Company Balance Sheet 
+NSE Financial Results 
+Annual Reports 
+
+3. Industry Standard Calculation
+Formula
+Current Ratio =
+Current Assets ÷ Current Liabilities
+Implementation Steps
+Retrieve Current Assets. 
+Retrieve Current Liabilities. 
+Calculate the Current Ratio. 
+Compare with historical liquidity trends. 
+Generate the Financial Health Score. 
+Notes
+Use consolidated balance sheet values. 
+Evaluate trend consistency rather than a single reporting period. 
+Industry-specific benchmarks may vary. 
+
+4. Card Fields
+Current Value
+Current Ratio
+Current Assets
+Current Assets
+Current Liabilities
+Current Liabilities
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Financial Health Confidence
+Impact Weight
+Medium
+
+5. Praxis Score Logic
+Notes
+Ratios above 1 generally indicate sufficient short-term liquidity. 
+Extremely high ratios (>3) should not automatically receive higher scores, as they may indicate inefficient capital allocation. 
+Sustained improvement over multiple quarters strengthens the score. 
+
+6. Bias Rules
+Current Ratio Above 1.50
+Bullish
+Current Ratio Between 1.00–1.50
+Neutral
+Current Ratio Below 1.00
+Bearish
+Current Ratio Below 0.80
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Stable liquidity improvement
++5% Positive Operating Cash Flow
++5% Audited financial statements
+Decrease Confidence
+-10% Manual entry
+-10% Large quarter-to-quarter fluctuations
+-5% Financial restatement
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+4-Quarter Average Score
+Color Zones
+0–30 → Liquidity Risk
+30–60 → Weak
+60–80 → Healthy
+80–100 → Strong Liquidity
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Current Ratio
+Line 2
+Praxis Score
+History
+Last 8 Quarterly Updates
+Update
+After every quarterly financial report.
+
+10. AI Insight Rules
+Current Ratio Above 1.50
+Explain that the company has strong short-term liquidity and is well-positioned to meet current obligations.
+Current Ratio Between 1.00 and 1.50
+Explain that liquidity is adequate but should continue to be monitored.
+Current Ratio Below 1.00
+Explain that current liabilities exceed readily available current assets, increasing liquidity risk.
+Current Ratio Below 0.80
+Explain that the company may face difficulty meeting short-term obligations without additional financing.
+Low Confidence
+Mention that incomplete balance sheet data may reduce confidence.
+
+11. Why It Matters
+Measures short-term financial stability. 
+Evaluates working capital strength. 
+Identifies potential liquidity issues. 
+Complements debt-related indicators. 
+Supports overall financial health assessment. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★☆☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Evaluating short-term liquidity.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Debt to Equity Ratio 
+Interest Coverage 
+Free Cash Flow 
+Operating Margin 
+Net Margin 
+
+14. Metadata
+Source
+Company Balance Sheet
+Calculation
+Backend
+Updated
+Quarterly
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Ratio 
+Current Assets 
+Current Liabilities 
+Historical Current Ratio 
+Current Score 
+Confidence 
+Last Updated 
+If Current Liabilities are zero, return "Not Available" instead of calculating the ratio. Preserve historical values for trend analysis and liquidity monitoring.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Medium (Configurable)
+Relative Importance
+Medium-High
+Decision Engine Role
+Liquidity Assessment
+Primary Use
+Evaluate the company's ability to meet short-term obligations using current assets.
+Bullish Confirmation
+Current Ratio >1.5 
+Positive Free Cash Flow 
+Strong Operating Cash Flow 
+Bearish Confirmation
+Current Ratio <1.0 
+Negative Free Cash Flow 
+Display Priority
+Medium
+
+17. Praxis Recommendation
+Current Ratio should serve as the liquidity indicator within the Financial Health category.
+Financial Health Hierarchy
+⭐⭐⭐⭐⭐ Debt to Equity Ratio 
+⭐⭐⭐⭐⭐ Interest Coverage 
+⭐⭐⭐⭐☆ Free Cash Flow 
+⭐⭐⭐⭐☆ Current Ratio 
+Engine Rules
+Current Ratio >1.5 + Positive Free Cash Flow → Increase Financial Health Score. 
+Improving Current Ratio over multiple quarters → Increase Fundamentals confidence. 
+Current Ratio <1.0 + Negative Operating Cash Flow → Reduce Financial Health Score. 
+Extremely high Current Ratio (>3.0) should not automatically increase the score; flag it for potential working capital inefficiency. 
+Current Ratio should strengthen the Financial Health Score by evaluating short-term liquidity and should be interpreted alongside Debt to Equity, Interest Coverage, and Free Cash Flow to provide a balanced assessment of the company's financial stability.
+
+
+
+
+
+
+
+
+17. Market Cap to GDP Ratio (Buffett Indicator)
+Module: Fundamentals
+Category: Market Health
+Status: Production Ready
+1. Overview
+Name: Market Cap to GDP Ratio
+Short Name: MC/GDP
+Module: Fundamentals
+Category: Market Health
+Purpose:
+Measures the total stock market valuation relative to the size of the economy. Commonly known as the Buffett Indicator, it helps determine whether the overall market is undervalued or overvalued over the long term.
+Based On:
+Total Market Capitalization and Nominal GDP
+Importance:
+⭐⭐⭐⭐⭐ (Core Market Valuation Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+Quarterly (or whenever official GDP or Market Capitalization data is updated)
+Praxis Note:
+Market Cap to GDP is a long-term valuation indicator. It should never be used for short-term market timing and should always be interpreted alongside PE Ratio and Earnings Yield.
+
+2. Data Requirements
+Required Data
+Total Indian Market Capitalization 
+Nominal GDP 
+Current Market Cap to GDP Ratio 
+Historical Market Cap to GDP Ratio 
+Minimum Historical Data
+5 Years
+Recommended:
+10 Years
+Primary Source
+NSE 
+BSE 
+RBI 
+MoSPI 
+
+3. Industry Standard Calculation
+Formula
+Market Cap to GDP (%) =
+(Total Market Capitalization ÷ Nominal GDP) × 100
+Implementation Steps
+Retrieve Total Indian Market Capitalization. 
+Retrieve latest Nominal GDP. 
+Calculate the Market Cap to GDP Ratio. 
+Compare with historical averages. 
+Generate the Market Health Score. 
+Notes
+Use Nominal GDP, not Real GDP. 
+Include the total listed Indian equity market capitalization. 
+Compare against historical valuation ranges rather than fixed values alone. 
+
+4. Card Fields
+Current Value
+Market Cap to GDP (%)
+Market Capitalization
+Total Listed Market Cap
+GDP
+Latest Nominal GDP
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Market Health Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Lower ratios generally indicate attractive market valuations. 
+Very high ratios suggest markets may be priced ahead of economic growth. 
+Historical comparison should take precedence over fixed thresholds. 
+
+6. Bias Rules
+Ratio Below 100%
+Bullish
+Ratio Between 100%–120%
+Neutral
+Ratio Above 120%
+Bearish
+Ratio Above 150%
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% Official GDP release
++5% Official Market Cap data
+Decrease Confidence
+-10% Manual entry
+-5% Preliminary GDP estimate
+Minimum
+70%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+1-Year Average Score
+Color Zones
+0–30 → Overvalued
+30–60 → Expensive
+60–80 → Fair Value
+80–100 → Attractive
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Market Cap to GDP Ratio
+Line 2
+Praxis Score
+History
+Last 5 Years
+Update
+After every GDP or Market Capitalization update.
+
+10. AI Insight Rules
+Ratio Below 80%
+Explain that the overall market appears attractively valued relative to the economy.
+Ratio Between 80% and 120%
+Explain that market valuation remains broadly aligned with economic output.
+Ratio Between 120% and 150%
+Explain that market valuations are elevated compared to the size of the economy.
+Ratio Above 150%
+Explain that the market appears historically expensive and may carry elevated valuation risk.
+Low Confidence
+Mention that delayed macroeconomic data may reduce reliability.
+
+11. Why It Matters
+Measures overall market valuation. 
+Compares stock market size with economic output. 
+Widely known as the Buffett Indicator. 
+Helps identify long-term valuation extremes. 
+Provides macro-level investment context. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★☆☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Long-term market valuation analysis.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+PE Ratio 
+Earnings Yield 
+GDP Growth 
+Forward PE 
+FII/DII Flow 
+
+14. Metadata
+Source
+NSE / BSE / RBI / MoSPI
+Calculation
+Backend
+Updated
+Quarterly
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Market Cap to GDP Ratio 
+Total Market Capitalization 
+Nominal GDP 
+Historical Ratio 
+Current Score 
+Confidence 
+Last Updated 
+Update only after official GDP releases or market capitalization updates. Preserve long-term historical data for valuation trend analysis.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+High (Configurable)
+Relative Importance
+High
+Decision Engine Role
+Macro Valuation Assessment
+Primary Use
+Evaluate whether the overall equity market is trading at a premium or discount relative to the economy.
+Bullish Confirmation
+Market Cap to GDP below 100% 
+Low PE Ratio 
+Bearish Confirmation
+Market Cap to GDP above 120% 
+High PE Ratio 
+Display Priority
+High
+
+17. Praxis Recommendation
+Market Cap to GDP should be the primary macro valuation indicator within the Market Health category.
+Market Health Hierarchy
+⭐⭐⭐⭐⭐ Market Cap to GDP 
+⭐⭐⭐⭐☆ Dividend Yield 
+⭐⭐⭐⭐☆ Earnings Trend 
+⭐⭐⭐⭐☆ FII/DII Flow 
+Engine Rules
+Market Cap to GDP <100% + Low PE Ratio → Increase Market Health Score. 
+Market Cap to GDP within historical average → Maintain Neutral Bias. 
+Market Cap to GDP >120% + High PE Ratio → Reduce Market Health Score. 
+Confirm valuation signals with Earnings Yield before assigning a strong bullish or bearish market outlook. 
+Market Cap to GDP should provide a macro-level valuation perspective within the Fundamentals module and complement other valuation indicators rather than act as a standalone market timing tool.
+
+
+
+
+
+
+
+
+
+
+
+18. Dividend Yield
+Module: Fundamentals
+Category: Market Health
+Status: Production Ready
+1. Overview
+Name: Dividend Yield
+Short Name: Dividend Yield
+Module: Fundamentals
+Category: Market Health
+Purpose:
+Measures the annual dividend income generated relative to the current market price. It helps evaluate whether investors are receiving an attractive cash return from holding equities.
+Based On:
+Annual Dividend Per Share and Current Market Price
+Importance:
+⭐⭐⭐⭐☆ (Market Valuation Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+After dividend declarations or annual financial updates.
+Praxis Note:
+Dividend Yield should be interpreted together with PE Ratio and Earnings Yield. A high yield may indicate an undervalued market or a declining share price, while a very low yield often reflects growth-oriented or expensive markets.
+
+2. Data Requirements
+Required Data
+Annual Dividend Per Share 
+Current Market Price 
+Current Dividend Yield 
+Historical Dividend Yield 
+Minimum Historical Data
+5 Years
+Recommended:
+10 Years
+Primary Source
+NSE 
+Company Annual Reports 
+Corporate Actions 
+
+3. Industry Standard Calculation
+Formula
+Dividend Yield (%) =
+(Annual Dividend Per Share ÷ Current Market Price) × 100
+Implementation Steps
+Retrieve the latest annual dividend. 
+Retrieve the current market price. 
+Calculate Dividend Yield. 
+Compare with historical averages. 
+Generate the Market Health Score. 
+Notes
+Use total dividends declared over the last 12 months. 
+Adjust for bonus issues and stock splits where applicable. 
+Compare with historical yield trends. 
+
+4. Card Fields
+Current Value
+Dividend Yield (%)
+Annual Dividend
+Dividend Per Share
+Current Price
+Current Market Price
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Market Health Confidence
+Impact Weight
+Medium
+
+5. Praxis Score Logic
+Notes
+Higher yield generally indicates better income potential. 
+Extremely high yields should be validated to ensure they are sustainable. 
+Historical comparison should supplement fixed thresholds. 
+
+6. Bias Rules
+Yield Above 2%
+Bullish
+Yield Between 1%–2%
+Neutral
+Yield Below 1%
+Bearish
+Rapidly Declining Yield
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% Official dividend declaration
++5% Consistent dividend history
+Decrease Confidence
+-10% Manual entry
+-5% Special or one-time dividend
+Minimum
+70%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+1-Year Average Score
+Color Zones
+0–30 → Low Yield
+30–60 → Average
+60–80 → Healthy
+80–100 → High Yield
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Dividend Yield (%)
+Line 2
+Praxis Score
+History
+Last 5 Years
+Update
+After dividend declarations.
+
+10. AI Insight Rules
+Yield Above 3%
+Explain that the market is offering attractive income relative to current prices.
+Yield Between 2% and 3%
+Explain that dividend returns remain healthy.
+Yield Between 1% and 2%
+Explain that dividend income is moderate.
+Yield Below 1%
+Explain that the market is primarily pricing future growth rather than dividend income.
+Low Confidence
+Mention that recent dividend changes may affect the reliability of the assessment.
+
+11. Why It Matters
+Measures cash return on investment. 
+Supports valuation analysis. 
+Indicates shareholder return. 
+Complements PE Ratio and Earnings Yield. 
+Useful for long-term investors. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★☆☆☆
+Positional Trading
+★★★★★
+Options Trading
+★☆☆☆☆
+Best Use
+Long-term income and valuation analysis.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+PE Ratio 
+Earnings Yield 
+Market Cap to GDP 
+Free Cash Flow 
+Profit Growth 
+
+14. Metadata
+Source
+NSE / Corporate Actions
+Calculation
+Backend
+Updated
+After dividend announcements
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current Dividend Yield 
+Annual Dividend 
+Historical Dividend Yield 
+Current Score 
+Confidence 
+Last Updated 
+Exclude one-time special dividends when calculating long-term historical averages. Adjust historical data for stock splits and bonus issues.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Medium (Configurable)
+Relative Importance
+Medium
+Decision Engine Role
+Income & Valuation Assessment
+Primary Use
+Evaluate the cash return generated from holding equities.
+Bullish Confirmation
+Dividend Yield above 2% 
+Positive Free Cash Flow 
+Stable Profit Growth 
+Bearish Confirmation
+Falling Dividend Yield 
+Declining Free Cash Flow 
+Display Priority
+Medium
+
+17. Praxis Recommendation
+Dividend Yield should act as the income-based valuation indicator within the Market Health category.
+Market Health Hierarchy
+⭐⭐⭐⭐⭐ Market Cap to GDP 
+⭐⭐⭐⭐☆ Dividend Yield 
+⭐⭐⭐⭐☆ Earnings Trend 
+⭐⭐⭐⭐☆ FII/DII Flow 
+Engine Rules
+Dividend Yield >2% + Positive Free Cash Flow → Increase Market Health Score. 
+Stable dividend history + Growing Profit → Increase Fundamentals confidence. 
+Falling Dividend Yield + Declining Free Cash Flow → Reduce Market Health Score. 
+High Dividend Yield with declining profits should reduce confidence, as the dividend may not be sustainable. 
+Dividend Yield should strengthen the Market Health Score by evaluating the income return available to investors and should be interpreted alongside valuation and cash flow indicators to provide a balanced view of market health
+
+
+
+
+
+
+
+
+
+
+.
+19. Earnings Trend
+Module: Fundamentals
+Category: Market Health
+Status: Production Ready
+1. Overview
+Name: Earnings Trend
+Short Name: Earnings Trend
+Module: Fundamentals
+Category: Market Health
+Purpose:
+Measures the direction and consistency of corporate earnings over multiple reporting periods. It helps determine whether overall earnings momentum is improving, stable, or deteriorating.
+Based On:
+Historical EPS and Net Profit Growth
+Importance:
+⭐⭐⭐⭐☆ (Market Health Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+After every quarterly earnings season.
+Praxis Note:
+Unlike EPS Growth, which measures a single reporting period, Earnings Trend evaluates the consistency of earnings over time. Sustained earnings growth is a stronger indicator than a single quarter of strong results.
+
+2. Data Requirements
+Required Data
+Historical EPS 
+Historical Net Profit 
+Quarterly Earnings History 
+Current Earnings Trend 
+Minimum Historical Data
+8 Quarterly Reports
+Recommended:
+3–5 Years
+Primary Source
+NSE Financial Results 
+Company Financial Statements 
+Annual Reports 
+
+3. Industry Standard Calculation
+Method
+Evaluate earnings over multiple reporting periods by measuring the direction and consistency of EPS and Net Profit.
+Implementation Steps
+Retrieve historical quarterly EPS. 
+Retrieve historical quarterly Net Profit. 
+Determine whether earnings are improving, stable, or declining. 
+Generate the Earnings Trend Score. 
+Notes
+Prefer Year-over-Year quarterly comparisons. 
+Use at least eight quarters of data. 
+Ignore one-time exceptional gains where possible. 
+
+4. Card Fields
+Current Trend
+Improving 
+Stable 
+Weakening 
+Quarterly Trend
+Current earnings direction
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Market Health Confidence
+Impact Weight
+Medium
+
+5. Praxis Score Logic
+Notes
+Multiple consecutive improving quarters receive the highest score. 
+Stable earnings are preferred over volatile earnings. 
+Consistent declines significantly reduce the score. 
+
+6. Bias Rules
+Improving Earnings Trend
+Bullish
+Stable Earnings
+Neutral
+Weakening Earnings
+Bearish
+Three or More Consecutive Declining Quarters
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% Eight consecutive quarterly reports available
++5% Consistent earnings improvement
++5% Audited financial statements
+Decrease Confidence
+-10% Manual entry
+-10% Missing quarterly reports
+-5% Significant one-time earnings adjustments
+Minimum
+60%
+Maximum
+95%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+8-Quarter Average Score
+Color Zones
+0–30 → Declining
+30–60 → Weak
+60–80 → Stable
+80–100 → Strong Growth
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Quarterly Earnings Trend
+Line 2
+Praxis Score
+History
+Last 8 Quarterly Reports
+Update
+After every quarterly earnings release.
+
+10. AI Insight Rules
+Strong Improving Trend
+Explain that corporate earnings have improved consistently over multiple quarters, supporting stronger long-term fundamentals.
+Improving Trend
+Explain that earnings momentum remains positive.
+Stable Trend
+Explain that earnings remain relatively consistent without significant acceleration.
+Weakening Trend
+Explain that earnings momentum has slowed and should be monitored.
+Continuous Decline
+Explain that sustained earnings deterioration increases long-term investment risk.
+
+11. Why It Matters
+Measures long-term earnings momentum. 
+Identifies improving or weakening business cycles. 
+Confirms sustainability of earnings growth. 
+Supports valuation analysis. 
+Reduces reliance on single-quarter results. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★☆☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Evaluating long-term earnings consistency.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+EPS Growth 
+Profit Growth 
+Revenue Growth 
+PE Ratio 
+Forward PE 
+
+14. Metadata
+Source
+NSE Financial Results
+Calculation
+Backend
+Updated
+Quarterly
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Quarterly EPS History 
+Quarterly Net Profit History 
+Earnings Trend 
+Current Score 
+Confidence 
+Last Updated 
+Require a minimum of eight quarterly observations before assigning a trend. If insufficient data exists, display "Insufficient Data" and reduce confidence.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Medium (Configurable)
+Relative Importance
+Medium-High
+Decision Engine Role
+Earnings Momentum Assessment
+Primary Use
+Evaluate the consistency and direction of corporate earnings over multiple reporting periods.
+Bullish Confirmation
+Improving Earnings Trend 
+Positive EPS Growth 
+Positive Revenue Growth 
+Bearish Confirmation
+Declining Earnings Trend 
+Negative Profit Growth 
+Display Priority
+Medium
+
+17. Praxis Recommendation
+Earnings Trend should serve as the earnings consistency indicator within the Market Health category.
+Market Health Hierarchy
+⭐⭐⭐⭐⭐ Market Cap to GDP 
+⭐⭐⭐⭐☆ Dividend Yield 
+⭐⭐⭐⭐☆ Earnings Trend 
+⭐⭐⭐⭐☆ FII/DII Flow 
+Engine Rules
+Improving Earnings Trend + Positive EPS Growth → Increase Market Health Score. 
+Improving trend for four or more consecutive quarters → Increase Fundamentals confidence. 
+Weakening Earnings Trend + Negative Profit Growth → Reduce Market Health Score. 
+Use Earnings Trend to validate short-term growth metrics and filter out one-time earnings surprises. 
+Earnings Trend should strengthen the Market Health Score by measuring the consistency of corporate earnings over time and should be used as a confirmation indicator alongside EPS Growth, Revenue Growth, and Profit Growth rather than as a standalone signal.
+
+
+
+
+
+
+
+
+
+20. FII / DII Flow
+Module: Fundamentals
+Category: Market Health
+Status: Production Ready
+1. Overview
+Name: FII / DII Flow
+Short Name: FII/DII Flow
+Module: Fundamentals
+Category: Market Health
+Purpose:
+Measures the daily net buying and selling activity of Foreign Institutional Investors (FIIs) and Domestic Institutional Investors (DIIs). It helps assess institutional participation and overall market sentiment.
+Based On:
+Net Institutional Cash Market Activity
+Importance:
+⭐⭐⭐⭐⭐ (Core Market Sentiment Indicator)
+Auto / Manual:
+Manual (V1)
+Update Frequency:
+Daily (After Market Close)
+Praxis Note:
+Institutional flows are sentiment indicators, not trading signals. Persistent buying or selling over multiple sessions carries significantly more importance than a single day's activity.
+
+2. Data Requirements
+Required Data
+Daily FII Net Buy/Sell 
+Daily DII Net Buy/Sell 
+Combined Net Flow 
+Historical FII/DII Flows 
+Minimum Historical Data
+30 Trading Days
+Recommended:
+1 Year
+Primary Source
+NSE India 
+NSDL 
+BSE 
+
+3. Industry Standard Calculation
+Formula
+Net Flow = Total Buy Value − Total Sell Value
+Separate calculations:
+FII Net Flow = FII Buy − FII Sell
+
+DII Net Flow = DII Buy − DII Sell
+Implementation Steps
+Retrieve daily FII cash market activity. 
+Retrieve daily DII cash market activity. 
+Calculate net inflow/outflow. 
+Identify rolling trend (30 Days). 
+Generate the Market Health Score. 
+Notes
+Use Cash Market data only. 
+Treat FII and DII independently before evaluating combined sentiment. 
+Rolling trends are more reliable than single-day flows. 
+
+4. Card Fields
+FII Flow
+Daily Net Flow (₹ Cr)
+DII Flow
+Daily Net Flow (₹ Cr)
+Combined Flow
+Net Institutional Flow
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Market Sentiment Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Consecutive institutional buying strengthens the score. 
+FII flows generally have a higher market impact than DII flows. 
+Persistent trends should carry more weight than isolated sessions. 
+
+6. Bias Rules
+FII & DII Net Buyers
+Bullish
+Mixed Institutional Activity
+Neutral
+FII Net Sellers
+Bearish
+FII & DII Continuous Selling
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% Five consecutive days of the same trend
++5% Official NSE data
+Decrease Confidence
+-10% Manual entry
+-5% Missing trading session data
+Minimum
+70%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Heavy Selling
+30–60 → Weak
+60–80 → Neutral
+80–100 → Strong Buying
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Combined Institutional Flow (₹ Cr)
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+After every market close.
+
+10. AI Insight Rules
+Strong FII & DII Buying
+Explain that institutional investors are accumulating positions, supporting positive market sentiment.
+Positive Net Flow
+Explain that institutional participation remains supportive.
+Mixed Flow
+Explain that institutional sentiment is mixed, suggesting market indecision.
+Strong Selling
+Explain that sustained institutional selling may increase market volatility and downside risk.
+Low Confidence
+Mention that incomplete institutional flow data may reduce reliability.
+
+11. Why It Matters
+Measures institutional market participation. 
+Reflects investor confidence. 
+Identifies accumulation and distribution phases. 
+Helps validate broader market trends. 
+Supports macro sentiment analysis. 
+
+12. Trading Impact
+Intraday
+★★★☆☆
+Swing Trading
+★★★★☆
+Positional Trading
+★★★★★
+Options Trading
+★★★★☆
+Best Use
+Evaluating institutional market sentiment.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Market Cap to GDP 
+PE Ratio 
+Earnings Trend 
+India VIX 
+Market Breadth 
+
+14. Metadata
+Source
+NSE India / NSDL
+Calculation
+Backend
+Updated
+Daily (Post Market)
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Daily FII Flow 
+Daily DII Flow 
+Combined Net Flow 
+30-Day Historical Flow 
+Current Score 
+Confidence 
+Last Updated 
+Maintain rolling 30-day and 1-year historical datasets for trend analysis. If either FII or DII data is unavailable, calculate using the available data and reduce confidence accordingly.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+High (Configurable)
+Relative Importance
+High
+Decision Engine Role
+Institutional Sentiment Assessment
+Primary Use
+Measure institutional participation and validate broader market direction.
+Bullish Confirmation
+Consecutive FII Buying 
+Positive DII Flow 
+Improving Market Breadth 
+Bearish Confirmation
+Consecutive FII Selling 
+Rising India VIX 
+Weak Market Breadth 
+Display Priority
+High
+
+17. Praxis Recommendation
+FII/DII Flow should act as the institutional sentiment indicator within the Market Health category.
+Market Health Hierarchy
+⭐⭐⭐⭐⭐ Market Cap to GDP 
+⭐⭐⭐⭐☆ Dividend Yield 
+⭐⭐⭐⭐☆ Earnings Trend 
+⭐⭐⭐⭐☆ FII/DII Flow 
+Engine Rules
+Positive FII & DII Flows for multiple sessions → Increase Market Health Score. 
+Strong FII Buying + Improving Market Breadth → High-confidence bullish sentiment. 
+Persistent FII Selling + Rising India VIX → Reduce Market Health Score. 
+Prioritize trend consistency over single-day inflows or outflows when calculating the final score. 
+FII/DII Flow should strengthen the Market Health Score by measuring institutional participation in the Indian equity market. It should be treated as a confirmation indicator for market sentiment and used alongside valuation, earnings, and technical indicators rather than as an independent buy or sell signal.
+
+
+
+
+
+
+
+
+
+
+
+$. Fundamentals Score Engine
+Module: Fundamentals
+Category: Score Engine
+Status: Production Ready
+1. Overview
+Name: Fundamentals Score Engine
+Short Name: Fundamentals Engine
+Module: Fundamentals
+Category: Score Engine
+Purpose:
+Aggregates all Fundamental indicators into a single Fundamentals Score (0–100) representing the long-term health of the market.
+Based On:
+Weighted average of all Fundamental indicators.
+Importance:
+⭐⭐⭐⭐⭐ (Core Engine)
+Auto / Manual:
+Automatic
+Update Frequency:
+Whenever any Fundamental indicator is updated.
+Praxis Note:
+The Fundamentals Engine does not calculate individual indicators. It only consumes the outputs (Score, Bias, Confidence) from each indicator and generates the overall Fundamentals Score.
+
+2. Data Requirements
+Required Data
+Valuation
+PE Ratio Score 
+Forward PE Score 
+PB Ratio Score 
+Earnings Yield Score 
+Growth
+EPS Growth Score 
+Revenue Growth Score 
+Profit Growth Score 
+GDP Growth Score 
+Profitability
+ROE Score 
+ROCE Score 
+Net Margin Score 
+Operating Margin Score 
+Financial Health
+Debt to Equity Score 
+Interest Coverage Score 
+Free Cash Flow Score 
+Current Ratio Score 
+Market Health
+Market Cap to GDP Score 
+Dividend Yield Score 
+Earnings Trend Score 
+FII/DII Flow Score 
+
+3. Industry Standard Calculation
+Category Score
+Category Score =
+Weighted Average of Indicators
+Final Fundamentals Score
+Fundamentals Score =
+Weighted Average of Category Scores
+Default Category Weights
+Implementation Steps
+Collect all indicator scores. 
+Calculate each category score. 
+Apply category weights. 
+Generate overall Fundamentals Score. 
+Generate Bias and Confidence. 
+Notes
+Ignore unavailable indicators. 
+Normalize weights automatically if indicators are unavailable. 
+Never assign zero because data is missing. 
+
+4. Card Fields
+Fundamentals Score
+0–100
+Category Scores
+Valuation 
+Growth 
+Profitability 
+Financial Health 
+Market Health 
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Overall Fundamentals Confidence
+Impact Weight
+20% (Decision Engine Default)
+
+5. Praxis Score Logic
+Notes
+Every category contributes proportionally. 
+Missing indicators should not disproportionately affect the score. 
+Category weights should remain configurable. 
+
+6. Bias Rules
+Score Above 75
+Bullish
+Score Between 55–74
+Neutral
+Score Below 55
+Bearish
+Score Below 35
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+Average confidence of all available indicators.
+Increase Confidence
++5% All five categories available
++5% No stale indicator data
+Decrease Confidence
+-5% One category unavailable
+-10% Multiple missing indicators
+-10% Manual values used
+Minimum
+50%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Fundamentals Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Weak Fundamentals
+30–60 → Below Average
+60–80 → Healthy
+80–100 → Strong Fundamentals
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Fundamentals Score
+Line 2
+Confidence
+History
+30 Updates
+Update
+Whenever any Fundamental indicator changes.
+
+10. AI Insight Rules
+Score Above 80
+Explain that the majority of fundamental indicators support a healthy long-term market outlook.
+Score Between 60–80
+Explain that fundamentals remain generally supportive with a few areas requiring monitoring.
+Score Between 35–60
+Explain that mixed fundamental conditions reduce long-term conviction.
+Score Below 35
+Explain that multiple fundamental indicators suggest elevated long-term market risk.
+Low Confidence
+Mention that missing or outdated data reduces confidence.
+
+11. Why It Matters
+Summarizes long-term market health. 
+Combines multiple fundamental indicators into a single score. 
+Reduces reliance on individual metrics. 
+Provides a standardized input for the Decision Engine. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★★☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Long-term market assessment.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+All 20 Fundamentals Indicators 
+Technical Score 
+Options Score 
+Global Score 
+Events Score 
+
+14. Metadata
+Source
+Calculated
+Calculation
+Backend
+Updated
+Whenever any Fundamental indicator updates
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Fundamentals Score 
+Category Scores 
+Overall Confidence 
+Overall Bias 
+Historical Scores 
+Last Updated 
+Automatically recalculate only when an underlying indicator changes. Normalize category weights if one or more indicators are unavailable. Preserve historical scores for dashboard trend visualization.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+20% (Default Decision Engine Weight)
+Relative Importance
+Critical
+Decision Engine Role
+Long-Term Market Assessment
+Primary Use
+Provide the overall Fundamental input to the Dashboard and Decision Engine.
+Bullish Confirmation
+Fundamentals Score >75 
+Confidence >80% 
+Bearish Confirmation
+Fundamentals Score <55 
+Confidence <60% 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+The Fundamentals Score Engine should be the single output of the Fundamentals module.
+Engine Hierarchy
+⭐⭐⭐⭐⭐ Indicator Scores
+⬇
+⭐⭐⭐⭐⭐ Category Scores
+⬇
+⭐⭐⭐⭐⭐ Fundamentals Score
+⬇
+⭐⭐⭐⭐⭐ Decision Engine
+Engine Rules
+Calculate category scores before calculating the overall score. 
+Normalize weights automatically when indicators are unavailable. 
+Use confidence-weighted aggregation where possible. 
+The Fundamentals Score should be consumed directly by the Dashboard and Decision Engine without recalculating any individual indicators. 
+This engine serves as the bridge between the 20 Fundamental indicators and the overall market assessment, producing a consistent Score, Bias, and Confidence output for the rest of the Praxis ecosystem.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$. Fundamentals Dashboard Card
+Module: Fundamentals
+Category: Dashboard
+Status: Production Ready
+1. Overview
+Name: Fundamentals Dashboard Card
+Short Name: Fundamentals Card
+Module: Fundamentals
+Category: Dashboard
+Purpose:
+Provides a consolidated view of the overall Fundamentals Score, category performance, confidence, and long-term market health in a single dashboard card.
+Based On:
+Fundamentals Score Engine
+Importance:
+⭐⭐⭐⭐⭐ (Primary Dashboard Component)
+Auto / Manual:
+Automatic
+Update Frequency:
+Whenever the Fundamentals Score Engine updates.
+Praxis Note:
+This card is display-only. It never performs calculations and consumes data exclusively from the Fundamentals Engine.
+
+2. Data Requirements
+Required Data
+Fundamentals Score 
+Fundamentals Bias 
+Overall Confidence 
+Valuation Score 
+Growth Score 
+Profitability Score 
+Financial Health Score 
+Market Health Score 
+Last Updated Timestamp 
+Data Source
+Fundamentals Score Engine
+
+3. Industry Standard Calculation
+Calculation
+No independent calculations.
+Consume outputs from:
+Fundamentals Score Engine 
+Category Scores 
+Confidence Engine 
+Implementation Steps
+Retrieve Fundamentals Engine output. 
+Display latest score and confidence. 
+Display category breakdown. 
+Update charts. 
+Refresh AI Insight. 
+Notes
+Never recalculate indicator values. 
+Dashboard is presentation only. 
+
+4. Card Fields
+Primary
+Fundamentals Score 
+Bias 
+Confidence 
+Category Breakdown
+Valuation 
+Growth 
+Profitability 
+Financial Health 
+Market Health 
+Visual Components
+Score Range Bar 
+30-Day Average Marker 
+Current Score Pointer 
+Fundamentals Trend Chart 
+Additional
+AI Insight 
+Why It Matters 
+Supporting Categories 
+Last Updated 
+
+5. Praxis Score Logic
+Display the score generated by the Fundamentals Engine.
+No additional scoring logic.
+
+6. Bias Rules
+Display:
+Strong Bullish 
+Bullish 
+Neutral 
+Bearish 
+Strong Bearish 
+Exactly as received from the Fundamentals Engine.
+
+7. Confidence Logic
+Display:
+Overall Fundamentals Confidence
+No recalculation.
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Fundamentals Score
+Average Marker
+30-Day Average
+Color Zones
+0–30 → Weak
+30–60 → Neutral
+60–80 → Healthy
+80–100 → Strong
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Fundamentals Score
+Line 2
+Overall Confidence
+History
+30 Updates
+Update
+Whenever the Fundamentals Engine updates.
+
+10. AI Insight Rules
+Display the AI summary generated from the Fundamentals Engine.
+Priority order:
+Overall Fundamentals 
+Strongest Category 
+Weakest Category 
+Confidence Warning (if applicable) 
+Maximum:
+3–5 concise sentences.
+
+11. Why It Matters
+Provides a quick overview of long-term market health. 
+Highlights strengths and weaknesses across categories. 
+Simplifies complex financial data into a single score. 
+Serves as the primary Fundamentals summary for the Dashboard. 
+
+12. Trading Impact
+Intraday
+⭐☆☆☆☆
+Swing Trading
+★★★☆☆
+Positional Trading
+★★★★★
+Options Trading
+★★☆☆☆
+Best Use
+Long-term market assessment.
+
+13. Supporting Indicators
+Fundamentals Score Engine 
+Valuation 
+Growth 
+Profitability 
+Financial Health 
+Market Health 
+
+14. Metadata
+Source
+Fundamentals Engine
+Calculation
+None (Display Only)
+Updated
+Automatic
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Display only.
+Do not calculate:
+Scores 
+Bias 
+Confidence 
+Consume directly from the Fundamentals Engine.
+Refresh only when the engine publishes new data.
+Cache previous values to support dashboard history.
+
+16. Praxis Engine Integration ⭐
+Display Priority
+Highest
+Consumes
+Fundamentals Score 
+Bias 
+Confidence 
+Category Scores 
+Outputs
+None
+This card is a presentation layer and does not feed back into any engine.
+
+17. Praxis Recommendation
+The Fundamentals Dashboard Card should act as the single visualization component for the Fundamentals module.
+Display Hierarchy
+⭐⭐⭐⭐⭐ Fundamentals Score
+⬇
+Category Breakdown
+⬇
+Trend Chart
+⬇
+AI Insight
+⬇
+Metadata
+Dashboard Rules
+Never perform calculations. 
+Always consume the latest Fundamentals Engine output. 
+Refresh automatically after every Fundamentals Engine update. 
+Maintain a clean, high-level summary suitable for immediate decision-making. 
+The Dashboard Card should provide users with an instant understanding of the current state of the Fundamentals module while leaving all calculations and business logic to the underlying engine.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$. Fundamentals AI Engine
+Module: Fundamentals
+Category: AI Engine
+Status: Production Ready
+1. Overview
+Name: Fundamentals AI Engine
+Short Name: Fundamentals AI
+Module: Fundamentals
+Category: AI Engine
+Purpose:
+Generate concise, human-readable explanations for the Fundamentals module using structured outputs from the Fundamentals Engine.
+Based On:
+Fundamentals Score Engine
+Importance:
+⭐⭐⭐⭐⭐ (Core AI Component)
+Auto / Manual:
+Automatic
+Update Frequency:
+Whenever the Fundamentals Score Engine updates.
+Praxis Note:
+The AI Engine never performs calculations or modifies scores. It only explains the outputs generated by the Fundamentals Engine.
+
+2. Data Requirements
+Required Inputs
+Fundamentals Score 
+Fundamentals Bias 
+Overall Confidence 
+Valuation Score 
+Growth Score 
+Profitability Score 
+Financial Health Score 
+Market Health Score 
+Highest Scoring Category 
+Lowest Scoring Category 
+Source
+Fundamentals Score Engine
+
+3. Industry Standard Logic
+Workflow
+Receive Fundamentals Engine outputs. 
+Identify strongest category. 
+Identify weakest category. 
+Generate overall summary. 
+Add confidence disclaimer if required. 
+Notes
+No calculations. 
+No predictions. 
+No investment advice. 
+Explanation only. 
+
+4. Card Fields
+AI Summary
+Overall explanation.
+Strengths
+Highest-performing categories.
+Weaknesses
+Lowest-performing categories.
+Confidence Note
+Displayed only when confidence is below the threshold.
+
+5. Summary Rules
+Notes
+Keep responses objective. 
+Do not exaggerate bullish or bearish conditions. 
+Limit summaries to 3–5 concise sentences. 
+
+6. Bias Rules
+Bullish
+Emphasize the strongest supporting categories.
+Neutral
+Highlight both strengths and weaknesses equally.
+Bearish
+Focus on the weakest categories and primary risks.
+
+7. Confidence Logic
+Confidence >80%
+No disclaimer.
+Confidence 60–80%
+Mention that some indicators require monitoring.
+Confidence <60%
+Clearly state that limited or incomplete data reduces confidence.
+
+8. Summary Structure
+The AI response should follow this order:
+Overall Fundamentals 
+Strongest Category 
+Weakest Category 
+Confidence Note (if required) 
+Maximum:
+5 sentences.
+
+9. Insight Refresh
+History
+Store the latest AI summaries.
+Update
+Whenever the Fundamentals Engine publishes a new score.
+
+10. AI Insight Rules
+Valuation Strong
+Mention attractive market valuation.
+Growth Strong
+Highlight improving corporate growth.
+Profitability Strong
+Mention efficient earnings generation.
+Financial Health Strong
+Highlight strong balance sheets and liquidity.
+Market Health Strong
+Mention supportive macro and institutional conditions.
+Multiple Weak Categories
+Summarize the primary risks affecting the Fundamentals Score.
+
+11. Why It Matters
+Converts numerical scores into readable insights. 
+Improves dashboard usability. 
+Helps users quickly understand market conditions. 
+Maintains consistency across all modules. 
+
+12. Trading Impact
+Direct Trading Impact
+None
+Primary Use
+Interpretation of Fundamentals data.
+
+13. Supporting Components
+Fundamentals Score Engine 
+Category Scores 
+Confidence Engine 
+
+14. Metadata
+Source
+Fundamentals Engine
+Calculation
+None (Explanation Only)
+Updated
+Automatic
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Do not expose raw calculation logic. 
+Never modify indicator scores. 
+Generate deterministic summaries from engine outputs. 
+Avoid repeating the same sentence structure when no meaningful changes occur. 
+Store previous summaries for history if AI history is enabled. 
+
+16. Praxis Engine Integration ⭐
+Consumes
+Fundamentals Score 
+Bias 
+Confidence 
+Category Scores 
+Outputs
+AI Summary 
+Strengths 
+Weaknesses 
+Confidence Note 
+Display Priority
+High
+The AI Engine is an explanation layer only and does not provide feedback to the Fundamentals Engine.
+
+17. Praxis Recommendation
+The Fundamentals AI Engine should act as the natural language explanation layer for the Fundamentals module.
+AI Flow
+⭐⭐⭐⭐⭐ Fundamentals Engine
+⬇
+Category Analysis
+⬇
+Summary Generation
+⬇
+Strengths & Weaknesses
+⬇
+Confidence Note
+AI Rules
+Never calculate indicators. 
+Never generate independent trading signals. 
+Explain only what the Fundamentals Engine has already determined. 
+Keep explanations concise, factual, and consistent with the calculated scores. 
+The Fundamentals AI Engine should ensure that every Fundamentals Score is accompanied by a clear, reliable explanation without influencing the underlying calculations or decision-making logic.
+
+
+
+
+
+
+
+
+
+$. Fundamentals Configuration
+Module: Fundamentals
+Category: Configuration
+Status: Production Ready
+1. Overview
+Name: Fundamentals Configuration
+Short Name: Fundamentals Config
+Module: Fundamentals
+Category: Configuration
+Purpose:
+Provides centralized configuration for the Fundamentals module, including category weights, indicator weights, scoring thresholds, update behavior, and future automation settings.
+Importance:
+⭐⭐⭐⭐⭐ (Core Configuration)
+Auto / Manual:
+Manual
+Update Frequency:
+On Configuration Change
+Praxis Note:
+Configuration should only affect how the Fundamentals Engine interprets and combines indicator outputs. It must never modify the underlying indicator calculations.
+
+2. Configuration Parameters
+Category Weights
+
+Indicator Weights
+All indicators inherit equal weight within their category by default.
+Support custom weighting in future versions.
+
+Score Thresholds
+
+Confidence Thresholds
+
+3. Engine Settings
+Missing Data
+Ignore unavailable indicators. 
+Normalize category weights automatically. 
+Do not assign zero scores for missing data. 
+Historical Data
+Default:
+Quarterly indicators → Last 8 reports 
+Market indicators → 30 observations 
+Long-term valuation → 5 years 
+
+4. Update Configuration
+
+5. Manual Mode
+Support manual input for:
+PE Ratio 
+Forward PE 
+PB Ratio 
+Earnings Yield 
+GDP Growth 
+Market Cap to GDP 
+Dividend Yield 
+FII/DII Flow 
+Manual values should:
+Override automatic values. 
+Record update timestamp. 
+Record data source. 
+Trigger Fundamentals Engine recalculation. 
+
+6. Future Auto Mode (V2)
+Support automatic data retrieval through:
+NSE APIs 
+Upstox API 
+Company Financial APIs 
+RBI Data 
+MoSPI Data 
+Manual override should remain available.
+
+7. Score Configuration
+Support configurable:
+Category weights 
+Indicator weights 
+Bias thresholds 
+Confidence thresholds 
+Changes should immediately recalculate the Fundamentals Score.
+
+8. Dashboard Configuration
+Allow enabling or disabling:
+AI Summary 
+Trend Chart 
+Category Breakdown 
+Confidence Display 
+Supporting Indicators 
+Metadata 
+
+9. AI Configuration
+Allow configuration of:
+Maximum summary length 
+Confidence disclaimer threshold 
+Summary refresh behavior 
+AI configuration must not affect engine calculations.
+
+10. Storage Configuration
+Persist:
+Category weights 
+Indicator weights 
+Manual values 
+Configuration settings 
+Historical scores 
+Last update timestamps 
+Storage Location:
+Local Electron Database
+
+11. Validation Rules
+Total category weights must equal 100%. 
+Indicator weights within a category must equal 100%. 
+Score thresholds must not overlap. 
+Confidence values must remain between 0% and 100%. 
+Reject invalid configurations before applying changes. 
+
+12. Developer Notes
+Store:
+Current configuration 
+Previous configuration 
+Configuration version 
+Last modified timestamp 
+Support configuration rollback in case of invalid or corrupted settings.
+Configuration changes should not modify historical indicator data.
+
+13. Praxis Engine Integration ⭐
+Consumes
+User Configuration 
+Default Configuration 
+Controls
+Fundamentals Score Engine 
+Dashboard Card 
+AI Engine 
+Outputs
+Updated Engine Configuration 
+
+14. Praxis Recommendation
+The Fundamentals Configuration module should act as the central configuration layer for the Fundamentals system.
+Configuration Flow
+⭐⭐⭐⭐⭐ Configuration
+⬇
+Fundamentals Engine
+⬇
+Dashboard
+⬇
+AI Engine
+Configuration Rules
+Keep default settings aligned with industry standards. 
+Allow customization without modifying calculation formulas. 
+Validate every configuration before applying. 
+Preserve previous settings to support rollback. 
+The Fundamentals Configuration module should provide flexibility for future enhancements while ensuring the Fundamentals Engine remains consistent, reliable, and easy to maintain.
+Top of Form
+
+Bottom of Form
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Fundamentals Engine Weight Configuration 
+This document defines the contribution of each Fundamental indicator to the overall Fundamentals Score and how much each indicator can influence the Decision Engine's confidence.
+
+Valuation Indicators (Module Weight: 25%)
+Module Total: 25%
+
+Growth Indicators (Module Weight: 25%)
+Module Total: 25%
+
+Profitability Indicators (Module Weight: 20%)
+Module Total: 20%
+
+Financial Health Indicators (Module Weight: 15%)
+Module Total: 15%
+
+Market Health Indicators (Module Weight: 15%)
+Module Total: 15%
+
+Module Allocation
+Grand Total: 100%
+
+Confidence Modifier Guidelines
+
+Engine Formula
+Fundamentals Score
+Fundamentals Score
+
+=
+
+Σ (Indicator Score × Engine Weight)
+
+÷
+
+Σ (Engine Weight)
+Confidence
+Confidence
+
+=
+
+Base Confidence
+
++
+
+Positive Modifiers
+
+−
+
+Negative Modifiers
+Final Score Range
+0 – 100
+Final Confidence Range
+0 – 100
+Why these weights?
+These weights are based on how institutional investors typically evaluate companies and markets:
+PE Ratio, Forward PE, EPS Growth, ROE, and ROCE receive the highest weights because they are the most influential valuation and quality metrics. 
+Debt to Equity is the most important financial risk metric, so it receives the highest weight within Financial Health. 
+Market Cap to GDP is the strongest macro valuation indicator, while FII/DII Flow is the strongest sentiment indicator within Market Health. 
+Current Ratio and Dividend Yield receive lower weights because, although useful, they are generally supporting indicators rather than primary drivers of long-term investment decisions.
+

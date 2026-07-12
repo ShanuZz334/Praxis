@@ -2,28 +2,53 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-function scoreNetMargin(currentMargin) {
+function scoreNetMargin(currentMargin, sectorMargin) {
     if (currentMargin === null || isNaN(currentMargin)) {
         return { score: 50, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
     }
 
-    let score = 50;
-    let bias = 'Neutral';
-    let trendDesc = "Average";
-
+    // Factor 1: Absolute margin level (50 weight)
+    let f1Score;
+    let trendDesc;
     if (currentMargin > 20) {
-        score = 95; bias = 'Strong Bullish'; trendDesc = "Exceptional Profitability";
+        f1Score = 95; trendDesc = "Exceptional Profitability";
     } else if (currentMargin > 15) {
-        score = 82; bias = 'Bullish'; trendDesc = "High Margin";
+        f1Score = 82; trendDesc = "High Margin";
     } else if (currentMargin >= 10) {
-        score = 60; bias = 'Neutral'; trendDesc = "Healthy Margin";
+        f1Score = 60; trendDesc = "Healthy Margin";
     } else if (currentMargin > 0) {
-        score = 30; bias = 'Bearish'; trendDesc = "Thin Margin";
+        f1Score = 30; trendDesc = "Thin Margin";
     } else {
-        score = 5; bias = 'Strong Bearish'; trendDesc = "Loss Making";
+        f1Score = 5; trendDesc = "Loss Making";
     }
 
-    return { score, bias, confidence: '85%', trendDesc };
+    // Factor 2: Sector comparison (30 weight when available)
+    let hasSector = false;
+    let f2Score = f1Score;
+    if (sectorMargin !== null && !isNaN(sectorMargin)) {
+        hasSector = true;
+        const spread = currentMargin - sectorMargin;
+        if (spread > 8)       f2Score = 95;
+        else if (spread > 3)  f2Score = 80;
+        else if (spread > -2) f2Score = 60;
+        else if (spread > -7) f2Score = 35;
+        else                  f2Score = 10;
+    }
+
+    const blended = hasSector
+        ? (f1Score * 0.65) + (f2Score * 0.35)
+        : f1Score;
+    const score = Math.round(Math.max(0, Math.min(100, blended)));
+
+    let bias;
+    if (score >= 80)      bias = 'Strong Bullish';
+    else if (score >= 60) bias = 'Bullish';
+    else if (score >= 40) bias = 'Neutral';
+    else if (score >= 20) bias = 'Bearish';
+    else                  bias = 'Strong Bearish';
+
+    const confidence = hasSector ? '90%' : (currentMargin > 20 || currentMargin < 0 ? '82%' : '72%');
+    return { score, bias, confidence, trendDesc };
 }
 
 function generateAiInsight(currentMargin, trendDesc) {
@@ -103,7 +128,7 @@ export default function NetMarginCard({ data, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('net_margin');
 
     // 3. Praxis Engine
-    const { score, bias, confidence, trendDesc } = scoreNetMargin(currentMargin);
+    const { score, bias, confidence, trendDesc } = scoreNetMargin(currentMargin, sectorMargin);
     const aiInsightText = generateAiInsight(currentMargin, trendDesc);
 
         return (
@@ -124,7 +149,7 @@ export default function NetMarginCard({ data, manualOverride, lastUpdated }) {
                 ].filter(Boolean),
                 score: score || 0,
                 bias: bias || 'Neutral',
-                confidence: confidence || '85%',
+                confidence: confidence,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

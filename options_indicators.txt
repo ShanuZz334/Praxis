@@ -1,0 +1,3931 @@
+Options Indicatos
+
+1. Total Call Open Interest
+Module: Options
+Category: Open Interest
+Status: Production Ready
+1. Overview
+Name: Total Call Open Interest
+Short Name: Call OI
+Module: Options
+Category: Open Interest
+Purpose:
+Measures the total number of outstanding Call Option contracts across selected strikes. It helps identify potential resistance zones and institutional positioning in the options market.
+Based On:
+Call Open Interest (OI)
+Importance:
+⭐⭐⭐⭐⭐ (Core Options Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Every Option Chain Refresh (Market Hours)
+Praxis Note:
+High Call Open Interest generally indicates strong resistance levels where option writers expect the market to remain below. This indicator should always be analyzed together with Put Open Interest, OI Change, PCR, and Max Pain.
+
+2. Data Requirements
+Required Data
+Strike Price 
+Call Open Interest 
+Spot Price 
+Expiry Date 
+Minimum Historical Data
+5 Trading Days
+Recommended
+30 Trading Days
+Primary Source
+NSE Option Chain 
+Upstox API 
+
+3. Industry Standard Calculation
+Formula
+Total Call Open Interest =
+Σ(Call Open Interest Across Selected Strikes)
+Implementation Steps
+Retrieve the latest option chain. 
+Sum Call Open Interest across all monitored strikes. 
+Identify the strike with the highest Call OI. 
+Compare with previous sessions. 
+Generate the Options Score. 
+Notes
+Use the nearest weekly expiry by default. 
+Switch to monthly expiry after weekly expiry. 
+Exclude expired contracts. 
+Follow NSE Option Chain methodology. 
+
+4. Card Fields
+Current Value
+Total Call Open Interest
+Highest OI Strike
+Strike with Maximum Call OI
+Change
+Day-over-Day Change
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Open Interest Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Heavy Call writing generally increases resistance. 
+Rising price with falling Call OI strengthens bullish conviction. 
+Confirm with Put OI and OI Change before assigning a strong bias. 
+
+6. Bias Rules
+Low Call OI
+Bullish
+Balanced Call OI
+Neutral
+High Call OI
+Bearish
+Aggressive Call Writing
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% High OI concentration
++5% Confirmation from PCR
++5% Confirmation from Max Pain
+Decrease Confidence
+-10% Low market volume
+-5% Incomplete option chain
+-5% Expiry-day volatility
+Minimum
+60%
+Maximum
+98%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Strong Resistance
+30–60 → Moderate Resistance
+60–80 → Neutral
+80–100 → Weak Resistance
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Total Call Open Interest
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+Heavy Call Writing
+Explain that option writers are building resistance near current price levels.
+Stable Call OI
+Explain that resistance remains relatively unchanged.
+Declining Call OI
+Explain that resistance is weakening as Call writers unwind positions.
+Sharp Increase in Call OI
+Explain that fresh Call writing indicates increasing resistance expectations.
+
+11. Why It Matters
+Identifies potential resistance zones. 
+Tracks institutional option writing. 
+Measures market positioning. 
+Confirms trend strength. 
+Supports options-based market analysis. 
+
+12. Trading Impact
+Intraday
+★★★★☆
+Swing Trading
+★★★★☆
+Positional Trading
+★★★☆☆
+Options Trading
+★★★★★
+Best Use
+Identifying resistance and institutional positioning.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Total Put Open Interest 
+OI Change 
+PCR (OI) 
+Max Pain 
+ATM IV 
+
+14. Metadata
+Source
+NSE Option Chain / Upstox API
+Calculation
+Backend
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Total Call OI 
+Highest Call OI Strike 
+Historical Call OI 
+Current Score 
+Confidence 
+Last Updated 
+Refresh automatically with each option chain update. Cache historical values for trend analysis and identify major resistance shifts over time.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+High
+Decision Engine Role
+Resistance & Institutional Positioning Assessment
+Primary Use
+Measure resistance strength based on Call Open Interest concentration.
+Bullish Confirmation
+Declining Call OI 
+Rising Put OI 
+Bullish PCR 
+Bearish Confirmation
+Heavy Call Writing 
+Rising Call OI 
+Bearish PCR 
+Display Priority
+High
+
+
+17. Praxis Recommendation
+Total Call Open Interest should serve as the primary resistance indicator within the Open Interest category.
+Open Interest Hierarchy
+⭐⭐⭐⭐⭐ Total Call Open Interest 
+⭐⭐⭐⭐⭐ Total Put Open Interest 
+⭐⭐⭐⭐☆ OI Change 
+Engine Rules
+Increasing Call OI near the current spot price → Strengthen Resistance Score. 
+Falling Call OI with rising prices → Increase Bullish Options Score. 
+Heavy Call Writing confirmed by PCR and Max Pain → Increase bearish conviction. 
+Always evaluate Call OI together with Put OI and OI Change before generating the final Options Score.
+
+
+
+
+
+
+
+
+
+
+
+
+2. Total Put Open Interest
+Module: Options
+Category: Open Interest
+Status: Production Ready
+1. Overview
+Name: Total Put Open Interest
+Short Name: Put OI
+Module: Options
+Category: Open Interest
+Purpose:
+Measures the total number of outstanding Put Option contracts across selected strikes. It helps identify potential support zones and institutional positioning in the options market.
+Based On:
+Put Open Interest (OI)
+Importance:
+⭐⭐⭐⭐⭐ (Core Options Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Every Option Chain Refresh (Market Hours)
+Praxis Note:
+High Put Open Interest generally indicates strong support levels where option writers expect the market to remain above. This indicator should always be analyzed together with Call Open Interest, OI Change, PCR, and Max Pain.
+
+2. Data Requirements
+Required Data
+Strike Price 
+Put Open Interest 
+Spot Price 
+Expiry Date 
+Minimum Historical Data
+5 Trading Days
+Recommended
+30 Trading Days
+Primary Source
+NSE Option Chain 
+Upstox API 
+
+3. Industry Standard Calculation
+Formula
+Total Put Open Interest =
+Σ(Put Open Interest Across Selected Strikes)
+Implementation Steps
+Retrieve the latest option chain. 
+Sum Put Open Interest across all monitored strikes. 
+Identify the strike with the highest Put OI. 
+Compare with previous sessions. 
+Generate the Options Score. 
+Notes
+Use the nearest weekly expiry by default. 
+Switch to monthly expiry after weekly expiry. 
+Exclude expired contracts. 
+Follow NSE Option Chain methodology. 
+
+4. Card Fields
+Current Value
+Total Put Open Interest
+Highest OI Strike
+Strike with Maximum Put OI
+Change
+Day-over-Day Change
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Open Interest Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Heavy Put writing strengthens support. 
+Rising Put OI with stable or rising prices confirms bullish sentiment. 
+Confirm with Call OI and PCR before assigning a strong bias. 
+
+6. Bias Rules
+Heavy Put Writing
+Bullish
+Stable Put OI
+Neutral
+Put Unwinding
+Bearish
+Aggressive Put Unwinding
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% High Put OI concentration
++5% Bullish PCR confirmation
++5% Max Pain alignment
+Decrease Confidence
+-10% Low market volume
+-5% Incomplete option chain
+-5% Expiry-day volatility
+Minimum
+60%
+Maximum
+98%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Weak Support
+30–60 → Neutral
+60–80 → Strong Support
+80–100 → Very Strong Support
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Total Put Open Interest
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+Heavy Put Writing
+Explain that option writers are building strong support below current price levels.
+Increasing Put OI
+Explain that buyers continue defending lower price levels.
+Stable Put OI
+Explain that market support remains relatively unchanged.
+Heavy Put Unwinding
+Explain that support is weakening as Put writers close their positions.
+
+11. Why It Matters
+Identifies potential support zones. 
+Tracks institutional Put writing. 
+Measures bullish market positioning. 
+Confirms trend continuation. 
+Improves options market analysis. 
+
+12. Trading Impact
+Intraday
+★★★★☆
+Swing Trading
+★★★★☆
+Positional Trading
+★★★☆☆
+Options Trading
+★★★★★
+Best Use
+Identifying support and institutional positioning.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Total Call Open Interest 
+OI Change 
+PCR (OI) 
+Max Pain 
+ATM IV 
+
+14. Metadata
+Source
+NSE Option Chain / Upstox API
+Calculation
+Backend
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Total Put OI 
+Highest Put OI Strike 
+Historical Put OI 
+Current Score 
+Confidence 
+Last Updated 
+Refresh automatically with each option chain update. Cache historical values to identify evolving support zones and institutional accumulation.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+High
+Decision Engine Role
+Support & Institutional Positioning Assessment
+Primary Use
+Measure support strength based on Put Open Interest concentration.
+Bullish Confirmation
+Rising Put OI 
+Falling Call OI 
+Bullish PCR 
+Bearish Confirmation
+Put Unwinding 
+Rising Call OI 
+Bearish PCR 
+Display Priority
+High
+
+17. Praxis Recommendation
+Total Put Open Interest should serve as the primary support indicator within the Open Interest category.
+Open Interest Hierarchy
+⭐⭐⭐⭐⭐ Total Call Open Interest 
+⭐⭐⭐⭐⭐ Total Put Open Interest 
+⭐⭐⭐⭐☆ OI Change 
+Engine Rules
+Increasing Put OI near the current spot price → Strengthen Support Score. 
+Heavy Put Writing confirmed by PCR and Max Pain → Increase bullish conviction. 
+Put Unwinding with rising Call OI → Reduce Options Score. 
+Always evaluate Put OI together with Call OI and OI Change before generating the final Options Score.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3. Open Interest Change (OI Change)
+Module: Options
+Category: Open Interest
+Status: Production Ready
+1. Overview
+Name: Open Interest Change
+Short Name: OI Change
+Module: Options
+Category: Open Interest
+Purpose:
+Measures the change in Open Interest between consecutive trading sessions or option chain updates. It helps identify whether new positions are being created or existing positions are being closed, providing insight into market participation and trend strength.
+Based On:
+Current Open Interest and Previous Open Interest
+Importance:
+⭐⭐⭐⭐⭐ (Core Positioning Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Every Option Chain Refresh (Market Hours)
+Praxis Note:
+OI Change is most effective when analyzed together with price movement. Rising OI with rising prices generally indicates Long Build-up, while rising OI with falling prices indicates Short Build-up.
+
+2. Data Requirements
+Required Data
+Current Open Interest 
+Previous Open Interest 
+Current Spot Price 
+Previous Spot Price 
+Expiry Date 
+Minimum Historical Data
+5 Trading Days
+Recommended
+30 Trading Days
+Primary Source
+NSE Option Chain 
+Upstox API 
+
+3. Industry Standard Calculation
+Formula
+OI Change =
+Current Open Interest − Previous Open Interest
+OI Change (%) =
+((Current OI − Previous OI) ÷ Previous OI) × 100
+Implementation Steps
+Retrieve the latest option chain. 
+Compare current OI with previous OI. 
+Calculate absolute and percentage change. 
+Compare OI movement with price movement. 
+Classify market positioning. 
+Generate the Options Score. 
+OI Interpretation
+Notes
+Use both absolute and percentage OI Change. 
+Compare against previous completed update. 
+Use spot price for classification. 
+
+4. Card Fields
+Current OI Change
+Absolute Change
+OI Change (%)
+Percentage Change
+Market Position
+Long Build-up 
+Short Build-up 
+Long Unwinding 
+Short Covering 
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Positioning Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Long Build-up is the strongest bullish signal. 
+Short Build-up is the strongest bearish signal. 
+Confirm with PCR and Max Pain before assigning strong conviction. 
+
+6. Bias Rules
+Long Build-up
+Bullish
+Short Covering
+Bullish
+Long Unwinding
+Bearish
+Short Build-up
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% High trading volume
++5% PCR confirmation
++5% Max Pain confirmation
+Decrease Confidence
+-10% Low option volume
+-5% Expiry-day volatility
+-5% Incomplete option chain
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Strong Bearish
+30–60 → Weak
+60–80 → Neutral
+80–100 → Strong Bullish
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+OI Change (%)
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+Long Build-up
+Explain that new long positions are being created, supporting continued upward momentum.
+Short Covering
+Explain that bearish positions are being closed, supporting near-term upside.
+Long Unwinding
+Explain that existing long positions are being exited, weakening bullish momentum.
+Short Build-up
+Explain that new bearish positions are entering the market, increasing downside pressure.
+
+11. Why It Matters
+Identifies institutional positioning. 
+Distinguishes fresh positions from position unwinding. 
+Confirms trend strength. 
+Improves options sentiment analysis. 
+Supports short-term market direction assessment. 
+
+12. Trading Impact
+Intraday
+★★★★★
+Swing Trading
+★★★★☆
+Positional Trading
+★★★☆☆
+Options Trading
+★★★★★
+Best Use
+Identifying market positioning and trend strength.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Total Call Open Interest 
+Total Put Open Interest 
+PCR (OI) 
+PCR (Volume) 
+Max Pain 
+ATM IV 
+
+14. Metadata
+Source
+NSE Option Chain / Upstox API
+Calculation
+Backend
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current OI 
+Previous OI 
+OI Change 
+OI Change (%) 
+Position Classification 
+Current Score 
+Confidence 
+Last Updated 
+Maintain historical OI snapshots to accurately calculate changes. Recalculate immediately after every option chain update and classify market positioning using both price and OI movement.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Very High
+Decision Engine Role
+Market Positioning Assessment
+Primary Use
+Identify whether institutional traders are building or unwinding long and short positions.
+Bullish Confirmation
+Long Build-up 
+Rising Put OI 
+Bullish PCR 
+Bearish Confirmation
+Short Build-up 
+Rising Call OI 
+Bearish PCR 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+Open Interest Change should be the primary positioning indicator within the Open Interest category.
+Open Interest Hierarchy
+⭐⭐⭐⭐⭐ Open Interest Change 
+⭐⭐⭐⭐⭐ Total Call Open Interest 
+⭐⭐⭐⭐⭐ Total Put Open Interest 
+Engine Rules
+Rising Price + Rising OI → Long Build-up → Increase Options Score. 
+Falling Price + Rising OI → Short Build-up → Reduce Options Score. 
+Rising Price + Falling OI → Short Covering → Moderate Bullish. 
+Falling Price + Falling OI → Long Unwinding → Moderate Bearish.
+
+
+
+
+
+
+
+
+
+
+
+
+4. Put-Call Ratio (PCR - Open Interest)
+Module: Options
+Category: Put-Call Ratio
+Status: Production Ready
+1. Overview
+Name: Put-Call Ratio (Open Interest)
+Short Name: PCR (OI)
+Module: Options
+Category: Put-Call Ratio
+Purpose:
+Measures the ratio of total Put Open Interest to total Call Open Interest. It is one of the most widely used options sentiment indicators, helping identify whether the market is positioned bullishly, bearishly, or at extreme sentiment levels.
+Based On:
+Total Put Open Interest and Total Call Open Interest
+Importance:
+⭐⭐⭐⭐⭐ (Core Sentiment Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Every Option Chain Refresh (Market Hours)
+Praxis Note:
+PCR should never be interpreted in isolation. Extremely high or low values often indicate contrarian opportunities and should always be confirmed with Open Interest Change, Max Pain, and Price Action.
+
+2. Data Requirements
+Required Data
+Total Put Open Interest 
+Total Call Open Interest 
+Spot Price 
+Expiry Date 
+Minimum Historical Data
+30 Trading Days
+Recommended
+1 Year
+Primary Source
+NSE Option Chain 
+Upstox API 
+
+3. Industry Standard Calculation
+Formula
+PCR (OI) =
+Total Put Open Interest
+÷
+Total Call Open Interest
+Implementation Steps
+Retrieve Total Put OI. 
+Retrieve Total Call OI. 
+Calculate PCR. 
+Compare with historical averages. 
+Generate the Options Score. 
+Standard Interpretation
+Notes
+Use total market Open Interest. 
+Compare PCR with historical levels. 
+Confirm signals with price action and OI Change. 
+
+4. Card Fields
+Current Value
+PCR (OI)
+Trend
+Rising 
+Stable 
+Falling 
+Market Sentiment
+Bullish 
+Neutral 
+Bearish 
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+PCR Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+A PCR between 1.00 and 1.20 is generally considered healthy. 
+Extremely high PCR values may indicate excessive optimism and should reduce bullish conviction. 
+Always confirm with OI Change and Max Pain. 
+
+6. Bias Rules
+PCR Between 1.00–1.20
+Bullish
+PCR Between 0.80–1.00
+Neutral
+PCR Below 0.80
+Bearish
+PCR Above 1.30
+Contrarian Warning
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% OI Change confirmation
++5% Max Pain alignment
++5% Rising Put OI
+Decrease Confidence
+-10% Expiry-day volatility
+-5% Low option volume
+-5% Mixed OI signals
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Strong Bearish
+30–60 → Bearish
+60–80 → Neutral
+80–100 → Bullish
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+PCR (OI)
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+PCR Above 1.00
+Explain that Put positioning exceeds Call positioning, indicating bullish sentiment.
+PCR Between 0.80–1.00
+Explain that options positioning remains balanced.
+PCR Below 0.80
+Explain that Call positioning dominates, reflecting bearish market sentiment.
+PCR Above 1.30
+Explain that sentiment has become excessively bullish and a contrarian reversal risk exists.
+
+11. Why It Matters
+Measures institutional options sentiment. 
+Identifies bullish and bearish positioning. 
+Detects sentiment extremes. 
+Confirms trend direction. 
+Widely followed by professional options traders. 
+
+12. Trading Impact
+Intraday
+★★★★★
+Swing Trading
+★★★★☆
+Positional Trading
+★★★☆☆
+Options Trading
+★★★★★
+Best Use
+Measuring market sentiment through options positioning.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Total Call Open Interest 
+Total Put Open Interest 
+OI Change 
+Max Pain 
+ATM IV 
+India VIX 
+
+14. Metadata
+Source
+NSE Option Chain / Upstox API
+Calculation
+Backend
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current PCR 
+Historical PCR 
+Current Score 
+Bias 
+Confidence 
+Last Updated 
+Maintain rolling historical PCR values for trend analysis. If either Put OI or Call OI is unavailable, display "Insufficient Data" and exclude the indicator from score calculation.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Very High
+Decision Engine Role
+Institutional Sentiment Assessment
+Primary Use
+Evaluate bullish or bearish positioning using the relationship between Put and Call Open Interest.
+Bullish Confirmation
+PCR between 1.00–1.20 
+Rising Put OI 
+Long Build-up 
+Bearish Confirmation
+PCR below 0.80 
+Rising Call OI 
+Short Build-up 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+PCR (OI) should be the primary options sentiment indicator within the Put-Call Ratio category.
+Put-Call Ratio Hierarchy
+⭐⭐⭐⭐⭐ PCR (Open Interest) 
+⭐⭐⭐⭐☆ PCR (Volume) 
+Engine Rules
+PCR between 1.00–1.20 + Long Build-up → Increase Options Score. 
+PCR below 0.80 + Rising Call OI → Reduce Options Score. 
+PCR above 1.30 → Trigger a Contrarian Warning instead of increasing bullish conviction. 
+Always validate PCR with OI Change, Max Pain, and Price Action before generating a high-confidence options signal.
+
+
+
+
+
+
+
+5. Put-Call Ratio (PCR - Volume)
+Module: Options
+Category: Put-Call Ratio
+Status: Production Ready
+1. Overview
+Name: Put-Call Ratio (Volume)
+Short Name: PCR (Volume)
+Module: Options
+Category: Put-Call Ratio
+Purpose:
+Measures the ratio of Put Option trading volume to Call Option trading volume. It reflects short-term market sentiment by analyzing trading activity rather than outstanding positions.
+Based On:
+Put Trading Volume and Call Trading Volume
+Importance:
+⭐⭐⭐⭐☆ (Short-Term Sentiment Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Every Option Chain Refresh (Market Hours)
+Praxis Note:
+PCR (Volume) is more responsive than PCR (OI) because it reflects real-time trading activity. However, it is also more volatile and should always be confirmed using PCR (OI) and OI Change.
+
+2. Data Requirements
+Required Data
+Total Put Volume 
+Total Call Volume 
+Spot Price 
+Expiry Date 
+Minimum Historical Data
+5 Trading Days
+Recommended
+30 Trading Days
+Primary Source
+NSE Option Chain 
+Upstox API 
+
+3. Industry Standard Calculation
+Formula
+PCR (Volume) =
+Total Put Volume
+÷
+Total Call Volume
+Implementation Steps
+Retrieve Put trading volume. 
+Retrieve Call trading volume. 
+Calculate PCR (Volume). 
+Compare with historical averages. 
+Generate the Options Score. 
+Standard Interpretation
+Notes
+Use traded volume only. 
+Reset calculations at the start of every trading session. 
+Confirm with PCR (OI) before assigning strong conviction. 
+
+4. Card Fields
+Current Value
+PCR (Volume)
+Trend
+Rising 
+Stable 
+Falling 
+Market Sentiment
+Bullish 
+Neutral 
+Bearish 
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Volume PCR Confidence
+Impact Weight
+Medium
+
+5. Praxis Score Logic
+Notes
+PCR (Volume) reacts faster than PCR (OI). 
+High values indicate stronger Put buying activity. 
+Use PCR (OI) as the primary confirmation indicator. 
+
+6. Bias Rules
+PCR Above 1.10
+Bullish
+PCR Between 0.80–1.10
+Neutral
+PCR Below 0.80
+Bearish
+PCR Below 0.60
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+85%
+Increase Confidence
++5% PCR (OI) confirmation
++5% OI Change confirmation
++5% High option volume
+Decrease Confidence
+-10% Low trading volume
+-5% Expiry-day volatility
+-5% Mixed options signals
+Minimum
+60%
+Maximum
+98%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Strong Bearish
+30–60 → Bearish
+60–80 → Neutral
+80–100 → Bullish
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+PCR (Volume)
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+PCR Above 1.10
+Explain that Put trading activity is stronger than Call activity, indicating improving bullish sentiment.
+PCR Between 0.80–1.10
+Explain that trading activity remains balanced between Calls and Puts.
+PCR Below 0.80
+Explain that Call trading activity dominates, indicating bearish market sentiment.
+Sharp Change in PCR
+Explain that options traders are rapidly shifting their short-term positioning.
+
+11. Why It Matters
+Measures real-time options sentiment. 
+Tracks short-term trader positioning. 
+Confirms momentum shifts. 
+Complements PCR (OI). 
+Improves intraday options analysis. 
+
+12. Trading Impact
+Intraday
+★★★★★
+Swing Trading
+★★★☆☆
+Positional Trading
+★★☆☆☆
+Options Trading
+★★★★★
+Best Use
+Measuring short-term options sentiment.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+PCR (Open Interest) 
+OI Change 
+Total Call Open Interest 
+Total Put Open Interest 
+Max Pain 
+India VIX 
+
+14. Metadata
+Source
+NSE Option Chain / Upstox API
+Calculation
+Backend
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current PCR (Volume) 
+Historical PCR (Volume) 
+Current Score 
+Bias 
+Confidence 
+Last Updated 
+Reset cumulative trading volume at the beginning of each trading session. Maintain historical values for trend analysis and compare with PCR (OI) to improve signal reliability.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Medium-High
+Decision Engine Role
+Short-Term Sentiment Assessment
+Primary Use
+Measure short-term options sentiment using trading activity.
+Bullish Confirmation
+PCR (Volume) >1.10 
+PCR (OI) Bullish 
+Long Build-up 
+Bearish Confirmation
+PCR (Volume) <0.80 
+PCR (OI) Bearish 
+Short Build-up 
+Display Priority
+High
+
+17. Praxis Recommendation
+PCR (Volume) should serve as the short-term sentiment confirmation indicator within the Put-Call Ratio category.
+Put-Call Ratio Hierarchy
+⭐⭐⭐⭐⭐ PCR (Open Interest) 
+⭐⭐⭐⭐☆ PCR (Volume) 
+Engine Rules
+Rising PCR (Volume) + Rising PCR (OI) → Increase Options Score. 
+Falling PCR (Volume) + Short Build-up → Reduce Options Score. 
+Significant divergence between PCR (Volume) and PCR (OI) → Reduce confidence until confirmed. 
+Use PCR (Volume) to capture rapid changes in trader sentiment, while relying on PCR (OI) for the primary market bias.
+
+
+
+
+
+
+
+
+6. At-the-Money Implied Volatility (ATM IV)
+Module: Options
+Category: Implied Volatility
+Status: Production Ready
+1. Overview
+Name: At-the-Money Implied Volatility
+Short Name: ATM IV
+Module: Options
+Category: Implied Volatility
+Purpose:
+Measures the market's expected future volatility using the implied volatility of the At-the-Money (ATM) option. It helps estimate expected price movement and option premiums.
+Based On:
+ATM Call IV and ATM Put IV
+Importance:
+⭐⭐⭐⭐⭐ (Core Volatility Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Every Option Chain Refresh (Market Hours)
+Praxis Note:
+ATM IV reflects expected future volatility, not direction. Rising IV indicates increasing uncertainty, while falling IV suggests calmer market conditions.
+
+2. Data Requirements
+Required Data
+ATM Call Implied Volatility 
+ATM Put Implied Volatility 
+Spot Price 
+Strike Price 
+Expiry Date 
+Minimum Historical Data
+30 Trading Days
+Recommended
+1 Year
+Primary Source
+NSE Option Chain 
+Upstox API 
+
+3. Industry Standard Calculation
+Formula
+ATM IV =
+(Call IV + Put IV)
+÷
+2
+Implementation Steps
+Identify the At-the-Money strike. 
+Retrieve Call IV. 
+Retrieve Put IV. 
+Calculate average ATM IV. 
+Compare with historical values. 
+Generate the Options Score. 
+Notes
+Use the nearest weekly expiry by default. 
+Switch to monthly expiry after weekly expiry. 
+Ignore illiquid strikes. 
+Follow standard options market convention. 
+
+4. Card Fields
+Current Value
+ATM IV (%)
+ATM Strike
+Current ATM Strike
+IV Trend
+Rising 
+Stable 
+Falling 
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Volatility Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Rising IV increases uncertainty. 
+Falling IV generally supports trend continuation. 
+Extremely high IV indicates elevated market risk. 
+
+6. Bias Rules
+Low / Falling IV
+Bullish
+Stable IV
+Neutral
+Rising IV
+Cautious
+Extremely High IV
+Bearish
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% High option liquidity
++5% Stable option spreads
++5% Confirmed IV trend
+Decrease Confidence
+-10% Wide bid-ask spreads
+-5% Low option liquidity
+-5% Expiry-day volatility
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → High Risk
+30–60 → Elevated IV
+60–80 → Normal
+80–100 → Low IV
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+ATM IV (%)
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+Falling IV
+Explain that market uncertainty is declining and option premiums are becoming cheaper.
+Stable IV
+Explain that volatility expectations remain relatively unchanged.
+Rising IV
+Explain that traders expect larger future price movements.
+Extremely High IV
+Explain that options are expensive and market uncertainty is elevated.
+
+11. Why It Matters
+Measures expected market volatility. 
+Helps evaluate option premiums. 
+Identifies high-risk periods. 
+Supports volatility-based trading decisions. 
+Confirms market uncertainty. 
+
+12. Trading Impact
+Intraday
+★★★★☆
+Swing Trading
+★★★★☆
+Positional Trading
+★★★☆☆
+Options Trading
+★★★★★
+Best Use
+Evaluating expected market volatility.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+IV Rank 
+IV Percentile 
+India VIX 
+PCR (OI) 
+Max Pain 
+OI Change 
+
+14. Metadata
+Source
+NSE Option Chain / Upstox API
+Calculation
+Backend
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+ATM IV 
+ATM Strike 
+Historical ATM IV 
+Current Score 
+Confidence 
+Last Updated 
+Recalculate whenever the ATM strike changes due to spot price movement. Maintain rolling historical IV data for IV Rank and IV Percentile calculations.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Very High
+Decision Engine Role
+Expected Volatility Assessment
+Primary Use
+Measure expected market volatility using ATM option pricing.
+Bullish Confirmation
+Falling ATM IV 
+Bullish PCR 
+Long Build-up 
+Bearish Confirmation
+Rising ATM IV 
+Short Build-up 
+Rising India VIX 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+ATM Implied Volatility should be the primary volatility indicator within the Implied Volatility category.
+Implied Volatility Hierarchy
+⭐⭐⭐⭐⭐ ATM IV 
+⭐⭐⭐⭐☆ IV Rank 
+⭐⭐⭐⭐☆ IV Percentile 
+Engine Rules
+Falling ATM IV + Bullish PCR + Long Build-up → Increase Options Score. 
+Rising ATM IV + Rising India VIX → Reduce Options Score. 
+Extremely High ATM IV → Trigger a High Volatility warning. 
+Use ATM IV as the base volatility measure for all volatility-related analysis and confirm with IV Rank and IV Percentile before generating high-confidence options signals.
+
+
+
+
+
+
+
+
+
+
+
+
+7. IV Rank
+Module: Options
+Category: Implied Volatility
+Status: Production Ready
+1. Overview
+Name: IV Rank
+Short Name: IV Rank
+Module: Options
+Category: Implied Volatility
+Purpose:
+Measures where the current Implied Volatility (IV) stands relative to its highest and lowest values over a historical period. It helps determine whether options are relatively cheap or expensive.
+Based On:
+Current ATM IV, Historical Highest IV, Historical Lowest IV
+Importance:
+⭐⭐⭐⭐⭐ (Core Volatility Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Every Option Chain Refresh (Market Hours)
+Praxis Note:
+IV Rank measures the relative position of the current IV within its historical range. It does not indicate market direction and should always be used with IV Percentile, ATM IV, and India VIX.
+
+2. Data Requirements
+Required Data
+Current ATM IV 
+Highest Historical IV 
+Lowest Historical IV 
+Minimum Historical Data
+252 Trading Days
+Recommended
+1 Year
+Primary Source
+NSE Option Chain 
+Upstox API 
+
+3. Industry Standard Calculation
+Formula
+IV Rank (%) =
+
+((Current IV − Lowest IV)
+
+÷
+
+(Highest IV − Lowest IV))
+
+× 100
+Implementation Steps
+Retrieve Current ATM IV. 
+Identify the highest IV over the lookback period. 
+Identify the lowest IV over the lookback period. 
+Calculate IV Rank. 
+Generate the Options Score. 
+Notes
+Default lookback period: 252 trading days. 
+Clamp values between 0 and 100. 
+Ignore invalid historical values. 
+
+4. Card Fields
+Current Value
+IV Rank (%)
+Current ATM IV
+Current ATM IV
+Lookback Period
+252 Trading Days
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Volatility Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Low IV Rank generally indicates cheaper options. 
+High IV Rank indicates expensive options. 
+IV Rank should not be used as a directional indicator. 
+
+6. Bias Rules
+IV Rank Below 20
+Bullish
+IV Rank Between 20–50
+Neutral
+IV Rank Between 50–80
+Cautious
+IV Rank Above 80
+Bearish
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% Complete historical IV data
++5% Stable IV trend
++5% High option liquidity
+Decrease Confidence
+-10% Missing historical data
+-5% Low liquidity
+-5% Expiry-day volatility
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+252-Day Average Score
+Color Zones
+0–30 → Cheap Options
+30–60 → Fair Value
+60–80 → Expensive
+80–100 → Very Expensive
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+IV Rank
+Line 2
+Praxis Score
+History
+252 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+IV Rank Below 20
+Explain that implied volatility is near the lower end of its historical range, making option premiums relatively inexpensive.
+IV Rank Between 20–50
+Explain that implied volatility is within its normal historical range.
+IV Rank Between 50–80
+Explain that option premiums are becoming relatively expensive.
+IV Rank Above 80
+Explain that implied volatility is near historical highs, increasing option premiums and market uncertainty.
+
+11. Why It Matters
+Identifies expensive and cheap option premiums. 
+Supports volatility-based strategies. 
+Improves options timing. 
+Complements ATM IV and IV Percentile. 
+Widely used by professional options traders. 
+
+12. Trading Impact
+Intraday
+★★★☆☆
+Swing Trading
+★★★★☆
+Positional Trading
+★★★★☆
+Options Trading
+★★★★★
+Best Use
+Evaluating relative option pricing.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+ATM IV 
+IV Percentile 
+India VIX 
+PCR (OI) 
+OI Change 
+
+14. Metadata
+Source
+NSE Option Chain / Upstox API
+Calculation
+Backend
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current IV Rank 
+Historical IV 
+Highest IV 
+Lowest IV 
+Current Score 
+Confidence 
+Last Updated 
+Maintain a rolling 252-day IV history. If historical data is insufficient, display "Insufficient Data" and reduce confidence accordingly.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+High
+Decision Engine Role
+Relative Volatility Assessment
+Primary Use
+Determine whether current implied volatility is high or low compared to its historical range.
+Bullish Confirmation
+IV Rank Below 20 
+Low ATM IV 
+Stable India VIX 
+Bearish Confirmation
+IV Rank Above 80 
+Rising ATM IV 
+Rising India VIX 
+Display Priority
+High
+
+17. Praxis Recommendation
+IV Rank should serve as the relative volatility indicator within the Implied Volatility category.
+Implied Volatility Hierarchy
+⭐⭐⭐⭐⭐ ATM IV 
+⭐⭐⭐⭐☆ IV Rank 
+⭐⭐⭐⭐☆ IV Percentile 
+Engine Rules
+IV Rank <20 + Low ATM IV → Increase Options Score. 
+IV Rank >80 + Rising India VIX → Reduce Options Score. 
+Confirm IV Rank with IV Percentile before generating high-confidence volatility signals. 
+Never use IV Rank as a directional indicator; use it only to evaluate the relative cost of option premiums. 
+IV Rank should strengthen the Options Score by identifying whether implied volatility is historically high or low, helping traders assess option pricing and volatility conditions rather than predicting market direction.
+
+
+
+
+
+
+
+
+
+
+
+8. IV Percentile
+Module: Options
+Category: Implied Volatility
+Status: Production Ready
+1. Overview
+Name: IV Percentile
+Short Name: IV Percentile
+Module: Options
+Category: Implied Volatility
+Purpose:
+Measures the percentage of trading days during the historical lookback period where Implied Volatility was lower than the current IV. It helps determine how frequently the current volatility level has occurred in the past.
+Based On:
+Current ATM IV and Historical IV Data
+Importance:
+⭐⭐⭐⭐☆ (Core Volatility Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Every Option Chain Refresh (Market Hours)
+Praxis Note:
+Unlike IV Rank, which compares the current IV to the historical range, IV Percentile measures how often the current IV has been exceeded historically. Both indicators should be used together for a complete volatility assessment.
+
+2. Data Requirements
+Required Data
+Current ATM IV 
+Historical Daily ATM IV 
+Minimum Historical Data
+252 Trading Days
+Recommended
+1 Year
+Primary Source
+NSE Option Chain 
+Upstox API 
+
+3. Industry Standard Calculation
+Formula
+IV Percentile (%) =
+
+(Number of Days Historical IV < Current IV
+
+÷
+
+Total Historical Trading Days)
+
+× 100
+Implementation Steps
+Retrieve Current ATM IV. 
+Retrieve historical ATM IV values. 
+Count the number of days with IV lower than the current IV. 
+Calculate IV Percentile. 
+Generate the Options Score. 
+Notes
+Default lookback period: 252 trading days. 
+Clamp values between 0 and 100. 
+Exclude invalid or missing historical data. 
+
+4. Card Fields
+Current Value
+IV Percentile (%)
+Current ATM IV
+Current ATM IV
+Lookback Period
+252 Trading Days
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Volatility Confidence
+Impact Weight
+Medium
+
+5. Praxis Score Logic
+Notes
+Low IV Percentile generally indicates relatively inexpensive option premiums. 
+High IV Percentile indicates relatively expensive option premiums. 
+Always confirm with ATM IV and IV Rank. 
+
+6. Bias Rules
+IV Percentile Below 20
+Bullish
+IV Percentile Between 20–50
+Neutral
+IV Percentile Between 50–80
+Cautious
+IV Percentile Above 80
+Bearish
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% Complete historical IV data
++5% Stable IV trend
++5% High option liquidity
+Decrease Confidence
+-10% Missing historical data
+-5% Low option liquidity
+-5% Expiry-day volatility
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+252-Day Average Score
+Color Zones
+0–30 → Cheap Options
+30–60 → Fair Value
+60–80 → Expensive
+80–100 → Very Expensive
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+IV Percentile
+Line 2
+Praxis Score
+History
+252 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+IV Percentile Below 20
+Explain that current implied volatility is lower than most historical observations, indicating relatively inexpensive option premiums.
+IV Percentile Between 20–50
+Explain that implied volatility is within its normal historical range.
+IV Percentile Between 50–80
+Explain that implied volatility is higher than average and option premiums are becoming expensive.
+IV Percentile Above 80
+Explain that implied volatility has remained below the current level for most of the historical period, indicating elevated option premiums and higher uncertainty.
+
+11. Why It Matters
+Measures historical volatility frequency. 
+Evaluates option premium levels. 
+Supports volatility trading strategies. 
+Complements IV Rank. 
+Improves options pricing analysis. 
+
+12. Trading Impact
+Intraday
+★★★☆☆
+Swing Trading
+★★★★☆
+Positional Trading
+★★★★☆
+Options Trading
+★★★★★
+Best Use
+Evaluating historical volatility positioning.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+ATM IV 
+IV Rank 
+India VIX 
+PCR (OI) 
+OI Change 
+
+14. Metadata
+Source
+NSE Option Chain / Upstox API
+Calculation
+Backend
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Current IV Percentile 
+Historical ATM IV 
+Current Score 
+Confidence 
+Last Updated 
+Maintain a rolling 252-day IV history. If historical data is insufficient, display "Insufficient Data" and reduce confidence. Recalculate IV Percentile whenever ATM IV updates.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Medium-High
+Decision Engine Role
+Historical Volatility Assessment
+Primary Use
+Evaluate how frequently the current implied volatility has occurred over the historical lookback period.
+Bullish Confirmation
+IV Percentile Below 20 
+Low ATM IV 
+Low IV Rank 
+Bearish Confirmation
+IV Percentile Above 80 
+High ATM IV 
+High IV Rank 
+Display Priority
+High
+
+17. Praxis Recommendation
+IV Percentile should serve as the historical volatility frequency indicator within the Implied Volatility category.
+Implied Volatility Hierarchy
+⭐⭐⭐⭐⭐ ATM IV 
+⭐⭐⭐⭐☆ IV Rank 
+⭐⭐⭐⭐☆ IV Percentile 
+Engine Rules
+IV Percentile <20 + Low IV Rank → Increase Options Score. 
+IV Percentile >80 + Rising India VIX → Reduce Options Score. 
+Confirm IV Percentile with ATM IV and IV Rank before generating high-confidence volatility signals. 
+Use IV Percentile to determine how unusual the current volatility level is, while using IV Rank to measure its position within the historical range.
+
+
+
+
+
+
+
+
+
+
+
+9. Delta
+Module: Options
+Category: Greeks
+Status: Production Ready
+1. Overview
+Name: Delta
+Short Name: Delta
+Module: Options
+Category: Greeks
+Purpose:
+Measures the expected change in an option's premium for a one-point movement in the underlying asset. Delta also represents the probability of an option expiring In-the-Money (ITM).
+Based On:
+Option Price and Underlying Price
+Importance:
+⭐⭐⭐⭐⭐ (Core Option Greek)
+Auto / Manual:
+Auto
+Update Frequency:
+Every Option Chain Refresh (Market Hours)
+Praxis Note:
+Delta is the most important option Greek. It measures directional exposure and is widely used by institutional traders for option selection and portfolio hedging.
+
+2. Data Requirements
+Required Data
+Underlying Spot Price 
+Strike Price 
+Option Premium 
+Expiry Date 
+Option Type (Call / Put) 
+Risk-Free Interest Rate 
+Implied Volatility 
+Minimum Historical Data
+Current Option Chain
+Recommended
+30 Trading Days
+Primary Source
+NSE Option Chain 
+Upstox API 
+
+3. Industry Standard Calculation
+Method
+Calculate Delta using the Black-Scholes option pricing model.
+Standard Range
+Interpretation
+Implementation Steps
+Retrieve option chain. 
+Calculate Delta using Black-Scholes. 
+Classify option moneyness. 
+Generate the Options Score. 
+Notes
+Use exchange-provided Greeks when available. 
+Calculate internally only if unavailable. 
+
+4. Card Fields
+Current Value
+Delta
+Option Type
+Call / Put
+Moneyness
+ITM 
+ATM 
+OTM 
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Greeks Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Higher positive Delta indicates stronger bullish exposure. 
+Larger negative Put Delta indicates stronger bearish exposure. 
+Confirm with Gamma and OI Change. 
+
+6. Bias Rules
+High Positive Delta
+Bullish
+ATM Delta
+Neutral
+High Negative Delta
+Bearish
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% High option liquidity
++5% Stable IV
++5% Narrow bid-ask spread
+Decrease Confidence
+-10% Low liquidity
+-5% High IV distortion
+-5% Expiry-day volatility
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Bearish
+30–60 → Neutral
+60–80 → Bullish
+80–100 → Strong Bullish
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Delta
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+High Positive Delta
+Explain that the option is highly responsive to upward price movement.
+ATM Delta
+Explain that the option provides balanced directional exposure.
+High Negative Delta
+Explain that the option benefits from declining underlying prices.
+Rapid Delta Change
+Explain that directional sensitivity is changing quickly due to price movement.
+
+11. Why It Matters
+Measures directional exposure. 
+Helps select appropriate strike prices. 
+Supports hedging strategies. 
+Estimates option sensitivity. 
+Widely used by professional options traders. 
+
+12. Trading Impact
+Intraday
+★★★★★
+Swing Trading
+★★★★★
+Positional Trading
+★★★★☆
+Options Trading
+★★★★★
+Best Use
+Evaluating directional exposure.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Gamma 
+Theta 
+Vega 
+ATM IV 
+OI Change 
+PCR (OI) 
+
+14. Metadata
+Source
+NSE Option Chain / Upstox API
+Calculation
+Exchange Greeks / Backend
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Delta 
+Option Type 
+Strike Price 
+Moneyness 
+Current Score 
+Confidence 
+Last Updated 
+Prefer exchange-provided Delta values. Fall back to Black-Scholes calculations when exchange Greeks are unavailable.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Very High
+Decision Engine Role
+Directional Exposure Assessment
+Primary Use
+Measure option price sensitivity to movements in the underlying asset.
+Bullish Confirmation
+High Call Delta 
+Long Build-up 
+Bullish PCR 
+Bearish Confirmation
+High Put Delta 
+Short Build-up 
+Rising IV 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+Delta should serve as the primary directional Greek within the Greeks category.
+Greeks Hierarchy
+⭐⭐⭐⭐⭐ Delta 
+⭐⭐⭐⭐☆ Gamma 
+⭐⭐⭐⭐☆ Theta 
+⭐⭐⭐⭐☆ Vega 
+Engine Rules
+High Call Delta + Bullish PCR + Long Build-up → Increase Options Score. 
+High Put Delta + Short Build-up → Reduce Options Score. 
+Confirm Delta with Gamma before generating high-confidence directional signals. 
+Use Delta as the primary Greek for evaluating directional exposure and option responsiveness.
+
+
+
+
+
+
+
+10. Gamma
+Module: Options
+Category: Greeks
+Status: Production Ready
+1. Overview
+Name: Gamma
+Short Name: Gamma
+Module: Options
+Category: Greeks
+Purpose:
+Measures the rate of change of Delta for every one-point movement in the underlying asset. It indicates how quickly an option's directional exposure changes as the market moves.
+Based On:
+Delta and Underlying Price
+Importance:
+⭐⭐⭐⭐☆ (Core Option Greek)
+Auto / Manual:
+Auto
+Update Frequency:
+Every Option Chain Refresh (Market Hours)
+Praxis Note:
+Gamma is highest for At-the-Money (ATM) options nearing expiry. High Gamma increases both opportunity and risk due to rapid changes in Delta.
+
+2. Data Requirements
+Required Data
+Underlying Spot Price 
+Strike Price 
+Delta 
+Option Premium 
+Expiry Date 
+Implied Volatility 
+Minimum Historical Data
+Current Option Chain
+Recommended
+30 Trading Days
+Primary Source
+NSE Option Chain 
+Upstox API 
+
+3. Industry Standard Calculation
+Method
+Calculate Gamma using the Black-Scholes option pricing model.
+Implementation Steps
+Retrieve option chain. 
+Calculate Gamma for each option. 
+Identify Gamma intensity. 
+Generate the Options Score. 
+Notes
+Use exchange-provided Greeks when available. 
+Gamma is highest near ATM options approaching expiry. 
+Calculate internally only if exchange values are unavailable. 
+
+4. Card Fields
+Current Value
+Gamma
+Option Type
+Call / Put
+Moneyness
+ITM 
+ATM 
+OTM 
+Score
+0–100
+Bias
+High Gamma 
+Normal Gamma 
+Low Gamma 
+Confidence
+Greeks Confidence
+Impact Weight
+Medium
+
+5. Praxis Score Logic
+Notes
+High Gamma increases directional sensitivity. 
+Low Gamma provides more stable option behavior. 
+High Gamma is common near expiry. 
+
+6. Bias Rules
+Low Gamma
+Bullish
+Moderate Gamma
+Neutral
+High Gamma
+Cautious
+Extreme Gamma
+High Risk
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% High option liquidity
++5% Stable IV
++5% Reliable exchange Greeks
+Decrease Confidence
+-10% Low liquidity
+-5% Wide bid-ask spread
+-5% Expiry-day volatility
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → High Risk
+30–60 → Elevated Gamma
+60–80 → Stable
+80–100 → Low Risk
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Gamma
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+Low Gamma
+Explain that Delta is expected to remain relatively stable with small price movements.
+Moderate Gamma
+Explain that directional sensitivity remains within normal levels.
+High Gamma
+Explain that Delta can change rapidly, increasing both opportunity and trading risk.
+Extremely High Gamma
+Explain that options are highly sensitive to small market movements, especially near expiry.
+
+11. Why It Matters
+Measures Delta stability. 
+Identifies high-risk option positions. 
+Supports options risk management. 
+Improves strike selection. 
+Essential for Gamma exposure analysis. 
+
+12. Trading Impact
+Intraday
+★★★★★
+Swing Trading
+★★★★☆
+Positional Trading
+★★★☆☆
+Options Trading
+★★★★★
+Best Use
+Evaluating option sensitivity and expiry risk.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Delta 
+Theta 
+Vega 
+ATM IV 
+IV Rank 
+OI Change 
+
+14. Metadata
+Source
+NSE Option Chain / Upstox API
+Calculation
+Exchange Greeks / Backend
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Gamma 
+Option Type 
+Strike Price 
+Moneyness 
+Current Score 
+Confidence 
+Last Updated 
+Prefer exchange-provided Gamma values. If unavailable, calculate using the Black-Scholes model. Monitor Gamma spikes near expiry for risk alerts.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+High
+Decision Engine Role
+Delta Stability Assessment
+Primary Use
+Measure how quickly an option's Delta changes as the underlying price moves.
+Bullish Confirmation
+Stable Gamma 
+Stable IV 
+High Liquidity 
+Bearish Confirmation
+Extremely High Gamma 
+Rising IV 
+Expiry-Day Risk 
+Display Priority
+High
+
+17. Praxis Recommendation
+Gamma should serve as the Delta sensitivity indicator within the Greeks category.
+Greeks Hierarchy
+⭐⭐⭐⭐⭐ Delta 
+⭐⭐⭐⭐☆ Gamma 
+⭐⭐⭐⭐☆ Theta 
+⭐⭐⭐⭐☆ Vega 
+Engine Rules
+Stable Gamma + High Delta → Increase confidence in directional trades. 
+Extremely High Gamma near expiry → Reduce confidence and trigger a High Risk warning. 
+High Gamma + Rising IV → Increase volatility risk. 
+Always interpret Gamma alongside Delta, Theta, and Vega to understand the complete option risk profile.
+
+
+
+
+
+
+
+
+
+
+
+
+11. Theta
+Module: Options
+Category: Greeks
+Status: Production Ready
+1. Overview
+Name: Theta
+Short Name: Theta
+Module: Options
+Category: Greeks
+Purpose:
+Measures the rate at which an option loses value due to the passage of time, assuming all other factors remain constant. It helps traders understand the impact of time decay on option premiums.
+Based On:
+Option Premium and Time to Expiry
+Importance:
+⭐⭐⭐⭐☆ (Core Option Greek)
+Auto / Manual:
+Auto
+Update Frequency:
+Every Option Chain Refresh (Market Hours)
+Praxis Note:
+Theta accelerates rapidly as expiry approaches, particularly for At-the-Money (ATM) options. It is one of the most important Greeks for option sellers.
+
+2. Data Requirements
+Required Data
+Option Premium 
+Expiry Date 
+Underlying Spot Price 
+Strike Price 
+Implied Volatility 
+Minimum Historical Data
+Current Option Chain
+Recommended
+30 Trading Days
+Primary Source
+NSE Option Chain 
+Upstox API 
+
+3. Industry Standard Calculation
+Method
+Calculate Theta using the Black-Scholes option pricing model.
+Interpretation
+Theta represents the expected daily decrease in option premium due to time decay.
+Implementation Steps
+Retrieve option chain. 
+Calculate Theta for each option. 
+Determine daily time decay. 
+Generate the Options Score. 
+Notes
+Use exchange-provided Greeks when available. 
+Theta is generally negative for long option positions. 
+Time decay accelerates significantly near expiry. 
+
+4. Card Fields
+Current Value
+Theta
+Daily Time Decay
+Expected premium loss per day
+Days to Expiry
+Remaining calendar days
+Score
+0–100
+Bias
+Favorable 
+Neutral 
+Unfavorable 
+Confidence
+Greeks Confidence
+Impact Weight
+Medium
+
+5. Praxis Score Logic
+Notes
+Higher absolute Theta increases time decay. 
+Time decay accelerates sharply during the final week before expiry. 
+Always evaluate Theta with Days to Expiry. 
+
+6. Bias Rules
+Low Theta
+Bullish
+Moderate Theta
+Neutral
+High Theta
+Bearish
+Extreme Theta
+High Risk
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% High option liquidity
++5% Stable IV
++5% Reliable exchange Greeks
+Decrease Confidence
+-10% Low liquidity
+-5% Expiry-day volatility
+-5% Wide bid-ask spreads
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Severe Time Decay
+30–60 → High Decay
+60–80 → Moderate Decay
+80–100 → Low Decay
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Theta
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+Low Theta
+Explain that time decay remains limited, making the option less sensitive to the passage of time.
+Moderate Theta
+Explain that normal time decay is affecting the option premium.
+High Theta
+Explain that option value is declining rapidly as expiry approaches.
+Extreme Theta
+Explain that time decay is accelerating significantly, increasing the risk for option buyers.
+
+11. Why It Matters
+Measures daily option premium erosion. 
+Helps evaluate expiry risk. 
+Essential for option selling strategies. 
+Supports position management. 
+Improves option selection. 
+
+12. Trading Impact
+Intraday
+★★★★☆
+Swing Trading
+★★★★☆
+Positional Trading
+★★☆☆☆
+Options Trading
+★★★★★
+Best Use
+Evaluating time decay risk.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Delta 
+Gamma 
+Vega 
+ATM IV 
+Days to Expiry 
+IV Rank 
+
+14. Metadata
+Source
+NSE Option Chain / Upstox API
+Calculation
+Exchange Greeks / Backend
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Theta 
+Days to Expiry 
+Option Type 
+Strike Price 
+Current Score 
+Confidence 
+Last Updated 
+Prefer exchange-provided Theta values. Recalculate continuously as expiry approaches and update more frequently during the final trading week due to accelerated time decay.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+High
+Decision Engine Role
+Time Decay Assessment
+Primary Use
+Measure the impact of time decay on option premiums.
+Bullish Confirmation
+Low Theta 
+Stable IV 
+Longer Time to Expiry 
+Bearish Confirmation
+High Theta 
+Near Expiry 
+High IV 
+Display Priority
+High
+
+17. Praxis Recommendation
+Theta should serve as the time decay indicator within the Greeks category.
+Greeks Hierarchy
+⭐⭐⭐⭐⭐ Delta 
+⭐⭐⭐⭐☆ Gamma 
+⭐⭐⭐⭐☆ Theta 
+⭐⭐⭐⭐☆ Vega 
+Engine Rules
+Low Theta + Stable IV → Increase Options Score. 
+High Theta during the final expiry week → Reduce confidence for long option positions. 
+High Theta + High Gamma → Trigger an Expiry Risk warning. 
+Always evaluate Theta together with Days to Expiry and IV before generating high-confidence options signals.
+
+
+
+
+
+
+
+
+
+
+
+
+12. Vega
+Module: Options
+Category: Greeks
+Status: Production Ready
+1. Overview
+Name: Vega
+Short Name: Vega
+Module: Options
+Category: Greeks
+Purpose:
+Measures the sensitivity of an option's premium to changes in Implied Volatility (IV). It indicates how much an option's price is expected to change for a 1% change in implied volatility.
+Based On:
+Implied Volatility and Option Premium
+Importance:
+⭐⭐⭐⭐☆ (Core Option Greek)
+Auto / Manual:
+Auto
+Update Frequency:
+Every Option Chain Refresh (Market Hours)
+Praxis Note:
+Vega is highest for At-the-Money (ATM) options with longer time to expiry. It becomes increasingly important during volatile market conditions and major market events.
+
+2. Data Requirements
+Required Data
+Current Implied Volatility 
+Option Premium 
+Underlying Spot Price 
+Strike Price 
+Days to Expiry 
+Minimum Historical Data
+Current Option Chain
+Recommended
+30 Trading Days
+Primary Source
+NSE Option Chain 
+Upstox API 
+
+3. Industry Standard Calculation
+Method
+Calculate Vega using the Black-Scholes option pricing model.
+Interpretation
+Vega measures the expected change in option premium for every 1% change in Implied Volatility.
+Implementation Steps
+Retrieve option chain. 
+Calculate Vega. 
+Measure IV sensitivity. 
+Generate the Options Score. 
+Notes
+Use exchange-provided Greeks when available. 
+Vega decreases as expiry approaches. 
+Highest for ATM options. 
+
+4. Card Fields
+Current Value
+Vega
+Current IV
+Current Implied Volatility
+IV Sensitivity
+Expected premium change per 1% IV movement
+Score
+0–100
+Bias
+Favorable 
+Neutral 
+High Volatility Risk 
+Confidence
+Greeks Confidence
+Impact Weight
+Medium
+
+5. Praxis Score Logic
+Notes
+High Vega indicates greater sensitivity to IV changes. 
+Low Vega provides more stable option pricing. 
+Always confirm with ATM IV and IV Rank. 
+
+6. Bias Rules
+Low Vega
+Bullish
+Moderate Vega
+Neutral
+High Vega
+Cautious
+Extremely High Vega
+High Risk
+
+7. Confidence Logic
+Base Confidence
+90%
+Increase Confidence
++5% High option liquidity
++5% Stable IV
++5% Reliable exchange Greeks
+Decrease Confidence
+-10% Low liquidity
+-5% Wide bid-ask spread
+-5% Rapid IV fluctuations
+Minimum
+65%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → High Risk
+30–60 → Elevated Vega
+60–80 → Stable
+80–100 → Low Risk
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Vega
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+Low Vega
+Explain that the option premium is relatively stable against changes in implied volatility.
+Moderate Vega
+Explain that option pricing has a normal sensitivity to volatility changes.
+High Vega
+Explain that small changes in implied volatility can significantly affect the option premium.
+Extremely High Vega
+Explain that the option is highly sensitive to volatility changes and carries increased pricing risk.
+
+11. Why It Matters
+Measures volatility sensitivity. 
+Helps evaluate option pricing risk. 
+Supports volatility-based strategies. 
+Improves option selection. 
+Essential for volatility trading. 
+
+12. Trading Impact
+Intraday
+★★★★☆
+Swing Trading
+★★★★★
+Positional Trading
+★★★★☆
+Options Trading
+★★★★★
+Best Use
+Evaluating volatility sensitivity.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+ATM IV 
+IV Rank 
+IV Percentile 
+Delta 
+Gamma 
+Theta 
+
+14. Metadata
+Source
+NSE Option Chain / Upstox API
+Calculation
+Exchange Greeks / Backend
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Vega 
+Current IV 
+Option Type 
+Strike Price 
+Current Score 
+Confidence 
+Last Updated 
+Prefer exchange-provided Vega values. If unavailable, calculate using the Black-Scholes model. Update continuously as IV changes throughout the trading session.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+High
+Decision Engine Role
+Volatility Sensitivity Assessment
+Primary Use
+Measure the impact of implied volatility changes on option premiums.
+Bullish Confirmation
+Low Vega 
+Stable IV 
+Low IV Rank 
+Bearish Confirmation
+High Vega 
+Rising ATM IV 
+Rising India VIX 
+Display Priority
+High
+
+17. Praxis Recommendation
+Vega should serve as the volatility sensitivity indicator within the Greeks category.
+Greeks Hierarchy
+⭐⭐⭐⭐⭐ Delta 
+⭐⭐⭐⭐☆ Gamma 
+⭐⭐⭐⭐☆ Theta 
+⭐⭐⭐⭐☆ Vega 
+Engine Rules
+Low Vega + Stable ATM IV → Increase Options Score. 
+High Vega + Rising IV → Increase volatility risk and reduce confidence. 
+High Vega + High IV Rank + High IV Percentile → Trigger a Volatility Risk warning. 
+Always evaluate Vega alongside ATM IV, IV Rank, and Theta before generating high-confidence options signals.
+
+
+
+
+
+
+
+
+
+
+
+
+13. Max Pain
+Module: Options
+Category: Market Positioning
+Status: Production Ready
+1. Overview
+Name: Max Pain
+Short Name: Max Pain
+Module: Options
+Category: Market Positioning
+Purpose:
+Identifies the strike price where the combined loss for option buyers and profit for option writers is minimized at expiry. It is widely used to estimate the price level where the underlying asset may gravitate as expiry approaches.
+Based On:
+Call Open Interest and Put Open Interest across all strikes.
+Importance:
+⭐⭐⭐⭐⭐ (Core Expiry Indicator)
+Auto / Manual:
+Auto
+Update Frequency:
+Every Option Chain Refresh (Market Hours)
+Praxis Note:
+Max Pain is not a price target. Its influence generally increases as expiry approaches and should always be confirmed using Open Interest, PCR, and Price Action.
+
+2. Data Requirements
+Required Data
+Strike Prices 
+Call Open Interest 
+Put Open Interest 
+Spot Price 
+Expiry Date 
+Minimum Historical Data
+Current Option Chain
+Recommended
+30 Trading Days
+Primary Source
+NSE Option Chain 
+Upstox API 
+
+3. Industry Standard Calculation
+Method
+Calculate the theoretical payout for Call and Put writers at every strike price.
+The strike with the minimum total payout is the Max Pain level.
+Implementation Steps
+Retrieve the complete option chain. 
+Calculate total Call payout for every strike. 
+Calculate total Put payout for every strike. 
+Sum total payouts. 
+Identify the strike with the minimum payout. 
+Generate the Options Score. 
+Notes
+Use the nearest active expiry. 
+Recalculate after every option chain refresh. 
+Ignore expired contracts. 
+Follow the standard Max Pain methodology used by options analytics platforms. 
+
+4. Card Fields
+Current Value
+Max Pain Strike
+Current Spot
+Underlying Spot Price
+Distance
+Spot vs Max Pain (%)
+Score
+0–100
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Market Positioning Confidence
+Impact Weight
+High
+
+5. Praxis Score Logic
+Notes
+Max Pain is strongest during the final week before expiry. 
+Influence decreases for longer-dated expiries. 
+Always confirm using OI Change and PCR. 
+
+6. Bias Rules
+Spot Near Max Pain
+Neutral
+Spot Moving Towards Max Pain
+Moderately Bullish/Bearish
+Spot Moving Away
+Trend Strengthening
+Large Divergence
+Weak Max Pain Influence
+
+7. Confidence Logic
+Base Confidence
+88%
+Increase Confidence
++5% High Open Interest concentration
++5% PCR confirmation
++5% Final expiry week
+Decrease Confidence
+-10% Low option liquidity
+-5% Large gap openings
+-5% Mixed OI signals
+Minimum
+60%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Weak Influence
+30–60 → Moderate
+60–80 → Strong
+80–100 → Very Strong
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Max Pain Strike
+Line 2
+Praxis Score
+History
+30 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+Spot Near Max Pain
+Explain that price is trading close to the Max Pain level, indicating balanced options positioning.
+Spot Moving Towards Max Pain
+Explain that expiry-related positioning may attract price toward the Max Pain strike.
+Spot Moving Away
+Explain that directional momentum is currently stronger than expiry positioning.
+High OI at Max Pain
+Explain that institutional option writers are heavily concentrated around the Max Pain level.
+
+11. Why It Matters
+Identifies important expiry levels. 
+Tracks institutional options positioning. 
+Improves expiry-week analysis. 
+Complements Open Interest analysis. 
+Supports short-term market assessment. 
+
+12. Trading Impact
+Intraday
+★★★☆☆
+Swing Trading
+★★★☆☆
+Positional Trading
+★★☆☆☆
+Options Trading
+★★★★★
+Best Use
+Expiry week positioning analysis.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+Total Call Open Interest 
+Total Put Open Interest 
+OI Change 
+PCR (OI) 
+ATM IV 
+India VIX 
+
+14. Metadata
+Source
+NSE Option Chain / Upstox API
+Calculation
+Backend
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Max Pain Strike 
+Spot Price 
+Distance from Max Pain 
+Current Score 
+Confidence 
+Last Updated 
+Recalculate after every option chain update. Maintain historical Max Pain levels to identify persistent institutional positioning. Increase update priority during the final week before expiry.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+Configurable
+Relative Importance
+Very High
+Decision Engine Role
+Expiry Positioning Assessment
+Primary Use
+Identify the strike price where options market positioning is most balanced.
+Bullish Confirmation
+Spot moving toward Max Pain 
+Bullish PCR 
+Long Build-up 
+Bearish Confirmation
+Spot moving away from Max Pain 
+Short Build-up 
+Rising Call OI 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+Max Pain should serve as the primary expiry positioning indicator within the Market Positioning category.
+Market Positioning Hierarchy
+⭐⭐⭐⭐⭐ Max Pain 
+Engine Rules
+Spot approaching Max Pain during expiry week → Increase confidence in market equilibrium. 
+Spot moving sharply away from Max Pain + Strong OI Build-up → Increase trend continuation probability. 
+High Open Interest concentration at Max Pain → Strengthen Options Score. 
+Always evaluate Max Pain together with PCR, Open Interest, and OI Change before generating high-confidence expiry signals.
+
+
+
+
+
+
+
+
+
+
+
+
+
+$. Options Score Engine
+Module: Options
+Category: Score Engine
+Status: Production Ready
+1. Overview
+Name: Options Score Engine
+Short Name: Options Engine
+Module: Options
+Category: Score Engine
+Purpose:
+Aggregates all Options indicators into a single Options Score (0–100) representing market positioning, sentiment, volatility, and options-based directional strength.
+Based On:
+Weighted average of all Options indicators.
+Importance:
+⭐⭐⭐⭐⭐ (Core Engine)
+Auto / Manual:
+Automatic
+Update Frequency:
+Every Option Chain Refresh
+Praxis Note:
+The Options Engine does not calculate individual indicators. It consumes the outputs (Score, Bias, Confidence) from each Options indicator and produces the overall Options Score.
+
+2. Data Requirements
+Open Interest
+Total Call Open Interest 
+Total Put Open Interest 
+Open Interest Change 
+Put-Call Ratio
+PCR (OI) 
+PCR (Volume) 
+Implied Volatility
+ATM IV 
+IV Rank 
+IV Percentile 
+Greeks
+Delta 
+Gamma 
+Theta 
+Vega 
+Market Positioning
+Max Pain 
+
+3. Industry Standard Calculation
+Category Score
+Category Score =
+Weighted Average of Indicators
+Final Options Score
+Options Score =
+Weighted Average of Category Scores
+Default Category Weights
+Implementation Steps
+Collect all Options indicator scores. 
+Calculate each category score. 
+Apply category weights. 
+Generate overall Options Score. 
+Generate Bias and Confidence. 
+Notes
+Ignore unavailable indicators. 
+Normalize weights automatically if data is unavailable. 
+Never assign zero because an indicator is missing. 
+
+4. Card Fields
+Options Score
+0–100
+Category Scores
+Open Interest 
+Put-Call Ratio 
+Implied Volatility 
+Greeks 
+Market Positioning 
+Bias
+Bullish 
+Neutral 
+Bearish 
+Confidence
+Overall Options Confidence
+Impact Weight
+30% (Decision Engine Default)
+
+5. Praxis Score Logic
+Notes
+Every category contributes proportionally. 
+Missing indicators should not disproportionately affect the score. 
+Category weights remain configurable. 
+
+6. Bias Rules
+Score Above 75
+Bullish
+Score Between 55–74
+Neutral
+Score Below 55
+Bearish
+Score Below 35
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence
+Average confidence of all available indicators.
+Increase Confidence
++5% All categories available
++5% High option liquidity
+Decrease Confidence
+-5% Missing category
+-10% Multiple unavailable indicators
+-10% Incomplete option chain
+Minimum
+50%
+Maximum
+99%
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Options Score
+Average Marker
+30-Day Average Score
+Color Zones
+0–30 → Strong Bearish
+30–60 → Weak
+60–80 → Neutral
+80–100 → Strong Bullish
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Options Score
+Line 2
+Confidence
+History
+30 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+Score Above 80
+Explain that options positioning strongly supports the current market direction.
+Score Between 60–80
+Explain that options data generally supports the prevailing trend.
+Score Between 35–60
+Explain that options indicators are mixed and conviction is moderate.
+Score Below 35
+Explain that options positioning indicates elevated downside risk.
+Low Confidence
+Mention insufficient or conflicting options data.
+
+11. Why It Matters
+Summarizes options market sentiment. 
+Combines multiple options indicators into one score. 
+Tracks institutional positioning. 
+Provides standardized input for the Decision Engine. 
+
+12. Trading Impact
+Intraday
+★★★★★
+Swing Trading
+★★★★★
+Positional Trading
+★★★★☆
+Options Trading
+★★★★★
+Best Use
+Options market assessment.
+Avoid Using Alone
+Yes
+
+13. Supporting Indicators
+All Options Indicators 
+Technical Score 
+Fundamentals Score 
+Global Score 
+Events Score 
+
+14. Metadata
+Source
+Calculated
+Calculation
+Backend
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Store:
+Options Score 
+Category Scores 
+Overall Confidence 
+Overall Bias 
+Historical Scores 
+Last Updated 
+Recalculate only when an underlying Options indicator changes. Normalize weights if indicators become unavailable. Maintain historical values for dashboard trend visualization.
+
+16. Praxis Engine Integration ⭐
+Engine Weight
+30% (Default Decision Engine Weight)
+Relative Importance
+Critical
+Decision Engine Role
+Institutional Positioning Assessment
+Primary Use
+Provide the Options module output to the Dashboard and Decision Engine.
+Bullish Confirmation
+Options Score >75 
+Confidence >80% 
+Bearish Confirmation
+Options Score <55 
+Confidence >60% 
+Display Priority
+Highest
+
+17. Praxis Recommendation
+The Options Score Engine should be the single output of the Options module.
+Engine Hierarchy
+⭐⭐⭐⭐⭐ Options Indicators
+⬇
+⭐⭐⭐⭐⭐ Category Scores
+⬇
+⭐⭐⭐⭐⭐ Options Score
+⬇
+⭐⭐⭐⭐⭐ Decision Engine
+Engine Rules
+Calculate category scores before calculating the overall score. 
+Normalize weights automatically when indicators are unavailable. 
+Use confidence-weighted aggregation where possible. 
+The Options Score should be consumed directly by the Dashboard and Decision Engine without recalculating any individual indicators.
+
+$. Options Dashboard Card
+Module: Options
+Category: Dashboard
+Status: Production Ready
+1. Overview
+Name: Options Dashboard Card
+Short Name: Options Card
+Module: Options
+Category: Dashboard
+Purpose:
+Provides a consolidated view of the overall Options Score, category performance, market positioning, volatility, and institutional sentiment in a single dashboard card.
+Based On:
+Options Score Engine
+Importance:
+⭐⭐⭐⭐⭐ (Primary Dashboard Component)
+Auto / Manual:
+Automatic
+Update Frequency:
+Every Option Chain Refresh
+Praxis Note:
+This card is display-only. It consumes data from the Options Score Engine and never performs calculations.
+
+2. Data Requirements
+Required Data
+Options Score 
+Options Bias 
+Overall Confidence 
+Open Interest Score 
+Put-Call Ratio Score 
+Implied Volatility Score 
+Greeks Score 
+Market Positioning Score 
+Last Updated Timestamp 
+Data Source
+Options Score Engine
+
+3. Industry Standard Calculation
+Calculation
+No independent calculations.
+Consume outputs from:
+Options Score Engine 
+Category Scores 
+Confidence Engine 
+Implementation Steps
+Retrieve Options Engine output. 
+Display latest score and confidence. 
+Display category breakdown. 
+Update charts. 
+Refresh AI Insight. 
+Notes
+Never recalculate indicator values. 
+Dashboard is presentation only. 
+
+4. Card Fields
+Primary
+Options Score 
+Bias 
+Confidence 
+Category Breakdown
+Open Interest 
+Put-Call Ratio 
+Implied Volatility 
+Greeks 
+Market Positioning 
+Visual Components
+Score Range Bar 
+30-Day Average Marker 
+Current Score Pointer 
+Options Trend Chart 
+Additional
+AI Insight 
+Why It Matters 
+Supporting Categories 
+Last Updated 
+
+5. Praxis Score Logic
+Display the score generated by the Options Engine.
+No additional scoring logic.
+
+6. Bias Rules
+Display:
+Strong Bullish 
+Bullish 
+Neutral 
+Bearish 
+Strong Bearish 
+Exactly as received from the Options Engine.
+
+7. Confidence Logic
+Display:
+Overall Options Confidence
+No recalculation.
+
+8. Score Range Bar
+Minimum
+0
+Maximum
+100
+Pointer
+Current Options Score
+Average Marker
+30-Day Average
+Color Zones
+0–30 → Strong Bearish
+30–60 → Weak
+60–80 → Neutral
+80–100 → Strong Bullish
+
+9. Dual Trend Chart
+Chart Type
+Dual Line
+Line 1
+Options Score
+Line 2
+Overall Confidence
+History
+30 Trading Days
+Update
+Every option chain refresh.
+
+10. AI Insight Rules
+Display the AI summary generated from the Options Engine.
+Priority order:
+Overall Options Positioning 
+Strongest Category 
+Weakest Category 
+Confidence Warning (if applicable) 
+Maximum:
+3–5 concise sentences.
+
+11. Why It Matters
+Provides a quick overview of options market positioning. 
+Highlights institutional sentiment. 
+Summarizes volatility and directional exposure. 
+Simplifies complex options data into a single score. 
+Serves as the primary Options summary for the Dashboard. 
+
+12. Trading Impact
+Intraday
+★★★★★
+Swing Trading
+★★★★★
+Positional Trading
+★★★★☆
+Options Trading
+★★★★★
+Best Use
+Institutional positioning assessment.
+
+13. Supporting Indicators
+Options Score Engine 
+Open Interest 
+Put-Call Ratio 
+Implied Volatility 
+Greeks 
+Market Positioning 
+
+14. Metadata
+Source
+Options Engine
+Calculation
+None (Display Only)
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Display only.
+Do not calculate:
+Scores 
+Bias 
+Confidence 
+Consume directly from the Options Engine.
+Refresh automatically whenever the Options Engine publishes new data.
+Cache previous values to support dashboard history.
+
+16. Praxis Engine Integration ⭐
+Display Priority
+Highest
+Consumes
+Options Score 
+Bias 
+Confidence 
+Category Scores 
+Outputs
+None
+This card is a presentation layer and does not feed back into any engine.
+
+17. Praxis Recommendation
+The Options Dashboard Card should act as the single visualization component for the Options module.
+Display Hierarchy
+⭐⭐⭐⭐⭐ Options Score
+⬇
+Category Breakdown
+⬇
+Trend Chart
+⬇
+AI Insight
+⬇
+Metadata
+Dashboard Rules
+Never perform calculations. 
+Always consume the latest Options Engine output. 
+Refresh automatically after every Options Engine update. 
+Maintain a clean, high-level summary suitable for rapid trading decisions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$. Options AI Engine
+Module: Options
+Category: AI Engine
+Status: Production Ready
+1. Overview
+Name: Options AI Engine
+Short Name: Options AI
+Module: Options
+Category: AI Engine
+Purpose:
+Generate concise, human-readable explanations for the Options module using structured outputs from the Options Score Engine.
+Based On:
+Options Score Engine
+Importance:
+⭐⭐⭐⭐⭐ (Core AI Component)
+Auto / Manual:
+Automatic
+Update Frequency:
+Every Option Chain Refresh
+Praxis Note:
+The AI Engine never performs calculations or modifies scores. It only explains the outputs generated by the Options Score Engine.
+
+2. Data Requirements
+Required Inputs
+Options Score 
+Options Bias 
+Overall Confidence 
+Open Interest Score 
+Put-Call Ratio Score 
+Implied Volatility Score 
+Greeks Score 
+Market Positioning Score 
+Highest Scoring Category 
+Lowest Scoring Category 
+Source
+Options Score Engine
+
+3. Industry Standard Logic
+Workflow
+Receive Options Engine outputs. 
+Identify the strongest category. 
+Identify the weakest category. 
+Generate the overall summary. 
+Add a confidence disclaimer if required. 
+Notes
+No calculations. 
+No predictions. 
+No investment advice. 
+Explanation only. 
+
+4. Card Fields
+AI Summary
+Overall explanation.
+Strengths
+Highest-performing category.
+Weaknesses
+Lowest-performing category.
+Confidence Note
+Displayed only when confidence is below the threshold.
+
+5. Summary Rules
+Notes
+Keep responses objective. 
+Avoid exaggerated language. 
+Limit summaries to 3–5 concise sentences. 
+
+6. Bias Rules
+Bullish
+Highlight positive institutional positioning and supportive options data.
+Neutral
+Explain that options indicators are mixed or balanced.
+Bearish
+Highlight bearish positioning and elevated market risk.
+
+7. Confidence Logic
+Confidence >80%
+No disclaimer.
+Confidence 60–80%
+Mention that some options indicators require monitoring.
+Confidence <60%
+Clearly state that conflicting or incomplete options data reduces confidence.
+
+8. Summary Structure
+The AI response should follow this order:
+Overall Options Positioning 
+Strongest Category 
+Weakest Category 
+Confidence Note (if required) 
+Maximum:
+5 sentences.
+
+9. Insight Refresh
+History
+Store the latest AI summaries.
+Update
+Whenever the Options Score Engine publishes a new score.
+
+10. AI Insight Rules
+Open Interest Strong
+Mention strong institutional positioning.
+PCR Strong
+Highlight supportive market sentiment.
+Implied Volatility High
+Mention elevated market uncertainty and expensive option premiums.
+Greeks Strong
+Highlight favorable option sensitivity and positioning.
+Max Pain Alignment
+Mention balanced expiry positioning.
+Multiple Weak Categories
+Summarize the primary risks affecting the Options Score.
+
+11. Why It Matters
+Converts complex options data into clear insights. 
+Improves dashboard usability. 
+Helps users quickly understand institutional positioning. 
+Maintains consistency across all Praxis modules. 
+
+12. Trading Impact
+Direct Trading Impact
+None
+Primary Use
+Interpretation of Options data.
+
+13. Supporting Components
+Options Score Engine 
+Category Scores 
+Confidence Engine 
+
+14. Metadata
+Source
+Options Score Engine
+Calculation
+None (Explanation Only)
+Updated
+Every Option Chain Refresh
+Timezone
+Asia/Kolkata
+Storage
+Local Electron Database
+
+15. Developer Notes
+Do not expose calculation logic. 
+Never modify indicator scores. 
+Generate deterministic summaries from engine outputs. 
+Avoid repeating identical summaries unless the Options Score changes meaningfully. 
+Store previous summaries if AI history is enabled. 
+
+16. Praxis Engine Integration ⭐
+Consumes
+Options Score 
+Bias 
+Confidence 
+Category Scores 
+Outputs
+AI Summary 
+Strengths 
+Weaknesses 
+Confidence Note 
+Display Priority
+High
+The AI Engine is an explanation layer only and does not provide feedback to the Options Score Engine.
+
+17. Praxis Recommendation
+The Options AI Engine should act as the natural language explanation layer for the Options module.
+AI Flow
+⭐⭐⭐⭐⭐ Options Score Engine
+⬇
+Category Analysis
+⬇
+Summary Generation
+⬇
+Strengths & Weaknesses
+⬇
+Confidence Note
+AI Rules
+Never calculate indicators. 
+Never generate independent trading signals. 
+Explain only what the Options Score Engine has already determined. 
+Keep explanations concise, factual, and consistent with the calculated scores. 
+The Options AI Engine should ensure that every Options Score is accompanied by a clear, reliable explanation, enabling traders to quickly understand institutional positioning, volatility conditions, and overall options market sentiment without influencing the underlying calculations or decision-making logic.
+
+
+
+
+
+
+$. Options Configuration
+Module: Options
+Category: Configuration
+Status: Production Ready
+1. Overview
+Name: Options Configuration
+Short Name: Options Config
+Module: Options
+Category: Configuration
+Purpose:
+Provides centralized configuration for the Options module, including category weights, indicator weights, scoring thresholds, update behavior, expiry selection, and future automation settings.
+Importance:
+⭐⭐⭐⭐⭐ (Core Configuration)
+Auto / Manual:
+Manual
+Update Frequency:
+On Configuration Change
+Praxis Note:
+Configuration only affects how the Options Engine interprets and combines indicator outputs. It must never modify the calculation methodology of individual indicators.
+
+2. Configuration Parameters
+Category Weights
+
+Indicator Weights
+All indicators use the default engine weights.
+Support custom weighting in future versions.
+
+Score Thresholds
+
+Confidence Thresholds
+
+3. Option Chain Settings
+Default Expiry
+Weekly Expiry (Nearest) 
+Automatic Switch
+Switch to Monthly Expiry after weekly expiry. 
+ATM Selection
+Automatically identify the nearest At-the-Money strike based on the current spot price.
+
+4. Update Configuration
+
+5. Manual Mode
+Support manual input for:
+Call Open Interest 
+Put Open Interest 
+PCR 
+ATM IV 
+IV Rank 
+IV Percentile 
+Delta 
+Gamma 
+Theta 
+Vega 
+Max Pain 
+Manual values should:
+Override automatic values. 
+Record update timestamp. 
+Record data source. 
+Trigger Options Engine recalculation. 
+
+6. Future Auto Mode (V2)
+Support automatic data retrieval through:
+NSE Option Chain API 
+Upstox API 
+Exchange Greeks 
+Volatility Data Providers 
+Manual override should remain available.
+
+7. Score Configuration
+Support configurable:
+Category weights 
+Indicator weights 
+Bias thresholds 
+Confidence thresholds 
+Changes should immediately recalculate the Options Score.
+
+8. Dashboard Configuration
+Allow enabling or disabling:
+AI Summary 
+Trend Chart 
+Category Breakdown 
+Confidence Display 
+Supporting Indicators 
+Metadata 
+
+9. AI Configuration
+Allow configuration of:
+Maximum summary length 
+Confidence disclaimer threshold 
+Summary refresh behavior 
+AI configuration must not affect engine calculations.
+
+10. Storage Configuration
+Persist:
+Category weights 
+Indicator weights 
+Manual values 
+Configuration settings 
+Historical scores 
+Historical IV data 
+Historical OI data 
+Last update timestamps 
+Storage Location:
+Local Electron Database
+
+11. Validation Rules
+Total category weights must equal 100%. 
+Indicator weights must equal their category weight. 
+Score thresholds must not overlap. 
+Confidence values must remain between 0% and 100%. 
+Reject invalid configurations before applying. 
+
+12. Developer Notes
+Store:
+Current configuration 
+Previous configuration 
+Configuration version 
+Last modified timestamp 
+Support rollback for invalid configurations.
+Configuration changes should not modify historical Options data or previously calculated indicator values.
+
+13. Praxis Engine Integration ⭐
+Consumes
+User Configuration 
+Default Configuration 
+Controls
+Options Score Engine 
+Dashboard Card 
+AI Engine 
+Outputs
+Updated Engine Configuration 
+
+14. Praxis Recommendation
+The Options Configuration module should act as the central configuration layer for the Options system.
+Configuration Flow
+⭐⭐⭐⭐⭐ Configuration
+⬇
+Options Score Engine
+⬇
+Dashboard
+⬇
+AI Engine
+Configuration Rules
+Keep default settings aligned with industry-standard options analytics. 
+Allow customization without modifying calculation formulas. 
+Validate every configuration before applying. 
+Preserve previous settings to support rollback. 
+Automatically normalize weights if optional indicators are disabled.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Options Engine Weight Configuration 
+This document defines the contribution of each Options indicator to the overall Options Score and how much each indicator can influence the Decision Engine's confidence.
+
+Open Interest Indicators (Module Weight: 30%)
+Module Total: 30%
+
+Put-Call Ratio Indicators (Module Weight: 20%)
+Module Total: 20%
+
+Implied Volatility Indicators (Module Weight: 20%)
+Module Total: 20%
+
+
+Greeks (Module Weight: 20%)
+Module Total: 20%
+
+Market Positioning (Module Weight: 10%)
+Module Total: 10%
+
+Module Allocation
+Grand Total: 100%
+
+Confidence Modifier Guidelines
+
+Engine Formula
+Options Score
+Options Score
+
+=
+
+Σ (Indicator Score × Engine Weight)
+
+÷
+
+Σ (Engine Weight)
+Confidence
+Confidence
+
+=
+
+Base Confidence
+
++
+
+Positive Modifiers
+
+−
+
+Negative Modifiers
+Final Score Range
+0 – 100
+Final Confidence Range
+0 – 100
+
+Why these weights?
+These weights are based on the relative importance of options indicators used by professional derivatives traders, institutional participants, and NSE option chain analysis.
+Open Interest Change (14%) receives the highest weight because it reveals whether fresh money is entering or exiting the market, making it the strongest indicator of institutional positioning. 
+PCR (Open Interest) (13%) is the primary sentiment indicator and is widely used to identify bullish, bearish, and contrarian positioning. 
+ATM Implied Volatility (10%) is the foundation of volatility analysis and directly influences option pricing and risk. 
+Max Pain (10%) becomes increasingly valuable during expiry and provides insight into institutional expiry positioning. 
+Delta (8%) is the most important Greek, measuring directional exposure and option responsiveness to underlying price movement. 
+Total Call OI (8%) and Total Put OI (8%) identify major resistance and support zones created by option writers. 
+IV Rank (6%) provides historical context for current implied volatility, while PCR (Volume) (7%) offers faster but less reliable sentiment confirmation. 
+Gamma, Theta, Vega, and IV Percentile (4% each) serve as supporting indicators that refine risk assessment and option pricing without dominating the overall Options Score.

@@ -11,14 +11,21 @@
  * - Route: /dashboard/fundamental
  */
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
+import FundamentalMetricsDesk from "./FundamentalMetricsDesk";
 import FundamentalGrid from "./FundamentalGrid";
 import FundamentalModal from "./FundamentalModal";
+import IndexSummaryWidget from "./IndexSummaryWidget";
 import CompanySummaryWidget from "./CompanySummaryWidget";
-import UiverseDropdown from '@/shared/components/ui/UiverseDropdown';
-import { FO_INDICES, FO_EQUITIES } from '@/shared/utils/foInstruments';
+
 import { useFundamentalsData } from '../api/useFundamentalsData';
+import { FundamentalContext } from './FundamentalContext';
+import axiosInstance from '@/shared/utils/axiosInstance';
+import { useFundamentalComposite } from '../engine/useFundamentalComposite';
+import { computeCompanyComposite, computeIndexComposite, TITLE_TO_ID } from '../engine/FundamentalCompositeEngine';
+import { useDashboardContext } from "@/shared/context/DashboardContext";
+import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 // Reusable component for input fields (defined outside to prevent focus loss)
 const OverrideInput = ({ label, overrideKey, value, onChange }) => (
@@ -34,6 +41,49 @@ const OverrideInput = ({ label, overrideKey, value, onChange }) => (
     </div>
 );
 
+const getInitialOverrides = (instrument) => {
+    const defaultOverrides = {
+        // Valuation
+        pe_ratio: null, pe_hist: null, pe_sector: null, forward_pe: null, projected_eps: null,
+        pb_ratio: null, pb_hist: null, pb_sector: null, earnings_yield: null, ey_hist: null, bond_yield: null,
+        // Market Health
+        market_cap_gdp: null, dividend_yield: null, fii_dii_flow: null, earnings_trend: null,
+        // Growth
+        eps_growth: null, gdp_growth: null, revenue_growth: null, profit_growth: null,
+        // Profitability & Health
+        roe: null, roce: null, net_margin: null, operating_margin: null, operating_profit: null,
+        revenue: null, debt_to_equity: null, total_debt: null, shareholders_equity: null,
+        current_ratio: null, current_assets: null, current_liabilities: null, interest_coverage: null,
+        ebit: null, interest_expense: null, free_cash_flow: null, operating_cf: null, capex: null,
+        face_value: null, high_low: null, current_price: null, book_value: null,
+        // Index Specific
+        index_pe: null, index_pb: null, index_div_yield: null, ad_ratio: null,
+        india_vix: null, index_pcr: null, index_macd: null, index_200dma: null,
+    };
+    
+    const stored = localStorage.getItem('praxis_manual_overrides_v2');
+    if (stored) {
+        try {
+            const parsed = JSON.parse(stored);
+            if (parsed && parsed[instrument]) {
+                return { ...defaultOverrides, ...parsed[instrument] };
+            }
+        } catch (e) { console.error("Error parsing stored manual overrides", e); }
+    }
+    return defaultOverrides;
+};
+
+const getInitialLastUpdated = (instrument) => {
+    const stored = localStorage.getItem('praxis_manual_last_updated_v2');
+    if (stored) {
+        try {
+            const parsed = JSON.parse(stored);
+            if (parsed && parsed[instrument]) return parsed[instrument];
+        } catch (e) {}
+    }
+    return '--:--';
+};
+
 export default function FundamentalPage() {
   const [viewMode, setViewMode] = useState("sectioned");
   const [sortMode, setSortMode] = useState("score_desc");
@@ -45,99 +95,185 @@ export default function FundamentalPage() {
     { id: "forward_pe", category: "Valuation" },
     { id: "pb_ratio", category: "Valuation" },
     { id: "earnings_yield", category: "Valuation" },
-    { id: "market_cap_gdp", category: "Market Health" },
-    { id: "dividend_yield", category: "Market Health" },
-    { id: "earnings_trend", category: "Market Health" },
-    { id: "fii_dii_flow", category: "Market Health" },
-    { id: "eps_growth", category: "Growth" },
-    { id: "revenue_growth", category: "Growth" },
-    { id: "profit_growth", category: "Growth" },
-    { id: "gdp_growth", category: "Growth" },
-    { id: "roe", category: "Profitability" },
-    { id: "roce", category: "Profitability" },
-    { id: "net_margin", category: "Profitability" },
-    { id: "operating_margin", category: "Profitability" },
-    { id: "debt_to_equity", category: "Financial Health" },
-    { id: "interest_coverage", category: "Financial Health" },
-    { id: "free_cash_flow", category: "Financial Health" },
-    { id: "current_ratio", category: "Financial Health" },
+    { id: "market_cap_gdp", category: "Sector" },
+    { id: "dividend_yield", category: "Sector" },
+    { id: "earnings_trend", category: "Sector" },
+    { id: "fii_dii_flow", category: "Liquidity" },
+    { id: "eps_growth", category: "Earnings" },
+    { id: "revenue_growth", category: "Earnings" },
+    { id: "profit_growth", category: "Earnings" },
+    { id: "gdp_growth", category: "Macro" },
+    { id: "roe", category: "Corporate" },
+    { id: "roce", category: "Corporate" },
+    { id: "net_margin", category: "Corporate" },
+    { id: "operating_margin", category: "Corporate" },
+    { id: "debt_to_equity", category: "Global" },
+    { id: "interest_coverage", category: "Global" },
+    { id: "free_cash_flow", category: "Global" },
+    { id: "current_ratio", category: "Global" },
   ];
 
-  const categories = [
-      { label: "Indices", value: "Indices" },
-      { label: "Companies", value: "Companies" }
-  ];
-
-  const [selectedCategory, setSelectedCategory] = useState("Companies");
-  const [selectedInstrument, setSelectedInstrument] = useState("NSE_EQ|INE467B01029"); // Default TCS
-  
-  const filteredInstruments = selectedCategory === "Indices" ? FO_INDICES : FO_EQUITIES;
+  const { selectedCategory, selectedInstrument, filteredInstruments } = useDashboardContext();
 
   // Master state for manual overrides
-  const [manualOverrides, setManualOverrides] = useState({
-      // Valuation
-      pe_ratio: null,
-      pe_hist: null,
-      pe_sector: null,
-      forward_pe: null,
-      projected_eps: null,
-      pb_ratio: null,
-      pb_hist: null,
-      pb_sector: null,
-      earnings_yield: null,
-      ey_hist: null,
-      bond_yield: null,
-      // Market Health
-      market_cap_gdp: null,
-      dividend_yield: null,
-      fii_dii_flow: null,
-      earnings_trend: null,
-      // Growth
-      eps_growth: null,
-      gdp_growth: null,
-      revenue_growth: null,
-      profit_growth: null,
-      // Profitability & Health
-      roe: null,
-      roce: null,
-      net_margin: null,
-      operating_margin: null,
-      operating_profit: null,
-      revenue: null,
-      debt_to_equity: null,
-      total_debt: null,
-      shareholders_equity: null,
-      current_ratio: null,
-      current_assets: null,
-      current_liabilities: null,
-      interest_coverage: null,
-      ebit: null,
-      interest_expense: null,
-      free_cash_flow: null,
-      operating_cf: null,
-      capex: null,
-      face_value: null,
-      high_low: null,
-      current_price: null,
-      book_value: null,
-  });
-
-  const handleOverrideChange = (key, val) => {
-      setManualOverrides(prev => ({ ...prev, [key]: val }));
-      setManualLastUpdated(new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }));
-  };
+  const [manualOverrides, setManualOverrides] = useState(() => getInitialOverrides(selectedInstrument));
 
   // Track when a manual override was last changed
-  const [manualLastUpdated, setManualLastUpdated] = React.useState('--:--');
+  const [manualLastUpdated, setManualLastUpdated] = React.useState(() => getInitialLastUpdated(selectedInstrument));
 
-  // Auto-update instrument when category changes
+  // Update overrides when instrument changes
   React.useEffect(() => {
-      if (filteredInstruments.length > 0 && !filteredInstruments.find(i => i.value === selectedInstrument)) {
-          setSelectedInstrument(filteredInstruments[0].value);
+      setManualOverrides(getInitialOverrides(selectedInstrument));
+      setManualLastUpdated(getInitialLastUpdated(selectedInstrument));
+  }, [selectedInstrument]);
+
+  const handleOverrideChange = (key, val) => {
+      setManualOverrides(prev => {
+          const next = { ...prev, [key]: val };
+          
+          const stored = localStorage.getItem('praxis_manual_overrides_v2');
+          let allOverrides = {};
+          if (stored) {
+              try { allOverrides = JSON.parse(stored); } catch (e) {}
+          }
+          allOverrides[selectedInstrument] = next;
+          localStorage.setItem('praxis_manual_overrides_v2', JSON.stringify(allOverrides));
+          
+          return next;
+      });
+
+      const timeStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      setManualLastUpdated(timeStr);
+      
+      const storedTime = localStorage.getItem('praxis_manual_last_updated_v2');
+      let allTimes = {};
+      if (storedTime) {
+          try { allTimes = JSON.parse(storedTime); } catch(e) {}
       }
-  }, [selectedCategory, filteredInstruments, selectedInstrument]);
+      allTimes[selectedInstrument] = timeStr;
+      localStorage.setItem('praxis_manual_last_updated_v2', JSON.stringify(allTimes));
+  };
+
+  // Context manages auto-updating instrument when category changes
 
   const { data: fundamentalsData, loading, error, lastUpdated } = useFundamentalsData(selectedInstrument);
+
+  // Fundamental Composite Engine integration
+  const compositeData = useFundamentalComposite(selectedCategory, selectedInstrument);
+
+  // --- Store Composite & Sections for AI Analysis ---
+  React.useEffect(() => {
+      if (!selectedInstrument || compositeData.compositeScore === 0 || compositeData.sections.length === 0) return;
+
+      const payload = {
+          instrument_key: selectedInstrument,
+          category: selectedCategory,
+          composite_score: compositeData.compositeScore,
+          regime: compositeData.regime?.label,
+          sections: compositeData.sections.map(s => ({
+              id: s.id,
+              score: s.score,
+              weight: s.weight
+          })),
+          timestamp: new Date().toISOString()
+      };
+
+      const saveComposite = () => {
+          axiosInstance.post('/api/v1/composite/snapshots', payload)
+              .then(() => console.log('Saved composite score:', compositeData.compositeScore))
+              .catch(err => console.error('Error saving composite score:', err));
+      };
+
+      // Save on significant score change (debounced implicitly by the engine hook which reacts to card saves)
+      const changeTimer = setTimeout(() => {
+          saveComposite();
+      }, 5000); // Wait 5s for all cards to settle
+
+      // Also save periodically every 15 minutes to track continuous data over a session
+      const intervalTimer = setInterval(() => {
+          saveComposite();
+      }, 15 * 60 * 1000);
+
+      return () => {
+          clearTimeout(changeTimer);
+          clearInterval(intervalTimer);
+      };
+  }, [compositeData.compositeScore, selectedInstrument]);
+
+
+  // --- Historical Snapshots Logic ---
+  const [historicalSnapshots, setHistoricalSnapshots] = useState({});
+  const snapshotQueue = React.useRef({});
+  const snapshotTimer = React.useRef(null);
+
+  React.useEffect(() => {
+      if (!selectedInstrument) return;
+      
+      // Fetch historical graph data
+      axiosInstance.get(`/api/v1/snapshots/${encodeURIComponent(selectedInstrument)}`)
+          .then(res => setHistoricalSnapshots(res.data?.data || {}))
+          .catch(e => console.error("Failed to fetch snapshots", e));
+  }, [selectedInstrument]);
+
+  // --- Previous Day Composite Calculation ---
+  const [prevCompositeScore, setPrevCompositeScore] = useState(0);
+
+  React.useEffect(() => {
+      if (!historicalSnapshots || Object.keys(historicalSnapshots).length === 0) {
+          setPrevCompositeScore(compositeData.compositeScore); // Fallback to current if no history
+          return;
+      }
+
+      // 1. Gather the latest snapshot score for each card that is BEFORE today
+      const todayDate = new Date().toISOString().split('T')[0];
+      const prevScores = {};
+      
+      for (const [cardId, snaps] of Object.entries(historicalSnapshots)) {
+          // Snaps are ordered ASC by date. Find the last one strictly before today.
+          const pastSnaps = snaps.filter(s => s.date && s.date < todayDate);
+          if (pastSnaps.length > 0) {
+              const lastSnap = pastSnaps[pastSnaps.length - 1];
+              const metricId = TITLE_TO_ID[cardId];
+              if (metricId && lastSnap.score !== undefined) {
+                  prevScores[metricId] = lastSnap.score;
+              }
+          }
+      }
+
+      // 2. Compute the old composite using the historical card scores
+      if (Object.keys(prevScores).length > 0) {
+          const isIndex = selectedCategory === 'Indices';
+          const oldRes = isIndex 
+              ? computeIndexComposite(prevScores) 
+              : computeCompanyComposite(prevScores);
+          setPrevCompositeScore(oldRes.compositeScore);
+      } else {
+          setPrevCompositeScore(compositeData.compositeScore); // No historical data yet
+      }
+  }, [historicalSnapshots, selectedCategory, compositeData.compositeScore]);
+
+  React.useEffect(() => {
+      const handleSnapshot = (e) => {
+          if (!selectedInstrument) return;
+          const { card_id, raw_value, score, bias } = e.detail;
+          snapshotQueue.current[card_id] = { instrument_key: selectedInstrument, card_id, raw_value, score, bias };
+
+          clearTimeout(snapshotTimer.current);
+          snapshotTimer.current = setTimeout(() => {
+              const snapshots = Object.values(snapshotQueue.current);
+              if (snapshots.length > 0) {
+                  axiosInstance.post('/api/v1/snapshots', { snapshots })
+                      .then(() => console.log('Saved snapshots:', snapshots.length))
+                      .catch(err => console.error('Error saving snapshots:', err));
+                  snapshotQueue.current = {};
+              }
+          }, 3000); // 3 second debounce to allow all cards to render and calculate
+      };
+
+      window.addEventListener('SAVE_SNAPSHOT', handleSnapshot);
+      return () => window.removeEventListener('SAVE_SNAPSHOT', handleSnapshot);
+  }, [selectedInstrument]);
+  // ----------------------------------
 
   // --- Dynamic Hiding Logic for Fallbacks ---
   const extractRatioExists = (names) => {
@@ -175,185 +311,196 @@ export default function FundamentalPage() {
               When Upstox does not provide data for a specific metric, it falls back to the manual overrides configured here.
           </p>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6">
-              {/* Company Snapshot */}
-              <div className="space-y-2">
-                  <div className="text-xs font-bold text-emerald-500 mb-2">Company Snapshot</div>
-                  {!hasMarketCap && (
+          {selectedCategory === "Indices" ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8">
+                  <div className="space-y-3">
+                      <div className="text-xs font-bold text-emerald-500 mb-3 border-b border-border-default pb-2">Core Snapshot</div>
+                      {!fundamentalsData?.quote?.last_price && <OverrideInput label="Current Level" overrideKey="current_price" value={manualOverrides.current_price} onChange={handleOverrideChange} />}
+                      {!(fundamentalsData?.quote?.ohlc?.high && fundamentalsData?.quote?.ohlc?.low) && <OverrideInput label="High / Low" overrideKey="high_low" value={manualOverrides.high_low} onChange={handleOverrideChange} />}
+                      <OverrideInput label="Index P/E" overrideKey="index_pe" value={manualOverrides.index_pe} onChange={handleOverrideChange} />
+                      <OverrideInput label="Index P/B" overrideKey="index_pb" value={manualOverrides.index_pb} onChange={handleOverrideChange} />
+                      <OverrideInput label="Dividend Yield (%)" overrideKey="index_div_yield" value={manualOverrides.index_div_yield} onChange={handleOverrideChange} />
+                  </div>
+                  
+                  <div className="space-y-3">
+                      <div className="text-xs font-bold text-yellow-500 mb-3 border-b border-border-default pb-2">Market Internals</div>
+                      <OverrideInput label="A/D Ratio" overrideKey="ad_ratio" value={manualOverrides.ad_ratio} onChange={handleOverrideChange} />
+                      <OverrideInput label="India VIX" overrideKey="india_vix" value={manualOverrides.india_vix} onChange={handleOverrideChange} />
+                      <OverrideInput label="Put-Call Ratio" overrideKey="index_pcr" value={manualOverrides.index_pcr} onChange={handleOverrideChange} />
+                      <OverrideInput label="MACD Histogram" overrideKey="index_macd" value={manualOverrides.index_macd} onChange={handleOverrideChange} />
+                      <OverrideInput label="% From 200 DMA" overrideKey="index_200dma" value={manualOverrides.index_200dma} onChange={handleOverrideChange} />
+                      <OverrideInput label="FII Flow (₹ Cr)" overrideKey="fii_flow" value={manualOverrides.fii_flow} onChange={handleOverrideChange} />
+                      <OverrideInput label="DII Flow (₹ Cr)" overrideKey="dii_flow" value={manualOverrides.dii_flow} onChange={handleOverrideChange} />
+                  </div>
+
+                  <div className="space-y-3">
+                      <div className="text-xs font-bold text-purple-500 mb-3 border-b border-border-default pb-2">Macro Environment</div>
+                      <OverrideInput label="GDP Growth (%)" overrideKey="gdp_growth" value={manualOverrides.gdp_growth} onChange={handleOverrideChange} />
+                      <OverrideInput label="Market Cap to GDP (%)" overrideKey="market_cap_gdp" value={manualOverrides.market_cap_gdp} onChange={handleOverrideChange} />
+                      <OverrideInput label="10Y Bond Yield" overrideKey="bond_yield" value={manualOverrides.bond_yield} onChange={handleOverrideChange} />
+                      <OverrideInput label="EPS Growth (%)" overrideKey="eps_growth" value={manualOverrides.eps_growth} onChange={handleOverrideChange} />
+                  </div>
+              </div>
+          ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6">
+                  {/* Company Snapshot */}
+                  <div className="space-y-2">
+                      <div className="text-xs font-bold text-emerald-500 mb-2">Company Snapshot</div>
+                      {!hasMarketCap && <OverrideInput label="Market Cap" overrideKey="market_cap" value={manualOverrides.market_cap} onChange={handleOverrideChange} />}
+                      {!hasBookValue && <OverrideInput label="Book Value" overrideKey="book_value" value={manualOverrides.book_value} onChange={handleOverrideChange} />}
+                      {!hasFaceValue && <OverrideInput label="Face Value" overrideKey="face_value" value={manualOverrides.face_value} onChange={handleOverrideChange} />}
+                      {!hasPeRatio && <OverrideInput label="Stock P/E" overrideKey="pe_ratio" value={manualOverrides.pe_ratio} onChange={handleOverrideChange} />}
+                  </div>
+
+                  {/* Dividends */}
+                  <div className="space-y-2">
+                      <div className="text-xs font-bold text-pink-500 mb-2">Dividends</div>
                       <OverrideInput 
-                          label="Market Cap" 
-                          overrideKey="market_cap" 
-                          value={manualOverrides.market_cap}
+                          label="Dividend Yield (%)" 
+                          overrideKey="dividend_yield" 
+                          value={manualOverrides.dividend_yield}
                           onChange={handleOverrideChange}
                       />
-                  )}
-                  {!hasBookValue && (
+                  </div>
+
+                  {/* Trends & Flows */}
+                  <div className="space-y-2">
+                      <div className="text-xs font-bold text-yellow-500 mb-2">Trends & Flows</div>
+                      {!hasEarningsTrend && <OverrideInput label="Earnings Trend (CAGR %)" overrideKey="earnings_trend" value={manualOverrides.earnings_trend} onChange={handleOverrideChange} />}
+                      <OverrideInput label="FII Flow (₹ Cr)" overrideKey="fii_flow" value={manualOverrides.fii_flow} onChange={handleOverrideChange} />
+                      <OverrideInput label="DII Flow (₹ Cr)" overrideKey="dii_flow" value={manualOverrides.dii_flow} onChange={handleOverrideChange} />
+                  </div>
+
+                  {/* Valuation */}
+                  <div className="space-y-2">
+                      <div className="text-xs font-bold text-blue-500 mb-2">Valuation</div>
                       <OverrideInput 
-                          label="Book Value" 
-                          overrideKey="book_value" 
-                          value={manualOverrides.book_value}
+                          label="Forward P/E" 
+                          overrideKey="forward_pe" 
+                          value={manualOverrides.forward_pe}
                           onChange={handleOverrideChange}
                       />
-                  )}
-                  {!hasFaceValue && (
+                  </div>
+
+                  {/* Macro Indicators */}
+                  <div className="space-y-2">
+                      <div className="text-xs font-bold text-purple-500 mb-2">Macro Indicators</div>
                       <OverrideInput 
-                          label="Face Value" 
-                          overrideKey="face_value" 
-                          value={manualOverrides.face_value}
+                          label="GDP Growth (%)" 
+                          overrideKey="gdp_growth" 
+                          value={manualOverrides.gdp_growth}
                           onChange={handleOverrideChange}
                       />
-                  )}
-                  {!hasPeRatio && (
                       <OverrideInput 
-                          label="Stock P/E" 
-                          overrideKey="pe_ratio" 
-                          value={manualOverrides.pe_ratio}
+                          label="Market Cap to GDP (%)" 
+                          overrideKey="market_cap_gdp" 
+                          value={manualOverrides.market_cap_gdp}
                           onChange={handleOverrideChange}
                       />
-                  )}
-              </div>
-
-              {/* Dividends */}
-              <div className="space-y-2">
-                  <div className="text-xs font-bold text-pink-500 mb-2">Dividends</div>
-                  <OverrideInput 
-                      label="Dividend Yield (%)" 
-                      overrideKey="dividend_yield" 
-                      value={manualOverrides.dividend_yield}
-                      onChange={handleOverrideChange}
-                  />
-              </div>
-
-              {/* Trends & Flows */}
-              <div className="space-y-2">
-                  <div className="text-xs font-bold text-yellow-500 mb-2">Trends & Flows</div>
-                  {!hasEarningsTrend && (
                       <OverrideInput 
-                          label="Earnings Trend (CAGR %)" 
-                          overrideKey="earnings_trend" 
-                          value={manualOverrides.earnings_trend}
+                          label="10Y Bond Yield" 
+                          overrideKey="bond_yield" 
+                          value={manualOverrides.bond_yield}
                           onChange={handleOverrideChange}
                       />
-                  )}
-                  <OverrideInput 
-                      label="FII Flow (₹ Cr)" 
-                      overrideKey="fii_flow" 
-                      value={manualOverrides.fii_flow}
-                      onChange={handleOverrideChange}
-                  />
-                  <OverrideInput 
-                      label="DII Flow (₹ Cr)" 
-                      overrideKey="dii_flow" 
-                      value={manualOverrides.dii_flow}
-                      onChange={handleOverrideChange}
-                  />
-              </div>
+                  </div>
 
-              {/* Valuation */}
-              <div className="space-y-2">
-                  <div className="text-xs font-bold text-blue-500 mb-2">Valuation</div>
-                  {selectedCategory !== "Indices" && (
-                      <>
-                          <OverrideInput 
-                              label="Forward P/E" 
-                              overrideKey="forward_pe" 
-                              value={manualOverrides.forward_pe}
-                              onChange={handleOverrideChange}
-                          />
-                      </>
-                  )}
+                  {/* Growth */}
+                  <div className="space-y-2">
+                      <div className="text-xs font-bold text-orange-500 mb-2">Growth</div>
+                      <OverrideInput 
+                          label="EPS Growth (%)" 
+                          overrideKey="eps_growth" 
+                          value={manualOverrides.eps_growth}
+                          onChange={handleOverrideChange}
+                      />
+                  </div>
               </div>
-
-              {/* Macro Indicators */}
-              <div className="space-y-2">
-                  <div className="text-xs font-bold text-purple-500 mb-2">Macro Indicators</div>
-                  <OverrideInput 
-                      label="GDP Growth (%)" 
-                      overrideKey="gdp_growth" 
-                      value={manualOverrides.gdp_growth}
-                      onChange={handleOverrideChange}
-                  />
-                  <OverrideInput 
-                      label="Market Cap to GDP (%)" 
-                      overrideKey="market_cap_gdp" 
-                      value={manualOverrides.market_cap_gdp}
-                      onChange={handleOverrideChange}
-                  />
-                  <OverrideInput 
-                      label="10Y Bond Yield" 
-                      overrideKey="bond_yield" 
-                      value={manualOverrides.bond_yield}
-                      onChange={handleOverrideChange}
-                  />
-              </div>
-
-              {/* Growth */}
-              <div className="space-y-2">
-                  <div className="text-xs font-bold text-orange-500 mb-2">Growth</div>
-                  <OverrideInput 
-                      label="EPS Growth (%)" 
-                      overrideKey="eps_growth" 
-                      value={manualOverrides.eps_growth}
-                      onChange={handleOverrideChange}
-                  />
-              </div>
-          </div>
+          )}
       </div>
   );
+
+  // --- Dynamic Coverage & Credits Calculation ---
+  const maxCards = selectedCategory === "Indices" ? 12 : 20;
+  const activeCardsCount = Object.values(compositeData.rawScores || {}).filter(v => v !== null && v !== undefined && !isNaN(v)).length;
+  const coveragePercent = maxCards > 0 ? Math.min(100, Math.round((activeCardsCount / maxCards) * 100)) : 0;
+  
+  const ID_TO_TITLE = useMemo(() => {
+      const inverted = {};
+      for (const [title, id] of Object.entries(TITLE_TO_ID)) {
+          inverted[id] = title;
+      }
+      return inverted;
+  }, []);
+
+  const cardsForHeader = Object.entries(compositeData.rawScores || {})
+      .filter(([_, score]) => score !== null && score !== undefined && !isNaN(score))
+      .map(([id, score]) => {
+          let normalized = 0;
+          
+          if (score > 70) {
+              normalized = 1;  // Bullish
+          } else if (score < 30) {
+              normalized = -1; // Bearish
+          }
+
+          const cardName = ID_TO_TITLE[id] || id;
+          const configData = getIndicatorConfig(id);
+          const credit = configData?.creditScore ?? 5;
+
+          return { id, module: cardName, normalized, credit, creditAllocation: credit, score };
+      });
+
+  const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
 
   return (
     <div className="p-4 md:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen">
 
       {/* HEADER SECTION */}
-      <GlobalHeader
-        title="Fundamental Composite"
-        score={0}
-        prevScore={0}
-        gauge={{ label: "—", color: "#64748B" }}
-        regime={{ label: "—", description: "No data loaded", color: "#64748B" }}
-        integrity={{ coverage: "—", source: "—", freshness: "—" }}
-        infoContent={fundamentalManualForm}
-        sections={[]}
-        tailwinds={[]}
-        risks={[]}
-        totalCredits={0}
-        cards={[]}
-        selectedCategory={selectedCategory}
-        manualOverrides={manualOverrides}
-        onOverrideChange={handleOverrideChange}
-        controls={{
-          search: searchQuery,
-          onSearchChange: setSearchQuery,
-          viewMode,
-          onViewChange: setViewMode,
-          sortMode,
-          onSortChange: setSortMode,
-          customComponent: (
-            <>
-                <UiverseDropdown 
-                    options={categories} 
-                    value={selectedCategory} 
-                    onChange={setSelectedCategory} 
-                />
-                <UiverseDropdown 
-                    options={filteredInstruments} 
-                    value={selectedInstrument} 
-                    onChange={setSelectedInstrument} 
-                />
-                {loading && <div className="text-sm text-text-secondary animate-pulse shrink-0 ml-2">Loading...</div>}
-                {error && <div className="text-sm text-red-500 shrink-0 ml-2">Failed to load data</div>}
-            </>
-          )
-        }}
-      />
+      <div className="relative z-50 isolate mb-6 mt-2">
+          <GlobalHeader
+              title="Fundamental Composite"
+              score={compositeData.compositeScore}
+              prevScore={prevCompositeScore} // Calculated from historical snapshots
+              regime={compositeData.regime}
+              sections={compositeData.sections}
+              tailwinds={compositeData.tailwinds}
+              risks={compositeData.risks}
+              integrity={{ 
+                  coverageText: `${activeCardsCount}/${maxCards}`, 
+                  coveragePercent: coveragePercent, 
+                  source: "Upstox + Local", 
+                  freshness: lastUpdated || "Realtime" 
+              }}
+              cards={cardsForHeader}
+              totalCredits={totalCredits}
+              enableBreakdown={true}
+              infoContent={fundamentalManualForm}
+              controls={{
+                  search: searchQuery,
+                  onSearchChange: setSearchQuery,
+                  viewMode,
+                  onViewChange: setViewMode,
+                  sortMode,
+                  onSortChange: setSortMode
+              }}
+          />
+      </div>
 
-      {selectedCategory !== "Indices" && (
-        <CompanySummaryWidget 
-            data={fundamentalsData}
-            manualOverrides={manualOverrides}
-            selectedInstrument={selectedInstrument}
-        />
-      )}
+      <div className="relative z-0">
+          {selectedCategory === "Indices" ? (
+            <IndexSummaryWidget 
+                data={fundamentalsData}
+                manualOverrides={manualOverrides}
+            />
+          ) : (
+            <CompanySummaryWidget 
+                data={fundamentalsData}
+                manualOverrides={manualOverrides}
+                selectedInstrument={selectedInstrument}
+            />
+          )}
+      </div>
 
       {/* DETAILED MODAL */}
       <FundamentalModal
@@ -364,25 +511,30 @@ export default function FundamentalPage() {
 
       {/* DATA GRID — empty until real data is wired */}
       <div className="mt-8">
-        <FundamentalGrid
-          cards={cards}
-          viewMode={viewMode}
-          sortMode={sortMode}
-          onCardClick={setSelectedCard}
-          controls={{
-            search: searchQuery,
-            onSearchChange: setSearchQuery,
-            viewMode,
-            onViewChange: setViewMode,
-            sortMode,
-            onSortChange: setSortMode
-          }}
-          data={fundamentalsData}
-          selectedCategory={selectedCategory}
-          manualOverrides={manualOverrides}
-          lastUpdated={lastUpdated}
-          manualLastUpdated={manualLastUpdated}
-        />
+        <FundamentalContext.Provider value={{ instrumentKey: selectedInstrument, snapshots: historicalSnapshots }}>
+            <FundamentalGrid
+              cards={cards.map(c => {
+                  const dataCard = cardsForHeader.find(hc => hc.id === c.id);
+                  return { ...c, ...dataCard };
+              })}
+              viewMode={viewMode}
+              sortMode={sortMode}
+              onCardClick={setSelectedCard}
+              controls={{
+                search: searchQuery,
+                onSearchChange: setSearchQuery,
+                viewMode,
+                onViewChange: setViewMode,
+                sortMode,
+                onSortChange: setSortMode
+              }}
+              data={fundamentalsData}
+              selectedCategory={selectedCategory}
+              manualOverrides={manualOverrides}
+              lastUpdated={lastUpdated}
+              manualLastUpdated={manualLastUpdated}
+            />
+        </FundamentalContext.Provider>
       </div>
     </div>
   );

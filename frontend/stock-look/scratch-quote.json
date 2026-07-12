@@ -1,0 +1,81 @@
+{
+  "NSE_EQ:TCS": {
+    "ohlc": {
+      "open": 2105.2,
+      "high": 2133.3,
+      "low": 2064.6,
+      "close": 2069
+    },
+    "depth": {
+      "buy": [
+        {
+          "quantity": 0,
+          "price": 0,
+          "orders": 0
+        },
+        {
+          "quantity": 0,
+          "price": 0,
+          "orders": 0
+        },
+        {
+          "quantity": 0,
+          "price": 0,
+          "orders": 0
+        },
+        {
+          "quantity": 0,
+          "price": 0,
+          "orders": 0
+        },
+        {
+          "quantity": 0,
+          "price": 0,
+          "orders": 0
+        }
+      ],
+      "sell": [
+        {
+          "quantity": 489,
+          "price": 2069,
+          "orders": 7
+        },
+        {
+          "quantity": 0,
+          "price": 0,
+          "orders": 0
+        },
+        {
+          "quantity": 0,
+          "price": 0,
+          "orders": 0
+        },
+        {
+          "quantity": 0,
+          "price": 0,
+          "orders": 0
+        },
+        {
+          "quantity": 0,
+          "price": 0,
+          "orders": 0
+        }
+      ]
+    },
+    "timestamp": "2026-07-12T15:41:36.831+05:30",
+    "instrument_token": "NSE_EQ|INE467B01029",
+    "symbol": "TCS",
+    "last_price": 2069,
+    "volume": 6714551,
+    "average_price": 2088.11,
+    "oi": 0,
+    "net_change": 19.5,
+    "total_buy_quantity": 0,
+    "total_sell_quantity": 489,
+    "lower_circuit_limit": 1862.1,
+    "upper_circuit_limit": 2275.9,
+    "last_trade_time": "1783679399315",
+    "oi_day_high": 0,
+    "oi_day_low": 0
+  }
+}

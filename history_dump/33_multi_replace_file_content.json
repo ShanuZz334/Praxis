@@ -1,0 +1,28 @@
+{
+  "ArtifactMetadata": {
+    "RequestFeedback": false,
+    "Summary": "Pass lastUpdated to all cards in grid",
+    "UserFacing": false
+  },
+  "Description": "Pass lastUpdated to all 20 indicator cards in FundamentalGrid.",
+  "Instruction": "Add lastUpdated to FundamentalGrid props and pass it down to all cards.",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 64,
+      "ReplacementContent": "export default function FundamentalGrid({ data, selectedCategory, manualOverrides, lastUpdated }) {",
+      "StartLine": 64,
+      "TargetContent": "export default function FundamentalGrid({ data, selectedCategory, manualOverrides }) {"
+    },
+    {
+      "AllowMultiple": true,
+      "EndLine": 265,
+      "ReplacementContent": " manualOverride={manualOverrides?.$1} lastUpdated={lastUpdated} />",
+      "StartLine": 220,
+      "TargetContent": " manualOverride={manualOverrides?.$1} />"
+    }
+  ],
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Pass lastUpdated to all cards",
+  "toolSummary": "Update FundamentalGrid.jsx"
+}

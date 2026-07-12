@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Ensured the dummy PE ratio card doesn't also render a blank FundamentalCard alongside the PERatioCard.",
+  "EndLine": 146,
+  "Instruction": "Filter out pe_ratio from sectionCards map so it doesn't double render",
+  "ReplacementContent": "              {/* Card Grid */}\n              <div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start\">\n                {section.id === 'valuation' && <PERatioCard />}\n                {sectionCards.map(card => {\n                  if (card.id === 'pe_ratio') return null; // Prevent double rendering since we hardcoded it above\n                  return (\n                    <FundamentalCard\n                      key={card.id}\n                      card={card}\n                      onClick={() => onCardClick(card)}\n                    />\n                  );\n                })}\n              </div>\n            </div>\n          );\n        })}",
+  "StartLine": 134,
+  "TargetContent": "              {/* Card Grid */}\n              <div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start\">\n                {section.id === 'valuation' && <PERatioCard />}\n                {sectionCards.map(card => (\n                  <FundamentalCard\n                    key={card.id}\n                    card={card}\n                    onClick={() => onCardClick(card)}\n                  />\n                ))}\n              </div>\n            </div>\n          );\n        })}",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Preventing double rendering of dummy card",
+  "toolSummary": "Fix double render"
+}

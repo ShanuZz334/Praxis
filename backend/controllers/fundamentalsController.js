@@ -1,6 +1,7 @@
 import axios from "axios";
 import UpstoxAuth from "../models/UpstoxAuth.js";
 import localDb from "../config/localDb.js";
+import { getCache, setCache } from "../services/cacheService.js";
 
 const UPSTOX_FUNDAMENTALS_URL = "https://api.upstox.com/v2/fundamentals";
 
@@ -13,6 +14,12 @@ export const getFundamentals = async (req, res) => {
 
         const instrumentKey = req.query.instrument_key;
         if (!instrumentKey) return res.status(400).json({ error: "instrument_key is required" });
+
+        const cacheKey = `fundamentals_${instrumentKey}`;
+        const cachedData = getCache(cacheKey);
+        if (cachedData) {
+            return res.json({ status: "success", data: cachedData, cached: true });
+        }
 
         // Lookup ISIN from local DB
         const row = localDb.prepare("SELECT isin FROM instruments WHERE instrument_key = ?").get(instrumentKey);
@@ -52,7 +59,9 @@ export const getFundamentals = async (req, res) => {
             holdings: holdingsRes.data?.data || []
         };
 
-        res.json({ status: "success", data: payload });
+        setCache(cacheKey, payload, 86400); // 24 hours TTL
+
+        res.json({ status: "success", data: payload, cached: false });
 
     } catch (error) {
         console.error("Error fetching fundamentals:", error?.response?.data || error.message);

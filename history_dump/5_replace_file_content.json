@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Added PERatioCard to the sectioned view in FundamentalGrid.",
+  "EndLine": 146,
+  "Instruction": "Add PERatioCard before mapping FundamentalCard in sectioned view",
+  "ReplacementContent": "              {/* Card Grid */}\n              <div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start\">\n                {section.id === 'valuation' && <PERatioCard />}\n                {sectionCards.map(card => (\n                  <FundamentalCard\n                    key={card.id}\n                    card={card}\n                    onClick={() => onCardClick(card)}\n                  />\n                ))}\n              </div>\n            </div>\n          );\n        })}",
+  "StartLine": 134,
+  "TargetContent": "              {/* Card Grid */}\n              <div className=\"grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 md:gap-4\">\n                {sectionCards.map(card => (\n                  <FundamentalCard\n                    key={card.id}\n                    card={card}\n                    onClick={() => onCardClick(card)}\n                  />\n                ))}\n              </div>\n            </div>\n          );\n        })}",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Adding PERatioCard to Sectioned View",
+  "toolSummary": "Add PERatioCard Sectioned"
+}

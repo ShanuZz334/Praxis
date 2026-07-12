@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Injected PBRatioCard into the Sectioned view of FundamentalGrid.",
+  "EndLine": 151,
+  "Instruction": "Add `<PBRatioCard />` and update the exclusion array to include pb_ratio.",
+  "ReplacementContent": "                {section.id === 'Valuation' && (\n                  <>\n                    <PERatioCard />\n                    <ForwardPECard />\n                    <PBRatioCard />\n                  </>\n                )}\n                {sectionCards.map(card => {\n                  if (card.id === 'pe_ratio' || card.id === 'forward_pe' || card.id === 'pb_ratio') return null; // Prevent double rendering since we hardcoded it above",
+  "StartLine": 144,
+  "TargetContent": "                {section.id === 'Valuation' && (\n                  <>\n                    <PERatioCard />\n                    <ForwardPECard />\n                  </>\n                )}\n                {sectionCards.map(card => {\n                  if (card.id === 'pe_ratio' || card.id === 'forward_pe') return null; // Prevent double rendering since we hardcoded it above",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Adding to sectioned view",
+  "toolSummary": "Update FundamentalGrid.jsx"
+}

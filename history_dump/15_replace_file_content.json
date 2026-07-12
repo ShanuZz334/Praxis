@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Injected ForwardPECard into the Sectioned view.",
+  "EndLine": 146,
+  "Instruction": "Add `<ForwardPECard />` right below `<PERatioCard />` inside the Valuation section. Also exclude forward_pe from being rendered in the generic mapped loop.",
+  "ReplacementContent": "              {/* Card Grid */}\n              <div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start\">\n                {section.id === 'Valuation' && (\n                  <>\n                    <PERatioCard />\n                    <ForwardPECard />\n                  </>\n                )}\n                {sectionCards.map(card => {\n                  if (card.id === 'pe_ratio' || card.id === 'forward_pe') return null; // Prevent double rendering since we hardcoded it above\n                  return (",
+  "StartLine": 141,
+  "TargetContent": "              {/* Card Grid */}\n              <div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start\">\n                {section.id === 'Valuation' && <PERatioCard />}\n                {sectionCards.map(card => {\n                  if (card.id === 'pe_ratio') return null; // Prevent double rendering since we hardcoded it above\n                  return (",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Adding to sectioned view",
+  "toolSummary": "Update FundamentalGrid.jsx"
+}

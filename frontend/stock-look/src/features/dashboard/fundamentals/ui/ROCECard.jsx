@@ -40,7 +40,8 @@ function scoreROCE(currentROCE, sectorROCE) {
         }
     }
 
-    return { score, bias, confidence: '85%', trendDesc };
+    const confidence = sectorROCE !== null && !isNaN(sectorROCE) ? 90 : (currentROCE > 25 || currentROCE < 0 ? 80 : 72);
+    return { score, bias, confidence, trendDesc };
 }
 
 function generateAiInsight(currentROCE, sectorROCE, trendDesc) {
@@ -115,11 +116,11 @@ export default function ROCECard({ data, manualOverride, lastUpdated }) {
             data={{
                 currentValueObj: { label: 'ROCE (%)', value: currentROCE !== null ? currentROCE.toFixed(2) : '--' },
                 details: [
-                    { label: 'Sector ROCE', value: sectorROCE !== null ? sectorROCE.toFixed(2) : '--', isManual: false }
-                ],
+                    sectorROCE !== null && !isNaN(sectorROCE) && { label: 'Sector ROCE', value: sectorROCE.toFixed(2) + '%', isManual: false }
+                ].filter(Boolean),
                 score: score || 0,
                 bias: bias || 'Neutral',
-                confidence: confidence || '85%',
+                confidence: `${confidence}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

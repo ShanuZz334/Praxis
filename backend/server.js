@@ -21,16 +21,21 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 // Imports
 // =============================
 import express from "express"; // trigger restart
+import dotenv from "dotenv";
 import cors from "cors";
-import connectDB from "./config/db.js";
+
+// Route imports
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import upstoxRoutes from "./routes/upstoxRoutes.js";
+import snapshotRoutes from "./routes/snapshotRoutes.js";
+import intelligenceRoutes from "./routes/intelligenceRoutes.js";
 
 // =============================
 // Express App Setup
 // =============================
 import { initLocalDb } from "./config/localDb.js";
+import connectDB from "./config/db.js";
 
 const app = express();
 
@@ -77,6 +82,8 @@ app.get("/", (req, res) => {
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/upstox", upstoxRoutes);
+app.use("/api/v1/snapshots", snapshotRoutes);
+app.use("/api/v1/intelligence", intelligenceRoutes);
 
 // =============================
 // Static Files
@@ -91,6 +98,7 @@ import { Server } from "socket.io";
 import { connectUpstoxWebsocket } from "./services/upstoxWebsocket.js";
 import { initSocketBroadcaster } from "./services/socketBroadcast.js";
 import { initInstrumentCron } from "./services/upstoxInstrument.js";
+import { initIntelligenceCrons } from "./services/intelligenceCron.js";
 
 const PORT = process.env.PORT || 5000;
 const httpServer = createServer(app);
@@ -107,6 +115,7 @@ initSocketBroadcaster(io);
 
 // Initialize daily cron jobs
 initInstrumentCron();
+initIntelligenceCrons();
 
 io.on("connection", (socket) => {
     console.log(`🔌 Client connected to Socket.io: ${socket.id}`);

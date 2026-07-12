@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Added a filter to prevent ForwardPE from rendering twice in the flat view.",
+  "EndLine": 83,
+  "Instruction": "Exclude forward_pe from the flat view map loop as well.",
+  "ReplacementContent": "        {sortedFlat.map(card => {\n          if (card.id === 'pe_ratio' || card.id === 'forward_pe') return null;\n          return (\n            <FundamentalCard\n              key={card.id}\n              card={card}\n              onClick={() => onCardClick(card)}\n            />\n          );\n        })}",
+  "StartLine": 76,
+  "TargetContent": "        {sortedFlat.map(card => {\n          if (card.id === 'pe_ratio') return null;\n          return (\n            <FundamentalCard\n              key={card.id}\n              card={card}\n              onClick={() => onCardClick(card)}\n            />\n          );\n        })}",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Preventing double rendering",
+  "toolSummary": "Update FundamentalGrid.jsx"
+}

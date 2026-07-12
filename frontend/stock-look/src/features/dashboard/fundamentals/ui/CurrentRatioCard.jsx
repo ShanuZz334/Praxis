@@ -47,16 +47,15 @@ export default function CurrentRatioCard({ data, manualOverride, lastUpdated }) 
     // 2. Load Central Config
     const configData = getIndicatorConfig('current_ratio');
 
-    // 3. Praxis Engine Variables
     let score = 0;
     let bias = 'Neutral';
-    let confidence = '85%';
+    let confidence = '72%';
     let aiInsightText = 'Waiting for insight...';
 
     // 4. Custom Scoring Logic
     if (currentRatio !== null) {
         if (currentRatio > 2.0) {
-            score = 90; bias = 'Bullish';
+            score = 92; bias = 'Strong Bullish';
         } else if (currentRatio >= 1.5) {
             score = 75; bias = 'Bullish';
         } else if (currentRatio >= 1.0) {
@@ -77,6 +76,9 @@ export default function CurrentRatioCard({ data, manualOverride, lastUpdated }) 
         } else {
             aiInsightText = 'The company may face difficulty meeting short-term obligations without additional financing.';
         }
+        confidence = sectorRatio !== null && !isNaN(sectorRatio)
+            ? '90%'
+            : (currentRatio > 2.5 || currentRatio < 0.8 ? '82%' : '72%');
     }
 
     const updateTime = lastUpdated || '--:--';
@@ -95,8 +97,8 @@ export default function CurrentRatioCard({ data, manualOverride, lastUpdated }) 
             data={{
                 currentValueObj: { label: 'Current Ratio', value: currentRatio !== null ? currentRatio.toFixed(2) : '--' },
                 details: [
-                    { label: 'Sector Avg', value: sectorRatio !== null ? sectorRatio.toFixed(2) : '--', isManual: false }
-                ],
+                    sectorRatio !== null && !isNaN(sectorRatio) && { label: 'Sector Avg', value: sectorRatio.toFixed(2), isManual: false }
+                ].filter(Boolean),
                 score: score || 0,
                 bias: bias || 'Neutral',
                 confidence: confidence || '85%',

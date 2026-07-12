@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { formatPercentage } from '@/shared/utils/formatters';
 
 function scoreGDPGrowth(currentGrowth) {
     if (currentGrowth === null || isNaN(currentGrowth)) {
@@ -23,7 +24,8 @@ function scoreGDPGrowth(currentGrowth) {
         score = 10; bias = "Strong Bearish"; trendDesc = "Contraction (Recession)";
     }
 
-    return { score, bias, confidence: '85%', trendDesc };
+    const confidence = currentGrowth > 8 || currentGrowth < 0 ? '88%' : '78%';
+    return { score, bias, confidence, trendDesc };
 }
 
 function generateAiInsight(currentGrowth, trendDesc) {
@@ -72,11 +74,13 @@ export default function GDPGrowthCard({ data = null, manualOverride, lastUpdated
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'GDP Growth (%)', value: currentGrowth !== null ? currentGrowth : '--' },
-                details: [],
+                currentValueObj: { label: 'GDP Growth', value: currentGrowth !== null && !isNaN(currentGrowth) ? formatPercentage(currentGrowth) : '--' },
+                details: [
+                    currentGrowth !== null && !isNaN(currentGrowth) && { label: 'GDP Regime', value: trendDesc, isManual: false }
+                ].filter(Boolean),
                 score: score || 0,
                 bias: bias || 'Neutral',
-                confidence: confidence || '85%',
+                confidence: confidence,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

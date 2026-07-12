@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Injected PERatioCard into FundamentalGrid.",
+  "EndLine": 25,
+  "Instruction": "Import PERatioCard into FundamentalGrid",
+  "ReplacementContent": "import React, { useMemo } from 'react';\nimport FundamentalCard from './FundamentalCard';\nimport PERatioCard from './PERatioCard';\nimport { FUNDAMENTAL_SECTIONS } from '../data/fundamentalData';",
+  "StartLine": 21,
+  "TargetContent": "import React, { useMemo } from 'react';\nimport FundamentalCard from './FundamentalCard';\nimport { FUNDAMENTAL_SECTIONS } from '../data/fundamentalData';",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Importing PERatioCard into FundamentalGrid",
+  "toolSummary": "Import PERatioCard"
+}

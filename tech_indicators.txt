@@ -1,0 +1,10518 @@
+Indicator Specification v1.0 Technical Indicators
+
+Relative Strength Index (RSI 14)
+Module: Technical
+Category: Momentum Oscillator
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Overview
+Name: Relative Strength Index (RSI)
+
+Short Name: RSI (14)
+
+Module: Technical
+
+Category: Momentum
+
+Purpose:
+Measures the speed and magnitude of recent price movements to identify momentum strength and potential overbought or oversold conditions.
+
+Created By:
+J. Welles Wilder Jr.
+
+Importance:
+★★★★★ (Core Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+
+2. Data Requirements
+Required Data:
+- Close Price
+
+Minimum Historical Data:
+30 Candles
+
+Default Period:
+14
+
+Supported Timeframes:
+- 1 Minute
+- 3 Minute
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+- 1 Week
+
+Data Source:
+OHLC Candle Data
+
+Primary Source:
+Upstox Historical API
+
+3. Industry Standard Calculation
+Formula
+Price Change = Current Close − Previous Close
+
+Gain = Max(Change, 0)
+
+Loss = Max(-Change, 0)
+
+Average Gain = Wilder Smoothed Average
+
+Average Loss = Wilder Smoothed Average
+
+RS = Average Gain / Average Loss
+
+RSI = 100 − (100 / (1 + RS))
+Implementation Steps
+1. Calculate the difference between consecutive closing prices.
+2. Separate positive changes as Gains.
+3. Separate negative changes as Losses.
+4. Calculate the first Average Gain and Average Loss using a 14-period SMA.
+5. From the next candle onward, use Wilder's smoothing:
+   Avg Gain = ((Previous Avg Gain × 13) + Current Gain) / 14
+   Avg Loss = ((Previous Avg Loss × 13) + Current Loss) / 14
+6. Compute RS.
+7. Compute RSI.
+Notes
+Use Wilder's original smoothing method.
+
+Do not use a simple rolling average after initialization.
+
+This matches TradingView, Bloomberg, and most institutional implementations.
+
+4. Card Fields
+Current Value:
+Latest RSI value (0–100)
+
+Score:
+Engine Score (0–100)
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Calculated using confirmation indicators.
+
+
+5. Stocky Score Logic
+Notes
+The Engine Score is not the RSI value.
+
+It represents how favorable the current RSI reading is for market conditions.
+
+Very high RSI values (>80) receive a reduced score because extreme momentum often precedes pullbacks.
+
+6. Bias Rules
+RSI < 30:
+Strong Bearish
+
+30 ≤ RSI < 45:
+Bearish
+
+45 ≤ RSI < 55:
+Neutral
+
+55 ≤ RSI < 70:
+Bullish
+
+RSI ≥ 70:
+Strong Bullish
+
+7. Confidence Logic
+Base Confidence:
+70%
+
+Increase Confidence:
++5% if ADX > 25
++5% if Volume > 20-Day Average
++5% if MACD agrees with RSI direction
++5% if EMA 20 > EMA 50 (Bullish) or EMA 20 < EMA 50 (Bearish)
+
+Decrease Confidence:
+-10% if RSI Divergence detected
+-5% if Volume is below average
+-5% if ADX < 20
+
+Minimum:
+50%
+
+Maximum:
+95%
+
+8. Score Range Bar
+Minimum Score:
+0
+
+Maximum Score:
+100
+
+Current Pointer:
+Current Engine Score
+
+Average Marker:
+Rolling 30 Trading Day Average Score
+
+Color Zones:
+0–30   → Red
+30–50  → Orange
+50–70  → Yellow
+70–85  → Light Green
+85–100 → Green
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line Chart
+
+Line 1:
+Actual RSI Value
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+Append one point after each completed candle.
+
+10. AI Insight Rules
+If RSI > 70:
+Explain strong bullish momentum while warning that the market may be entering an overbought zone where short-term pullbacks become more likely.
+
+If RSI between 55 and 70:
+Explain healthy bullish momentum with buyers maintaining control.
+
+If RSI between 45 and 55:
+Explain balanced momentum with no clear directional advantage.
+
+If RSI between 30 and 45:
+Explain weakening momentum and increasing selling pressure.
+
+If RSI < 30:
+Explain oversold conditions and the possibility of a relief rally, while emphasizing the need for confirmation from other indicators.
+
+11. Why It Matters
+Measures market momentum rather than trend direction. 
+Helps identify overbought and oversold conditions. 
+Useful for spotting potential reversals and momentum shifts. 
+Most reliable when combined with trend-following indicators. 
+Widely used by institutional and retail traders, making it a commonly watched market signal. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★☆
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Momentum confirmation and reversal identification.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+MACD
+ADX
+EMA 20
+EMA 50
+Supertrend
+OBV
+Volume SMA
+
+14. Metadata
+Source:
+Upstox OHLC Data
+
+Calculation:
+Backend
+
+Generated:
+Automatically
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata (IST)
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Maintain a rolling buffer of at least 30 completed RSI values for chart rendering and average calculations.
+
+If fewer than 14 completed candles are available, return NULL and display "Insufficient Data" in the UI.
+
+Recalculate RSI only after a candle closes to avoid fluctuations from incomplete market data.
+
+Cache the latest RSI value and update incrementally instead of recomputing the entire series.
+
+Stocky Recommendation
+For Stocky, I recommend using RSI (14) as the default because it is the industry standard and matches TradingView, NSE charting platforms, Bloomberg terminals, and most institutional workflows. Avoid making the period user-configurable in V1; consistency across all users and engine calculations is more valuable than flexibility at this stage.
+
+
+
+
+
+
+
+
+
+2.Moving Average Convergence Divergence (MACD)
+Module: Technical
+Category: Momentum / Trend Following
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Moving Average Convergence Divergence
+
+Short Name: MACD
+
+Module: Technical
+
+Category: Trend & Momentum
+
+Purpose:
+Measures trend direction, momentum strength, and potential trend reversals by comparing two exponential moving averages.
+
+Created By:
+Gerald Appel
+
+Importance:
+★★★★★ (Core Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+
+2. Data Requirements
+Required Data:
+- Close Price
+
+Minimum Historical Data:
+60 Candles
+
+Default Parameters:
+Fast EMA = 12
+Slow EMA = 26
+Signal EMA = 9
+
+Supported Timeframes:
+- 1 Minute
+- 3 Minute
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+- 1 Week
+
+Data Source:
+OHLC Candle Data
+
+Primary Source:
+Upstox Historical API
+
+3. Industry Standard Calculation
+Formula
+Fast EMA = EMA(12)
+
+Slow EMA = EMA(26)
+
+MACD Line = Fast EMA − Slow EMA
+
+Signal Line = EMA(9) of MACD Line
+
+Histogram = MACD Line − Signal Line
+Implementation Steps
+1. Calculate EMA(12).
+
+2. Calculate EMA(26).
+
+3. Subtract EMA26 from EMA12.
+
+4. Calculate EMA(9) of the MACD Line.
+
+5. Compute Histogram.
+
+6. Store all three values.
+Notes
+Use Exponential Moving Averages.
+
+Signal Line must always be an EMA of the MACD Line.
+
+Do not replace EMA with SMA.
+
+Matches TradingView, Bloomberg and institutional platforms.
+
+4. Card Fields
+Current Value:
+Current MACD Line
+
+Secondary Value:
+Current Signal Line
+
+Histogram:
+Current Histogram Value
+
+Score:
+Engine Score (0–100)
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Calculated using confirmation indicators.
+
+
+5. Stocky Score Logic
+Notes
+Histogram strength influences the score.
+
+A crossover alone is not enough.
+
+The distance between MACD and Signal indicates momentum strength.
+
+6. Bias Rules
+MACD > Signal:
+Bullish
+
+MACD < Signal:
+Bearish
+
+MACD ≈ Signal:
+Neutral
+
+MACD Above Zero Line:
+Bullish Trend
+
+MACD Below Zero Line:
+Bearish Trend
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% if ADX > 25
++5% if Volume > 20-Day Average
++5% if EMA20 agrees
++5% if RSI confirms momentum
+
+Decrease Confidence:
+-10% if Histogram weakens
+-5% if Divergence detected
+-5% if Low Volume
+
+Minimum:
+55%
+
+Maximum:
+95%
+
+8. Score Range Bar
+Minimum Score:
+0
+
+Maximum Score:
+100
+
+Current Pointer:
+Current Engine Score
+
+Average Marker:
+Rolling 30 Trading Day Average Score
+
+Color Zones:
+0–30 → Red
+30–50 → Orange
+50–70 → Yellow
+70–85 → Light Green
+85–100 → Green
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line Chart
+
+Line 1:
+MACD Line
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle.
+
+10. AI Insight Rules
+Bullish Crossover:
+Explain increasing bullish momentum with buyers gaining control.
+
+MACD Above Signal:
+Explain positive momentum continuation.
+
+Histogram Increasing:
+Explain momentum acceleration.
+
+Bearish Crossover:
+Explain weakening momentum and increasing selling pressure.
+
+Histogram Shrinking:
+Explain momentum loss even if trend remains intact.
+
+MACD Near Zero:
+Explain lack of directional conviction.
+
+11. Why It Matters
+Combines trend and momentum in one indicator. 
+Detects momentum shifts before price reversals. 
+Histogram visualizes acceleration or deceleration. 
+Zero-line identifies long-term trend direction. 
+One of the most trusted confirmation indicators in technical analysis. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★★
+
+Best Use:
+Trend confirmation and momentum analysis.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+RSI
+EMA20
+EMA50
+ADX
+Volume SMA
+OBV
+Supertrend
+
+14. Metadata
+Source:
+Upstox OHLC Data
+
+Calculation:
+Backend
+
+Generated:
+Automatically
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata (IST)
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store MACD Line, Signal Line and Histogram separately.
+
+Maintain at least 60 historical candles for stable EMA calculations.
+
+Cache EMA values and update incrementally instead of recalculating the full history.
+
+If fewer than 35 candles exist, return "Insufficient Data".
+
+Stocky Recommendation
+Use the standard 12-26-9 MACD configuration. This is the global industry standard used by TradingView, Bloomberg, MetaTrader, and institutional desks. For V1, keep the parameters fixed to ensure consistent scoring and AI explanations.
+
+
+
+
+
+3.Exponential Moving Average (EMA 20)
+Module: Technical
+Category: Trend Following
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Exponential Moving Average
+
+Short Name: EMA 20
+
+Module: Technical
+
+Category: Trend Following
+
+Purpose:
+Tracks the short-term market trend by assigning greater weight to recent prices, allowing it to react faster than a Simple Moving Average (SMA).
+
+Created By:
+Statistical Moving Average Method
+
+Importance:
+★★★★★ (Core Trend Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+
+2. Data Requirements
+Required Data:
+- Close Price
+
+Minimum Historical Data:
+40 Candles
+
+Default Period:
+20
+
+Supported Timeframes:
+- 1 Minute
+- 3 Minute
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+- 1 Week
+
+Data Source:
+OHLC Candle Data
+
+Primary Source:
+Upstox Historical API
+
+3. Industry Standard Calculation
+Formula
+Multiplier = 2 / (Period + 1)
+
+EMA = (Current Close × Multiplier)
+    + (Previous EMA × (1 − Multiplier))
+For EMA(20):
+Multiplier = 2 / (20 + 1)
+
+Multiplier = 0.095238
+Initialization
+First EMA value = 20 Period Simple Moving Average (SMA)
+
+Every subsequent value uses the EMA formula.
+Implementation Steps
+1. Collect 20 closing prices.
+
+2. Calculate initial SMA.
+
+3. Calculate multiplier.
+
+4. Calculate next EMA using previous EMA.
+
+5. Repeat for every completed candle.
+Notes
+Never initialize EMA using the first closing price.
+
+Always initialize with the first 20-period SMA.
+
+This matches TradingView, Bloomberg and institutional charting systems.
+
+4. Card Fields
+Current Value:
+Current EMA 20 Price
+
+Distance From Price:
+Current Price − EMA20
+
+Trend Direction:
+Above
+Below
+
+Score:
+Engine Score (0–100)
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Trend Confidence
+
+
+5. Stocky Score Logic
+Notes
+The score is based on price position relative to EMA20.
+
+Greater separation from EMA20 indicates stronger trend conviction.
+
+A flat EMA20 reduces confidence even if price is above it.
+
+6. Bias Rules
+Price > EMA20:
+Bullish
+
+Price < EMA20:
+Bearish
+
+Price repeatedly crossing EMA20:
+Neutral / Sideways
+
+EMA20 Rising:
+Bullish Trend
+
+EMA20 Falling:
+Bearish Trend
+
+Flat EMA20:
+Range-Bound Market
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% if EMA20 slope is rising
++5% if EMA20 > EMA50
++5% if ADX > 25
++5% if Volume is above 20-Day Average
+
+Decrease Confidence:
+-10% if EMA20 is flat
+-5% if price frequently crosses EMA20
+-5% if ADX < 20
+
+Minimum:
+55%
+
+Maximum:
+95%
+
+8. Score Range Bar
+Minimum Score:
+0
+
+Maximum Score:
+100
+
+Current Pointer:
+Current Engine Score
+
+Average Marker:
+Rolling 30 Trading Day Average Score
+
+Color Zones:
+0–30 → Red
+30–50 → Orange
+50–70 → Yellow
+70–85 → Light Green
+85–100 → Green
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line Chart
+
+Line 1:
+EMA20 Value
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle.
+
+10. AI Insight Rules
+Price Above Rising EMA20:
+Explain that buyers are maintaining short-term trend control.
+
+Price Above Flat EMA20:
+Explain bullish bias but weak trend strength.
+
+Price Near EMA20:
+Explain that the market is testing dynamic support/resistance.
+
+Price Below Falling EMA20:
+Explain that sellers control the short-term trend.
+
+Frequent Crossovers:
+Explain that the market is range-bound with no clear trend.
+
+11. Why It Matters
+One of the most widely used short-term trend indicators. 
+Acts as dynamic support during uptrends. 
+Acts as dynamic resistance during downtrends. 
+Reacts faster than SMA because recent prices carry more weight. 
+Forms the foundation for many institutional trading systems. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★☆
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Short-term trend identification and dynamic support/resistance.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+EMA50
+EMA200
+MACD
+RSI
+ADX
+Supertrend
+VWAP
+
+14. Metadata
+Source:
+Upstox OHLC Data
+
+Calculation:
+Backend
+
+Generated:
+Automatically
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata (IST)
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store at least the last 30 EMA20 values for charting and average calculations.
+
+Update EMA incrementally using the previous EMA value instead of recalculating the entire series.
+
+Display both the EMA20 value and the percentage distance between the current price and EMA20.
+
+If fewer than 20 completed candles exist, return "Insufficient Data".
+
+Stocky Recommendation
+For V1, treat EMA20 as the primary short-term trend indicator. Use it together with EMA50 and EMA200 to classify overall market structure:
+Bullish Trend: EMA20 > EMA50 > EMA200 
+Bearish Trend: EMA20 < EMA50 < EMA200 
+Mixed Trend: Any other alignment (transitional or sideways) 
+Avoid generating buy/sell signals from EMA20 alone. Its strength lies in confirming trend direction and acting as dynamic support/resistance when combined with momentum indicators such as RSI and MACD.
+4.Exponential Moving Average (EMA 50)
+Module: Technical
+Category: Trend Following
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Exponential Moving Average
+
+Short Name: EMA 50
+
+Module: Technical
+
+Category: Trend Following
+
+Purpose:
+Measures the medium-term market trend by giving more weight to recent prices while filtering out short-term market noise.
+
+Importance:
+★★★★★ (Core Trend Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+
+2. Data Requirements
+Required Data:
+- Close Price
+
+Minimum Historical Data:
+100 Candles
+
+Default Period:
+50
+
+Supported Timeframes:
+- 1 Minute
+- 3 Minute
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+- 1 Week
+
+Primary Source:
+Upstox Historical OHLC
+
+3. Industry Standard Calculation
+Formula
+Multiplier = 2 / (50 + 1)
+
+EMA50 = (Current Close × Multiplier)
+      + (Previous EMA50 × (1 − Multiplier))
+Initialization
+Initial EMA50 = 50 Period Simple Moving Average
+
+Every following candle uses the EMA formula.
+Implementation Steps
+1. Collect 50 closing prices.
+
+2. Calculate SMA50.
+
+3. Calculate EMA multiplier.
+
+4. Calculate EMA50.
+
+5. Update after every completed candle.
+Notes
+Always initialize using SMA50.
+
+Never recalculate the complete series.
+
+Update incrementally using the previous EMA.
+
+Matches TradingView, Bloomberg and institutional platforms.
+
+4. Card Fields
+Current Value:
+Current EMA50
+
+Distance From Price:
+Current Price − EMA50
+
+Trend Direction:
+Above
+Below
+
+Slope:
+Rising
+Flat
+Falling
+
+Score:
+Engine Score (0–100)
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Trend Confidence
+
+
+5. Stocky Score Logic
+Notes
+EMA50 carries more importance than EMA20.
+
+Price remaining above EMA50 for multiple candles indicates a healthy medium-term trend.
+
+Frequent crossings indicate a ranging market.
+
+6. Bias Rules
+Price > EMA50:
+Bullish
+
+Price < EMA50:
+Bearish
+
+EMA50 Rising:
+Bullish Trend
+
+EMA50 Falling:
+Bearish Trend
+
+Flat EMA50:
+Neutral
+
+Repeated Crossovers:
+Sideways Market
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% if EMA20 > EMA50
++5% if EMA50 > EMA200
++5% if ADX > 25
++5% if Volume Above Average
+
+Decrease Confidence:
+-10% if EMA50 Flat
+-5% if Price Frequently Crosses EMA50
+-5% if ADX < 20
+
+Minimum:
+55%
+
+Maximum:
+95%
+
+8. Score Range Bar
+Minimum Score:
+0
+
+Maximum Score:
+100
+
+Current Pointer:
+Current Engine Score
+
+Average Marker:
+Rolling 30 Trading Day Average Score
+
+Color Zones:
+0–30 → Red
+30–50 → Orange
+50–70 → Yellow
+70–85 → Light Green
+85–100 → Green
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line Chart
+
+Line 1:
+EMA50
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+Price Above Rising EMA50:
+Explain that the medium-term trend remains healthy and buyers continue to control the market.
+
+Price Testing EMA50:
+Explain that the market is testing an important dynamic support/resistance level.
+
+Price Below Falling EMA50:
+Explain increasing selling pressure and weakening market structure.
+
+Flat EMA50:
+Explain lack of trend and increased probability of sideways movement.
+
+11. Why It Matters
+One of the most respected institutional trend indicators. 
+Filters short-term market noise better than EMA20. 
+Often acts as medium-term dynamic support and resistance. 
+Used by funds and swing traders to identify trend direction. 
+Frequently combined with EMA20 and EMA200 for trend confirmation. 
+
+12. Trading Impact
+Intraday:
+★★★★☆
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★★
+
+Best Use:
+Medium-term trend confirmation.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+EMA20
+EMA200
+MACD
+RSI
+ADX
+Supertrend
+VWAP
+
+14. Metadata
+Source:
+Upstox OHLC Data
+
+Calculation:
+Backend
+
+Generated:
+Automatically
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Maintain at least 100 candles for stable EMA calculations.
+
+Cache previous EMA values and update incrementally.
+
+Display the percentage distance between Current Price and EMA50.
+
+If fewer than 50 candles exist, display "Insufficient Data".
+
+Stocky Recommendation
+Use EMA50 as the primary medium-term trend filter. It should carry more weight than EMA20 because it is less sensitive to market noise and provides more reliable trend confirmation. In the Decision Engine, EMA50 should be one of the key indicators used to validate whether short-term bullish or bearish signals are supported by the broader market trend.
+
+
+
+
+
+
+
+5.Exponential Moving Average (EMA 200)
+Module: Technical
+Category: Long-Term Trend Following
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Exponential Moving Average
+
+Short Name: EMA 200
+
+Module: Technical
+
+Category: Trend Following
+
+Purpose:
+Measures the long-term market trend and serves as the primary institutional trend filter. It helps distinguish between Bull Markets, Bear Markets, and Transitional phases.
+
+Importance:
+★★★★★ (Institutional Core Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+
+2. Data Requirements
+Required Data:
+- Close Price
+
+Minimum Historical Data:
+250 Candles
+
+Default Period:
+200
+
+Supported Timeframes:
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+- 1 Week
+
+Primary Source:
+Upstox Historical OHLC
+Stocky Note:
+Although EMA200 can technically run on lower timeframes, it should have the highest importance on Daily and 4H charts.
+
+3. Industry Standard Calculation
+Formula
+Multiplier = 2 / (200 + 1)
+
+EMA200 =
+(Current Close × Multiplier)
++
+(Previous EMA200 × (1 − Multiplier))
+Initialization
+Initial EMA200 =
+200 Period Simple Moving Average
+
+Subsequent values use EMA calculation.
+Implementation Steps
+1. Collect 200 closing prices.
+
+2. Calculate SMA200.
+
+3. Calculate EMA multiplier.
+
+4. Generate EMA200.
+
+5. Update only after candle close.
+Notes
+EMA200 should never be recalculated from scratch.
+
+Always update incrementally.
+
+Implementation should match TradingView and Bloomberg.
+
+4. Card Fields
+Current Value:
+Current EMA200
+
+Distance From Price:
+Percentage difference between Price and EMA200
+
+Trend Direction:
+Above
+Below
+
+Slope:
+Rising
+Flat
+Falling
+
+Score:
+0–100
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Trend Confidence
+
+
+5. Stocky Score Logic
+Notes
+EMA200 is a long-term trend indicator.
+
+It should react slower than EMA20 and EMA50.
+
+Price crossing EMA200 is considered a major market event.
+
+EMA200 should influence the Technical Score more than EMA20.
+
+6. Bias Rules
+Price Above Rising EMA200:
+Strong Bullish
+
+Price Above Flat EMA200:
+Bullish
+
+Price Near EMA200:
+Neutral
+
+Price Below Falling EMA200:
+Strong Bearish
+
+Flat EMA200:
+Sideways / Transition
+
+7. Confidence Logic
+Base Confidence:
+80%
+
+Increase Confidence:
++5% if EMA20 > EMA50 > EMA200
++5% if ADX > 25
++5% if MACD agrees
++5% if Volume Above Average
+
+Decrease Confidence:
+-10% if Price oscillates around EMA200
+-5% if ADX < 20
+-5% if Market Breadth disagrees
+
+Minimum:
+60%
+
+Maximum:
+98%
+
+8. Score Range Bar
+Minimum Score:
+0
+
+Maximum Score:
+100
+
+Current Pointer:
+Current Engine Score
+
+Average Marker:
+30 Trading Day Average Score
+
+Color Zones:
+
+0–30
+Strong Bearish
+
+30–50
+Bearish
+
+50–70
+Neutral
+
+70–85
+Bullish
+
+85–100
+Strong Bullish
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+EMA200
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After each completed candle
+
+10. AI Insight Rules
+Price Above Rising EMA200:
+Explain that the market remains in a healthy long-term uptrend supported by institutional buying.
+
+Price Crossing Above EMA200:
+Explain that a major bullish trend reversal may be developing but requires confirmation.
+
+Price Near EMA200:
+Explain that the market is at a critical long-term support/resistance zone.
+
+Price Below Falling EMA200:
+Explain that long-term selling pressure remains dominant.
+
+Price Crossing Below EMA200:
+Explain that the market structure has weakened and institutional sentiment may be turning bearish.
+
+11. Why It Matters
+One of the most respected long-term trend indicators in global financial markets. 
+Used by institutional investors, hedge funds, and quantitative trading systems. 
+Acts as a major dynamic support and resistance level. 
+Helps filter out short-term market noise. 
+Frequently used to define whether a market is in a Bull or Bear phase. 
+
+12. Trading Impact
+Intraday:
+★★★☆☆
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★★
+
+Best Use:
+Long-term trend confirmation.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+EMA20
+
+EMA50
+
+MACD
+
+ADX
+
+RSI
+
+Supertrend
+
+Market Breadth
+
+Volume SMA
+
+14. Metadata
+Source:
+Upstox OHLC Data
+
+Calculation:
+Backend
+
+Generated:
+Automatically
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Maintain at least 250 historical candles for stable EMA calculations.
+
+Cache EMA values and update incrementally.
+
+Display the percentage distance between Current Price and EMA200.
+
+Return "Insufficient Data" if fewer than 200 candles are available.
+
+EMA200 should carry the highest weight among all moving averages.
+
+16. Stocky Engine Integration ⭐ (Important)
+Technical Weight:
+8%
+
+Relative Importance:
+Highest Moving Average
+
+Decision Engine Role:
+Primary Long-Term Trend Filter
+
+Confirmation Priority:
+1. EMA200
+2. EMA50
+3. EMA20
+
+Trend Classification:
+
+EMA20 > EMA50 > EMA200
+= Strong Uptrend
+
+EMA20 < EMA50 < EMA200
+= Strong Downtrend
+
+Any Other Combination
+= Transitional / Mixed Trend
+
+Stocky Recommendation
+For Stocky V1, EMA200 should be treated as the "Market Structure Indicator." Unlike EMA20, which reflects short-term momentum, or EMA50, which captures the medium-term trend, EMA200 defines the broader market regime. It should have the highest weight among all moving averages and be the first trend filter checked before interpreting momentum indicators like RSI or MACD.
+Implementation Note: In your Decision Engine, evaluate EMA200 first, then EMA50, and finally EMA20. This top-down approach aligns with institutional trading workflows and produces more stable, reliable market assessments.
+
+
+6.Average Directional Index (ADX 14)
+Module: Technical
+Category: Trend Strength
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Average Directional Index
+
+Short Name: ADX (14)
+
+Module: Technical
+
+Category: Trend Strength
+
+Purpose:
+Measures the strength of a market trend regardless of its direction. ADX does not indicate whether the market is bullish or bearish; it only measures how strong the current trend is.
+
+Created By:
+J. Welles Wilder Jr.
+
+Importance:
+★★★★★ (Core Trend Strength Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+
+2. Data Requirements
+Required Data:
+- High Price
+- Low Price
+- Close Price
+
+Minimum Historical Data:
+50 Candles
+
+Default Period:
+14
+
+Supported Timeframes:
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+- 1 Week
+
+Primary Source:
+Upstox Historical OHLC
+
+3. Industry Standard Calculation
+Formula
+True Range (TR)
+
++DM = Current High − Previous High
+
+-DM = Previous Low − Current Low
+
++DI = Smoothed +DM / ATR × 100
+
+-DI = Smoothed -DM / ATR × 100
+
+DX = |(+DI − -DI)| / (+DI + -DI) × 100
+
+ADX = 14 Period Smoothed Average of DX
+Implementation Steps
+1. Calculate True Range (TR).
+
+2. Calculate Positive Directional Movement (+DM).
+
+3. Calculate Negative Directional Movement (-DM).
+
+4. Smooth TR, +DM and -DM using Wilder's smoothing.
+
+5. Calculate +DI and -DI.
+
+6. Calculate DX.
+
+7. Calculate ADX using Wilder's smoothing.
+Notes
+ADX measures trend strength only.
+
+Use +DI and -DI to determine trend direction.
+
+Always use Wilder's smoothing.
+
+Matches TradingView, Bloomberg and institutional platforms.
+
+4. Card Fields
+Current Value:
+Current ADX Value
+
+Trend Strength:
+Weak
+Moderate
+Strong
+Very Strong
+
+Score:
+Engine Score (0–100)
+
+Bias:
+Trend Strength Only
+
+Confidence:
+Trend Confidence
+
+
+5. Stocky Score Logic
+Notes
+ADX does not determine Bullish or Bearish direction.
+
+It increases confidence in other indicators.
+
+Higher ADX = More reliable trend-following signals.
+
+Low ADX = Momentum indicators become less reliable.
+
+6. Bias Rules
+ADX < 20:
+Sideways Market
+
+ADX 20–25:
+Trend Developing
+
+ADX > 25:
+Strong Trend
+
+ADX > 40:
+Very Strong Trend
+
+Direction:
+Determined using +DI and -DI
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++10% if ADX > 25
++5% if ADX Rising
++5% if MACD agrees
++5% if EMA Trend agrees
+
+Decrease Confidence:
+-10% if ADX < 20
+-5% if ADX Falling
+-5% if Price Range Contracting
+
+Minimum:
+50%
+
+Maximum:
+98%
+
+8. Score Range Bar
+Minimum Score:
+0
+
+Maximum Score:
+100
+
+Current Pointer:
+Current Engine Score
+
+Average Marker:
+30 Trading Day Average Score
+
+Color Zones:
+
+0–20
+Very Weak
+
+20–40
+Weak
+
+40–60
+Moderate
+
+60–80
+Strong
+
+80–100
+Very Strong
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+ADX Value
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+ADX Below 20:
+Explain that the market lacks a strong trend and range-bound strategies may perform better.
+
+ADX Rising Above 25:
+Explain that trend strength is increasing and trend-following indicators become more reliable.
+
+ADX Above 40:
+Explain that a strong trend is established but caution that extremely high readings may eventually weaken.
+
+ADX Falling:
+Explain that trend momentum is fading even if price continues moving in the same direction.
+
+Always mention that ADX measures trend strength, not direction.
+
+11. Why It Matters
+Measures the strength of a trend, not its direction. 
+Filters out low-quality trading signals during sideways markets. 
+Improves confidence in trend-following indicators such as EMA, Supertrend, and MACD. 
+Widely used by institutional traders to validate trend quality. 
+Helps determine when breakout strategies are more likely to succeed. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Trend strength confirmation.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+EMA20
+EMA50
+EMA200
+MACD
+RSI
+Supertrend
+Volume SMA
+ATR
+
+14. Metadata
+Source:
+Upstox OHLC Data
+
+Calculation:
+Backend
+
+Generated:
+Automatically
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store ADX, +DI and -DI separately.
+
+Display only ADX on the main card.
+
+Use +DI and -DI internally for AI explanations and confidence calculations.
+
+Return "Insufficient Data" if fewer than 30 candles are available.
+
+Recalculate only after candle close.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+6%
+
+Relative Importance:
+Very High
+
+Decision Engine Role:
+Trend Strength Filter
+
+Primary Use:
+Increase or decrease confidence of other indicators.
+
+When ADX > 25:
+Increase confidence of EMA, MACD, RSI and Supertrend.
+
+When ADX < 20:
+Reduce confidence of all trend-following indicators.
+
+Display Priority:
+Medium-High
+
+Stocky Recommendation
+Unlike RSI or MACD, ADX should never be interpreted in isolation. In Stocky, its primary role is to act as a confidence multiplier for the Technical Engine. When ADX is above 25, trend-following signals (EMA, MACD, Supertrend) become more trustworthy. When ADX falls below 20, the engine should automatically reduce confidence and warn the user that the market is likely range-bound.
+Implementation Note: Treat ADX as a supporting indicator, not a directional indicator. Its value lies in improving the reliability of the overall technical score rather than generating bullish or bearish signals by itself.
+
+
+
+
+
+7.Stochastic RSI (14,14,3,3)
+Module: Technical
+Category: Momentum Oscillator
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Stochastic RSI
+
+Short Name: Stoch RSI
+
+Module: Technical
+
+Category: Momentum
+
+Purpose:
+Measures the position of the current RSI relative to its recent range, making it more sensitive than the traditional RSI for detecting momentum shifts.
+
+Based On:
+Relative Strength Index (RSI)
+
+Importance:
+★★★★☆ (Supporting Momentum Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+Stocky Note: Unlike RSI, Stochastic RSI measures momentum of momentum, making it much more responsive but also more prone to false signals.
+
+2. Data Requirements
+Required Data:
+- Close Price
+
+Minimum Historical Data:
+60 Candles
+
+Default Parameters:
+RSI Period = 14
+Stochastic Period = 14
+%K = 3
+%D = 3
+
+Supported Timeframes:
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox Historical OHLC
+
+3. Industry Standard Calculation
+Formula
+Step 1:
+Calculate RSI(14)
+
+Step 2:
+
+StochRSI =
+(Current RSI − Lowest RSI)
+/
+(Highest RSI − Lowest RSI)
+
+Step 3:
+
+%K = 3 Period SMA of StochRSI
+
+Step 4:
+
+%D = 3 Period SMA of %K
+Implementation Steps
+1. Calculate RSI(14).
+
+2. Find Highest RSI over last 14 periods.
+
+3. Find Lowest RSI over last 14 periods.
+
+4. Calculate StochRSI.
+
+5. Smooth using 3-period SMA.
+
+6. Calculate Signal Line (%D).
+Notes
+Output Range:
+0 → 100
+
+Use SMA smoothing.
+
+Matches TradingView defaults.
+
+Never calculate directly from price.
+Always calculate from RSI values.
+
+4. Card Fields
+Current Value:
+Current %K Value
+
+Signal:
+Current %D Value
+
+Momentum:
+Increasing
+Stable
+Weakening
+
+Score:
+0–100
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Momentum Confidence
+
+5. Stocky Score Logic
+Notes
+Crossovers are more important than the actual value.
+
+Signals above 80 or below 20 require confirmation from RSI or MACD.
+
+Avoid treating every crossover as a trading signal.
+
+6. Bias Rules
+Bullish:
+%K > %D
+
+Bearish:
+%K < %D
+
+Overbought:
+Above 80
+
+Oversold:
+Below 20
+
+Neutral:
+20–80 without crossover
+
+7. Confidence Logic
+Base Confidence:
+65%
+
+Increase Confidence:
++5% if RSI agrees
++5% if MACD agrees
++5% if ADX > 25
++5% if Volume Above Average
+
+Decrease Confidence:
+-10% if market is sideways
+-5% if ADX < 20
+-5% if repeated crossovers occur
+
+Minimum:
+45%
+
+Maximum:
+90%
+
+8. Score Range Bar
+Minimum Score:
+0
+
+Maximum Score:
+100
+
+Current Pointer:
+Current Engine Score
+
+Average Marker:
+30 Trading Day Average
+
+Color Zones:
+
+0–20
+Oversold
+
+20–40
+Bearish
+
+40–60
+Neutral
+
+60–80
+Bullish
+
+80–100
+Overbought
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+Stoch RSI %K
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+Bullish Crossover Below 20:
+Explain increasing bullish momentum from an oversold condition.
+
+Bullish Above 80:
+Explain strong momentum but warn about possible exhaustion.
+
+Bearish Crossover Above 80:
+Explain weakening momentum from an overbought condition.
+
+Repeated Crossovers:
+Explain that momentum is unstable due to a ranging market.
+
+Always remind users that Stoch RSI is highly sensitive and should be confirmed with other indicators.
+
+11. Why It Matters
+Detects momentum changes earlier than RSI. 
+Identifies potential reversals quickly. 
+Useful in ranging markets. 
+Helps refine entry and exit timing. 
+Works best as a confirmation indicator rather than a standalone signal. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★★☆
+
+Positional Trading:
+★★★☆☆
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Entry and exit timing.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+RSI
+MACD
+ADX
+EMA20
+Supertrend
+Volume SMA
+
+14. Metadata
+Source:
+Upstox OHLC Data
+
+Calculation:
+Backend
+
+Generated:
+Automatically
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store:
+- %K
+- %D
+
+Update only after candle close.
+
+Display crossover markers on the chart.
+
+Return "Insufficient Data" if fewer than 30 RSI values are available.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+4%
+
+Relative Importance:
+Medium
+
+Decision Engine Role:
+Momentum Timing Indicator
+
+Primary Use:
+Improve entry and exit timing.
+
+Never override RSI.
+
+Never override MACD.
+
+Use only as a confirmation indicator.
+
+Stocky Recommendation
+For Stocky V1, treat Stochastic RSI as a precision timing tool rather than a trend indicator. It should refine entries and exits after the broader trend has already been identified by EMA, Supertrend, and MACD.
+Priority in the Technical Engine:
+EMA Structure → Defines the trend. 
+ADX → Confirms trend strength. 
+MACD → Confirms momentum. 
+RSI → Measures momentum condition. 
+Stochastic RSI → Optimizes entry/exit timing. 
+This hierarchy minimizes false signals while still benefiting from Stochastic RSI's sensitivity.
+
+
+
+
+8.Williams %R (14)
+Module: Technical
+Category: Momentum Oscillator
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Williams Percent Range
+
+Short Name: Williams %R
+
+Module: Technical
+
+Category: Momentum Oscillator
+
+Purpose:
+Measures where the current closing price sits within the highest-high to lowest-low range over a specified period, helping identify overbought and oversold market conditions.
+
+Created By:
+Larry Williams
+
+Importance:
+★★★★☆ (Supporting Momentum Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+Stocky Note: Williams %R is similar to Stochastic Oscillator but uses an inverted scale (0 to -100). It reacts quickly to momentum shifts and works best as a confirmation indicator.
+
+2. Data Requirements
+Required Data:
+- High Price
+- Low Price
+- Close Price
+
+Minimum Historical Data:
+30 Candles
+
+Default Period:
+14
+
+Supported Timeframes:
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox Historical OHLC
+
+3. Industry Standard Calculation
+Formula
+Highest High = Highest High over last 14 periods
+
+Lowest Low = Lowest Low over last 14 periods
+
+Williams %R =
+
+(Highest High − Close)
+
+/
+
+(Highest High − Lowest Low)
+
+× (-100)
+Implementation Steps
+1. Find Highest High over 14 periods.
+
+2. Find Lowest Low over 14 periods.
+
+3. Calculate the current position of the closing price.
+
+4. Multiply by -100.
+
+5. Update after every completed candle.
+Notes
+Range:
+0 to -100
+
+Near 0 = Overbought
+
+Near -100 = Oversold
+
+Matches TradingView and Bloomberg.
+
+4. Card Fields
+Current Value:
+Current Williams %R
+
+Momentum:
+Bullish
+Neutral
+Bearish
+
+Score:
+Engine Score (0–100)
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Momentum Confidence
+
+
+5. Stocky Score Logic
+Notes
+Williams %R identifies momentum extremes.
+
+Extreme values should be interpreted as momentum strength, not immediate reversal signals.
+
+Require confirmation from RSI or MACD before increasing confidence.
+
+6. Bias Rules
+0 to -20:
+Bullish Momentum
+
+-20 to -50:
+Bullish
+
+Around -50:
+Neutral
+
+-50 to -80:
+Bearish
+
+-80 to -100:
+Bearish Momentum
+
+7. Confidence Logic
+Base Confidence:
+65%
+
+Increase Confidence:
++5% if RSI agrees
++5% if MACD agrees
++5% if ADX > 25
++5% if Volume Above Average
+
+Decrease Confidence:
+-10% if ADX < 20
+-5% if frequent oscillations occur
+-5% if low volume
+
+Minimum:
+45%
+
+Maximum:
+90%
+
+8. Score Range Bar
+Minimum Score:
+0
+
+Maximum Score:
+100
+
+Current Pointer:
+Current Engine Score
+
+Average Marker:
+30 Trading Day Average
+
+Color Zones:
+
+0–30
+Bearish
+
+30–50
+Weak
+
+50–70
+Neutral
+
+70–85
+Bullish
+
+85–100
+Strong Bullish
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+Williams %R
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+Above -20:
+Explain strong bullish momentum but mention overbought conditions.
+
+Between -20 and -50:
+Explain healthy bullish momentum.
+
+Around -50:
+Explain balanced momentum with no clear advantage.
+
+Below -80:
+Explain strong selling pressure while mentioning possible oversold conditions.
+
+Always mention that Williams %R should be confirmed with trend indicators.
+
+11. Why It Matters
+Measures momentum using price position within a recent range. 
+Detects potential overbought and oversold conditions quickly. 
+Useful for timing entries during established trends. 
+More responsive than many traditional oscillators. 
+Best used alongside trend confirmation indicators. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★★☆
+
+Positional Trading:
+★★★☆☆
+
+Options Trading:
+★★★☆☆
+
+Best Use:
+Momentum confirmation and entry timing.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+RSI
+
+MACD
+
+ADX
+
+EMA20
+
+Supertrend
+
+Volume SMA
+
+14. Metadata
+Source:
+Upstox OHLC Data
+
+Calculation:
+Backend
+
+Generated:
+Automatically
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store the latest 30 Williams %R values.
+
+Update only after candle close.
+
+Return "Insufficient Data" if fewer than 14 completed candles exist.
+
+Display values with one decimal place.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+3%
+
+Relative Importance:
+Medium-Low
+
+Decision Engine Role:
+Momentum Confirmation
+
+Primary Use:
+Validate momentum identified by RSI and MACD.
+
+Never Override:
+EMA Trend
+Supertrend
+MACD
+
+Best Used With:
+RSI + ADX + EMA20
+
+Stocky Recommendation
+Williams %R should be used as a fast-reacting momentum confirmation tool rather than a standalone signal generator. In Stocky, its role is to help identify short-term momentum extremes and improve entry timing after the broader trend has already been confirmed.
+Recommended Technical Engine Priority:
+EMA Structure 
+ADX 
+Supertrend 
+MACD 
+RSI 
+CCI 
+Stochastic RSI 
+Williams %R 
+This ensures Williams %R adds value by refining momentum analysis without overpowering more reliable trend and momentum indicators.
+
+
+
+
+
+9.Chaikin Money Flow (CMF 20)
+Module: Technical
+Category: Volume Analysis
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Chaikin Money Flow
+
+Short Name: CMF (20)
+
+Module: Technical
+
+Category: Volume Analysis
+
+Purpose:
+Measures buying and selling pressure by combining price location within the candle range with trading volume. It identifies whether money is flowing into (accumulation) or out of (distribution) the market.
+
+Created By:
+Marc Chaikin
+
+Importance:
+★★★★★ (Core Volume Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+Stocky Note: Unlike OBV, which only considers whether price closed higher or lower, CMF also considers where the price closed within the candle, making it a more refined measure of buying and selling pressure.
+
+2. Data Requirements
+Required Data:
+- High Price
+- Low Price
+- Close Price
+- Volume
+
+Minimum Historical Data:
+40 Candles
+
+Default Period:
+20
+
+Supported Timeframes:
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox OHLC + Volume
+
+3. Industry Standard Calculation
+Formula
+Money Flow Multiplier (MFM)
+
+=
+((Close − Low) − (High − Close))
+
+/
+
+(High − Low)
+
+--------------------------------
+
+Money Flow Volume (MFV)
+
+=
+MFM × Volume
+
+--------------------------------
+
+CMF
+
+=
+Sum(MFV, 20)
+
+/
+
+Sum(Volume, 20)
+Implementation Steps
+1. Calculate Money Flow Multiplier.
+
+2. Multiply by Volume.
+
+3. Sum Money Flow Volume over 20 periods.
+
+4. Sum Volume over the same period.
+
+5. Divide MFV by Total Volume.
+
+6. Update after every completed candle.
+Notes
+Range:
+-1 to +1
+
+Positive CMF = Buying Pressure
+
+Negative CMF = Selling Pressure
+
+Matches TradingView and Bloomberg.
+
+4. Card Fields
+Current Value:
+Current CMF
+
+Money Flow:
+Accumulation
+Neutral
+Distribution
+
+Score:
+Engine Score (0–100)
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Volume Confidence
+
+
+5. Stocky Score Logic
+Notes
+The zero line is the most important level.
+
+Positive values indicate accumulation.
+
+Negative values indicate distribution.
+
+Higher magnitude means stronger money flow.
+
+6. Bias Rules
+CMF > 0:
+Bullish
+
+CMF < 0:
+Bearish
+
+CMF > +0.20:
+Strong Accumulation
+
+CMF < -0.20:
+Strong Distribution
+
+Near Zero:
+Neutral
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% if OBV agrees
++5% if Volume Above Average
++5% if EMA Trend agrees
++5% if ADX > 25
+
+Decrease Confidence:
+-10% if CMF Diverges from Price
+-5% if Low Volume
+-5% if Sideways Market
+
+Minimum:
+55%
+
+Maximum:
+95%
+
+8. Score Range Bar
+Minimum Score:
+0
+
+Maximum Score:
+100
+
+Current Pointer:
+Current Engine Score
+
+Average Marker:
+30 Trading Day Average
+
+Color Zones:
+
+0–30
+Distribution
+
+30–50
+Weak
+
+50–70
+Neutral
+
+70–85
+Accumulation
+
+85–100
+Strong Accumulation
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+CMF Value
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+CMF Above Zero:
+Explain that buying pressure is stronger than selling pressure.
+
+CMF Above +0.20:
+Explain strong institutional accumulation supporting the trend.
+
+CMF Below Zero:
+Explain increasing selling pressure.
+
+CMF Below -0.20:
+Explain heavy distribution and weakening market participation.
+
+Price Rising but CMF Falling:
+Highlight bearish divergence.
+
+Price Falling but CMF Rising:
+Highlight bullish divergence.
+
+11. Why It Matters
+Measures real buying and selling pressure. 
+Identifies accumulation and distribution. 
+Confirms breakout quality. 
+Detects volume-price divergence. 
+Complements OBV by incorporating candle position. 
+
+12. Trading Impact
+Intraday:
+★★★★☆
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Volume confirmation and institutional money flow analysis.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+OBV
+
+Volume SMA
+
+MACD
+
+EMA20
+
+EMA50
+
+ADX
+
+RSI
+
+14. Metadata
+Source:
+Upstox OHLC + Volume
+
+Calculation:
+Backend
+
+Generated:
+Automatically
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store only the last 30 CMF values for charting.
+
+Update after candle close.
+
+If High == Low, set Money Flow Multiplier to 0 to avoid division by zero.
+
+Return "Insufficient Data" if fewer than 20 completed candles are available.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+5%
+
+Relative Importance:
+High
+
+Decision Engine Role:
+Institutional Money Flow Confirmation
+
+Primary Use:
+Validate whether volume supports the current trend.
+
+Bullish Confirmation:
+CMF > 0 AND OBV Rising
+
+Bearish Confirmation:
+CMF < 0 AND OBV Falling
+
+Warning Signal:
+Price trend without CMF confirmation
+
+Display Priority:
+High
+
+Stocky Recommendation
+CMF should be Stocky's second most important volume indicator, immediately after OBV. While OBV shows whether volume is generally supporting price movement, CMF provides deeper insight into whether buyers or sellers controlled each candle, making it especially useful for identifying institutional accumulation and distribution.
+Recommended Volume Indicator Priority
+OBV ⭐⭐⭐⭐⭐ (Primary Volume Confirmation) 
+CMF ⭐⭐⭐⭐⭐ (Institutional Money Flow) 
+VWAP ⭐⭐⭐⭐☆ 
+Volume SMA ⭐⭐⭐⭐☆ 
+Using OBV + CMF together provides a much stronger confirmation of trend quality than relying on either indicator alone.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+10.Volume Simple Moving Average (Volume SMA 20)
+Module: Technical
+Category: Volume Analysis
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Volume Simple Moving Average
+
+Short Name: Volume SMA (20)
+
+Module: Technical
+
+Category: Volume Analysis
+
+Purpose:
+Measures the average trading volume over a fixed period to determine whether current market participation is above or below normal.
+
+Importance:
+★★★★☆ (Supporting Volume Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+Stocky Note: Volume SMA doesn't determine market direction. It tells you how significant the current move is by comparing today's volume with recent average volume.
+
+2. Data Requirements
+Required Data:
+- Volume
+
+Minimum Historical Data:
+20 Candles
+
+Default Period:
+20
+
+Supported Timeframes:
+- 1 Minute
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox OHLC + Volume
+
+3. Industry Standard Calculation
+Formula
+Volume SMA
+
+=
+
+Sum(Volume of last 20 candles)
+
+/
+
+20
+Implementation Steps
+1. Collect the last 20 volume values.
+
+2. Calculate their sum.
+
+3. Divide by 20.
+
+4. Update after every completed candle.
+Notes
+Use Simple Moving Average.
+
+Exclude the current forming candle.
+
+Matches TradingView defaults.
+
+4. Card Fields
+Current Value:
+Current Volume
+
+Average Volume:
+Volume SMA(20)
+
+Volume Ratio:
+Current Volume / Volume SMA
+
+Score:
+Engine Score (0–100)
+
+Bias:
+High Participation
+Normal
+Low Participation
+
+Confidence:
+Volume Confidence
+
+
+5. Stocky Score Logic
+Notes
+Volume should confirm price movement.
+
+High volume strengthens bullish and bearish signals.
+
+Low volume reduces confidence in breakouts.
+
+6. Bias Rules
+Volume > SMA:
+High Participation
+
+Volume ≈ SMA:
+Normal Activity
+
+Volume < SMA:
+Low Participation
+
+Volume > 2× SMA:
+Exceptional Activity
+
+7. Confidence Logic
+Base Confidence:
+70%
+
+Increase Confidence:
++10% if Volume > 1.5× SMA
++5% if OBV agrees
++5% if CMF agrees
+
+Decrease Confidence:
+-10% if Volume < SMA
+-5% if ADX < 20
+
+Minimum:
+50%
+
+Maximum:
+95%
+
+8. Score Range Bar
+Minimum Score:
+0
+
+Maximum Score:
+100
+
+Current Pointer:
+Current Engine Score
+
+Average Marker:
+30-Day Average Engine Score
+
+Color Zones:
+
+0–30
+Low Activity
+
+30–50
+Weak
+
+50–70
+Normal
+
+70–85
+Strong
+
+85–100
+Exceptional
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+Volume Ratio
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+Volume Above Average:
+Explain that market participation supports the current move.
+
+Volume Well Above Average:
+Highlight strong institutional interest.
+
+Volume Near Average:
+Explain normal market participation.
+
+Volume Below Average:
+Explain that the move lacks strong participation.
+
+Volume Spike:
+Mention increased volatility and stronger conviction.
+
+11. Why It Matters
+Confirms breakout quality. 
+Measures trader participation. 
+Filters weak price movements. 
+Helps identify institutional activity. 
+Improves confidence in trend analysis. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★★☆
+
+Positional Trading:
+★★★☆☆
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Confirm trend strength.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+OBV
+
+CMF
+
+VWAP
+
+MACD
+
+ADX
+
+EMA20
+
+14. Metadata
+Source:
+Upstox Volume Data
+
+Calculation:
+Backend
+
+Generated:
+Automatically
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store only the last 20 volume values.
+
+Update after candle close.
+
+Display Volume Ratio alongside raw volume.
+
+Return "Insufficient Data" if fewer than 20 candles exist.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+4%
+
+Relative Importance:
+Medium
+
+Decision Engine Role:
+Volume Confirmation
+
+Primary Use:
+Validate participation in price movement.
+
+High Volume:
+Increase confidence of all technical indicators.
+
+Low Volume:
+Reduce confidence across the Technical Engine.
+
+Display Priority:
+Medium
+
+Stocky Recommendation
+Volume SMA should never generate a bullish or bearish signal on its own. Instead, use it as a confidence amplifier across the Technical Engine.
+Examples:
+Bullish breakout + High Volume → Increase confidence 
+Bullish breakout + Low Volume → Reduce confidence 
+Bearish breakdown + High Volume → Increase bearish confidence 
+Strong trend + Falling Volume → Warn of weakening conviction 
+In Stocky, Volume SMA acts as the baseline participation benchmark against which OBV, CMF, and VWAP can be interpreted.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+11.Bollinger Bands (20,2)
+Module: Technical
+Category: Volatility Analysis
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Bollinger Bands
+
+Short Name: BB (20,2)
+
+Module: Technical
+
+Category: Volatility
+
+Purpose:
+Measures market volatility and identifies whether price is relatively high or low compared to its recent trading range.
+
+Created By:
+John Bollinger
+
+Importance:
+★★★★★ (Core Volatility Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+Stocky Note: Bollinger Bands are adaptive. They automatically widen during volatile markets and contract during quiet markets, making them one of the best tools for volatility analysis.
+
+2. Data Requirements
+Required Data:
+- Close Price
+
+Minimum Historical Data:
+40 Candles
+
+Default Parameters:
+Period = 20
+Standard Deviation = 2
+
+Supported Timeframes:
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox Historical OHLC
+
+3. Industry Standard Calculation
+Formula
+Middle Band = SMA(20)
+
+Upper Band =
+SMA(20) + (2 × Standard Deviation)
+
+Lower Band =
+SMA(20) - (2 × Standard Deviation)
+Implementation Steps
+1. Calculate 20-period SMA.
+
+2. Calculate 20-period Standard Deviation.
+
+3. Compute Upper Band.
+
+4. Compute Lower Band.
+
+5. Update after every completed candle.
+Notes
+Default setting is 20 periods with 2 standard deviations.
+
+Matches TradingView, Bloomberg and institutional implementations.
+
+Do not replace SMA with EMA.
+
+4. Card Fields
+Current Value:
+Current Closing Price
+
+Upper Band:
+Current Upper Band
+
+Middle Band:
+Current SMA20
+
+Lower Band:
+Current Lower Band
+
+Band Width:
+Percentage Width
+
+Score:
+Engine Score (0–100)
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Volatility Confidence
+
+
+5. Stocky Score Logic
+Notes
+Touching a band is NOT automatically a reversal signal.
+
+Band Walk = Strong Trend
+
+Band Rejection = Possible Reversal
+
+Always confirm using RSI or ADX.
+
+6. Bias Rules
+Price Above Middle Band:
+Bullish
+
+Price Below Middle Band:
+Bearish
+
+Price Near Upper Band:
+Strong Bullish Momentum
+
+Price Near Lower Band:
+Strong Bearish Momentum
+
+Band Squeeze:
+Low Volatility
+
+Band Expansion:
+High Volatility
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% if ADX > 25
++5% if ATR Rising
++5% if Volume Above Average
++5% if EMA Trend agrees
+
+Decrease Confidence:
+-10% during Band Squeeze
+-5% if ADX < 20
+-5% if Low Volume
+
+Minimum:
+55%
+
+Maximum:
+95%
+
+8. Score Range Bar
+Minimum Score:
+0
+
+Maximum Score:
+100
+
+Current Pointer:
+Current Engine Score
+
+Average Marker:
+30 Trading Day Average Score
+
+Color Zones:
+
+0–30
+Bearish
+
+30–50
+Weak
+
+50–70
+Neutral
+
+70–85
+Bullish
+
+85–100
+Strong Bullish
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+Closing Price
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+Price Above Upper Band:
+Explain strong bullish momentum while warning that price may be overextended.
+
+Price Below Lower Band:
+Explain strong bearish momentum while noting possible oversold conditions.
+
+Band Squeeze:
+Explain that volatility has contracted and a significant move may be approaching.
+
+Band Expansion:
+Explain that volatility is increasing and trend strength is improving.
+
+Price Near Middle Band:
+Explain that the market is trading around its average value with balanced momentum.
+
+11. Why It Matters
+Measures market volatility dynamically. 
+Identifies volatility contractions and expansions. 
+Detects potential breakout conditions. 
+Helps identify overextended price moves. 
+Useful for both trend-following and mean-reversion strategies. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★☆
+
+Options Trading:
+★★★★★
+
+Best Use:
+Volatility analysis and breakout detection.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+ATR
+
+ADX
+
+RSI
+
+MACD
+
+EMA20
+
+Volume SMA
+
+14. Metadata
+Source:
+Upstox OHLC Data
+
+Calculation:
+Backend
+
+Generated:
+Automatically
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store:
+- Upper Band
+- Middle Band
+- Lower Band
+- Band Width
+
+Calculate Standard Deviation using the last 20 completed candles.
+
+Update after candle close.
+
+Return "Insufficient Data" if fewer than 20 completed candles exist.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+6%
+
+Relative Importance:
+Very High
+
+Decision Engine Role:
+Volatility & Breakout Detection
+
+Primary Use:
+Detect volatility expansion and contraction.
+
+Bullish Confirmation:
+Price > Middle Band
+AND
+ADX Rising
+AND
+ATR Rising
+
+Bearish Confirmation:
+Price < Middle Band
+AND
+ADX Rising
+AND
+ATR Rising
+
+Warning Signal:
+Band Squeeze
+
+Display Priority:
+High
+
+Stocky Recommendation
+Bollinger Bands should be Stocky's primary volatility visualization tool, complementing ATR. While ATR measures the magnitude of volatility, Bollinger Bands show how price behaves within that volatility.
+Recommended Volatility Hierarchy
+ATR ⭐⭐⭐⭐⭐ (Volatility Strength) 
+Bollinger Bands ⭐⭐⭐⭐⭐ (Volatility Visualization) 
+Keltner Channel ⭐⭐⭐⭐☆ (Trend Channel Confirmation) 
+Engine Rules
+Band Squeeze + Rising Volume → Early breakout watch. 
+Band Expansion + ADX Rising → Strong trend confirmation. 
+Price Walking Upper Band → Continue bullish trend, don't assume reversal. 
+Price Walking Lower Band → Continue bearish trend, don't assume reversal. 
+This gives Stocky the ability to distinguish between quiet markets preparing to move and active markets already trending, making Bollinger Bands one of the most valuable volatility indicators in the Technical Engine.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+12.Support Level
+Module: Technical
+Category: Market Structure
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Support Level
+
+Short Name: Support
+
+Module: Technical
+
+Category: Market Structure
+
+Purpose:
+Identifies price levels where buying demand has historically been strong enough to prevent further price declines. These levels often act as demand zones where traders expect buyers to re-enter the market.
+
+Importance:
+★★★★★ (Core Market Structure Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+Every completed candle
+Stocky Note: Support is not a single price—it is a price zone. The UI should display the strongest support zone rather than an exact value.
+
+2. Data Requirements
+Required Data:
+- High
+- Low
+- Close
+
+Minimum Historical Data:
+100 Candles
+
+Lookback Period:
+100 Candles
+
+Pivot Strength:
+5 Left / 5 Right
+
+Supported Timeframes:
+- 15 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox OHLC
+
+3. Industry Standard Calculation
+Detection Method
+Identify Pivot Lows.
+
+Group nearby Pivot Lows into zones.
+
+Count number of touches.
+
+Measure bounce strength.
+
+Assign the strongest zone as Primary Support.
+Rules
+A support level is valid only if:
+
+Minimum 2 successful touches
+
+Price rebounds after touching
+
+Level has not been decisively broken
+
+Recent touches carry higher importance.
+
+4. Card Fields
+Current Support:
+Current strongest support price
+
+Distance:
+Current Price − Support
+
+Touch Count:
+Number of confirmed touches
+
+Strength:
+Weak
+Moderate
+Strong
+
+Score:
+Engine Score (0–100)
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Structure Confidence
+
+
+5. Stocky Score Logic
+Notes
+A successful bounce receives a higher score than simply remaining above support.
+
+Multiple successful bounces increase confidence.
+
+A confirmed breakdown sharply reduces the score.
+
+6. Bias Rules
+Price Holding Support:
+Bullish
+
+Price Testing Support:
+Neutral
+
+Support Broken:
+Bearish
+
+Strong Bounce:
+Strong Bullish
+
+Repeated Failed Bounces:
+Weak Support
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% per successful bounce (max +15%)
++5% if Volume increases at support
++5% if RSI Oversold
++5% if Bullish Candlestick Pattern
+
+Decrease Confidence:
+-10% if Support recently broken
+-5% if Low Volume
+-5% if ADX <20
+
+Minimum:
+50%
+
+Maximum:
+98%
+
+8. Score Range Bar
+Minimum Score:
+0
+
+Maximum Score:
+100
+
+Pointer:
+Current Engine Score
+
+Average:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Broken
+
+30–50
+Weak
+
+50–70
+Testing
+
+70–85
+Holding
+
+85–100
+Strong Bounce
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+Support Price
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+Price Holding Support:
+Explain buyers continue defending this level.
+
+Price Testing Support:
+Explain this is an important decision zone.
+
+Strong Bounce:
+Explain buyers successfully defended support.
+
+Support Breakdown:
+Explain sellers gained control after breaking a key demand zone.
+
+Multiple Tests:
+Explain repeated testing weakens support.
+
+11. Why It Matters
+Identifies high-probability buying zones. 
+Used for stop-loss placement. 
+Helps estimate downside risk. 
+Confirms market structure. 
+Widely used by institutional traders. 
+
+12. Trading Impact
+Intraday:
+★★★★☆
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Market structure confirmation.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+EMA50
+
+EMA200
+
+Volume SMA
+
+OBV
+
+RSI
+
+MACD
+
+ADX
+
+14. Metadata
+Source:
+Calculated
+
+Calculation:
+Backend
+
+Updated:
+Every completed candle
+
+Storage:
+Local Database
+
+Timezone:
+Asia/Kolkata
+
+15. Developer Notes
+Cluster nearby pivot lows into one support zone.
+
+Store:
+Support Price
+Support Strength
+Touch Count
+Last Test Date
+
+Never treat support as a single tick price.
+
+Represent support as a price zone (±0.2% for indices).
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+7%
+
+Relative Importance:
+Very High
+
+Decision Engine Role:
+Market Structure
+
+Primary Use:
+Identify demand zones.
+
+Bullish Confirmation:
+Price Above Support
+AND
+Volume Increasing
+
+Bearish Warning:
+Support Breakdown
+
+Display Priority:
+High
+
+Stocky Recommendation
+Unlike moving averages, Support is not calculated using a fixed mathematical formula—it is derived from market structure. For Stocky V1, avoid simple "lowest low" logic. Instead, detect pivot-based support zones, count how many times they have been respected, and weight recent interactions more heavily. This produces support levels that closely resemble those used by professional charting platforms and institutional traders.
+
+
+
+
+
+
+
+
+
+
+
+13.Trendline
+Module: Technical
+Category: Market Structure
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Trendline
+
+Short Name: Trendline
+
+Module: Technical
+
+Category: Market Structure
+
+Purpose:
+Identifies the primary market trend by connecting significant swing highs or swing lows. Trendlines help determine trend direction, support/resistance, and potential breakout or breakdown points.
+
+Importance:
+★★★★★ (Core Structure Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+Every completed candle
+Stocky Note: A trendline should never be drawn using arbitrary highs/lows. It must be generated from confirmed pivot points.
+
+2. Data Requirements
+Required Data:
+- High
+- Low
+- Close
+
+Minimum Historical Data:
+150 Candles
+
+Pivot Strength:
+5 Left / 5 Right
+
+Minimum Pivot Points:
+3
+
+Supported Timeframes:
+- 15 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox OHLC
+
+3. Industry Standard Calculation
+Detection Method
+Bullish Trendline
+
+Connect Higher Lows
+
+------------------------
+
+Bearish Trendline
+
+Connect Lower Highs
+
+------------------------
+
+Trendline remains valid until
+price closes beyond it.
+Validation Rules
+Minimum 3 pivot points.
+
+Slope must remain consistent.
+
+Ignore isolated spikes.
+
+More touches = stronger trendline.
+Implementation Steps
+1. Detect pivot highs and lows.
+
+2. Build bullish and bearish candidates.
+
+3. Score each trendline.
+
+4. Select strongest active trendline.
+
+5. Update after candle close.
+
+4. Card Fields
+Current Trendline:
+Bullish
+Bearish
+
+Trendline Value:
+Current projected level
+
+Distance:
+Current Price − Trendline
+
+Touch Count:
+Number of confirmations
+
+Age:
+Candles since creation
+
+Score:
+Engine Score (0–100)
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Structure Confidence
+
+
+5. Stocky Score Logic
+Notes
+Trendline strength depends on:
+
+• Number of touches
+
+• Trendline age
+
+• Angle consistency
+
+• Volume confirmation
+
+A fresh breakout must close beyond the trendline.
+
+6. Bias Rules
+Price Above Bullish Trendline:
+Bullish
+
+Price Testing Trendline:
+Neutral
+
+Price Below Bullish Trendline:
+Bearish
+
+Price Breaking Bearish Trendline:
+Bullish
+
+Repeated Failed Tests:
+Weak Trend
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% Every Additional Touch (Max +15%)
+
++5% ADX >25
+
++5% Volume Above Average
+
++5% EMA Trend Agrees
+
+Decrease Confidence:
+-10% Low Volume Breakout
+
+-5% ADX <20
+
+-5% Fake Breakout
+
+Minimum:
+55%
+
+Maximum:
+98%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Engine Score
+
+Average Marker:
+30-Day Average
+
+Color Zones:
+
+0–30
+Broken
+
+30–50
+Weak
+
+50–70
+Testing
+
+70–85
+Holding
+
+85–100
+Strong Trend
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+Trendline Value
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+Price Respecting Trendline:
+Explain buyers/sellers continue respecting the current trend.
+
+Trendline Break:
+Explain market structure is changing.
+
+Strong Bounce:
+Explain trend remains healthy.
+
+Multiple Touches:
+Explain trendline reliability has increased.
+
+Fake Breakout:
+Explain breakout lacked confirmation.
+
+11. Why It Matters
+Defines market structure. 
+Identifies dynamic support and resistance. 
+Detects trend continuation. 
+Detects structural reversals. 
+Used by almost every professional technical analyst. 
+
+12. Trading Impact
+Intraday:
+★★★★☆
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Trend confirmation and breakout detection.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+Support
+
+Resistance
+
+EMA50
+
+EMA200
+
+ADX
+
+MACD
+
+Volume SMA
+
+14. Metadata
+Source:
+Calculated
+
+Calculation:
+Backend
+
+Updated:
+Every completed candle
+
+Storage:
+Local Database
+
+Timezone:
+Asia/Kolkata
+
+15. Developer Notes
+Store:
+
+• Trendline Start Point
+
+• Trendline End Point
+
+• Slope
+
+• Touch Count
+
+• Age
+
+Only use confirmed pivot points.
+
+Ignore intraday spikes.
+
+Recalculate only when a new pivot forms.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+7%
+
+Relative Importance:
+Very High
+
+Decision Engine Role:
+Market Structure
+
+Primary Use:
+Identify trend continuation.
+
+Bullish Confirmation:
+Price Above Trendline
+AND
+EMA20 > EMA50
+
+Bearish Confirmation:
+Price Below Trendline
+AND
+EMA20 < EMA50
+
+Display Priority:
+High
+
+Stocky Recommendation
+Trendlines should be algorithmically generated, not manually drawn. For Stocky V1, use a pivot-based trendline engine that automatically selects the strongest valid trendline based on touch count, age, and slope consistency. This produces objective and repeatable results similar to professional charting platforms.
+Structure Hierarchy
+Support ⭐⭐⭐⭐⭐ 
+Resistance ⭐⭐⭐⭐⭐ 
+Trendline ⭐⭐⭐⭐⭐ 
+Fibonacci ⭐⭐⭐⭐☆ 
+Pivot Points ⭐⭐⭐⭐☆ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+14. Pivot Points (Classic)
+Module: Technical
+Category: Market Structure
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Pivot Points
+
+Short Name: Pivot
+
+Module: Technical
+
+Category: Market Structure
+
+Purpose:
+Calculates important intraday support and resistance levels using the previous trading session's price data. Used to identify potential reversal, breakout and target levels.
+
+Method:
+Classic Pivot Points
+
+Importance:
+★★★★★ (Core Structure Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+Once Per Trading Session
+Stocky Note: Use Classic Pivot Points for V1. They are the most widely used across NSE traders, TradingView, and institutional desks. Woodie, Camarilla, and Fibonacci Pivot Points can be added in future versions.
+
+2. Data Requirements
+Required Data:
+- Previous Day High
+- Previous Day Low
+- Previous Day Close
+
+Minimum Historical Data:
+Previous Trading Session
+
+Calculation Frequency:
+Once Per Day
+
+Supported Timeframes:
+- 1 Minute
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+
+Primary Source:
+Upstox OHLC
+
+3. Industry Standard Calculation
+Formula
+Pivot Point (PP)
+
+=
+
+(High + Low + Close)
+
+/
+
+3
+
+-----------------------
+
+R1
+
+=
+
+(2 × PP) − Low
+
+S1
+
+=
+
+(2 × PP) − High
+
+-----------------------
+
+R2
+
+=
+
+PP + (High − Low)
+
+S2
+
+=
+
+PP − (High − Low)
+
+-----------------------
+
+R3
+
+=
+
+High + 2 × (PP − Low)
+
+S3
+
+=
+
+Low − 2 × (High − PP)
+Implementation Steps
+1. Get previous day's OHLC.
+
+2. Calculate Pivot Point.
+
+3. Calculate R1–R3.
+
+4. Calculate S1–S3.
+
+5. Keep levels fixed for the entire session.
+
+6. Recalculate only after market close.
+Notes
+Pivot levels never change during the trading session.
+
+Always use completed previous session data.
+
+Matches TradingView Classic Pivot implementation.
+
+4. Card Fields
+Current Value:
+Nearest Pivot Level
+
+Current Zone:
+Support
+Pivot
+Resistance
+
+Nearest Level:
+S3
+S2
+S1
+PP
+R1
+R2
+R3
+
+Distance:
+Current Price − Active Level
+
+Score:
+Engine Score (0–100)
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Structure Confidence
+
+
+5. Stocky Score Logic
+Notes
+Pivot acts as the day's equilibrium.
+
+Trading above Pivot indicates buyer control.
+
+Trading below Pivot indicates seller control.
+
+Breaks above R1/R2 require volume confirmation.
+
+6. Bias Rules
+Price Above Pivot:
+Bullish
+
+Price Below Pivot:
+Bearish
+
+Price Near Pivot:
+Neutral
+
+Break Above R1:
+Bullish Momentum
+
+Break Below S1:
+Bearish Momentum
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% Volume Above Average
+
++5% OBV Rising
+
++5% ADX >25
+
++5% EMA20 Agrees
+
+Decrease Confidence:
+-10% Frequent Pivot Crosses
+
+-5% Low Volume
+
+-5% ADX <20
+
+Minimum:
+55%
+
+Maximum:
+95%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Pointer:
+Current Engine Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Support Zone
+
+30–50
+Below Pivot
+
+50–70
+Around Pivot
+
+70–85
+Resistance Test
+
+85–100
+Strong Breakout
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+Current Pivot Level
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+Once Per Session
+
+10. AI Insight Rules
+Price Above Pivot:
+Explain buyers currently control the trading session.
+
+Price Near Pivot:
+Explain the market is balanced with no clear advantage.
+
+Price Breaking R1:
+Explain bullish momentum is strengthening.
+
+Price Breaking S1:
+Explain sellers have gained control.
+
+Price Between Levels:
+Mention the next support/resistance target.
+
+11. Why It Matters
+Defines the day's key trading levels. 
+Identifies likely support and resistance. 
+Helps estimate profit targets. 
+Widely used by intraday traders. 
+Excellent for breakout confirmation. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★☆☆
+
+Positional Trading:
+★★☆☆☆
+
+Options Trading:
+★★★★★
+
+Best Use:
+Intraday support, resistance and target planning.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+Support
+
+Resistance
+
+VWAP
+
+Volume SMA
+
+EMA20
+
+MACD
+
+ADX
+
+14. Metadata
+Source:
+Previous Trading Session OHLC
+
+Calculation:
+Backend
+
+Updated:
+Once Per Trading Day
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Database
+
+15. Developer Notes
+Store:
+
+• Pivot
+
+• R1–R3
+
+• S1–S3
+
+Recalculate only once after market close.
+
+Never update levels intraday.
+
+Display nearest active level prominently on the UI.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+6%
+
+Relative Importance:
+High (Intraday)
+
+Decision Engine Role:
+Intraday Market Structure
+
+Primary Use:
+Identify today's key support and resistance levels.
+
+Bullish Confirmation:
+Price > Pivot
+AND
+Volume Increasing
+
+Bearish Confirmation:
+Price < Pivot
+AND
+VWAP Below Price
+
+Display Priority:
+High
+
+Stocky Recommendation
+For Stocky V1, use Classic Pivot Points only. They are the most recognized and easiest for users to interpret. The UI should display:
+Current Active Level (e.g., R1, Pivot, S2) 
+Distance to Next Level 
+Next Resistance Target 
+Next Support Target 
+Unlike Support and Resistance, which are dynamic and evolve with market structure, Pivot Points are fixed for the entire trading session. This makes them ideal for intraday planning, target setting, and risk management.
+📊 Structure Priority (Final)
+⭐⭐⭐⭐⭐ Support 
+⭐⭐⭐⭐⭐ Resistance 
+⭐⭐⭐⭐⭐ Trendline 
+⭐⭐⭐⭐☆ Fibonacci Retracement 
+⭐⭐⭐⭐☆ Pivot Points 
+
+15.Market Breadth Ratio
+Module: Technical
+Category: Market Breadth
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Market Breadth Ratio
+
+Short Name: Breadth Ratio
+
+Module: Technical
+
+Category: Market Breadth
+
+Purpose:
+Measures the overall balance between advancing and declining stocks. It provides a quick snapshot of whether the majority of the market is participating in the current move.
+
+Importance:
+★★★★☆ (Supporting Breadth Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+Every Market Refresh (1–5 Minutes)
+Stocky Note: While the A/D Line shows long-term breadth trends, the Breadth Ratio reflects the market's current health. Think of it as a real-time market pulse.
+
+2. Data Requirements
+Required Data:
+- Number of Advancing Stocks
+- Number of Declining Stocks
+
+Minimum Historical Data:
+Current Trading Session
+
+Universe:
+NSE Listed Stocks
+(Recommended)
+OR
+NIFTY 500 (V1 Performance Option)
+
+Primary Source:
+NSE Market Breadth
+
+3. Industry Standard Calculation
+Formula
+Breadth Ratio
+
+=
+
+Advancing Stocks
+
+/
+
+Declining Stocks
+Example
+Advancing Stocks = 1,850
+
+Declining Stocks = 850
+
+Breadth Ratio
+
+=
+
+1850 / 850
+
+=
+
+2.18
+Implementation Steps
+1. Count advancing stocks.
+
+2. Count declining stocks.
+
+3. Divide advances by declines.
+
+4. Update throughout the trading session.
+Notes
+Ratio > 1 = Bullish Breadth
+
+Ratio = 1 = Balanced Market
+
+Ratio < 1 = Bearish Breadth
+
+If Declining Stocks = 0,
+display Maximum Ratio.
+
+4. Card Fields
+Advancing Stocks:
+Current Count
+
+Declining Stocks:
+Current Count
+
+Breadth Ratio:
+Current Ratio
+
+Participation:
+Strong
+Normal
+Weak
+
+Score:
+Engine Score (0–100)
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Breadth Confidence
+
+
+5. Stocky Score Logic
+Notes
+Higher ratios indicate broader market participation.
+
+Low ratios indicate widespread weakness.
+
+Interpret alongside A/D Line and NH/NL.
+
+6. Bias Rules
+Ratio > 2:
+Strong Bullish
+
+Ratio 1–2:
+Bullish
+
+Ratio Around 1:
+Neutral
+
+Ratio Below 1:
+Bearish
+
+Ratio Below 0.5:
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% A/D Line Rising
++5% NH/NL Positive
++5% Volume Above Average
++5% Index Above EMA200
+
+Decrease Confidence:
+-10% Breadth Divergence
+-5% Low Volume
+-5% India VIX Rising Sharply
+
+Minimum:
+55%
+
+Maximum:
+95%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Engine Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Weak Breadth
+
+30–50
+Negative
+
+50–70
+Balanced
+
+70–85
+Healthy
+
+85–100
+Excellent
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+Breadth Ratio
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+Every Market Refresh
+
+10. AI Insight Rules
+Ratio Above 2:
+Explain broad market participation supports the current trend.
+
+Ratio Near 1:
+Explain buyers and sellers are relatively balanced.
+
+Ratio Below 1:
+Explain declining stocks outnumber advancing stocks.
+
+Rapidly Improving Ratio:
+Explain market participation is strengthening.
+
+Rapidly Falling Ratio:
+Explain internal market strength is weakening.
+
+11. Why It Matters
+Provides a real-time view of market participation. 
+Confirms whether rallies are broad-based. 
+Detects weakening market internals. 
+Easy to interpret. 
+Complements A/D Line and NH/NL. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★★☆
+
+Positional Trading:
+★★★☆☆
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Intraday breadth confirmation.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+Advance / Decline Line
+
+New High / New Low
+
+India VIX
+
+Volume SMA
+
+EMA200
+
+14. Metadata
+Source:
+NSE Market Breadth
+
+Calculation:
+Backend
+
+Updated:
+Every Market Refresh
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Database
+
+15. Developer Notes
+Store:
+
+• Advancing Stocks
+
+• Declining Stocks
+
+• Breadth Ratio
+
+• Historical Ratios (30 Days)
+
+Handle division-by-zero safely.
+
+Round ratio to two decimal places.
+
+Cache updates between refreshes.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+5%
+
+Relative Importance:
+Medium-High
+
+Decision Engine Role:
+Real-Time Market Participation
+
+Primary Use:
+Confirm the quality of the current market move.
+
+Bullish Confirmation:
+Breadth Ratio > 1.5
+AND
+A/D Line Rising
+
+Bearish Confirmation:
+Breadth Ratio < 0.8
+AND
+A/D Line Falling
+
+Display Priority:
+Medium-High
+
+Stocky Recommendation
+The Market Breadth Ratio should act as Stocky's real-time breadth gauge. Unlike the cumulative A/D Line, it instantly reflects whether today's buying or selling is broad-based.
+📊 Breadth Module Hierarchy
+⭐⭐⭐⭐⭐ Advance / Decline Line (Primary Breadth Trend) 
+⭐⭐⭐⭐⭐ New High / New Low (Market Leadership) 
+⭐⭐⭐⭐☆ Market Breadth Ratio (Real-Time Participation) 
+Engine Rules
+Breadth Ratio > 2 + Rising A/D → Increase Technical Confidence. 
+Breadth Ratio < 1 + Falling A/D → Confirm market weakness. 
+Index Rising + Breadth Ratio Falling → Reduce confidence due to narrowing participation. 
+Improving Breadth Ratio after a correction → Early sign of improving market health. 
+This completes the Market Breadth section for Stocky V1 and provides a balanced view of both long-term market participation and real-time market internals.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+16.McClellan Oscillator
+Module: Technical
+Category: Market Breadth
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: McClellan Oscillator
+
+Short Name: McClellan
+
+Module: Technical
+
+Category: Market Breadth
+
+Purpose:
+Measures short-term market breadth momentum by comparing fast and slow exponential moving averages of Net Advances. It helps identify overbought, oversold and momentum shifts before they appear in the index.
+
+Created By:
+Sherman & Marian McClellan
+
+Importance:
+★★★★☆ (Advanced Breadth Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+Every Market Refresh (1–5 Minutes)
+Stocky Note: The McClellan Oscillator measures the momentum of market breadth, not price. It is often used as an early warning indicator before major market reversals.
+
+2. Data Requirements
+Required Data:
+- Advancing Stocks
+- Declining Stocks
+
+Minimum Historical Data:
+50 Trading Days
+
+Universe:
+NSE Listed Stocks
+(Recommended)
+OR
+NIFTY 500
+
+Primary Source:
+NSE Market Breadth
+
+3. Industry Standard Calculation
+Formula
+Net Advances
+
+=
+
+Advancing Stocks
+
+-
+
+Declining Stocks
+
+----------------------------
+
+Fast EMA = 19 EMA(Net Advances)
+
+Slow EMA = 39 EMA(Net Advances)
+
+----------------------------
+
+McClellan Oscillator
+
+=
+
+19 EMA
+
+-
+
+39 EMA
+Implementation Steps
+1. Calculate Net Advances.
+
+2. Calculate 19 EMA.
+
+3. Calculate 39 EMA.
+
+4. Subtract Slow EMA from Fast EMA.
+
+5. Update every market refresh.
+Notes
+Positive Value = Improving Breadth
+
+Negative Value = Weakening Breadth
+
+Zero Line is the most important level.
+
+Matches institutional breadth calculations.
+
+4. Card Fields
+Current Value:
+Current Oscillator
+
+Momentum:
+Improving
+Neutral
+Weakening
+
+Zero Line:
+Above
+Below
+
+Score:
+Engine Score (0–100)
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Breadth Confidence
+
+
+5. Stocky Score Logic
+Notes
+Crossing above zero is more important than the absolute value.
+
+Extreme readings often precede market reversals.
+
+Always confirm with A/D Line.
+
+6. Bias Rules
+Above Zero:
+Bullish
+
+Below Zero:
+Bearish
+
+Rising:
+Improving Breadth
+
+Falling:
+Weakening Breadth
+
+Near Zero:
+Neutral
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% A/D Line Rising
++5% Breadth Ratio >1
++5% NH/NL Positive
++5% India VIX Falling
+
+Decrease Confidence:
+-10% Breadth Divergence
+-5% Weak Participation
+-5% High India VIX
+
+Minimum:
+55%
+
+Maximum:
+95%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Pointer:
+Current Engine Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Weak Breadth
+
+30–50
+Bearish
+
+50–70
+Neutral
+
+70–85
+Bullish
+
+85–100
+Strong Breadth
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+McClellan Oscillator
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+Every Market Refresh
+
+10. AI Insight Rules
+Oscillator Above Zero:
+Explain that market breadth momentum is improving.
+
+Oscillator Below Zero:
+Explain that participation is weakening.
+
+Strong Positive Reading:
+Highlight broad buying momentum.
+
+Strong Negative Reading:
+Highlight widespread selling pressure.
+
+Zero-Line Cross:
+Explain this may represent an early change in market participation.
+
+11. Why It Matters
+Measures breadth momentum. 
+Detects internal market shifts early. 
+Identifies improving or weakening participation. 
+Confirms trend sustainability. 
+Often leads index price movement. 
+
+12. Trading Impact
+Intraday:
+★★★★☆
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★☆
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Breadth momentum confirmation.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+Advance / Decline Line
+
+Market Breadth Ratio
+
+New High / New Low
+
+India VIX
+
+TRIN
+
+14. Metadata
+Source:
+NSE Market Breadth
+
+Calculation:
+Backend
+
+Updated:
+Every Market Refresh
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Database
+
+15. Developer Notes
+Store:
+
+• Net Advances
+
+• 19 EMA
+
+• 39 EMA
+
+• Oscillator Value
+
+Maintain at least 50 historical breadth readings.
+
+Round values to two decimal places.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+4%
+
+Relative Importance:
+Medium
+
+Decision Engine Role:
+Breadth Momentum
+
+Primary Use:
+Measure acceleration or deceleration of market participation.
+
+Bullish Confirmation:
+Oscillator > 0
+AND
+A/D Line Rising
+
+Bearish Confirmation:
+Oscillator < 0
+AND
+A/D Line Falling
+
+Display Priority:
+Medium
+
+Stocky Recommendation
+The McClellan Oscillator should be the final confirmation indicator in the Breadth module. While the A/D Line tells you where breadth is, the McClellan Oscillator tells you how quickly breadth is improving or deteriorating.
+📊 Final Breadth Module Priority
+⭐⭐⭐⭐⭐ Advance / Decline Line (Breadth Trend) 
+⭐⭐⭐⭐⭐ New High / New Low (Market Leadership) 
+⭐⭐⭐⭐☆ Market Breadth Ratio (Current Participation) 
+⭐⭐⭐⭐☆ TRIN (Buying vs Selling Pressure) 
+⭐⭐⭐⭐☆ McClellan Oscillator (Breadth Momentum) 
+Engine Rules
+A/D Rising + McClellan Rising → Strong breadth confirmation. 
+Index Rising + McClellan Falling → Early warning of weakening momentum. 
+Cross above Zero → Increase confidence in bullish signals. 
+Cross below Zero → Reduce confidence across the Technical Engine. 
+Implementation Note: McClellan Oscillator should adjust the confidence of the Breadth module rather than directly affecting bullish or bearish scores.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+17.SMA 50 (Simple Moving Average)
+Module: Technical
+Category: Trend Following
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Simple Moving Average
+
+Short Name: SMA 50
+
+Module: Technical
+
+Category: Trend Following
+
+Purpose:
+Measures the average closing price over the last 50 periods to identify the medium-term trend and dynamic support/resistance.
+
+Created By:
+Technical Analysis Standard
+
+Importance:
+★★★★☆ (Core Trend Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+Stocky Note: SMA50 is slower than EMA50 and is widely used by institutions to identify the medium-term market trend. It should complement EMA50 rather than replace it.
+
+2. Data Requirements
+Required Data:
+- Close Price
+
+Minimum Historical Data:
+60 Candles
+
+Default Period:
+50
+
+Supported Timeframes:
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox Historical OHLC
+
+3. Industry Standard Calculation
+Formula
+SMA50 =
+
+Sum of Last 50 Closing Prices
+
+/
+
+50
+Implementation Steps
+1. Collect last 50 closing prices.
+
+2. Calculate their sum.
+
+3. Divide by 50.
+
+4. Update after every completed candle.
+Notes
+Uses arithmetic average.
+
+Each candle has equal weight.
+
+Matches TradingView, Bloomberg and NSE charting platforms.
+
+4. Card Fields
+Current Value:
+Current SMA50
+
+Price Position:
+Above
+Near
+Below
+
+Distance:
+Price vs SMA50 (%)
+
+Slope:
+Rising
+Flat
+Falling
+
+Score:
+0–100
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Trend Confidence
+
+
+5. Stocky Score Logic
+Notes
+A rising SMA50 strengthens bullish signals.
+
+A falling SMA50 strengthens bearish signals.
+
+Price crossing SMA50 is more important than simply touching it.
+
+6. Bias Rules
+Price Above Rising SMA50:
+Bullish
+
+Price Above Flat SMA50:
+Mild Bullish
+
+Price Near SMA50:
+Neutral
+
+Price Below Falling SMA50:
+Bearish
+
+Flat SMA50:
+Sideways Market
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% EMA50 agrees
++5% EMA200 agrees
++5% ADX >25
++5% Volume Above Average
+
+Decrease Confidence:
+-10% Frequent SMA Crosses
+-5% ADX <20
+-5% Low Volume
+
+Minimum:
+55%
+
+Maximum:
+95%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Bearish
+
+30–50
+Weak
+
+50–70
+Neutral
+
+70–85
+Bullish
+
+85–100
+Strong Bullish
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+SMA50
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+Price Above Rising SMA50:
+Explain the market remains in a healthy medium-term uptrend.
+
+Price Crossing Above SMA50:
+Explain buyers have regained medium-term control.
+
+Price Near SMA50:
+Explain the market is testing an important trend support/resistance level.
+
+Price Below Falling SMA50:
+Explain sellers dominate the medium-term trend.
+
+Price Crossing Below SMA50:
+Explain the market structure has weakened and downside risk has increased.
+
+11. Why It Matters
+Identifies the medium-term market trend. 
+Acts as dynamic support and resistance. 
+Filters short-term market noise. 
+Confirms trend direction. 
+Widely followed by institutions and swing traders. 
+
+12. Trading Impact
+Intraday:
+★★★☆☆
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★☆
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Medium-term trend confirmation.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+EMA20
+
+EMA50
+
+EMA200
+
+ADX
+
+MACD
+
+Supertrend
+
+Volume SMA
+
+14. Metadata
+Source:
+Upstox OHLC
+
+Calculation:
+Backend
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Maintain at least 60 completed candles.
+
+Store:
+
+• SMA50
+
+• Previous SMA50
+
+• Slope
+
+• Distance from Price
+
+Update only after candle close.
+
+Display percentage distance from current price.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+6%
+
+Relative Importance:
+High
+
+Decision Engine Role:
+Medium-Term Trend Filter
+
+Primary Use:
+Confirm trend direction.
+
+Bullish Confirmation:
+Price > SMA50
+AND
+EMA50 Rising
+
+Bearish Confirmation:
+Price < SMA50
+AND
+EMA50 Falling
+
+Display Priority:
+High
+
+Stocky Recommendation
+SMA50 should be Stocky's primary medium-term trend benchmark. Unlike EMA50, which reacts quickly to price changes, SMA50 provides a smoother view of trend direction and helps filter out short-term volatility.
+Moving Average Hierarchy
+EMA200 → Long-term Market Structure 
+EMA50 → Medium-term Trend 
+SMA50 → Trend Validation 
+EMA20 → Short-term Momentum 
+SMA200 → Long-term Institutional Confirmation 
+The Technical Engine should use EMA50 for responsiveness and SMA50 for confirmation. When both indicate the same direction, confidence should increase. When they diverge, reduce confidence and classify the trend as transitional rather than strongly bullish or bearish.
+
+
+
+
+18.SMA 200 (Simple Moving Average)
+Module: Technical
+Category: Trend Following
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Simple Moving Average
+
+Short Name: SMA 200
+
+Module: Technical
+
+Category: Trend Following
+
+Purpose:
+Measures the average closing price over the last 200 periods to identify the long-term market trend and major institutional support/resistance.
+
+Created By:
+Technical Analysis Standard
+
+Importance:
+★★★★★ (Institutional Trend Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+Stocky Note: SMA200 is one of the most respected indicators in financial markets. It is widely used by institutions to determine whether an asset is in a long-term bull or bear market.
+
+2. Data Requirements
+Required Data:
+- Close Price
+
+Minimum Historical Data:
+220 Candles
+
+Default Period:
+200
+
+Supported Timeframes:
+- 15 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox Historical OHLC
+
+3. Industry Standard Calculation
+Formula
+SMA200 =
+
+Sum of Last 200 Closing Prices
+
+/
+
+200
+Implementation Steps
+1. Collect last 200 closing prices.
+
+2. Sum all values.
+
+3. Divide by 200.
+
+4. Update after every completed candle.
+Notes
+Each candle has equal weight.
+
+Uses closing prices only.
+
+Matches TradingView, Bloomberg and institutional standards.
+
+4. Card Fields
+Current Value:
+Current SMA200
+
+Price Position:
+Above
+Near
+Below
+
+Distance:
+Price vs SMA200 (%)
+
+Slope:
+Rising
+Flat
+Falling
+
+Score:
+0–100
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Trend Confidence
+
+
+5. Stocky Score Logic
+Notes
+Price above SMA200 indicates a healthy long-term trend.
+
+Price below SMA200 indicates long-term weakness.
+
+The slope of SMA200 is as important as price position.
+
+6. Bias Rules
+Price Above Rising SMA200:
+Bullish
+
+Price Above Falling SMA200:
+Neutral Bullish
+
+Price Near SMA200:
+Neutral
+
+Price Below Rising SMA200:
+Neutral Bearish
+
+Price Below Falling SMA200:
+Bearish
+
+7. Confidence Logic
+Base Confidence:
+80%
+
+Increase Confidence:
++5% EMA200 agrees
++5% EMA50 above SMA200
++5% ADX >25
++5% Volume Above Average
+
+Decrease Confidence:
+-10% Price oscillates around SMA200
+-5% ADX <20
+-5% Weak Breadth
+
+Minimum:
+60%
+
+Maximum:
+98%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Bear Market
+
+30–50
+Weak
+
+50–70
+Transition
+
+70–85
+Bull Market
+
+85–100
+Strong Bull Market
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+SMA200
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+Price Above Rising SMA200:
+Explain that the long-term market structure remains healthy.
+
+Price Crossing Above SMA200:
+Explain that the market may be entering a new long-term bullish phase.
+
+Price Near SMA200:
+Explain that the market is testing one of the most important long-term support/resistance levels.
+
+Price Below Falling SMA200:
+Explain that long-term selling pressure remains dominant.
+
+Price Crossing Below SMA200:
+Explain that institutional trend has weakened and downside risk has increased.
+
+11. Why It Matters
+Defines long-term market direction. 
+Identifies institutional trend. 
+Acts as major support and resistance. 
+Helps filter false trend signals. 
+Used globally by professional traders and fund managers. 
+
+12. Trading Impact
+Intraday:
+★★☆☆☆
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Long-term trend confirmation.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+EMA200
+
+EMA50
+
+SMA50
+
+ADX
+
+Supertrend
+
+MACD
+
+Market Regime
+
+14. Metadata
+Source:
+Upstox OHLC
+
+Calculation:
+Backend
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Maintain at least 220 completed candles.
+
+Store:
+
+• SMA200
+
+• Previous SMA200
+
+• Slope
+
+• Distance from Price
+
+Update after candle close.
+
+Display percentage distance from current price.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+8%
+
+Relative Importance:
+Very High
+
+Decision Engine Role:
+Long-Term Trend Filter
+
+Primary Use:
+Determine institutional market direction.
+
+Bullish Confirmation:
+Price > SMA200
+AND
+EMA200 Rising
+
+Bearish Confirmation:
+Price < SMA200
+AND
+EMA200 Falling
+
+Display Priority:
+Very High
+
+Stocky Recommendation
+SMA200 should serve as Stocky's institutional trend benchmark. Unlike EMA200, which responds faster to price changes, SMA200 provides a slower, more stable measure of the long-term trend and is less susceptible to short-term market noise.
+Moving Average Hierarchy
+EMA200 → Long-Term Trend (Primary) 
+SMA200 → Institutional Trend Confirmation 
+EMA50 → Medium-Term Trend 
+SMA50 → Medium-Term Confirmation 
+EMA20 → Short-Term Momentum 
+When EMA200 and SMA200 both point in the same direction, Stocky should classify the long-term trend as high confidence. When they diverge, reduce overall trend confidence until alignment is restored.
+
+
+
+19.Supertrend
+Module: Technical
+Category: Trend Following
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Supertrend
+
+Short Name: Supertrend
+
+Module: Technical
+
+Category: Trend Following
+
+Purpose:
+Identifies the current market trend using price and volatility (ATR). It provides dynamic buy/sell trend signals and acts as a trailing support or resistance.
+
+Created By:
+Olivier Seban
+
+Importance:
+★★★★★ (Core Trend Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+Stocky Note: Supertrend is one of the most reliable trend-following indicators because it combines price action with market volatility (ATR). It works best in trending markets and should not be relied upon during sideways conditions.
+
+2. Data Requirements
+Required Data:
+- High Price
+- Low Price
+- Close Price
+
+Minimum Historical Data:
+30 Candles
+
+Default Parameters:
+ATR Period = 10
+Multiplier = 3
+
+Supported Timeframes:
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox Historical OHLC
+
+3. Industry Standard Calculation
+Formula
+ATR = Average True Range (10)
+
+Basic Upper Band
+
+=
+
+(High + Low) / 2
+
++
+
+(ATR × Multiplier)
+
+--------------------------------
+
+Basic Lower Band
+
+=
+
+(High + Low) / 2
+
+-
+
+(ATR × Multiplier)
+
+--------------------------------
+
+Final Supertrend
+
+=
+
+Upper Band
+OR
+Lower Band
+
+depending on trend direction.
+Implementation Steps
+1. Calculate ATR(10).
+
+2. Compute Upper & Lower Bands.
+
+3. Determine current trend.
+
+4. Flip trend only after confirmed close.
+
+5. Update after candle close.
+Notes
+Use ATR multiplier of 3.
+
+Avoid changing trend intrabar.
+
+Matches TradingView default implementation.
+
+4. Card Fields
+Current Value:
+Current Supertrend
+
+Trend:
+Bullish
+Bearish
+
+Distance:
+Price vs Supertrend (%)
+
+Last Flip:
+Bullish
+Bearish
+
+Score:
+0–100
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Trend Confidence
+
+
+5. Stocky Score Logic
+Notes
+Trend continuation scores higher than fresh trend flips.
+
+Multiple false flips reduce confidence.
+
+Confirm flips using ADX or Volume.
+
+6. Bias Rules
+Price Above Supertrend:
+Bullish
+
+Price Below Supertrend:
+Bearish
+
+Fresh Bullish Flip:
+Bullish Reversal
+
+Fresh Bearish Flip:
+Bearish Reversal
+
+Frequent Flips:
+Sideways Market
+
+7. Confidence Logic
+Base Confidence:
+80%
+
+Increase Confidence:
++5% ADX >25
++5% EMA50 agrees
++5% Volume Above Average
++5% ATR Rising
+
+Decrease Confidence:
+-10% Multiple Trend Flips
+-5% Low ADX
+-5% Low Volume
+
+Minimum:
+60%
+
+Maximum:
+98%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Bearish
+
+30–50
+Weak
+
+50–70
+Transition
+
+70–85
+Bullish
+
+85–100
+Strong Bullish
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+Supertrend
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+Bullish Trend:
+Explain buyers remain in control and price continues to respect the Supertrend.
+
+Fresh Bullish Flip:
+Explain trend has shifted upward after sustained buying pressure.
+
+Bearish Trend:
+Explain sellers remain dominant and downside momentum persists.
+
+Fresh Bearish Flip:
+Explain the previous uptrend has ended and market sentiment has weakened.
+
+Frequent Trend Flips:
+Explain that market conditions are choppy and trend-following strategies are less reliable.
+
+11. Why It Matters
+Identifies the prevailing trend. 
+Provides clear trend reversal signals. 
+Acts as a dynamic trailing stop. 
+Adapts automatically to volatility. 
+Reduces emotional decision-making. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★☆
+
+Options Trading:
+★★★★★
+
+Best Use:
+Trend following and trailing stop management.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+ATR
+
+ADX
+
+EMA20
+
+EMA50
+
+MACD
+
+Volume SMA
+
+Market Regime
+
+14. Metadata
+Source:
+Upstox OHLC
+
+Calculation:
+Backend
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store:
+
+• Current Supertrend
+
+• Trend Direction
+
+• Previous Trend
+
+• Last Flip Time
+
+• Distance from Price
+
+Only change trend after candle close.
+
+Ignore intrabar price movement.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+8%
+
+Relative Importance:
+Very High
+
+Decision Engine Role:
+Primary Trend Signal
+
+Primary Use:
+Determine active market direction.
+
+Bullish Confirmation:
+Price Above Supertrend
+AND
+ADX >25
+
+Bearish Confirmation:
+Price Below Supertrend
+AND
+ADX >25
+
+Display Priority:
+Very High
+
+Stocky Recommendation
+Supertrend should be Stocky's primary trend-following indicator because it combines both price and volatility, making it more adaptive than traditional moving averages.
+Trend Hierarchy
+⭐⭐⭐⭐⭐ Supertrend (Primary Trend Signal) 
+⭐⭐⭐⭐⭐ EMA200 (Long-Term Trend) 
+⭐⭐⭐⭐☆ EMA50 (Medium-Term Trend) 
+⭐⭐⭐⭐☆ SMA200 (Institutional Confirmation) 
+⭐⭐⭐⭐☆ SMA50 (Trend Validation) 
+⭐⭐⭐⭐☆ EMA20 (Short-Term Momentum) 
+Engine Rules
+Supertrend Bullish + EMA200 Bullish → Maximum trend confidence. 
+Supertrend Bullish + ADX >25 → Confirm strong trending market. 
+Supertrend Flip + Low ADX → Treat as a weak or potential false signal. 
+Supertrend, EMA50, and EMA200 all aligned → Increase overall Technical Score and Decision Engine confidence. 
+Supertrend should be one of the highest-weighted trend indicators because it provides clear, objective trend signals while automatically adapting to changing market volatility.
+
+
+
+
+
+
+
+
+
+20. On-Balance Volume (OBV)
+Module: Technical
+Category: Volume Analysis
+Status: Production Ready
+
+1. Overview
+Name: On-Balance Volume
+
+Short Name: OBV
+
+Module: Technical
+
+Category: Volume Analysis
+
+Purpose:
+Measures cumulative buying and selling pressure by adding volume on up days and subtracting volume on down days. It helps determine whether volume confirms the current price trend.
+
+Created By:
+Joseph Granville
+
+Importance:
+★★★★★ (Core Volume Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+Stocky Note: OBV often moves before price. A rising OBV while price is still consolidating may indicate accumulation, whereas a falling OBV during a rally can warn of weakening buying pressure.
+
+2. Data Requirements
+Required Data:
+- Close Price
+- Volume
+
+Minimum Historical Data:
+60 Candles
+
+Default Period:
+Cumulative
+
+Supported Timeframes:
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox OHLC + Volume
+
+3. Industry Standard Calculation
+Formula
+If Today's Close > Previous Close
+
+OBV = Previous OBV + Today's Volume
+
+--------------------------------
+
+If Today's Close < Previous Close
+
+OBV = Previous OBV − Today's Volume
+
+--------------------------------
+
+If Today's Close = Previous Close
+
+OBV = Previous OBV
+Implementation Steps
+1. Initialize OBV.
+
+2. Compare today's close with previous close.
+
+3. Add or subtract today's volume.
+
+4. Store cumulative value.
+
+5. Update after every completed candle.
+Notes
+OBV is cumulative.
+
+Absolute value is not important.
+
+Trend direction and divergence matter most.
+
+Matches TradingView implementation.
+
+4. Card Fields
+Current Value:
+Current OBV
+
+OBV Trend:
+Rising
+Flat
+Falling
+
+Price Divergence:
+Bullish
+Bearish
+None
+
+Score:
+0–100
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Volume Confidence
+
+
+5. Stocky Score Logic
+Notes
+Volume should confirm price.
+
+Bullish divergence increases score.
+
+Bearish divergence significantly reduces confidence.
+
+Trend is more important than absolute value.
+
+6. Bias Rules
+OBV Rising:
+Bullish
+
+OBV Falling:
+Bearish
+
+OBV Flat:
+Neutral
+
+Bullish Divergence:
+Strong Bullish
+
+Bearish Divergence:
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% Price Trend agrees
++5% Volume SMA Rising
++5% CMF Positive
++5% ADX >25
+
+Decrease Confidence:
+-10% Bearish Divergence
+-5% Low Volume
+-5% Sideways Market
+
+Minimum:
+55%
+
+Maximum:
+98%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Distribution
+
+30–50
+Weak
+
+50–70
+Neutral
+
+70–85
+Accumulation
+
+85–100
+Strong Accumulation
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+OBV
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+OBV Rising:
+Explain that buying volume supports the ongoing trend.
+
+OBV Falling:
+Explain that selling pressure is increasing.
+
+Bullish Divergence:
+Explain that accumulation is occurring despite weak price action.
+
+Bearish Divergence:
+Explain that the rally lacks volume confirmation and may weaken.
+
+Flat OBV:
+Explain that buyers and sellers are currently balanced.
+
+11. Why It Matters
+Measures accumulation and distribution. 
+Confirms price trends. 
+Detects hidden institutional buying. 
+Identifies early trend reversals. 
+One of the most trusted volume indicators. 
+
+12. Trading Impact
+Intraday:
+★★★★☆
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Volume confirmation and divergence analysis.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+CMF
+
+Volume SMA
+
+VWAP
+
+MACD
+
+EMA50
+
+ADX
+
+Market Regime
+
+14. Metadata
+Source:
+Upstox Volume Data
+
+Calculation:
+Backend
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store:
+
+• Current OBV
+
+• Previous OBV
+
+• Trend Direction
+
+• Divergence Status
+
+Maintain complete cumulative history.
+
+Display trend rather than raw magnitude as the primary visual indicator.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+7%
+
+Relative Importance:
+High
+
+Decision Engine Role:
+Volume Confirmation
+
+Primary Use:
+Confirm whether volume supports the price trend.
+
+Bullish Confirmation:
+OBV Rising
+AND
+Price Rising
+
+Bearish Confirmation:
+OBV Falling
+AND
+Price Falling
+
+Warning Signal:
+Price Rising
+AND
+OBV Falling
+
+Display Priority:
+High
+
+Stocky Recommendation
+OBV should be Stocky's primary volume confirmation indicator. Rather than generating independent buy or sell signals, its main role is to determine whether volume validates the current price movement.
+Volume Module Hierarchy
+⭐⭐⭐⭐⭐ OBV (Primary Volume Confirmation) 
+⭐⭐⭐⭐⭐ CMF (Money Flow Analysis) 
+⭐⭐⭐⭐☆ VWAP (Fair Value Reference) 
+⭐⭐⭐⭐☆ Volume SMA (Participation Benchmark) 
+Engine Rules
+Price ↑ + OBV ↑ → Strong bullish confirmation. 
+Price ↑ + OBV ↓ → Negative divergence → Reduce confidence. 
+Price ↓ + OBV ↑ → Positive divergence → Watch for reversal. 
+OBV + CMF both bullish → Increase Volume Module score and overall Technical confidence. 
+OBV should influence the Volume Score and the Technical Composite Score, making it one of the highest-priority indicators for confirming trend reliability.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+21. Volume Weighted Average Price (VWAP)
+
+Module: Technical
+Category: Volume Analysis
+Status: Production Ready
+
+1. Overview
+Name: Volume Weighted Average Price
+
+Short Name: VWAP
+
+Module: Technical
+
+Category: Volume Analysis
+
+Purpose:
+Calculates the average traded price weighted by volume throughout the current trading session. It helps identify fair value and institutional buying or selling activity.
+
+Created By:
+Institutional Trading Standard
+
+Importance:
+★★★★★ (Core Volume Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+Real-Time During Market Hours
+Stocky Note: VWAP is one of the most widely used institutional indicators. Mutual funds, hedge funds, and algorithmic traders use it as a benchmark for execution quality. Unlike moving averages, VWAP resets at the beginning of every trading session.
+
+2. Data Requirements
+Required Data:
+- High Price
+- Low Price
+- Close Price
+- Volume
+
+Minimum Historical Data:
+Current Trading Session
+
+Calculation Window:
+Session Based
+
+Supported Timeframes:
+- 1 Minute
+- 3 Minute
+- 5 Minute
+- 15 Minute
+- 30 Minute
+
+Primary Source:
+Upstox OHLC + Volume
+
+3. Industry Standard Calculation
+Formula
+Typical Price
+
+=
+
+(High + Low + Close)
+
+/
+
+3
+
+--------------------------------
+
+VWAP
+
+=
+
+Σ(Typical Price × Volume)
+
+/
+
+Σ(Volume)
+Implementation Steps
+1. Calculate Typical Price.
+
+2. Multiply Typical Price by Volume.
+
+3. Maintain cumulative Price × Volume.
+
+4. Maintain cumulative Volume.
+
+5. Divide cumulative values.
+
+6. Reset calculations at the start of every trading session.
+Notes
+VWAP is session-based.
+
+It resets every trading day.
+
+Never carry VWAP values across sessions.
+
+Matches TradingView, Bloomberg and institutional platforms.
+
+4. Card Fields
+Current Value:
+Current VWAP
+
+Price Position:
+Above
+Near
+Below
+
+Distance:
+Price vs VWAP (%)
+
+Session Trend:
+Bullish
+Neutral
+Bearish
+
+Score:
+0–100
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Volume Confidence
+
+
+5. Stocky Score Logic
+Notes
+Price above VWAP suggests buyers control the session.
+
+Price below VWAP suggests sellers control the session.
+
+Institutional traders generally prefer buying above VWAP in trending markets.
+
+Always confirm with volume.
+
+6. Bias Rules
+Price Above VWAP:
+Bullish
+
+Price Near VWAP:
+Neutral
+
+Price Below VWAP:
+Bearish
+
+Repeated Rejection at VWAP:
+Strong Bearish
+
+Repeated Bounce from VWAP:
+Strong Bullish
+
+7. Confidence Logic
+Base Confidence:
+80%
+
+Increase Confidence:
++5% Volume Above Average
++5% OBV Rising
++5% EMA20 Above EMA50
++5% ADX >25
+
+Decrease Confidence:
+-10% Low Volume
+-5% Sideways Market
+-5% Frequent VWAP Crosses
+
+Minimum:
+60%
+
+Maximum:
+98%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Below Fair Value
+
+30–50
+Weak
+
+50–70
+Fair Value
+
+70–85
+Above Fair Value
+
+85–100
+Strong Institutional Buying
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+VWAP
+
+Line 2:
+Engine Score
+
+History:
+Current Trading Session
+
+Update:
+Real-Time
+
+10. AI Insight Rules
+Price Above VWAP:
+Explain buyers are controlling today's trading session.
+
+Price Below VWAP:
+Explain sellers remain in control.
+
+Price Near VWAP:
+Explain the market is trading close to today's fair value.
+
+Repeated VWAP Bounce:
+Explain institutional buying is supporting the trend.
+
+Repeated VWAP Rejection:
+Explain institutional selling pressure remains active.
+
+11. Why It Matters
+Identifies fair value for the current session. 
+Tracks institutional buying and selling. 
+Confirms intraday trend direction. 
+Helps identify optimal entry and exit points. 
+One of the most respected institutional indicators. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★☆☆
+
+Positional Trading:
+★★☆☆☆
+
+Options Trading:
+★★★★★
+
+Best Use:
+Intraday trend confirmation and execution quality.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+OBV
+
+CMF
+
+Volume SMA
+
+EMA20
+
+Supertrend
+
+ADX
+
+Market Regime
+
+14. Metadata
+Source:
+Upstox OHLC + Volume
+
+Calculation:
+Backend
+
+Updated:
+Real-Time During Market Hours
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store:
+
+• Current VWAP
+
+• Previous VWAP
+
+• Price Distance (%)
+
+• Session High/Low Relative to VWAP
+
+Reset calculations at market open.
+
+Never use previous day's data.
+
+Round values to two decimal places.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+8%
+
+Relative Importance:
+Very High
+
+Decision Engine Role:
+Institutional Fair Value
+
+Primary Use:
+Determine whether price is trading above or below institutional average cost.
+
+Bullish Confirmation:
+Price > VWAP
+AND
+OBV Rising
+
+Bearish Confirmation:
+Price < VWAP
+AND
+OBV Falling
+
+Warning Signal:
+Frequent VWAP Crosses indicating a range-bound market.
+
+Display Priority:
+Very High
+
+Stocky Recommendation
+VWAP should be Stocky's primary intraday institutional indicator. Unlike moving averages, VWAP reflects the average price actually paid by market participants during the current session, making it a benchmark for institutional execution.
+Volume Module Hierarchy
+⭐⭐⭐⭐⭐ VWAP (Institutional Fair Value) 
+⭐⭐⭐⭐⭐ OBV (Volume Confirmation) 
+⭐⭐⭐⭐⭐ CMF (Money Flow) 
+⭐⭐⭐⭐☆ Volume SMA (Participation) 
+Engine Rules
+Price > VWAP + Rising OBV → Strong institutional buying → Increase Technical confidence. 
+Price < VWAP + Falling OBV → Strong institutional selling → Reduce Technical confidence. 
+Price oscillating around VWAP → Range-bound market → Reduce trend confidence. 
+VWAP aligned with Supertrend and EMA20 → High-probability intraday trend setup. 
+VWAP should primarily influence intraday trading decisions and the Volume Score, while also acting as a confirmation filter for the overall Technical Composite Score.
+
+
+
+
+
+
+
+
+
+22. Average True Range (ATR)
+Module: Technical
+Category: Volatility Analysis
+Status: Production Ready
+
+1. Overview
+Name: Average True Range
+
+Short Name: ATR
+
+Module: Technical
+
+Category: Volatility
+
+Purpose:
+Measures market volatility by calculating the average price range over a specified period. ATR indicates how much price is moving, but not the direction of the move.
+
+Created By:
+J. Welles Wilder Jr.
+
+Importance:
+★★★★★ (Core Volatility Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+Stocky Note: ATR measures volatility, not trend. A rising ATR means price swings are becoming larger, while a falling ATR indicates the market is becoming quieter. It is one of the most important indicators for stop-loss placement and position sizing.
+
+2. Data Requirements
+Required Data:
+- High Price
+- Low Price
+- Close Price
+
+Minimum Historical Data:
+30 Candles
+
+Default Period:
+14
+
+Supported Timeframes:
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox Historical OHLC
+
+3. Industry Standard Calculation
+Formula
+True Range (TR)
+
+=
+
+Maximum of:
+
+1. High − Low
+
+2. |High − Previous Close|
+
+3. |Low − Previous Close|
+
+--------------------------------
+
+ATR
+
+=
+
+Wilder's Smoothed Average
+
+of TR over 14 periods
+Implementation Steps
+1. Calculate True Range (TR).
+
+2. Compute initial ATR using the average of first 14 TR values.
+
+3. Apply Wilder's smoothing for each new candle.
+
+4. Update after every completed candle.
+Notes
+ATR is always positive.
+
+Higher ATR = Higher volatility.
+
+Lower ATR = Lower volatility.
+
+Matches TradingView, Bloomberg and institutional implementations.
+
+4. Card Fields
+Current Value:
+Current ATR
+
+30-Day Average:
+Average ATR
+
+Volatility State:
+Low
+Normal
+High
+Extreme
+
+Score:
+0–100
+
+Bias:
+Low Volatility
+Normal
+High Volatility
+
+Confidence:
+Volatility Confidence
+
+
+5. Stocky Score Logic
+Notes
+ATR should not generate bullish or bearish signals.
+
+It only measures movement intensity.
+
+Combine with trend indicators for direction.
+
+6. Bias Rules
+ATR Rising:
+Increasing Volatility
+
+ATR Falling:
+Decreasing Volatility
+
+ATR Stable:
+Normal Market
+
+Direction:
+Not Applicable
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% ADX >25
++5% Supertrend agrees
++5% Volume Above Average
++5% Breakout confirmed
+
+Decrease Confidence:
+-10% Extremely Low ATR
+-5% Sideways Market
+-5% Weak Volume
+
+Minimum:
+55%
+
+Maximum:
+95%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Very Low
+
+30–50
+Low
+
+50–70
+Normal
+
+70–85
+High
+
+85–100
+Extreme
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+ATR
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+ATR Rising:
+Explain that price swings are increasing and volatility is expanding.
+
+ATR Falling:
+Explain volatility is decreasing and the market is becoming quieter.
+
+ATR Above Average:
+Explain the market is experiencing above-normal movement.
+
+ATR Very Low:
+Explain the market is consolidating and a breakout may be approaching.
+
+Always clarify that ATR measures volatility, not direction.
+
+11. Why It Matters
+Measures market volatility. 
+Helps position sizing. 
+Determines stop-loss distance. 
+Confirms breakout quality. 
+Essential for professional risk management. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★★
+
+Best Use:
+Volatility measurement and risk management.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+Supertrend
+
+ADX
+
+Bollinger Bands
+
+Keltner Channel
+
+Volume SMA
+
+India VIX
+
+Market Regime
+
+14. Metadata
+Source:
+Upstox OHLC
+
+Calculation:
+Backend
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store:
+
+• Current ATR
+
+• Previous ATR
+
+• ATR Trend
+
+• 30-Day Average ATR
+
+Use Wilder's smoothing.
+
+Update after candle close.
+
+Display ATR with two decimal places.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+7%
+
+Relative Importance:
+Very High
+
+Decision Engine Role:
+Volatility Filter
+
+Primary Use:
+Measure market volatility and adjust confidence.
+
+Bullish Confirmation:
+ATR Rising
+AND
+Trend Indicators Bullish
+
+Bearish Confirmation:
+ATR Rising
+AND
+Trend Indicators Bearish
+
+Warning Signal:
+Extremely Low ATR indicating consolidation.
+
+Display Priority:
+Very High
+
+Stocky Recommendation
+ATR should serve as Stocky's primary volatility indicator. Unlike India VIX, which reflects expected future volatility, ATR measures actual price volatility based on historical market movement.
+Volatility Module Hierarchy
+⭐⭐⭐⭐⭐ ATR (Actual Market Volatility) 
+⭐⭐⭐⭐⭐ India VIX (Expected Market Volatility) 
+⭐⭐⭐⭐⭐ Bollinger Bands (Volatility Expansion & Contraction) 
+⭐⭐⭐⭐☆ Keltner Channel (Trend Volatility) 
+Engine Rules
+Rising ATR + Bullish Trend → Increase trend confidence. 
+Rising ATR + Bearish Trend → Increase bearish confidence. 
+Very Low ATR → Flag consolidation and reduce breakout confidence until expansion occurs. 
+ATR + ADX both rising → High-probability trending market. 
+ATR should primarily influence the Volatility Score, Risk Assessment, and the overall confidence of the Technical Composite Score rather than determining market direction.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+23. Keltner Channel
+Module: Technical
+Category: Volatility Analysis
+Status: Production Ready
+
+1. Overview
+Name: Keltner Channel
+
+Short Name: KC
+
+Module: Technical
+
+Category: Volatility
+
+Purpose:
+Measures trend direction and market volatility using an EMA-based channel. It helps identify trending markets, pullbacks, breakouts, and volatility expansion.
+
+Created By:
+Chester Keltner
+(Modern Version by Linda Raschke)
+
+Importance:
+★★★★☆ (Supporting Volatility Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+On every completed candle.
+Stocky Note: Keltner Channels are generally more stable than Bollinger Bands because they use ATR instead of Standard Deviation. They produce fewer false breakouts and are excellent for identifying healthy trends.
+
+2. Data Requirements
+Required Data:
+- High Price
+- Low Price
+- Close Price
+
+Minimum Historical Data:
+40 Candles
+
+Default Parameters:
+EMA Period = 20
+ATR Period = 20
+ATR Multiplier = 2
+
+Supported Timeframes:
+- 5 Minute
+- 15 Minute
+- 30 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox Historical OHLC
+
+3. Industry Standard Calculation
+Formula
+Middle Line
+
+=
+
+EMA(20)
+
+--------------------------------
+
+Upper Channel
+
+=
+
+EMA(20)
+
++
+
+(ATR20 × 2)
+
+--------------------------------
+
+Lower Channel
+
+=
+
+EMA(20)
+
+-
+
+(ATR20 × 2)
+Implementation Steps
+1. Calculate EMA(20).
+
+2. Calculate ATR(20).
+
+3. Multiply ATR by 2.
+
+4. Add/Subtract ATR from EMA.
+
+5. Update after every completed candle.
+Notes
+Uses EMA instead of SMA.
+
+Uses ATR instead of Standard Deviation.
+
+Matches TradingView default settings.
+
+Designed primarily for trending markets.
+
+4. Card Fields
+Current Value:
+Current Price
+
+Upper Channel:
+Current Upper Band
+
+Middle Line:
+EMA20
+
+Lower Channel:
+Current Lower Band
+
+Channel Width:
+Current Width
+
+Score:
+0–100
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Trend Confidence
+
+
+5. Stocky Score Logic
+Notes
+Price outside the channel indicates unusually strong momentum.
+
+Do not assume every channel touch is a reversal.
+
+Channel direction is more important than individual touches.
+
+6. Bias Rules
+Price Above EMA:
+Bullish
+
+Price Below EMA:
+Bearish
+
+Price Above Upper Channel:
+Strong Bullish Momentum
+
+Price Below Lower Channel:
+Strong Bearish Momentum
+
+Flat Channel:
+Sideways Market
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% ADX >25
++5% ATR Rising
++5% EMA20 Rising
++5% Volume Above Average
+
+Decrease Confidence:
+-10% Flat Channel
+-5% Low Volume
+-5% ADX <20
+
+Minimum:
+55%
+
+Maximum:
+95%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Bearish
+
+30–50
+Weak
+
+50–70
+Neutral
+
+70–85
+Bullish
+
+85–100
+Strong Bullish
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+EMA20 (Middle Channel)
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+Price Above Upper Channel:
+Explain that buying momentum is exceptionally strong.
+
+Price Above EMA:
+Explain buyers remain in control.
+
+Price Near EMA:
+Explain the market is trading around its trend value.
+
+Price Below Lower Channel:
+Explain selling pressure has accelerated.
+
+Flat Channel:
+Explain trend strength is weak and the market is consolidating.
+
+11. Why It Matters
+Identifies trend direction. 
+Measures volatility using ATR. 
+Detects pullbacks within trends. 
+Filters false breakout signals. 
+Excellent for trend-following strategies. 
+
+12. Trading Impact
+Intraday:
+★★★★☆
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★☆
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Trend continuation and pullback analysis.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+ATR
+
+EMA20
+
+EMA50
+
+ADX
+
+Supertrend
+
+Volume SMA
+
+Market Regime
+
+14. Metadata
+Source:
+Upstox OHLC
+
+Calculation:
+Backend
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store:
+
+• Upper Channel
+
+• Middle EMA
+
+• Lower Channel
+
+• Channel Width
+
+• Trend Direction
+
+Update only after candle close.
+
+Display channel width percentage for volatility comparison.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+6%
+
+Relative Importance:
+High
+
+Decision Engine Role:
+Trend Volatility
+
+Primary Use:
+Measure trend quality and identify pullbacks.
+
+Bullish Confirmation:
+Price Above EMA
+AND
+ADX >25
+
+Bearish Confirmation:
+Price Below EMA
+AND
+ADX >25
+
+Warning Signal:
+Flat Channel indicating weak trend.
+
+Display Priority:
+High
+
+Stocky Recommendation
+Keltner Channel should be Stocky's trend-volatility confirmation indicator. While ATR measures the magnitude of volatility and Bollinger Bands detect volatility expansion, Keltner Channels excel at identifying healthy trending markets and low-risk pullback opportunities.
+Volatility Module Hierarchy
+⭐⭐⭐⭐⭐ ATR (Actual Volatility) 
+⭐⭐⭐⭐⭐ Bollinger Bands (Volatility Expansion) 
+⭐⭐⭐⭐☆ Keltner Channel (Trend Quality & Pullbacks) 
+⭐⭐⭐⭐⭐ India VIX (Expected Market Volatility) 
+Engine Rules
+Price Above Middle Channel + Rising ADX → Strong trend confirmation. 
+Price Pullback to Middle Channel + Bounce → High-probability continuation setup. 
+Price Outside Upper Channel + Rising Volume → Exceptional bullish momentum. 
+Flat Channel + Low ATR → Reduce Technical confidence due to lack of trend. 
+Keltner Channel should primarily strengthen or weaken the Trend Score by evaluating the quality of the current trend, making it an important confirmation indicator rather than a standalone trading signal.
+
+
+
+
+
+
+
+
+
+24. Resistance Level
+Module: Technical
+Category: Market Structure
+Status: Production Ready
+
+1. Overview
+Name: Resistance Level
+
+Short Name: Resistance
+
+Module: Technical
+
+Category: Market Structure
+
+Purpose:
+Identifies price zones where selling pressure has historically been strong enough to prevent further price advances. These zones often become areas where traders expect increased supply.
+
+Importance:
+★★★★★ (Core Market Structure Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+Every completed candle.
+Stocky Note: Resistance is never a single price. It should always be treated as a zone where sellers have repeatedly defended the market.
+
+2. Data Requirements
+Required Data:
+- High
+- Low
+- Close
+
+Minimum Historical Data:
+100 Candles
+
+Lookback Period:
+100 Candles
+
+Pivot Strength:
+5 Left / 5 Right
+
+Supported Timeframes:
+- 15 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox OHLC
+
+3. Industry Standard Calculation
+Detection Method
+1. Detect Pivot Highs.
+
+2. Cluster nearby Pivot Highs into one resistance zone.
+
+3. Count successful rejections.
+
+4. Measure rejection strength.
+
+5. Assign the strongest active zone as Primary Resistance.
+Validation Rules
+A resistance zone is considered valid only if:
+
+• Minimum 2 confirmed rejections
+
+• Price reverses after touching
+
+• Zone has not been decisively broken
+
+• Recent reactions receive higher weight
+Notes
+Professional platforms use pivot clustering rather than a single high.
+
+More touches generally indicate stronger resistance.
+
+Ignore isolated spikes or abnormal candles.
+
+4. Card Fields
+Current Resistance:
+Current Resistance Zone
+
+Zone Width:
+Upper & Lower Boundary
+
+Distance:
+Resistance - Current Price (%)
+
+Touch Count:
+Confirmed Rejections
+
+Strength:
+Weak
+Moderate
+Strong
+
+Breakout Status:
+Holding
+Testing
+Broken
+
+Score:
+0–100
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Structure Confidence
+
+
+5. Stocky Score Logic
+Notes
+Breakouts should be confirmed by candle close.
+
+Volume confirmation significantly increases breakout reliability.
+
+Repeated failures strengthen the resistance zone.
+
+6. Bias Rules
+Price Below Resistance:
+Bearish
+
+Price Testing Resistance:
+Neutral
+
+Price Above Resistance:
+Bullish
+
+Confirmed Breakout:
+Strong Bullish
+
+Repeated Rejections:
+Strong Bearish
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% Volume Above Average
++5% ADX >25
++5% OBV Rising
++5% EMA50 Rising
+
+Decrease Confidence:
+-10% Low Volume Breakout
+-5% Multiple Fake Breakouts
+-5% Weak Breadth
+
+Minimum:
+55%
+
+Maximum:
+98%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Strong Rejection
+
+30–50
+Weak
+
+50–70
+Testing
+
+70–85
+Breakout Watch
+
+85–100
+Confirmed Breakout
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+Resistance Zone
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+After every completed candle
+
+10. AI Insight Rules
+Price Below Resistance:
+Explain sellers continue defending this area.
+
+Price Testing Resistance:
+Explain the market is approaching an important supply zone.
+
+Confirmed Breakout:
+Explain buyers have absorbed selling pressure and momentum has shifted upward.
+
+Failed Breakout:
+Explain the breakout lacked conviction and sellers regained control.
+
+Repeated Rejections:
+Explain resistance is becoming increasingly significant.
+
+11. Why It Matters
+Identifies major selling zones. 
+Helps define profit targets. 
+Confirms breakout quality. 
+Supports risk management. 
+Essential for market structure analysis. 
+
+12. Trading Impact
+Intraday:
+★★★★☆
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Breakout confirmation and target planning.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+Support Level
+
+Trendline
+
+Volume SMA
+
+OBV
+
+VWAP
+
+ADX
+
+EMA50
+
+14. Metadata
+Source:
+Calculated
+
+Calculation:
+Backend
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store:
+
+• Resistance Zone
+
+• Zone Width
+
+• Touch Count
+
+• Breakout Count
+
+• Last Test Date
+
+Represent resistance as a zone (±0.20% for indices).
+
+Only confirm a breakout after candle close.
+
+Store both the upper and lower boundaries of the resistance zone.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+8%
+
+Relative Importance:
+Very High
+
+Decision Engine Role:
+Market Structure
+
+Primary Use:
+Identify supply zones and validate breakouts.
+
+Bullish Confirmation:
+Confirmed breakout above Resistance
+AND
+Volume Above Average
+
+Bearish Confirmation:
+Repeated rejection
+AND
+OBV Falling
+
+Warning Signal:
+Multiple failed breakout attempts.
+
+Display Priority:
+Very High
+
+Stocky Recommendation
+Resistance should be implemented using a pivot-cluster algorithm instead of relying on a single swing high. For Stocky V1, every resistance level should be represented as a dynamic price zone, with strength determined by touch count, rejection quality, and recency.
+Market Structure Hierarchy
+⭐⭐⭐⭐⭐ Support Level (Primary Demand Zone) 
+⭐⭐⭐⭐⭐ Resistance Level (Primary Supply Zone) 
+⭐⭐⭐⭐⭐ Trendline (Dynamic Structure) 
+⭐⭐⭐⭐☆ Fibonacci Retracement (Pullback Zones) 
+⭐⭐⭐⭐☆ Pivot Points (Intraday Levels) 
+Engine Rules
+Breakout + High Volume → Increase Technical Score. 
+Breakout + Rising OBV → Strong institutional confirmation. 
+Repeated Rejections → Increase bearish confidence. 
+Resistance aligns with Fibonacci or Pivot R1/R2 → Increase structure confidence through confluence. 
+Resistance should be one of the highest-weighted Market Structure indicators, directly influencing the Structure Score, Technical Composite Score, and Decision Engine.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+25. Fibonacci Retracement
+Module: Technical
+Category: Market Structure
+Status: Production Ready
+
+1. Overview
+Name: Fibonacci Retracement
+
+Short Name: Fibonacci
+
+Module: Technical
+
+Category: Market Structure
+
+Purpose:
+Identifies high-probability support and resistance levels during market pullbacks using Fibonacci ratios. It helps estimate where a trend may pause, reverse, or continue.
+
+Based On:
+Fibonacci Sequence
+
+Importance:
+★★★★★ (Core Structure Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+Every completed candle.
+Stocky Note: Fibonacci Retracement does not predict where price will reverse. It highlights statistically significant areas where traders expect a reaction. The strongest signals occur when Fibonacci levels align with Support, Resistance, Trendlines, or Moving Averages.
+
+2. Data Requirements
+Required Data:
+- High Price
+- Low Price
+- Close Price
+
+Minimum Historical Data:
+100 Candles
+
+Swing Detection:
+Latest Confirmed Swing High
+Latest Confirmed Swing Low
+
+Supported Timeframes:
+- 15 Minute
+- 1 Hour
+- 4 Hour
+- 1 Day
+
+Primary Source:
+Upstox Historical OHLC
+
+3. Industry Standard Calculation
+Fibonacci Levels
+0%
+
+23.6%
+
+38.2%
+
+50%
+
+61.8%
+
+78.6%
+
+100%
+Formula
+Uptrend
+
+Level
+
+=
+
+Swing High
+
+-
+
+((Swing High - Swing Low)
+
+×
+
+Ratio)
+
+--------------------------------
+
+Downtrend
+
+Level
+
+=
+
+Swing Low
+
++
+
+((Swing High - Swing Low)
+
+×
+
+Ratio)
+Implementation Steps
+1. Detect latest confirmed swing.
+
+2. Identify trend direction.
+
+3. Calculate all Fibonacci levels.
+
+4. Determine nearest active level.
+
+5. Update only when a new swing is confirmed.
+Notes
+Always calculate using confirmed swing highs and lows.
+
+Ignore insignificant intraday swings.
+
+Do not redraw levels until market structure changes.
+
+Matches TradingView Fibonacci Retracement.
+
+4. Card Fields
+Current Level:
+Nearest Fibonacci Level
+
+Current Ratio:
+23.6%
+38.2%
+50%
+61.8%
+78.6%
+
+Distance:
+Price vs Active Level (%)
+
+Nearest Support:
+Current Fibonacci Support
+
+Nearest Resistance:
+Current Fibonacci Resistance
+
+Score:
+0–100
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Structure Confidence
+
+
+5. Stocky Score Logic
+Notes
+61.8% (Golden Ratio) carries the highest importance.
+
+50% is not a Fibonacci ratio but is an institutional standard.
+
+A confirmed bounce is stronger than simply touching the level.
+
+Volume confirmation increases reliability.
+
+6. Bias Rules
+Holding Above 38.2%:
+Strong Bullish
+
+Holding 50%:
+Healthy Pullback
+
+Holding 61.8%:
+Critical Support
+
+Breaking 61.8%:
+Trend Weakening
+
+Breaking Swing Low:
+Trend Reversal
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% Volume Above Average
++5% Bullish Candlestick
++5% EMA50 Support
++5% ADX >25
+
+Decrease Confidence:
+-10% Break Below 61.8%
+-5% Low Volume
+-5% Weak Breadth
+
+Minimum:
+55%
+
+Maximum:
+98%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Broken Structure
+
+30–50
+Weak
+
+50–70
+Neutral
+
+70–85
+Holding
+
+85–100
+Strong Bounce
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+Nearest Fibonacci Level
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+Only after a new confirmed swing.
+
+10. AI Insight Rules
+Price Holding 38.2%:
+Explain the trend remains strong with only a shallow pullback.
+
+Price Holding 50%:
+Explain the market is experiencing a healthy correction.
+
+Price Holding 61.8%:
+Explain the market is testing the Golden Ratio, a key institutional support area.
+
+Break Below 61.8%:
+Explain buyers are losing control and trend strength is weakening.
+
+Break Below Swing Low:
+Explain the previous trend has likely ended.
+
+11. Why It Matters
+Identifies high-probability pullback zones. 
+Estimates dynamic support and resistance. 
+Helps define entry and exit areas. 
+Widely followed by institutional traders. 
+Improves trend continuation analysis. 
+
+12. Trading Impact
+Intraday:
+★★★★☆
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Trend pullback analysis.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+Support Level
+
+Resistance Level
+
+Trendline
+
+EMA50
+
+Volume SMA
+
+ADX
+
+Market Regime
+
+14. Metadata
+Source:
+Calculated
+
+Calculation:
+Backend
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store:
+
+• Swing High
+
+• Swing Low
+
+• Active Fibonacci Levels
+
+• Current Active Level
+
+• Trend Direction
+
+Only redraw Fibonacci after a confirmed change in market structure.
+
+Display nearest Fibonacci level as the primary value.
+
+Keep all levels available for chart overlays.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+7%
+
+Relative Importance:
+High
+
+Decision Engine Role:
+Trend Pullback Analysis
+
+Primary Use:
+Evaluate the health of corrections within a trend.
+
+Bullish Confirmation:
+Bounce from 38.2%, 50% or 61.8%
+AND
+Volume Increasing
+
+Bearish Confirmation:
+Break Below 61.8%
+AND
+EMA50 Weakening
+
+Warning Signal:
+Break Below Swing Low
+
+Display Priority:
+High
+
+Stocky Recommendation
+For Stocky V1, Fibonacci Retracement should be fully automatic. Users should not manually draw swing points. The system should always use the latest confirmed swing high and swing low detected by the market structure engine.
+Market Structure Hierarchy
+⭐⭐⭐⭐⭐ Support Level (Demand Zone) 
+⭐⭐⭐⭐⭐ Resistance Level (Supply Zone) 
+⭐⭐⭐⭐⭐ Trendline (Dynamic Structure) 
+⭐⭐⭐⭐☆ Fibonacci Retracement (Institutional Pullback Levels) 
+⭐⭐⭐⭐☆ Pivot Points (Intraday Levels) 
+Engine Rules
+Bounce from 61.8% + Rising Volume → High-confidence continuation. 
+Bounce from 50% + EMA50 Support → Medium-high confidence continuation. 
+61.8% aligns with Support or Trendline → Increase Structure Score due to confluence. 
+Break Below 61.8% + Weak Breadth → Reduce Technical Score and warn of possible trend reversal. 
+Fibonacci Retracement should strengthen the Market Structure Score by identifying high-probability pullback zones rather than acting as an independent buy/sell indicator.
+26. Advance / Decline Line (A/D Line)
+Module: Technical
+Category: Market Breadth
+Status: Production Ready
+
+1. Overview
+Name: Advance / Decline Line
+
+Short Name: A/D Line
+
+Module: Technical
+
+Category: Market Breadth
+
+Purpose:
+Measures overall market participation by tracking the cumulative difference between advancing and declining stocks. It confirms whether the broader market supports the index trend.
+
+Created By:
+Market Breadth Standard
+
+Importance:
+★★★★★ (Primary Breadth Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+Every Market Refresh (1–5 Minutes)
+Stocky Note: The A/D Line is one of the best indicators for measuring market health. A rising index supported by a rising A/D Line indicates a healthy trend, while divergence often warns of weakening momentum before price reverses.
+
+2. Data Requirements
+Required Data:
+- Number of Advancing Stocks
+- Number of Declining Stocks
+
+Minimum Historical Data:
+30 Trading Days
+
+Universe:
+NSE Listed Stocks
+(Recommended)
+
+Alternative:
+NIFTY 500
+
+Primary Source:
+NSE Market Breadth
+
+3. Industry Standard Calculation
+Formula
+Net Advances
+
+=
+
+Advancing Stocks
+
+-
+
+Declining Stocks
+
+--------------------------------
+
+Today's A/D Line
+
+=
+
+Yesterday's A/D Line
+
++
+
+Net Advances
+Implementation Steps
+1. Count advancing stocks.
+
+2. Count declining stocks.
+
+3. Calculate Net Advances.
+
+4. Add today's Net Advances to yesterday's A/D value.
+
+5. Update during market hours.
+Notes
+A/D Line is cumulative.
+
+Direction matters more than absolute value.
+
+Matches institutional breadth calculations.
+
+Do not reset daily.
+
+4. Card Fields
+Current Value:
+Current A/D Line
+
+Net Advances:
+Today's Advances - Declines
+
+Advancing Stocks:
+Count
+
+Declining Stocks:
+Count
+
+Trend:
+Rising
+Flat
+Falling
+
+Score:
+0–100
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Breadth Confidence
+
+
+5. Stocky Score Logic
+Notes
+Breadth confirmation is more important than raw values.
+
+Bullish divergence increases confidence.
+
+Negative divergence is an early warning signal.
+
+6. Bias Rules
+A/D Rising:
+Bullish
+
+A/D Falling:
+Bearish
+
+A/D Flat:
+Neutral
+
+Positive Divergence:
+Bullish
+
+Negative Divergence:
+Bearish
+
+7. Confidence Logic
+Base Confidence:
+80%
+
+Increase Confidence:
++5% Breadth Ratio >1.5
++5% NH/NL Positive
++5% Volume Above Average
++5% India VIX Falling
+
+Decrease Confidence:
+-10% Negative Divergence
+-5% Weak Breadth
+-5% Rising India VIX
+
+Minimum:
+60%
+
+Maximum:
+98%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Weak Breadth
+
+30–50
+Negative
+
+50–70
+Balanced
+
+70–85
+Healthy
+
+85–100
+Strong Participation
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+A/D Line
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+Every Market Refresh
+
+10. AI Insight Rules
+A/D Rising:
+Explain that the broader market is participating in the rally.
+
+A/D Falling:
+Explain selling pressure is becoming widespread.
+
+Positive Divergence:
+Explain market participation is improving despite weak price action.
+
+Negative Divergence:
+Explain the rally is losing internal strength and should be monitored closely.
+
+11. Why It Matters
+Measures overall market health. 
+Confirms trend participation. 
+Detects hidden market weakness. 
+Identifies early reversals. 
+One of the most trusted breadth indicators. 
+
+12. Trading Impact
+Intraday:
+★★★★☆
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★★
+
+Best Use:
+Market confirmation.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+Market Breadth Ratio
+
+New High / New Low
+
+India VIX
+
+TRIN
+
+McClellan Oscillator
+
+OBV
+
+EMA200
+
+14. Metadata
+Source:
+NSE Market Breadth
+
+Calculation:
+Backend
+
+Updated:
+Every Market Refresh
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store:
+
+• Advancing Stocks
+
+• Declining Stocks
+
+• Net Advances
+
+• Cumulative A/D Line
+
+Maintain at least 30 trading days for history.
+
+Do not reset daily.
+
+Ignore suspended securities.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+8%
+
+Relative Importance:
+Very High
+
+Decision Engine Role:
+Market Participation
+
+Primary Use:
+Confirm whether the broader market supports the current trend.
+
+Bullish Confirmation:
+Index Rising
+AND
+A/D Line Rising
+
+Bearish Confirmation:
+Index Rising
+AND
+A/D Line Falling
+
+Warning Signal:
+Persistent negative divergence.
+
+Display Priority:
+Very High
+
+Stocky Recommendation
+The Advance / Decline Line should be the foundation of Stocky's Breadth module. Unlike price-based indicators that analyze only NIFTY, the A/D Line evaluates the entire market, making it one of the best measures of market health.
+Breadth Module Hierarchy
+⭐⭐⭐⭐⭐ Advance / Decline Line (Market Health) 
+⭐⭐⭐⭐⭐ New High / New Low (Market Leadership) 
+⭐⭐⭐⭐☆ Market Breadth Ratio (Current Participation) 
+⭐⭐⭐⭐☆ TRIN (Buying vs Selling Pressure) 
+⭐⭐⭐⭐☆ McClellan Oscillator (Breadth Momentum) 
+Engine Rules
+Index ↑ + A/D ↑ → Increase Technical confidence. 
+Index ↑ + A/D ↓ → Reduce confidence due to negative divergence. 
+Index ↓ + A/D ↓ → Confirm bearish trend. 
+Index ↓ + A/D ↑ → Watch for potential accumulation and reversal. 
+The A/D Line should act as the primary confidence filter for all Technical signals rather than directly generating buy or sell decisions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+27. New High / New Low (NH/NL)
+Module: Technical
+Category: Market Breadth
+Status: Production Ready
+
+1. Overview
+Name: New High / New Low
+
+Short Name: NH/NL
+
+Module: Technical
+
+Category: Market Breadth
+
+Purpose:
+Measures the number of stocks making new 52-week highs versus new 52-week lows. It evaluates the strength and quality of the overall market trend by identifying whether leadership is expanding or weakening.
+
+Created By:
+Market Breadth Standard
+
+Importance:
+★★★★★ (Core Breadth Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+Every Market Refresh (5 Minutes)
+Stocky Note: A healthy bull market should continuously produce more new highs than new lows. If the index reaches new highs while the number of stocks making new highs declines, it is often an early warning of weakening market leadership.
+
+2. Data Requirements
+Required Data:
+- Number of New 52-Week Highs
+- Number of New 52-Week Lows
+
+Minimum Historical Data:
+30 Trading Days
+
+Universe:
+NSE Listed Stocks
+(Recommended)
+
+Alternative:
+NIFTY 500
+
+Primary Source:
+NSE Market Statistics
+
+3. Industry Standard Calculation
+Formula
+NH/NL Ratio
+
+=
+
+New Highs
+
+/
+
+(New Highs + New Lows)
+
+×
+
+100
+
+-------------------------------
+
+Net Highs
+
+=
+
+New Highs
+
+-
+
+New Lows
+Implementation Steps
+1. Count stocks making new 52-week highs.
+
+2. Count stocks making new 52-week lows.
+
+3. Calculate NH/NL Ratio.
+
+4. Calculate Net Highs.
+
+5. Update during market hours.
+Notes
+Market participation matters more than raw numbers.
+
+Higher ratios indicate healthier trends.
+
+Matches institutional breadth analysis.
+
+Ignore newly listed stocks without sufficient history.
+
+4. Card Fields
+New Highs:
+Current Count
+
+New Lows:
+Current Count
+
+NH/NL Ratio:
+Percentage
+
+Net Highs:
+Highs - Lows
+
+Trend:
+Improving
+Neutral
+Weakening
+
+Score:
+0–100
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Breadth Confidence
+
+
+5. Stocky Score Logic
+Notes
+Leadership expansion strengthens trends.
+
+Increasing new lows weaken confidence.
+
+Always compare with A/D Line.
+
+Divergence is more important than daily fluctuations.
+
+6. Bias Rules
+More Highs:
+Bullish
+
+More Lows:
+Bearish
+
+Balanced:
+Neutral
+
+Expanding Highs:
+Improving Market
+
+Expanding Lows:
+Weakening Market
+
+7. Confidence Logic
+Base Confidence:
+80%
+
+Increase Confidence:
++5% A/D Line Rising
++5% Breadth Ratio >1.5
++5% Index Above EMA200
++5% India VIX Falling
+
+Decrease Confidence:
+-10% Negative Divergence
+-5% Weak Breadth
+-5% Rising India VIX
+
+Minimum:
+60%
+
+Maximum:
+98%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Weak Breadth
+
+30–50
+Negative
+
+50–70
+Balanced
+
+70–85
+Healthy
+
+85–100
+Strong Leadership
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+NH/NL Ratio
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+Every Market Refresh
+
+10. AI Insight Rules
+Highs Increasing:
+Explain market leadership is expanding and more stocks are participating in the trend.
+
+Lows Increasing:
+Explain selling pressure is spreading across the market.
+
+Strong NH/NL Ratio:
+Explain the trend is supported by broad market participation.
+
+Weak NH/NL Ratio:
+Explain leadership is narrowing and trend quality is deteriorating.
+
+Negative Divergence:
+Explain fewer stocks are making new highs despite index strength.
+
+11. Why It Matters
+Measures market leadership. 
+Confirms trend sustainability. 
+Detects weakening rallies. 
+Identifies broad accumulation or distribution. 
+Helps identify major market turning points. 
+
+12. Trading Impact
+Intraday:
+★★★☆☆
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Market leadership confirmation.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+Advance / Decline Line
+
+Market Breadth Ratio
+
+TRIN
+
+McClellan Oscillator
+
+India VIX
+
+EMA200
+
+14. Metadata
+Source:
+NSE Market Statistics
+
+Calculation:
+Backend
+
+Updated:
+Every Market Refresh
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store:
+
+• New High Count
+
+• New Low Count
+
+• NH/NL Ratio
+
+• Net Highs
+
+Maintain at least 30 trading days of history.
+
+Exclude suspended and newly listed securities.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+7%
+
+Relative Importance:
+High
+
+Decision Engine Role:
+Market Leadership
+
+Primary Use:
+Measure the quality of the current market trend.
+
+Bullish Confirmation:
+New Highs > New Lows
+AND
+A/D Line Rising
+
+Bearish Confirmation:
+New Lows > New Highs
+AND
+A/D Line Falling
+
+Warning Signal:
+Index Rising
+AND
+Declining NH/NL Ratio
+
+Display Priority:
+High
+
+Stocky Recommendation
+New High / New Low should serve as Stocky's Market Leadership Indicator. While the A/D Line measures overall participation, NH/NL evaluates whether leadership is broadening or narrowing, making it an excellent early warning tool.
+Breadth Module Hierarchy
+⭐⭐⭐⭐⭐ Advance / Decline Line (Market Health) 
+⭐⭐⭐⭐⭐ New High / New Low (Market Leadership) 
+⭐⭐⭐⭐☆ Market Breadth Ratio (Real-Time Participation) 
+⭐⭐⭐⭐☆ TRIN (Buying vs Selling Pressure) 
+⭐⭐⭐⭐☆ McClellan Oscillator (Breadth Momentum) 
+Engine Rules
+New Highs Increasing + A/D Rising → Increase Breadth Score. 
+New Lows Increasing + A/D Falling → Confirm bearish market conditions. 
+Index at New High + NH/NL Falling → Reduce Technical confidence due to narrowing leadership. 
+NH/NL aligns with Breadth Ratio and A/D Line → Maximum Breadth confidence. 
+New High / New Low should primarily influence the Breadth Score and act as a confirmation filter for the overall Technical Composite Score rather than producing standalone buy or sell signals.
+
+
+
+
+
+
+
+
+
+
+
+28. India VIX
+Module: Technical
+Category: Market Volatility
+Status: Production Ready
+
+1. Overview
+Name: India VIX
+
+Short Name: VIX
+
+Module: Technical
+
+Category: Market Volatility
+
+Purpose:
+Measures the market's expected volatility over the next 30 calendar days using NIFTY option prices. It reflects market uncertainty and risk sentiment rather than market direction.
+
+Published By:
+NSE India
+
+Importance:
+★★★★★ (Core Risk Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+Live During Market Hours
+Stocky Note: India VIX is known as the Fear Index. It does not indicate whether the market will move up or down—it indicates how much the market is expected to move. Rising VIX means increasing uncertainty, while falling VIX signals improving market confidence.
+
+2. Data Requirements
+Required Data:
+- Current India VIX Value
+
+Minimum Historical Data:
+30 Trading Days
+
+Lookback:
+30-Day Average
+
+Primary Source:
+NSE India VIX
+
+Supported Markets:
+NIFTY
+BANKNIFTY
+
+3. Industry Standard Calculation
+Method
+India VIX is calculated by NSE using
+near-month and next-month NIFTY option prices.
+
+The methodology follows the CBOE VIX model
+to estimate expected annualized volatility
+over the next 30 calendar days.
+Implementation Steps
+1. Fetch latest India VIX value.
+
+2. Store historical values.
+
+3. Calculate 30-day average.
+
+4. Compare current VIX with historical average.
+
+5. Update during market hours.
+Notes
+Never calculate India VIX manually.
+
+Always use official NSE values.
+
+Compare both absolute value and trend.
+
+Matches Bloomberg, TradingView and NSE terminals.
+
+4. Card Fields
+Current Value:
+Current India VIX
+
+30-Day Average:
+Average VIX
+
+Daily Change:
+Percentage
+
+Volatility State:
+Low
+Normal
+High
+Extreme
+
+Score:
+0–100
+
+Bias:
+Risk-On
+Neutral
+Risk-Off
+
+Confidence:
+Risk Confidence
+
+
+5. Stocky Score Logic
+Notes
+Low VIX generally supports trending markets.
+
+High VIX indicates uncertainty.
+
+Rapid VIX increases are more important than high but stable values.
+
+Always compare with the 30-day average.
+
+6. Bias Rules
+VIX Falling:
+Risk-On
+
+VIX Stable:
+Neutral
+
+VIX Rising:
+Risk-Off
+
+VIX Spike (>15% Daily):
+Extreme Fear
+
+VIX Near Multi-Month Low:
+Strong Confidence
+
+7. Confidence Logic
+Base Confidence:
+80%
+
+Increase Confidence:
++5% Breadth Improving
++5% ADX >25
++5% EMA200 Bullish
++5% Falling India VIX
+
+Decrease Confidence:
+-10% VIX Spike
+-5% Weak Breadth
+-5% Rising Put IV
+
+Minimum:
+60%
+
+Maximum:
+99%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Extreme Fear
+
+30–50
+High Risk
+
+50–70
+Normal
+
+70–85
+Calm
+
+85–100
+Very Calm
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+India VIX
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+Live During Market Hours
+
+10. AI Insight Rules
+VIX Falling:
+Explain market uncertainty is decreasing and confidence is improving.
+
+VIX Rising:
+Explain traders expect larger price swings.
+
+VIX Above 25:
+Explain market fear is elevated and risk management is important.
+
+VIX Below 15:
+Explain market conditions remain relatively stable.
+
+Rapid VIX Spike:
+Explain sudden uncertainty has entered the market and position sizing should be reduced.
+
+11. Why It Matters
+Measures expected market volatility. 
+Reflects overall market sentiment. 
+Helps evaluate trading risk. 
+Essential for options traders. 
+Often warns before major market moves. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★★
+
+Best Use:
+Market risk assessment.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+ATR
+
+Bollinger Bands
+
+Market Breadth Ratio
+
+Advance / Decline Line
+
+Put Call Ratio
+
+Implied Volatility
+
+Market Regime
+
+14. Metadata
+Source:
+NSE India VIX
+
+Calculation:
+Official NSE
+
+Updated:
+Live During Market Hours
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store:
+
+• Current VIX
+
+• Previous VIX
+
+• Daily Change %
+
+• Weekly Change %
+
+• 30-Day Average
+
+Display both value and daily percentage change.
+
+Refresh with every market update.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+9%
+
+Relative Importance:
+Very High
+
+Decision Engine Role:
+Market Risk Filter
+
+Primary Use:
+Adjust confidence of all Technical signals.
+
+Bullish Confirmation:
+Falling VIX
+AND
+Breadth Improving
+
+Bearish Confirmation:
+Rising VIX
+AND
+Breadth Weakening
+
+Warning Signal:
+VIX Spike (>15% Daily)
+
+Display Priority:
+Very High
+
+Stocky Recommendation
+India VIX should act as Stocky's Global Risk Controller. Unlike ATR, which measures actual price volatility, India VIX measures expected future volatility, making it one of the most influential confidence indicators in the entire Technical Engine.
+Volatility Module Hierarchy
+⭐⭐⭐⭐⭐ India VIX (Expected Volatility & Market Risk) 
+⭐⭐⭐⭐⭐ ATR (Actual Volatility) 
+⭐⭐⭐⭐⭐ Bollinger Bands (Volatility Expansion) 
+⭐⭐⭐⭐☆ Keltner Channel (Trend Volatility) 
+Engine Rules
+Falling VIX + Strong Breadth → Increase Technical confidence. 
+Rising VIX + Weak Breadth → Reduce confidence across all bullish indicators. 
+VIX > 25 → Flag the market as High Risk and recommend smaller position sizes. 
+VIX Spike >15% → Trigger a Market Risk Alert, regardless of the current technical trend. 
+India VIX should influence the Volatility Score, Risk Score, Technical Composite Score, and the Decision Engine Confidence, making it one of the highest-impact indicators in Stocky.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+29. TRIN (Arms Index)
+Module: Technical
+Category: Market Breadth
+Status: Production Ready
+
+1. Overview
+Name: TRIN (Arms Index)
+
+Short Name: TRIN
+
+Module: Technical
+
+Category: Market Breadth
+
+Purpose:
+Measures the balance between advancing/declining stocks and advancing/declining volume to determine whether buying or selling pressure dominates the market.
+
+Created By:
+Richard Arms
+
+Importance:
+★★★★☆ (Advanced Breadth Indicator)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+Every Market Refresh (1–5 Minutes)
+Stocky Note: TRIN is a contrarian market breadth indicator. Unlike most indicators, extremely high values often appear near market bottoms (panic selling), while extremely low values may signal excessive optimism near market tops.
+
+2. Data Requirements
+Required Data:
+- Advancing Stocks
+- Declining Stocks
+- Advancing Volume
+- Declining Volume
+
+Minimum Historical Data:
+30 Trading Days
+
+Universe:
+NSE Listed Stocks
+
+Primary Source:
+NSE Market Breadth
+
+3. Industry Standard Calculation
+Formula
+TRIN
+
+=
+
+(Advancing Stocks / Declining Stocks)
+
+/
+
+(Advancing Volume / Declining Volume)
+Interpretation
+TRIN < 1.0
+Buying Pressure
+
+TRIN = 1.0
+Balanced Market
+
+TRIN > 1.0
+Selling Pressure
+Implementation Steps
+1. Count advancing stocks.
+
+2. Count declining stocks.
+
+3. Sum advancing volume.
+
+4. Sum declining volume.
+
+5. Apply TRIN formula.
+
+6. Update throughout market hours.
+Notes
+Lower TRIN indicates stronger buying pressure.
+
+Higher TRIN indicates stronger selling pressure.
+
+Use as a confirmation indicator rather than a standalone signal.
+
+Matches Bloomberg and institutional trading platforms.
+
+4. Card Fields
+Current Value:
+Current TRIN
+
+Market Pressure:
+Buying
+Neutral
+Selling
+
+Volume Pressure:
+Strong
+Moderate
+Weak
+
+Score:
+0–100
+
+Bias:
+Bullish
+Neutral
+Bearish
+
+Confidence:
+Breadth Confidence
+
+
+5. Stocky Score Logic
+Notes
+Very low TRIN indicates aggressive buying.
+
+Very high TRIN indicates aggressive selling.
+
+Extreme values should always be confirmed with A/D Line and India VIX.
+
+TRIN is most valuable during volatile sessions.
+
+6. Bias Rules
+TRIN < 1:
+Bullish
+
+TRIN ≈ 1:
+Neutral
+
+TRIN > 1:
+Bearish
+
+TRIN > 2:
+Extreme Selling
+
+TRIN < 0.5:
+Extreme Buying
+
+7. Confidence Logic
+Base Confidence:
+75%
+
+Increase Confidence:
++5% A/D Line Rising
++5% Breadth Ratio >1.5
++5% India VIX Falling
++5% Volume Above Average
+
+Decrease Confidence:
+-10% Breadth Divergence
+-5% India VIX Rising
+-5% Weak Participation
+
+Minimum:
+55%
+
+Maximum:
+95%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Current Pointer:
+Current Score
+
+Average Marker:
+30-Day Average Score
+
+Color Zones:
+
+0–30
+Heavy Selling
+
+30–50
+Bearish
+
+50–70
+Balanced
+
+70–85
+Bullish
+
+85–100
+Strong Buying
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+TRIN
+
+Line 2:
+Engine Score
+
+History:
+30 Trading Days
+
+Update:
+Every Market Refresh
+
+10. AI Insight Rules
+TRIN Below 1:
+Explain buying volume is stronger than selling volume.
+
+TRIN Near 1:
+Explain buyers and sellers remain balanced.
+
+TRIN Above 1:
+Explain selling pressure dominates the market.
+
+TRIN Above 2:
+Highlight panic selling and elevated market fear.
+
+TRIN Below 0.5:
+Highlight excessive optimism and a potentially overheated market.
+
+11. Why It Matters
+Combines breadth and volume into one indicator. 
+Measures institutional buying and selling pressure. 
+Detects panic and capitulation. 
+Identifies excessive optimism. 
+Confirms market participation. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★☆☆
+
+Positional Trading:
+★★☆☆☆
+
+Options Trading:
+★★★★☆
+
+Best Use:
+Intraday sentiment confirmation.
+
+Avoid Using Alone:
+Yes
+
+13. Supporting Indicators
+Advance / Decline Line
+
+Market Breadth Ratio
+
+New High / New Low
+
+India VIX
+
+McClellan Oscillator
+
+OBV
+
+14. Metadata
+Source:
+NSE Market Breadth
+
+Calculation:
+Backend
+
+Updated:
+Every Market Refresh
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Electron Database
+
+15. Developer Notes
+Store:
+
+• Current TRIN
+
+• Previous TRIN
+
+• Advancing Volume
+
+• Declining Volume
+
+• Historical TRIN (30 Days)
+
+Handle division-by-zero safely.
+
+Round values to two decimal places.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+5%
+
+Relative Importance:
+Medium
+
+Decision Engine Role:
+Buying vs Selling Pressure
+
+Primary Use:
+Confirm whether market volume supports breadth.
+
+Bullish Confirmation:
+TRIN < 1
+AND
+A/D Line Rising
+
+Bearish Confirmation:
+TRIN > 1
+AND
+A/D Line Falling
+
+Warning Signal:
+TRIN > 2 indicating panic conditions.
+
+Display Priority:
+Medium
+
+Stocky Recommendation
+TRIN should serve as Stocky's Volume-Breadth Confirmation Indicator. It is not intended to predict market direction but rather to determine whether market participation is supported by volume.
+Breadth Module Hierarchy
+⭐⭐⭐⭐⭐ Advance / Decline Line (Overall Market Health) 
+⭐⭐⭐⭐⭐ New High / New Low (Market Leadership) 
+⭐⭐⭐⭐☆ Market Breadth Ratio (Current Participation) 
+⭐⭐⭐⭐☆ TRIN (Arms Index) (Buying vs Selling Pressure) 
+⭐⭐⭐⭐☆ McClellan Oscillator (Breadth Momentum) 
+Engine Rules
+TRIN < 1 + Rising A/D Line → Increase Breadth confidence. 
+TRIN > 1 + Falling A/D Line → Confirm broad market weakness. 
+TRIN > 2 + Rising India VIX → Trigger a High Fear Alert. 
+TRIN < 0.5 + Weak Breadth → Warn that optimism may be excessive despite poor participation. 
+TRIN should primarily influence the Breadth Confidence Score and the Decision Engine Confidence, acting as a confirmation filter rather than a standalone buy or sell indicator.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$.Market Regime
+Module: Technical
+Category: Composite Market State
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Market Regime
+
+Short Name: Regime
+
+Module: Technical
+
+Category: Composite
+
+Purpose:
+Determines the current market environment by combining trend, volatility and market breadth into a single market state.
+
+Importance:
+★★★★★ (Decision Engine Core)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+Every completed candle
+Stocky Note: This is not a traditional indicator. It is a composite engine that summarizes the overall market condition. It should be the last indicator calculated in the Technical module because it depends on multiple other indicators.
+
+2. Data Requirements
+Required Indicators:
+- EMA20
+- EMA50
+- EMA200
+- ADX
+- Supertrend
+- ATR
+- India VIX
+- Advance/Decline Line
+- Market Breadth Ratio
+
+Minimum Historical Data:
+Depends on underlying indicators
+
+Primary Source:
+Stocky Technical Engine
+
+3. Industry Standard Calculation
+Logic
+Market Regime is determined using weighted voting.
+
+Trend
++
+Volatility
++
+Breadth
+=
+Final Regime
+Implementation Steps
+1. Evaluate Trend.
+
+2. Evaluate Trend Strength.
+
+3. Evaluate Volatility.
+
+4. Evaluate Breadth.
+
+5. Assign weighted score.
+
+6. Determine market regime.
+Regime Classification
+Trending Bull
+
+Weak Bull
+
+Sideways
+
+Weak Bear
+
+Trending Bear
+
+4. Card Fields
+Current Regime:
+Trending Bull
+Weak Bull
+Sideways
+Weak Bear
+Trending Bear
+
+Trend Score:
+0-100
+
+Breadth Score:
+0-100
+
+Volatility Score:
+0-100
+
+Final Score:
+0-100
+
+Confidence:
+Regime Confidence
+
+
+5. Stocky Score Logic
+Decision Rules
+Trending Bull
+
+EMA20 > EMA50 > EMA200
+
+ADX > 25
+
+Breadth Positive
+
+VIX Stable/Falling
+
+-------------------------
+
+Weak Bull
+
+Trend Positive
+
+ADX < 25
+
+Mixed Breadth
+
+-------------------------
+
+Sideways
+
+EMA Mixed
+
+ADX < 20
+
+ATR Low
+
+-------------------------
+
+Weak Bear
+
+EMA20 < EMA50
+
+Breadth Weak
+
+-------------------------
+
+Trending Bear
+
+EMA20 < EMA50 < EMA200
+
+ADX > 25
+
+Breadth Negative
+
+VIX Rising
+
+6. Bias Rules
+Trending Bull:
+Bullish
+
+Weak Bull:
+Moderately Bullish
+
+Sideways:
+Neutral
+
+Weak Bear:
+Moderately Bearish
+
+Trending Bear:
+Bearish
+
+7. Confidence Logic
+Base Confidence:
+80%
+
+Increase Confidence:
++5% Strong Breadth
+
++5% ADX >25
+
++5% EMA Alignment
+
++5% Low VIX
+
+Decrease Confidence:
+-10% Mixed Signals
+
+-5% Breadth Divergence
+
+-5% High VIX
+
+Minimum:
+60%
+
+Maximum:
+99%
+
+8. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Pointer:
+Current Regime Score
+
+Average Marker:
+30-Day Average
+
+Color Zones:
+
+0-20
+Strong Bear
+
+20-40
+Bear
+
+40-60
+Neutral
+
+60-80
+Bull
+
+80-100
+Strong Bull
+
+9. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+Regime Score
+
+Line 2:
+Technical Score
+
+History:
+30 Trading Days
+
+Update:
+Every completed candle
+
+10. AI Insight Rules
+Trending Bull:
+Explain that trend, participation and volatility collectively support higher prices.
+
+Weak Bull:
+Explain bullish conditions exist but conviction is limited.
+
+Sideways:
+Explain there is no dominant trend and range-bound strategies may work better.
+
+Weak Bear:
+Explain sellers have a slight advantage but confirmation is still required.
+
+Trending Bear:
+Explain trend, breadth and volatility all indicate elevated downside risk.
+
+11. Why It Matters
+Summarizes the entire technical picture. 
+Prevents conflicting indicator interpretation. 
+Helps traders quickly understand market conditions. 
+Reduces information overload. 
+Ideal for decision engines and dashboards. 
+
+12. Trading Impact
+Intraday:
+★★★★★
+
+Swing Trading:
+★★★★★
+
+Positional Trading:
+★★★★★
+
+Options Trading:
+★★★★★
+
+Best Use:
+Overall market assessment.
+
+Avoid Using Alone:
+No
+
+13. Supporting Indicators
+EMA20
+
+EMA50
+
+EMA200
+
+ADX
+
+Supertrend
+
+ATR
+
+India VIX
+
+Advance/Decline Line
+
+Market Breadth Ratio
+
+14. Metadata
+Source:
+Stocky Technical Engine
+
+Calculation:
+Backend
+
+Updated:
+Every completed candle
+
+Timezone:
+Asia/Kolkata
+
+Storage:
+Local Database
+
+15. Developer Notes
+Do not calculate independently.
+
+Always derive from underlying indicators.
+
+Cache regime state for dashboard use.
+
+Recalculate only after all dependent indicators have updated.
+
+Store previous regime to detect regime changes.
+
+16. Stocky Engine Integration ⭐
+Technical Weight:
+10%
+
+Relative Importance:
+Highest
+
+Decision Engine Role:
+Technical Summary
+
+Primary Use:
+Provide one unified market state.
+
+Display Priority:
+Highest
+
+Stocky Recommendation
+Unlike every previous indicator, Market Regime is the final output of the Technical Engine, not an input. It should be calculated after all technical indicators have finished updating and displayed prominently at the top of the Technical page and on the Dashboard.
+Technical Engine Order
+Trend Indicators 
+Momentum Indicators 
+Volume Indicators 
+Volatility Indicators 
+Market Structure 
+Market Breadth 
+Market Regime ⭐⭐⭐⭐⭐ (Final Technical Summary) 
+
+
+
+
+
+
+
+
+
+
+$.Technical Composite Score
+Module: Technical
+Category: Composite Score
+Status: Production Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Overview
+Name: Technical Composite Score
+
+Short Name: Tech Score
+
+Module: Technical
+
+Category: Composite
+
+Purpose:
+Aggregates all technical indicators into a single normalized score (0–100) representing the overall technical health of the market.
+
+Importance:
+★★★★★ (Highest)
+
+Auto / Manual:
+Auto
+
+Update Frequency:
+After every indicator refresh.
+Stocky Note: This is the final output of the Technical page. Every indicator contributes according to its assigned weight. The score shown on the dashboard should come from this engine.
+
+2. Data Requirements
+Required Indicators:
+
+Trend
+- EMA20
+- EMA50
+- EMA200
+- Supertrend
+- ADX
+
+Momentum
+- RSI
+- MACD
+- Stochastic RSI
+- CCI
+- Williams %R
+
+Volume
+- OBV
+- CMF
+- VWAP
+- Volume SMA
+
+Volatility
+- ATR
+- Bollinger Bands
+- Keltner Channel
+- India VIX
+
+Market Structure
+- Support
+- Resistance
+- Trendline
+- Fibonacci
+- Pivot Points
+
+Market Breadth
+- A/D Line
+- NH/NL
+- Breadth Ratio
+- TRIN
+- McClellan Oscillator
+
+3. Industry Standard Calculation
+Formula
+Technical Score
+
+=
+
+Σ
+
+(Indicator Score × Indicator Weight)
+
+/
+
+Σ Indicator Weights
+Implementation Steps
+1. Calculate every technical indicator.
+
+2. Normalize every score to 0–100.
+
+3. Multiply by assigned weight.
+
+4. Sum weighted scores.
+
+5. Divide by total weight.
+
+6. Round to nearest integer.
+
+4. Card Fields
+Current Score:
+0–100
+
+Trend Score:
+0–100
+
+Momentum Score:
+0–100
+
+Volume Score:
+0–100
+
+Volatility Score:
+0–100
+
+Structure Score:
+0–100
+
+Breadth Score:
+0–100
+
+Confidence:
+0–100
+
+Impact Weight:
+100%
+
+5. Stocky Score Logic
+
+6. Confidence Logic
+Base Confidence:
+80%
+
+Increase Confidence:
++5% Strong Breadth
++5% Strong Trend
++5% High Volume Confirmation
++5% Low India VIX
+
+Decrease Confidence:
+-10% Mixed Signals
+-5% Weak Breadth
+-5% High India VIX
+
+Minimum:
+60%
+
+Maximum:
+99%
+
+7. Score Range Bar
+Minimum:
+0
+
+Maximum:
+100
+
+Pointer:
+Current Technical Score
+
+Average Marker:
+30-Day Average Technical Score
+
+Color Zones:
+
+0–20
+Extreme Bearish
+
+20–40
+Bearish
+
+40–60
+Neutral
+
+60–80
+Bullish
+
+80–100
+Strong Bullish
+
+8. Dual Trend Chart
+Chart Type:
+Dual Line
+
+Line 1:
+Technical Score
+
+Line 2:
+30-Day Average
+
+History:
+30 Trading Days
+
+Update:
+Every indicator refresh
+
+9. AI Insight Rules
+Score Above 80:
+Explain that most technical indicators align in favor of buyers.
+
+Score Between 60–80:
+Explain that bullish conditions exist but some indicators remain mixed.
+
+Score Between 45–60:
+Explain that no clear technical edge currently exists.
+
+Score Below 40:
+Explain that bearish conditions dominate most technical categories.
+
+Score Below 20:
+Explain that nearly all technical indicators point toward elevated downside risk.
+
+10. Why It Matters
+Eliminates indicator overload. 
+Produces one actionable technical score. 
+Makes dashboard decisions simpler. 
+Standardizes indicator interpretation. 
+Drives the Decision Engine. 
+
+11. Trading Impact
+Intraday:
+★★★★★
+
+Swing:
+★★★★★
+
+Positional:
+★★★★★
+
+Options:
+★★★★★
+
+Best Use:
+Overall Technical Assessment
+
+Avoid Using Alone:
+No
+
+12. Supporting Indicators
+Every Technical Indicator
+
+(Entire Technical Module)
+
+13. Metadata
+Source:
+Stocky Technical Engine
+
+Calculation:
+Weighted Composite
+
+Updated:
+After all indicators refresh
+
+Storage:
+Local Database
+
+14. Developer Notes
+Calculate this indicator LAST.
+
+Do not fetch external data.
+
+Store:
+
+• Current Score
+
+• Previous Score
+
+• Trend Direction
+
+• Confidence
+
+• 30-Day History
+
+This score is consumed by:
+- Dashboard
+- Decision Engine
+- AI Analysis
+
+15. Stocky Engine Integration ⭐
+Technical Weight:
+100%
+
+Relative Importance:
+Highest
+
+Decision Engine Role:
+Technical Module Output
+
+Dashboard Usage:
+Primary Technical Gauge
+
+Display Priority:
+Highest
+
+Stocky Recommendation
+This should be the final card on the Technical page. Users should be able to scroll through every individual indicator, while this card provides a concise summary of the overall technical picture. It should also be the value sent to your Dashboard, AI Engine, and final Buy/Hold/Sell decision logic.
+
+Status: ✅ Ready for Backend Implementation
+Status: ✅ Ready for UI Card Generation
+Status: ✅ Ready for AI Integration
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Technical Engine Weight Configuration (V1)
+This document defines the contribution of each Technical indicator to the overall Technical Score and how much each indicator can influence the Decision Engine's confidence.
+
+Trend Indicators (Module Weight: 30%)
+Module Total: 30%
+
+Momentum Indicators (Module Weight: 20%)
+Module Total: 20%
+
+
+Volume Indicators (Module Weight: 15%)
+Module Total: 15%
+
+Market Structure Indicators (Module Weight: 15%)
+Module Total: 15%
+
+Market Breadth Indicators (Module Weight: 10%)
+Module Total: 10%
+
+
+Volatility & Risk Indicators (Module Weight: 10%)
+Module Total: 10%
+
+Module Allocation
+Grand Total: 100%
+
+Confidence Modifier Guidelines
+
+Engine Formula
+Technical Score
+Technical Score
+
+=
+
+Σ (Indicator Score × Engine Weight)
+
+÷
+
+Σ (Engine Weight)
+Confidence
+Confidence
+
+=
+
+Base Confidence
+
++
+
+Positive Modifiers
+
+−
+
+Negative Modifiers
+Final Score Range
+0 – 100
+Final Confidence Range
+0 – 100
+
+Why these weights?
+These weights are based on the practical importance of technical indicators used by professional traders, institutional participants, and widely adopted trading platforms.
+MACD, EMA 200, VWAP, Supertrend, and Technical Composite Score receive the highest weights because they provide strong confirmation of trend direction, institutional positioning, and overall market conditions. 
+Market Regime has the highest confidence modifier (±10%) because it determines whether trend-following or mean-reversion strategies are appropriate, influencing the interpretation of nearly every other technical indicator. 
+EMA 200, SMA 200, and India VIX receive higher confidence modifiers because they represent major long-term trend and risk signals that significantly affect market behavior. 
+RSI, ADX, CMF, Fibonacci Retracement, Trendline, and Support/Resistance act as confirmation indicators, strengthening or weakening signals generated by the primary trend indicators. 
+Williams %R, Pivot Points, TRIN, and Keltner Channel are shorter-term supporting indicators and therefore receive lower engine weights while still contributing valuable confirmation. 
+Technical Composite Score carries the highest overall influence because it represents the aggregated output of the entire Technical module and serves as the primary technical input for the Decision Engine.

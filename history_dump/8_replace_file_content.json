@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Filtered dummy card from Flat View map to prevent double render",
+  "EndLine": 79,
+  "Instruction": "Filter pe_ratio out of flat view map too",
+  "ReplacementContent": "        {/* Render our highly specialized indicator template first */}\n        <PERatioCard />\n        \n        {sortedFlat.map(card => {\n          if (card.id === 'pe_ratio') return null;\n          return (\n            <FundamentalCard\n              key={card.id}\n              card={card}\n              onClick={() => onCardClick(card)}\n            />\n          );\n        })}\n        {cards.length === 0 && (",
+  "StartLine": 72,
+  "TargetContent": "        {/* Render our highly specialized indicator template first */}\n        <PERatioCard />\n        \n        {sortedFlat.map(card => (\n          <FundamentalCard\n            key={card.id}\n            card={card}\n            onClick={() => onCardClick(card)}\n          />\n        ))}\n        {cards.length === 0 && (",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Preventing double rendering of dummy card in flat view",
+  "toolSummary": "Fix double render flat"
+}

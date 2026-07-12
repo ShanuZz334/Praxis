@@ -1,0 +1,35 @@
+{
+  "ArtifactMetadata": {
+    "RequestFeedback": false,
+    "Summary": "Add manualOverrides to FundamentalPage",
+    "UserFacing": false
+  },
+  "Description": "Added manualOverrides state to FundamentalPage and passed it to GlobalHeader and FundamentalGrid.",
+  "Instruction": "Create manualOverrides state and pass it down.",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 44,
+      "ReplacementContent": "  const filteredInstruments = selectedCategory === \"Indices\" ? FO_INDICES : FO_EQUITIES;\n\n  // Master state for manual overrides\n  const [manualOverrides, setManualOverrides] = useState({\n      // Valuation\n      pe_ratio: 20.15,\n      forward_pe: 18.5,\n      pb_ratio: 2.5,\n      earnings_yield: 4.8,\n      // Market Health\n      market_cap_gdp: 95.0,\n      dividend_yield: 1.2,\n      earnings_trend: 10.0,\n      fii_dii_flow: 500,\n      // Growth\n      eps_growth: 12.5,\n      revenue_growth: 15.0,\n      profit_growth: 14.2,\n      gdp_growth: 6.5,\n      // Profitability\n      roe: 18.5,\n      roce: 22.0,\n      net_margin: 15.5,\n      operating_margin: 20.0,\n      // Financial Health\n      debt_to_equity: 0.5,\n      interest_coverage: 8.5,\n      free_cash_flow: 1500,\n      current_ratio: 1.5\n  });\n\n  const handleOverrideChange = (key, val) => {\n      setManualOverrides(prev => ({ ...prev, [key]: val }));\n  };",
+      "StartLine": 44,
+      "TargetContent": "  const filteredInstruments = selectedCategory === \"Indices\" ? FO_INDICES : FO_EQUITIES;"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 79,
+      "ReplacementContent": "        cards={[]}\n        selectedCategory={selectedCategory}\n        manualOverrides={manualOverrides}\n        onOverrideChange={handleOverrideChange}\n        controls={{",
+      "StartLine": 71,
+      "TargetContent": "        cards={[]}\n        controls={{"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 115,
+      "ReplacementContent": "          data={fundamentalsData}\n          selectedCategory={selectedCategory}\n          manualOverrides={manualOverrides}\n        />",
+      "StartLine": 114,
+      "TargetContent": "          data={fundamentalsData}\n          selectedCategory={selectedCategory}\n        />"
+    }
+  ],
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalPage.jsx",
+  "toolAction": "Add overrides to FundamentalPage",
+  "toolSummary": "Update FundamentalPage.jsx"
+}

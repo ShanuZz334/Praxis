@@ -1,0 +1,21 @@
+{
+  "ArtifactMetadata": {
+    "RequestFeedback": false,
+    "Summary": "Remove Indices from Fundamentals",
+    "UserFacing": false
+  },
+  "Description": "Removed 'Indices' from the categories dropdown in FundamentalPage since indices do not have fundamental data.",
+  "Instruction": "Remove the Indices category and fallback logic from the dropdown options.",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 43,
+      "ReplacementContent": "  const categories = [\n      { label: \"Companies\", value: \"Companies\" }\n  ];\n\n  const [selectedCategory, setSelectedCategory] = useState(\"Companies\");\n  const [selectedInstrument, setSelectedInstrument] = useState(\"NSE_EQ|INE467B01029\"); // Default TCS\n  \n  const filteredInstruments = FO_EQUITIES;",
+      "StartLine": 29,
+      "TargetContent": "  const categories = [\n      { label: \"Indices\", value: \"Indices\" },\n      { label: \"Companies\", value: \"Companies\" }\n  ];\n\n  const [selectedCategory, setSelectedCategory] = useState(\"Companies\");\n  const [selectedInstrument, setSelectedInstrument] = useState(\"NSE_EQ|INE467B01029\"); // Default TCS\n  \n  const filteredInstruments = selectedCategory === \"Indices\" ? FO_INDICES : FO_EQUITIES;"
+    }
+  ],
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalPage.jsx",
+  "toolAction": "Remove Indices category",
+  "toolSummary": "Update FundamentalPage.jsx"
+}

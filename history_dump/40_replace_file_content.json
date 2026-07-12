@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Update FundamentalGrid to use FundamentalCardRenderer",
+  "EndLine": 30,
+  "Instruction": "Add props for Upstox data, manual overrides, and import the renderer",
+  "ReplacementContent": "import React, { useMemo } from 'react';\nimport FundamentalCardRenderer from './FundamentalCardRenderer';\nimport { FUNDAMENTAL_SECTIONS } from '../data/fundamentalData';\nimport { MobileHeaderControls } from '@/shared/components/ui/GlobalHeader/GlobalHeader';\n\n// =============================\n// Main Component\n// =============================\nexport default function FundamentalGrid({ cards, viewMode, sortMode = \"score_desc\", onCardClick, controls, data, manualOverrides, lastUpdated }) {",
+  "StartLine": 21,
+  "TargetContent": "import React, { useMemo } from 'react';\nimport FundamentalCard from './FundamentalCard';\nimport { FUNDAMENTAL_SECTIONS } from '../data/fundamentalData';\nimport { MobileHeaderControls } from '@/shared/components/ui/GlobalHeader/GlobalHeader';\n\n// =============================\n// Main Component\n// =============================\nexport default function FundamentalGrid({ cards, viewMode, sortMode = \"score_desc\", onCardClick, controls }) {",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Update FundamentalGrid props",
+  "toolSummary": "Edit FundamentalGrid.jsx"
+}

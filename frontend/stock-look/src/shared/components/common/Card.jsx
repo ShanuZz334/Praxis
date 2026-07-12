@@ -57,7 +57,7 @@ const Card = ({
         relative
         rounded-2xl
         p-6
-        transition-all duration-300 ease-out
+        transition-all duration-500 ease-out
         `,
         borderless
           ? "bg-transparent shadow-none"
@@ -70,7 +70,7 @@ const Card = ({
           }
             shadow-sm dark:shadow-none
             hover:shadow-[var(--shadow-card-3d-hover)]
-            hover:-translate-y-2
+            hover:-translate-y-3 hover:scale-[1.02]
           `,
         spanMap[span],
         className

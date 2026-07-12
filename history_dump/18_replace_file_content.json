@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Injected PBRatioCard into the flat view.",
+  "EndLine": 77,
+  "Instruction": "Render `<PBRatioCard />` after `<ForwardPECard />`. Also update the exclusion array to include `pb_ratio`.",
+  "ReplacementContent": "        {/* Render our highly specialized indicator templates first */}\n        <PERatioCard />\n        <ForwardPECard />\n        <PBRatioCard />\n        \n        {sortedFlat.map(card => {\n          if (card.id === 'pe_ratio' || card.id === 'forward_pe' || card.id === 'pb_ratio') return null;",
+  "StartLine": 71,
+  "TargetContent": "        {/* Render our highly specialized indicator templates first */}\n        <PERatioCard />\n        <ForwardPECard />\n        \n        {sortedFlat.map(card => {\n          if (card.id === 'pe_ratio' || card.id === 'forward_pe') return null;",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Adding to flat view",
+  "toolSummary": "Update FundamentalGrid.jsx"
+}

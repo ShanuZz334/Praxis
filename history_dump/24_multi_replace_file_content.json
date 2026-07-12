@@ -1,0 +1,21 @@
+{
+  "ArtifactMetadata": {
+    "RequestFeedback": false,
+    "Summary": "Fix import path",
+    "UserFacing": false
+  },
+  "Description": "Fixed the import path for useFundamentalsData in FundamentalPage.jsx.",
+  "Instruction": "Change ./api/useFundamentalsData to ../api/useFundamentalsData",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 18,
+      "ReplacementContent": "import FundamentalModal from \"./FundamentalModal\";\nimport UiverseDropdown from '@/shared/components/ui/UiverseDropdown';\nimport { FO_INDICES, FO_EQUITIES } from '@/shared/utils/foInstruments';\nimport { useFundamentalsData } from '../api/useFundamentalsData';",
+      "StartLine": 17,
+      "TargetContent": "import FundamentalModal from \"./FundamentalModal\";\nimport UiverseDropdown from '@/shared/components/ui/UiverseDropdown';\nimport { FO_INDICES, FO_EQUITIES } from '@/shared/utils/foInstruments';\nimport { useFundamentalsData } from './api/useFundamentalsData';"
+    }
+  ],
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalPage.jsx",
+  "toolAction": "Fix import path",
+  "toolSummary": "Update FundamentalPage.jsx"
+}

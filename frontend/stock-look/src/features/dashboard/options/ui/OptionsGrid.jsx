@@ -88,32 +88,45 @@ export default function OptionsGrid({
     // Render: Flat View
     // =============================
     if (viewMode === 'flat') {
-        const sortedFlat = sortCards(cards, sortMode);
+        const renderList = [];
+        renderList.push({ id: 'atm_iv', node: <AtmIvCard /> });
+        renderList.push({ id: 'iv_rank', node: <IvRankCard /> });
+        renderList.push({ id: 'iv_percentile', node: <IvPercentileCard /> });
+        renderList.push({ id: 'total_call_oi', node: <TotalCallOpenInterestCard /> });
+        renderList.push({ id: 'total_put_oi', node: <TotalPutOpenInterestCard /> });
+        renderList.push({ id: 'oi_change', node: <OpenInterestChangeCard /> });
+        renderList.push({ id: 'delta', node: <DeltaCard /> });
+        renderList.push({ id: 'gamma', node: <GammaCard /> });
+        renderList.push({ id: 'theta', node: <ThetaCard /> });
+        renderList.push({ id: 'vega', node: <VegaCard /> });
+        renderList.push({ id: 'pcr_oi', node: <PcrOiCard /> });
+        renderList.push({ id: 'pcr_volume', node: <PcrVolumeCard /> });
+        renderList.push({ id: 'max_pain', node: <MaxPainCard /> });
+
+        const excludeIds = renderList.map(item => item.id);
+
+        const flatWithData = renderList.map(item => {
+            const cData = cards.find(c => c.id === item.id) || { normalized: 0, creditAllocation: 0 };
+            return { ...item, ...cData };
+        });
+
+        const dynamicCards = cards.filter(card => !excludeIds.includes(card.id) && !card.id.startsWith('dummy_')).map(card => ({
+            id: card.id,
+            ...card,
+            node: <OptionsCard key={card.id} card={card} onClick={() => onCardClick(card)} />
+        }));
+        
+        flatWithData.push(...dynamicCards);
+
+        const filteredFlatWithData = flatWithData.filter(item => cards.some(c => c.id === item.id));
+
+        const sortedFlat = sortCards(filteredFlatWithData, sortMode);
+
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 items-start animate-in fade-in duration-500">
-                <AtmIvCard />
-                <IvRankCard />
-                <IvPercentileCard />
-                <TotalCallOpenInterestCard />
-                <TotalPutOpenInterestCard />
-                <OpenInterestChangeCard />
-                <DeltaCard />
-                <GammaCard />
-                <ThetaCard />
-                <VegaCard />
-                <PcrOiCard />
-                <PcrVolumeCard />
-                <MaxPainCard />
-                {sortedFlat.map((card) => {
-                    if (['atm_iv', 'iv_rank', 'iv_percentile', 'total_call_oi', 'total_put_oi', 'oi_change', 'delta', 'gamma', 'theta', 'vega', 'pcr_oi', 'pcr_volume', 'max_pain'].includes(card.id) || card.id.startsWith('dummy_')) return null;
-                    return (
-                        <OptionsCard
-                            key={card.id}
-                            card={card}
-                            onClick={() => onCardClick(card)}
-                        />
-                    );
-                })}
+                {sortedFlat.map(item => (
+                    <React.Fragment key={item.id}>{item.node}</React.Fragment>
+                ))}
             </div>
         );
     }

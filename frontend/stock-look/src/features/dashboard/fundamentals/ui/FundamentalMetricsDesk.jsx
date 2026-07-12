@@ -92,7 +92,7 @@ export default function FundamentalMetricsDesk({ card }) {
     let confColor = "text-amber-400";
     let confDesc = "Data consistent, but breadth metrics diverging";
 
-    const relScore = credit * 10;
+    const relScore = credit > 1 ? credit : credit * 10;
 
     if (relScore >= 8) {
         confidence = "High";

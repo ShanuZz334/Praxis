@@ -1,0 +1,30 @@
+{
+  "Description": "Integrate Upstox live data and controls into FundamentalPage",
+  "Instruction": "Add imports, state, and UI controls for the Upstox connection in FundamentalPage",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 34,
+      "ReplacementContent": "import { useFundamentals } from \"../hooks/useFundamentals\";\nimport { evaluateFundamentals } from \"../engine\";\nimport FundamentalGrid from \"./FundamentalGrid\";\nimport FundamentalModal from \"./FundamentalModal\";\n\nimport { useFundamentalsData } from \"../api/useFundamentalsData\";\nimport { FO_EQUITIES, FO_INDICES } from \"@/shared/utils/foInstruments\";\nimport UiverseDropdown from \"@/shared/components/ui/UiverseDropdown\";",
+      "StartLine": 30,
+      "TargetContent": "import { useFundamentals } from \"../hooks/useFundamentals\";\nimport { evaluateFundamentals } from \"../engine\";\nimport FundamentalGrid from \"./FundamentalGrid\";\nimport FundamentalModal from \"./FundamentalModal\";"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 48,
+      "ReplacementContent": "  const [searchQuery, setSearchQuery] = useState(\"\");\n  const [selectedCard, setSelectedCard] = useState(null);\n\n  // Upstox Live Data State\n  const [selectedCategory, setSelectedCategory] = useState(\"Companies\");\n  const [selectedInstrument, setSelectedInstrument] = useState(\"NSE_EQ|INE467B01029\"); // Default TCS\n  const [manualOverrides, setManualOverrides] = useState({});\n  const filteredInstruments = selectedCategory === \"Indices\" ? FO_INDICES : FO_EQUITIES;\n  \n  const { data: fundamentalsData, loading: upstoxLoading, lastUpdated } = useFundamentalsData(selectedInstrument);\n\n  // --- Intelligence Engine Execution ---",
+      "StartLine": 45,
+      "TargetContent": "  const [searchQuery, setSearchQuery] = useState(\"\");\n  const [selectedCard, setSelectedCard] = useState(null);\n\n  // --- Intelligence Engine Execution ---"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 173,
+      "ReplacementContent": "      {/* DATA GRID */}\n      <div className=\"mt-8 space-y-6\">\n        \n        {/* Instrument Controls */}\n        <div className=\"flex flex-col md:flex-row gap-4 bg-background-elevated p-4 rounded-xl border border-border-default shadow-sm\">\n          <div className=\"flex-1 space-y-2\">\n            <label className=\"text-xs font-bold text-text-tertiary uppercase tracking-wider\">Asset Class</label>\n            <div className=\"flex bg-background-surface rounded-lg p-1 w-fit border border-border-default\">\n              {['Companies', 'Indices'].map(cat => (\n                <button\n                  key={cat}\n                  onClick={() => {\n                    setSelectedCategory(cat);\n                    setSelectedInstrument(cat === \"Indices\" ? \"NSE_INDEX|Nifty Bank\" : \"NSE_EQ|INE467B01029\");\n                  }}\n                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${\n                    selectedCategory === cat \n                      ? 'bg-blue-500/20 text-blue-400' \n                      : 'text-text-secondary hover:text-text-primary hover:bg-white/5'\n                  }`}\n                >\n                  {cat}\n                </button>\n              ))}\n            </div>\n          </div>\n\n          <div className=\"flex-1 space-y-2\">\n            <label className=\"text-xs font-bold text-text-tertiary uppercase tracking-wider\">Select Instrument</label>\n            <UiverseDropdown\n              options={filteredInstruments}\n              value={selectedInstrument}\n              onChange={(val) => setSelectedInstrument(val)}\n              placeholder=\"Search or Select...\"\n            />\n          </div>\n\n          <div className=\"flex-1 space-y-2 flex flex-col justify-end\">\n            <div className=\"text-xs text-text-tertiary text-right\">\n              {upstoxLoading ? \"Fetching...\" : `Live Data: ${lastUpdated || '--:--'}`}\n            </div>\n          </div>\n        </div>\n\n        <FundamentalGrid\n          cards={filteredCards}\n          viewMode={viewMode}\n          sortMode={sortMode}\n          onCardClick={setSelectedCard}\n          data={fundamentalsData}\n          manualOverrides={manualOverrides}\n          lastUpdated={lastUpdated}\n          controls={{\n            search: searchQuery,\n            onSearchChange: setSearchQuery,\n            viewMode,\n            onViewChange: setViewMode,\n            sortMode,\n            onSortChange: setSortMode\n          }}\n        />\n      </div>",
+      "StartLine": 157,
+      "TargetContent": "      {/* DATA GRID */}\n      <div className=\"mt-8\">\n        <FundamentalGrid\n          cards={filteredCards}\n          viewMode={viewMode}\n          sortMode={sortMode}\n          onCardClick={setSelectedCard}\n          controls={{\n            search: searchQuery,\n            onSearchChange: setSearchQuery,\n            viewMode,\n            onViewChange: setViewMode,\n            sortMode,\n            onSortChange: setSortMode\n          }}\n        />\n      </div>"
+    }
+  ],
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalPage.jsx",
+  "toolAction": "Add Upstox controls and state",
+  "toolSummary": "Edit FundamentalPage.jsx"
+}

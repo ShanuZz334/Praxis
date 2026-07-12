@@ -7,6 +7,41 @@
 
 export const INDICATOR_CONFIG = {
     // --- Global Macro Indicators ---
+    advance_decline: {
+        id: "advance_decline",
+        creditScore: 8,
+        impactWeight: "6.0%",
+        source: "Manual",
+        aiModel: "Qwen3 8B"
+    },
+    india_vix: {
+        id: "india_vix",
+        creditScore: 9,
+        impactWeight: "8.0%",
+        source: "Manual",
+        aiModel: "Qwen3 8B"
+    },
+    index_pcr: {
+        id: "index_pcr",
+        creditScore: 7,
+        impactWeight: "5.0%",
+        source: "Manual",
+        aiModel: "Qwen3 8B"
+    },
+    index_macd: {
+        id: "index_macd",
+        creditScore: 7,
+        impactWeight: "5.0%",
+        source: "Manual",
+        aiModel: "Qwen3 8B"
+    },
+    index_200dma: {
+        id: "index_200dma",
+        creditScore: 8,
+        impactWeight: "7.0%",
+        source: "Manual",
+        aiModel: "Qwen3 8B"
+    },
     brent_crude_oil: {
         id: "brent_crude_oil",
         creditScore: 9,
@@ -392,13 +427,7 @@ export const INDICATOR_CONFIG = {
         source: "NSE Market Statistics",
         aiModel: "Qwen3 8B"
     },
-    india_vix: {
-        id: "india_vix",
-        creditScore: 6,
-        impactWeight: "9.0%",
-        source: "NSE India VIX",
-        aiModel: "Qwen3 8B"
-    },
+
     trin: {
         id: "trin",
         creditScore: 5,

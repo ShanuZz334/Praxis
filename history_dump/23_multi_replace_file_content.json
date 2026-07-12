@@ -1,0 +1,35 @@
+{
+  "ArtifactMetadata": {
+    "RequestFeedback": false,
+    "Summary": "Pass data prop to FundamentalGrid cards",
+    "UserFacing": false
+  },
+  "Description": "Added data prop to FundamentalGrid and passed it to all indicator cards.",
+  "Instruction": "Accept data prop and pass it down to all cards in flat and sectioned views.",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 48,
+      "ReplacementContent": "export default function FundamentalGrid({ cards, viewMode, sortMode = \"score_desc\", onCardClick, controls, data }) {",
+      "StartLine": 48,
+      "TargetContent": "export default function FundamentalGrid({ cards, viewMode, sortMode = \"score_desc\", onCardClick, controls }) {"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 113,
+      "ReplacementContent": "        {/* Render our highly specialized indicator templates first */}\n        <PERatioCard data={data} />\n        <ForwardPECard data={data} />\n        <PBRatioCard data={data} />\n        {/* Market Health Cards */}\n        <MarketCapGDPCard data={data} />\n        <DividendYieldCard data={data} />\n        <EarningsTrendCard data={data} />\n        <FIIDIIFlowCard data={data} />\n        <EarningsYieldCard data={data} />\n        <EPSGrowthCard data={data} />\n        <RevenueGrowthCard data={data} />\n        <ProfitGrowthCard data={data} />\n        <GDPGrowthCard data={data} />\n        <ROECard data={data} />\n        <ROCECard data={data} />\n        <NetMarginCard data={data} />\n        <OperatingMarginCard data={data} />\n        {/* Financial Health Cards */}\n        <DebtToEquityCard data={data} />\n        <InterestCoverageCard data={data} />\n        <FreeCashFlowCard data={data} />\n        <CurrentRatioCard data={data} />",
+      "StartLine": 91,
+      "TargetContent": "        {/* Render our highly specialized indicator templates first */}\n        <PERatioCard />\n        <ForwardPECard />\n        <PBRatioCard />\n        {/* Market Health Cards */}\n        <MarketCapGDPCard />\n        <DividendYieldCard />\n        <EarningsTrendCard />\n        <FIIDIIFlowCard />\n        <EarningsYieldCard />\n        <EPSGrowthCard />\n        <RevenueGrowthCard />\n        <ProfitGrowthCard />\n        <GDPGrowthCard />\n        <ROECard />\n        <ROCECard />\n        <NetMarginCard />\n        <OperatingMarginCard />\n        {/* Financial Health Cards */}\n        <DebtToEquityCard />\n        <InterestCoverageCard />\n        <FreeCashFlowCard />\n        <CurrentRatioCard />"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 252,
+      "ReplacementContent": "                {section.id === 'Valuation' && (\n                  <>\n                    <PERatioCard data={data} />\n                    <ForwardPECard data={data} />\n                    <PBRatioCard data={data} />\n                    <EarningsYieldCard data={data} />\n                  </>\n                )}\n                {section.id === 'Market Health' && (\n                  <>\n                    <MarketCapGDPCard data={data} />\n                    <DividendYieldCard data={data} />\n                    <EarningsTrendCard data={data} />\n                    <FIIDIIFlowCard data={data} />\n                  </>\n                )}\n                {section.id === 'Growth' && (\n                  <>\n                    <EPSGrowthCard data={data} />\n                    <RevenueGrowthCard data={data} />\n                    <ProfitGrowthCard data={data} />\n                    <GDPGrowthCard data={data} />\n                  </>\n                )}\n                {section.id === 'Profitability' && (\n                  <>\n                    <ROECard data={data} />\n                    <ROCECard data={data} />\n                    <NetMarginCard data={data} />\n                    <OperatingMarginCard data={data} />\n                  </>\n                )}\n                {section.id === 'Financial Health' && (\n                  <>\n                    <DebtToEquityCard data={data} />\n                    <InterestCoverageCard data={data} />\n                    <FreeCashFlowCard data={data} />\n                    <CurrentRatioCard data={data} />\n                  </>\n                )}",
+      "StartLine": 214,
+      "TargetContent": "                {section.id === 'Valuation' && (\n                  <>\n                    <PERatioCard />\n                    <ForwardPECard />\n                    <PBRatioCard />\n                    <EarningsYieldCard />\n                  </>\n                )}\n                {section.id === 'Market Health' && (\n                  <>\n                    <MarketCapGDPCard />\n                    <DividendYieldCard />\n                    <EarningsTrendCard />\n                    <FIIDIIFlowCard />\n                  </>\n                )}\n                {section.id === 'Growth' && (\n                  <>\n                    <EPSGrowthCard />\n                    <RevenueGrowthCard />\n                    <ProfitGrowthCard />\n                    <GDPGrowthCard />\n                  </>\n                )}\n                {section.id === 'Profitability' && (\n                  <>\n                    <ROECard />\n                    <ROCECard />\n                    <NetMarginCard />\n                    <OperatingMarginCard />\n                  </>\n                )}\n                {section.id === 'Financial Health' && (\n                  <>\n                    <DebtToEquityCard />\n                    <InterestCoverageCard />\n                    <FreeCashFlowCard />\n                    <CurrentRatioCard />\n                  </>\n                )}"
+    }
+  ],
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Pass data prop down",
+  "toolSummary": "Update FundamentalGrid.jsx"
+}

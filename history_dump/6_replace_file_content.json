@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Passed a dummy PE Ratio card entry to FundamentalGrid so the valuation section actually renders.",
+  "EndLine": 25,
+  "Instruction": "Inject dummy PE ratio card so valuation section renders",
+  "ReplacementContent": "  const cards = [\n    { id: \"pe_ratio\", category: \"valuation\" } // Dummy entry to force the valuation section to render\n  ];",
+  "StartLine": 25,
+  "TargetContent": "  const cards = [];",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalPage.jsx",
+  "toolAction": "Adding dummy card to force render",
+  "toolSummary": "Fix FundamentalPage rendering"
+}

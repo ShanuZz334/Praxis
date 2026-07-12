@@ -40,7 +40,8 @@ function scoreROE(currentROE, sectorROE) {
         }
     }
 
-    return { score, bias, confidence: '85%', trendDesc };
+    const confidence = sectorROE !== null && !isNaN(sectorROE) ? 90 : (currentROE > 20 || currentROE < 0 ? 80 : 72);
+    return { score, bias, confidence, trendDesc };
 }
 
 function generateAiInsight(currentROE, sectorROE, trendDesc) {
@@ -115,11 +116,11 @@ export default function ROECard({ data, manualOverride, lastUpdated }) {
             data={{
                 currentValueObj: { label: 'ROE (%)', value: currentROE !== null ? currentROE.toFixed(2) : '--' },
                 details: [
-                    { label: 'Sector ROE', value: sectorROE !== null ? sectorROE.toFixed(2) : '--', isManual: false }
-                ],
+                    sectorROE !== null && !isNaN(sectorROE) && { label: 'Sector ROE', value: sectorROE.toFixed(2) + '%', isManual: false }
+                ].filter(Boolean),
                 score: score || 0,
                 bias: bias || 'Neutral',
-                confidence: confidence || '85%',
+                confidence: `${confidence}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

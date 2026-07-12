@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { formatCompactCurrency } from '@/shared/utils/formatters';
 
 function scoreInstitutionalFlow(fiiFlow, diiFlow) {
     if (fiiFlow === null || isNaN(fiiFlow) || diiFlow === null || isNaN(diiFlow)) {
@@ -88,10 +89,10 @@ export default function FIIDIIFlowCard({ data = null, manualOverride, lastUpdate
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Net Flow (₹ Cr)', value: netFlow !== null ? (netFlow > 0 ? `+${netFlow}` : netFlow) : '--' },
+                currentValueObj: { label: 'Net Flow', value: netFlow !== null && !isNaN(netFlow) ? formatCompactCurrency(netFlow * 10000000) : '--' },
                 details: [
-                    fiiFlow !== null && !isNaN(fiiFlow) && { label: 'FII Flow (₹ Cr)', value: fiiFlow > 0 ? `+${fiiFlow}` : fiiFlow, isManual: true },
-                    diiFlow !== null && !isNaN(diiFlow) && { label: 'DII Flow (₹ Cr)', value: diiFlow > 0 ? `+${diiFlow}` : diiFlow, isManual: true }
+                    fiiFlow !== null && !isNaN(fiiFlow) && { label: 'FII Flow', value: formatCompactCurrency(fiiFlow * 10000000), isManual: true },
+                    diiFlow !== null && !isNaN(diiFlow) && { label: 'DII Flow', value: formatCompactCurrency(diiFlow * 10000000), isManual: true }
                 ].filter(Boolean),
                 score: score || 0,
                 bias: bias || 'Neutral',

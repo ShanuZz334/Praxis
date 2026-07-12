@@ -28,6 +28,7 @@ import SideMenu from "@/shared/components/layouts/SideMenu";
 import DashboardRoutes from "@/features/dashboard/routes/DashboardRoutes";
 import { UserContext } from "@/shared/context/UserContext";
 import { useTheme } from "@/shared/context/ThemeContext";
+import { DashboardProvider } from "@/shared/context/DashboardContext";
 
 // =============================
 // Constants
@@ -93,6 +94,7 @@ const DashboardLayout = () => {
   }, [location.pathname]);
 
   return (
+    <DashboardProvider>
     <div className="min-h-screen bg-background-app text-text-primary relative overflow-hidden flex flex-col md:block">
 
       {/* LIGHT MODE - SOFT MINT & LAVENDER (LOCKED) */}
@@ -175,6 +177,7 @@ const DashboardLayout = () => {
         <DashboardRoutes setActiveMenu={setActiveMenu} />
       </main>
     </div>
+    </DashboardProvider>
   );
 };
 

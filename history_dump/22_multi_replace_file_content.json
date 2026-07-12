@@ -1,0 +1,42 @@
+{
+  "ArtifactMetadata": {
+    "RequestFeedback": false,
+    "Summary": "Update FundamentalPage state and imports",
+    "UserFacing": false
+  },
+  "Description": "Added instrument selection and hooked up the useFundamentalsData hook in FundamentalPage.jsx",
+  "Instruction": "Update FundamentalPage.jsx to manage selectedInstrument and fetch from the hook.",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 18,
+      "ReplacementContent": "import FundamentalModal from \"./FundamentalModal\";\nimport UiverseDropdown from '@/shared/components/ui/UiverseDropdown';\nimport { FO_INDICES, FO_EQUITIES } from '@/shared/utils/foInstruments';\nimport { useFundamentalsData } from './api/useFundamentalsData';",
+      "StartLine": 17,
+      "TargetContent": "import FundamentalModal from \"./FundamentalModal\";"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 31,
+      "ReplacementContent": "  const cards = [\n    { id: \"pe_ratio\", category: \"Valuation\" },\n    { id: \"eps_growth\", category: \"Growth\" },\n    { id: \"roe\", category: \"Profitability\" },\n    { id: \"debt_to_equity\", category: \"Financial Health\" },\n    { id: \"market_cap_gdp\", category: \"Market Health\" }\n  ];\n\n  const categories = [\n      { label: \"Indices\", value: \"Indices\" },\n      { label: \"Companies\", value: \"Companies\" }\n  ];\n\n  const [selectedCategory, setSelectedCategory] = useState(\"Companies\");\n  const [selectedInstrument, setSelectedInstrument] = useState(\"NSE_EQ|INE467B01029\"); // Default TCS\n  \n  const filteredInstruments = selectedCategory === \"Indices\" ? FO_INDICES : FO_EQUITIES;\n\n  // Auto-update instrument when category changes\n  React.useEffect(() => {\n      if (filteredInstruments.length > 0 && !filteredInstruments.find(i => i.value === selectedInstrument)) {\n          setSelectedInstrument(filteredInstruments[0].value);\n      }\n  }, [selectedCategory, filteredInstruments, selectedInstrument]);\n\n  const { data: fundamentalsData, loading, error } = useFundamentalsData(selectedInstrument);",
+      "StartLine": 25,
+      "TargetContent": "  const cards = [\n    { id: \"pe_ratio\", category: \"Valuation\" },\n    { id: \"eps_growth\", category: \"Growth\" },\n    { id: \"roe\", category: \"Profitability\" },\n    { id: \"debt_to_equity\", category: \"Financial Health\" },\n    { id: \"market_cap_gdp\", category: \"Market Health\" }\n  ];"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 56,
+      "ReplacementContent": "          viewMode,\n          onViewChange: setViewMode,\n          sortMode,\n          onSortChange: setSortMode,\n          customComponent: (\n            <>\n                <UiverseDropdown \n                    options={categories} \n                    value={selectedCategory} \n                    onChange={setSelectedCategory} \n                />\n                <UiverseDropdown \n                    options={filteredInstruments} \n                    value={selectedInstrument} \n                    onChange={setSelectedInstrument} \n                />\n                {loading && <div className=\"text-sm text-text-secondary animate-pulse shrink-0 ml-2\">Loading...</div>}\n                {error && <div className=\"text-sm text-red-500 shrink-0 ml-2\">Failed to load data</div>}\n            </>\n          )\n        }}\n      />",
+      "StartLine": 52,
+      "TargetContent": "          viewMode,\n          onViewChange: setViewMode,\n          sortMode,\n          onSortChange: setSortMode\n        }}\n      />"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 80,
+      "ReplacementContent": "            onSortChange: setSortMode\n          }}\n          data={fundamentalsData}\n        />",
+      "StartLine": 79,
+      "TargetContent": "            onSortChange: setSortMode\n          }}\n        />"
+    }
+  ],
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalPage.jsx",
+  "toolAction": "Connecting FundamentalPage to Upstox",
+  "toolSummary": "Update FundamentalPage.jsx"
+}

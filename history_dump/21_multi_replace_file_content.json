@@ -1,0 +1,28 @@
+{
+  "ArtifactMetadata": {
+    "RequestFeedback": false,
+    "Summary": "Fix FundamentalGrid section counts",
+    "UserFacing": false
+  },
+  "Description": "Fix section card count badge in FundamentalGrid",
+  "Instruction": "Update FundamentalGrid section mapping to correctly count hardcoded components and filter out dummies.",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 190,
+      "ReplacementContent": "          const hardcodedCounts = {\n            'Valuation': 4,\n            'Market Health': 4,\n            'Growth': 4,\n            'Profitability': 4,\n            'Financial Health': 4\n          };\n          const hardcodedCount = hardcodedCounts[section.id] || 0;\n          const rawList = sections[section.id];\n          const validDynamicCards = rawList ? rawList.filter(c => !c.id?.startsWith('dummy_')) : [];\n          \n          if (hardcodedCount === 0 && validDynamicCards.length === 0) return null;\n\n          const sectionCards = sortCards(validDynamicCards);\n\n          return (",
+      "StartLine": 185,
+      "TargetContent": "          const rawList = sections[section.id];\n          if (!rawList || rawList.length === 0) return null;\n\n          const sectionCards = sortCards(rawList);\n\n          return ("
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 198,
+      "ReplacementContent": "                    {sectionCards.length + hardcodedCount}",
+      "StartLine": 197,
+      "TargetContent": "                    {sectionCards.length}"
+    }
+  ],
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Fixing section counts",
+  "toolSummary": "Fix FundamentalGrid.jsx"
+}

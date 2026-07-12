@@ -1,6 +1,7 @@
 import express from "express";
 import axios from "axios";
 import UpstoxAuth from "../models/UpstoxAuth.js";
+import { getCache, setCache } from "../services/cacheService.js";
 
 const router = express.Router();
 
@@ -108,13 +109,21 @@ router.get("/market-quote", async (req, res) => {
         const keys = req.query.instruments; // e.g. "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank"
         if (!keys) return res.status(400).json({ error: "No instruments provided" });
 
+        const cacheKey = `quotes_${keys}`;
+        const cachedQuotes = getCache(cacheKey);
+        if (cachedQuotes) {
+            return res.json({ status: "success", data: cachedQuotes, cached: true });
+        }
+
         const url = `${UPSTOX_BASE_URL}/market-quote/quotes?instrument_key=${encodeURIComponent(keys)}`;
         
         const response = await axios.get(url, {
             headers: { "Accept": "application/json", "Authorization": `Bearer ${auth.accessToken}` }
         });
 
-        res.json(response.data);
+        setCache(cacheKey, response.data?.data, 60); // 60 seconds TTL
+
+        res.json({ status: "success", data: response.data?.data, cached: false });
     } catch (error) {
         console.error("Error fetching market quote:", error?.response?.data || error.message);
         if (error?.response?.data?.errors?.[0]?.errorCode === 'UDAPI100050' || error?.response?.status === 401) {
@@ -165,8 +174,17 @@ router.get("/option-chain", async (req, res) => {
             return res.status(400).json({ error: "instrument_key and expiry_date are required" });
         }
 
+        const cacheKey = `optionChain_${instrument_key}_${expiry_date}`;
+        const cachedChain = getCache(cacheKey);
+        if (cachedChain) {
+            return res.json({ status: "success", data: cachedChain, cached: true });
+        }
+
         const data = await fetchOptionChain(instrument_key, expiry_date);
-        res.json({ status: "success", data });
+        
+        setCache(cacheKey, data, 300); // 5 minutes TTL
+        
+        res.json({ status: "success", data, cached: false });
     } catch (error) {
         console.error("Error fetching option chain:", error?.response?.data || error.message);
         res.status(500).json({ error: "Internal server error" });

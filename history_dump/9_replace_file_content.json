@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Fixed capitalization for the Valuation category id so the card renders correctly.",
+  "EndLine": 25,
+  "Instruction": "Change valuation to Valuation",
+  "ReplacementContent": "  const cards = [\n    { id: \"pe_ratio\", category: \"Valuation\" } // Dummy entry to force the valuation section to render\n  ];",
+  "StartLine": 25,
+  "TargetContent": "  const cards = [\n    { id: \"pe_ratio\", category: \"valuation\" } // Dummy entry to force the valuation section to render\n  ];",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalPage.jsx",
+  "toolAction": "Fixing category capitalization in FundamentalPage",
+  "toolSummary": "Fix capitalization"
+}

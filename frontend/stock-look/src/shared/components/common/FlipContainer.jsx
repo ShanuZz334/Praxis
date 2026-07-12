@@ -33,7 +33,7 @@ export function FlipContainer({ isFlipped, front, back, className = "" }) {
                         backfaceVisibility: "hidden",
                         WebkitBackfaceVisibility: "hidden",
                         position: "relative", // Always relative to hold height
-                        zIndex: isFlipped ? 0 : 1
+                        zIndex: isFlipped ? 0 : 50
                     }}
                 >
                     {front}
@@ -49,7 +49,7 @@ export function FlipContainer({ isFlipped, front, back, className = "" }) {
                         position: "absolute", // Always absolute to match front's height
                         top: 0,
                         left: 0,
-                        zIndex: isFlipped ? 1 : 0
+                        zIndex: isFlipped ? 50 : 0
                     }}
                 >
                     {back}

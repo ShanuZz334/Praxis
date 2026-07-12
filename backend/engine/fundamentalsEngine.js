@@ -1,0 +1,127 @@
+/**
+ * @file fundamentalsEngine.js
+ * @purpose Backend Institutional Math Engine for Fundamentals.
+ * Processes raw Upstox data into AI-ready structured scores.
+ */
+
+import { extractFundamentalData } from './extractors.js';
+import * as scorers from './scorers.js';
+import { getScoreLabel } from '../../frontend/stock-look/src/features/dashboard/fundamentals/engine/FundamentalCompositeEngine.js';
+
+export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType = 'Companies') {
+    // 1. Extract variables from raw JSON
+    const ext = extractFundamentalData(rawData);
+
+    // 2. Compute Individual Scores
+    const peResult = scorers.scorePERatio(ext.currentPE, null, ext.sectorPE);
+    const pbResult = scorers.scorePBRatio(ext.currentPB, null, ext.sectorPB);
+    const divResult = scorers.scoreDividendYield(ext.currentDivYield, ext.bondYield);
+    const epsResult = scorers.scoreEPSGrowth(ext.epsCAGR, ext.latestYoY, ext.positiveYears, ext.totalPeriods);
+    const deResult = scorers.scoreDebtToEquity(ext.currentDE, ext.sectorDE);
+    const roeResult = scorers.scoreROE(ext.currentROE, ext.sectorROE);
+    const roceResult = scorers.scoreROCE(ext.currentROCE, ext.sectorROCE);
+
+    // 3. Build Cards Array
+    const cards = [
+        {
+            id: 'pe_ratio',
+            module: 'P/E Ratio',
+            score: peResult.score,
+            bias: peResult.bias,
+            creditAllocation: 8,
+            normalized: peResult.score > 70 ? 1 : (peResult.score < 30 ? -1 : 0),
+            rawInput: { currentPE: ext.currentPE, sectorPE: ext.sectorPE }
+        },
+        {
+            id: 'pb_ratio',
+            module: 'P/B Ratio',
+            score: pbResult.score,
+            bias: pbResult.bias,
+            creditAllocation: 8,
+            normalized: pbResult.score > 70 ? 1 : (pbResult.score < 30 ? -1 : 0),
+            rawInput: { currentPB: ext.currentPB, sectorPB: ext.sectorPB }
+        },
+        {
+            id: 'dividend_yield',
+            module: 'Dividend Yield',
+            score: divResult.score,
+            bias: divResult.bias,
+            creditAllocation: 6,
+            normalized: divResult.score > 70 ? 1 : (divResult.score < 30 ? -1 : 0),
+            rawInput: { currentDivYield: ext.currentDivYield, bondYield: ext.bondYield }
+        },
+        {
+            id: 'eps_growth',
+            module: 'EPS Growth',
+            score: epsResult.score,
+            bias: epsResult.bias,
+            creditAllocation: 9,
+            normalized: epsResult.score > 70 ? 1 : (epsResult.score < 30 ? -1 : 0),
+            rawInput: { cagr: ext.epsCAGR, yoy: ext.latestYoY, posYears: ext.positiveYears, total: ext.totalPeriods }
+        },
+        {
+            id: 'debt_to_equity',
+            module: 'Debt to Equity',
+            score: deResult.score,
+            bias: deResult.bias,
+            creditAllocation: 8,
+            normalized: deResult.score > 70 ? 1 : (deResult.score < 30 ? -1 : 0),
+            rawInput: { currentDE: ext.currentDE, sectorDE: ext.sectorDE }
+        },
+        {
+            id: 'roe',
+            module: 'ROE',
+            score: roeResult.score,
+            bias: roeResult.bias,
+            creditAllocation: 9,
+            normalized: roeResult.score > 70 ? 1 : (roeResult.score < 30 ? -1 : 0),
+            rawInput: { currentROE: ext.currentROE, sectorROE: ext.sectorROE }
+        },
+        {
+            id: 'roce',
+            module: 'ROCE',
+            score: roceResult.score,
+            bias: roceResult.bias,
+            creditAllocation: 8,
+            normalized: roceResult.score > 70 ? 1 : (roceResult.score < 30 ? -1 : 0),
+            rawInput: { currentROCE: ext.currentROCE, sectorROCE: ext.sectorROCE }
+        }
+    ];
+
+    // 4. Compute Composite (Simplified version matching frontend)
+    // In the future, this can be expanded to match the EXACT convex weighting
+    const validScores = cards.map(c => c.score).filter(s => s !== null && !isNaN(s));
+    const compositeScore = validScores.length ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length) : 50;
+    
+    // Fallback to our own label generator if frontend import fails in Node (React ES6 module resolution issue)
+    let regimeLabel = { label: 'Neutral', cssColor: 'text-yellow-500', hexColor: '#eab308' };
+    try {
+        regimeLabel = getScoreLabel(compositeScore);
+    } catch(e) {
+        if (compositeScore >= 80) regimeLabel = { label: 'Strong Bullish', cssColor: 'text-green-500', hexColor: '#22c55e' };
+        else if (compositeScore >= 60) regimeLabel = { label: 'Bullish', cssColor: 'text-green-400', hexColor: '#4ade80' };
+        else if (compositeScore >= 40) regimeLabel = { label: 'Neutral', cssColor: 'text-yellow-500', hexColor: '#eab308' };
+        else if (compositeScore >= 20) regimeLabel = { label: 'Bearish', cssColor: 'text-orange-500', hexColor: '#f97316' };
+        else regimeLabel = { label: 'Strong Bearish', cssColor: 'text-red-500', hexColor: '#ef4444' };
+    }
+
+    return {
+        compositeScore,
+        regime: {
+            label: regimeLabel.label,
+            description: "Backend AI Engine computed regime.",
+            confidence: 80,
+            color: regimeLabel.cssColor,
+            hexColor: regimeLabel.hexColor
+        },
+        sections: [
+            { id: 'valuation', label: 'Valuation', score: Math.round((peResult.score + pbResult.score)/2), weight: 0.3 },
+            { id: 'growth', label: 'Growth', score: epsResult.score, weight: 0.2 },
+            { id: 'profitability', label: 'Profitability', score: Math.round((roeResult.score + roceResult.score)/2), weight: 0.25 },
+            { id: 'health', label: 'Financial Health', score: deResult.score, weight: 0.25 }
+        ],
+        tailwinds: [],
+        risks: [],
+        cards
+    };
+}

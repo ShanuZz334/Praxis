@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { formatPercentage } from '@/shared/utils/formatters';
 
 export default function MarketCapGDPCard({ data = null, manualOverride, lastUpdated }) {
     // Market Cap to GDP (Buffett Indicator) is a macro-economic indicator.
@@ -14,27 +15,32 @@ export default function MarketCapGDPCard({ data = null, manualOverride, lastUpda
     // --- Scoring Logic ---
     let score          = 0;
     let bias           = 'Neutral';
-    const confidence   = '90%';
     let aiInsightText  = 'Awaiting manual entry of the current Market Cap to GDP ratio.';
 
+
+    let valuationZone = 'Unknown';
     if (currentRatio !== null && !isNaN(currentRatio)) {
         if (currentRatio < 80) {
-            score = 95; bias = 'Strong Bullish';
+            score = 95; bias = 'Strong Bullish'; valuationZone = 'Undervalued';
             aiInsightText = `At ${currentRatio}%, the overall market appears attractively valued relative to the economy (Undervalued).`;
         } else if (currentRatio < 100) {
-            score = 82; bias = 'Bullish';
+            score = 82; bias = 'Bullish'; valuationZone = 'Fairly Valued';
             aiInsightText = `At ${currentRatio}%, market valuation remains broadly aligned with economic output (Fairly Valued).`;
         } else if (currentRatio <= 120) {
-            score = 60; bias = 'Neutral';
+            score = 60; bias = 'Neutral'; valuationZone = 'Fully Valued';
             aiInsightText = `At ${currentRatio}%, the market is fully valued compared to historical norms.`;
         } else if (currentRatio <= 150) {
-            score = 30; bias = 'Bearish';
+            score = 30; bias = 'Bearish'; valuationZone = 'Overvalued';
             aiInsightText = `At ${currentRatio}%, market valuations are elevated compared to the size of the economy (Overvalued).`;
         } else {
-            score = 10; bias = 'Strong Bearish';
+            score = 10; bias = 'Strong Bearish'; valuationZone = 'Significantly Overvalued';
             aiInsightText = `At ${currentRatio}%, the market appears historically expensive and carries elevated valuation risk (Significantly Overvalued).`;
         }
     }
+    // Confidence: highest at extremes where the signal is unambiguous
+    const confidence = currentRatio !== null
+        ? (currentRatio < 80 || currentRatio > 150 ? '92%' : (currentRatio < 100 || currentRatio > 130 ? '82%' : '72%'))
+        : '0%';
 
     return (
         <IndicatorCard
@@ -48,11 +54,13 @@ export default function MarketCapGDPCard({ data = null, manualOverride, lastUpda
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Market Cap / GDP (%)', value: currentRatio !== null ? currentRatio : '--' },
-                details: [],
+                currentValueObj: { label: 'Market Cap / GDP', value: currentRatio !== null && !isNaN(currentRatio) ? formatPercentage(currentRatio) : '--' },
+                details: [
+                    currentRatio !== null && !isNaN(currentRatio) && { label: 'Valuation Zone', value: valuationZone, isManual: false }
+                ].filter(Boolean),
                 score: score || 0,
                 bias: bias || 'Neutral',
-                confidence: confidence || '85%',
+                confidence: confidence,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

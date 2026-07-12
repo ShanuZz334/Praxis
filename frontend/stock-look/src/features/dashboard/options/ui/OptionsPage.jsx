@@ -12,6 +12,7 @@ import socket from '@/shared/utils/socket';
 import { calculateGreeks, resolveGreeks, timeToExpiry } from '../engine/blackScholesEngine';
 import { calculatePCR, calculateMaxPain } from '../engine/optionsMath';
 import OptionsGrid from './OptionsGrid';
+import { useDashboardContext } from "@/shared/context/DashboardContext";
 
 export default function OptionsPage() {
     const [selectedCard, setSelectedCard] = useState(null);
@@ -19,24 +20,14 @@ export default function OptionsPage() {
     const [sortMode, setSortMode] = useState("score_desc");
     const [searchQuery, setSearchQuery] = useState("");
     
-    // Selection state
-    const [category, setCategory] = useState("Indices"); // "Indices" or "Equities"
-    const [selectedInstrument, setSelectedInstrument] = useState("NSE_INDEX|Nifty 50");
-    const [selectedExpiry, setSelectedExpiry] = useState("");
-    const [expiries, setExpiries] = useState([]);
-    
-    // Options lists based on category
-    const instrumentOptions = category === "Indices" ? FO_INDICES : FO_EQUITIES;
+    // Consume Global Dashboard Context
+    const {
+        selectedCategory: category,
+        selectedInstrument,
+        selectedExpiry, setSelectedExpiry,
+        expiries
+    } = useDashboardContext();
 
-    // Reset instrument when category changes
-    useEffect(() => {
-        if (category === "Indices") {
-            setSelectedInstrument("NSE_INDEX|Nifty 50");
-        } else {
-            setSelectedInstrument(FO_EQUITIES[0].value); // Default to first equity
-        }
-    }, [category]);
-    
     // Data state
     const [chainData, setChainData] = useState([]);
     const [spotPrice, setSpotPrice] = useState(24000); // Default, will be updated by chain
@@ -104,41 +95,7 @@ export default function OptionsPage() {
     }, [selectedExpiry, spotPrice]);
 
     // 5. Connect Pro Desk picks when Golden Zone is ready
-    // 1. Fetch expiries when instrument changes
-    useEffect(() => {
-        const fetchExpiries = async () => {
-            try {
-                // We use GET_CONTRACTS to get the expiries for the instrument
-                const res = await axiosInstance.get(API_PATHS.OPTIONS.GET_CONTRACTS(selectedInstrument));
-                
-                const contracts = res.data?.data || res.data || [];
-                
-                if (Array.isArray(contracts) && contracts.length > 0) {
-                    const uniqueExpiries = [...new Set(contracts.map(c => c.expiry || c.expiry_date))]
-                        .filter(Boolean)
-                        .sort((a, b) => new Date(a) - new Date(b));
-                        
-                    if (uniqueExpiries.length > 0) {
-                        setExpiries(uniqueExpiries);
-                        setSelectedExpiry(uniqueExpiries[0]); // Select first expiry by default
-                    } else {
-                        setExpiries([]);
-                        setSelectedExpiry("");
-                    }
-                } else {
-                    setExpiries([]);
-                    setSelectedExpiry("");
-                }
-            } catch (err) {
-                console.error("Failed to fetch expiries:", err);
-                setExpiries([]);
-                setSelectedExpiry("");
-            }
-        };
-        if (selectedInstrument) {
-            fetchExpiries();
-        }
-    }, [selectedInstrument]);
+    // 1. Fetch expiries is now handled globally by DashboardContext
 
     // 2. Fetch chain when instrument or expiry changes
     useEffect(() => {
@@ -330,28 +287,7 @@ export default function OptionsPage() {
                         matchCount: 0,
                         customComponent: (
                             <div className="flex gap-2">
-                                {/* Section 1: Category */}
-                                <UiverseDropdown
-                                    placeholder="Category"
-                                    value={category}
-                                    onChange={setCategory}
-                                    options={[
-                                        { label: "Indices", value: "Indices" },
-                                        { label: "Equities", value: "Equities" }
-                                    ]}
-                                    disabled={loading}
-                                />
-                                
-                                {/* Section 2: Instrument Name */}
-                                <UiverseDropdown
-                                    placeholder="Instrument"
-                                    value={selectedInstrument}
-                                    onChange={setSelectedInstrument}
-                                    options={instrumentOptions}
-                                    disabled={loading}
-                                />
-                                
-                                {/* Section 3: Expiry Date */}
+                                {/* Expiry Date (Kept here per request, synced globally) */}
                                 <UiverseDropdown
                                     placeholder={loading && expiries.length === 0 ? "Loading expiries..." : "Expiry"}
                                     value={selectedExpiry}

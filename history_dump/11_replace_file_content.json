@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": false,
+  "Description": "Reduced the top padding on the FundamentalPage to bring the header card closer to the top navigation bar.",
+  "EndLine": 30,
+  "Instruction": "Reduce top padding from p-4 md:p-6 to px-4 md:px-6 pt-2 md:pt-3",
+  "ReplacementContent": "    <div className=\"px-4 md:px-6 pt-2 md:pt-3 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen\">",
+  "StartLine": 30,
+  "TargetContent": "    <div className=\"p-4 md:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen\">",
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalPage.jsx",
+  "toolAction": "Adjusting top padding on FundamentalPage",
+  "toolSummary": "Adjust FundamentalPage padding"
+}

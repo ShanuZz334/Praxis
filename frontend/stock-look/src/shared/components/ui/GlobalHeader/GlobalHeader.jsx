@@ -175,54 +175,60 @@ export default function GlobalHeader({
                             </div>
                         </div>
 
-                        <div className="flex flex-row items-center md:items-baseline gap-2 md:gap-3 mb-1 text-left">
-                            <div className={`${typography.number.giant} text-4xl md:text-6xl lg:text-7xl tracking-tighter`}>{Number(score || 0).toFixed(0)}</div>
-                            <div className="flex flex-col justify-end h-full pb-1">
-                                <div
-                                    className={`text-sm md:text-lg font-bold transition-colors duration-500 uppercase tracking-wide`}
-                                    style={{ color: gauge?.color || compositeState.color || 'var(--text-primary)' }}
-                                >
-                                    {gauge ? gauge.label : compositeState.label}
+                        {title?.toUpperCase() === "FUNDAMENTAL COMPOSITE" ? (
+                            <FundamentalGaugePanel score={score} regime={regime} sections={sections} />
+                        ) : (
+                            <>
+                                <div className="flex flex-row items-center md:items-baseline gap-2 md:gap-3 mb-1 text-left">
+                                    <div className={`${typography.number.giant} text-4xl md:text-6xl lg:text-7xl tracking-tighter`}>{Number(score || 0).toFixed(0)}</div>
+                                    <div className="flex flex-col justify-end h-full pb-1">
+                                        <div
+                                            className={`text-sm md:text-lg font-bold transition-colors duration-500 uppercase tracking-wide`}
+                                            style={{ color: gauge?.color || compositeState.color || 'var(--text-primary)' }}
+                                        >
+                                            {gauge ? gauge.label : compositeState.label}
+                                        </div>
+                                        <div className="text-[9px] md:text-[10px] text-text-tertiary font-mono tracking-widest opacity-60">/ 100.00</div>
+                                    </div>
                                 </div>
-                                <div className="text-[9px] md:text-[10px] text-text-tertiary font-mono tracking-widest opacity-60">/ 100.00</div>
-                            </div>
-                        </div>
 
-                        {/* Middle Metrics Row - Only for main dashboard */}
-                        {title?.toUpperCase() === "STOCKY COMPOSITE" && (
-                            <div className="hidden md:flex items-center justify-between mt-0 mb-2 border border-border-default bg-background-surface/50 rounded-lg py-1 px-1.5 divide-x divide-border-default max-w-[280px]">
-                                <div className="flex items-center gap-1 px-1.5 first:pl-0 last:pr-0">
-                                    <span className="text-text-secondary text-[9px] uppercase font-bold tracking-wider">Trend</span>
-                                    <ArrowUp className="w-3 h-3 text-emerald-500" />
+                                {/* Middle Metrics Row - Only for main dashboard */}
+                                {title?.toUpperCase() === "STOCKY COMPOSITE" && (
+                                    <div className="hidden md:flex items-center justify-between mt-0 mb-2 border border-border-default bg-background-surface/50 rounded-lg py-1 px-1.5 divide-x divide-border-default max-w-[280px]">
+                                        <div className="flex items-center gap-1 px-1.5 first:pl-0 last:pr-0">
+                                            <span className="text-text-secondary text-[9px] uppercase font-bold tracking-wider">Trend</span>
+                                            <ArrowUp className="w-3 h-3 text-emerald-500" />
+                                        </div>
+                                        <div className="flex items-center gap-1 px-1.5 first:pl-0 last:pr-0">
+                                            <span className="text-text-secondary text-[9px] uppercase font-bold tracking-wider">Momentum</span>
+                                            <ArrowRight className="w-3 h-3 text-emerald-500" />
+                                        </div>
+                                        <div className="flex items-center gap-1 px-1.5 first:pl-0 last:pr-0">
+                                            <span className="text-text-secondary text-[9px] uppercase font-bold tracking-wider">Risk</span>
+                                            <span className="text-[9px] font-bold text-emerald-500">Low</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 px-1.5 first:pl-0 last:pr-0">
+                                            <span className="text-text-secondary text-[9px] uppercase font-bold tracking-wider">Vol</span>
+                                            <span className="text-[9px] font-bold text-amber-500">Med</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Mobile Regime Indicator */}
+                                <div className="flex lg:hidden items-center gap-2 mt-2 mb-1 px-3 py-1.5 rounded-xl bg-background-surface/50 border border-border-subtle w-fit">
+                                    <div className={`text-[11px] font-bold ${regime.color || 'text-text-primary'}`}>{regime.label}</div>
+                                    <div className="w-1 h-1 rounded-full bg-text-tertiary opacity-30" />
+                                    <div className="text-[10px] text-text-secondary font-mono">
+                                        {Number(regime.confidence || 0).toFixed(0)}% Conf
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-1 px-1.5 first:pl-0 last:pr-0">
-                                    <span className="text-text-secondary text-[9px] uppercase font-bold tracking-wider">Momentum</span>
-                                    <ArrowRight className="w-3 h-3 text-emerald-500" />
+
+                                {/* Sections Bar (Divergence Chart) - Hidden on Mobile */}
+                                <div className="hidden md:block">
+                                    <SectionBar sections={sections} />
                                 </div>
-                                <div className="flex items-center gap-1 px-1.5 first:pl-0 last:pr-0">
-                                    <span className="text-text-secondary text-[9px] uppercase font-bold tracking-wider">Risk</span>
-                                    <span className="text-[9px] font-bold text-emerald-500">Low</span>
-                                </div>
-                                <div className="flex items-center gap-1 px-1.5 first:pl-0 last:pr-0">
-                                    <span className="text-text-secondary text-[9px] uppercase font-bold tracking-wider">Vol</span>
-                                    <span className="text-[9px] font-bold text-amber-500">Med</span>
-                                </div>
-                            </div>
+                            </>
                         )}
-
-                        {/* Mobile Regime Indicator */}
-                        <div className="flex lg:hidden items-center gap-2 mt-2 mb-1 px-3 py-1.5 rounded-xl bg-background-surface/50 border border-border-subtle w-fit">
-                            <div className={`text-[11px] font-bold ${regime.color || 'text-text-primary'}`}>{regime.label}</div>
-                            <div className="w-1 h-1 rounded-full bg-text-tertiary opacity-30" />
-                            <div className="text-[10px] text-text-secondary font-mono">
-                                {Number(regime.confidence || 0).toFixed(0)}% Conf
-                            </div>
-                        </div>
-
-                        {/* Sections Bar (Divergence Chart) - Hidden on Mobile */}
-                        <div className="hidden md:block">
-                            <SectionBar sections={sections} />
-                        </div>
                     </div>
 
                     {/* B. AI INSIGHT (Replaces Regime) */}
@@ -251,10 +257,13 @@ export default function GlobalHeader({
                             <div className="space-y-1.5">
                                 <div className="flex justify-between text-xs text-text-secondary">
                                     <span>Coverage</span>
-                                    <span>{integrity.coverage}</span>
+                                    <span>{integrity.coverageText || integrity.coverage}</span>
                                 </div>
                                 <div className="h-1.5 bg-background-surface/50 border border-border-subtle rounded-full overflow-hidden">
-                                    <div className="h-full bg-blue-500 w-full rounded-full" />
+                                    <div 
+                                        className="h-full bg-blue-500 rounded-full transition-all duration-700 ease-out" 
+                                        style={{ width: `${integrity.coveragePercent ?? 100}%` }}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -353,7 +362,7 @@ function StatBlock({ label, value, color, breakdown }) {
                         {Object.entries(breakdown).map(([mod, count]) => (
                             <div key={mod} className="flex justify-between items-center text-xs">
                                 <span className="text-text-secondary">{mod}</span>
-                                <span className={`font-mono font-bold ${color}`}>{count}</span>
+                                {count > 1 && <span className={`font-mono font-bold ${color}`}>{count}</span>}
                             </div>
                         ))}
                     </div>
@@ -366,28 +375,88 @@ function StatBlock({ label, value, color, breakdown }) {
 }
 
 function SectionBar({ sections }) {
-    if (!sections || !sections.length) return null;
+    // Prevent layout shift: Always render the structural block even if empty
+    if (!sections || !sections.length) {
+        return <div className={`grid grid-cols-7 gap-1 h-28 mt-0 border-t ${STYLES.BORDER_DIVIDER} pt-2 pb-3`}></div>;
+    }
 
     return (
-        <div className={`grid grid-cols-5 md:grid-cols-8 gap-1 h-24 mt-6 border-t ${STYLES.BORDER_DIVIDER} pt-3`}>
+        <div className={`grid grid-cols-7 gap-1 h-28 mt-0 border-t ${STYLES.BORDER_DIVIDER} pt-2 pb-3`}>
             {sections.map(s => {
-                const heightPct = Math.min(100, Math.abs(s.normalizedScore || 0)); // Simplified for visual
-                const isPos = (s.rawScore || 0) > 0; // Assuming rawScore determines direction? Or normalize?
-                // Fallback logic purely visual for now
-                const barColor = isPos ? "bg-emerald-600 dark:bg-emerald-500" : "bg-red-600 dark:bg-red-500";
+                const sc = s.score;
+                const heightPct = sc !== null ? Math.min(100, Math.max(0, sc)) : 0;
+                
+                let barHex = '#E5484D'; // Poor (0-20)
+                if (sc !== null) {
+                    if (sc >= 81) barHex = '#2E5BFF'; // Exceptional
+                    else if (sc >= 61) barHex = '#22C55E'; // Strong
+                    else if (sc >= 41) barHex = '#94A3B8'; // Balanced
+                    else if (sc >= 21) barHex = '#F59E0B'; // Weak
+                }
 
                 return (
                     <div key={s.id} className="relative flex flex-col items-center justify-end h-full group">
-                        <div className={`w-2 rounded-full bg-background-surface h-full relative overflow-hidden border ${STYLES.BORDER_INNER}`}>
+                        <div className={`w-2 rounded-full bg-background-surface flex-1 relative overflow-hidden border ${STYLES.BORDER_INNER} shadow-inner`}>
                             <div
-                                className={`absolute bottom-0 w-full ${barColor} transition-all duration-500`}
-                                style={{ height: `${heightPct}%` }}
+                                className="absolute bottom-0 w-full transition-all duration-700 ease-out"
+                                style={{ height: `${heightPct}%`, backgroundColor: barHex }}
                             />
                         </div>
-                        <div className="mt-2 text-[9px] uppercase font-bold text-text-tertiary">{s.label}</div>
+                        <div className="mt-1.5 flex flex-col items-center shrink-0">
+                            <span 
+                                className="text-[9px] font-bold font-mono leading-none" 
+                                style={{ color: barHex }}
+                            >
+                                {sc !== null ? Math.round(sc) : '--'}
+                            </span>
+                            <span className="text-[8px] uppercase font-bold text-text-tertiary tracking-widest mt-0.5">
+                                {s.shortLabel}
+                            </span>
+                        </div>
                     </div>
                 );
             })}
+        </div>
+    );
+}
+
+function FundamentalGaugePanel({ score, regime, sections }) {
+    // Pure SVG Animated Donut properties
+    const size = 120;
+    const strokeWidth = 10;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const offset = circumference - (score / 100) * circumference;
+    
+    // Determine color based on score (matches FundamentalCompositeEngine)
+    let donutColor = '#E5484D'; // Poor (0-20)
+    if (score >= 81) donutColor = '#2E5BFF'; // Exceptional
+    else if (score >= 61) donutColor = '#22C55E'; // Strong
+    else if (score >= 41) donutColor = '#94A3B8'; // Balanced
+    else if (score >= 21) donutColor = '#F59E0B'; // Weak
+
+    return (
+        <div className="flex flex-col w-full h-full justify-between pt-2">
+            {/* TOP: Score & Badge */}
+            <div className="flex flex-row items-center md:items-baseline gap-2 md:gap-3 mb-1 text-left px-2">
+                <div className={`${typography.number.giant} text-5xl md:text-6xl lg:text-7xl tracking-tighter`} style={{ color: donutColor }}>
+                    {Number(score || 0).toFixed(0)}
+                </div>
+                <div className="flex flex-col justify-end h-full pb-1 md:pb-2">
+                    <div
+                        className="text-lg md:text-xl font-bold transition-colors duration-500 uppercase tracking-wider"
+                        style={{ color: donutColor }}
+                    >
+                        {regime?.label || "—"}
+                    </div>
+                    <div className="text-[10px] md:text-[11px] text-text-tertiary font-mono tracking-widest opacity-60">/ 100.00</div>
+                </div>
+            </div>
+
+            {/* BOTTOM: Sections Vertical Bars */}
+            <div className="mt-0">
+                <SectionBar sections={sections} />
+            </div>
         </div>
     );
 }
@@ -439,7 +508,7 @@ function HeaderControls({ controls }) {
                     value={controls.search}
                     onChange={(e) => controls.onSearchChange(e.target.value)}
                     placeholder="Filter metrics..."
-                    className={`w-full pl-9 pr-4 py-2 bg-background-app border ${STYLES.BORDER_INNER} rounded-lg text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all shadow-inner`}
+                    className={`w-full h-10 pl-9 pr-4 bg-background-app border ${STYLES.BORDER_INNER} rounded-lg text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all shadow-inner`}
                 />
             </div>
 

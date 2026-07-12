@@ -1,0 +1,28 @@
+{
+  "ArtifactMetadata": {
+    "RequestFeedback": false,
+    "Summary": "Fix section visibility and counts for Indices",
+    "UserFacing": false
+  },
+  "Description": "Fixed the section counts and visibility in FundamentalGrid when Indices is selected.",
+  "Instruction": "Adjust `hardcodedCounts` dynamically based on `selectedCategory` so that empty sections do not render and counts are accurate.",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 195,
+      "ReplacementContent": "          const hardcodedCounts = selectedCategory === \"Indices\" ? {\n            'Valuation': 2, // P/E, P/B\n            'Market Health': 3, // Market Cap/GDP, Div Yield, FII/DII\n            'Growth': 2, // EPS Growth, GDP Growth\n            'Profitability': 0,\n            'Financial Health': 0\n          } : {\n            'Valuation': 4,\n            'Market Health': 4,\n            'Growth': 4,\n            'Profitability': 4,\n            'Financial Health': 4\n          };",
+      "StartLine": 189,
+      "TargetContent": "          const hardcodedCounts = {\n            'Valuation': 4,\n            'Market Health': 4,\n            'Growth': 4,\n            'Profitability': 4,\n            'Financial Health': 4\n          };"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 200,
+      "ReplacementContent": "          const rawList = sections[section.id];\n          // For indices, we don't use dynamic cards (or we filter dummies)\n          const validDynamicCards = rawList ? rawList.filter(c => !c.id?.startsWith('dummy_')) : [];\n          \n          if (hardcodedCount === 0 && validDynamicCards.length === 0) return null;",
+      "StartLine": 197,
+      "TargetContent": "          const rawList = sections[section.id];\n          const validDynamicCards = rawList ? rawList.filter(c => !c.id?.startsWith('dummy_')) : [];\n          \n          if (hardcodedCount === 0 && validDynamicCards.length === 0) return null;"
+    }
+  ],
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalGrid.jsx",
+  "toolAction": "Fix empty sections for Indices",
+  "toolSummary": "Update FundamentalGrid.jsx"
+}

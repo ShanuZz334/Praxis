@@ -1,0 +1,35 @@
+{
+  "ArtifactMetadata": {
+    "RequestFeedback": false,
+    "Summary": "Add Indices back to dropdown",
+    "UserFacing": false
+  },
+  "Description": "Added Indices back to the category dropdown and passed selectedCategory to FundamentalGrid.",
+  "Instruction": "Add Indices to categories, update filteredInstruments, and pass selectedCategory down.",
+  "ReplacementChunks": [
+    {
+      "AllowMultiple": false,
+      "EndLine": 37,
+      "ReplacementContent": "  const categories = [\n      { label: \"Indices\", value: \"Indices\" },\n      { label: \"Companies\", value: \"Companies\" }\n  ];",
+      "StartLine": 34,
+      "TargetContent": "  const categories = [\n      { label: \"Companies\", value: \"Companies\" }\n  ];"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 43,
+      "ReplacementContent": "  const filteredInstruments = selectedCategory === \"Indices\" ? FO_INDICES : FO_EQUITIES;",
+      "StartLine": 42,
+      "TargetContent": "  const filteredInstruments = FO_EQUITIES;"
+    },
+    {
+      "AllowMultiple": false,
+      "EndLine": 80,
+      "ReplacementContent": "            onSortChange: setSortMode\n          }}\n          data={fundamentalsData}\n          selectedCategory={selectedCategory}\n        />",
+      "StartLine": 78,
+      "TargetContent": "            onSortChange: setSortMode\n          }}\n          data={fundamentalsData}\n        />"
+    }
+  ],
+  "TargetFile": "C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\fundamentals\\ui\\FundamentalPage.jsx",
+  "toolAction": "Add Indices to FundamentalPage",
+  "toolSummary": "Update FundamentalPage.jsx"
+}
