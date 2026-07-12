@@ -60,7 +60,7 @@ const HARDCODED_IDS = new Set([
 // =============================
 // Main Component
 // =============================
-export default function FundamentalGrid({ cards, viewMode, sortMode = "score_desc", onCardClick, controls, data, selectedCategory, manualOverrides, lastUpdated, manualLastUpdated }) {
+export default function FundamentalGrid({ cards, viewMode, sortMode = "score_desc", onCardClick, controls, data, snapshot, selectedCategory, manualOverrides, lastUpdated, manualLastUpdated }) {
 
   // Resolve the correct timestamp for each card:
   // - Live (AUTO) cards show when the API data was last fetched
@@ -124,44 +124,74 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
     </div>
   ) : null;
 
+  const getHardcodedNode = (cardId) => {
+      switch (cardId) {
+          case 'pe_ratio': return <PERatioCard key={cardId} data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_pe : manualOverrides?.pe_ratio} lastUpdated={resolveTime(true)} />;
+          case 'forward_pe': return <ForwardPECard key={cardId} data={data} manualOverride={manualOverrides?.forward_pe} lastUpdated={resolveTime(false)} />;
+          case 'pb_ratio': return <PBRatioCard key={cardId} data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_pb : manualOverrides?.pb_ratio} lastUpdated={resolveTime(true)} />;
+          case 'earnings_yield': return <EarningsYieldCard key={cardId} data={data} manualOverride={manualOverrides?.earnings_yield} lastUpdated={resolveTime(true)} />;
+          case 'market_cap_gdp': return <MarketCapGDPCard key={cardId} data={data} manualOverride={manualOverrides?.market_cap_gdp} lastUpdated={resolveTime(false)} />;
+          case 'dividend_yield': return <DividendYieldCard key={cardId} data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_div_yield : manualOverrides?.dividend_yield} lastUpdated={resolveTime(true)} />;
+          case 'earnings_trend': return <EarningsTrendCard key={cardId} data={data} manualOverride={manualOverrides?.earnings_trend} lastUpdated={resolveTime(false)} />;
+          case 'fii_dii_flow': return <FIIDIIFlowCard key={cardId} data={{ ...data, manualDiiFlow: manualOverrides?.dii_flow }} manualOverride={manualOverrides?.fii_flow} lastUpdated={resolveTime(false)} />;
+          case 'eps_growth': return <EPSGrowthCard key={cardId} data={data} manualOverride={manualOverrides?.eps_growth} lastUpdated={resolveTime(true)} />;
+          case 'revenue_growth': return <RevenueGrowthCard key={cardId} data={data} manualOverride={manualOverrides?.revenue_growth} lastUpdated={resolveTime(true)} />;
+          case 'profit_growth': return <ProfitGrowthCard key={cardId} data={data} manualOverride={manualOverrides?.profit_growth} lastUpdated={resolveTime(true)} />;
+          case 'gdp_growth': return <GDPGrowthCard key={cardId} data={data} manualOverride={manualOverrides?.gdp_growth} lastUpdated={resolveTime(false)} />;
+          case 'roe': return <ROECard key={cardId} data={data} manualOverride={manualOverrides?.roe} lastUpdated={resolveTime(true)} />;
+          case 'roce': return <ROCECard key={cardId} data={data} manualOverride={manualOverrides?.roce} lastUpdated={resolveTime(true)} />;
+          case 'net_margin': return <NetMarginCard key={cardId} data={data} manualOverride={manualOverrides?.net_margin} lastUpdated={resolveTime(true)} />;
+          case 'operating_margin': return <OperatingMarginCard key={cardId} data={data} manualOverride={manualOverrides?.operating_margin} lastUpdated={resolveTime(true)} />;
+          case 'debt_to_equity': return <DebtToEquityCard key={cardId} data={data} manualOverride={manualOverrides?.debt_to_equity} lastUpdated={resolveTime(true)} />;
+          case 'interest_coverage': return <InterestCoverageCard key={cardId} data={data} manualOverride={manualOverrides?.interest_coverage} lastUpdated={resolveTime(true)} />;
+          case 'free_cash_flow': return <FreeCashFlowCard key={cardId} data={data} manualOverride={manualOverrides?.free_cash_flow} lastUpdated={resolveTime(true)} />;
+          case 'current_ratio': return <CurrentRatioCard key={cardId} data={data} manualOverride={manualOverrides?.current_ratio} lastUpdated={resolveTime(true)} />;
+          case 'advance_decline': return <AdvanceDeclineCard key={cardId} data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.ad_ratio : manualOverrides?.advance_decline} lastUpdated={resolveTime(false)} />;
+          case 'india_vix': return <VolatilityCard key={cardId} data={data} manualOverride={manualOverrides?.india_vix} lastUpdated={resolveTime(false)} />;
+          case 'index_pcr': return <IndexPCRCard key={cardId} data={data} manualOverride={manualOverrides?.index_pcr} lastUpdated={resolveTime(false)} />;
+          case 'index_macd': return <MACDTrendCard key={cardId} data={data} manualOverride={manualOverrides?.index_macd} lastUpdated={resolveTime(false)} />;
+          case 'index_200dma': return <MovingAverageCard key={cardId} data={data} manualOverride={manualOverrides?.index_200dma} lastUpdated={resolveTime(false)} />;
+          default: return null;
+      }
+  }
+
   /* ------------------------------------------------------------
      FLAT VIEW
      ------------------------------------------------------------ */
   if (viewMode === 'flat') {
     const renderList = [];
 
-    renderList.push({ id: 'pe_ratio', node: <PERatioCard data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_pe : manualOverrides?.pe_ratio} lastUpdated={data ? liveTime : manualTime} /> });
-    if (selectedCategory !== "Indices") renderList.push({ id: 'forward_pe', node: <ForwardPECard data={data} manualOverride={manualOverrides?.forward_pe} lastUpdated={data ? liveTime : manualTime} /> });
-    renderList.push({ id: 'pb_ratio', node: <PBRatioCard data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_pb : manualOverrides?.pb_ratio} lastUpdated={data ? liveTime : manualTime} /> });
-    if (selectedCategory !== "Indices") renderList.push({ id: 'earnings_yield', node: <EarningsYieldCard data={{ ...data, manualBondYield: manualOverrides?.bond_yield }} manualOverride={manualOverrides?.earnings_yield} lastUpdated={data ? liveTime : manualTime} /> });
-    renderList.push({ id: 'market_cap_gdp', node: <MarketCapGDPCard data={data} manualOverride={manualOverrides?.market_cap_gdp} lastUpdated={manualTime} /> });
-    renderList.push({ id: 'dividend_yield', node: <DividendYieldCard data={{ ...data, manualBondYield: manualOverrides?.bond_yield }} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_div_yield : manualOverrides?.dividend_yield} lastUpdated={data ? liveTime : manualTime} /> });
-    if (selectedCategory !== "Indices") renderList.push({ id: 'earnings_trend', node: <EarningsTrendCard data={data} manualOverride={manualOverrides?.earnings_trend} lastUpdated={manualTime} /> });
-    renderList.push({ id: 'fii_dii_flow', node: <FIIDIIFlowCard data={{ ...data, manualDiiFlow: manualOverrides?.dii_flow }} manualOverride={manualOverrides?.fii_flow} lastUpdated={manualTime} /> });
-    renderList.push({ id: 'eps_growth', node: <EPSGrowthCard data={{ ...data, manualEpsHist: manualOverrides?.eps_hist, manualEpsSector: manualOverrides?.eps_sector }} manualOverride={manualOverrides?.eps_growth} lastUpdated={data ? liveTime : manualTime} /> });
+    renderList.push({ id: 'pe_ratio', node: getHardcodedNode('pe_ratio') });
+    if (selectedCategory !== "Indices") renderList.push({ id: 'forward_pe', node: getHardcodedNode('forward_pe') });
+    renderList.push({ id: 'pb_ratio', node: getHardcodedNode('pb_ratio') });
+    if (selectedCategory !== "Indices") renderList.push({ id: 'earnings_yield', node: getHardcodedNode('earnings_yield') });
+    renderList.push({ id: 'market_cap_gdp', node: getHardcodedNode('market_cap_gdp') });
+    renderList.push({ id: 'dividend_yield', node: getHardcodedNode('dividend_yield') });
+    if (selectedCategory !== "Indices") renderList.push({ id: 'earnings_trend', node: getHardcodedNode('earnings_trend') });
+    renderList.push({ id: 'fii_dii_flow', node: getHardcodedNode('fii_dii_flow') });
+    renderList.push({ id: 'eps_growth', node: getHardcodedNode('eps_growth') });
     if (selectedCategory !== "Indices") {
-      renderList.push({ id: 'revenue_growth', node: <RevenueGrowthCard data={data} manualOverride={manualOverrides?.revenue_growth} lastUpdated={data ? liveTime : manualTime} /> });
-      renderList.push({ id: 'profit_growth', node: <ProfitGrowthCard data={data} manualOverride={manualOverrides?.profit_growth} lastUpdated={data ? liveTime : manualTime} /> });
+      renderList.push({ id: 'revenue_growth', node: getHardcodedNode('revenue_growth') });
+      renderList.push({ id: 'profit_growth', node: getHardcodedNode('profit_growth') });
     }
-    renderList.push({ id: 'gdp_growth', node: <GDPGrowthCard data={data} manualOverride={manualOverrides?.gdp_growth} lastUpdated={manualTime} /> });
+    renderList.push({ id: 'gdp_growth', node: getHardcodedNode('gdp_growth') });
 
     if (selectedCategory === "Indices") {
-      renderList.push({ id: 'advance_decline', node: <AdvanceDeclineCard data={data} manualOverride={manualOverrides?.ad_ratio} lastUpdated={manualTime} /> });
-      renderList.push({ id: 'india_vix', node: <VolatilityCard data={data} manualOverride={manualOverrides?.india_vix} lastUpdated={manualTime} /> });
-      renderList.push({ id: 'index_pcr', node: <IndexPCRCard data={data} manualOverride={manualOverrides?.index_pcr} lastUpdated={manualTime} /> });
-      renderList.push({ id: 'index_macd', node: <MACDTrendCard data={data} manualOverride={manualOverrides?.index_macd} lastUpdated={manualTime} /> });
-      renderList.push({ id: 'index_200dma', node: <MovingAverageCard data={data} manualOverride={manualOverrides?.index_200dma} lastUpdated={manualTime} /> });
+      renderList.push({ id: 'india_vix', node: getHardcodedNode('india_vix') });
+      renderList.push({ id: 'index_pcr', node: getHardcodedNode('index_pcr') });
+      renderList.push({ id: 'index_macd', node: getHardcodedNode('index_macd') });
+      renderList.push({ id: 'index_200dma', node: getHardcodedNode('index_200dma') });
     }
 
     if (selectedCategory !== "Indices") {
-      renderList.push({ id: 'roe', node: <ROECard data={data} manualOverride={manualOverrides?.roe} lastUpdated={data ? liveTime : manualTime} /> });
-      renderList.push({ id: 'roce', node: <ROCECard data={data} manualOverride={manualOverrides?.roce} lastUpdated={data ? liveTime : manualTime} /> });
-      renderList.push({ id: 'net_margin', node: <NetMarginCard data={data} manualOverride={manualOverrides?.net_margin} lastUpdated={data ? liveTime : manualTime} /> });
-      renderList.push({ id: 'operating_margin', node: <OperatingMarginCard data={data} manualOverride={manualOverrides?.operating_margin} lastUpdated={data ? liveTime : manualTime} /> });
-      renderList.push({ id: 'debt_to_equity', node: <DebtToEquityCard data={data} manualOverride={manualOverrides?.debt_to_equity} lastUpdated={data ? liveTime : manualTime} /> });
-      renderList.push({ id: 'interest_coverage', node: <InterestCoverageCard data={data} manualOverride={manualOverrides?.interest_coverage} lastUpdated={data ? liveTime : manualTime} /> });
-      renderList.push({ id: 'free_cash_flow', node: <FreeCashFlowCard data={data} manualOverride={manualOverrides?.free_cash_flow} lastUpdated={data ? liveTime : manualTime} /> });
-      renderList.push({ id: 'current_ratio', node: <CurrentRatioCard data={data} manualOverride={manualOverrides?.current_ratio} lastUpdated={data ? liveTime : manualTime} /> });
+      renderList.push({ id: 'roe', node: getHardcodedNode('roe') });
+      renderList.push({ id: 'roce', node: getHardcodedNode('roce') });
+      renderList.push({ id: 'net_margin', node: getHardcodedNode('net_margin') });
+      renderList.push({ id: 'operating_margin', node: getHardcodedNode('operating_margin') });
+      renderList.push({ id: 'debt_to_equity', node: getHardcodedNode('debt_to_equity') });
+      renderList.push({ id: 'interest_coverage', node: getHardcodedNode('interest_coverage') });
+      renderList.push({ id: 'free_cash_flow', node: getHardcodedNode('free_cash_flow') });
+      renderList.push({ id: 'current_ratio', node: getHardcodedNode('current_ratio') });
     }
 
     // Merge data from cards array so they can be sorted
@@ -264,58 +294,46 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
                 {/* 1. Valuation */}
                 {section.id === 'Valuation' && (
                   <>
-                    <PERatioCard data={{ ...data, manualPeHist: manualOverrides?.pe_hist, manualPeSector: manualOverrides?.pe_sector }} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_pe : manualOverrides?.pe_ratio} lastUpdated={data ? liveTime : manualTime} />
-                    {selectedCategory !== "Indices" && (
-                      <ForwardPECard data={{ ...data, manualProjectedEps: manualOverrides?.projected_eps }} manualOverride={manualOverrides?.forward_pe} lastUpdated={data ? liveTime : manualTime} />
-                    )}
-                    <PBRatioCard data={{ ...data, manualPbHist: manualOverrides?.pb_hist, manualPbSector: manualOverrides?.pb_sector }} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_pb : manualOverrides?.pb_ratio} lastUpdated={data ? liveTime : manualTime} />
-                    {selectedCategory !== "Indices" ? (
-                      <EarningsYieldCard data={{ ...data, manualEyHist: manualOverrides?.ey_hist, manualBondYield: manualOverrides?.bond_yield }} manualOverride={manualOverrides?.earnings_yield} lastUpdated={data ? liveTime : manualTime} />
-                    ) : (
-                      <DividendYieldCard data={{ ...data, manualBondYield: manualOverrides?.bond_yield }} manualOverride={manualOverrides?.index_div_yield} lastUpdated={data ? liveTime : manualTime} />
-                    )}
-                    {selectedCategory === "Indices" && (
-                      <MarketCapGDPCard data={data} manualOverride={manualOverrides?.market_cap_gdp} lastUpdated={manualTime} />
-                    )}
+                    {getHardcodedNode('pe_ratio')}
+                    {selectedCategory !== "Indices" && getHardcodedNode('forward_pe')}
+                    {getHardcodedNode('pb_ratio')}
+                    {selectedCategory !== "Indices" ? getHardcodedNode('earnings_yield') : getHardcodedNode('dividend_yield')}
+                    {selectedCategory === "Indices" && getHardcodedNode('market_cap_gdp')}
                   </>
                 )}
 
                 {/* 2. Earnings */}
                 {section.id === 'Earnings' && (
                   <>
-                    <EPSGrowthCard data={data} manualOverride={manualOverrides?.eps_growth} lastUpdated={data ? liveTime : manualTime} />
+                    {getHardcodedNode('eps_growth')}
                     {selectedCategory !== "Indices" && (
                       <>
-                        <RevenueGrowthCard data={data} manualOverride={manualOverrides?.revenue_growth} lastUpdated={data ? liveTime : manualTime} />
-                        <ProfitGrowthCard data={data} manualOverride={manualOverrides?.profit_growth} lastUpdated={data ? liveTime : manualTime} />
+                        {getHardcodedNode('revenue_growth')}
+                        {getHardcodedNode('profit_growth')}
                       </>
                     )}
                   </>
                 )}
 
                 {/* 3. Macro */}
-                {section.id === 'Macro' && (
-                  <GDPGrowthCard data={data} manualOverride={manualOverrides?.gdp_growth} lastUpdated={manualTime} />
-                )}
+                {section.id === 'Macro' && getHardcodedNode('gdp_growth')}
 
                 {/* 4. Liquidity */}
-                {section.id === 'Liquidity' && (
-                  <FIIDIIFlowCard data={{ ...data, manualDiiFlow: manualOverrides?.dii_flow }} manualOverride={manualOverrides?.fii_flow} lastUpdated={manualTime} />
-                )}
+                {section.id === 'Liquidity' && getHardcodedNode('fii_dii_flow')}
 
                 {/* 5. Sector (Mkt Breadth/Valuation) */}
                 {section.id === 'Sector' && (
                   <>
                     {selectedCategory !== "Indices" ? (
                       <>
-                        <MarketCapGDPCard data={data} manualOverride={manualOverrides?.market_cap_gdp} lastUpdated={manualTime} />
-                        <DividendYieldCard data={{ ...data, manualBondYield: manualOverrides?.bond_yield }} manualOverride={manualOverrides?.dividend_yield} lastUpdated={data ? liveTime : manualTime} />
-                        <EarningsTrendCard data={data} manualOverride={manualOverrides?.earnings_trend} lastUpdated={manualTime} />
+                        {getHardcodedNode('market_cap_gdp')}
+                        {getHardcodedNode('dividend_yield')}
+                        {getHardcodedNode('earnings_trend')}
                       </>
                     ) : (
                       <>
-                        <AdvanceDeclineCard data={data} manualOverride={manualOverrides?.ad_ratio} lastUpdated={manualTime} />
-                        <IndexPCRCard data={data} manualOverride={manualOverrides?.index_pcr} lastUpdated={manualTime} />
+                        {getHardcodedNode('advance_decline')}
+                        {getHardcodedNode('index_pcr')}
                       </>
                     )}
                   </>

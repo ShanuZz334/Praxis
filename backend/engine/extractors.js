@@ -79,6 +79,84 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
     // 10. Market Cap to GDP (Buffett Indicator)
     const marketCapGDP = 110; 
 
+    // --- Additional Fundamentals ---
+    
+    // Net Margin
+    const nmObj = findRatio(['net margin', 'net profit margin']);
+    const currentNetMargin = nmObj?.company_value ? parseFloat(nmObj.company_value) : null;
+    const sectorNetMargin = nmObj?.sector_value ? parseFloat(nmObj.sector_value) : null;
+
+    // Operating Margin
+    const omObj = findRatio(['operating margin']);
+    const currentOpMargin = omObj?.company_value ? parseFloat(omObj.company_value) : null;
+    const sectorOpMargin = omObj?.sector_value ? parseFloat(omObj.sector_value) : null;
+
+    // Current Ratio
+    const crObj = findRatio(['current ratio']);
+    const currentRatio = crObj?.company_value ? parseFloat(crObj.company_value) : null;
+    const sectorCurrentRatio = crObj?.sector_value ? parseFloat(crObj.sector_value) : null;
+
+    // Interest Coverage
+    const icObj = findRatio(['interest coverage']);
+    const interestCoverage = icObj?.company_value ? parseFloat(icObj.company_value) : null;
+    const sectorCoverage = icObj?.sector_value ? parseFloat(icObj.sector_value) : null;
+
+    // Forward PE (usually manual or null if not in ratios)
+    const fpeObj = findRatio(['forward p/e', 'forward pe']);
+    const forwardPE = fpeObj?.company_value ? parseFloat(fpeObj.company_value) : null;
+
+    // Earnings Yield (EPS / Price - computed later or from ratio)
+    const eyObj = findRatio(['earnings yield']);
+    const currentEarningsYield = eyObj?.company_value ? parseFloat(eyObj.company_value) : null;
+
+    // Free Cash Flow
+    let currentFCF = null;
+    let currentRevenue = null;
+    if (cashArray.length > 0) {
+        const fcfObj = cashArray.find(r => r.particular?.toLowerCase().includes('free cash flow'));
+        if (fcfObj && fcfObj.history && fcfObj.history.length > 0) {
+            currentFCF = fcfObj.history[0].value; // most recent
+        }
+    }
+    if (incomeArray.length > 0) {
+        const revObj = incomeArray.find(r => r.particular?.toLowerCase().includes('total revenue') || r.particular?.toLowerCase().includes('revenue from operations'));
+        if (revObj && revObj.history && revObj.history.length > 0) {
+            currentRevenue = revObj.history[0].value;
+        }
+    }
+
+    // Revenue Growth
+    let revCAGR = null, revYoY = null, revPos = 0, revTot = 0;
+    const revObj = incomeArray.find(r => r.particular?.toLowerCase().includes('total revenue') || r.particular?.toLowerCase().includes('revenue from operations'));
+    if (revObj && Array.isArray(revObj.history) && revObj.history.length >= 2) {
+        const chronological = [...revObj.history].reverse();
+        revTot = chronological.length - 1;
+        const first = chronological[0].value;
+        const last = chronological[chronological.length - 1].value;
+        const prev = chronological[chronological.length - 2].value;
+        if (first > 0 && last > 0) revCAGR = (Math.pow(last / first, 1 / revTot) - 1) * 100;
+        if (prev !== 0) revYoY = ((last - prev) / Math.abs(prev)) * 100;
+        for (let i = 1; i < chronological.length; i++) {
+            if (chronological[i].value > chronological[i - 1].value) revPos++;
+        }
+    }
+
+    // Profit Growth
+    let patCAGR = null, patYoY = null, patPos = 0, patTot = 0;
+    const patObj = incomeArray.find(r => r.particular?.toLowerCase().includes('profit for the period') || r.particular?.toLowerCase().includes('net income'));
+    if (patObj && Array.isArray(patObj.history) && patObj.history.length >= 2) {
+        const chronological = [...patObj.history].reverse();
+        patTot = chronological.length - 1;
+        const first = chronological[0].value;
+        const last = chronological[chronological.length - 1].value;
+        const prev = chronological[chronological.length - 2].value;
+        if (first > 0 && last > 0) patCAGR = (Math.pow(last / first, 1 / patTot) - 1) * 100;
+        if (prev !== 0) patYoY = ((last - prev) / Math.abs(prev)) * 100;
+        for (let i = 1; i < chronological.length; i++) {
+            if (chronological[i].value > chronological[i - 1].value) patPos++;
+        }
+    }
+
     // Return structured extracted variables
     return {
         currentPE, sectorPE,
@@ -89,6 +167,14 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
         currentROE, sectorROE,
         currentROCE, sectorROCE,
         fiiFlow, diiFlow,
-        gdpGrowth, marketCapGDP
+        gdpGrowth, marketCapGDP,
+        currentNetMargin, sectorNetMargin,
+        currentOpMargin, sectorOpMargin,
+        currentRatio, sectorCurrentRatio,
+        interestCoverage, sectorCoverage,
+        forwardPE, currentEarningsYield,
+        currentFCF, currentRevenue,
+        revCAGR, revYoY, revPos, revTot,
+        patCAGR, patYoY, patPos, patTot
     };
 }

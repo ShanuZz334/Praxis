@@ -146,14 +146,14 @@ const Navbar = ({ onToggleSidebar }) => {
         <div className="flex flex-col text-xs leading-tight min-w-[70px]">
           <span className="text-text-secondary">NIFTY 50</span>
           <span className={`font-semibold transition-colors duration-300 ${niftyColor}`}>
-            {prices["NSE_INDEX|Nifty 50"].ltp > 0 ? prices["NSE_INDEX|Nifty 50"].ltp.toFixed(2) : "—"}
+            {prices["NSE_INDEX|Nifty 50"].ltp > 0 ? "₹" + prices["NSE_INDEX|Nifty 50"].ltp.toFixed(2) : "—"}
           </span>
         </div>
 
         <div className="flex flex-col text-xs leading-tight min-w-[80px]">
           <span className="text-text-secondary">BANK NIFTY</span>
           <span className={`font-semibold transition-colors duration-300 ${bankNiftyColor}`}>
-            {prices["NSE_INDEX|Nifty Bank"].ltp > 0 ? prices["NSE_INDEX|Nifty Bank"].ltp.toFixed(2) : "—"}
+            {prices["NSE_INDEX|Nifty Bank"].ltp > 0 ? "₹" + prices["NSE_INDEX|Nifty Bank"].ltp.toFixed(2) : "—"}
           </span>
         </div>
 

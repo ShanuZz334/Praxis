@@ -154,6 +154,31 @@ export default function FundamentalPage() {
       localStorage.setItem('praxis_manual_last_updated_v2', JSON.stringify(allTimes));
   };
 
+  const handleClearAll = () => {
+      const resetState = getInitialOverrides(selectedInstrument) || {};
+      
+      const stored = localStorage.getItem('praxis_manual_overrides_v2');
+      let allOverrides = {};
+      if (stored) {
+          try { allOverrides = JSON.parse(stored); } catch (e) {}
+      }
+      allOverrides[selectedInstrument] = resetState;
+      localStorage.setItem('praxis_manual_overrides_v2', JSON.stringify(allOverrides));
+      
+      setManualOverrides(resetState);
+      
+      const timeStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      setManualLastUpdated(timeStr);
+      
+      const storedTime = localStorage.getItem('praxis_manual_last_updated_v2');
+      let allTimes = {};
+      if (storedTime) {
+          try { allTimes = JSON.parse(storedTime); } catch(e) {}
+      }
+      allTimes[selectedInstrument] = timeStr;
+      localStorage.setItem('praxis_manual_last_updated_v2', JSON.stringify(allTimes));
+  };
+
   // Context manages auto-updating instrument when category changes
 
   const { data: fundamentalsData, loading, error, lastUpdated } = useFundamentalsData(selectedInstrument);
@@ -161,44 +186,7 @@ export default function FundamentalPage() {
   // Fundamental Composite Engine integration
   const compositeData = useFundamentalComposite(selectedCategory, selectedInstrument);
 
-  // --- Store Composite & Sections for AI Analysis ---
-  React.useEffect(() => {
-      if (!selectedInstrument || compositeData.compositeScore === 0 || compositeData.sections.length === 0) return;
-
-      const payload = {
-          instrument_key: selectedInstrument,
-          category: selectedCategory,
-          composite_score: compositeData.compositeScore,
-          regime: compositeData.regime?.label,
-          sections: compositeData.sections.map(s => ({
-              id: s.id,
-              score: s.score,
-              weight: s.weight
-          })),
-          timestamp: new Date().toISOString()
-      };
-
-      const saveComposite = () => {
-          axiosInstance.post('/api/v1/composite/snapshots', payload)
-              .then(() => console.log('Saved composite score:', compositeData.compositeScore))
-              .catch(err => console.error('Error saving composite score:', err));
-      };
-
-      // Save on significant score change (debounced implicitly by the engine hook which reacts to card saves)
-      const changeTimer = setTimeout(() => {
-          saveComposite();
-      }, 5000); // Wait 5s for all cards to settle
-
-      // Also save periodically every 15 minutes to track continuous data over a session
-      const intervalTimer = setInterval(() => {
-          saveComposite();
-      }, 15 * 60 * 1000);
-
-      return () => {
-          clearTimeout(changeTimer);
-          clearInterval(intervalTimer);
-      };
-  }, [compositeData.compositeScore, selectedInstrument]);
+  
 
 
   // --- Historical Snapshots Logic ---
@@ -295,7 +283,15 @@ export default function FundamentalPage() {
   const fundamentalManualForm = (
       <div className="w-full h-full">
           <div className="flex items-center justify-between gap-2 mb-4 border-b border-border-default pb-2 pr-8 md:pr-10">
-              <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Manual Data Overrides</span>
+              <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Manual Data Overrides</span>
+                  <button 
+                      onClick={handleClearAll}
+                      className="px-2 py-0.5 bg-red-900/30 text-red-400 hover:bg-red-900/50 hover:text-red-300 rounded text-[10px] font-medium transition-colors border border-red-900/50"
+                  >
+                      Clear All
+                  </button>
+              </div>
               <div className="flex gap-2 md:gap-3">
                   <span className="text-[9px] md:text-[10px] px-2 py-0.5 rounded border border-border-default bg-background-surface text-blue-400 font-mono shadow-sm">
                     {selectedCategory}
@@ -317,8 +313,8 @@ export default function FundamentalPage() {
                       <div className="text-xs font-bold text-emerald-500 mb-3 border-b border-border-default pb-2">Core Snapshot</div>
                       {!fundamentalsData?.quote?.last_price && <OverrideInput label="Current Level" overrideKey="current_price" value={manualOverrides.current_price} onChange={handleOverrideChange} />}
                       {!(fundamentalsData?.quote?.ohlc?.high && fundamentalsData?.quote?.ohlc?.low) && <OverrideInput label="High / Low" overrideKey="high_low" value={manualOverrides.high_low} onChange={handleOverrideChange} />}
-                      <OverrideInput label="Index P/E" overrideKey="index_pe" value={manualOverrides.index_pe} onChange={handleOverrideChange} />
-                      <OverrideInput label="Index P/B" overrideKey="index_pb" value={manualOverrides.index_pb} onChange={handleOverrideChange} />
+                      <OverrideInput label="Index P/E (x)" overrideKey="index_pe" value={manualOverrides.index_pe} onChange={handleOverrideChange} />
+                      <OverrideInput label="Index P/B (x)" overrideKey="index_pb" value={manualOverrides.index_pb} onChange={handleOverrideChange} />
                       <OverrideInput label="Dividend Yield (%)" overrideKey="index_div_yield" value={manualOverrides.index_div_yield} onChange={handleOverrideChange} />
                   </div>
                   
@@ -349,7 +345,7 @@ export default function FundamentalPage() {
                       {!hasMarketCap && <OverrideInput label="Market Cap" overrideKey="market_cap" value={manualOverrides.market_cap} onChange={handleOverrideChange} />}
                       {!hasBookValue && <OverrideInput label="Book Value" overrideKey="book_value" value={manualOverrides.book_value} onChange={handleOverrideChange} />}
                       {!hasFaceValue && <OverrideInput label="Face Value" overrideKey="face_value" value={manualOverrides.face_value} onChange={handleOverrideChange} />}
-                      {!hasPeRatio && <OverrideInput label="Stock P/E" overrideKey="pe_ratio" value={manualOverrides.pe_ratio} onChange={handleOverrideChange} />}
+                      {!hasPeRatio && <OverrideInput label="Stock P/E (x)" overrideKey="pe_ratio" value={manualOverrides.pe_ratio} onChange={handleOverrideChange} />}
                   </div>
 
                   {/* Dividends */}
@@ -375,7 +371,7 @@ export default function FundamentalPage() {
                   <div className="space-y-2">
                       <div className="text-xs font-bold text-blue-500 mb-2">Valuation</div>
                       <OverrideInput 
-                          label="Forward P/E" 
+                          label="Forward P/E (x)" 
                           overrideKey="forward_pe" 
                           value={manualOverrides.forward_pe}
                           onChange={handleOverrideChange}

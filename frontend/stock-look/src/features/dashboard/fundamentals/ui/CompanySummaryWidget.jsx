@@ -45,6 +45,7 @@ export default function CompanySummaryWidget({ data, manualOverrides, selectedIn
         {
             label: "Stock P/E",
             value: extractRatio(['p/e', 'pe', 'pe ratio']) ?? manualOverrides?.pe_ratio,
+            suffix: "x",
             overrideKey: 'pe_ratio'
         },
         {

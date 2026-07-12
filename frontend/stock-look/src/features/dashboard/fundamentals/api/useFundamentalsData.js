@@ -55,9 +55,10 @@ const saveToCache = (cacheName, key, data) => {
 };
 // ────────────────────────────────────────────────────────────────────────────
 
-export const useFundamentalsData = (instrumentKey) => {
+export function useFundamentalsData(instrumentKey) {
     const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [snapshot, setSnapshot] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [lastUpdated, setLastUpdated] = useState('--:--');
 
@@ -65,23 +66,28 @@ export const useFundamentalsData = (instrumentKey) => {
         const fetchFundamentals = async () => {
             if (!instrumentKey) {
                 setData(null);
+                setSnapshot(null);
+                setLoading(false);
                 return;
             }
 
             setLoading(true);
             setError(null);
 
+            const cachedData = getFromCache(CACHE_KEYS.FUNDAMENTALS, instrumentKey, CACHE_TTL.FUNDAMENTALS);
+            const cachedTime = cachedData ? new Date(JSON.parse(localStorage.getItem(CACHE_KEYS.FUNDAMENTALS))[instrumentKey].timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '--:--';
+
             try {
-                // 1. Fetch Fundamentals (Check Cache First)
-                let fundData = getFromCache(CACHE_KEYS.FUNDAMENTALS, instrumentKey, CACHE_TTL.FUNDAMENTALS);
-                
-                if (!fundData) {
-                    const fundRes = await axiosInstance.get(API_PATHS.FUNDAMENTALS.GET(instrumentKey));
-                    fundData = fundRes.data?.data || {};
-                    if (Object.keys(fundData).length > 0) {
-                        saveToCache(CACHE_KEYS.FUNDAMENTALS, instrumentKey, fundData);
-                    }
-                }
+                // 1. Fetch Both Data Sources Concurrently
+                const upstoxPromise = axiosInstance.get(API_PATHS.FUNDAMENTALS.GET(instrumentKey));
+                const snapshotPromise = axiosInstance.get(`/api/v1/intelligence/latest?instrument_key=${encodeURIComponent(instrumentKey)}`);
+
+                const [upstoxRes, snapshotRes] = await Promise.all([upstoxPromise, snapshotPromise]);
+
+                const fundData = upstoxRes.data?.data || {};
+                const snapshotData = snapshotRes.data?.data || null;
+
+                saveToCache(CACHE_KEYS.FUNDAMENTALS, instrumentKey, { fundData, snapshotData });
                 
                 // 2. Fetch Market Quote (Check Cache First)
                 let quoteObj = getFromCache(CACHE_KEYS.QUOTES, instrumentKey, CACHE_TTL.QUOTES);
@@ -99,16 +105,22 @@ export const useFundamentalsData = (instrumentKey) => {
                     }
                 }
 
-                setData({
-                    ...fundData,
-                    quote: quoteObj
-                });
-                
-                setLastUpdated(new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }));
+                setData({ ...fundData, quote: quoteObj });
+                setSnapshot(snapshotData);
+                const timeStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                setLastUpdated(timeStr);
             } catch (err) {
                 console.error("Failed to fetch fundamentals data:", err);
+                if (cachedData) {
+                    setData(cachedData.fundData);
+                    setSnapshot(cachedData.snapshotData);
+                    setLastUpdated(cachedTime);
+                    setLoading(false);
+                    return;
+                }
                 setError(err);
                 setData(null);
+                setSnapshot(null);
             } finally {
                 setLoading(false);
             }
@@ -117,5 +129,5 @@ export const useFundamentalsData = (instrumentKey) => {
         fetchFundamentals();
     }, [instrumentKey]);
 
-    return { data, loading, error, lastUpdated };
+    return { data, snapshot, loading, error, lastUpdated };
 };

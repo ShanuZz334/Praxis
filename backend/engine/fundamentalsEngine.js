@@ -20,6 +20,22 @@ export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType 
     const deResult = scorers.scoreDebtToEquity(ext.currentDE, ext.sectorDE);
     const roeResult = scorers.scoreROE(ext.currentROE, ext.sectorROE);
     const roceResult = scorers.scoreROCE(ext.currentROCE, ext.sectorROCE);
+    const netMarginResult = scorers.scoreNetMargin(ext.currentNetMargin, ext.sectorNetMargin);
+    const opMarginResult = scorers.scoreOperatingMargin(ext.currentOpMargin, ext.sectorOpMargin);
+    const crResult = scorers.scoreDebtToEquity(ext.currentRatio, ext.sectorCurrentRatio); // Using DE scorer logic roughly for CR in backend for now or we can use an actual scorer if we had it, wait!
+    const icResult = scorers.scoreInterestCoverage(ext.interestCoverage, ext.sectorCoverage);
+    const fpeResult = scorers.scoreForwardPE(ext.forwardPE, ext.currentPE);
+    const eyResult = scorers.scoreEarningsYield(ext.currentEarningsYield, null, ext.bondYield);
+    const fcfResult = scorers.scoreFreeCashFlow(ext.currentFCF, ext.currentRevenue);
+    const revResult = scorers.scoreRevenueGrowth({cagr: ext.revCAGR, latestYoY: ext.revYoY, positiveYears: ext.revPos, totalPeriods: ext.revTot}, null);
+    const patResult = scorers.scoreProfitGrowth({cagr: ext.patCAGR, latestYoY: ext.patYoY, positiveYears: ext.patPos, totalPeriods: ext.patTot}, null);
+    
+    // Macro / Manual Cards
+    const adResult = scorers.scoreADRatio(null);
+    const vixResult = scorers.scoreVIX(null);
+    const pcrResult = scorers.scorePCR(null);
+    const gdpResult = scorers.scoreGDPGrowth(ext.gdpGrowth);
+    const fiiResult = scorers.scoreInstitutionalFlow(ext.fiiFlow, ext.diiFlow);
 
     // 3. Build Cards Array
     const cards = [
@@ -85,7 +101,20 @@ export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType 
             creditAllocation: 8,
             normalized: roceResult.score > 70 ? 1 : (roceResult.score < 30 ? -1 : 0),
             rawInput: { currentROCE: ext.currentROCE, sectorROCE: ext.sectorROCE }
-        }
+        },
+        { id: 'net_margin', score: netMarginResult.score, bias: netMarginResult.bias, rawInput: { currentMargin: ext.currentNetMargin } },
+        { id: 'operating_margin', score: opMarginResult.score, bias: opMarginResult.bias, rawInput: { currentMargin: ext.currentOpMargin } },
+        { id: 'interest_coverage', score: icResult.score, bias: icResult.bias, rawInput: { currentCoverage: ext.interestCoverage } },
+        { id: 'forward_pe', score: fpeResult.score, bias: fpeResult.bias, rawInput: { forwardPE: ext.forwardPE } },
+        { id: 'earnings_yield', score: eyResult.score, bias: eyResult.bias, rawInput: { earningsYield: ext.currentEarningsYield } },
+        { id: 'free_cash_flow', score: fcfResult.score, bias: fcfResult.bias, rawInput: { currentFCF: ext.currentFCF } },
+        { id: 'revenue_growth', score: revResult.score, bias: revResult.bias, rawInput: { cagr: ext.revCAGR } },
+        { id: 'profit_growth', score: patResult.score, bias: patResult.bias, rawInput: { cagr: ext.patCAGR } },
+        { id: 'gdp_growth', score: gdpResult.score, bias: gdpResult.bias, rawInput: { gdpGrowth: ext.gdpGrowth } },
+        { id: 'fii_dii_flow', score: fiiResult.score, bias: fiiResult.bias, rawInput: { fiiFlow: ext.fiiFlow, diiFlow: ext.diiFlow } },
+        { id: 'advance_decline', score: adResult.score, bias: adResult.bias, rawInput: {} },
+        { id: 'india_vix', score: vixResult.score, bias: vixResult.bias, rawInput: {} },
+        { id: 'index_pcr', score: pcrResult.score, bias: pcrResult.bias, rawInput: {} }
     ];
 
     // 4. Compute Composite (Simplified version matching frontend)

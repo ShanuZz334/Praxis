@@ -13,6 +13,7 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
         {
             label: "Current Level",
             value: extractQuote('last_price') ?? manualOverrides?.current_price,
+            prefix: "₹ ",
             overrideKey: 'current_price',
             isString: false
         },
@@ -21,18 +22,21 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
             value: (extractQuote('ohlc')?.high && extractQuote('ohlc')?.low) 
                    ? `${extractQuote('ohlc').high} / ${extractQuote('ohlc').low}` 
                    : manualOverrides?.high_low,
+            prefix: "₹ ",
             overrideKey: 'high_low',
             isString: true
         },
         {
             label: "Index P/E",
             value: manualOverrides?.index_pe,
+            suffix: "x",
             overrideKey: 'index_pe',
             isString: false
         },
         {
             label: "Index P/B",
             value: manualOverrides?.index_pb,
+            suffix: "x",
             overrideKey: 'index_pb',
             isString: false
         },
@@ -50,7 +54,7 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
         const isNull = m.value === null || m.value === undefined || m.value === '';
         let displayVal = '--';
         if (!isNull) {
-            displayVal = m.isString ? m.value : (m.prefix || '') + parseFloat(m.value).toLocaleString('en-IN') + (m.suffix || '');
+            displayVal = (m.prefix || '') + (m.isString ? m.value : parseFloat(m.value).toLocaleString('en-IN')) + (m.suffix || '');
         }
         
         // For Index P/E, P/B, DivYield, they are ALWAYs manual since Upstox doesn't provide them.
