@@ -19,8 +19,9 @@ import { cn } from "@/lib/utils";
 // Helper: Score Bar
 // =============================
 function ScoreRangeBar({ score }) {
-  // Clamp score between 0 and 100
-  const safeScore = Math.min(Math.max(score || 0, 0), 100);
+  // Clamp score between 0 and 100, fallback to 50 if NaN
+  const parsedScore = parseFloat(score);
+  const safeScore = isNaN(parsedScore) ? 50 : Math.min(Math.max(parsedScore, 0), 100);
 
   return (
     <div className="mt-4">

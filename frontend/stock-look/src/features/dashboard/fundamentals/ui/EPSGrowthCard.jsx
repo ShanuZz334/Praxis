@@ -24,109 +24,7 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { formatPercentage } from '@/shared/utils/formatters';
-
-// ─── Industry-Grade Scoring Engine ──────────────────────────────────────────
-function scoreEPSGrowth(cagr, latestYoY, positiveYears, totalPeriods) {
-    if (cagr === null || isNaN(cagr)) {
-        return { score: 0, bias: 'Neutral', confidence: 0, growthTier: 'Unknown', momentumLabel: 'Unknown' };
-    }
-
-    // ── Factor 1: CAGR Level (0–100) ─────────────────────────────────────
-    let f1Score;
-    let growthTier;
-    if (cagr > 25) {
-        f1Score = 95; growthTier = 'Exceptional Compounder';
-    } else if (cagr > 15) {
-        f1Score = 82; growthTier = 'Strong Growth';
-    } else if (cagr > 8) {
-        f1Score = 65; growthTier = 'Healthy Growth';
-    } else if (cagr > 0) {
-        f1Score = 48; growthTier = 'Modest Growth';
-    } else if (cagr > -10) {
-        f1Score = 25; growthTier = 'Earnings Contraction';
-    } else {
-        f1Score = 8;  growthTier = 'Severe EPS Decline';
-    }
-
-    // ── Factor 2: Latest YoY Momentum (acceleration vs deceleration) ──────
-    let f2Score = f1Score;
-    let momentumLabel = 'Stable';
-    if (latestYoY !== null && !isNaN(latestYoY) && cagr !== 0) {
-        const accelerating = latestYoY > cagr + 5;
-        const decelerating = latestYoY < cagr - 5;
-        if (accelerating) {
-            f2Score = Math.min(100, f1Score + 12); momentumLabel = 'Accelerating ↑';
-        } else if (decelerating && latestYoY < 0) {
-            f2Score = Math.max(0, f1Score - 20); momentumLabel = 'Sharply Decelerating ↓';
-        } else if (decelerating) {
-            f2Score = Math.max(0, f1Score - 8); momentumLabel = 'Decelerating ↓';
-        } else {
-            momentumLabel = 'Steady';
-        }
-    }
-
-    // ── Factor 3: Earnings Consistency ────────────────────────────────────
-    let f3Score = 50;
-    if (totalPeriods > 0 && positiveYears !== null) {
-        const consistencyRatio = positiveYears / totalPeriods;
-        if (consistencyRatio >= 1.0)       f3Score = 92;
-        else if (consistencyRatio >= 0.75) f3Score = 72;
-        else if (consistencyRatio >= 0.5)  f3Score = 50;
-        else if (consistencyRatio >= 0.25) f3Score = 28;
-        else                               f3Score = 10;
-    }
-
-    // ── Blend ─────────────────────────────────────────────────────────────
-    const hasHistory = totalPeriods > 0;
-    const blended = hasHistory
-        ? (f1Score * 0.45) + (f2Score * 0.35) + (f3Score * 0.20)
-        : f1Score;
-    const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
-
-    // ── Bias ──────────────────────────────────────────────────────────────
-    let bias;
-    if (finalScore >= 80)      bias = 'Strong Bullish';
-    else if (finalScore >= 62) bias = 'Bullish';
-    else if (finalScore >= 42) bias = 'Neutral';
-    else if (finalScore >= 25) bias = 'Bearish';
-    else                       bias = 'Strong Bearish';
-
-    // ── Confidence scales with data richness ──────────────────────────────
-    let confidence;
-    if (totalPeriods >= 5)      confidence = 90;
-    else if (totalPeriods >= 3) confidence = 80;
-    else if (totalPeriods >= 2) confidence = 70;
-    else                        confidence = 55; // Manual only
-
-    return { score: finalScore, bias, confidence, growthTier, momentumLabel };
-}
-
-// ─── Dynamic AI Insight Generator ─────────────────────────────────────────
-function generateAiInsight(cagr, latestYoY, growthTier, momentumLabel, totalPeriods) {
-    if (cagr === null || isNaN(cagr)) {
-        return 'EPS Growth will be auto-computed from Upstox income statement history when available. Alternatively, enter the YoY or CAGR EPS growth manually.';
-    }
-
-    const cagrStr = cagr.toFixed(2);
-    const source = totalPeriods >= 2 ? `over ${totalPeriods} periods of EPS history` : 'based on manual input';
-
-    let base = `EPS has compounded at ${cagrStr}% annually ${source}, classified as "${growthTier}".`;
-
-    if (latestYoY !== null && !isNaN(latestYoY)) {
-        base += ` Latest YoY EPS growth: ${latestYoY.toFixed(2)}% (${momentumLabel}).`;
-    }
-
-    if (growthTier === 'Exceptional Compounder') {
-        return base + ' Compounding EPS at >25% consistently is exceedingly rare and is the signature of a dominant franchise with strong pricing power and reinvestment capacity.';
-    } else if (growthTier === 'Strong Growth' && momentumLabel.includes('Accelerating')) {
-        return base + ' Accelerating earnings growth — the business is gaining operational leverage as revenue scales faster than costs, a highly coveted quality.';
-    } else if (growthTier === 'Earnings Contraction') {
-        return base + ' Declining EPS over multiple years signals a structural deterioration in profitability. The market typically de-rates such companies with a valuation multiple compression.';
-    } else if (growthTier === 'Severe EPS Decline') {
-        return base + ' Severe earnings contraction indicates significant distress. Either cost inflation is overwhelming revenues, or core demand is collapsing.';
-    }
-    return base + ' Monitoring the trend of EPS acceleration or deceleration matters as much as the absolute growth rate itself.';
-}
+import { scoreEPSGrowth, generateAiInsightEPSGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function EPSGrowthCard({ data = null, manualOverride, lastUpdated }) {
@@ -204,7 +102,7 @@ export default function EPSGrowthCard({ data = null, manualOverride, lastUpdated
 
     const configData = getIndicatorConfig('eps_growth');
     const { score, bias, confidence, growthTier, momentumLabel } = scoreEPSGrowth(cagr, latestYoY, positiveYears, totalPeriods);
-    const aiInsightText = generateAiInsight(cagr, latestYoY, growthTier, momentumLabel, totalPeriods);
+    const aiInsightText = generateAiInsightEPSGrowthCard(cagr, latestYoY, growthTier, momentumLabel, totalPeriods);
 
     return (
         <IndicatorCard

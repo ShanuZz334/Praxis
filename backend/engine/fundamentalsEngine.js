@@ -5,7 +5,7 @@
  */
 
 import { extractFundamentalData } from './extractors.js';
-import * as scorers from './scorers.js';
+import * as scorers from '../../frontend/stock-look/src/features/dashboard/fundamentals/engine/scoringEngine.js';
 import { getScoreLabel } from '../../frontend/stock-look/src/features/dashboard/fundamentals/engine/FundamentalCompositeEngine.js';
 
 export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType = 'Companies') {

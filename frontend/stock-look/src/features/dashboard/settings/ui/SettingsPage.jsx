@@ -810,7 +810,7 @@ const SettingsPage = () => {
                                     <h3 className="mb-4 flex items-center gap-2 text-lg font-medium text-red-500">
                                         <FiAlertCircle className="text-red-500" /> Danger Zone
                                     </h3>
-                                    <div className="rounded-xl border border-red-500/10 bg-red-500/5 p-4 md:p-6">
+                                    <div className="rounded-xl border border-red-500/10 bg-red-500/5 px-4 md:px-6 pt-2">
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                             <div className="text-center sm:text-left">
                                                 <p className="font-semibold text-text-primary">Delete Account</p>
@@ -885,7 +885,7 @@ const SettingsPage = () => {
                                     <p className="text-sm text-text-secondary">Manage your password and account security</p>
                                 </div>
 
-                                <div className="rounded-xl border border-border-default bg-transparent p-4 md:p-6">
+                                <div className="rounded-xl border border-border-default bg-transparent px-4 md:px-6 pt-2">
                                     <h3 className="mb-4 text-lg font-medium">Update Password</h3>
                                     <div className="grid gap-4 md:grid-cols-2">
                                         <div className="space-y-2 md:col-span-2">
@@ -979,7 +979,7 @@ const SettingsPage = () => {
                                                 <button
                                                     key={mode.id}
                                                     onClick={() => handleTradingModeSelect(mode.id)}
-                                                    className={`group relative flex md:flex-col items-center gap-3 rounded-xl border p-4 md:p-6 text-left md:text-center transition-all duration-300 ${activeClass}`}
+                                                    className={`group relative flex md:flex-col items-center gap-3 rounded-xl border px-4 md:px-6 pt-2 text-left md:text-center transition-all duration-300 ${activeClass}`}
                                                 >
                                                     <mode.icon className={`h-6 w-6 md:h-8 md:w-8 shrink-0 transition-colors duration-300 ${isActive ? "text-white" : "text-text-tertiary group-hover:text-text-primary"}`} />
                                                     <div>

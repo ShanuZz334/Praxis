@@ -52,7 +52,7 @@ export default function MasterDashboard() {
     ];
 
     return (
-        <div className="block p-4 sm:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto h-full space-y-4 md:space-y-6">
+        <div className="block px-4 sm:px-6 pt-2 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto h-full space-y-4 md:space-y-6">
             {/* DESKTOP VIEW ONLY */}
 
             {/* Global Header / Composite Gauge */}

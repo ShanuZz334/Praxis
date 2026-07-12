@@ -1,75 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
-
-function scoreNetMargin(currentMargin, sectorMargin) {
-    if (currentMargin === null || isNaN(currentMargin)) {
-        return { score: 50, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
-    }
-
-    // Factor 1: Absolute margin level (50 weight)
-    let f1Score;
-    let trendDesc;
-    if (currentMargin > 20) {
-        f1Score = 95; trendDesc = "Exceptional Profitability";
-    } else if (currentMargin > 15) {
-        f1Score = 82; trendDesc = "High Margin";
-    } else if (currentMargin >= 10) {
-        f1Score = 60; trendDesc = "Healthy Margin";
-    } else if (currentMargin > 0) {
-        f1Score = 30; trendDesc = "Thin Margin";
-    } else {
-        f1Score = 5; trendDesc = "Loss Making";
-    }
-
-    // Factor 2: Sector comparison (30 weight when available)
-    let hasSector = false;
-    let f2Score = f1Score;
-    if (sectorMargin !== null && !isNaN(sectorMargin)) {
-        hasSector = true;
-        const spread = currentMargin - sectorMargin;
-        if (spread > 8)       f2Score = 95;
-        else if (spread > 3)  f2Score = 80;
-        else if (spread > -2) f2Score = 60;
-        else if (spread > -7) f2Score = 35;
-        else                  f2Score = 10;
-    }
-
-    const blended = hasSector
-        ? (f1Score * 0.65) + (f2Score * 0.35)
-        : f1Score;
-    const score = Math.round(Math.max(0, Math.min(100, blended)));
-
-    let bias;
-    if (score >= 80)      bias = 'Strong Bullish';
-    else if (score >= 60) bias = 'Bullish';
-    else if (score >= 40) bias = 'Neutral';
-    else if (score >= 20) bias = 'Bearish';
-    else                  bias = 'Strong Bearish';
-
-    const confidence = hasSector ? '90%' : (currentMargin > 20 || currentMargin < 0 ? '82%' : '72%');
-    return { score, bias, confidence, trendDesc };
-}
-
-function generateAiInsight(currentMargin, trendDesc) {
-    if (currentMargin === null || isNaN(currentMargin)) {
-        return 'Waiting for Net Margin data to generate insight.';
-    }
-
-    let text = `The company converts ${currentMargin.toFixed(2)}% of its total revenue into pure bottom-line profit.`;
-
-    if (trendDesc === "Exceptional Profitability") {
-        text += " Margins above 20% are typically reserved for software, asset-light tech, or companies with highly dominant monopolies.";
-    } else if (trendDesc === "High Margin") {
-        text += " This demonstrates strong pricing power and excellent cost controls.";
-    } else if (trendDesc === "Thin Margin") {
-        text += " The business operates on razor-thin margins, making it highly sensitive to minor increases in operating costs or inflation.";
-    } else if (trendDesc === "Loss Making") {
-        text += " The business is structurally unprofitable at the bottom line, indicating cash burn.";
-    }
-
-    return text;
-}
+import { scoreNetMargin, generateAiInsightNetMarginCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function NetMarginCard({ data, manualOverride, lastUpdated }) {
     let isManual = true;
@@ -129,7 +61,7 @@ export default function NetMarginCard({ data, manualOverride, lastUpdated }) {
 
     // 3. Praxis Engine
     const { score, bias, confidence, trendDesc } = scoreNetMargin(currentMargin, sectorMargin);
-    const aiInsightText = generateAiInsight(currentMargin, trendDesc);
+    const aiInsightText = generateAiInsightNetMarginCard(currentMargin, trendDesc);
 
         return (
         <IndicatorCard

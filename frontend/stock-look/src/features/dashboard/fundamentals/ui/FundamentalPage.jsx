@@ -27,61 +27,33 @@ import { computeCompanyComposite, computeIndexComposite, TITLE_TO_ID } from '../
 import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-// Reusable component for input fields (defined outside to prevent focus loss)
-const OverrideInput = ({ label, overrideKey, value, onChange }) => (
-    <div className="flex flex-col gap-1">
-        <label className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider">{label}</label>
-        <input 
-            type="number"
-            step="0.01"
-            value={value || ""}
-            onChange={(e) => onChange(overrideKey, e.target.value ? parseFloat(e.target.value) : "")}
-            className="bg-background-surface border border-border-subtle rounded px-2 py-1 text-xs text-text-primary focus:outline-none focus:border-blue-500 w-32"
-        />
-    </div>
-);
+import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedOverrideInput";
+import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
+import { useSnapshots } from "@/shared/hooks/useSnapshots";
 
-const getInitialOverrides = (instrument) => {
-    const defaultOverrides = {
-        // Valuation
-        pe_ratio: null, pe_hist: null, pe_sector: null, forward_pe: null, projected_eps: null,
-        pb_ratio: null, pb_hist: null, pb_sector: null, earnings_yield: null, ey_hist: null, bond_yield: null,
-        // Market Health
-        market_cap_gdp: null, dividend_yield: null, fii_dii_flow: null, earnings_trend: null,
-        // Growth
-        eps_growth: null, gdp_growth: null, revenue_growth: null, profit_growth: null,
-        // Profitability & Health
-        roe: null, roce: null, net_margin: null, operating_margin: null, operating_profit: null,
-        revenue: null, debt_to_equity: null, total_debt: null, shareholders_equity: null,
-        current_ratio: null, current_assets: null, current_liabilities: null, interest_coverage: null,
-        ebit: null, interest_expense: null, free_cash_flow: null, operating_cf: null, capex: null,
-        face_value: null, high_low: null, current_price: null, book_value: null,
-        // Index Specific
-        index_pe: null, index_pb: null, index_div_yield: null, ad_ratio: null,
-        india_vix: null, index_pcr: null, index_macd: null, index_200dma: null,
-    };
-    
-    const stored = localStorage.getItem('praxis_manual_overrides_v2');
-    if (stored) {
-        try {
-            const parsed = JSON.parse(stored);
-            if (parsed && parsed[instrument]) {
-                return { ...defaultOverrides, ...parsed[instrument] };
-            }
-        } catch (e) { console.error("Error parsing stored manual overrides", e); }
-    }
-    return defaultOverrides;
-};
 
-const getInitialLastUpdated = (instrument) => {
-    const stored = localStorage.getItem('praxis_manual_last_updated_v2');
-    if (stored) {
-        try {
-            const parsed = JSON.parse(stored);
-            if (parsed && parsed[instrument]) return parsed[instrument];
-        } catch (e) {}
-    }
-    return '--:--';
+
+
+
+
+
+const DEFAULT_OVERRIDES = {
+    // Valuation
+    pe_ratio: null, pe_hist: null, pe_sector: null, forward_pe: null, projected_eps: null,
+    pb_ratio: null, pb_hist: null, pb_sector: null, earnings_yield: null, ey_hist: null, bond_yield: null,
+    // Market Health
+    market_cap_gdp: null, dividend_yield: null, fii_dii_flow: null, earnings_trend: null,
+    // Growth
+    eps_growth: null, gdp_growth: null, revenue_growth: null, profit_growth: null,
+    // Profitability & Health
+    roe: null, roce: null, net_margin: null, operating_margin: null, operating_profit: null,
+    revenue: null, debt_to_equity: null, total_debt: null, shareholders_equity: null,
+    current_ratio: null, current_assets: null, current_liabilities: null, interest_coverage: null,
+    ebit: null, interest_expense: null, free_cash_flow: null, operating_cf: null, capex: null,
+    face_value: null, high_low: null, current_price: null, book_value: null,
+    // Index Specific
+    index_pe: null, index_pb: null, index_div_yield: null, ad_ratio: null,
+    india_vix: null, index_pcr: null, index_macd: null, index_200dma: null,
 };
 
 export default function FundamentalPage() {
@@ -115,69 +87,8 @@ export default function FundamentalPage() {
 
   const { selectedCategory, selectedInstrument, filteredInstruments } = useDashboardContext();
 
-  // Master state for manual overrides
-  const [manualOverrides, setManualOverrides] = useState(() => getInitialOverrides(selectedInstrument));
-
-  // Track when a manual override was last changed
-  const [manualLastUpdated, setManualLastUpdated] = React.useState(() => getInitialLastUpdated(selectedInstrument));
-
-  // Update overrides when instrument changes
-  React.useEffect(() => {
-      setManualOverrides(getInitialOverrides(selectedInstrument));
-      setManualLastUpdated(getInitialLastUpdated(selectedInstrument));
-  }, [selectedInstrument]);
-
-  const handleOverrideChange = (key, val) => {
-      setManualOverrides(prev => {
-          const next = { ...prev, [key]: val };
-          
-          const stored = localStorage.getItem('praxis_manual_overrides_v2');
-          let allOverrides = {};
-          if (stored) {
-              try { allOverrides = JSON.parse(stored); } catch (e) {}
-          }
-          allOverrides[selectedInstrument] = next;
-          localStorage.setItem('praxis_manual_overrides_v2', JSON.stringify(allOverrides));
-          
-          return next;
-      });
-
-      const timeStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-      setManualLastUpdated(timeStr);
-      
-      const storedTime = localStorage.getItem('praxis_manual_last_updated_v2');
-      let allTimes = {};
-      if (storedTime) {
-          try { allTimes = JSON.parse(storedTime); } catch(e) {}
-      }
-      allTimes[selectedInstrument] = timeStr;
-      localStorage.setItem('praxis_manual_last_updated_v2', JSON.stringify(allTimes));
-  };
-
-  const handleClearAll = () => {
-      const resetState = getInitialOverrides(selectedInstrument) || {};
-      
-      const stored = localStorage.getItem('praxis_manual_overrides_v2');
-      let allOverrides = {};
-      if (stored) {
-          try { allOverrides = JSON.parse(stored); } catch (e) {}
-      }
-      allOverrides[selectedInstrument] = resetState;
-      localStorage.setItem('praxis_manual_overrides_v2', JSON.stringify(allOverrides));
-      
-      setManualOverrides(resetState);
-      
-      const timeStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-      setManualLastUpdated(timeStr);
-      
-      const storedTime = localStorage.getItem('praxis_manual_last_updated_v2');
-      let allTimes = {};
-      if (storedTime) {
-          try { allTimes = JSON.parse(storedTime); } catch(e) {}
-      }
-      allTimes[selectedInstrument] = timeStr;
-      localStorage.setItem('praxis_manual_last_updated_v2', JSON.stringify(allTimes));
-  };
+  // Standardized Manual Overrides Hook
+  const { overrides: manualOverrides, lastUpdated: manualLastUpdated, handleChange: handleOverrideChange, handleClearAll } = useManualOverrides('v2', selectedInstrument, DEFAULT_OVERRIDES);
 
   // Context manages auto-updating instrument when category changes
 
@@ -189,19 +100,8 @@ export default function FundamentalPage() {
   
 
 
-  // --- Historical Snapshots Logic ---
-  const [historicalSnapshots, setHistoricalSnapshots] = useState({});
-  const snapshotQueue = React.useRef({});
-  const snapshotTimer = React.useRef(null);
-
-  React.useEffect(() => {
-      if (!selectedInstrument) return;
-      
-      // Fetch historical graph data
-      axiosInstance.get(`/api/v1/snapshots/${encodeURIComponent(selectedInstrument)}`)
-          .then(res => setHistoricalSnapshots(res.data?.data || {}))
-          .catch(e => console.error("Failed to fetch snapshots", e));
-  }, [selectedInstrument]);
+  // Standardized Historical Snapshots Hook
+  const { historicalSnapshots } = useSnapshots(selectedInstrument);
 
   // --- Previous Day Composite Calculation ---
   const [prevCompositeScore, setPrevCompositeScore] = useState(0);
@@ -240,27 +140,7 @@ export default function FundamentalPage() {
       }
   }, [historicalSnapshots, selectedCategory, compositeData.compositeScore]);
 
-  React.useEffect(() => {
-      const handleSnapshot = (e) => {
-          if (!selectedInstrument) return;
-          const { card_id, raw_value, score, bias } = e.detail;
-          snapshotQueue.current[card_id] = { instrument_key: selectedInstrument, card_id, raw_value, score, bias };
 
-          clearTimeout(snapshotTimer.current);
-          snapshotTimer.current = setTimeout(() => {
-              const snapshots = Object.values(snapshotQueue.current);
-              if (snapshots.length > 0) {
-                  axiosInstance.post('/api/v1/snapshots', { snapshots })
-                      .then(() => console.log('Saved snapshots:', snapshots.length))
-                      .catch(err => console.error('Error saving snapshots:', err));
-                  snapshotQueue.current = {};
-              }
-          }, 3000); // 3 second debounce to allow all cards to render and calculate
-      };
-
-      window.addEventListener('SAVE_SNAPSHOT', handleSnapshot);
-      return () => window.removeEventListener('SAVE_SNAPSHOT', handleSnapshot);
-  }, [selectedInstrument]);
   // ----------------------------------
 
   // --- Dynamic Hiding Logic for Fallbacks ---
@@ -311,30 +191,30 @@ export default function FundamentalPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8">
                   <div className="space-y-3">
                       <div className="text-xs font-bold text-emerald-500 mb-3 border-b border-border-default pb-2">Core Snapshot</div>
-                      {!fundamentalsData?.quote?.last_price && <OverrideInput label="Current Level" overrideKey="current_price" value={manualOverrides.current_price} onChange={handleOverrideChange} />}
-                      {!(fundamentalsData?.quote?.ohlc?.high && fundamentalsData?.quote?.ohlc?.low) && <OverrideInput label="High / Low" overrideKey="high_low" value={manualOverrides.high_low} onChange={handleOverrideChange} />}
-                      <OverrideInput label="Index P/E (x)" overrideKey="index_pe" value={manualOverrides.index_pe} onChange={handleOverrideChange} />
-                      <OverrideInput label="Index P/B (x)" overrideKey="index_pb" value={manualOverrides.index_pb} onChange={handleOverrideChange} />
-                      <OverrideInput label="Dividend Yield (%)" overrideKey="index_div_yield" value={manualOverrides.index_div_yield} onChange={handleOverrideChange} />
+                      {!fundamentalsData?.quote?.last_price && <DebouncedOverrideInput label="Current Level" overrideKey="current_price" value={manualOverrides.current_price} onChange={handleOverrideChange} />}
+                      {!(fundamentalsData?.quote?.ohlc?.high && fundamentalsData?.quote?.ohlc?.low) && <DebouncedOverrideInput label="High / Low" overrideKey="high_low" value={manualOverrides.high_low} onChange={handleOverrideChange} />}
+                      <DebouncedOverrideInput label="Index P/E (x)" overrideKey="index_pe" value={manualOverrides.index_pe} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Index P/B (x)" overrideKey="index_pb" value={manualOverrides.index_pb} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Dividend Yield (%)" overrideKey="index_div_yield" value={manualOverrides.index_div_yield} onChange={handleOverrideChange} />
                   </div>
                   
                   <div className="space-y-3">
                       <div className="text-xs font-bold text-yellow-500 mb-3 border-b border-border-default pb-2">Market Internals</div>
-                      <OverrideInput label="A/D Ratio" overrideKey="ad_ratio" value={manualOverrides.ad_ratio} onChange={handleOverrideChange} />
-                      <OverrideInput label="India VIX" overrideKey="india_vix" value={manualOverrides.india_vix} onChange={handleOverrideChange} />
-                      <OverrideInput label="Put-Call Ratio" overrideKey="index_pcr" value={manualOverrides.index_pcr} onChange={handleOverrideChange} />
-                      <OverrideInput label="MACD Histogram" overrideKey="index_macd" value={manualOverrides.index_macd} onChange={handleOverrideChange} />
-                      <OverrideInput label="% From 200 DMA" overrideKey="index_200dma" value={manualOverrides.index_200dma} onChange={handleOverrideChange} />
-                      <OverrideInput label="FII Flow (₹ Cr)" overrideKey="fii_flow" value={manualOverrides.fii_flow} onChange={handleOverrideChange} />
-                      <OverrideInput label="DII Flow (₹ Cr)" overrideKey="dii_flow" value={manualOverrides.dii_flow} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="A/D Ratio" overrideKey="ad_ratio" value={manualOverrides.ad_ratio} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="India VIX" overrideKey="india_vix" value={manualOverrides.india_vix} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Put-Call Ratio" overrideKey="index_pcr" value={manualOverrides.index_pcr} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="MACD Histogram" overrideKey="index_macd" value={manualOverrides.index_macd} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="% From 200 DMA" overrideKey="index_200dma" value={manualOverrides.index_200dma} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="FII Flow (₹ Cr)" overrideKey="fii_flow" value={manualOverrides.fii_flow} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="DII Flow (₹ Cr)" overrideKey="dii_flow" value={manualOverrides.dii_flow} onChange={handleOverrideChange} />
                   </div>
 
                   <div className="space-y-3">
                       <div className="text-xs font-bold text-purple-500 mb-3 border-b border-border-default pb-2">Macro Environment</div>
-                      <OverrideInput label="GDP Growth (%)" overrideKey="gdp_growth" value={manualOverrides.gdp_growth} onChange={handleOverrideChange} />
-                      <OverrideInput label="Market Cap to GDP (%)" overrideKey="market_cap_gdp" value={manualOverrides.market_cap_gdp} onChange={handleOverrideChange} />
-                      <OverrideInput label="10Y Bond Yield" overrideKey="bond_yield" value={manualOverrides.bond_yield} onChange={handleOverrideChange} />
-                      <OverrideInput label="EPS Growth (%)" overrideKey="eps_growth" value={manualOverrides.eps_growth} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="GDP Growth (%)" overrideKey="gdp_growth" value={manualOverrides.gdp_growth} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Market Cap to GDP (%)" overrideKey="market_cap_gdp" value={manualOverrides.market_cap_gdp} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="10Y Bond Yield" overrideKey="bond_yield" value={manualOverrides.bond_yield} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="EPS Growth (%)" overrideKey="eps_growth" value={manualOverrides.eps_growth} onChange={handleOverrideChange} />
                   </div>
               </div>
           ) : (
@@ -342,16 +222,16 @@ export default function FundamentalPage() {
                   {/* Company Snapshot */}
                   <div className="space-y-2">
                       <div className="text-xs font-bold text-emerald-500 mb-2">Company Snapshot</div>
-                      {!hasMarketCap && <OverrideInput label="Market Cap" overrideKey="market_cap" value={manualOverrides.market_cap} onChange={handleOverrideChange} />}
-                      {!hasBookValue && <OverrideInput label="Book Value" overrideKey="book_value" value={manualOverrides.book_value} onChange={handleOverrideChange} />}
-                      {!hasFaceValue && <OverrideInput label="Face Value" overrideKey="face_value" value={manualOverrides.face_value} onChange={handleOverrideChange} />}
-                      {!hasPeRatio && <OverrideInput label="Stock P/E (x)" overrideKey="pe_ratio" value={manualOverrides.pe_ratio} onChange={handleOverrideChange} />}
+                      {!hasMarketCap && <DebouncedOverrideInput label="Market Cap" overrideKey="market_cap" value={manualOverrides.market_cap} onChange={handleOverrideChange} />}
+                      {!hasBookValue && <DebouncedOverrideInput label="Book Value" overrideKey="book_value" value={manualOverrides.book_value} onChange={handleOverrideChange} />}
+                      {!hasFaceValue && <DebouncedOverrideInput label="Face Value" overrideKey="face_value" value={manualOverrides.face_value} onChange={handleOverrideChange} />}
+                      {!hasPeRatio && <DebouncedOverrideInput label="Stock P/E (x)" overrideKey="pe_ratio" value={manualOverrides.pe_ratio} onChange={handleOverrideChange} />}
                   </div>
 
                   {/* Dividends */}
                   <div className="space-y-2">
                       <div className="text-xs font-bold text-pink-500 mb-2">Dividends</div>
-                      <OverrideInput 
+                      <DebouncedOverrideInput 
                           label="Dividend Yield (%)" 
                           overrideKey="dividend_yield" 
                           value={manualOverrides.dividend_yield}
@@ -362,15 +242,15 @@ export default function FundamentalPage() {
                   {/* Trends & Flows */}
                   <div className="space-y-2">
                       <div className="text-xs font-bold text-yellow-500 mb-2">Trends & Flows</div>
-                      {!hasEarningsTrend && <OverrideInput label="Earnings Trend (CAGR %)" overrideKey="earnings_trend" value={manualOverrides.earnings_trend} onChange={handleOverrideChange} />}
-                      <OverrideInput label="FII Flow (₹ Cr)" overrideKey="fii_flow" value={manualOverrides.fii_flow} onChange={handleOverrideChange} />
-                      <OverrideInput label="DII Flow (₹ Cr)" overrideKey="dii_flow" value={manualOverrides.dii_flow} onChange={handleOverrideChange} />
+                      {!hasEarningsTrend && <DebouncedOverrideInput label="Earnings Trend (CAGR %)" overrideKey="earnings_trend" value={manualOverrides.earnings_trend} onChange={handleOverrideChange} />}
+                      <DebouncedOverrideInput label="FII Flow (₹ Cr)" overrideKey="fii_flow" value={manualOverrides.fii_flow} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="DII Flow (₹ Cr)" overrideKey="dii_flow" value={manualOverrides.dii_flow} onChange={handleOverrideChange} />
                   </div>
 
                   {/* Valuation */}
                   <div className="space-y-2">
                       <div className="text-xs font-bold text-blue-500 mb-2">Valuation</div>
-                      <OverrideInput 
+                      <DebouncedOverrideInput 
                           label="Forward P/E (x)" 
                           overrideKey="forward_pe" 
                           value={manualOverrides.forward_pe}
@@ -381,19 +261,19 @@ export default function FundamentalPage() {
                   {/* Macro Indicators */}
                   <div className="space-y-2">
                       <div className="text-xs font-bold text-purple-500 mb-2">Macro Indicators</div>
-                      <OverrideInput 
+                      <DebouncedOverrideInput 
                           label="GDP Growth (%)" 
                           overrideKey="gdp_growth" 
                           value={manualOverrides.gdp_growth}
                           onChange={handleOverrideChange}
                       />
-                      <OverrideInput 
+                      <DebouncedOverrideInput 
                           label="Market Cap to GDP (%)" 
                           overrideKey="market_cap_gdp" 
                           value={manualOverrides.market_cap_gdp}
                           onChange={handleOverrideChange}
                       />
-                      <OverrideInput 
+                      <DebouncedOverrideInput 
                           label="10Y Bond Yield" 
                           overrideKey="bond_yield" 
                           value={manualOverrides.bond_yield}
@@ -404,7 +284,7 @@ export default function FundamentalPage() {
                   {/* Growth */}
                   <div className="space-y-2">
                       <div className="text-xs font-bold text-orange-500 mb-2">Growth</div>
-                      <OverrideInput 
+                      <DebouncedOverrideInput 
                           label="EPS Growth (%)" 
                           overrideKey="eps_growth" 
                           value={manualOverrides.eps_growth}
@@ -450,10 +330,10 @@ export default function FundamentalPage() {
   const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
 
   return (
-    <div className="p-4 md:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen">
+    <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen">
 
       {/* HEADER SECTION */}
-      <div className="relative z-50 isolate mb-6 mt-2">
+      <div className="relative z-50 isolate mb-6 mt-0">
           <GlobalHeader
               title="Fundamental Composite"
               score={compositeData.compositeScore}

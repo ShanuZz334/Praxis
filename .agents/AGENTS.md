@@ -22,3 +22,9 @@ When refactoring, updating, or building new indicator cards in the Praxis dashbo
 - **Live Data (Upstox)**: When a card sources data from the Upstox API (`isLiveData`), the card's `lastUpdated` prop must reflect the exact time the API call succeeded.
 - **Manual Data**: When a card uses a manual fallback, the card's `lastUpdated` prop must reflect the precise time the user last typed an edit into the GlobalHeader info panel.
 - Ensure the `resolveTime` pattern (e.g., in `FundamentalGrid.jsx`) successfully passes down either `liveTime` or `manualTime` to the card based on the presence of real data.
+
+## 5. Dashboard Page Architecture Baseline
+- **FundamentalPage.jsx as the Gold Standard**: All future dashboard modules (Technicals, Options, Global, Events) MUST strictly follow the architectural pattern established in `FundamentalPage.jsx`.
+- **Centralized Math Engines**: All `score*` and `generateAiInsight*` logic must be completely extracted from UI cards and placed into a single shared pure JS file (e.g., `engine/scoringEngine.js`) so that it can be natively imported by both the React frontend and Node backend. Do NOT duplicate math logic in `backend/engine/scorers.js`.
+- **Performance Optimized Inputs**: Any manual fallback data inputs on the main page MUST use the localized `DebouncedOverrideInput` to prevent the heavy card grids from re-rendering on every keystroke.
+- **State Persistence**: Manual overrides must be saved to `localStorage` locally, rather than executing continuous heavy backend API calls to store UI states.

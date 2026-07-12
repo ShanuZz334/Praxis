@@ -31,7 +31,7 @@ export default function ForeignPage() {
     ];
 
     return (
-        <div className="p-4 md:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">
+        <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">
 
             <GlobalHeader
                 title="Global Structure"

@@ -1,73 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
-
-function scoreOperatingMargin(currentMargin, sectorMargin) {
-    if (currentMargin === null || isNaN(currentMargin)) {
-        return { score: 50, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
-    }
-
-    // Factor 1: Absolute operating margin level
-    let f1Score;
-    let trendDesc;
-    if (currentMargin > 25) {
-        f1Score = 95; trendDesc = "Exceptional Operations";
-    } else if (currentMargin > 18) {
-        f1Score = 82; trendDesc = "High Operating Leverage";
-    } else if (currentMargin >= 10) {
-        f1Score = 60; trendDesc = "Healthy Operations";
-    } else if (currentMargin > 0) {
-        f1Score = 30; trendDesc = "Weak Operations";
-    } else {
-        f1Score = 5; trendDesc = "Operating Loss";
-    }
-
-    // Factor 2: Sector comparison (35% weight when available)
-    let hasSector = false;
-    let f2Score = f1Score;
-    if (sectorMargin !== null && !isNaN(sectorMargin)) {
-        hasSector = true;
-        const spread = currentMargin - sectorMargin;
-        if (spread > 8)       f2Score = 95;
-        else if (spread > 3)  f2Score = 80;
-        else if (spread > -2) f2Score = 60;
-        else if (spread > -7) f2Score = 35;
-        else                  f2Score = 10;
-    }
-
-    const blended = hasSector ? (f1Score * 0.65) + (f2Score * 0.35) : f1Score;
-    const score = Math.round(Math.max(0, Math.min(100, blended)));
-
-    let bias;
-    if (score >= 80)      bias = 'Strong Bullish';
-    else if (score >= 60) bias = 'Bullish';
-    else if (score >= 40) bias = 'Neutral';
-    else if (score >= 20) bias = 'Bearish';
-    else                  bias = 'Strong Bearish';
-
-    const confidence = hasSector ? '90%' : (currentMargin > 25 || currentMargin < 0 ? '82%' : '72%');
-    return { score, bias, confidence, trendDesc };
-}
-
-function generateAiInsight(currentMargin, trendDesc) {
-    if (currentMargin === null || isNaN(currentMargin)) {
-        return 'Waiting for Operating Margin data to generate insight.';
-    }
-
-    let text = `The core business operations yield a margin of ${currentMargin.toFixed(2)}%.`;
-
-    if (trendDesc === "Exceptional Operations") {
-        text += " This highly lucrative margin suggests a wide economic moat, dominant market share, and low core operating costs.";
-    } else if (trendDesc === "High Operating Leverage") {
-        text += " The company efficiently manages its cost of goods sold and operating expenses relative to revenue.";
-    } else if (trendDesc === "Weak Operations") {
-        text += " Core profitability is dangerously thin, leaving little room for error if inflation or competition increases.";
-    } else if (trendDesc === "Operating Loss") {
-        text += " The core business is structurally unprofitable before even accounting for debt and taxes. Extreme risk.";
-    }
-
-    return text;
-}
+import { scoreOperatingMargin, generateAiInsightOperatingMarginCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function OperatingMarginCard({ data, manualOverride, lastUpdated }) {
     let isManual = true;
@@ -118,7 +52,7 @@ export default function OperatingMarginCard({ data, manualOverride, lastUpdated 
 
     // 3. Praxis Engine
     const { score, bias, confidence, trendDesc } = scoreOperatingMargin(currentMargin, sectorMargin);
-    const aiInsightText = generateAiInsight(currentMargin, trendDesc);
+    const aiInsightText = generateAiInsightOperatingMarginCard(currentMargin, trendDesc);
 
         return (
         <IndicatorCard

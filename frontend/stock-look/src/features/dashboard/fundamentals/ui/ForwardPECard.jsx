@@ -1,94 +1,7 @@
-/**
- * @file ForwardPECard.jsx
- * @purpose Displays the Forward P/E Ratio fundamental indicator.
- *
- * DATA SOURCES:
- *  - currentFwdPE   → LIVE: Upstox key-ratios API (if available) or MANUAL (forward_pe)
- *  - currentPE      → LIVE: Upstox key-ratios API (for comparison)
- *
- * MODE:
- *  - AUTO  when currentFwdPE is sourced from Upstox
- *  - MANUAL when currentFwdPE falls back to manual override
- */
-
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
-
-// ─── Industry-Grade Scoring Engine ──────────────────────────────────────────
-/**
- * Computes a 0–100 score, bias label, and confidence % for Forward PE.
- *
- * Strategy: Evaluates the premium/discount of Forward PE vs Trailing PE.
- *   - Lower Forward PE vs Trailing PE = Expected earnings growth (Bullish)
- *   - Higher Forward PE vs Trailing PE = Expected earnings contraction (Bearish)
- */
-function scoreForwardPE(currentFwdPE, currentPE) {
-    if (currentFwdPE === null || currentFwdPE === undefined || isNaN(currentFwdPE)) {
-        return { score: 50, bias: 'Neutral', confidence: 60 };
-    }
-
-    if (currentPE === null || currentPE === undefined || isNaN(currentPE)) {
-        // Absolute Forward PE scoring if Trailing PE is missing
-        let absScore = 50;
-        if (currentFwdPE < 10)       absScore = 95;
-        else if (currentFwdPE < 15)  absScore = 80;
-        else if (currentFwdPE < 20)  absScore = 65;
-        else if (currentFwdPE < 25)  absScore = 50;
-        else if (currentFwdPE < 35)  absScore = 30;
-        else                         absScore = 10;
-        
-        let bias;
-        if (absScore >= 80)      bias = 'Strong Bullish';
-        else if (absScore >= 62) bias = 'Bullish';
-        else if (absScore >= 42) bias = 'Neutral';
-        else if (absScore >= 25) bias = 'Bearish';
-        else                     bias = 'Strong Bearish';
-        
-        return { score: absScore, bias, confidence: 65 };
-    }
-
-    // Relative scoring: Forward PE vs Trailing PE
-    const growthPremium = (currentPE - currentFwdPE) / currentPE; // Positive means Fwd PE is lower (growth)
-    
-    let relScore = 50;
-    if (growthPremium > 0.30)       relScore = 95; // 30%+ earnings growth priced in
-    else if (growthPremium > 0.15)  relScore = 85; // 15-30% growth
-    else if (growthPremium > 0.05)  relScore = 65; // 5-15% growth
-    else if (growthPremium > -0.05) relScore = 50; // Flat earnings
-    else if (growthPremium > -0.15) relScore = 35; // Slight earnings decline
-    else if (growthPremium > -0.30) relScore = 20; // Significant earnings decline
-    else                            relScore = 5;  // Severe contraction
-
-    let bias;
-    if (relScore >= 80)      bias = 'Strong Bullish';
-    else if (relScore >= 62) bias = 'Bullish';
-    else if (relScore >= 42) bias = 'Neutral';
-    else if (relScore >= 25) bias = 'Bearish';
-    else                     bias = 'Strong Bearish';
-
-    return { score: relScore, bias, confidence: 85 };
-}
-
-// ─── Dynamic AI Insight Generator ─────────────────────────────────────────
-function generateAiInsight(currentFwdPE, currentPE, bias) {
-    if (!currentFwdPE) return 'Waiting for Forward P/E data to generate an insight.';
-    
-    if (!currentPE) {
-        return `The Forward P/E is ${currentFwdPE}x. Trailing P/E is needed for a comprehensive growth comparison.`;
-    }
-
-    const diffPercent = Math.abs((currentFwdPE - currentPE) / currentPE * 100).toFixed(1);
-
-    if (currentFwdPE < currentPE) {
-        return `Forward P/E is trading at a ${diffPercent}% discount to the trailing P/E of ${currentPE}x. This indicates the market expects strong earnings growth over the next 12 months, driving the valuation multiple lower.`;
-    } else if (currentFwdPE > currentPE) {
-        return `Forward P/E is trading at a ${diffPercent}% premium to the trailing P/E of ${currentPE}x. This suggests anticipated earnings contraction or that the market price has run ahead of expected fundamental growth.`;
-    } else {
-        return `Forward P/E aligns perfectly with the trailing P/E at ${currentPE}x, implying expectations for flat earnings growth over the next 12 months.`;
-    }
-}
-
+import { generateAiInsightForwardPECard, scoreForwardPE } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function ForwardPECard({ data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('forward_pe');
@@ -121,7 +34,7 @@ export default function ForwardPECard({ data = null, manualOverride, lastUpdated
     const { score, bias, confidence } = scoreForwardPE(currentFwdPE, currentPE);
 
     // ── Step 5: Dynamic AI Insight ────────────────────────────────────────────
-    const aiInsight = generateAiInsight(currentFwdPE, currentPE, bias);
+    const aiInsight = generateAiInsightForwardPECard(currentFwdPE, currentPE, bias);
 
     // ── Step 6: Display Value Formatting ──────────────────────────────────────
     const displayFwdPE = currentFwdPE !== null && !isNaN(currentFwdPE)

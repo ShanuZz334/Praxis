@@ -55,7 +55,7 @@ export default function MessagesPage() {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-4rem)] p-4 md:p-6 animate-in fade-in duration-500 max-w-[1600px] mx-auto text-text-primary">
+        <div className="flex flex-col h-[calc(100vh-4rem)] px-4 md:px-6 pt-2 animate-in fade-in duration-500 max-w-[1600px] mx-auto text-text-primary">
             {/* 1. Header & Global Actions */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 shrink-0">
                 <div>

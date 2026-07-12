@@ -15,101 +15,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
-
-// ─── Industry-Grade Scoring Engine ──────────────────────────────────────────
-function scoreDebtToEquity(currentDE, sectorDE) {
-    if (currentDE === null || isNaN(currentDE)) {
-        return { score: 0, bias: 'Neutral', confidence: 0, leverageZone: 'Unknown' };
-    }
-
-    // ── Factor 1: Absolute D/E Thresholds (0–100) ─────────────────────────
-    // Lower D/E = healthier financial structure = higher score
-    let f1Score;
-    let leverageZone;
-    if (currentDE < 0.1) {
-        f1Score = 98; leverageZone = 'Debt Free';
-    } else if (currentDE < 0.3) {
-        f1Score = 90; leverageZone = 'Very Low Leverage';
-    } else if (currentDE < 0.6) {
-        f1Score = 78; leverageZone = 'Conservative';
-    } else if (currentDE < 1.0) {
-        f1Score = 60; leverageZone = 'Moderate Leverage';
-    } else if (currentDE < 1.5) {
-        f1Score = 42; leverageZone = 'Elevated Leverage';
-    } else if (currentDE < 2.5) {
-        f1Score = 22; leverageZone = 'High Leverage';
-    } else {
-        f1Score = 5; leverageZone = 'Dangerously Leveraged';
-    }
-
-    // ── Factor 2: Relative vs Sector D/E ─────────────────────────────────
-    let f2Score = f1Score; // default if no sector data
-    let hasSector = false;
-    if (sectorDE !== null && !isNaN(sectorDE) && sectorDE > 0) {
-        hasSector = true;
-        const ratio = currentDE / sectorDE;
-        if (ratio < 0.5)        f2Score = 95; // Far below sector — very disciplined
-        else if (ratio < 0.8)   f2Score = 80; // Below sector — responsible
-        else if (ratio < 1.0)   f2Score = 65; // Slightly below
-        else if (ratio < 1.2)   f2Score = 50; // Near sector average
-        else if (ratio < 1.5)   f2Score = 32; // Above sector
-        else                    f2Score = 12; // Far above sector — concerning
-    }
-
-    // ── Factor 3: Risk Regime Classification ─────────────────────────────
-    let f3Score;
-    if (currentDE < 0.3)      f3Score = 95; // Very safe
-    else if (currentDE < 0.7) f3Score = 75; // Safe
-    else if (currentDE < 1.2) f3Score = 50; // Watch zone
-    else if (currentDE < 2.0) f3Score = 25; // Risk zone
-    else                      f3Score = 5;  // Danger zone
-
-    // ── Blend ─────────────────────────────────────────────────────────────
-    const blended = hasSector
-        ? (f1Score * 0.50) + (f2Score * 0.30) + (f3Score * 0.20)
-        : (f1Score * 0.65) + (f3Score * 0.35);
-    const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
-
-    // ── Bias ──────────────────────────────────────────────────────────────
-    let bias;
-    if (finalScore >= 80)      bias = 'Strong Bullish';
-    else if (finalScore >= 62) bias = 'Bullish';
-    else if (finalScore >= 42) bias = 'Neutral';
-    else if (finalScore >= 25) bias = 'Bearish';
-    else                       bias = 'Strong Bearish';
-
-    // ── Dynamic Confidence ────────────────────────────────────────────────
-    const confidence = hasSector ? 90 : (currentDE < 0.5 || currentDE > 2.0 ? 82 : 72);
-
-    return { score: finalScore, bias, confidence, leverageZone };
-}
-
-function generateAiInsight(currentDE, sectorDE, leverageZone) {
-    if (currentDE === null || isNaN(currentDE)) {
-        return 'Waiting for Debt-to-Equity data to generate insight.';
-    }
-
-    let base = `D/E ratio of ${currentDE.toFixed(2)}x places the company in the "${leverageZone}" zone.`;
-
-    if (sectorDE !== null && !isNaN(sectorDE)) {
-        const vsStr = currentDE < sectorDE
-            ? `${((1 - currentDE / sectorDE) * 100).toFixed(1)}% below the sector average of ${sectorDE.toFixed(2)}x`
-            : `${((currentDE / sectorDE - 1) * 100).toFixed(1)}% above the sector average of ${sectorDE.toFixed(2)}x`;
-        base += ` This is ${vsStr}.`;
-    }
-
-    if (currentDE < 0.3) {
-        return base + ' An extremely clean balance sheet with negligible debt. The company has the financial firepower to self-fund growth or absorb acquisitions without distress.';
-    } else if (currentDE < 0.7) {
-        return base + ' A conservative capital structure that balances growth investment with financial stability. Low risk of solvency issues even in economic downturns.';
-    } else if (currentDE < 1.2) {
-        return base + ' Leverage is moderate and within manageable bounds. Monitor interest coverage to ensure EBIT comfortably services debt obligations.';
-    } else if (currentDE < 2.0) {
-        return base + ' Elevated leverage is a concern. A significant economic slowdown or margin compression could create debt servicing difficulties. Scrutinize the debt maturity profile.';
-    } else {
-        return base + ' Dangerously high leverage exposes the company to severe financial stress. Any earnings deterioration risks covenant breaches and potential equity dilution.';
-    }
-}
+import { scoreDebtToEquity, generateAiInsightDebtToEquityCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function DebtToEquityCard({ data, manualOverride, lastUpdated }) {
@@ -155,7 +61,7 @@ export default function DebtToEquityCard({ data, manualOverride, lastUpdated }) 
 
     const configData = getIndicatorConfig('debt_to_equity');
     const { score, bias, confidence, leverageZone } = scoreDebtToEquity(currentDE, sectorDE);
-    const aiInsightText = generateAiInsight(currentDE, sectorDE, leverageZone);
+    const aiInsightText = generateAiInsightDebtToEquityCard(currentDE, sectorDE, leverageZone);
 
     return (
         <IndicatorCard

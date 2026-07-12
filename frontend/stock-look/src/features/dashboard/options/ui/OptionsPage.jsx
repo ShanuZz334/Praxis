@@ -260,7 +260,7 @@ export default function OptionsPage() {
     }, [chainData, spotPrice, metrics]);
 
     return (
-        <div className="p-4 md:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">
+        <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">
 
             {/* Global Header - Wrapped in z-50 so dropdowns float above the table */}
             <div className="relative z-50">

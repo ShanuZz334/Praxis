@@ -1,71 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
-
-function scoreROE(currentROE, sectorROE) {
-    if (currentROE === null || isNaN(currentROE)) {
-        return { score: 50, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
-    }
-
-    let score = 50;
-    let bias = 'Neutral';
-    let trendDesc = "Average";
-
-    if (sectorROE !== null && !isNaN(sectorROE)) {
-        // Comparative Scoring
-        const spread = currentROE - sectorROE;
-        if (currentROE > 20 && spread > 5) {
-            score = 95; bias = 'Strong Bullish'; trendDesc = "Exceptional Compounder";
-        } else if (currentROE > 15 && spread > 0) {
-            score = 85; bias = 'Bullish'; trendDesc = "Outperforming Sector";
-        } else if (currentROE >= 10 && spread >= -2) {
-            score = 60; bias = 'Neutral'; trendDesc = "In-line with Sector";
-        } else if (currentROE > 0) {
-            score = 30; bias = 'Bearish'; trendDesc = "Underperforming";
-        } else {
-            score = 10; bias = 'Strong Bearish'; trendDesc = "Value Destroyer";
-        }
-    } else {
-        // Absolute Scoring
-        if (currentROE > 20) {
-            score = 90; bias = 'Strong Bullish'; trendDesc = "High Return on Capital";
-        } else if (currentROE > 15) {
-            score = 75; bias = 'Bullish'; trendDesc = "Solid Returns";
-        } else if (currentROE >= 10) {
-            score = 50; bias = 'Neutral'; trendDesc = "Cost of Capital";
-        } else if (currentROE > 0) {
-            score = 30; bias = 'Bearish'; trendDesc = "Sub-par Returns";
-        } else {
-            score = 10; bias = 'Strong Bearish'; trendDesc = "Value Destroyer";
-        }
-    }
-
-    const confidence = sectorROE !== null && !isNaN(sectorROE) ? 90 : (currentROE > 20 || currentROE < 0 ? 80 : 72);
-    return { score, bias, confidence, trendDesc };
-}
-
-function generateAiInsight(currentROE, sectorROE, trendDesc) {
-    if (currentROE === null || isNaN(currentROE)) {
-        return 'Waiting for ROE data to generate insight.';
-    }
-
-    let text = `The company generates a Return on Equity (ROE) of ${currentROE.toFixed(2)}%`;
-    if (sectorROE !== null && !isNaN(sectorROE)) {
-        text += ` compared to the sector average of ${sectorROE.toFixed(2)}%.`;
-    } else {
-        text += `.`;
-    }
-
-    if (trendDesc === "Exceptional Compounder") {
-        text += " This indicates a powerful economic moat, highly efficient capital allocation, and strong pricing power.";
-    } else if (trendDesc === "Outperforming Sector") {
-        text += " Management is effectively utilizing shareholder equity to generate above-average profits.";
-    } else if (trendDesc === "Value Destroyer") {
-        text += " Negative returns actively destroy shareholder equity. Requires immediate fundamental turnaround.";
-    }
-
-    return text;
-}
+import { scoreROE, generateAiInsightROECard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function ROECard({ data, manualOverride, lastUpdated }) {
     // 1. Core State & Extraction
@@ -100,7 +36,7 @@ export default function ROECard({ data, manualOverride, lastUpdated }) {
 
     // 3. Praxis Engine
     const { score, bias, confidence, trendDesc } = scoreROE(currentROE, sectorROE);
-    const aiInsightText = generateAiInsight(currentROE, sectorROE, trendDesc);
+    const aiInsightText = generateAiInsightROECard(currentROE, sectorROE, trendDesc);
 
         return (
         <IndicatorCard

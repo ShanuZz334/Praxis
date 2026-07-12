@@ -1358,3 +1358,553 @@ export function scoreVIX(vixValue) {
     return { score: finalScore, bias, confidence, vixRegime, marketCondition };
 }
 
+
+
+export function generateAiInsightAdvanceDeclineCard(adRatio, bias, breadthZone, signalType) {
+    if (adRatio === null || isNaN(adRatio)) {
+        return "Enter the current A/D Ratio (Advancing / Declining stocks) to analyze market breadth. A value above 1.0 means more stocks are advancing than declining.";
+    }
+
+    const rounded = adRatio.toFixed(2);
+
+    if (adRatio > 2.5) {
+        return `A/D Ratio is extremely elevated at ${rounded}. While this confirms overwhelming bullish breadth, such extremes historically precede short-term consolidation as the market absorbs gains. The rally appears broad but may be near exhaustion.`;
+    }
+    if (adRatio > 1.5) {
+        return `Market breadth is powerfully positive at ${rounded}, confirming the current rally has strong underlying participation across the index. This is a high-quality signal — broad-based moves tend to be more sustainable than narrow, index-led ones.`;
+    }
+    if (adRatio > 1.2) {
+        return `Breadth is moderately bullish at ${rounded}. More stocks are advancing than declining, which lends credibility to the uptrend. Watch for this ratio to hold above 1.0 on pullbacks for trend confirmation.`;
+    }
+    if (adRatio >= 0.8) {
+        return `A/D Ratio of ${rounded} reflects balanced and inconclusive market breadth. Roughly equal advancing and declining stocks suggest the market is in a consolidation or decision zone — no clear directional edge from breadth alone.`;
+    }
+    if (adRatio >= 0.5) {
+        return `Market breadth is weakening at ${rounded}. More stocks are declining than advancing, indicating the selling is broad-based rather than isolated. This undermines the case for a durable rally and increases downside risk.`;
+    }
+    return `A/D Ratio of ${rounded} signals extreme broad-based panic selling. While structurally bearish, historical data shows that extreme breadth readings below 0.5 often coincide with short-term capitulation bottoms — a potential contrarian reversal setup.`;
+}
+
+export function generateAiInsightDebtToEquityCard(currentDE, sectorDE, leverageZone) {
+    if (currentDE === null || isNaN(currentDE)) {
+        return 'Waiting for Debt-to-Equity data to generate insight.';
+    }
+
+    let base = `D/E ratio of ${currentDE.toFixed(2)}x places the company in the "${leverageZone}" zone.`;
+
+    if (sectorDE !== null && !isNaN(sectorDE)) {
+        const vsStr = currentDE < sectorDE
+            ? `${((1 - currentDE / sectorDE) * 100).toFixed(1)}% below the sector average of ${sectorDE.toFixed(2)}x`
+            : `${((currentDE / sectorDE - 1) * 100).toFixed(1)}% above the sector average of ${sectorDE.toFixed(2)}x`;
+        base += ` This is ${vsStr}.`;
+    }
+
+    if (currentDE < 0.3) {
+        return base + ' An extremely clean balance sheet with negligible debt. The company has the financial firepower to self-fund growth or absorb acquisitions without distress.';
+    } else if (currentDE < 0.7) {
+        return base + ' A conservative capital structure that balances growth investment with financial stability. Low risk of solvency issues even in economic downturns.';
+    } else if (currentDE < 1.2) {
+        return base + ' Leverage is moderate and within manageable bounds. Monitor interest coverage to ensure EBIT comfortably services debt obligations.';
+    } else if (currentDE < 2.0) {
+        return base + ' Elevated leverage is a concern. A significant economic slowdown or margin compression could create debt servicing difficulties. Scrutinize the debt maturity profile.';
+    } else {
+        return base + ' Dangerously high leverage exposes the company to severe financial stress. Any earnings deterioration risks covenant breaches and potential equity dilution.';
+    }
+}
+
+export function generateAiInsightDividendYieldCard(currentYield, bondYield) {
+    if (currentYield === null || isNaN(currentYield)) return "Awaiting manual entry of the Dividend Yield (%).";
+    if (currentYield === 0) return "This stock does not currently pay a dividend, prioritizing internal reinvestment over shareholder distributions.";
+
+    let text = `Offering a dividend yield of ${currentYield}%.`;
+
+    if (bondYield !== null) {
+        if (currentYield > bondYield) text += ` This impressively exceeds the 10Y risk-free rate of ${bondYield}%, providing excellent income.`;
+        else text += ` This trails the 10Y risk-free rate of ${bondYield}%, meaning bonds offer higher pure income.`;
+    }
+
+
+
+    return text;
+}
+
+export function generateAiInsightEarningsTrendCard(epsHistory, cagr, trendLabel) {
+    if (!epsHistory || epsHistory.length < 2) {
+        if (cagr !== null && !isNaN(cagr)) {
+            return `Manual override indicates a ${cagr}% trend, classified as ${trendLabel}.`;
+        }
+        return "Insufficient EPS history to determine a reliable earnings trend.";
+    }
+    
+    let text = `Earnings history shows ${trendLabel} over the last ${epsHistory.length} periods`;
+    if (cagr !== null) {
+        text += `, delivering a Compound Annual Growth Rate (CAGR) of ${cagr.toFixed(2)}%.`;
+    } else {
+        text += `.`;
+    }
+
+    if (trendLabel === "Consistent Growth") text += " This unbroken upward trajectory is highly sought after by institutional investors and commands a valuation premium.";
+    else if (trendLabel === "Consistent Decline") text += " A multi-year contraction in earnings is a severe red flag indicating structural headwinds or loss of competitive advantage.";
+    else if (trendLabel === "Volatile / Flat") text += " Earnings lack clear directionality, typical of highly cyclical businesses or companies struggling to scale.";
+
+    return text;
+}
+
+export function generateAiInsightEarningsYieldCard(currentYield, historicalYield, bondYield) {
+    if (!currentYield) {
+        return "Insufficient data to analyze Earnings Yield. Waiting for Upstox feed or manual override.";
+    }
+
+    if (historicalYield && bondYield) {
+        const erp = (currentYield - bondYield).toFixed(2);
+        if (currentYield > historicalYield && currentYield > bondYield + 3) {
+            return `Exceptionally attractive valuation. The stock is generating a yield above its historical norm and offers a robust Equity Risk Premium of ${erp}% over the risk-free rate.`;
+        } else if (currentYield < historicalYield && currentYield < bondYield) {
+            return `Severe valuation warning. The earnings yield has compressed below historical norms and is actually lower than the 10Y risk-free bond yield (${bondYield}%). Investors are not being compensated for equity risk.`;
+        } else if (currentYield > bondYield) {
+            return `Valuation is reasonable, offering an Equity Risk Premium of ${erp}%. However, compare this against historical norms to confirm structural attractiveness.`;
+        } else {
+            return `The earnings yield is struggling to keep pace with the risk-free rate, compressing the Equity Risk Premium.`;
+        }
+    }
+
+    if (historicalYield) {
+        if (currentYield > historicalYield * 1.1) return `The current earnings yield is expanding beyond historical averages, signaling potential undervaluation assuming earnings quality is stable.`;
+        if (currentYield < historicalYield * 0.9) return `Yield compression relative to history suggests the stock is becoming expensive unless future growth accelerates significantly.`;
+        return `Earnings yield is tracking closely with its historical average.`;
+    }
+
+    if (bondYield) {
+        const erp = (currentYield - bondYield).toFixed(2);
+        if (currentYield < bondYield) return `Negative Equity Risk Premium (${erp}%). Risk-free bonds currently offer a better yield than this equity.`;
+        if (currentYield > bondYield + 4) return `Strong Equity Risk Premium (${erp}%). The stock offers significant compensation for equity risk compared to government bonds.`;
+        return `Moderate Equity Risk Premium (${erp}%).`;
+    }
+
+    return `Current Earnings Yield is ${currentYield}%. Add 10Y Bond Yield in manual overrides to unlock Equity Risk Premium (ERP) analysis.`;
+}
+
+export function generateAiInsightEPSGrowthCard(cagr, latestYoY, growthTier, momentumLabel, totalPeriods) {
+    if (cagr === null || isNaN(cagr)) {
+        return 'EPS Growth will be auto-computed from Upstox income statement history when available. Alternatively, enter the YoY or CAGR EPS growth manually.';
+    }
+
+    const cagrStr = cagr.toFixed(2);
+    const source = totalPeriods >= 2 ? `over ${totalPeriods} periods of EPS history` : 'based on manual input';
+
+    let base = `EPS has compounded at ${cagrStr}% annually ${source}, classified as "${growthTier}".`;
+
+    if (latestYoY !== null && !isNaN(latestYoY)) {
+        base += ` Latest YoY EPS growth: ${latestYoY.toFixed(2)}% (${momentumLabel}).`;
+    }
+
+    if (growthTier === 'Exceptional Compounder') {
+        return base + ' Compounding EPS at >25% consistently is exceedingly rare and is the signature of a dominant franchise with strong pricing power and reinvestment capacity.';
+    } else if (growthTier === 'Strong Growth' && momentumLabel.includes('Accelerating')) {
+        return base + ' Accelerating earnings growth — the business is gaining operational leverage as revenue scales faster than costs, a highly coveted quality.';
+    } else if (growthTier === 'Earnings Contraction') {
+        return base + ' Declining EPS over multiple years signals a structural deterioration in profitability. The market typically de-rates such companies with a valuation multiple compression.';
+    } else if (growthTier === 'Severe EPS Decline') {
+        return base + ' Severe earnings contraction indicates significant distress. Either cost inflation is overwhelming revenues, or core demand is collapsing.';
+    }
+    return base + ' Monitoring the trend of EPS acceleration or deceleration matters as much as the absolute growth rate itself.';
+}
+
+export function generateAiInsightFIIDIIFlowCard(fiiFlow, diiFlow, netFlow) {
+    if (fiiFlow === null || diiFlow === null) {
+        return "Awaiting manual entry of FII and DII Flow (₹ Cr).";
+    }
+
+    if (fiiFlow > 0 && diiFlow > 0) {
+        return `Exceptional institutional support. Both Foreign (FII) and Domestic (DII) investors are aggressively accumulating, injecting a net ₹${netFlow} Cr into the market.`;
+    } else if (fiiFlow < 0 && diiFlow < 0) {
+        return `Severe institutional distribution. Both FIIs and DIIs are offloading positions simultaneously, draining a net ₹${Math.abs(netFlow)} Cr from the market.`;
+    } else if (fiiFlow < 0 && diiFlow > 0) {
+        if (netFlow > 0) {
+            return `Domestic resilience. DIIs (₹${diiFlow} Cr) are successfully absorbing the FII selling pressure (₹${fiiFlow} Cr), resulting in positive net liquidity of ₹${netFlow} Cr.`;
+        } else {
+            return `FII distribution is overpowering domestic support. Despite DII buying, massive FII selling (₹${fiiFlow} Cr) has dragged net liquidity into the red (₹${netFlow} Cr).`;
+        }
+    } else if (fiiFlow > 0 && diiFlow < 0) {
+        if (netFlow > 0) {
+            return `Foreign capital is driving the market higher (₹${fiiFlow} Cr), easily absorbing the profit-booking by Domestic institutions (₹${diiFlow} Cr).`;
+        } else {
+            return `Domestic institutions are booking heavy profits (₹${diiFlow} Cr), entirely neutralizing the foreign capital inflows and turning net liquidity negative.`;
+        }
+    }
+    
+    return "Institutional flows are perfectly balanced, resulting in flat net liquidity.";
+}
+
+export function generateAiInsightForwardPECard(currentFwdPE, currentPE, bias) {
+    if (!currentFwdPE) return 'Waiting for Forward P/E data to generate an insight.';
+    
+    if (!currentPE) {
+        return `The Forward P/E is ${currentFwdPE}x. Trailing P/E is needed for a comprehensive growth comparison.`;
+    }
+
+    const diffPercent = Math.abs((currentFwdPE - currentPE) / currentPE * 100).toFixed(1);
+
+    if (currentFwdPE < currentPE) {
+        return `Forward P/E is trading at a ${diffPercent}% discount to the trailing P/E of ${currentPE}x. This indicates the market expects strong earnings growth over the next 12 months, driving the valuation multiple lower.`;
+    } else if (currentFwdPE > currentPE) {
+        return `Forward P/E is trading at a ${diffPercent}% premium to the trailing P/E of ${currentPE}x. This suggests anticipated earnings contraction or that the market price has run ahead of expected fundamental growth.`;
+    } else {
+        return `Forward P/E aligns perfectly with the trailing P/E at ${currentPE}x, implying expectations for flat earnings growth over the next 12 months.`;
+    }
+}
+
+export function generateAiInsightFreeCashFlowCard(currentFCF, fcfYield, fcfCategory) {
+    if (currentFCF === null || isNaN(currentFCF)) {
+        return 'Waiting for Free Cash Flow data. FCF = Operating Cash Flow − Capital Expenditure.';
+    }
+
+    const fcfStr = currentFCF >= 0 ? `+₹${Math.abs(currentFCF).toFixed(0)} Cr` : `-₹${Math.abs(currentFCF).toFixed(0)} Cr`;
+    const yieldStr = fcfYield !== null ? ` (${fcfYield.toFixed(1)}% of revenue)` : '';
+
+    if (currentFCF > 0 && fcfYield !== null && fcfYield > 10) {
+        return `The company generates exceptional free cash flow of ${fcfStr}${yieldStr}. Converting >10% of revenue into cash signals a highly efficient, capital-light business model. This FCF funds dividends, buybacks, debt repayment, and organic growth without external financing.`;
+    } else if (currentFCF > 0 && fcfYield !== null && fcfYield > 4) {
+        return `Healthy free cash flow of ${fcfStr}${yieldStr}. The business converts a meaningful share of revenue into cash, demonstrating solid working capital management and disciplined capex allocation.`;
+    } else if (currentFCF > 0) {
+        return `Positive free cash flow of ${fcfStr}${yieldStr}. The company is cash generative — a fundamental prerequisite for financial independence. Monitor the FCF-to-revenue yield trend to assess sustainability.`;
+    } else if (currentFCF === 0) {
+        return `Free cash flow is exactly break-even (${fcfStr}). The company is investing all operational cash back into the business. Not inherently negative if capex drives future growth.`;
+    } else if (fcfYield !== null && fcfYield > -10) {
+        return `Moderate cash burn of ${fcfStr}${yieldStr}. Negative FCF is common during aggressive expansion phases or capex-heavy investment cycles. The sustainability depends on whether the investment yields future returns.`;
+    }
+    return `Heavy cash burn of ${fcfStr}${yieldStr}. The company is spending significantly more cash than it generates. Without strong external financing or a path to positive FCF, this is structurally unsustainable.`;
+}
+
+export function generateAiInsightGDPGrowthCard(currentGrowth, trendDesc) {
+    if (currentGrowth === null || isNaN(currentGrowth)) {
+        return "Waiting for manual GDP Growth input to generate insight.";
+    }
+
+    let text = `The broader economy is currently in a state of ${trendDesc}, expanding at a rate of ${currentGrowth}%.`;
+
+    if (trendDesc === "Rapid Expansion") {
+        text += " This highly stimulative environment acts as a massive tailwind for corporate earnings, heavily favoring pro-cyclical sectors like Industrials and Financials.";
+    } else if (trendDesc === "Healthy Expansion") {
+        text += " Steady economic expansion provides a supportive backdrop for overall market valuations without triggering immediate inflation fears.";
+    } else if (trendDesc === "Economic Slowdown") {
+        text += " A slowing GDP puts pressure on corporate margins and consumer spending. Defensive sectors usually outperform in this regime.";
+    } else if (trendDesc === "Contraction (Recession)") {
+        text += " An actively shrinking economy implies rising unemployment, collapsing demand, and severe earnings downgrades. High market risk.";
+    }
+
+    return text;
+}
+
+export function generateAiInsightIndexPCRCard(pcrValue, optionsBias, signalStrength) {
+    if (pcrValue === null || isNaN(pcrValue)) {
+        return "Enter the current Put-Call Ratio (Total Put OI / Total Call OI) to analyze options market sentiment. PCR is a powerful contrarian indicator — extreme readings often precede market reversals.";
+    }
+
+    const rounded = pcrValue.toFixed(2);
+
+    if (pcrValue > 1.8) {
+        return `PCR is at extreme levels (${rounded}), indicating massive put buying across the index. When the crowd is this bearish, the market is often over-positioned for a decline. Historically, NSE PCR above 1.8 has been one of the most reliable bottom indicators for Nifty/BankNifty.`;
+    }
+    if (pcrValue > 1.3) {
+        return `PCR of ${rounded} shows put-dominated options positioning. Traders are heavily hedged and expecting downside — a contrarian bullish signal. When fear is extreme, corrections are often overdone and sharp reversals follow.`;
+    }
+    if (pcrValue > 0.8) {
+        return `PCR of ${rounded} reflects balanced options positioning with no extreme directional bet. The market is in a neutral sentiment zone — price action and technical setups will dominate over sentiment signals at this level.`;
+    }
+    if (pcrValue > 0.6) {
+        return `PCR of ${rounded} shows call-dominated positioning, suggesting market participants are complacent and expecting further upside. This level of one-sided bullishness is a mild contrarian warning — risk of short-term correction increases.`;
+    }
+    return `PCR of ${rounded} reflects extreme call buying and bullish complacency. Historically, NSE PCR below 0.6 has been associated with short-term market tops. The risk-reward for fresh longs is unfavorable at this sentiment extreme.`;
+}
+
+export function generateAiInsightInterestCoverageCard(currentCoverage, sectorCoverage, safetyZone) {
+    if (currentCoverage === null || isNaN(currentCoverage)) {
+        return 'Waiting for Interest Coverage data. This is EBIT divided by Finance Costs from the income statement.';
+    }
+
+    const rounded = currentCoverage.toFixed(2);
+    let base = `Interest coverage of ${rounded}x (${safetyZone}).`;
+
+    if (sectorCoverage !== null && !isNaN(sectorCoverage)) {
+        base += ` Sector average: ${sectorCoverage.toFixed(2)}x.`;
+    }
+
+    if (currentCoverage > 10) {
+        return base + ` The company earns ${rounded}x its annual interest obligations — an extremely strong safety cushion. Even a severe earnings collapse would not immediately threaten debt servicing.`;
+    } else if (currentCoverage > 5) {
+        return base + ` Healthy debt servicing capacity. The company comfortably covers interest from operating earnings with a ${rounded}x buffer, leaving substantial room for earnings volatility.`;
+    } else if (currentCoverage >= 3) {
+        return base + ` Adequate coverage, but the buffer is thinning. A 60%+ earnings decline would threaten interest payment ability. Monitor debt maturity profile and EBIT trends closely.`;
+    } else if (currentCoverage >= 1.5) {
+        return base + ` Dangerously thin coverage. Any meaningful revenue shortfall or margin compression could prevent full interest payment. This level warrants elevated risk scrutiny.`;
+    } else if (currentCoverage >= 1.0) {
+        return base + ` At the edge of insolvency risk. The company barely covers its interest obligations and has no operating earnings buffer for unexpected shocks.`;
+    }
+    return base + ` Critical — the company cannot cover its interest payments from operating earnings. This is a strong leading indicator of potential default or distress financing.`;
+}
+
+export function generateAiInsightMACDTrendCard(macdValue, momentumDir, signalZone) {
+    if (macdValue === null || isNaN(macdValue)) {
+        return "Enter the MACD Histogram value (MACD Line − Signal Line) for the index. Use daily MACD(12,26,9). Nifty histogram typically ranges ±50 to ±300; BankNifty ±100 to ±600.";
+    }
+
+    const rounded = macdValue.toFixed(1);
+    const abs = Math.abs(macdValue);
+
+    if (macdValue > 150) {
+        return `MACD Histogram at +${rounded} reflects strong and accelerating bullish momentum for the index. The gap between the MACD and Signal line is expanding rapidly, confirming institutional momentum is firmly in the bulls' corner. Trend-following strategies are well-supported.`;
+    }
+    if (macdValue > 15) {
+        return `MACD Histogram is positive at +${rounded}, indicating bulls are in control and momentum is building. The index is trending above its short-term momentum baseline. This supports continuation of the current uptrend with manageable risk.`;
+    }
+    if (macdValue >= 0 && macdValue <= 15) {
+        return `MACD Histogram is near zero (+${rounded}), signaling a critical transition zone. Momentum is neither decisively bullish nor bearish. A breakout above zero with expansion would confirm a bullish momentum shift; a breakdown below with expansion confirms bearish momentum.`;
+    }
+    if (macdValue >= -15) {
+        return `MACD Histogram is near zero (${rounded}), in a momentum transition zone. Downward pressure is mild but the direction is not yet established. Watch for a clear expansion in either direction — this is a high-alert zone for trend traders.`;
+    }
+    if (macdValue > -150) {
+        return `MACD Histogram is negative at ${rounded}, showing bears have the momentum advantage. The index is trending below its short-term momentum baseline. Bounces should be treated as selling opportunities until the histogram crosses back above zero.`;
+    }
+    return `MACD Histogram at ${rounded} reflects extreme bearish momentum for the index. The MACD line is deeply below the signal line, confirming strong institutional selling pressure. Avoid aggressive longs — wait for histogram to stabilize and start contracting before considering reversals.`;
+}
+
+export function generateAiInsightMovingAverageCard(dmaDistance, dmaPosition, distanceCategory) {
+    if (dmaDistance === null || isNaN(dmaDistance)) {
+        return "Enter the % distance from the 200-day moving average. Calculate as: ((Current Price − 200 DMA) / 200 DMA) × 100. A positive value means the index is above its 200 DMA (bullish); negative means below (bearish).";
+    }
+
+    const rounded = Math.abs(dmaDistance).toFixed(2);
+    const direction = dmaDistance >= 0 ? 'above' : 'below';
+
+    if (dmaDistance > 20) {
+        return `The index is ${rounded}% above its 200 DMA — historically an extreme extension. Nifty has rarely sustained distances above +20% without significant mean-reversion corrections of 8–15%. While the long-term trend remains bullish, fresh longs at this stretch carry elevated risk.`;
+    }
+    if (dmaDistance > 10) {
+        return `The index is trading ${rounded}% above its 200 DMA, confirming a strong and intact bull market trend. This level of extension is healthy for a sustained uptrend. Dips toward the 200 DMA would present excellent long-term buying opportunities.`;
+    }
+    if (dmaDistance > 0) {
+        return `The index is ${rounded}% above its 200 DMA, maintaining structural bull market positioning. The 200 DMA is trending upward, confirming the long-term uptrend. This zone is constructive for medium-term investing.`;
+    }
+    if (dmaDistance > -3) {
+        return `The index is testing its 200 DMA (currently ${rounded}% below). This is the most critical technical level in any index — it separates the long-term bull and bear market regimes. A decisive break below on high volume is a major bearish signal; a reclaim with momentum is bullish.`;
+    }
+    if (dmaDistance > -12) {
+        return `The index is ${rounded}% below its 200 DMA, placing it in structural bear market territory. The 200 DMA is likely acting as resistance on bounces. Avoid aggressive long positions — wait for a reclaim and hold of the 200 DMA before turning constructive.`;
+    }
+    return `The index is ${rounded}% below its 200 DMA — historically an extreme dislocation for Indian indices. While the structural trend is bearish, such extreme dislocations below the 200 DMA have historically coincided with capitulation lows and sharp snap-back rallies. A contrarian reversal watch is appropriate.`;
+}
+
+export function generateAiInsightNetMarginCard(currentMargin, trendDesc) {
+    if (currentMargin === null || isNaN(currentMargin)) {
+        return 'Waiting for Net Margin data to generate insight.';
+    }
+
+    let text = `The company converts ${currentMargin.toFixed(2)}% of its total revenue into pure bottom-line profit.`;
+
+    if (trendDesc === "Exceptional Profitability") {
+        text += " Margins above 20% are typically reserved for software, asset-light tech, or companies with highly dominant monopolies.";
+    } else if (trendDesc === "High Margin") {
+        text += " This demonstrates strong pricing power and excellent cost controls.";
+    } else if (trendDesc === "Thin Margin") {
+        text += " The business operates on razor-thin margins, making it highly sensitive to minor increases in operating costs or inflation.";
+    } else if (trendDesc === "Loss Making") {
+        text += " The business is structurally unprofitable at the bottom line, indicating cash burn.";
+    }
+
+    return text;
+}
+
+export function generateAiInsightOperatingMarginCard(currentMargin, trendDesc) {
+    if (currentMargin === null || isNaN(currentMargin)) {
+        return 'Waiting for Operating Margin data to generate insight.';
+    }
+
+    let text = `The core business operations yield a margin of ${currentMargin.toFixed(2)}%.`;
+
+    if (trendDesc === "Exceptional Operations") {
+        text += " This highly lucrative margin suggests a wide economic moat, dominant market share, and low core operating costs.";
+    } else if (trendDesc === "High Operating Leverage") {
+        text += " The company efficiently manages its cost of goods sold and operating expenses relative to revenue.";
+    } else if (trendDesc === "Weak Operations") {
+        text += " Core profitability is dangerously thin, leaving little room for error if inflation or competition increases.";
+    } else if (trendDesc === "Operating Loss") {
+        text += " The core business is structurally unprofitable before even accounting for debt and taxes. Extreme risk.";
+    }
+
+    return text;
+}
+
+export function generateAiInsightPBRatioCard(currentPB, historicalPB, sectorPB) {
+    if (!currentPB) {
+        return "Insufficient data to analyze Price-to-Book valuation. Waiting for Upstox feed or manual override.";
+    }
+
+    if (historicalPB && sectorPB) {
+        if (currentPB < historicalPB && currentPB < sectorPB) {
+            return `Trading at a dual discount to both its historical average (${historicalPB}) and the sector (${sectorPB}), presenting a compelling value proposition assuming asset quality remains intact.`;
+        } else if (currentPB > historicalPB && currentPB > sectorPB) {
+            return `Priced at a premium over both historical norms and sector peers. Investors are pricing in exceptional future ROE or significant intangible asset value not captured on the balance sheet.`;
+        } else if (currentPB < historicalPB && currentPB > sectorPB) {
+            return `Historically undervalued for this specific company, but still commands a premium over the broader sector average of ${sectorPB}.`;
+        } else {
+            return `Trading above historical norms but below the sector average. The market recognizes improving fundamentals but hasn't fully re-rated it to sector levels.`;
+        }
+    }
+
+    if (historicalPB) {
+        if (currentPB < historicalPB * 0.9) return `Trading at a significant discount to its historical book value multiple, suggesting potential undervaluation or structural asset impairment.`;
+        if (currentPB > historicalPB * 1.1) return `Commanding a premium over its historical book value average, indicating market optimism regarding asset yield.`;
+        return `Fairly valued relative to its own historical book value multiples.`;
+    }
+
+    if (sectorPB) {
+        if (currentPB < sectorPB) return `Trading cheaper than the sector average on a price-to-book basis.`;
+        if (currentPB > sectorPB) return `Commanding a premium over sector peers for its net assets.`;
+    }
+
+    return `Current P/B stands at ${currentPB}.`;
+}
+
+export function generateAiInsightPERatioCard(currentPE, historicalAvg, sectorPE, bias) {
+    if (!currentPE) return 'Waiting for P/E data to generate an insight.';
+
+    const vsHist = historicalAvg
+        ? currentPE < historicalAvg
+            ? `trading at a ${((1 - currentPE / historicalAvg) * 100).toFixed(1)}% discount to its historical average of ${historicalAvg}x`
+            : `trading at a ${((currentPE / historicalAvg - 1) * 100).toFixed(1)}% premium to its historical average of ${historicalAvg}x`
+        : null;
+
+    const vsSector = sectorPE
+        ? currentPE < sectorPE
+            ? `cheaper than its sector peers at ${sectorPE}x`
+            : `richer than sector peers at ${sectorPE}x`
+        : null;
+
+    const contextParts = [vsHist, vsSector].filter(Boolean).join(', and ');
+    const context = contextParts ? ` The stock is currently ${contextParts}.` : '';
+
+    if (bias === 'Strong Bullish' || bias === 'Bullish') {
+        return `The current P/E of ${currentPE}x suggests the market is offering an attractive entry point from a valuation standpoint.${context} This may represent a favorable risk/reward for long-term investors.`;
+    } else if (bias === 'Neutral') {
+        return `At ${currentPE}x earnings, the stock appears fairly valued relative to growth expectations.${context} Monitor for earnings acceleration or deceleration before taking a directional view.`;
+    } else if (bias === 'Bearish') {
+        return `The P/E of ${currentPE}x suggests elevated expectations are already priced in.${context} Investors should exercise caution and await a more favorable entry.`;
+    } else {
+        return `At ${currentPE}x earnings, the stock is trading at a significant premium that may not be justified by fundamentals.${context} Downside risk is elevated if growth disappoints.`;
+    }
+}
+
+export function generateAiInsightProfitGrowthCard(profitHistory, cagr, trendDesc) {
+    if (!profitHistory || profitHistory.length < 2) {
+        if (cagr !== null && !isNaN(cagr)) {
+            return `Based on manual input, net profit is growing at a ${cagr}% CAGR, categorized as ${trendDesc}.`;
+        }
+        return "Waiting for Profit history to generate insight.";
+    }
+
+    let text = `The company's bottom-line has demonstrated ${trendDesc} with a ${cagr !== null ? cagr.toFixed(2) : '--'}% Compound Annual Growth Rate.`;
+
+    if (trendDesc === "Accelerating Growth") {
+        text += " Recent YoY profit growth is outpacing the historical CAGR, highlighting powerful operating leverage.";
+    } else if (trendDesc === "Contraction") {
+        text += " Net income is actively shrinking. Prolonged profit contraction destroys shareholder equity and dividend sustainability.";
+    } else if (trendDesc === "Explosive Growth") {
+        text += " Compounding net income at >25% annually indicates phenomenal execution and pricing power.";
+    }
+
+    return text;
+}
+
+export function generateAiInsightRevenueGrowthCard(revenueHistory, cagr, trendDesc) {
+    if (!revenueHistory || revenueHistory.length < 2) {
+        if (cagr !== null && !isNaN(cagr)) {
+            return `Based on manual input, the revenue is growing at a ${cagr}% CAGR, categorized as ${trendDesc}.`;
+        }
+        return "Waiting for Revenue history to generate insight.";
+    }
+
+    let text = `The company has demonstrated ${trendDesc} with a ${cagr !== null ? cagr.toFixed(2) : '--'}% Compound Annual Growth Rate over the analyzed period.`;
+
+    if (trendDesc === "Accelerating Growth") {
+        text += " Recent YoY growth exceeds the multi-year average, indicating increasing market penetration or successful new product cycles.";
+    } else if (trendDesc === "Contraction") {
+        text += " The top-line is shrinking, which is a severe structural red flag. Without revenue growth, profitability can only be maintained through finite cost-cutting.";
+    } else if (trendDesc === "Hyper Growth") {
+        text += " Sustaining >20% top-line growth at scale is rare and typically commands a significant premium in the market.";
+    }
+
+    return text;
+}
+
+export function generateAiInsightROCECard(currentROCE, sectorROCE, trendDesc) {
+    if (currentROCE === null || isNaN(currentROCE)) {
+        return 'Waiting for ROCE data to generate insight.';
+    }
+
+    let text = `The company generates a Return on Capital Employed (ROCE) of ${currentROCE.toFixed(2)}%`;
+    if (sectorROCE !== null && !isNaN(sectorROCE)) {
+        text += ` compared to the sector average of ${sectorROCE.toFixed(2)}%.`;
+    } else {
+        text += `.`;
+    }
+
+    if (trendDesc === "Elite Capital Allocator") {
+        text += " This indicates phenomenal capital allocation skills, compounding both equity and debt capital at exceptionally high rates.";
+    } else if (trendDesc === "Outperforming Sector") {
+        text += " Management is utilizing total capital more efficiently than industry peers.";
+    } else if (trendDesc === "Capital Destroyer") {
+        text += " The core business is failing to cover the blended cost of debt and equity capital, leading to structural value destruction.";
+    }
+
+    return text;
+}
+
+export function generateAiInsightROECard(currentROE, sectorROE, trendDesc) {
+    if (currentROE === null || isNaN(currentROE)) {
+        return 'Waiting for ROE data to generate insight.';
+    }
+
+    let text = `The company generates a Return on Equity (ROE) of ${currentROE.toFixed(2)}%`;
+    if (sectorROE !== null && !isNaN(sectorROE)) {
+        text += ` compared to the sector average of ${sectorROE.toFixed(2)}%.`;
+    } else {
+        text += `.`;
+    }
+
+    if (trendDesc === "Exceptional Compounder") {
+        text += " This indicates a powerful economic moat, highly efficient capital allocation, and strong pricing power.";
+    } else if (trendDesc === "Outperforming Sector") {
+        text += " Management is effectively utilizing shareholder equity to generate above-average profits.";
+    } else if (trendDesc === "Value Destroyer") {
+        text += " Negative returns actively destroy shareholder equity. Requires immediate fundamental turnaround.";
+    }
+
+    return text;
+}
+
+export function generateAiInsightVolatilityCard(vixValue, vixRegime, marketCondition) {
+    if (vixValue === null || isNaN(vixValue)) {
+        return "Enter the current India VIX reading to analyze market fear and volatility expectations. India VIX measures the expected volatility over the next 30 days derived from Nifty options prices.";
+    }
+
+    const rounded = vixValue.toFixed(2);
+
+    if (vixValue > 35) {
+        return `India VIX is at crisis levels (${rounded}), indicating extreme fear and expectation of sharp market dislocations. Historically, readings above 35 coincide with capitulation bottoms — a high-risk but potentially high-reward contrarian entry zone for long-term investors.`;
+    }
+    if (vixValue > 25) {
+        return `India VIX at ${rounded} signals significant market anxiety. Option premiums are expensive, suggesting large institutional players are aggressively hedging. Avoid leveraged positions — wait for VIX to start declining before adding risk.`;
+    }
+    if (vixValue > 18) {
+        return `India VIX is elevated at ${rounded}, reflecting above-normal market uncertainty. The market is pricing in meaningful risk — directional bets carry higher volatility. Risk management is critical at this level.`;
+    }
+    if (vixValue > 13) {
+        return `India VIX is in the normal range at ${rounded}, indicating a stable market environment with balanced risk. This is the historically optimal zone for systematic investing and trend-following strategies.`;
+    }
+    if (vixValue > 10) {
+        return `India VIX is comfortably low at ${rounded}, reflecting strong market confidence and low hedging demand. This benign environment supports momentum strategies, though very low VIX can precede sudden volatility shocks.`;
+    }
+    return `India VIX is at extreme lows (${rounded}) — historically rare and a sign of market complacency. While current conditions are calm, such extreme suppression of volatility has historically been a leading indicator of sudden spikes. Maintain disciplined stops.`;
+}
