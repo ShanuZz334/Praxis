@@ -147,9 +147,9 @@ export default function GlobalHeader({
                 isFlipped={isFlipped}
                 className="w-full h-full"
                 front={
-                    <div className="relative md:rounded-2xl md:border md:border-[var(--border-default)] md:dark:border-[var(--border-default)] md:shadow-[0_8px_24px_rgba(0,0,0,0.45)] md:overflow-hidden md:bg-background-card flex flex-col md:block">
+                    <div className="relative md:rounded-2xl md:border md:border-[var(--border-default)] md:dark:border-[var(--border-default)] md:shadow-[0_8px_24px_rgba(0,0,0,0.45)] md:overflow-visible md:bg-background-card flex flex-col md:block">
                         {/* FLIP BUTTON FRONT */}
-                        <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20">
+                        <div className="absolute top-3 right-1 md:top-3 md:right-1 z-20">
                             <FlipTrigger 
                                 onClick={() => setIsFlipped(true)} 
                                 className="text-[var(--color-praxis-blue)] hover:text-[var(--color-praxis-blue)]"
@@ -315,8 +315,8 @@ export default function GlobalHeader({
                             className="text-[var(--color-praxis-blue)] hover:text-[var(--color-praxis-blue)]"
                         />
                     </div>
-                    <div className="text-text-tertiary text-sm font-mono opacity-50">
-                        Back of Card Content
+                    <div className="w-full h-full p-4 md:p-6 overflow-y-auto custom-scrollbar">
+                        {infoContent}
                     </div>
                 </div>
             }
@@ -426,15 +426,6 @@ function ImpactList({ title, items, type }) {
     );
 }
 
-export function MobileHeaderControls({ controls }) {
-    if (!controls) return null;
-    return (
-        <div className="md:hidden bg-background-card rounded-2xl p-3 border border-border-default shadow-md mt-3 mb-3">
-            <HeaderControls controls={controls} />
-        </div>
-    );
-}
-
 function HeaderControls({ controls }) {
     return (
         <div className="flex flex-col md:flex-row justify-between items-center md:pt-4 md:p-4 text-text-primary bg-transparent">
@@ -451,6 +442,13 @@ function HeaderControls({ controls }) {
                     className={`w-full pl-9 pr-4 py-2 bg-background-app border ${STYLES.BORDER_INNER} rounded-lg text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all shadow-inner`}
                 />
             </div>
+
+            {/* MIDDLE: Custom Injected Controls (Options/Fundamentals Specific) */}
+            {controls.customComponent && (
+                <div className="flex-1 md:px-4 flex items-center justify-start gap-3 flex-wrap">
+                    {controls.customComponent}
+                </div>
+            )}
 
             {/* RIGHT: Toggles (Scrollable on Mobile) */}
             <div className="flex w-full md:w-auto overflow-x-auto md:overflow-visible gap-3 pb-1 md:pb-0 custom-scrollbar-hidden">
