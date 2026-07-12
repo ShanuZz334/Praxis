@@ -1,0 +1,61 @@
+import axios from "axios";
+import UpstoxAuth from "../models/UpstoxAuth.js";
+import localDb from "../config/localDb.js";
+
+const UPSTOX_FUNDAMENTALS_URL = "https://api.upstox.com/v2/fundamentals";
+
+export const getFundamentals = async (req, res) => {
+    try {
+        const auth = await UpstoxAuth.findOne().sort({ createdAt: -1 });
+        if (!auth || !auth.accessToken) {
+            return res.status(401).json({ error: "Upstox is not authenticated" });
+        }
+
+        const instrumentKey = req.query.instrument_key;
+        if (!instrumentKey) return res.status(400).json({ error: "instrument_key is required" });
+
+        // Lookup ISIN from local DB
+        const row = localDb.prepare("SELECT isin FROM instruments WHERE instrument_key = ?").get(instrumentKey);
+        
+        let isin = row ? row.isin : null;
+
+        if (!isin) {
+            // Indices don't have an ISIN or fundamental data via this Upstox API
+            return res.json({ 
+                status: "success", 
+                data: { ratios: [], income: [], balanceSheet: [], cashFlow: [], holdings: [] } 
+            });
+        }
+
+        const headers = {
+            "Accept": "application/json",
+            "Authorization": `Bearer ${auth.accessToken}`
+        };
+
+        // Fetch all 5 endpoints concurrently
+        // Note: For income-statement, balance-sheet, cash-flow we will request consolidated yearly
+        const endpoints = [
+            axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/key-ratios`, { headers }).catch(e => { console.log('Ratios Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
+            axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/income-statement?type=consolidated&time_period=yearly&fs=true`, { headers }).catch(e => { console.log('Income Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
+            axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/balance-sheet?type=consolidated&fs=true`, { headers }).catch(e => { console.log('Balance Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
+            axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/cash-flow?type=consolidated&fs=true`, { headers }).catch(e => { console.log('CashFlow Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
+            axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/share-holdings`, { headers }).catch(e => { console.log('Holdings Error:', e.response?.data || e.message); return { data: { data: [] }}; })
+        ];
+
+        const [ratiosRes, incomeRes, balanceRes, cashRes, holdingsRes] = await Promise.all(endpoints);
+
+        const payload = {
+            ratios: ratiosRes.data?.data || [],
+            income: incomeRes.data?.data || [],
+            balanceSheet: balanceRes.data?.data || [],
+            cashFlow: cashRes.data?.data || [],
+            holdings: holdingsRes.data?.data || []
+        };
+
+        res.json({ status: "success", data: payload });
+
+    } catch (error) {
+        console.error("Error fetching fundamentals:", error?.response?.data || error.message);
+        res.status(500).json({ error: "Internal server error while fetching fundamentals" });
+    }
+};

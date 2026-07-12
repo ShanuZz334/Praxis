@@ -20,16 +20,23 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 // =============================
 // Imports
 // =============================
-import express from "express";
+import express from "express"; // trigger restart
 import cors from "cors";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import upstoxRoutes from "./routes/upstoxRoutes.js";
 
 // =============================
 // Express App Setup
 // =============================
+import { initLocalDb } from "./config/localDb.js";
+
 const app = express();
+
+// Initialize Local SQLite
+initLocalDb();
+
 app.set("trust proxy", 1);
 
 // =============================
@@ -69,6 +76,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/upstox", upstoxRoutes);
 
 // =============================
 // Static Files
@@ -76,7 +84,47 @@ app.use("/api/v1/user", userRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // =============================
-// Server Start
+// Socket.io & Server Start
 // =============================
+import { createServer } from "http";
+import { Server } from "socket.io";
+import { connectUpstoxWebsocket } from "./services/upstoxWebsocket.js";
+import { initSocketBroadcaster } from "./services/socketBroadcast.js";
+import { initInstrumentCron } from "./services/upstoxInstrument.js";
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+const httpServer = createServer(app);
+
+const io = new Server(httpServer, {
+    cors: {
+        origin: process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',').map(url => url.trim()) : ["*"],
+        methods: ["GET", "POST"]
+    }
+});
+
+// Initialize centralized socket broadcaster
+initSocketBroadcaster(io);
+
+// Initialize daily cron jobs
+initInstrumentCron();
+
+io.on("connection", (socket) => {
+    console.log(`🔌 Client connected to Socket.io: ${socket.id}`);
+    
+    socket.on("subscribe:instruments", async ({ keys, mode }) => {
+        if (keys && keys.length > 0) {
+            const { subscribeToInstruments } = await import("./services/upstoxWebsocket.js");
+            subscribeToInstruments(keys, mode || "full");
+        }
+    });
+    
+    socket.on("disconnect", () => {
+        console.log(`🔌 Client disconnected from Socket.io: ${socket.id}`);
+    });
+});
+
+httpServer.listen(PORT, () => {
+    console.log(`✅ Server running on port ${PORT}`);
+    // Start the Upstox Market Data Feed V3 service
+    connectUpstoxWebsocket();
+});
