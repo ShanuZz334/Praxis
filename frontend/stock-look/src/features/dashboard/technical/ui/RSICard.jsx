@@ -1,76 +1,55 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function RSICard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || 50);
+import { scoreRSICard } from '../engine/TechnicalCompositeEngine';
 
+export default function RSICard({ data = null, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('rsi');
+    
+    const settingsConfig = [
+        { id: "rsi_period", label: "RSI Period", type: "number", min: 2, max: 50, default: 14 }
+    ];
 
-    let score = 50;
-    let bias = "Neutral";
-    let aiInsightText = "";
+    // Resolve current value
+    const currentValue = data?.rsi ?? null;
 
-    if (currentValue >= 70) {
-        bias = "Strong Bullish";
-        score = 85 - (currentValue - 70); // reduced if >80 as per specs (mocking logic)
-        aiInsightText = "Strong bullish momentum detected. However, the market may be entering an overbought zone where short-term pullbacks become more likely.";
-    } else if (currentValue >= 55) {
-        bias = "Bullish";
-        score = 65;
-        aiInsightText = "Healthy bullish momentum observed, with buyers maintaining control of the price action.";
-    } else if (currentValue >= 45) {
-        bias = "Neutral";
-        score = 50;
-        aiInsightText = "Momentum is balanced with no clear directional advantage for either buyers or sellers.";
-    } else if (currentValue >= 30) {
-        bias = "Bearish";
-        score = 35;
-        aiInsightText = "Momentum is weakening, indicating increasing selling pressure in the market.";
-    } else {
-        bias = "Strong Bearish";
-        score = 15;
-        aiInsightText = "Oversold conditions present. There is a possibility of a relief rally, but confirmation from other indicators is strongly recommended.";
-    }
+    const { score, bias, confidence, aiInsight } = scoreRSICard(currentValue);
 
-    const confidence = "70%"; // Base confidence
-
+    const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) : '--';
+    
     return (
         <IndicatorCard
-            config={{
-                title: "RSI (14)",
-                category: "Momentum",
-                mode: "MANUAL",
-                creditScore: configData.creditScore,
-                updateTime: "--:--",
-                source: configData.source,
-                aiModel: configData.aiModel
+            config={{ 
+                title: "RSI", 
+                category: "Momentum", 
+                mode: "AUTO", 
+                creditScore: configData.creditScore, 
+                updateTime: lastUpdated ?? "--:--", 
+                source: configData.source, 
+                aiModel: configData.aiModel,
+                settingsConfig,
+                onSettingsClick: () => onOpenSettings?.(settingsConfig)
             }}
-            data={{
-                currentValueObj: { label: "Current RSI", value: currentValue },
-                details: [
-                    { label: "Trend Bias", value: bias }
-                ],
-                score,
-                bias,
-                confidence,
-                impactWeight: configData.impactWeight
+            data={{ 
+                currentValueObj: { label: "Current RSI", value: displayValue }, 
+                details: [], 
+                score, 
+                bias, 
+                confidence, 
+                impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "RSI" }}
-            insights={{
-                aiInsight: aiInsightText,
+            chartData={{ points: data?.history || [], valueKey: "value", valueName: "RSI" }}
+            insights={{ 
+                aiInsight: aiInsight, 
                 whyItMatters: [
-                    "Measures market momentum rather than trend direction.",
-                    "Helps identify overbought and oversold conditions.",
-                    "Useful for spotting potential reversals and momentum shifts.",
-                    "Most reliable when combined with trend-following indicators.",
-                    "Widely used by institutional and retail traders, making it a commonly watched market signal."
-                ]
+                    "The premier momentum oscillator for identifying overbought/oversold extremes.",
+                    "Wall Street closely monitors the 30 and 70 thresholds.",
+                    "Divergence between RSI and price action is a powerful reversal signal.",
+                    "In strong uptrends, RSI may stay overbought (>70) for extended periods.",
+                    "In strong downtrends, RSI may stay oversold (<30) for extended periods."
+                ] 
             }}
-            onSave={(val) => {
-                const n = parseFloat(val);
-                if (!isNaN(n)) setCurrentValue(n);
-            }}
-        />
+            />
     );
 }

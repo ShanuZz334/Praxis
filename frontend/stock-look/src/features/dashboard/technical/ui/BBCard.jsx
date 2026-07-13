@@ -1,61 +1,53 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function BBCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || null);
+import { scoreBBCard } from '../engine/TechnicalCompositeEngine';
+
+export default function BBCard({ data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('bb_20_2');
     
-    let score = 50, bias = "Neutral", confidence = "75%", aiInsightText = "Waiting for data...";
-    
-    if (currentValue !== null) {
-        const val = Number(currentValue);
-        score = val >= 0 && val <= 100 ? val : 50; 
-        
-        if (score >= 85) { 
-            bias = "Strong Bullish"; 
-            aiInsightText = "Strong bullish momentum while price may be overextended above the upper band."; 
-        } else if (score >= 70) { 
-            bias = "Bullish"; 
-            aiInsightText = "Volatility is expanding and trend strength is improving."; 
-        } else if (score >= 50) { 
-            bias = "Neutral"; 
-            aiInsightText = "The market is trading around its average value with balanced momentum."; 
-        } else if (score >= 30) { 
-            bias = "Weak"; 
-            aiInsightText = "Volatility has contracted (Band Squeeze) and a significant move may be approaching."; 
-        } else { 
-            bias = "Bearish"; 
-            aiInsightText = "Strong bearish momentum while noting possible oversold conditions below the lower band."; 
-        }
-    }
+    const settingsConfig = [
+        { id: "bb_period", label: "BB Period", type: "number", min: 2, max: 100, default: 20 },
+        { id: "bb_stddev", label: "BB StdDev", type: "number", min: 0.1, max: 5, default: 2 }
+    ];
 
-    return (
+    // Resolve current value from live backend data
+    const valObj = data?.bb_20_2 || null;
+
+    const { score, bias, confidence, aiInsight } = scoreBBCard(valObj);
+
+    const formatPrice = (v) => (v !== null && v !== undefined && !isNaN(v) ? "₹" + parseFloat(v).toFixed(2) : '--');
+    const formatPercent = (v) => (v !== null && v !== undefined && !isNaN(v) ? (parseFloat(v) * 100).toFixed(2) + '%' : '--');
+
+return (
         <IndicatorCard
             config={{ 
                 title: "Bollinger Bands", 
                 category: "Volatility", 
-                mode: "MANUAL", 
+                mode: "AUTO", 
                 creditScore: configData.creditScore, 
-                updateTime: "--:--", 
+                updateTime: lastUpdated ?? "--:--", 
                 source: configData.source, 
-                aiModel: configData.aiModel 
+                aiModel: configData.aiModel,
+                settingsConfig,
+                onSettingsClick: () => onOpenSettings?.(settingsConfig)
             }}
             data={{ 
-                currentValueObj: { label: "BB Score", value: currentValue ?? "--" }, 
+                currentValueObj: { label: "%b Score", value: formatPercent(valObj?.pb) }, 
                 details: [
-                    {label: "Upper Band", value: "--"}, 
-                    {label: "Middle Band", value: "--"}, 
-                    {label: "Lower Band", value: "--"}
+                    {label: "Upper Band", value: formatPrice(valObj?.upper)}, 
+                    {label: "Middle Band", value: formatPrice(valObj?.middle)}, 
+                    {label: "Lower Band", value: formatPrice(valObj?.lower)}
                 ], 
                 score, 
                 bias, 
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "BB Score" }}
+            chartData={{ points: data?.history || [], valueKey: "value", valueName: "BB Score" }}
             insights={{ 
-                aiInsight: aiInsightText, 
+                aiInsight: aiInsight, 
                 whyItMatters: [
                     "Measures market volatility dynamically.",
                     "Identifies volatility contractions and expansions.",
@@ -64,10 +56,6 @@ export default function BBCard({ initialData = null }) {
                     "Useful for both trend-following and mean-reversion strategies."
                 ]
             }}
-            onSave={(val) => { 
-                const n = parseFloat(val); 
-                if(!isNaN(n)) setCurrentValue(n); 
-            }}
-        />
+            />
     );
 }

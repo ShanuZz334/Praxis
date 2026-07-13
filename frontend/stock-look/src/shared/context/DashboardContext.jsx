@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { API_PATHS } from '@/shared/utils/apiPaths';
 import { FO_INDICES, FO_EQUITIES } from '@/shared/utils/foInstruments';
+import socket from '@/shared/utils/socket';
 
 export const DashboardContext = createContext();
 
@@ -81,16 +82,18 @@ export const DashboardProvider = ({ children }) => {
         fetchExpiries();
     }, [selectedInstrument]);
 
-    // Global Live Price Polling (1 second)
+    // Global Live Price Polling (Fallback to 1-shot fetch, then stream via WebSockets)
     useEffect(() => {
-        const fetchPrices = async () => {
+        const keysToFetch = Array.from(new Set([
+            "NSE_INDEX|Nifty 50", 
+            "NSE_INDEX|Nifty Bank", 
+            "NSE_INDEX|India VIX",
+            selectedInstrument
+        ].filter(Boolean)));
+
+        // 1. Initial REST Fetch to populate baseline instantly
+        const fetchInitialPrices = async () => {
             try {
-                const keysToFetch = Array.from(new Set([
-                    "NSE_INDEX|Nifty 50", 
-                    "NSE_INDEX|Nifty Bank", 
-                    selectedInstrument
-                ].filter(Boolean)));
-                
                 const instrumentsStr = encodeURIComponent(keysToFetch.join(','));
                 const res = await axiosInstance.get(`/api/v1/upstox/market-quote?instruments=${instrumentsStr}`);
                 const data = res.data?.data;
@@ -118,14 +121,44 @@ export const DashboardProvider = ({ children }) => {
                     });
                 }
             } catch (error) {
-                console.error("Failed to fetch live quotes:", error);
+                console.error("Failed to fetch initial live quotes:", error);
             }
         };
         
-        fetchPrices();
-        const intervalId = setInterval(fetchPrices, 1000); // 1 second interval
-        
-        return () => clearInterval(intervalId);
+        fetchInitialPrices();
+
+        // 2. Subscribe via WebSockets for zero-latency streaming
+        socket.emit("subscribe:instruments", { keys: keysToFetch, mode: "full" });
+
+        const handleMarketUpdate = ({ instrumentKey, data }) => {
+            // Only update if it's one of the global keys we care about
+            if (!keysToFetch.includes(instrumentKey)) return;
+
+            setLivePrices(prev => {
+                const existing = prev[instrumentKey] || {};
+                const ltp = data.ltp || existing.ltp || 0;
+                const close = data.close || existing.close || ltp;
+                const netChange = ltp - close;
+                const pctChange = close ? (netChange / close) * 100 : 0;
+
+                return {
+                    ...prev,
+                    [instrumentKey]: {
+                        ltp,
+                        close,
+                        netChange,
+                        pctChange,
+                        status: netChange > 0 ? 'up' : netChange < 0 ? 'down' : 'neutral'
+                    }
+                };
+            });
+        };
+
+        socket.on("market:update", handleMarketUpdate);
+
+        return () => {
+            socket.off("market:update", handleMarketUpdate);
+        };
     }, [selectedInstrument]);
 
     const value = {

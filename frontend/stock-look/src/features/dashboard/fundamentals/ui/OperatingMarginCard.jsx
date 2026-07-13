@@ -66,9 +66,9 @@ export default function OperatingMarginCard({ data, manualOverride, lastUpdated 
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Operating Margin (%)', value: currentMargin !== null ? currentMargin.toFixed(2) : '--' },
+                currentValueObj: { label: 'Operating Margin (%)', value: currentMargin !== null ? currentMargin.toFixed(2) + '%' : '--' },
                 details: [
-                    sectorMargin !== null && { label: 'Sector Margin', value: sectorMargin.toFixed(2), isManual: false }
+                    sectorMargin !== null && { label: 'Sector Margin', value: sectorMargin.toFixed(2) + '%', isManual: false }
                 ].filter(Boolean),
                 score: score || 0,
                 bias: bias || 'Neutral',

@@ -267,7 +267,7 @@ export default function OptionsPage() {
                 <GlobalHeader
                     title="Options Sentiment"
                     score={0}
-                    prevScore={0}
+                    prevScore={null}
                     gauge={{ label: "—", color: "#64748B" }}
                     regime={{ label: "—", description: "Loading", color: "#64748B", confidence: 0 }}
                     integrity={{ coverage: "—", source: "—", freshness: "—" }}

@@ -26,7 +26,7 @@ export default function EventsPage() {
             <GlobalHeader
                 title="Events Sentiment"
                 score={0}
-                prevScore={0}
+                prevScore={null}
                 gauge={{ label: "—", color: "#64748B" }}
                 regime={{ label: "—", description: "No data loaded", color: "#64748B", confidence: 0 }}
                 sections={[]}

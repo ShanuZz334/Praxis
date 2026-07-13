@@ -31,6 +31,7 @@ import CardSegmented from "@/shared/components/controls/CardSegmented";
 import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 import { getCompositeState, getSignalState } from "@/shared/global/logic/signals";
 import { typography } from "@/shared/global/styles/typography";
+import { getCompositeColor, getIndicatorColor } from "@/shared/config/scoreColors";
 
 // =============================
 // Constants
@@ -105,9 +106,10 @@ export default function GlobalHeader({
     // 1. Composite Logic
     const compositeState = getCompositeState(score);
 
-    // 2. Delta Logic
+    // 2. Delta Logic — only computed when a real previous score exists
     const scoreNum = Number(score || 0);
-    const prevScoreNum = Number(prevScore || scoreNum);
+    const hasPrevScore = prevScore !== null && prevScore !== undefined;
+    const prevScoreNum = hasPrevScore ? Number(prevScore) : scoreNum;
     const deltaRaw = scoreNum - prevScoreNum;
     const deltaVal = Math.abs(deltaRaw).toFixed(1);
     const deltaSign = deltaRaw > 0 ? "+" : deltaRaw < 0 ? "-" : "";
@@ -167,14 +169,16 @@ export default function GlobalHeader({
                                 <span className="truncate">{title}</span>
                             </div>
 
-                            {/* Delta Pill */}
-                            <div className={`flex items-center gap-1 ${deltaColor} bg-background-surface px-1.5 md:px-2 py-1 rounded text-[10px] font-mono border ${STYLES.BORDER_INNER} shrink-0`}>
-                                <span className="font-bold">{deltaSign}{deltaVal}%</span>
-                                <span className="hidden sm:inline opacity-70 ml-1 italic lowercase">vs prev</span>
-                            </div>
+                            {/* Delta Pill — only shown when a real previous score exists for this instrument */}
+                            {hasPrevScore && (
+                                <div className={`flex items-center gap-1 ${deltaColor} bg-background-surface px-1.5 md:px-2 py-1 rounded text-[10px] font-mono border ${STYLES.BORDER_INNER} shrink-0`}>
+                                    <span className="font-bold">{deltaSign}{deltaVal}%</span>
+                                    <span className="hidden sm:inline opacity-70 ml-1 italic lowercase">vs prev</span>
+                                </div>
+                            )}
                         </div>
 
-                        {title?.toUpperCase() === "FUNDAMENTAL COMPOSITE" ? (
+                        {Array.isArray(sections) && sections.length > 0 ? (
                             <FundamentalGaugePanel score={score} regime={regime} sections={sections} />
                         ) : (
                             <>
@@ -384,13 +388,8 @@ function SectionBar({ sections }) {
                 const sc = s.score;
                 const heightPct = sc !== null ? Math.min(100, Math.max(0, sc)) : 0;
                 
-                let barHex = '#E5484D'; // Poor (0-20)
-                if (sc !== null) {
-                    if (sc >= 81) barHex = '#2E5BFF'; // Exceptional
-                    else if (sc >= 61) barHex = '#22C55E'; // Strong
-                    else if (sc >= 41) barHex = '#94A3B8'; // Balanced
-                    else if (sc >= 21) barHex = '#F59E0B'; // Weak
-                }
+                // Section tubes use Table 2: Indicator Palette (5 tiers)
+                const barHex = getIndicatorColor(sc).hex;
 
                 return (
                     <div key={s.id} className="relative flex flex-col items-center justify-end h-full group">
@@ -426,12 +425,8 @@ function FundamentalGaugePanel({ score, regime, sections }) {
     const circumference = radius * 2 * Math.PI;
     const offset = circumference - (score / 100) * circumference;
     
-    // Determine color based on score (matches FundamentalCompositeEngine)
-    let donutColor = '#E5484D'; // Poor (0-20)
-    if (score >= 81) donutColor = '#2E5BFF'; // Exceptional
-    else if (score >= 61) donutColor = '#22C55E'; // Strong
-    else if (score >= 41) donutColor = '#94A3B8'; // Balanced
-    else if (score >= 21) donutColor = '#F59E0B'; // Weak
+    // Composite number uses Table 1: Composite Score Palette (7 tiers)
+    const donutColor = getCompositeColor(score).hex;
 
     return (
         <div className="flex flex-col w-full h-full justify-between pt-2">

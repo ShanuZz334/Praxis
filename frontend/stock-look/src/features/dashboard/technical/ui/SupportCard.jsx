@@ -1,65 +1,41 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function SupportCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || null);
-    
+import { scoreSupportCard } from '../engine/TechnicalCompositeEngine';
+
+export default function SupportCard({ data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('support');
     
-    let score = 0, bias = "Neutral", confidence = "75%", aiInsightText = "Waiting...";
-    
-    if (currentValue !== null) {
-        score = currentValue;
-        
-        if (score <= 30) {
-            bias = "Bearish";
-            aiInsightText = "Sellers gained control after breaking a key demand zone.";
-        } else if (score <= 50) {
-            bias = "Weak Support";
-            aiInsightText = "Repeated testing weakens support.";
-        } else if (score <= 70) {
-            bias = "Neutral";
-            aiInsightText = "This is an important decision zone.";
-        } else if (score <= 85) {
-            bias = "Bullish";
-            aiInsightText = "Buyers continue defending this level.";
-        } else {
-            bias = "Strong Bullish";
-            aiInsightText = "Buyers successfully defended support.";
-        }
-    }
+    const liveValue = data?.support ?? null;
+    const isManual = liveValue === null && manualOverride !== null && manualOverride !== undefined;
+    const currentValue = liveValue ?? manualOverride ?? null;
+    const currentPrice = data?.current_price ?? null;
 
-    const whyItMatters = [
-        "Identifies high-probability buying zones.",
-        "Used for stop-loss placement.",
-        "Helps estimate downside risk.",
-        "Confirms market structure.",
-        "Widely used by institutional traders."
-    ];
+    const { score, bias, confidence, aiInsight } = scoreSupportCard(currentValue, currentPrice);
 
+    const displayValue = currentValue !== null && !isNaN(currentValue) ? "₹" + parseFloat(currentValue).toFixed(2) : '--';
     return (
         <IndicatorCard
             config={{ 
                 title: "Support Level", 
                 category: "Market Structure", 
-                mode: "MANUAL", 
+                mode: isManual ? "MANUAL" : "AUTO", 
                 creditScore: configData.creditScore, 
-                updateTime: "--:--", 
+                updateTime: lastUpdated ?? "--:--", 
                 source: configData.source, 
                 aiModel: configData.aiModel 
             }}
             data={{ 
-                currentValueObj: { label: "Score", value: currentValue ?? "--" }, 
+                currentValueObj: { label: "Support", value: displayValue, isManual }, 
                 details: [], 
                 score, 
                 bias, 
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "Support Score" }}
-            insights={{ aiInsight: aiInsightText, whyItMatters }}
-            onSave={(val) => { const n = parseFloat(val); if(!isNaN(n)) setCurrentValue(n); }}
-        />
+            chartData={{ points: [], valueKey: "value", valueName: "Support Score" }}
+            insights={{ aiInsight: aiInsight, whyItMatters: ["Support represents a structural floor where buyers previously stepped in.", "A breakdown below support signals a structural shift to the downside."] }}
+            />
     );
 }

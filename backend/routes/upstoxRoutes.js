@@ -3,6 +3,7 @@ import axios from "axios";
 import UpstoxAuth from "../models/UpstoxAuth.js";
 import MarketTick from "../models/MarketTick.js";
 import { getCache, setCache } from "../services/cacheService.js";
+import db from "../config/localDb.js";
 
 const router = express.Router();
 
@@ -145,6 +146,37 @@ router.get("/market-quote", async (req, res) => {
                 };
             });
 
+            // Seed Local SQLite for fast synchronous reads by Technical Engines
+            try {
+                const insertTick = db.prepare("INSERT INTO market_ticks (instrument_key, ltp, volume, open_interest, timestamp) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)");
+                
+                const insertQuote = db.prepare(`
+                    INSERT INTO quotes (
+                        instrument_key, ltp, open, high, low, close, volume, 
+                        updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    ON CONFLICT(instrument_key) DO UPDATE SET
+                        ltp=excluded.ltp,
+                        open=excluded.open,
+                        high=excluded.high,
+                        low=excluded.low,
+                        close=excluded.close,
+                        volume=excluded.volume,
+                        updated_at=CURRENT_TIMESTAMP
+                `);
+
+                const insertManyQuotes = db.transaction((quotesToInsert) => {
+                    for (const q of quotesToInsert) {
+                        insertTick.run(q.instrument, q.ltp, q.volume || 0, q.openInterest || 0);
+                        insertQuote.run(q.instrument, q.ltp, q.open || null, q.high || null, q.low || null, q.close || null, q.volume || 0);
+                    }
+                });
+                insertManyQuotes(ticksToSave);
+            } catch (sqliteErr) {
+                console.error("Failed to seed SQLite with initial REST data:", sqliteErr.message);
+            }
+
+            // Save historical tracking to MongoDB
             MarketTick.insertMany(ticksToSave).catch(err => {
                 console.error("Failed to save market ticks to DB:", err.message);
             });
@@ -245,9 +277,14 @@ router.get("/option-greeks", async (req, res) => {
 });
 
 import { getFundamentals } from "../controllers/fundamentalsController.js";
+import { getTechnicalIndicators } from "../controllers/technicalsController.js";
 
 // @route   GET /api/v1/upstox/fundamentals
 // @desc    Fetch combined fundamental data (ratios, income, balance sheet, cash flow, holdings) using Upstox V2 API
 router.get("/fundamentals", getFundamentals);
+
+// @route   GET /api/v1/upstox/technicals
+// @desc    Fetch and calculate technical indicators from Upstox historical OHLC
+router.get("/technicals", getTechnicalIndicators);
 
 export default router;

@@ -60,15 +60,7 @@ const HARDCODED_IDS = new Set([
 // =============================
 // Main Component
 // =============================
-export default function FundamentalGrid({ cards, viewMode, sortMode = "score_desc", onCardClick, controls, data, snapshot, selectedCategory, manualOverrides, lastUpdated, manualLastUpdated }) {
-
-  // Resolve the correct timestamp for each card:
-  // - Live (AUTO) cards show when the API data was last fetched
-  // - Manual cards show when the override was last changed
-  const liveTime   = lastUpdated       || '--:--';
-  const manualTime = manualLastUpdated || '--:--';
-  // For cards where we don't know the source yet, show whichever is newer (non-placeholder)
-  const resolveTime = (isLive) => isLive ? liveTime : manualTime;
+export default function FundamentalGrid({ cards, viewMode, sortMode = "score_desc", onCardClick, controls, data, snapshot, selectedCategory, manualOverrides, resolveTime }) {
 
   // --- Logic: Sorting ---
   const sortCards = (list) => {
@@ -126,31 +118,31 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
 
   const getHardcodedNode = (cardId) => {
       switch (cardId) {
-          case 'pe_ratio': return <PERatioCard key={cardId} data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_pe : manualOverrides?.pe_ratio} lastUpdated={resolveTime(true)} />;
-          case 'forward_pe': return <ForwardPECard key={cardId} data={data} manualOverride={manualOverrides?.forward_pe} lastUpdated={resolveTime(false)} />;
-          case 'pb_ratio': return <PBRatioCard key={cardId} data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_pb : manualOverrides?.pb_ratio} lastUpdated={resolveTime(true)} />;
-          case 'earnings_yield': return <EarningsYieldCard key={cardId} data={data} manualOverride={manualOverrides?.earnings_yield} lastUpdated={resolveTime(true)} />;
-          case 'market_cap_gdp': return <MarketCapGDPCard key={cardId} data={data} manualOverride={manualOverrides?.market_cap_gdp} lastUpdated={resolveTime(false)} />;
-          case 'dividend_yield': return <DividendYieldCard key={cardId} data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_div_yield : manualOverrides?.dividend_yield} lastUpdated={resolveTime(true)} />;
-          case 'earnings_trend': return <EarningsTrendCard key={cardId} data={data} manualOverride={manualOverrides?.earnings_trend} lastUpdated={resolveTime(false)} />;
-          case 'fii_dii_flow': return <FIIDIIFlowCard key={cardId} data={{ ...data, manualDiiFlow: manualOverrides?.dii_flow }} manualOverride={manualOverrides?.fii_flow} lastUpdated={resolveTime(false)} />;
-          case 'eps_growth': return <EPSGrowthCard key={cardId} data={data} manualOverride={manualOverrides?.eps_growth} lastUpdated={resolveTime(true)} />;
-          case 'revenue_growth': return <RevenueGrowthCard key={cardId} data={data} manualOverride={manualOverrides?.revenue_growth} lastUpdated={resolveTime(true)} />;
-          case 'profit_growth': return <ProfitGrowthCard key={cardId} data={data} manualOverride={manualOverrides?.profit_growth} lastUpdated={resolveTime(true)} />;
-          case 'gdp_growth': return <GDPGrowthCard key={cardId} data={data} manualOverride={manualOverrides?.gdp_growth} lastUpdated={resolveTime(false)} />;
-          case 'roe': return <ROECard key={cardId} data={data} manualOverride={manualOverrides?.roe} lastUpdated={resolveTime(true)} />;
-          case 'roce': return <ROCECard key={cardId} data={data} manualOverride={manualOverrides?.roce} lastUpdated={resolveTime(true)} />;
-          case 'net_margin': return <NetMarginCard key={cardId} data={data} manualOverride={manualOverrides?.net_margin} lastUpdated={resolveTime(true)} />;
-          case 'operating_margin': return <OperatingMarginCard key={cardId} data={data} manualOverride={manualOverrides?.operating_margin} lastUpdated={resolveTime(true)} />;
-          case 'debt_to_equity': return <DebtToEquityCard key={cardId} data={data} manualOverride={manualOverrides?.debt_to_equity} lastUpdated={resolveTime(true)} />;
-          case 'interest_coverage': return <InterestCoverageCard key={cardId} data={data} manualOverride={manualOverrides?.interest_coverage} lastUpdated={resolveTime(true)} />;
-          case 'free_cash_flow': return <FreeCashFlowCard key={cardId} data={data} manualOverride={manualOverrides?.free_cash_flow} lastUpdated={resolveTime(true)} />;
-          case 'current_ratio': return <CurrentRatioCard key={cardId} data={data} manualOverride={manualOverrides?.current_ratio} lastUpdated={resolveTime(true)} />;
-          case 'advance_decline': return <AdvanceDeclineCard key={cardId} data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.ad_ratio : manualOverrides?.advance_decline} lastUpdated={resolveTime(false)} />;
-          case 'india_vix': return <VolatilityCard key={cardId} data={data} manualOverride={manualOverrides?.india_vix} lastUpdated={resolveTime(false)} />;
-          case 'index_pcr': return <IndexPCRCard key={cardId} data={data} manualOverride={manualOverrides?.index_pcr} lastUpdated={resolveTime(false)} />;
-          case 'index_macd': return <MACDTrendCard key={cardId} data={data} manualOverride={manualOverrides?.index_macd} lastUpdated={resolveTime(false)} />;
-          case 'index_200dma': return <MovingAverageCard key={cardId} data={data} manualOverride={manualOverrides?.index_200dma} lastUpdated={resolveTime(false)} />;
+          case 'pe_ratio': return <PERatioCard key={cardId} data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_pe : manualOverrides?.pe_ratio} lastUpdated={resolveTime(!!data?.pe_ratio, 'pe_ratio')} />;
+          case 'forward_pe': return <ForwardPECard key={cardId} data={data} manualOverride={manualOverrides?.forward_pe} lastUpdated={resolveTime(!!data?.forward_pe, 'forward_pe')} />;
+          case 'pb_ratio': return <PBRatioCard key={cardId} data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_pb : manualOverrides?.pb_ratio} lastUpdated={resolveTime(!!data?.pb_ratio, 'pb_ratio')} />;
+          case 'earnings_yield': return <EarningsYieldCard key={cardId} data={data} manualOverride={manualOverrides?.earnings_yield} lastUpdated={resolveTime(!!data?.earnings_yield, 'earnings_yield')} />;
+          case 'market_cap_gdp': return <MarketCapGDPCard key={cardId} data={data} manualOverride={manualOverrides?.market_cap_gdp} lastUpdated={resolveTime(!!data?.market_cap_gdp, 'market_cap_gdp')} />;
+          case 'dividend_yield': return <DividendYieldCard key={cardId} data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_div_yield : manualOverrides?.dividend_yield} lastUpdated={resolveTime(!!data?.dividend_yield, 'dividend_yield')} />;
+          case 'earnings_trend': return <EarningsTrendCard key={cardId} data={data} manualOverride={manualOverrides?.earnings_trend} lastUpdated={resolveTime(!!data?.earnings_trend, 'earnings_trend')} />;
+          case 'fii_dii_flow': return <FIIDIIFlowCard key={cardId} data={{ ...data, manualDiiFlow: manualOverrides?.dii_flow }} manualOverride={manualOverrides?.fii_flow} lastUpdated={resolveTime(!!data?.fii_dii_flow, 'fii_dii_flow')} />;
+          case 'eps_growth': return <EPSGrowthCard key={cardId} data={data} manualOverride={manualOverrides?.eps_growth} lastUpdated={resolveTime(!!data?.eps_growth, 'eps_growth')} />;
+          case 'revenue_growth': return <RevenueGrowthCard key={cardId} data={data} manualOverride={manualOverrides?.revenue_growth} lastUpdated={resolveTime(!!data?.revenue_growth, 'revenue_growth')} />;
+          case 'profit_growth': return <ProfitGrowthCard key={cardId} data={data} manualOverride={manualOverrides?.profit_growth} lastUpdated={resolveTime(!!data?.profit_growth, 'profit_growth')} />;
+          case 'gdp_growth': return <GDPGrowthCard key={cardId} data={data} manualOverride={manualOverrides?.gdp_growth} lastUpdated={resolveTime(!!data?.gdp_growth, 'gdp_growth')} />;
+          case 'roe': return <ROECard key={cardId} data={data} manualOverride={manualOverrides?.roe} lastUpdated={resolveTime(!!data?.roe, 'roe')} />;
+          case 'roce': return <ROCECard key={cardId} data={data} manualOverride={manualOverrides?.roce} lastUpdated={resolveTime(!!data?.roce, 'roce')} />;
+          case 'net_margin': return <NetMarginCard key={cardId} data={data} manualOverride={manualOverrides?.net_margin} lastUpdated={resolveTime(!!data?.net_margin, 'net_margin')} />;
+          case 'operating_margin': return <OperatingMarginCard key={cardId} data={data} manualOverride={manualOverrides?.operating_margin} lastUpdated={resolveTime(!!data?.operating_margin, 'operating_margin')} />;
+          case 'debt_to_equity': return <DebtToEquityCard key={cardId} data={data} manualOverride={manualOverrides?.debt_to_equity} lastUpdated={resolveTime(!!data?.debt_to_equity, 'debt_to_equity')} />;
+          case 'interest_coverage': return <InterestCoverageCard key={cardId} data={data} manualOverride={manualOverrides?.interest_coverage} lastUpdated={resolveTime(!!data?.interest_coverage, 'interest_coverage')} />;
+          case 'free_cash_flow': return <FreeCashFlowCard key={cardId} data={data} manualOverride={manualOverrides?.free_cash_flow} lastUpdated={resolveTime(!!data?.free_cash_flow, 'free_cash_flow')} />;
+          case 'current_ratio': return <CurrentRatioCard key={cardId} data={data} manualOverride={manualOverrides?.current_ratio} lastUpdated={resolveTime(!!data?.current_ratio, 'current_ratio')} />;
+          case 'advance_decline': return <AdvanceDeclineCard key={cardId} data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.ad_ratio : manualOverrides?.advance_decline} lastUpdated={resolveTime(!!data?.advance_decline, 'advance_decline')} />;
+          case 'india_vix': return <VolatilityCard key={cardId} data={data} manualOverride={manualOverrides?.india_vix} lastUpdated={resolveTime(!!data?.india_vix, 'india_vix')} />;
+          case 'index_pcr': return <IndexPCRCard key={cardId} data={data} manualOverride={manualOverrides?.index_pcr} lastUpdated={resolveTime(!!data?.index_pcr, 'index_pcr')} />;
+          case 'index_macd': return <MACDTrendCard key={cardId} data={data} manualOverride={manualOverrides?.index_macd} lastUpdated={resolveTime(!!data?.index_macd, 'index_macd')} />;
+          case 'index_200dma': return <MovingAverageCard key={cardId} data={data} manualOverride={manualOverrides?.index_200dma} lastUpdated={resolveTime(!!data?.index_200dma, 'index_200dma')} />;
           default: return null;
       }
   }
@@ -344,15 +336,15 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
                   <>
                     {selectedCategory !== "Indices" ? (
                       <>
-                        <ROECard data={data} manualOverride={manualOverrides?.roe} lastUpdated={data ? liveTime : manualTime} />
-                        <ROCECard data={data} manualOverride={manualOverrides?.roce} lastUpdated={data ? liveTime : manualTime} />
-                        <NetMarginCard data={data} manualOverride={manualOverrides?.net_margin} lastUpdated={data ? liveTime : manualTime} />
-                        <OperatingMarginCard data={data} manualOverride={manualOverrides?.operating_margin} lastUpdated={data ? liveTime : manualTime} />
+                        <ROECard data={data} manualOverride={manualOverrides?.roe} lastUpdated={resolveTime(!!data?.roe, 'roe')} />
+                        <ROCECard data={data} manualOverride={manualOverrides?.roce} lastUpdated={resolveTime(!!data?.roce, 'roce')} />
+                        <NetMarginCard data={data} manualOverride={manualOverrides?.net_margin} lastUpdated={resolveTime(!!data?.net_margin, 'net_margin')} />
+                        <OperatingMarginCard data={data} manualOverride={manualOverrides?.operating_margin} lastUpdated={resolveTime(!!data?.operating_margin, 'operating_margin')} />
                       </>
                     ) : (
                       <>
-                        <MACDTrendCard data={data} manualOverride={manualOverrides?.index_macd} lastUpdated={manualTime} />
-                        <MovingAverageCard data={data} manualOverride={manualOverrides?.index_200dma} lastUpdated={manualTime} />
+                        <MACDTrendCard data={data} manualOverride={manualOverrides?.index_macd} lastUpdated={resolveTime(!!data?.index_macd, 'index_macd')} />
+                        <MovingAverageCard data={data} manualOverride={manualOverrides?.index_200dma} lastUpdated={resolveTime(!!data?.index_200dma, 'index_200dma')} />
                       </>
                     )}
                   </>
@@ -363,13 +355,13 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
                   <>
                     {selectedCategory !== "Indices" ? (
                       <>
-                        <DebtToEquityCard data={data} manualOverride={manualOverrides?.debt_to_equity} lastUpdated={data ? liveTime : manualTime} />
-                        <InterestCoverageCard data={data} manualOverride={manualOverrides?.interest_coverage} lastUpdated={data ? liveTime : manualTime} />
-                        <FreeCashFlowCard data={data} manualOverride={manualOverrides?.free_cash_flow} lastUpdated={data ? liveTime : manualTime} />
-                        <CurrentRatioCard data={data} manualOverride={manualOverrides?.current_ratio} lastUpdated={data ? liveTime : manualTime} />
+                        <DebtToEquityCard data={data} manualOverride={manualOverrides?.debt_to_equity} lastUpdated={resolveTime(!!data?.debt_to_equity, 'debt_to_equity')} />
+                        <InterestCoverageCard data={data} manualOverride={manualOverrides?.interest_coverage} lastUpdated={resolveTime(!!data?.interest_coverage, 'interest_coverage')} />
+                        <FreeCashFlowCard data={data} manualOverride={manualOverrides?.free_cash_flow} lastUpdated={resolveTime(!!data?.free_cash_flow, 'free_cash_flow')} />
+                        <CurrentRatioCard data={data} manualOverride={manualOverrides?.current_ratio} lastUpdated={resolveTime(!!data?.current_ratio, 'current_ratio')} />
                       </>
                     ) : (
-                      <VolatilityCard data={data} manualOverride={manualOverrides?.india_vix} lastUpdated={manualTime} />
+                      <VolatilityCard data={data} manualOverride={manualOverrides?.india_vix} lastUpdated={resolveTime(!!data?.india_vix, 'india_vix')} />
                     )}
                   </>
                 )}

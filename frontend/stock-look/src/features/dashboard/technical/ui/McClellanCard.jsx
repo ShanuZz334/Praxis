@@ -1,87 +1,41 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function McClellanCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || null);
-    
+import { scoreMcClellanCard } from '../engine/TechnicalCompositeEngine';
+
+export default function McClellanCard({ data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('mcclellan');
     
-    let score = 0, bias = "Neutral", confidence = "75%", aiInsightText = "Waiting for data...";
-    
-    let momentum = "Neutral";
-    let zeroLine = "Near Zero";
+    // Resolve current value
+    // (Assuming Upstox live data mapping will be added here later)
+    const isLiveData = false; 
+    const currentValue = isLiveData ? null : (manualOverride ?? null);
 
-    if (currentValue !== null) {
-        if (currentValue < -50) {
-            score = 20;
-            bias = "Bearish";
-            momentum = "Weakening";
-            zeroLine = "Below";
-            aiInsightText = "Strong negative reading; widespread selling pressure in the market.";
-        } else if (currentValue < 0) {
-            score = 40;
-            bias = "Bearish";
-            momentum = "Weakening";
-            zeroLine = "Below";
-            aiInsightText = "Oscillator is below zero; market participation is weakening.";
-        } else if (currentValue === 0) {
-            score = 60;
-            bias = "Neutral";
-            momentum = "Neutral";
-            zeroLine = "Near Zero";
-            aiInsightText = "Oscillator near zero; this may represent an early change in market participation.";
-        } else if (currentValue <= 50) {
-            score = 75;
-            bias = "Bullish";
-            momentum = "Improving";
-            zeroLine = "Above";
-            aiInsightText = "Oscillator is above zero; market breadth momentum is improving.";
-        } else {
-            score = 90;
-            bias = "Bullish";
-            momentum = "Improving";
-            zeroLine = "Above";
-            aiInsightText = "Strong positive reading; highlights broad buying momentum.";
-        }
-    }
+    const { score, bias, confidence, aiInsight } = scoreMcClellanCard(currentValue);
 
-    const whyItMatters = [
-        "Measures breadth momentum.",
-        "Detects internal market shifts early.",
-        "Identifies improving or weakening participation.",
-        "Confirms trend sustainability.",
-        "Often leads index price movement."
-    ];
-
-    return (
+    const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) : '--';
+return (
         <IndicatorCard
             config={{ 
                 title: "McClellan Oscillator", 
                 category: "Market Breadth", 
-                mode: "AUTO", 
+                mode: "MANUAL",
                 creditScore: configData.creditScore, 
-                updateTime: "Live", 
+                updateTime: lastUpdated ?? "--:--", 
                 source: configData.source, 
                 aiModel: configData.aiModel 
             }}
             data={{ 
-                currentValueObj: { label: "Oscillator", value: currentValue ?? "--" }, 
-                details: [
-                    { label: "Momentum", value: momentum },
-                    { label: "Zero Line", value: zeroLine }
-                ],
+                currentValueObj: { label: "Oscillator", value: displayValue }, 
+                details: [],
                 score, 
                 bias, 
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "McClellan" }}
-            insights={{ aiInsight: aiInsightText, whyItMatters }}
-            onSave={(val) => { 
-                const n = parseFloat(val); 
-                if(!isNaN(n)) setCurrentValue(n); 
-            }}
-        />
+            chartData={{ points: [], valueKey: "value", valueName: "McClellan" }}
+            insights={{ aiInsight: aiInsight, whyItMatters: ["Provides context on volume and market breadth.", "Crucial for confirming trend strength."] }}
+            />
     );
 }

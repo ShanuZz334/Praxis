@@ -33,13 +33,27 @@ const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
   const { theme } = useTheme();
 
-  const { livePrices: prices } = useDashboardContext();
+  const { livePrices: prices, selectedInstrument, filteredInstruments } = useDashboardContext();
 
   const niftyStatus = prices?.["NSE_INDEX|Nifty 50"]?.status || 'neutral';
   const niftyColor = niftyStatus === 'up' ? 'text-emerald-400' : niftyStatus === 'down' ? 'text-rose-400' : 'text-text-tertiary';
 
   const bankNiftyStatus = prices?.["NSE_INDEX|Nifty Bank"]?.status || 'neutral';
   const bankNiftyColor = bankNiftyStatus === 'up' ? 'text-emerald-400' : bankNiftyStatus === 'down' ? 'text-rose-400' : 'text-text-tertiary';
+
+  // Selected instrument — show after BANK NIFTY if it's not one of the two pinned indices
+  const PINNED_KEYS = new Set(["NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank"]);
+  const showSelected = selectedInstrument && !PINNED_KEYS.has(selectedInstrument);
+  const selectedPrice = showSelected ? prices?.[selectedInstrument] : null;
+  const selectedStatus = selectedPrice?.status || 'neutral';
+  const selectedColor = selectedStatus === 'up' ? 'text-emerald-400' : selectedStatus === 'down' ? 'text-rose-400' : 'text-text-tertiary';
+  // Find human-readable label from the context instruments array
+  const foundInstrument = filteredInstruments?.find(i => i.value === selectedInstrument);
+  const selectedLabel = foundInstrument
+    ? foundInstrument.label.toUpperCase()
+    : selectedInstrument
+      ? selectedInstrument.split('|').pop().toUpperCase()
+      : '';
 
   return (
     <header
@@ -101,6 +115,29 @@ const Navbar = ({ onToggleSidebar }) => {
             )}
           </div>
         </div>
+
+        {/* SELECTED INSTRUMENT TICKER — only shown when not a pinned index */}
+        {showSelected && (
+          <>
+            {/* Divider */}
+            <div className="h-6 w-px bg-border-subtle opacity-50" />
+            <div className="flex flex-col text-xs leading-tight min-w-[80px] animate-in fade-in duration-300">
+              <div className="flex items-center gap-1">
+                <span className="text-text-tertiary text-[10px] font-medium tracking-wide truncate max-w-[120px]">{selectedLabel}</span>
+              </div>
+              <div className="flex flex-col mt-0.5">
+                <span className={`font-semibold transition-colors duration-300 ${selectedColor}`}>
+                  {selectedPrice?.ltp > 0 ? "₹" + selectedPrice.ltp.toFixed(2) : "—"}
+                </span>
+                {selectedPrice?.ltp > 0 && (
+                  <span className={`text-[9px] ${selectedColor} opacity-90`}>
+                    {selectedPrice.netChange > 0 ? '+' : ''}{selectedPrice.netChange?.toFixed(2)} ({selectedPrice.pctChange?.toFixed(2)}%)
+                  </span>
+                )}
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="flex flex-col text-xs leading-tight ml-2">
           <span className="text-text-secondary">

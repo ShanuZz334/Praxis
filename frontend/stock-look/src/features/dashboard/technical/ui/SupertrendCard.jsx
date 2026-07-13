@@ -1,66 +1,57 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function SupertrendCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || null);
+import { scoreSupertrendCard } from '../engine/TechnicalCompositeEngine';
+
+export default function SupertrendCard({ data = null, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('supertrend');
     
-    let score = 50, bias = "Neutral", confidence = 75, aiInsightText = "Waiting for data...";
-    const currentPrice = initialData?.currentPrice || 100;
+    const settingsConfig = [
+        { id: "supertrend_period", label: "Supertrend Period", type: "number", min: 1, max: 50, default: 10 },
+        { id: "supertrend_multiplier", label: "Supertrend Multiplier", type: "number", min: 1, max: 10, default: 3 }
+    ];
+    
+    // Resolve current value
+    const currentValueObj = data?.supertrend ?? null;
+    const currentPrice = data?.current_price ?? null;
 
-    if (currentValue !== null) {
-        const diff = currentPrice - currentValue;
-        const pctDiff = (diff / currentValue) * 100;
-        
-        if (pctDiff > 0) {
-            score = 80;
-            bias = "Bullish";
-            if (pctDiff < 1) {
-                aiInsightText = "Fresh Bullish Flip: trend has shifted upward after sustained buying pressure.";
-            } else {
-                aiInsightText = "Bullish Trend: buyers remain in control and price continues to respect the Supertrend.";
-            }
-        } else if (pctDiff < 0) {
-            score = 20;
-            bias = "Bearish";
-            if (pctDiff > -1) {
-                aiInsightText = "Fresh Bearish Flip: previous uptrend has ended and market sentiment has weakened.";
-            } else {
-                aiInsightText = "Bearish Trend: sellers remain dominant and downside momentum persists.";
-            }
-        } else {
-            score = 50;
-            bias = "Neutral";
-            aiInsightText = "Frequent Trend Flips: market conditions are choppy and trend-following strategies are less reliable.";
-        }
-    }
+    const { score, bias, confidence, aiInsight } = scoreSupertrendCard(currentValueObj, currentPrice);
 
+    const displayValue = currentValueObj !== null && currentValueObj.value !== undefined ? parseFloat(currentValueObj.value).toFixed(2) : '--';
+    
     return (
         <IndicatorCard
-            config={{ title: "Supertrend", category: "Trend", mode: "MANUAL", creditScore: configData.creditScore, updateTime: "--:--", source: configData.source, aiModel: configData.aiModel }}
+            config={{ 
+                title: "Supertrend", 
+                category: "Trend", 
+                mode: "AUTO", 
+                creditScore: configData.creditScore, 
+                updateTime: lastUpdated ?? "--:--", 
+                source: configData.source, 
+                aiModel: configData.aiModel,
+                settingsConfig,
+                onSettingsClick: () => onOpenSettings?.(settingsConfig)
+            }}
             data={{ 
-                currentValueObj: { label: "Value", value: currentValue ?? "--" }, 
-                details: [
-                    { label: "Trend Dir", value: bias }
-                ], 
+                currentValueObj: { label: "Value", value: displayValue }, 
+                details: [], 
                 score, 
                 bias, 
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "Supertrend" }}
+            chartData={{ points: data?.history || [], valueKey: "value", valueName: "Supertrend" }}
             insights={{ 
-                aiInsight: aiInsightText, 
+                aiInsight: aiInsight, 
                 whyItMatters: [
                     "Combines trend direction and volatility (ATR) in one indicator.",
                     "Excellent for trailing stop losses in strong trends.",
-                    "Provides clear, visual buy and sell boundaries.",
-                    "Reacts dynamically to market volatility.",
+                    "Keeps you in a winning trade during normal pullbacks.",
+                    "Can generate false signals during choppy, range-bound markets.",
                     "Reduces emotional trading by drawing definitive lines in the sand."
                 ] 
             }}
-            onSave={(val) => { const n = parseFloat(val); if(!isNaN(n)) setCurrentValue(n); }}
-        />
+            />
     );
 }

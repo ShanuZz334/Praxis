@@ -45,6 +45,16 @@ const insertTickStmt = db.prepare(`
     VALUES (?, ?, ?, ?, ?)
 `);
 
+const insertQuoteWsStmt = db.prepare(`
+    INSERT INTO quotes (
+        instrument_key, ltp, volume, updated_at
+    ) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(instrument_key) DO UPDATE SET
+        ltp=excluded.ltp,
+        volume=excluded.volume,
+        updated_at=CURRENT_TIMESTAMP
+`);
+
 let tickBatch = [];
 const BATCH_SIZE = 500;
 
@@ -55,6 +65,7 @@ const persistTicksLocally = () => {
     const insertMany = db.transaction((ticks) => {
         for (const tick of ticks) {
             insertTickStmt.run(tick.instrumentKey, tick.ltp, tick.volume, tick.openInterest, tick.timestamp);
+            insertQuoteWsStmt.run(tick.instrumentKey, tick.ltp, tick.volume);
         }
     });
 
@@ -174,7 +185,7 @@ export const connectUpstoxWebsocket = async () => {
         upstoxWs.on("open", () => {
             console.log("✅ Connected to Upstox Market Data Feed V3");
             // Default initial subscriptions for test
-            subscribeToInstruments(["NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank", "NSE_EQ|RELIANCE"], "full");
+            subscribeToInstruments(["NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank", "NSE_EQ|RELIANCE", "NSE_INDEX|India VIX"], "full");
         });
 
         upstoxWs.on("message", (data) => {

@@ -1,67 +1,33 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function VolumeSmaCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue ?? null);
-    const [averageVolume] = useState(initialData?.averageVolume ?? 1000000); // Placeholder for manual testing
-    
+import { scoreVolumeSmaCard } from '../engine/TechnicalCompositeEngine';
+
+export default function VolumeSmaCard({ data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('volume_sma');
+    
+    const currentValue = data?.volume_sma ?? null;
 
-    let score = 50, bias = "Normal", confidence = "70%", aiInsightText = "Waiting for data...";
-    let volumeRatio = "--";
+    const { score, bias, confidence, aiInsight } = scoreVolumeSmaCard(data?.volume_sma, data?.current_volume);
 
-    if (currentValue !== null) {
-        const ratio = currentValue / averageVolume;
-        volumeRatio = ratio.toFixed(2) + "x";
-        
-        if (ratio > 2.0) {
-            score = 90;
-            bias = "Exceptional Activity";
-            aiInsightText = "Strong institutional interest and increased conviction.";
-        } else if (ratio > 1.5) {
-            score = 80;
-            bias = "High Participation";
-            aiInsightText = "Market participation well supports the current move.";
-        } else if (ratio > 1.0) {
-            score = 65;
-            bias = "High Participation";
-            aiInsightText = "Market participation supports the current move.";
-        } else if (ratio > 0.8) {
-            score = 50;
-            bias = "Normal";
-            aiInsightText = "Normal market participation.";
-        } else {
-            score = 20;
-            bias = "Low Participation";
-            aiInsightText = "The move lacks strong participation.";
-        }
-    }
-
-    const whyItMatters = [
-        "Confirms breakout quality.",
-        "Measures trader participation.",
-        "Filters weak price movements.",
-        "Helps identify institutional activity.",
-        "Improves confidence in trend analysis."
-    ];
-
+    const displayValue = currentValue !== null && !isNaN(currentValue) ? Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 2 }).format(currentValue) : '--';
+    
     return (
         <IndicatorCard
             config={{
                 title: "Volume SMA (20)",
                 category: "Volume Analysis",
-                mode: "MANUAL",
+                mode: "AUTO",
                 creditScore: configData.creditScore,
-                updateTime: "--:--",
+                updateTime: lastUpdated ?? "--:--",
                 source: configData.source,
                 aiModel: configData.aiModel
             }}
             data={{
-                currentValueObj: { label: "Current Volume", value: currentValue ?? "--" },
+                currentValueObj: { label: "Volume SMA", value: displayValue },
                 details: [
-                    { label: "Avg Volume", value: averageVolume },
-                    { label: "Volume Ratio", value: volumeRatio }
+                    { label: "Current Vol", value: data?.current_volume ? Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 2 }).format(data.current_volume) : "--" }
                 ],
                 score,
                 bias,
@@ -69,18 +35,13 @@ export default function VolumeSmaCard({ initialData = null }) {
                 impactWeight: configData.impactWeight
             }}
             chartData={{
-                points: initialData?.history || [],
+                points: data?.history || [],
                 valueKey: "value",
                 valueName: "Volume Ratio"
             }}
             insights={{
-                aiInsight: aiInsightText,
-                whyItMatters
-            }}
-            onSave={(val) => {
-                const n = parseFloat(val);
-                if (!isNaN(n)) setCurrentValue(n);
-            }}
-        />
+                aiInsight: aiInsight,
+                whyItMatters: ["Provides context on volume and market breadth.", "Crucial for confirming trend strength."] }}
+            />
     );
 }

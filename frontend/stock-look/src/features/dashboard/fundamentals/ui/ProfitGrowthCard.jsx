@@ -43,7 +43,7 @@ export default function ProfitGrowthCard({ data = null, manualOverride, lastUpda
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'CAGR (%)', value: calculatedCAGR !== null ? calculatedCAGR.toFixed(2) : '--' },
+                currentValueObj: { label: 'CAGR (%)', value: calculatedCAGR !== null ? calculatedCAGR.toFixed(2) + '%' : '--' },
                 details: [
                     { label: 'Latest Profit', value: latestProfit !== null ? latestProfit : '--', isManual: isManual },
                     { label: 'Previous Profit', value: previousProfit !== null ? previousProfit : '--', isManual: isManual }

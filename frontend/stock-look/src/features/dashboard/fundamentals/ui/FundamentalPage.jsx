@@ -30,6 +30,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedOverrideInput";
 import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
 import { useSnapshots } from "@/shared/hooks/useSnapshots";
+import { useDataFreshness } from '@/shared/hooks/useDataFreshness';
 
 
 
@@ -53,7 +54,7 @@ const DEFAULT_OVERRIDES = {
     face_value: null, high_low: null, current_price: null, book_value: null,
     // Index Specific
     index_pe: null, index_pb: null, index_div_yield: null, ad_ratio: null,
-    india_vix: null, index_pcr: null, index_macd: null, index_200dma: null,
+    index_pcr: null, index_macd: null, index_200dma: null, advance_decline: null, trin: null,
 };
 
 export default function FundamentalPage() {
@@ -104,11 +105,11 @@ export default function FundamentalPage() {
   const { historicalSnapshots } = useSnapshots(selectedInstrument);
 
   // --- Previous Day Composite Calculation ---
-  const [prevCompositeScore, setPrevCompositeScore] = useState(0);
+  const [prevCompositeScore, setPrevCompositeScore] = useState(null);
 
   React.useEffect(() => {
       if (!historicalSnapshots || Object.keys(historicalSnapshots).length === 0) {
-          setPrevCompositeScore(compositeData.compositeScore); // Fallback to current if no history
+          setPrevCompositeScore(null); // No history for this instrument — hide the pill
           return;
       }
 
@@ -136,12 +137,40 @@ export default function FundamentalPage() {
               : computeCompanyComposite(prevScores);
           setPrevCompositeScore(oldRes.compositeScore);
       } else {
-          setPrevCompositeScore(compositeData.compositeScore); // No historical data yet
+          setPrevCompositeScore(null); // No historical snapshots for this instrument yet
       }
   }, [historicalSnapshots, selectedCategory, compositeData.compositeScore]);
 
 
   // ----------------------------------
+
+  const getISTDateTime = () => {
+      const date = new Date();
+      const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+      return new Date(utc + (3600000 * 5.5)); // UTC+5.5 (IST)
+  };
+
+  const isMarketOpen = () => {
+      const now = getISTDateTime();
+      const day = now.getDay(); // 0 is Sunday, 6 is Saturday
+      if (day === 0 || day === 6) return false;
+      
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const timeNum = hours * 100 + minutes;
+      
+      return timeNum >= 915 && timeNum <= 1530; // 9:15 AM to 3:30 PM IST
+  };
+
+  const formatTime = (ts) => {
+      if (!ts) return null;
+      return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+  
+  // Use the universal freshness tracker for fundamentals. 
+  // We pass {} for manualOverrideTimes since useManualOverrides doesn't return per-key times yet, 
+  // but this ensures the global clock freezes if data is identical.
+  const resolveTime = useDataFreshness(fundamentalsData, manualOverrides, {}, isMarketOpen, formatTime);
 
   // --- Dynamic Hiding Logic for Fallbacks ---
   const extractRatioExists = (names) => {
@@ -201,10 +230,13 @@ export default function FundamentalPage() {
                   <div className="space-y-3">
                       <div className="text-xs font-bold text-yellow-500 mb-3 border-b border-border-default pb-2">Market Internals</div>
                       <DebouncedOverrideInput label="A/D Ratio" overrideKey="ad_ratio" value={manualOverrides.ad_ratio} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="India VIX" overrideKey="india_vix" value={manualOverrides.india_vix} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Put-Call Ratio" overrideKey="index_pcr" value={manualOverrides.index_pcr} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="MACD Histogram" overrideKey="index_macd" value={manualOverrides.index_macd} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="% From 200 DMA" overrideKey="index_200dma" value={manualOverrides.index_200dma} onChange={handleOverrideChange} />
+                      <div className="flex flex-col gap-3">
+                      <DebouncedOverrideInput label="Index PCR" overrideKey="index_pcr" value={manualOverrides.index_pcr} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Index MACD" overrideKey="index_macd" value={manualOverrides.index_macd} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Index 200DMA" overrideKey="index_200dma" value={manualOverrides.index_200dma} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Advance/Decline" overrideKey="advance_decline" value={manualOverrides.advance_decline} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="TRIN (Arms Index)" overrideKey="trin" value={manualOverrides.trin} onChange={handleOverrideChange} />
+                  </div>
                       <DebouncedOverrideInput label="FII Flow (₹ Cr)" overrideKey="fii_flow" value={manualOverrides.fii_flow} onChange={handleOverrideChange} />
                       <DebouncedOverrideInput label="DII Flow (₹ Cr)" overrideKey="dii_flow" value={manualOverrides.dii_flow} onChange={handleOverrideChange} />
                   </div>
@@ -346,7 +378,7 @@ export default function FundamentalPage() {
                   coverageText: `${activeCardsCount}/${maxCards}`, 
                   coveragePercent: coveragePercent, 
                   source: error ? "Disconnected (Manual Only)" : "Upstox + Local", 
-                  freshness: lastUpdated || "Realtime" 
+                  freshness: resolveTime(!!fundamentalsData) 
               }}
               cards={cardsForHeader}
               totalCredits={totalCredits}
@@ -408,8 +440,7 @@ export default function FundamentalPage() {
               data={fundamentalsData}
               selectedCategory={selectedCategory}
               manualOverrides={manualOverrides}
-              lastUpdated={lastUpdated}
-              manualLastUpdated={manualLastUpdated}
+              resolveTime={resolveTime}
             />
         </FundamentalContext.Provider>
       </div>

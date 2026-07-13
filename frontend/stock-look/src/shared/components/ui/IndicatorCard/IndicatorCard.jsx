@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useMemo } from "react";
 import Card from "@/shared/components/common/Card";
 import { FundamentalContext } from "@/features/dashboard/fundamentals/ui/FundamentalContext";
 import { FlipContainer, FlipTrigger } from "@/shared/components/common/FlipContainer";
-import { Star, Lightbulb, Plus, BarChart2, Edit2, Check } from "lucide-react";
+import { Star, Lightbulb, Plus, BarChart2, Edit2, Check, Settings } from "lucide-react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -63,12 +63,23 @@ function ScoreRangeBar({ score }) {
 // =============================
 // Helper: Header
 // =============================
-function IndicatorHeader({ title, category, mode, creditScore, updateTime, missingManualCount }) {
+function IndicatorHeader({ title, category, mode, creditScore, updateTime, missingManualCount, onSettingsClick, hasSettings }) {
   const isAuto = mode?.toUpperCase() === "AUTO";
   return (
     <div className="flex justify-between items-start mb-4">
-      <div>
-        <h3 className="text-sm font-bold text-text-primary">{title}</h3>
+      <div className="flex flex-col">
+        <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-bold text-text-primary">{title}</h3>
+            {hasSettings && (
+                <button 
+                    onClick={(e) => { e.stopPropagation(); onSettingsClick?.(); }}
+                    className="text-text-tertiary hover:text-text-primary transition-colors focus:outline-none"
+                    title="Configure Indicator Settings"
+                >
+                    <Settings className="w-3 h-3" />
+                </button>
+            )}
+        </div>
         <p className="text-[10px] text-text-secondary">{category}</p>
       </div>
       <div className="flex flex-col items-end gap-1">
@@ -116,24 +127,27 @@ function MetricsGrid({
   const valClass = "text-[11px] font-mono font-medium text-text-primary";
 
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col gap-0.5 h-full">
       
       {/* Current Value */}
-      {currentValueObj && currentValueObj.value !== '--' && (
-        <div className={cn(rowClass, isManual && "mb-1")}>
-          <span className={labelClass}>{currentValueObj.label || "Current Value"}</span>
-          <div className="flex items-center gap-2">
-            {isManual && (
-              <span className="text-text-tertiary">
-                <Edit2 className="w-3 h-3" />
-              </span>
-            )}
-            <span className={cn(valClass, !isManual && "text-blue-400")}>{currentValueObj.value}</span>
-          </div>
-        </div>
-      )}
+      <div className="shrink-0 flex flex-col gap-0.5">
+          {currentValueObj && (
+            <div className={cn(rowClass, isManual && "mb-1")}>
+              <span className={labelClass}>{currentValueObj.label || "Current Value"}</span>
+              <div className="flex items-center gap-2">
+                {isManual && (
+                  <span className="text-text-tertiary">
+                    <Edit2 className="w-3 h-3" />
+                  </span>
+                )}
+                <span className={cn(valClass, !isManual && "text-blue-400")}>{currentValueObj.value}</span>
+              </div>
+            </div>
+          )}
+      </div>
 
       {/* Dynamic details injected specifically (e.g. MACD Line, Signal Line) */}
+      <div className="flex-1 overflow-y-auto no-scrollbar min-h-0 flex flex-col gap-0.5">
       {details?.filter(d => d && d.value !== '--' && d.value !== null && d.value !== undefined).map((d, i) => (
         <div key={i} className={rowClass}>
           <span className={labelClass}>{d.label}</span>
@@ -147,17 +161,21 @@ function MetricsGrid({
           </div>
         </div>
       ))}
+      </div>
 
       {/* Core Standard Metrics */}
-      <div className={rowClass}>
-        <span className={labelClass}>Score</span>
-        <span className={valClass}>
-          <span className={cn(
-             score >= 70 ? "text-green-500" : score <= 30 ? "text-red-500" : "text-yellow-500"
-          )}>{isNaN(parseFloat(score)) ? '--' : parseFloat(score).toFixed(0)}</span>
-          <span className="text-text-tertiary"> /100</span>
-        </span>
-      </div>
+      <div className="shrink-0 flex flex-col gap-0.5 pt-1 border-t border-border-subtle/50 mt-1">
+      {score !== null && (
+        <div className={rowClass}>
+          <span className={labelClass}>Score</span>
+          <span className={valClass}>
+            <span className={cn(
+               score >= 70 ? "text-green-500" : score <= 30 ? "text-red-500" : "text-yellow-500"
+            )}>{isNaN(parseFloat(score)) ? '--' : parseFloat(score).toFixed(0)}</span>
+            <span className="text-text-tertiary"> /100</span>
+          </span>
+        </div>
+      )}
 
       <div className={rowClass}>
         <span className={labelClass}>Bias</span>
@@ -180,6 +198,7 @@ function MetricsGrid({
         <span className={valClass}>{impactWeight}</span>
       </div>
 
+      </div>
     </div>
   );
 }
@@ -250,7 +269,8 @@ import { motion, AnimatePresence } from "framer-motion";
 // =============================
 
 export function IndicatorCard({
-  config,      // { title, category, mode, creditScore, updateTime, source, aiModel }
+  config,      // { title, category, mode, creditScore, updateTime, source, aiModel, settingsConfig, onSettingsClick }
+  settings,    // { hasSettings, onOpenSettings }
   data,        // { currentValueObj, details, score, bias, confidence, impactWeight }
   chartData,   // { points, valueKey, valueName }
   insights,    // { aiInsight, whyItMatters }
@@ -307,12 +327,18 @@ export function IndicatorCard({
         {/* Always visible top section */}
         <div className="shrink-0">
           <IndicatorHeader 
-            {...config} 
+            title={config.title} 
+            category={config.category} 
+            mode={config.mode} 
+            creditScore={config.creditScore} 
+            updateTime={config.updateTime}
             missingManualCount={missingManualCount}
+            hasSettings={!!config.settingsConfig || settings?.hasSettings}
+            onSettingsClick={config.onSettingsClick || settings?.onOpenSettings}
           />
         </div>
         
-        <div className="mt-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
+        <div className="mt-2 flex-1 flex flex-col overflow-hidden">
           {/* We pass a custom onSave that stops propagation so clicking Save doesn't close the card */}
           <MetricsGrid 
             {...data} 
@@ -324,7 +350,7 @@ export function IndicatorCard({
         </div>
 
         <div className="mt-auto pt-4 mb-0 shrink-0">
-          <ScoreRangeBar score={data.score} />
+          {data.score !== null && <ScoreRangeBar score={data.score} />}
         </div>
       </div>
 
@@ -342,7 +368,7 @@ export function IndicatorCard({
 
               {/* Scrollable Container for Content */}
               <div 
-                className="h-[320px] overflow-y-auto pr-1 pb-4 custom-scrollbar"
+                className="h-[320px] overflow-y-auto pb-4 no-scrollbar"
                 onClick={(e) => e.stopPropagation()} // Let users interact with content (copy text, etc.)
               >
                 {/* Chart */}

@@ -36,7 +36,7 @@ export default function ForeignPage() {
             <GlobalHeader
                 title="Global Structure"
                 score={0}
-                prevScore={0}
+                prevScore={null}
                 gauge={{ label: "—", color: "#64748B" }}
                 regime={{ label: "—", description: "No data loaded", color: "#64748B" }}
                 integrity={{ coverage: "—", source: "—", freshness: "—" }}

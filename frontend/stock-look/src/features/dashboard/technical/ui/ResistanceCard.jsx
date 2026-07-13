@@ -1,65 +1,41 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function ResistanceCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || null);
-    
+import { scoreResistanceCard } from '../engine/TechnicalCompositeEngine';
+
+export default function ResistanceCard({ data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('resistance');
     
-    let score = 0, bias = "Neutral", confidence = "75%", aiInsightText = "Waiting...";
-    
-    if (currentValue !== null) {
-        score = currentValue;
-        
-        if (score <= 30) {
-            bias = "Strong Bearish";
-            aiInsightText = "Resistance is becoming increasingly significant.";
-        } else if (score <= 50) {
-            bias = "Bearish";
-            aiInsightText = "Sellers continue defending this area.";
-        } else if (score <= 70) {
-            bias = "Neutral";
-            aiInsightText = "The market is approaching an important supply zone.";
-        } else if (score <= 85) {
-            bias = "Bullish";
-            aiInsightText = "The breakout lacked conviction and sellers regained control.";
-        } else {
-            bias = "Strong Bullish";
-            aiInsightText = "Buyers have absorbed selling pressure and momentum has shifted upward.";
-        }
-    }
+    const liveValue = data?.resistance ?? null;
+    const isManual = liveValue === null && manualOverride !== null && manualOverride !== undefined;
+    const currentValue = liveValue ?? manualOverride ?? null;
+    const currentPrice = data?.current_price ?? null;
 
-    const whyItMatters = [
-        "Identifies major selling zones.",
-        "Helps define profit targets.",
-        "Confirms breakout quality.",
-        "Supports risk management.",
-        "Essential for market structure analysis."
-    ];
+    const { score, bias, confidence, aiInsight } = scoreResistanceCard(currentValue, currentPrice);
 
-    return (
+    const displayValue = currentValue !== null && !isNaN(currentValue) ? "₹" + parseFloat(currentValue).toFixed(2) : '--';
+return (
         <IndicatorCard
             config={{ 
                 title: "Resistance Level", 
                 category: "Market Structure", 
-                mode: "MANUAL", 
+                mode: isManual ? "MANUAL" : "AUTO", 
                 creditScore: configData.creditScore, 
-                updateTime: "--:--", 
+                updateTime: lastUpdated ?? "--:--", 
                 source: configData.source, 
                 aiModel: configData.aiModel 
             }}
             data={{ 
-                currentValueObj: { label: "Score", value: currentValue ?? "--" }, 
+                currentValueObj: { label: "Resistance", value: displayValue, isManual }, 
                 details: [], 
                 score, 
                 bias, 
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "Resistance Score" }}
-            insights={{ aiInsight: aiInsightText, whyItMatters }}
-            onSave={(val) => { const n = parseFloat(val); if(!isNaN(n)) setCurrentValue(n); }}
-        />
+            chartData={{ points: [], valueKey: "value", valueName: "Resistance Score" }}
+            insights={{ aiInsight: aiInsight, whyItMatters: ["Resistance represents overhead supply where sellers previously overpowered buyers.", "A breakout above resistance signals a structural shift to the upside."] }}
+            />
     );
 }

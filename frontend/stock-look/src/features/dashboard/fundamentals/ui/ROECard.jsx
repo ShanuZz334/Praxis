@@ -50,7 +50,7 @@ export default function ROECard({ data, manualOverride, lastUpdated }) {
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'ROE (%)', value: currentROE !== null ? currentROE.toFixed(2) : '--' },
+                currentValueObj: { label: 'ROE (%)', value: currentROE !== null ? currentROE.toFixed(2) + '%' : '--' },
                 details: [
                     sectorROE !== null && !isNaN(sectorROE) && { label: 'Sector ROE', value: sectorROE.toFixed(2) + '%', isManual: false }
                 ].filter(Boolean),

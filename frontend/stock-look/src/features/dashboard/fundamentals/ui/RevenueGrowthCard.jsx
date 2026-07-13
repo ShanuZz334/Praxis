@@ -43,7 +43,7 @@ export default function RevenueGrowthCard({ data = null, manualOverride, lastUpd
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'CAGR (%)', value: calculatedCAGR !== null ? calculatedCAGR.toFixed(2) : '--' },
+                currentValueObj: { label: 'CAGR (%)', value: calculatedCAGR !== null ? calculatedCAGR.toFixed(2) + '%' : '--' },
                 details: [
                     { label: 'Latest Revenue', value: latestRevenue !== null ? latestRevenue : '--', isManual: isManual },
                     { label: 'Previous Revenue', value: previousRevenue !== null ? previousRevenue : '--', isManual: isManual }

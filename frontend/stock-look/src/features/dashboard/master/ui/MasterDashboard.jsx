@@ -59,7 +59,7 @@ export default function MasterDashboard() {
             <GlobalHeader
                 title="Praxis Composite"
                 score={score}
-                prevScore={0}
+                prevScore={null}
                 gauge={gauge}
                 regime={regime}
                 integrity={{ coverage: "—", source: "—", freshness: "—" }}

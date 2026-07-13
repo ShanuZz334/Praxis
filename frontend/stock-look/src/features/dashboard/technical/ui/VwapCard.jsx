@@ -1,88 +1,47 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function VwapCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue ?? null);
-    const [pricePosition, setPricePosition] = useState(initialData?.pricePosition ?? "Above");
-    const [distance, setDistance] = useState(initialData?.distance ?? "+1.5%");
-    const [sessionTrend, setSessionTrend] = useState(initialData?.sessionTrend ?? "Bullish");
-    
+import { scoreVwapCard } from '../engine/TechnicalCompositeEngine';
+
+export default function VwapCard({ data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('vwap');
+    
+    // Resolve current value from live backend data
+    const currentValue = data?.vwap ?? null;
 
-    let score = 50, bias = "Neutral", confidence = "80%", aiInsightText = "Waiting for data...";
+    const { score, bias, confidence, aiInsight } = scoreVwapCard(currentValue, data?.current_price);
 
-    if (currentValue !== null) {
-        if (pricePosition === "Repeated Bounce") {
-            score = 90;
-            bias = "Strong Bullish";
-            aiInsightText = "Institutional buying is supporting the trend.";
-        } else if (pricePosition === "Repeated Rejection") {
-            score = 10;
-            bias = "Strong Bearish";
-            aiInsightText = "Institutional selling pressure remains active.";
-        } else if (pricePosition === "Above") {
-            score = 75;
-            bias = "Bullish";
-            aiInsightText = "Buyers are controlling today's trading session.";
-        } else if (pricePosition === "Below") {
-            score = 25;
-            bias = "Bearish";
-            aiInsightText = "Sellers remain in control.";
-        } else {
-            score = 50;
-            bias = "Neutral";
-            aiInsightText = "The market is trading close to today's fair value.";
-        }
-    }
-
-    const whyItMatters = [
-        "Identifies fair value for the current session.",
-        "Tracks institutional buying and selling.",
-        "Confirms intraday trend direction.",
-        "Helps identify optimal entry and exit points.",
-        "One of the most respected institutional indicators."
-    ];
-
-    return (
+    const displayValue = currentValue !== null && !isNaN(currentValue) ? "₹" + parseFloat(currentValue).toFixed(2) : '--';
+return (
         <IndicatorCard
             config={{
                 title: "VWAP",
                 category: "Volume Analysis",
-                mode: "MANUAL",
+                mode: "AUTO",
                 creditScore: configData.creditScore,
-                updateTime: "--:--",
+                updateTime: lastUpdated ?? "--:--",
                 source: configData.source,
                 aiModel: configData.aiModel
             }}
             data={{
-                currentValueObj: { label: "Current VWAP", value: currentValue ?? "--" },
-                details: [
-                    { label: "Price Position", value: pricePosition },
-                    { label: "Distance", value: distance },
-                    { label: "Session Trend", value: sessionTrend }
-                ],
+                currentValueObj: { label: "Current VWAP", value: displayValue },
+                details: [],
                 score,
                 bias,
                 confidence,
                 impactWeight: configData.impactWeight
             }}
             chartData={{
-                points: initialData?.history || [],
+                points: data?.history || [],
                 valueKey: "value",
                 valueName: "VWAP"
             }}
             insights={{
-                aiInsight: aiInsightText,
-                whyItMatters
-            }}
-            onSave={(val) => {
-                const n = parseFloat(val);
-                if (!isNaN(n)) setCurrentValue(n);
-                // Toggle position for manual testing
-                setPricePosition(prev => prev === "Above" ? "Below" : "Above");
-                setSessionTrend(prev => prev === "Bullish" ? "Bearish" : "Bullish");
-            }}
-        />
+                aiInsight: aiInsight,
+                whyItMatters: ["Provides context on volume and market breadth.", "Crucial for confirming trend strength."] }}
+            />
     );
 }
+
+

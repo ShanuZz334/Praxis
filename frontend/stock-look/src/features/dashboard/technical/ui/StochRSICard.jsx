@@ -1,76 +1,61 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function StochRSICard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || 50);
+import { scoreStochRSICard } from '../engine/TechnicalCompositeEngine';
 
+export default function StochRSICard({ data = null, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('stoch_rsi');
+    
+    const settingsConfig = [
+        { id: "stoch_rsi_period", label: "RSI Length", type: "number", min: 1, max: 50, default: 14 },
+        { id: "stoch_period", label: "Stochastic Length", type: "number", min: 1, max: 50, default: 14 },
+        { id: "stoch_k_period", label: "%K Smoothing", type: "number", min: 1, max: 20, default: 3 },
+        { id: "stoch_d_period", label: "%D Smoothing", type: "number", min: 1, max: 20, default: 3 }
+    ];
 
-    let score = 50;
-    let bias = "Neutral";
-    let aiInsightText = "";
+    // Resolve current value
+    const currentValueObj = data?.stoch_rsi ?? null;
 
-    if (currentValue >= 80) {
-        bias = "Bullish"; // or Overbought
-        score = 80;
-        aiInsightText = "Strong bullish momentum detected. However, be warned about possible exhaustion as the indicator is in the overbought zone.";
-    } else if (currentValue >= 60) {
-        bias = "Bullish";
-        score = 70;
-        aiInsightText = "Positive momentum is established, with buyers showing strength.";
-    } else if (currentValue >= 40) {
-        bias = "Neutral";
-        score = 50;
-        aiInsightText = "Momentum is unstable and range-bound. Repeated crossovers suggest a lack of clear trend direction.";
-    } else if (currentValue >= 20) {
-        bias = "Bearish";
-        score = 30;
-        aiInsightText = "Negative momentum is established, with sellers controlling the short-term action.";
-    } else {
-        bias = "Bullish"; // Relief rally expectations
-        score = 20;
-        aiInsightText = "Oversold condition detected. Increasing bullish momentum is possible from this level, though confirmation is required.";
-    }
+    const { score, bias, confidence, aiInsight } = scoreStochRSICard(currentValueObj);
 
-    const confidence = "65%"; // Base confidence
-
+    const kValue = currentValueObj?.k !== undefined && currentValueObj.k !== null ? parseFloat(currentValueObj.k).toFixed(2) + "%" : '--';
+    const dValue = currentValueObj?.d !== undefined && currentValueObj.d !== null ? parseFloat(currentValueObj.d).toFixed(2) + "%" : '--';
+    
     return (
         <IndicatorCard
-            config={{
-                title: "Stochastic RSI (14,14,3,3)",
-                category: "Momentum",
-                mode: "MANUAL",
-                creditScore: configData.creditScore,
-                updateTime: "--:--",
-                source: configData.source,
-                aiModel: configData.aiModel
+            config={{ 
+                title: "Stochastic RSI", 
+                category: "Momentum", 
+                mode: "AUTO", 
+                creditScore: configData.creditScore, 
+                updateTime: lastUpdated ?? "--:--", 
+                source: configData.source, 
+                aiModel: configData.aiModel,
+                settingsConfig,
+                onSettingsClick: () => onOpenSettings?.(settingsConfig)
             }}
-            data={{
-                currentValueObj: { label: "%K Value", value: currentValue },
+            data={{ 
+                currentValueObj: { label: "%K Value", value: kValue }, 
                 details: [
-                    { label: "Momentum", value: bias }
-                ],
-                score,
-                bias,
-                confidence,
-                impactWeight: configData.impactWeight
+                    { label: "%D Value", value: dValue }
+                ], 
+                score, 
+                bias, 
+                confidence, 
+                impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "Stoch RSI" }}
-            insights={{
-                aiInsight: aiInsightText,
+            chartData={{ points: data?.history || [], valueKey: "value", valueName: "StochRSI" }}
+            insights={{ 
+                aiInsight: aiInsight, 
                 whyItMatters: [
-                    "Detects momentum changes earlier than RSI.",
-                    "Identifies potential reversals quickly.",
-                    "Useful in ranging markets.",
-                    "Helps refine entry and exit timing.",
-                    "Works best as a confirmation indicator rather than a standalone signal."
-                ]
+                    "A derivative of RSI, making it extremely sensitive to momentum shifts.",
+                    "Excellent for identifying micro-cycles within a larger trend.",
+                    "%K crossing above %D in oversold territory is a highly actionable signal.",
+                    "Because it is so fast, it produces many false signals in choppy markets.",
+                    "Best used in confluence with slower trend filters like SMA 200."
+                ] 
             }}
-            onSave={(val) => {
-                const n = parseFloat(val);
-                if (!isNaN(n)) setCurrentValue(n);
-            }}
-        />
+            />
     );
 }

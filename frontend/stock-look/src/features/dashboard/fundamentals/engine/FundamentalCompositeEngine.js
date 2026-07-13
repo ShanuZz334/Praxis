@@ -26,6 +26,8 @@
  *     - Index VIX cap (if VIX section < 20, composite capped at 45)
  */
 
+import { getCompositeColor, getIndicatorColor } from '../../../../shared/config/scoreColors.js';
+
 // ─── Title → ID Map ──────────────────────────────────────────────────────────
 export const TITLE_TO_ID = {
     // Valuation
@@ -104,22 +106,21 @@ function clamp(val, lo = 0, hi = 100) {
 
 // ─── Score Labels & Colors ────────────────────────────────────────────────────
 
+/**
+ * getScoreLabel — used for COMPOSITE score coloring (Table 1: 7-tier palette).
+ * Also used by buildResult for section sub-labels using indicator palette (Table 2).
+ */
 export function getScoreLabel(score) {
-    if (score === null || score === undefined) return { label: '—', hexColor: '#4B5563', cssColor: 'text-slate-500' };
-    if (score >= 81) return { label: 'Exceptional', hexColor: '#2E5BFF', cssColor: 'text-[#2E5BFF]' };
-    if (score >= 61) return { label: 'Strong',      hexColor: '#22C55E', cssColor: 'text-[#22C55E]' };
-    if (score >= 41) return { label: 'Balanced',    hexColor: '#94A3B8', cssColor: 'text-[#94A3B8]' };
-    if (score >= 21) return { label: 'Weak',        hexColor: '#F59E0B', cssColor: 'text-[#F59E0B]' };
-    return              { label: 'Poor',        hexColor: '#E5484D', cssColor: 'text-[#E5484D]' };
+    // Composite palette (Table 1)
+    const c = getCompositeColor(score);
+    return { label: c.label, hexColor: c.hex, cssColor: `text-[${c.hex}]` };
 }
 
+/**
+ * getSectionBarColor — used for SECTION TUBES & CARD indicators (Table 2: 5-tier palette).
+ */
 export function getSectionBarColor(score) {
-    if (score === null || score === undefined) return '#374151';
-    if (score >= 70) return '#10B981';
-    if (score >= 55) return '#6EE7B7';
-    if (score >= 40) return '#F59E0B';
-    if (score >= 25) return '#F97316';
-    return '#EF4444';
+    return getIndicatorColor(score).hex;
 }
 
 // ─── COMPANY MODE — 7 Sections ────────────────────────────────────────────────
@@ -256,17 +257,18 @@ function computeComposite(sections, isIndex) {
 
 function buildResult(sections, compositeScore) {
     const roundedScore = Math.round(compositeScore);
-    const { label: regimeLabel, hexColor, cssColor } = getScoreLabel(roundedScore);
+    // Composite uses Table 1 (7-tier palette)
+    const compositeColor = getCompositeColor(roundedScore);
 
     const dataSections = sections.filter(s => s.score !== null).length;
     const confidence = sections.length > 0 ? Math.round((dataSections / sections.length) * 100) : 0;
 
     const regime = {
-        label: regimeLabel,
+        label: compositeColor.label,
         description: getRegimeDescription(roundedScore),
         confidence,
-        color: cssColor,
-        hexColor,
+        color: `text-[${compositeColor.hex}]`,
+        hexColor: compositeColor.hex,
     };
 
     // True Impact calculation: Deviation from neutral (50) multiplied by the section's weight.
@@ -279,7 +281,7 @@ function buildResult(sections, compositeScore) {
             id: s.id,
             label: s.label,
             value: s.score,
-            sub: `${Math.round(s.weight * 100)}% weight · ${getScoreLabel(s.score).label}`,
+            sub: `${Math.round(s.weight * 100)}% weight · ${getIndicatorColor(s.score).label}`,
         }));
 
     const riskImpact = (s) => (50 - s.score) * s.weight;
@@ -291,7 +293,7 @@ function buildResult(sections, compositeScore) {
             id: s.id,
             label: s.label,
             value: s.score,
-            sub: `${Math.round(s.weight * 100)}% weight · ${getScoreLabel(s.score).label}`,
+            sub: `${Math.round(s.weight * 100)}% weight · ${getIndicatorColor(s.score).label}`,
         }));
 
     return {

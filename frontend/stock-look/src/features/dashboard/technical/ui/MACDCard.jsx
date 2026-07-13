@@ -1,77 +1,62 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function MACDCard({ initialData = null }) {
-    // We'll use the MACD histogram as the primary modifiable value for simple testing
-    const [histogram, setHistogram] = useState(initialData?.currentValue || 1.5);
+import { scoreMACDCard } from '../engine/TechnicalCompositeEngine';
 
+export default function MACDCard({ data = null, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('macd');
+    
+    const settingsConfig = [
+        { id: "macd_fast", label: "Fast Length", type: "number", min: 1, max: 50, default: 12 },
+        { id: "macd_slow", label: "Slow Length", type: "number", min: 1, max: 100, default: 26 },
+        { id: "macd_signal", label: "Signal Smoothing", type: "number", min: 1, max: 50, default: 9 }
+    ];
 
-    let score = 50;
-    let bias = "Neutral";
-    let aiInsightText = "";
+    // Resolve current value
+    const currentValueObj = data?.macd ?? null;
 
-    if (histogram > 0.5) {
-        bias = "Bullish";
-        score = 80;
-        aiInsightText = "Positive momentum continuation. Increasing bullish momentum with buyers gaining control as the histogram expands.";
-    } else if (histogram > 0) {
-        bias = "Bullish";
-        score = 65;
-        aiInsightText = "Bullish crossover detected. Positive momentum is building but remains relatively early.";
-    } else if (histogram < -0.5) {
-        bias = "Bearish";
-        score = 20;
-        aiInsightText = "Weakening momentum and increasing selling pressure. The bearish trend appears well-established.";
-    } else if (histogram < 0) {
-        bias = "Bearish";
-        score = 35;
-        aiInsightText = "Bearish crossover detected. Momentum is shifting downward with potential for further weakness.";
-    } else {
-        bias = "Neutral";
-        score = 50;
-        aiInsightText = "Lack of directional conviction. The MACD and Signal lines are nearly identical.";
-    }
+    const { score, bias, confidence, aiInsight } = scoreMACDCard(currentValueObj);
 
-    const confidence = "75%"; // Base confidence
-
+    const histValue = currentValueObj?.histogram !== undefined && currentValueObj.histogram !== null ? parseFloat(currentValueObj.histogram).toFixed(2) : '--';
+    const macdValue = currentValueObj?.MACD !== undefined && currentValueObj.MACD !== null ? parseFloat(currentValueObj.MACD).toFixed(2) : '--';
+    const signalValue = currentValueObj?.signal !== undefined && currentValueObj.signal !== null ? parseFloat(currentValueObj.signal).toFixed(2) : '--';
+    
     return (
         <IndicatorCard
-            config={{
-                title: "MACD (12, 26, 9)",
-                category: "Trend & Momentum",
-                mode: "MANUAL",
-                creditScore: configData.creditScore,
-                updateTime: "--:--",
-                source: configData.source,
-                aiModel: configData.aiModel
+            config={{ 
+                title: "MACD", 
+                category: "Trend & Momentum", 
+                mode: "AUTO", 
+                creditScore: configData.creditScore, 
+                updateTime: lastUpdated ?? "--:--", 
+                source: configData.source, 
+                aiModel: configData.aiModel,
+                settingsConfig,
+                onSettingsClick: () => onOpenSettings?.(settingsConfig)
             }}
-            data={{
-                currentValueObj: { label: "Histogram", value: histogram },
+            data={{ 
+                currentValueObj: { label: "Histogram", value: histValue }, 
                 details: [
-                    { label: "Signal Status", value: bias }
-                ],
-                score,
-                bias,
-                confidence,
-                impactWeight: configData.impactWeight
+                    { label: "MACD Line", value: macdValue },
+                    { label: "Signal Line", value: signalValue }
+                ], 
+                score, 
+                bias, 
+                confidence, 
+                impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "MACD Hist" }}
-            insights={{
-                aiInsight: aiInsightText,
+            chartData={{ points: data?.history || [], valueKey: "value", valueName: "MACD Histogram" }}
+            insights={{ 
+                aiInsight: aiInsight, 
                 whyItMatters: [
-                    "Combines trend and momentum in one indicator.",
-                    "Detects momentum shifts before price reversals.",
-                    "Histogram visualizes acceleration or deceleration.",
-                    "Zero-line identifies long-term trend direction.",
-                    "One of the most trusted confirmation indicators in technical analysis."
-                ]
+                    "Combines trend following with momentum velocity.",
+                    "MACD crossing above Signal is a classic bullish entry trigger.",
+                    "MACD crossing below Signal is a classic bearish exit trigger.",
+                    "Histogram expanding means trend acceleration.",
+                    "Zero-line crossovers indicate major, long-term trend shifts."
+                ] 
             }}
-            onSave={(val) => {
-                const n = parseFloat(val);
-                if (!isNaN(n)) setHistogram(n);
-            }}
-        />
+            />
     );
 }

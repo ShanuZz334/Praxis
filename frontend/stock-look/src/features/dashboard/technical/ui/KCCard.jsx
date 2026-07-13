@@ -1,61 +1,54 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function KCCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || null);
+import { scoreKCCard } from '../engine/TechnicalCompositeEngine';
+
+export default function KCCard({ data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('kc');
     
-    let score = 50, bias = "Neutral", confidence = "75%", aiInsightText = "Waiting for data...";
-    
-    if (currentValue !== null) {
-        const val = Number(currentValue);
-        score = val >= 0 && val <= 100 ? val : 50; 
-        
-        if (score >= 85) { 
-            bias = "Strong Bullish"; 
-            aiInsightText = "Buying momentum is exceptionally strong above the upper channel."; 
-        } else if (score >= 70) { 
-            bias = "Bullish"; 
-            aiInsightText = "Price is above EMA. Buyers remain in control."; 
-        } else if (score >= 50) { 
-            bias = "Neutral"; 
-            aiInsightText = "The market is trading around its trend value. Trend strength is weak and the market may be consolidating."; 
-        } else if (score >= 30) { 
-            bias = "Weak"; 
-            aiInsightText = "Price is below EMA. Trend is weakening."; 
-        } else { 
-            bias = "Bearish"; 
-            aiInsightText = "Selling pressure has accelerated below the lower channel."; 
-        }
-    }
+    const settingsConfig = [
+        { id: "kc_period", label: "KC Period", type: "number", min: 2, max: 100, default: 20 },
+        { id: "kc_multiplier", label: "KC Multiplier", type: "number", min: 0.1, max: 5, default: 1.5 },
+        { id: "kc_atr_period", label: "KC ATR Period", type: "number", min: 2, max: 100, default: 10 }
+    ];
 
-    return (
+    // Resolve current value from live backend data
+    const valObj = data?.kc || null;
+    const currentPrice = data?.current_price || null;
+
+    const { score, bias, confidence, aiInsight } = scoreKCCard(valObj, currentPrice);
+
+    const formatVal = (v) => (v !== null && v !== undefined && !isNaN(v) ? "₹" + parseFloat(v).toFixed(2) : '--');
+
+return (
         <IndicatorCard
             config={{ 
                 title: "Keltner Channel", 
                 category: "Volatility", 
-                mode: "MANUAL", 
+                mode: "AUTO", 
                 creditScore: configData.creditScore, 
-                updateTime: "--:--", 
+                updateTime: lastUpdated ?? "--:--", 
                 source: configData.source, 
-                aiModel: configData.aiModel 
+                aiModel: configData.aiModel,
+                settingsConfig,
+                onSettingsClick: () => onOpenSettings?.(settingsConfig)
             }}
             data={{ 
-                currentValueObj: { label: "KC Score", value: currentValue ?? "--" }, 
+                currentValueObj: null, 
                 details: [
-                    {label: "Upper Channel", value: "--"}, 
-                    {label: "Middle Line", value: "--"}, 
-                    {label: "Lower Channel", value: "--"}
+                    {label: "Upper Channel", value: formatVal(valObj?.upper)}, 
+                    {label: "Middle Line", value: formatVal(valObj?.middle)}, 
+                    {label: "Lower Channel", value: formatVal(valObj?.lower)}
                 ], 
                 score, 
                 bias, 
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "KC Score" }}
+            chartData={{ points: data?.history || [], valueKey: "value", valueName: "KC Score" }}
             insights={{ 
-                aiInsight: aiInsightText, 
+                aiInsight: aiInsight, 
                 whyItMatters: [
                     "Identifies trend direction.",
                     "Measures volatility using ATR.",
@@ -64,10 +57,6 @@ export default function KCCard({ initialData = null }) {
                     "Excellent for trend-following strategies."
                 ]
             }}
-            onSave={(val) => { 
-                const n = parseFloat(val); 
-                if(!isNaN(n)) setCurrentValue(n); 
-            }}
-        />
+            />
     );
 }

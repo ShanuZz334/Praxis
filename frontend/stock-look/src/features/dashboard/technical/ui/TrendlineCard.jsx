@@ -1,65 +1,42 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function TrendlineCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || null);
-    
+import { scoreTrendlineCard } from '../engine/TechnicalCompositeEngine';
+
+export default function TrendlineCard({ data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('trendline');
     
-    let score = 0, bias = "Neutral", confidence = "75%", aiInsightText = "Waiting...";
-    
-    if (currentValue !== null) {
-        score = currentValue;
-        
-        if (score <= 30) {
-            bias = "Bearish";
-            aiInsightText = "Market structure is changing.";
-        } else if (score <= 50) {
-            bias = "Weak Trend";
-            aiInsightText = "Breakout lacked confirmation.";
-        } else if (score <= 70) {
-            bias = "Neutral";
-            aiInsightText = "Trendline reliability has increased.";
-        } else if (score <= 85) {
-            bias = "Bullish";
-            aiInsightText = "Buyers/sellers continue respecting the current trend.";
-        } else {
-            bias = "Strong Bullish";
-            aiInsightText = "Trend remains healthy.";
-        }
-    }
+    // Resolve current value
+    // (Assuming Upstox live data mapping will be added here later)
+    const isLiveData = false; 
+    const currentValue = isLiveData ? null : (manualOverride ?? null);
+    const currentPrice = data?.current_price ?? null;
 
-    const whyItMatters = [
-        "Defines market structure.",
-        "Identifies dynamic support and resistance.",
-        "Detects trend continuation.",
-        "Detects structural reversals.",
-        "Used by almost every professional technical analyst."
-    ];
+    const { score, bias, confidence, aiInsight } = scoreTrendlineCard(currentValue, currentPrice);
 
-    return (
+    const displayValue = currentValue !== null && !isNaN(currentValue) ? "₹" + parseFloat(currentValue).toFixed(2) : '--';
+return (
         <IndicatorCard
             config={{ 
                 title: "Trendline", 
                 category: "Market Structure", 
-                mode: "MANUAL", 
+                mode: "MANUAL",
                 creditScore: configData.creditScore, 
-                updateTime: "--:--", 
+                updateTime: lastUpdated ?? "--:--", 
                 source: configData.source, 
                 aiModel: configData.aiModel 
             }}
             data={{ 
-                currentValueObj: { label: "Score", value: currentValue ?? "--" }, 
+                currentValueObj: { label: "Trendline", value: displayValue }, 
                 details: [], 
                 score, 
                 bias, 
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "Trendline Score" }}
-            insights={{ aiInsight: aiInsightText, whyItMatters }}
-            onSave={(val) => { const n = parseFloat(val); if(!isNaN(n)) setCurrentValue(n); }}
-        />
+            chartData={{ points: [], valueKey: "value", valueName: "Trendline Score" }}
+            insights={{ aiInsight: aiInsight, whyItMatters: ["Provides context on volume and market breadth.", "Crucial for confirming trend strength."] }}
+            />
     );
 }

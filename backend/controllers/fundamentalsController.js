@@ -16,52 +16,57 @@ export const getFundamentals = async (req, res) => {
         if (!instrumentKey) return res.status(400).json({ error: "instrument_key is required" });
 
         const cacheKey = `fundamentals_${instrumentKey}`;
-        const cachedData = getCache(cacheKey);
-        if (cachedData) {
-            return res.json({ status: "success", data: cachedData, cached: true });
+        let payload = getCache(cacheKey);
+
+        if (!payload) {
+            // Lookup ISIN from local DB
+            const row = localDb.prepare("SELECT isin FROM instruments WHERE instrument_key = ?").get(instrumentKey);
+            
+            let isin = row ? row.isin : null;
+
+            if (!isin) {
+                // Indices don't have an ISIN or fundamental data via this Upstox API
+                payload = { ratios: [], income: [], balanceSheet: [], cashFlow: [], holdings: [], calculated_at: Date.now() };
+            } else {
+                const headers = {
+                    "Accept": "application/json",
+                    "Authorization": `Bearer ${auth.accessToken}`
+                };
+
+                // Fetch all 5 endpoints concurrently
+                const endpoints = [
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/key-ratios`, { headers }).catch(e => { console.log('Ratios Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/income-statement?type=consolidated&time_period=yearly&fs=true`, { headers }).catch(e => { console.log('Income Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/balance-sheet?type=consolidated&fs=true`, { headers }).catch(e => { console.log('Balance Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/cash-flow?type=consolidated&fs=true`, { headers }).catch(e => { console.log('CashFlow Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/share-holdings`, { headers }).catch(e => { console.log('Holdings Error:', e.response?.data || e.message); return { data: { data: [] }}; })
+                ];
+
+                const [ratiosRes, incomeRes, balanceRes, cashRes, holdingsRes] = await Promise.all(endpoints);
+
+                payload = {
+                    ratios: ratiosRes.data?.data || [],
+                    income: incomeRes.data?.data || [],
+                    balanceSheet: balanceRes.data?.data || [],
+                    cashFlow: cashRes.data?.data || [],
+                    holdings: holdingsRes.data?.data || [],
+                    calculated_at: Date.now()
+                };
+            }
+
+            setCache(cacheKey, payload, 86400); // 24 hours TTL
         }
 
-        // Lookup ISIN from local DB
-        const row = localDb.prepare("SELECT isin FROM instruments WHERE instrument_key = ?").get(instrumentKey);
-        
-        let isin = row ? row.isin : null;
-
-        if (!isin) {
-            // Indices don't have an ISIN or fundamental data via this Upstox API
-            return res.json({ 
-                status: "success", 
-                data: { ratios: [], income: [], balanceSheet: [], cashFlow: [], holdings: [] } 
-            });
+        // Live Global India VIX Injection (Fetched from local high-frequency DB)
+        const vixQuote = localDb.prepare("SELECT ltp, updated_at FROM quotes WHERE instrument_key = 'NSE_INDEX|India VIX'").get();
+        if (vixQuote && vixQuote.ltp) {
+            payload.india_vix = vixQuote.ltp;
+            if (vixQuote.updated_at) payload.vix_updated_at = vixQuote.updated_at;
         }
 
-        const headers = {
-            "Accept": "application/json",
-            "Authorization": `Bearer ${auth.accessToken}`
-        };
+        return res.json({ status: "success", data: payload, cached: !!getCache(cacheKey) });
 
-        // Fetch all 5 endpoints concurrently
-        // Note: For income-statement, balance-sheet, cash-flow we will request consolidated yearly
-        const endpoints = [
-            axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/key-ratios`, { headers }).catch(e => { console.log('Ratios Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
-            axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/income-statement?type=consolidated&time_period=yearly&fs=true`, { headers }).catch(e => { console.log('Income Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
-            axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/balance-sheet?type=consolidated&fs=true`, { headers }).catch(e => { console.log('Balance Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
-            axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/cash-flow?type=consolidated&fs=true`, { headers }).catch(e => { console.log('CashFlow Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
-            axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/share-holdings`, { headers }).catch(e => { console.log('Holdings Error:', e.response?.data || e.message); return { data: { data: [] }}; })
-        ];
 
-        const [ratiosRes, incomeRes, balanceRes, cashRes, holdingsRes] = await Promise.all(endpoints);
-
-        const payload = {
-            ratios: ratiosRes.data?.data || [],
-            income: incomeRes.data?.data || [],
-            balanceSheet: balanceRes.data?.data || [],
-            cashFlow: cashRes.data?.data || [],
-            holdings: holdingsRes.data?.data || []
-        };
-
-        setCache(cacheKey, payload, 86400); // 24 hours TTL
-
-        res.json({ status: "success", data: payload, cached: false });
 
     } catch (error) {
         console.error("Error fetching fundamentals:", error?.response?.data || error.message);
