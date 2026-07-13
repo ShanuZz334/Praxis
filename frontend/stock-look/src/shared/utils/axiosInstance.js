@@ -75,6 +75,22 @@ axiosInstance.interceptors.response.use(
         return Promise.reject(error);
       }
 
+      const errorMsg = error.response?.data?.error || "";
+      const errorStr = typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg);
+      console.error("AXIOS 401 INTERCEPTED. URL:", error.config?.url, "ErrorStr:", errorStr);
+
+      // Prevent Upstox API 401s from triggering a user logout
+      if (
+          error.config?.url?.includes('/upstox/') || 
+          error.config?.url?.includes('/fundamentals') || 
+          errorStr.includes("Upstox") || 
+          errorStr.includes("upstox")
+      ) {
+          console.error("AXIOS: Skipping logout because it's an Upstox error.");
+          return Promise.reject(error);
+      }
+
+      console.error("AXIOS: Logging user out due to 401!");
       localStorage.removeItem("user");
       localStorage.removeItem("token");
 

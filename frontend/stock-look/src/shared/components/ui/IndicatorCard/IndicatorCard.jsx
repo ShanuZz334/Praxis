@@ -154,7 +154,7 @@ function MetricsGrid({
         <span className={valClass}>
           <span className={cn(
              score >= 70 ? "text-green-500" : score <= 30 ? "text-red-500" : "text-yellow-500"
-          )}>{score}</span>
+          )}>{isNaN(parseFloat(score)) ? '--' : parseFloat(score).toFixed(0)}</span>
           <span className="text-text-tertiary"> /100</span>
         </span>
       </div>

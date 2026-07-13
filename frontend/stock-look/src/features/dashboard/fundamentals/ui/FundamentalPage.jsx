@@ -345,7 +345,7 @@ export default function FundamentalPage() {
               integrity={{ 
                   coverageText: `${activeCardsCount}/${maxCards}`, 
                   coveragePercent: coveragePercent, 
-                  source: "Upstox + Local", 
+                  source: error ? "Disconnected (Manual Only)" : "Upstox + Local", 
                   freshness: lastUpdated || "Realtime" 
               }}
               cards={cardsForHeader}
@@ -368,6 +368,7 @@ export default function FundamentalPage() {
             <IndexSummaryWidget 
                 data={fundamentalsData}
                 manualOverrides={manualOverrides}
+                selectedInstrument={selectedInstrument}
             />
           ) : (
             <CompanySummaryWidget 

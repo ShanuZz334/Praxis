@@ -1,8 +1,14 @@
 import React from 'react';
 import { Edit2, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDashboardContext } from '@/shared/context/DashboardContext';
+import { FO_INDICES } from '@/shared/utils/foInstruments';
 
 export default function IndexSummaryWidget({ data, manualOverrides, selectedInstrument }) {
+    const { livePrices } = useDashboardContext();
+    const liveData = livePrices?.[selectedInstrument];
+    const instrumentLabel = FO_INDICES.find(e => e.value === selectedInstrument)?.label || selectedInstrument || "INDEX DATA";
+
     // 1. Data Extraction Helper
     const extractQuote = (key) => {
         return data?.quote?.[key] ?? null;
@@ -12,10 +18,13 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
     const metrics = [
         {
             label: "Current Level",
-            value: extractQuote('last_price') ?? manualOverrides?.current_price,
+            value: liveData?.ltp ?? extractQuote('last_price') ?? manualOverrides?.current_price,
             prefix: "₹ ",
             overrideKey: 'current_price',
-            isString: false
+            isString: false,
+            netChange: liveData?.netChange,
+            pctChange: liveData?.pctChange,
+            status: liveData?.status
         },
         {
             label: "High / Low",
@@ -71,18 +80,25 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
                 <span className="text-[11px] md:text-xs text-text-secondary font-medium tracking-wider">
                     {m.label}
                 </span>
-                <div className="flex items-center gap-2">
-                    {isManual && displayVal !== '--' && (
-                        <span className="text-text-tertiary">
-                            <Edit2 className="w-3 h-3" />
+                <div className="flex flex-col items-end">
+                    <div className="flex items-center gap-2">
+                        {isManual && displayVal !== '--' && (
+                            <span className="text-text-tertiary">
+                                <Edit2 className="w-3 h-3" />
+                            </span>
+                        )}
+                        <span className={cn(
+                            "text-xs md:text-[13px] font-mono font-semibold",
+                            (!isManual && displayVal !== '--') ? "text-blue-400" : "text-text-primary"
+                        )}>
+                            {displayVal}
+                        </span>
+                    </div>
+                    {m.netChange !== undefined && m.pctChange !== undefined && displayVal !== '--' && !isManual && (
+                        <span className="text-[9px] mt-0.5 opacity-90 text-blue-400">
+                            {m.netChange > 0 ? '+' : ''}{m.netChange.toFixed(2)} ({m.pctChange.toFixed(2)}%)
                         </span>
                     )}
-                    <span className={cn(
-                        "text-xs md:text-[13px] font-mono font-semibold",
-                        (!isManual && displayVal !== '--') ? "text-blue-400" : "text-text-primary"
-                    )}>
-                        {displayVal}
-                    </span>
                 </div>
             </div>
         );
@@ -118,7 +134,7 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
                                     </span>
                                 )}
                             </h2>
-                            <span className="text-xs text-text-tertiary font-mono">{data?.quote?.instrument_token || selectedInstrument || "INDEX DATA"}</span>
+                            <span className="text-xs text-text-tertiary font-mono">{instrumentLabel}</span>
                         </div>
                     </div>
                 </div>

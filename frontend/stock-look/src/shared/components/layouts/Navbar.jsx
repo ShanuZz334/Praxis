@@ -19,7 +19,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { FiBell, FiSettings } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/shared/context/ThemeContext";
-import socket from "@/shared/utils/socket";
+import { useDashboardContext } from "@/shared/context/DashboardContext";
 
 import nseLogo from "@/assets/images/nse.png";
 import upstoxLogo from "@/assets/images/Upstox.png";
@@ -33,81 +33,12 @@ const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
   const { theme } = useTheme();
 
-  const [prices, setPrices] = useState({
-      "NSE_INDEX|Nifty 50": { ltp: 0, close: 0, status: 'neutral' },
-      "NSE_INDEX|Nifty Bank": { ltp: 0, close: 0, status: 'neutral' }
-  });
+  const { livePrices: prices } = useDashboardContext();
 
-  useEffect(() => {
-      // 1. Fetch initial prices (in case market is closed and websocket isn't streaming)
-      const fetchInitialPrices = async () => {
-          try {
-              const res = await fetch(`http://localhost:5000/api/v1/upstox/market-quote?instruments=NSE_INDEX|Nifty%2050,NSE_INDEX|Nifty%20Bank`);
-              const json = await res.json();
-              if (json.data) {
-                  setPrices(prev => {
-                      const newPrices = { ...prev };
-                      // Upstox API returns keys with a colon instead of a pipe!
-                      if (json.data["NSE_INDEX:Nifty 50"]) {
-                          const quote = json.data["NSE_INDEX:Nifty 50"];
-                          const prevClose = quote.ohlc?.close || 0;
-                          const ltp = quote.last_price;
-                          newPrices["NSE_INDEX|Nifty 50"] = { 
-                              ltp: ltp, 
-                              close: prevClose,
-                              status: ltp > prevClose ? 'up' : ltp < prevClose ? 'down' : 'neutral' 
-                          };
-                      }
-                      if (json.data["NSE_INDEX:Nifty Bank"]) {
-                          const quote = json.data["NSE_INDEX:Nifty Bank"];
-                          const prevClose = quote.ohlc?.close || 0;
-                          const ltp = quote.last_price;
-                          newPrices["NSE_INDEX|Nifty Bank"] = { 
-                              ltp: ltp, 
-                              close: prevClose,
-                              status: ltp > prevClose ? 'up' : ltp < prevClose ? 'down' : 'neutral' 
-                          };
-                      }
-                      return newPrices;
-                  });
-              }
-          } catch (error) {
-              console.error("Failed to fetch initial quotes:", error);
-          }
-      };
-      fetchInitialPrices();
-
-      // 2. Listen to real-time socket updates
-      const handleUpdate = ({ instrumentKey, data }) => {
-          setPrices(prev => {
-              if (instrumentKey !== "NSE_INDEX|Nifty 50" && instrumentKey !== "NSE_INDEX|Nifty Bank") {
-                  return prev;
-              }
-
-              const newLtp = data.ltp;
-              const prevClose = prev[instrumentKey]?.close || 0;
-              
-              if (prev[instrumentKey]?.ltp === newLtp) return prev;
-
-              return {
-                  ...prev,
-                  [instrumentKey]: { 
-                      ...prev[instrumentKey], 
-                      ltp: newLtp, 
-                      status: newLtp > prevClose ? 'up' : newLtp < prevClose ? 'down' : 'neutral'
-                  }
-              };
-          });
-      };
-
-      socket.on("market:update", handleUpdate);
-      return () => socket.off("market:update", handleUpdate);
-  }, []);
-
-  const niftyStatus = prices["NSE_INDEX|Nifty 50"].status;
+  const niftyStatus = prices?.["NSE_INDEX|Nifty 50"]?.status || 'neutral';
   const niftyColor = niftyStatus === 'up' ? 'text-emerald-400' : niftyStatus === 'down' ? 'text-rose-400' : 'text-text-tertiary';
 
-  const bankNiftyStatus = prices["NSE_INDEX|Nifty Bank"].status;
+  const bankNiftyStatus = prices?.["NSE_INDEX|Nifty Bank"]?.status || 'neutral';
   const bankNiftyColor = bankNiftyStatus === 'up' ? 'text-emerald-400' : bankNiftyStatus === 'down' ? 'text-rose-400' : 'text-text-tertiary';
 
   return (
@@ -145,16 +76,30 @@ const Navbar = ({ onToggleSidebar }) => {
       <div className="flex items-center gap-6 px-4">
         <div className="flex flex-col text-xs leading-tight min-w-[70px]">
           <span className="text-text-secondary">NIFTY 50</span>
-          <span className={`font-semibold transition-colors duration-300 ${niftyColor}`}>
-            {prices["NSE_INDEX|Nifty 50"].ltp > 0 ? "₹" + prices["NSE_INDEX|Nifty 50"].ltp.toFixed(2) : "—"}
-          </span>
+          <div className="flex flex-col mt-0.5">
+            <span className={`font-semibold transition-colors duration-300 ${niftyColor}`}>
+              {prices?.["NSE_INDEX|Nifty 50"]?.ltp > 0 ? "₹" + prices["NSE_INDEX|Nifty 50"].ltp.toFixed(2) : "—"}
+            </span>
+            {prices?.["NSE_INDEX|Nifty 50"]?.ltp > 0 && (
+              <span className={`text-[9px] ${niftyColor} opacity-90`}>
+                {prices["NSE_INDEX|Nifty 50"].netChange > 0 ? '+' : ''}{prices["NSE_INDEX|Nifty 50"].netChange.toFixed(2)} ({prices["NSE_INDEX|Nifty 50"].pctChange.toFixed(2)}%)
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col text-xs leading-tight min-w-[80px]">
           <span className="text-text-secondary">BANK NIFTY</span>
-          <span className={`font-semibold transition-colors duration-300 ${bankNiftyColor}`}>
-            {prices["NSE_INDEX|Nifty Bank"].ltp > 0 ? "₹" + prices["NSE_INDEX|Nifty Bank"].ltp.toFixed(2) : "—"}
-          </span>
+          <div className="flex flex-col mt-0.5">
+            <span className={`font-semibold transition-colors duration-300 ${bankNiftyColor}`}>
+              {prices?.["NSE_INDEX|Nifty Bank"]?.ltp > 0 ? "₹" + prices["NSE_INDEX|Nifty Bank"].ltp.toFixed(2) : "—"}
+            </span>
+            {prices?.["NSE_INDEX|Nifty Bank"]?.ltp > 0 && (
+              <span className={`text-[9px] ${bankNiftyColor} opacity-90`}>
+                {prices["NSE_INDEX|Nifty Bank"].netChange > 0 ? '+' : ''}{prices["NSE_INDEX|Nifty Bank"].netChange.toFixed(2)} ({prices["NSE_INDEX|Nifty Bank"].pctChange.toFixed(2)}%)
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col text-xs leading-tight ml-2">

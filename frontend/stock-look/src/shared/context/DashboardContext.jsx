@@ -8,10 +8,29 @@ export const DashboardContext = createContext();
 export const useDashboardContext = () => useContext(DashboardContext);
 
 export const DashboardProvider = ({ children }) => {
-    const [selectedCategory, setSelectedCategory] = useState("Indices"); // "Indices" or "Companies"
-    const [selectedInstrument, setSelectedInstrument] = useState("NSE_INDEX|Nifty 50");
-    const [selectedExpiry, setSelectedExpiry] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState(() => localStorage.getItem('dash_category') || "Indices");
+    const [selectedInstrument, setSelectedInstrument] = useState(() => localStorage.getItem('dash_instrument') || "NSE_INDEX|Nifty 50");
+    const [selectedExpiry, setSelectedExpiry] = useState(() => localStorage.getItem('dash_expiry') || "");
     const [expiries, setExpiries] = useState([]);
+
+    // Persist to localStorage
+    useEffect(() => {
+        localStorage.setItem('dash_category', selectedCategory);
+    }, [selectedCategory]);
+
+    useEffect(() => {
+        localStorage.setItem('dash_instrument', selectedInstrument);
+    }, [selectedInstrument]);
+
+    useEffect(() => {
+        localStorage.setItem('dash_expiry', selectedExpiry);
+    }, [selectedExpiry]);
+    
+    // Live Prices State
+    const [livePrices, setLivePrices] = useState({
+        "NSE_INDEX|Nifty 50": { ltp: 0, close: 0, status: 'neutral', netChange: 0, pctChange: 0 },
+        "NSE_INDEX|Nifty Bank": { ltp: 0, close: 0, status: 'neutral', netChange: 0, pctChange: 0 }
+    });
 
     // Sync instrument when category changes
     useEffect(() => {
@@ -62,6 +81,53 @@ export const DashboardProvider = ({ children }) => {
         fetchExpiries();
     }, [selectedInstrument]);
 
+    // Global Live Price Polling (1 second)
+    useEffect(() => {
+        const fetchPrices = async () => {
+            try {
+                const keysToFetch = Array.from(new Set([
+                    "NSE_INDEX|Nifty 50", 
+                    "NSE_INDEX|Nifty Bank", 
+                    selectedInstrument
+                ].filter(Boolean)));
+                
+                const instrumentsStr = encodeURIComponent(keysToFetch.join(','));
+                const res = await axiosInstance.get(`/api/v1/upstox/market-quote?instruments=${instrumentsStr}`);
+                const data = res.data?.data;
+                
+                if (data) {
+                    setLivePrices(prev => {
+                        const newPrices = { ...prev };
+                        Object.values(data).forEach(quote => {
+                            if (quote && quote.instrument_token) {
+                                const key = quote.instrument_token;
+                                const ltp = quote.last_price;
+                                const netChange = quote.net_change || 0;
+                                const prevClose = ltp - netChange;
+                                const pctChange = prevClose ? (netChange / prevClose) * 100 : 0;
+                                newPrices[key] = { 
+                                    ltp, 
+                                    close: prevClose,
+                                    netChange,
+                                    pctChange,
+                                    status: netChange > 0 ? 'up' : netChange < 0 ? 'down' : 'neutral' 
+                                };
+                            }
+                        });
+                        return newPrices;
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch live quotes:", error);
+            }
+        };
+        
+        fetchPrices();
+        const intervalId = setInterval(fetchPrices, 1000); // 1 second interval
+        
+        return () => clearInterval(intervalId);
+    }, [selectedInstrument]);
+
     const value = {
         selectedCategory,
         setSelectedCategory,
@@ -70,7 +136,8 @@ export const DashboardProvider = ({ children }) => {
         selectedExpiry,
         setSelectedExpiry,
         expiries,
-        filteredInstruments: selectedCategory === "Indices" ? FO_INDICES : FO_EQUITIES
+        filteredInstruments: selectedCategory === "Indices" ? FO_INDICES : FO_EQUITIES,
+        livePrices
     };
 
     return (

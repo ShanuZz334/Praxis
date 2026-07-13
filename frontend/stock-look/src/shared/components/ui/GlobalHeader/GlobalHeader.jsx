@@ -152,7 +152,6 @@ export default function GlobalHeader({
                         <div className="absolute top-3 right-1 md:top-3 md:right-1 z-20">
                             <FlipTrigger 
                                 onClick={() => setIsFlipped(true)} 
-                                className="text-[var(--color-praxis-blue)] hover:text-[var(--color-praxis-blue)]"
                             />
                         </div>
 
@@ -321,7 +320,6 @@ export default function GlobalHeader({
                     <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20">
                         <FlipTrigger 
                             onClick={() => setIsFlipped(false)} 
-                            className="text-[var(--color-praxis-blue)] hover:text-[var(--color-praxis-blue)]"
                         />
                     </div>
                     <div className="w-full h-full p-4 md:p-6 overflow-y-auto custom-scrollbar">

@@ -1,8 +1,14 @@
 import React from 'react';
 import { Edit2, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDashboardContext } from '@/shared/context/DashboardContext';
+import { FO_EQUITIES } from '@/shared/utils/foInstruments';
 
 export default function CompanySummaryWidget({ data, manualOverrides, selectedInstrument, setEditingKey }) {
+    const { livePrices } = useDashboardContext();
+    const liveData = livePrices?.[selectedInstrument];
+    const instrumentLabel = FO_EQUITIES.find(e => e.value === selectedInstrument)?.label || selectedInstrument;
+
     // 1. Data Extraction Helper
     const extractRatio = (names) => {
         const ratiosArray = Array.isArray(data?.ratios) ? data.ratios : [];
@@ -29,9 +35,12 @@ export default function CompanySummaryWidget({ data, manualOverrides, selectedIn
         },
         {
             label: "Current Price",
-            value: extractQuote('last_price') ?? manualOverrides?.current_price,
+            value: liveData?.ltp ?? extractQuote('last_price') ?? manualOverrides?.current_price,
             prefix: "₹",
-            overrideKey: 'current_price'
+            overrideKey: 'current_price',
+            netChange: liveData?.netChange,
+            pctChange: liveData?.pctChange,
+            status: liveData?.status
         },
         {
             label: "High / Low",
@@ -91,18 +100,25 @@ export default function CompanySummaryWidget({ data, manualOverrides, selectedIn
                 <span className="text-[11px] md:text-xs text-text-secondary font-medium tracking-wider">
                     {m.label}
                 </span>
-                <div className="flex items-center gap-2">
-                    {isManual && displayVal !== '--' && (
-                        <span className="text-text-tertiary">
-                            <Edit2 className="w-3 h-3" />
+                <div className="flex flex-col items-end">
+                    <div className="flex items-center gap-2">
+                        {isManual && displayVal !== '--' && (
+                            <span className="text-text-tertiary">
+                                <Edit2 className="w-3 h-3" />
+                            </span>
+                        )}
+                        <span className={cn(
+                            "text-xs md:text-[13px] font-mono font-semibold",
+                            (!isManual && displayVal !== '--') ? "text-blue-400" : "text-text-primary"
+                        )}>
+                            {displayVal}
+                        </span>
+                    </div>
+                    {m.netChange !== undefined && m.pctChange !== undefined && displayVal !== '--' && !isManual && (
+                        <span className="text-[9px] mt-0.5 opacity-90 text-blue-400">
+                            {m.netChange > 0 ? '+' : ''}{m.netChange.toFixed(2)} ({m.pctChange.toFixed(2)}%)
                         </span>
                     )}
-                    <span className={cn(
-                        "text-xs md:text-[13px] font-mono font-semibold",
-                        (!isManual && displayVal !== '--') ? "text-blue-400" : "text-text-primary"
-                    )}>
-                        {displayVal}
-                    </span>
                 </div>
             </div>
         );

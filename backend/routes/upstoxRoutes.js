@@ -1,6 +1,7 @@
 import express from "express";
 import axios from "axios";
 import UpstoxAuth from "../models/UpstoxAuth.js";
+import MarketTick from "../models/MarketTick.js";
 import { getCache, setCache } from "../services/cacheService.js";
 
 const router = express.Router();
@@ -121,7 +122,33 @@ router.get("/market-quote", async (req, res) => {
             headers: { "Accept": "application/json", "Authorization": `Bearer ${auth.accessToken}` }
         });
 
-        setCache(cacheKey, response.data?.data, 60); // 60 seconds TTL
+        setCache(cacheKey, response.data?.data, 1); // 1 second TTL
+
+        // Asynchronously save to database
+        if (response.data?.data) {
+            const ticksToSave = Object.entries(response.data.data).map(([instrumentKey, quote]) => {
+                return {
+                    timestamp: new Date(),
+                    instrument: instrumentKey.replace(':', '|'), // normalize to pipe
+                    ltp: quote.last_price,
+                    open: quote.ohlc?.open,
+                    high: quote.ohlc?.high,
+                    low: quote.ohlc?.low,
+                    close: quote.ohlc?.close,
+                    previousClose: quote.last_price - (quote.net_change || 0),
+                    volume: quote.volume,
+                    averageTradedPrice: quote.average_price,
+                    totalBuyQuantity: quote.total_buy_quantity,
+                    totalSellQuantity: quote.total_sell_quantity,
+                    openInterest: quote.open_interest,
+                    exchangeTimestamp: quote.timestamp ? new Date(quote.timestamp) : new Date()
+                };
+            });
+
+            MarketTick.insertMany(ticksToSave).catch(err => {
+                console.error("Failed to save market ticks to DB:", err.message);
+            });
+        }
 
         res.json({ status: "success", data: response.data?.data, cached: false });
     } catch (error) {
