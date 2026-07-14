@@ -1,5 +1,6 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreNetMargin, generateAiInsightNetMarginCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
@@ -16,13 +17,13 @@ export default function NetMarginCard({ data, manualOverride, lastUpdated }) {
     );
     
     if (netMarginItem && netMarginItem.company_value) {
-        const parsed = parseFloat(netMarginItem.company_value);
+        const parsed = cleanNum(netMarginItem.company_value);
         if (!isNaN(parsed)) {
             extractedValue = parsed;
             isManual = false;
         }
         if (netMarginItem.sector_value) {
-            const parsedSector = parseFloat(netMarginItem.sector_value);
+            const parsedSector = cleanNum(netMarginItem.sector_value);
             if (!isNaN(parsedSector)) { extractedSector = parsedSector; }
         }
     }
@@ -53,7 +54,7 @@ export default function NetMarginCard({ data, manualOverride, lastUpdated }) {
         }
     }
     
-    const currentMargin = isManual ? (manualOverride !== undefined && manualOverride !== null ? parseFloat(manualOverride) : null) : extractedValue;
+    const currentMargin = isManual ? (manualOverride !== undefined && manualOverride !== null ? cleanNum(manualOverride) : null) : extractedValue;
     const sectorMargin = isManual ? null : extractedSector;
 
     // 2. Load Central Config

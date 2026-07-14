@@ -87,29 +87,29 @@ const Navbar = ({ onToggleSidebar }) => {
       </div>
 
       {/* LEFT CONTENT — MARKET DATA */}
-      <div className="flex items-center gap-6 px-4">
-        <div className="flex flex-col text-xs leading-tight min-w-[70px]">
-          <span className="text-text-secondary">NIFTY 50</span>
+      <div className="flex items-center gap-6 px-4 tabular-nums">
+        <div className="flex flex-col text-xs leading-tight min-w-[90px]">
+          <span className="text-text-secondary tracking-wide">NIFTY 50</span>
           <div className="flex flex-col mt-0.5">
             <span className={`font-semibold transition-colors duration-300 ${niftyColor}`}>
               {prices?.["NSE_INDEX|Nifty 50"]?.ltp > 0 ? "₹" + prices["NSE_INDEX|Nifty 50"].ltp.toFixed(2) : "—"}
             </span>
             {prices?.["NSE_INDEX|Nifty 50"]?.ltp > 0 && (
-              <span className={`text-[9px] ${niftyColor} opacity-90`}>
+              <span className={`text-[9px] ${niftyColor} opacity-90 tracking-tight`}>
                 {prices["NSE_INDEX|Nifty 50"].netChange > 0 ? '+' : ''}{prices["NSE_INDEX|Nifty 50"].netChange.toFixed(2)} ({prices["NSE_INDEX|Nifty 50"].pctChange.toFixed(2)}%)
               </span>
             )}
           </div>
         </div>
 
-        <div className="flex flex-col text-xs leading-tight min-w-[80px]">
-          <span className="text-text-secondary">BANK NIFTY</span>
+        <div className="flex flex-col text-xs leading-tight min-w-[95px]">
+          <span className="text-text-secondary tracking-wide">BANK NIFTY</span>
           <div className="flex flex-col mt-0.5">
             <span className={`font-semibold transition-colors duration-300 ${bankNiftyColor}`}>
               {prices?.["NSE_INDEX|Nifty Bank"]?.ltp > 0 ? "₹" + prices["NSE_INDEX|Nifty Bank"].ltp.toFixed(2) : "—"}
             </span>
             {prices?.["NSE_INDEX|Nifty Bank"]?.ltp > 0 && (
-              <span className={`text-[9px] ${bankNiftyColor} opacity-90`}>
+              <span className={`text-[9px] ${bankNiftyColor} opacity-90 tracking-tight`}>
                 {prices["NSE_INDEX|Nifty Bank"].netChange > 0 ? '+' : ''}{prices["NSE_INDEX|Nifty Bank"].netChange.toFixed(2)} ({prices["NSE_INDEX|Nifty Bank"].pctChange.toFixed(2)}%)
               </span>
             )}
@@ -121,16 +121,16 @@ const Navbar = ({ onToggleSidebar }) => {
           <>
             {/* Divider */}
             <div className="h-6 w-px bg-border-subtle opacity-50" />
-            <div className="flex flex-col text-xs leading-tight min-w-[80px] animate-in fade-in duration-300">
+            <div className="flex flex-col text-xs leading-tight min-w-[100px] animate-in fade-in duration-300">
               <div className="flex items-center gap-1">
-                <span className="text-text-tertiary text-[10px] font-medium tracking-wide truncate max-w-[120px]">{selectedLabel}</span>
+                <span className="text-text-tertiary tracking-wide text-[10px] font-medium truncate max-w-[120px]">{selectedLabel}</span>
               </div>
               <div className="flex flex-col mt-0.5">
                 <span className={`font-semibold transition-colors duration-300 ${selectedColor}`}>
                   {selectedPrice?.ltp > 0 ? "₹" + selectedPrice.ltp.toFixed(2) : "—"}
                 </span>
                 {selectedPrice?.ltp > 0 && (
-                  <span className={`text-[9px] ${selectedColor} opacity-90`}>
+                  <span className={`text-[9px] ${selectedColor} opacity-90 tracking-tight`}>
                     {selectedPrice.netChange > 0 ? '+' : ''}{selectedPrice.netChange?.toFixed(2)} ({selectedPrice.pctChange?.toFixed(2)}%)
                   </span>
                 )}

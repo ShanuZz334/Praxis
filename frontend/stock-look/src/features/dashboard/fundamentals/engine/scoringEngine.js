@@ -2,7 +2,7 @@ export const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
 export function scoreADRatio(adRatio) {
     if (adRatio === null || isNaN(adRatio)) {
-        return { score: 50, bias: 'Neutral', confidence: 0, breadthZone: 'Unknown', signalType: 'No Data' };
+        return { score: null, bias: 'Neutral', confidence: 0, breadthZone: 'Unknown', signalType: 'No Data' };
     }
 
     // ── Factor 1: Level vs Neutral (0–100) ────────────────────────────────
@@ -174,7 +174,7 @@ export function scoreDividendYield(currentYield, bondYield) {
 
 export function scoreEarningsTrend(epsHistory, manualCAGR) {
     if ((!epsHistory || epsHistory.length < 2) && (manualCAGR === null || isNaN(manualCAGR))) {
-        return { score: 50, bias: 'Neutral', confidence: '0%', trendLabel: '--', cagr: null };
+        return { score: null, bias: 'Neutral', confidence: '0%', trendLabel: '--', cagr: null };
     }
 
     let score = 50;
@@ -379,7 +379,7 @@ export function scoreEPSGrowth(cagr, latestYoY, positiveYears, totalPeriods) {
 
 export function scoreInstitutionalFlow(fiiFlow, diiFlow) {
     if (fiiFlow === null || isNaN(fiiFlow) || diiFlow === null || isNaN(diiFlow)) {
-        return { score: 50, bias: 'Neutral', confidence: '0%', netFlow: null };
+        return { score: null, bias: 'Neutral', confidence: '0%', netFlow: null };
     }
 
     const netFlow = fiiFlow + diiFlow;
@@ -410,7 +410,7 @@ export function scoreInstitutionalFlow(fiiFlow, diiFlow) {
 
 export function scoreForwardPE(currentFwdPE, currentPE) {
     if (currentFwdPE === null || currentFwdPE === undefined || isNaN(currentFwdPE)) {
-        return { score: 50, bias: 'Neutral', confidence: 60 };
+        return { score: null, bias: 'Neutral', confidence: 60 };
     }
 
     if (currentPE === null || currentPE === undefined || isNaN(currentPE)) {
@@ -539,7 +539,7 @@ export function scoreFreeCashFlow(currentFCF, revenue) {
 
 export function scoreGDPGrowth(currentGrowth) {
     if (currentGrowth === null || isNaN(currentGrowth)) {
-        return { score: 50, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
+        return { score: null, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
     }
 
     let score = 50;
@@ -564,7 +564,7 @@ export function scoreGDPGrowth(currentGrowth) {
 
 export function scorePCR(pcrValue) {
     if (pcrValue === null || isNaN(pcrValue)) {
-        return { score: 50, bias: 'Neutral', confidence: 0, optionsBias: 'Unknown', signalStrength: 'No Data' };
+        return { score: null, bias: 'Neutral', confidence: 0, optionsBias: 'Unknown', signalStrength: 'No Data' };
     }
 
     // ── Factor 1: Contrarian Level Score (0–100) ──────────────────────────
@@ -706,7 +706,7 @@ export function scoreInterestCoverage(currentCoverage, sectorCoverage) {
 
 export function scoreMACDHistogram(macdValue) {
     if (macdValue === null || isNaN(macdValue)) {
-        return { score: 50, bias: 'Neutral', confidence: 0, momentumDir: 'Unknown', signalZone: 'No Data' };
+        return { score: null, bias: 'Neutral', confidence: 0, momentumDir: 'Unknown', signalZone: 'No Data' };
     }
 
     const absValue = Math.abs(macdValue);
@@ -792,7 +792,7 @@ export function scoreMACDHistogram(macdValue) {
 
 export function scoreDMA200(dmaDistance) {
     if (dmaDistance === null || isNaN(dmaDistance)) {
-        return { score: 50, bias: 'Neutral', confidence: 0, dmaPosition: 'Unknown', distanceCategory: 'No Data' };
+        return { score: null, bias: 'Neutral', confidence: 0, dmaPosition: 'Unknown', distanceCategory: 'No Data' };
     }
 
     // ── Factor 1: Position & Trend Regime (0–100) ─────────────────────────
@@ -868,7 +868,7 @@ export function scoreDMA200(dmaDistance) {
 
 export function scoreNetMargin(currentMargin, sectorMargin) {
     if (currentMargin === null || isNaN(currentMargin)) {
-        return { score: 50, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
+        return { score: null, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
     }
 
     // Factor 1: Absolute margin level (50 weight)
@@ -917,7 +917,7 @@ export function scoreNetMargin(currentMargin, sectorMargin) {
 
 export function scoreOperatingMargin(currentMargin, sectorMargin) {
     if (currentMargin === null || isNaN(currentMargin)) {
-        return { score: 50, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
+        return { score: null, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
     }
 
     // Factor 1: Absolute operating margin level
@@ -1020,7 +1020,7 @@ export function scorePBRatio(currentPB, historicalPB, sectorPB) {
 
 export function scorePERatio(currentPE, historicalAvg, sectorPE) {
     if (currentPE === null || currentPE === undefined || isNaN(currentPE)) {
-        return { score: 50, bias: 'Neutral', confidence: 60 };
+        return { score: null, bias: 'Neutral', confidence: 60 };
     }
 
     // ── Factor 1: vs Historical Average (0–100) ────────────────────────────
@@ -1082,7 +1082,7 @@ export function scorePERatio(currentPE, historicalAvg, sectorPE) {
 
 export function scoreProfitGrowth(profitHistory, manualCAGR) {
     if ((!profitHistory || profitHistory.length < 2) && (manualCAGR === null || isNaN(manualCAGR))) {
-        return { score: 50, bias: 'Neutral', confidence: '0%', calculatedCAGR: null, latestProfit: null, previousProfit: null };
+        return { score: null, bias: 'Neutral', confidence: '0%', calculatedCAGR: null, latestProfit: null, previousProfit: null };
     }
 
     let score = 50;
@@ -1142,7 +1142,7 @@ export function scoreProfitGrowth(profitHistory, manualCAGR) {
 
 export function scoreRevenueGrowth(revenueHistory, manualCAGR) {
     if ((!revenueHistory || revenueHistory.length < 2) && (manualCAGR === null || isNaN(manualCAGR))) {
-        return { score: 50, bias: 'Neutral', confidence: '0%', calculatedCAGR: null, latestRevenue: null, previousRevenue: null };
+        return { score: null, bias: 'Neutral', confidence: '0%', calculatedCAGR: null, latestRevenue: null, previousRevenue: null };
     }
 
     let score = 50;
@@ -1202,7 +1202,7 @@ export function scoreRevenueGrowth(revenueHistory, manualCAGR) {
 
 export function scoreROCE(currentROCE, sectorROCE) {
     if (currentROCE === null || isNaN(currentROCE)) {
-        return { score: 50, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
+        return { score: null, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
     }
 
     let score = 50;
@@ -1244,7 +1244,7 @@ export function scoreROCE(currentROCE, sectorROCE) {
 
 export function scoreROE(currentROE, sectorROE) {
     if (currentROE === null || isNaN(currentROE)) {
-        return { score: 50, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
+        return { score: null, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
     }
 
     let score = 50;
@@ -1286,7 +1286,7 @@ export function scoreROE(currentROE, sectorROE) {
 
 export function scoreVIX(vixValue) {
     if (vixValue === null || isNaN(vixValue)) {
-        return { score: 50, bias: 'Neutral', confidence: 0, vixRegime: 'Unknown', marketCondition: 'No Data' };
+        return { score: null, bias: 'Neutral', confidence: 0, vixRegime: 'Unknown', marketCondition: 'No Data' };
     }
 
     // ── Factor 1: VIX Regime Classification (0–100) ───────────────────────

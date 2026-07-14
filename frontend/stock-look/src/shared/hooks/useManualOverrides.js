@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 /**
  * Universal hook for managing manual dashboard overrides via LocalStorage.
@@ -28,10 +28,10 @@ export function useManualOverrides(moduleKey, instrument, defaultOverrides) {
         if (stored) {
             try {
                 const parsed = JSON.parse(stored);
-                if (parsed && parsed[instrument]) return parsed[instrument];
+                if (parsed && parsed[instrument]) return parsed[instrument]; // This should now be an object: { key: timestamp }
             } catch (e) { console.error(`Error parsing ${timeStorageKey}`, e); }
         }
-        return '--:--';
+        return {};
     };
 
     const [overrides, setOverrides] = useState(getInitialOverrides);
@@ -44,7 +44,7 @@ export function useManualOverrides(moduleKey, instrument, defaultOverrides) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [instrument]);
 
-    const handleChange = (key, val) => {
+    const handleChange = useCallback((key, val) => {
         setOverrides(prev => {
             const next = { ...prev, [key]: val };
             
@@ -59,17 +59,19 @@ export function useManualOverrides(moduleKey, instrument, defaultOverrides) {
             return next;
         });
 
-        const timeStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-        setLastUpdated(timeStr);
-        
-        const storedTime = localStorage.getItem(timeStorageKey);
-        let allTimes = {};
-        if (storedTime) {
-            try { allTimes = JSON.parse(storedTime); } catch(e) {}
-        }
-        allTimes[instrument] = timeStr;
-        localStorage.setItem(timeStorageKey, JSON.stringify(allTimes));
-    };
+        const timeVal = Date.now();
+        setLastUpdated(prev => {
+            const next = { ...prev, [key]: timeVal };
+            const storedTime = localStorage.getItem(timeStorageKey);
+            let allTimes = {};
+            if (storedTime) {
+                try { allTimes = JSON.parse(storedTime); } catch(e) {}
+            }
+            allTimes[instrument] = next;
+            localStorage.setItem(timeStorageKey, JSON.stringify(allTimes));
+            return next;
+        });
+    }, [instrument, storageKey, timeStorageKey]);
 
     const handleClearAll = () => {
         const resetState = { ...defaultOverrides };
@@ -84,15 +86,14 @@ export function useManualOverrides(moduleKey, instrument, defaultOverrides) {
         
         setOverrides(resetState);
         
-        const timeStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-        setLastUpdated(timeStr);
+        setLastUpdated({});
         
         const storedTime = localStorage.getItem(timeStorageKey);
         let allTimes = {};
         if (storedTime) {
             try { allTimes = JSON.parse(storedTime); } catch(e) {}
         }
-        allTimes[instrument] = timeStr;
+        allTimes[instrument] = {};
         localStorage.setItem(timeStorageKey, JSON.stringify(allTimes));
     };
 

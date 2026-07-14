@@ -1,5 +1,6 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreROE, generateAiInsightROECard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
@@ -15,20 +16,20 @@ export default function ROECard({ data, manualOverride, lastUpdated }) {
     let extractedSector = null;
 
     if (roeItem && roeItem.company_value) {
-        const parsed = parseFloat(roeItem.company_value);
+        const parsed = cleanNum(roeItem.company_value);
         if (!isNaN(parsed)) {
             extractedValue = parsed;
             isManual = false;
         }
         if (roeItem.sector_value) {
-            const parsedSector = parseFloat(roeItem.sector_value);
+            const parsedSector = cleanNum(roeItem.sector_value);
             if (!isNaN(parsedSector)) {
                 extractedSector = parsedSector;
             }
         }
     }
     
-    const currentROE = isManual ? (manualOverride !== undefined && manualOverride !== null ? parseFloat(manualOverride) : null) : extractedValue;
+    const currentROE = isManual ? (manualOverride !== undefined && manualOverride !== null ? cleanNum(manualOverride) : null) : extractedValue;
     const sectorROE = isManual ? null : extractedSector; // Fallback sector not supported if manual
 
     // 2. Load Central Config

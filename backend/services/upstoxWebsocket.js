@@ -109,12 +109,17 @@ const handleMarketData = (dataBuffer) => {
 
             if (feedData.fullFeed || feedData.ff) {
                 const ff = feedData.fullFeed || feedData.ff;
-                tickObj.ltp = ff.marketFF?.ltpc?.ltp;
-                tickObj.volume = ff.marketFF?.eFeedDetails?.vtt || ff.marketFF?.vtt || 0;
-                tickObj.openInterest = ff.marketFF?.eFeedDetails?.oi || ff.marketFF?.oi || 0;
-                if (ff.marketFF?.optionGreeks) {
-                    tickObj.optionGreeks = ff.marketFF.optionGreeks;
-                    tickObj.iv = ff.marketFF.iv;
+                
+                if (ff.indexFF) {
+                    tickObj.ltp = ff.indexFF.ltpc?.ltp;
+                } else if (ff.marketFF) {
+                    tickObj.ltp = ff.marketFF.ltpc?.ltp;
+                    tickObj.volume = ff.marketFF.vtt || 0;
+                    tickObj.openInterest = ff.marketFF.oi || 0;
+                    if (ff.marketFF.optionGreeks) {
+                        tickObj.optionGreeks = ff.marketFF.optionGreeks;
+                        tickObj.iv = ff.marketFF.iv;
+                    }
                 }
             } else if (feedData.firstLevelWithGreeks) {
                 const flwg = feedData.firstLevelWithGreeks;
@@ -169,16 +174,13 @@ export const connectUpstoxWebsocket = async () => {
 
         const response = await axios.get(apiUrl, { headers: authHeaders });
         const wsUrl = response.data.data.authorized_redirect_uri;
+        console.log("Got wsUrl from Upstox:", wsUrl);
 
         if (!wsUrl) throw new Error("Did not receive a valid WebSocket URL from Upstox.");
 
         console.log("🔌 Connecting to Upstox Market Data Feed V3...");
         
         upstoxWs = new WebSocket(wsUrl, {
-            headers: {
-                "Api-Version": "2.0",
-                "Authorization": `Bearer ${auth.accessToken}`
-            },
             followRedirects: true
         });
 

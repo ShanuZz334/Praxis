@@ -4,6 +4,7 @@
  */
 
 import React from "react";
+import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import TechnicalCard from "./TechnicalCard";
 import { technicalSections } from "@/features/dashboard/technical/engine/technicalHelper";
 import RSICard from './RSICard';
@@ -40,7 +41,7 @@ const HARDCODED_IDS = [
     'rsi','macd','stoch_rsi','williams_r','bb_20_2','atr','kc','cmf',
     'volume_sma','obv','vwap','support','resistance','trendline','pivot',
     'fibonacci','ema_20','ema_50','ema_200','sma_50','sma_200','adx',
-    'supertrend','breadth_ratio','mcclellan','ad_line','nh_nl','india_vix','trin'
+    'supertrend','breadth_ratio','mcclellan','ad_line','nh_nl','trin'
 ];
 
 export default function TechnicalGrid({
@@ -50,11 +51,41 @@ export default function TechnicalGrid({
 }) {
     const sortCards = (list, mode) => {
         const arr = [...list];
-        if (mode === 'score_desc') return arr.sort((a,b) => (b.normalized||0)-(a.normalized||0));
-        if (mode === 'score_asc')  return arr.sort((a,b) => (a.normalized||0)-(b.normalized||0));
-        if (mode === 'rel_desc')   return arr.sort((a,b) => (b.creditAllocation||0)-(a.creditAllocation||0));
-        if (mode === 'rel_asc')    return arr.sort((a,b) => (a.creditAllocation||0)-(b.creditAllocation||0));
-        return arr;
+        const hasScore = (c) => c.score !== undefined && c.score !== null && !isNaN(c.score);
+
+        return arr.sort((a, b) => {
+            const aValid = hasScore(a);
+            const bValid = hasScore(b);
+
+            // Always push un-scored items to the bottom
+            if (aValid && !bValid) return -1;
+            if (!aValid && bValid) return 1;
+            if (!aValid && !bValid) return 0;
+
+            if (mode === 'score_desc') {
+                if (!aValid && !bValid) return 0;
+                const diff = b.score - a.score;
+                return diff !== 0 ? diff : (b.creditAllocation || 0) - (a.creditAllocation || 0);
+            }
+            if (mode === 'score_asc') {
+                if (!aValid && !bValid) return 0;
+                const diff = a.score - b.score;
+                return diff !== 0 ? diff : (b.creditAllocation || 0) - (a.creditAllocation || 0);
+            }
+            if (mode === 'rel_desc') {
+                const diff = (b.creditAllocation || 0) - (a.creditAllocation || 0);
+                if (diff !== 0) return diff;
+                if (!aValid && !bValid) return 0;
+                return b.score - a.score;
+            }
+            if (mode === 'rel_asc') {
+                const diff = (a.creditAllocation || 0) - (b.creditAllocation || 0);
+                if (diff !== 0) return diff;
+                if (!aValid && !bValid) return 0;
+                return a.score - b.score;
+            }
+            return 0;
+        });
     };
 
     const grouped = React.useMemo(() => {
@@ -124,12 +155,17 @@ export default function TechnicalGrid({
                         { id: 'nh_nl',        node: <NhnlCard data={data} manualOverride={manualOverrides?.nh_nl} lastUpdated={resolveTime(!!data?.nh_nl, 'nh_nl')} /> },
                         { id: 'trin',         node: <TrinCard data={data} manualOverride={manualOverrides?.trin} lastUpdated={resolveTime(!!data?.trin, 'trin')} /> }
                     ] : []),
-                    { id: 'india_vix',    node: <VixCard data={data} manualOverride={manualOverrides?.india_vix} lastUpdated={resolveTime(!!data?.india_vix, 'india_vix')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+
                 ];
                 const excludeIds = renderList.map(item => item.id);
                 const flatWithData = renderList.map(item => {
-                    const cData = cards.find(c => c.id === item.id) || { normalized: 0, creditAllocation: 0 };
-                    return { ...item, ...cData };
+                    const cData = cards.find(c => c.id === item.id);
+                    const fallbackCredit = getIndicatorConfig(item.id)?.creditScore ?? 5;
+                    return { 
+                        ...item, 
+                        ...(cData || { normalized: 0 }),
+                        creditAllocation: cData?.creditAllocation ?? fallbackCredit
+                    };
                 });
                 const dynamicCards = cards
                     .filter(card => !excludeIds.includes(card.id) && !card.id.startsWith('dummy_'))
@@ -149,10 +185,26 @@ export default function TechnicalGrid({
                 <div className="space-y-6 md:space-y-10">
                     {SECTION_ORDER.map((section) => {
                         const hardcodedCounts = { 'Trend':7, 'Momentum':4, 'Volatility':4, 'Volume':4, 'Structure':5, 'Breadth':5 };
-                        const hardcodedCount = hardcodedCounts[section] || 0;
+                        const expectedIds = {
+                            'Trend': ['ema_20', 'ema_50', 'ema_200', 'sma_50', 'sma_200', 'adx', 'supertrend'],
+                            'Momentum': ['rsi', 'macd', 'stoch_rsi', 'williams_r'],
+                            'Volatility': ['bb_20_2', 'atr', 'kc'],
+                            'Volume': isIndex ? [] : ['cmf', 'volume_sma', 'obv', 'vwap'],
+                            'Structure': ['support', 'resistance', 'trendline', 'pivot', 'fibonacci'],
+                            'Breadth': isIndex ? ['ad_line', 'nh_nl', 'breadth_ratio', 'trin', 'mcclellan'] : []
+                        }[section] || [];
+
+                        let missingCount = 0;
+                        expectedIds.forEach(id => {
+                            if (!data || (data[id] === undefined || data[id] === null || data[id] === '--')) {
+                                missingCount++;
+                            }
+                        });
+
                         const rawList = grouped[section];
                         const validDynamicCards = rawList ? rawList.filter(c => !c.id?.startsWith('dummy_')) : [];
-                        if (hardcodedCount === 0 && validDynamicCards.length === 0) return null;
+                        
+                        if (expectedIds.length === 0 && validDynamicCards.length === 0) return null;
                         const sectionCards = sortCards(validDynamicCards, sortMode);
 
                         return (
@@ -161,8 +213,17 @@ export default function TechnicalGrid({
                                     <div className="flex items-center gap-3">
                                         <span className="text-sm font-bold text-text-primary uppercase tracking-widest">{section}</span>
                                         <span className="text-[10px] px-1.5 py-0.5 rounded border border-border-default bg-background-surface text-text-tertiary font-mono shadow-sm">
-                                            {sectionCards.filter(c => !HARDCODED_IDS.includes(c.id)).length + hardcodedCount}
+                                            {expectedIds.length + sectionCards.length}
                                         </span>
+                                        {missingCount > 0 ? (
+                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/30">
+                                                {missingCount} missing
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded border border-border-default bg-emerald-500/10 text-emerald-500 font-mono shadow-sm border-emerald-500/30">
+                                                100%
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start">
@@ -185,7 +246,6 @@ export default function TechnicalGrid({
                                         <BBCard data={data} manualOverride={manualOverrides?.bb_20_2} lastUpdated={resolveTime(!!data?.bb_20_2, 'bb_20_2')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
                                         <ATRCard data={data} manualOverride={manualOverrides?.atr} lastUpdated={resolveTime(!!data?.atr, 'atr')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
                                         <KCCard data={data} manualOverride={manualOverrides?.kc} lastUpdated={resolveTime(!!data?.kc, 'kc')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <VixCard data={data} manualOverride={manualOverrides?.india_vix} lastUpdated={resolveTime(!!data?.india_vix, 'india_vix')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
                                     </>)}
                                     {section === 'Volume' && (<>
                                         <CmfCard data={data} manualOverride={manualOverrides?.cmf} lastUpdated={resolveTime(!!data?.cmf, 'cmf')} />

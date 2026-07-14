@@ -1,34 +1,35 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightEarningsYieldCard, scoreEarningsYield } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 export default function EarningsYieldCard({ data = null, manualOverride, lastUpdated }) {
     // 1. Live Data Extraction (Upstox)
     const upstoxYieldObj = (Array.isArray(data?.ratios) ? data.ratios : []).find(r => r.name?.toLowerCase().includes("earning yield") || r.name?.toLowerCase().includes("earnings yield"));
-    let parsedUpstoxYield = upstoxYieldObj?.company_value ? parseFloat(upstoxYieldObj.company_value) : null;
-    let parsedSectorYield = upstoxYieldObj?.sector_value ? parseFloat(upstoxYieldObj.sector_value) : null;
+    let parsedUpstoxYield = upstoxYieldObj?.company_value ? cleanNum(upstoxYieldObj.company_value) : null;
+    let parsedSectorYield = upstoxYieldObj?.sector_value ? cleanNum(upstoxYieldObj.sector_value) : null;
     
     // If upstox doesn't provide Yield directly, derive it from P/E
     if (parsedUpstoxYield === null || isNaN(parsedUpstoxYield)) {
         const upstoxPEObj = (Array.isArray(data?.ratios) ? data.ratios : []).find(r => r.name === "P/E" || r.name === "PE" || r.name?.toLowerCase().includes("pe ratio"));
-        const parsedPE = upstoxPEObj?.company_value ? parseFloat(upstoxPEObj.company_value) : null;
+        const parsedPE = upstoxPEObj?.company_value ? cleanNum(upstoxPEObj.company_value) : null;
         if (parsedPE !== null && !isNaN(parsedPE) && parsedPE > 0) {
-            parsedUpstoxYield = parseFloat(((1 / parsedPE) * 100).toFixed(2));
+            parsedUpstoxYield = cleanNum(((1 / parsedPE) * 100).toFixed(2));
         }
         
-        const parsedSectorPE = upstoxPEObj?.sector_value ? parseFloat(upstoxPEObj.sector_value) : null;
+        const parsedSectorPE = upstoxPEObj?.sector_value ? cleanNum(upstoxPEObj.sector_value) : null;
         if (parsedSectorPE !== null && !isNaN(parsedSectorPE) && parsedSectorPE > 0) {
-            parsedSectorYield = parseFloat(((1 / parsedSectorPE) * 100).toFixed(2));
+            parsedSectorYield = cleanNum(((1 / parsedSectorPE) * 100).toFixed(2));
         }
     }
 
     // 2. Data Resolution
     const isLiveData = parsedUpstoxYield !== null && !isNaN(parsedUpstoxYield);
-    const currentYield = isLiveData ? parsedUpstoxYield : (manualOverride ? parseFloat(manualOverride) : null);
+    const currentYield = isLiveData ? parsedUpstoxYield : (manualOverride ? cleanNum(manualOverride) : null);
     
     const historicalYield = null; // Removed to comply with Zero Clutter Rule
     const sectorYield = isLiveData ? parsedSectorYield : null;
-    const bondYield = data?.manualBondYield ? parseFloat(data.manualBondYield) : null;
+    const bondYield = data?.manualBondYield ? cleanNum(data.manualBondYield) : null;
 
     // 3. Calculation Engine
     const { score, bias, confidence } = scoreEarningsYield(currentYield, historicalYield, bondYield);
@@ -56,12 +57,12 @@ export default function EarningsYieldCard({ data = null, manualOverride, lastUpd
                 details: [
                     sectorYield !== null && {
                         label: 'Sector Yield',
-                        value: `${parseFloat(sectorYield).toFixed(2)}%`,
+                        value: `${cleanNum(sectorYield).toFixed(2)}%`,
                         isManual: false,
                     },
                     bondYield !== null && {
                         label: '10Y Bond Yield',
-                        value: `${parseFloat(bondYield).toFixed(2)}%`,
+                        value: `${cleanNum(bondYield).toFixed(2)}%`,
                         isManual: true,
                     }
                 ].filter(Boolean),

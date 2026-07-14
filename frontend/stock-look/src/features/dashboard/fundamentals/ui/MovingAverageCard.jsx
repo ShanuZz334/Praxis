@@ -1,11 +1,12 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightMovingAverageCard, scoreDMA200 } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function MovingAverageCard({ data, manualOverride, lastUpdated }) {
     const dmaDistance = (manualOverride !== undefined && manualOverride !== null && manualOverride !== '')
-        ? parseFloat(manualOverride)
+        ? cleanNum(manualOverride)
         : null;
 
     const configData = getIndicatorConfig('index_200dma');
@@ -19,7 +20,7 @@ export default function MovingAverageCard({ data, manualOverride, lastUpdated })
                 category: 'Market Health',
                 mode: 'MANUAL',
                 creditScore: configData?.creditScore ?? 9,
-                updateTime: lastUpdated ?? '--:--',
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(false) : (lastUpdated || '--:--'),
                 source: 'Manual',
                 aiModel: configData?.aiModel ?? 'Engine v3'
             }}

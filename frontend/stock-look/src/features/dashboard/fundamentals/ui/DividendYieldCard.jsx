@@ -1,5 +1,6 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { formatPercentage } from '@/shared/utils/formatters';
 import { scoreDividendYield, generateAiInsightDividendYieldCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
@@ -11,12 +12,12 @@ export default function DividendYieldCard({ data = null, manualOverride, lastUpd
 
     // 1. Core State
     const currentYield = manualOverride !== undefined && manualOverride !== null && manualOverride !== '' 
-        ? parseFloat(manualOverride) : null;
+        ? cleanNum(manualOverride) : null;
     
 
         
     const bondYield = data?.manualBondYield !== undefined && data?.manualBondYield !== null && data?.manualBondYield !== '' 
-        ? parseFloat(data.manualBondYield) : null;
+        ? cleanNum(data.manualBondYield) : null;
 
     // 2. Load Central Config
     const configData = getIndicatorConfig('dividend_yield');

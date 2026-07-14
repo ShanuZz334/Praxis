@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { useDashboardContext } from '@/shared/context/DashboardContext';
 import { FO_INDICES } from '@/shared/utils/foInstruments';
 
-export default function IndexSummaryWidget({ data, manualOverrides, selectedInstrument }) {
+export default function IndexSummaryWidget({ data, manualOverrides, selectedInstrument, resolveTime }) {
     const { livePrices } = useDashboardContext();
     const liveData = livePrices?.[selectedInstrument];
     const instrumentLabel = FO_INDICES.find(e => e.value === selectedInstrument)?.label || selectedInstrument || "INDEX DATA";
@@ -29,7 +29,7 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
         {
             label: "High / Low",
             value: (extractQuote('ohlc')?.high && extractQuote('ohlc')?.low) 
-                   ? `${extractQuote('ohlc').high} / ${extractQuote('ohlc').low}` 
+                   ? `${parseFloat(extractQuote('ohlc').high).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ${parseFloat(extractQuote('ohlc').low).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
                    : manualOverrides?.high_low,
             prefix: "₹ ",
             overrideKey: 'high_low',
@@ -63,7 +63,7 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
         const isNull = m.value === null || m.value === undefined || m.value === '';
         let displayVal = '--';
         if (!isNull) {
-            displayVal = (m.prefix || '') + (m.isString ? m.value : parseFloat(m.value).toLocaleString('en-IN')) + (m.suffix || '');
+            displayVal = (m.prefix || '') + (m.isString ? m.value : parseFloat(m.value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + (m.suffix || '');
         }
         
         // For Index P/E, P/B, DivYield, they are ALWAYs manual since Upstox doesn't provide them.
@@ -115,6 +115,38 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
     const col2 = visibleMetrics.filter((_, i) => i % 3 === 1);
     const col3 = visibleMetrics.filter((_, i) => i % 3 === 2);
 
+    const syncTimes = visibleMetrics.map(m => {
+        if (!resolveTime) return null;
+        let isManual = (m.value === null || m.value === undefined || m.value === '') || false;
+        if (m.overrideKey === 'index_pe' || m.overrideKey === 'index_pb' || m.overrideKey === 'index_div_yield') {
+             isManual = true; // Always manual if present
+        } else {
+             isManual = m.value === manualOverrides?.[m.overrideKey];
+        }
+        
+        // Pass whether it's manual or Upstox data to resolveTime properly
+        const str = resolveTime(m.value !== undefined && m.value !== null, isManual ? m.overrideKey : null);
+        if (!str) return null;
+        const match = str.match(/(\d{1,2}:\d{2}\s[AP]M)/);
+        return match ? match[1] : null;
+    }).filter(Boolean);
+    
+    const uniqueTimes = Array.from(new Set(syncTimes));
+    
+    let syncTimeText = null;
+    if (uniqueTimes.length === 1) {
+        syncTimeText = `Sync: ${uniqueTimes[0]}`;
+    } else if (uniqueTimes.length > 1) {
+        const sorted = uniqueTimes.sort((a, b) => new Date('1970/01/01 ' + a) - new Date('1970/01/01 ' + b));
+        syncTimeText = `Sync: ${sorted[0]} - ${sorted[sorted.length - 1]}`;
+    } else {
+        const globalSync = resolveTime ? resolveTime(!!data) : null;
+        if (globalSync) {
+            const match = globalSync.match(/(\d{1,2}:\d{2}\s[AP]M)/);
+            syncTimeText = match ? `Sync: ${match[1]}` : globalSync;
+        }
+    }
+
     return (
         <div className="w-full mt-8 bg-background-elevated/95 backdrop-blur-xl border border-border-default rounded-xl p-4 md:p-6 mb-6 shadow-lg overflow-hidden relative z-0">
             {/* Header / Ticker */}
@@ -134,7 +166,14 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
                                     </span>
                                 )}
                             </h2>
-                            <span className="text-xs text-text-tertiary font-mono">{instrumentLabel}</span>
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs text-text-tertiary font-mono">{instrumentLabel}</span>
+                                {syncTimeText && (
+                                    <span className="text-[10px] text-text-secondary font-mono border-l border-border-subtle pl-3">
+                                        {syncTimeText}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

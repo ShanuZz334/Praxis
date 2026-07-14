@@ -13,7 +13,8 @@
  *   Factor 3 (20%): Risk regime (low/moderate/high leverage classification)
  */
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreDebtToEquity, generateAiInsightDebtToEquityCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
@@ -30,10 +31,10 @@ export default function DebtToEquityCard({ data, manualOverride, lastUpdated }) 
     );
 
     if (ratioObj?.company_value) {
-        const parsed = parseFloat(ratioObj.company_value);
+        const parsed = cleanNum(ratioObj.company_value);
         if (!isNaN(parsed)) { extractedValue = parsed; isManual = false; }
         if (ratioObj.sector_value) {
-            const parsedSector = parseFloat(ratioObj.sector_value);
+            const parsedSector = cleanNum(ratioObj.sector_value);
             if (!isNaN(parsedSector)) extractedSector = parsedSector;
         }
     }
@@ -55,7 +56,7 @@ export default function DebtToEquityCard({ data, manualOverride, lastUpdated }) 
     }
 
     const currentDE = isManual
-        ? (manualOverride !== undefined && manualOverride !== null ? parseFloat(manualOverride) : null)
+        ? (manualOverride !== undefined && manualOverride !== null ? cleanNum(manualOverride) : null)
         : extractedValue;
     const sectorDE = isManual ? null : extractedSector;
 
@@ -70,7 +71,7 @@ export default function DebtToEquityCard({ data, manualOverride, lastUpdated }) 
                 category: 'Financial Health',
                 mode: isManual ? 'MANUAL' : 'AUTO',
                 creditScore: configData?.creditScore ?? 5,
-                updateTime: lastUpdated ?? '--:--',
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--'),
                 source: isManual ? 'Manual' : (extractedSector ? 'Upstox Ratios' : 'Upstox Balance Stmt'),
                 aiModel: configData?.aiModel ?? 'Engine v3'
             }}

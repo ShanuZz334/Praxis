@@ -1,5 +1,6 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { formatPercentage } from '@/shared/utils/formatters';
 import { scoreGDPGrowth, generateAiInsightGDPGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
@@ -8,7 +9,7 @@ export default function GDPGrowthCard({ data = null, manualOverride, lastUpdated
     // 1. Core State (100% Manual Macro Indicator)
     const isManual = true;
     const currentGrowth = manualOverride !== undefined && manualOverride !== null && manualOverride !== '' 
-        ? parseFloat(manualOverride) 
+        ? cleanNum(manualOverride) 
         : null;
 
     // 2. Load Central Config

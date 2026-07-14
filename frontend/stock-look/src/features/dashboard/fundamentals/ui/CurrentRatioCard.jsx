@@ -1,5 +1,6 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 export default function CurrentRatioCard({ data, manualOverride, lastUpdated }) {
@@ -13,13 +14,13 @@ export default function CurrentRatioCard({ data, manualOverride, lastUpdated }) 
     );
     
     if (ratioObj && ratioObj.company_value) {
-        const parsed = parseFloat(ratioObj.company_value);
+        const parsed = cleanNum(ratioObj.company_value);
         if (!isNaN(parsed)) {
             extractedValue = parsed;
             isManual = false;
         }
         if (ratioObj.sector_value) {
-            const parsedSector = parseFloat(ratioObj.sector_value);
+            const parsedSector = cleanNum(ratioObj.sector_value);
             if (!isNaN(parsedSector)) { extractedSector = parsedSector; }
         }
     }
@@ -41,7 +42,7 @@ export default function CurrentRatioCard({ data, manualOverride, lastUpdated }) 
         }
     }
 
-    const currentRatio = isManual ? (manualOverride !== undefined && manualOverride !== null ? parseFloat(manualOverride) : null) : extractedValue;
+    const currentRatio = isManual ? (manualOverride !== undefined && manualOverride !== null ? cleanNum(manualOverride) : null) : extractedValue;
     const sectorRatio = isManual ? null : extractedSector;
 
     // 2. Load Central Config

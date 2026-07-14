@@ -1,5 +1,6 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightPERatioCard, scorePERatio } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
@@ -14,13 +15,13 @@ export default function PERatioCard({ data = null, manualOverride, lastUpdated }
         r.name?.toLowerCase() === 'p/e ratio' ||
         r.name?.toLowerCase().includes('price to earnings')
     );
-    const parsedPE = upstoxPEObj?.company_value ? parseFloat(upstoxPEObj.company_value) : null;
+    const parsedPE = upstoxPEObj?.company_value ? cleanNum(upstoxPEObj.company_value) : null;
 
     const isLiveData = parsedPE !== null && !isNaN(parsedPE) && parsedPE > 0;
     const currentPE  = isLiveData ? parsedPE : (manualOverride ?? null);
 
     // ── Step 2: Resolve Sector PE (Live from Upstox) ──────────
-    const sectorPE = upstoxPEObj?.sector_value ? parseFloat(upstoxPEObj.sector_value) : null;
+    const sectorPE = upstoxPEObj?.sector_value ? cleanNum(upstoxPEObj.sector_value) : null;
     const historicalPE = null; // Removed to strictly comply with Zero Clutter Rule (NO Fallbacks/Historical inputs)
 
     // ── Step 3: Run Engine ────────────────────────────────────────────────
@@ -31,7 +32,7 @@ export default function PERatioCard({ data = null, manualOverride, lastUpdated }
 
     // ── Step 5: Display Value Formatting ──────────────────────────────────
     const displayPE = currentPE !== null && !isNaN(currentPE)
-        ? `${parseFloat(currentPE).toFixed(2)}x`
+        ? `${cleanNum(currentPE).toFixed(2)}x`
         : '--';
 
     return (
@@ -41,7 +42,7 @@ export default function PERatioCard({ data = null, manualOverride, lastUpdated }
                 category: 'Valuation',
                 mode: isLiveData ? 'AUTO' : 'MANUAL',
                 creditScore: configData?.creditScore ?? 5,
-                updateTime: lastUpdated ?? '--:--',
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'),
                 source: isLiveData ? 'Upstox' : 'Manual',
                 aiModel: configData?.aiModel ?? 'Engine v2'
             }}
@@ -53,7 +54,7 @@ export default function PERatioCard({ data = null, manualOverride, lastUpdated }
                 details: [
                     sectorPE !== null && {
                         label: 'Sector P/E',
-                        value: `${parseFloat(sectorPE).toFixed(2)}x`,
+                        value: `${cleanNum(sectorPE).toFixed(2)}x`,
                         isManual: false,
                     }
                 ].filter(Boolean),

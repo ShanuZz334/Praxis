@@ -1,66 +1,41 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useMemo } from 'react';
 
 /**
- * Tracks the exact timestamp when specific data fields change their mathematical value.
- * Prevents the UI clock from ticking forward on API polling if the data hasn't shifted.
+ * Universal Sync Timer & Freshness Resolver
+ * Decouples the UI timers from deep data diffs.
+ * - AUTO: Displays clean intervals (e.g., 'Realtime (1s)').
+ * - MANUAL: Displays the precise timestamp the user last edited the value.
  */
-export function useDataFreshness(liveData, manualOverrides, manualOverrideTimes, isMarketOpen, formatTime) {
-    const lastValuesRef = useRef({});
-    const lastChangedTimesRef = useRef({});
-
-    useEffect(() => {
-        if (!liveData) return;
-        
-        // Prefer the backend's true updated_at timestamp, fallback to Date.now()
-        const calcTime = liveData.calculated_at || liveData.updated_at || Date.now();
-        let anyChanged = false;
-        
-        Object.keys(liveData).forEach(key => {
-            if (key === 'calculated_at' || key === 'updated_at') return;
-            
-            // Deep JSON stringify comparison
-            const prevValString = JSON.stringify(lastValuesRef.current[key]);
-            const newValString = JSON.stringify(liveData[key]);
-            
-            if (prevValString !== newValString) {
-                const specificTime = liveData[`${key}_updated_at`];
-                const finalTime = specificTime ? new Date(specificTime).getTime() : calcTime;
-                
-                lastValuesRef.current[key] = liveData[key];
-                lastChangedTimesRef.current[key] = finalTime;
-                anyChanged = true;
-            }
-        });
-        
-        if (anyChanged) {
-            lastChangedTimesRef.current['__global__'] = calcTime;
-        }
-    }, [liveData]);
-
+export function useDataFreshness(liveData, manualOverrides, manualOverrideTimes, isMarketOpen, formatTime, fetchFrequency = "1s") {
+    
     const resolveTime = useMemo(() => (hasData, overrideKey) => {
-        const isManual = overrideKey && manualOverrides[overrideKey] !== undefined && manualOverrides[overrideKey] !== null;
+        // 1. Check if the card is actively using a manual override
+        const isManual = overrideKey && manualOverrides && manualOverrides[overrideKey] !== undefined && manualOverrides[overrideKey] !== null;
+        
         if (isManual) {
-            const manualTs = manualOverrideTimes[overrideKey];
-            if (manualTs) return formatTime(manualTs);
+            const manualTs = manualOverrideTimes && manualOverrideTimes[overrideKey];
+            if (manualTs) {
+                // Handle legacy string timestamps
+                if (typeof manualTs === 'string' && manualTs.includes(':') && !manualTs.includes('T')) {
+                    return `Manual Sync (${manualTs})`;
+                }
+                const parsedTs = typeof manualTs === 'string' ? new Date(manualTs).getTime() : manualTs;
+                return `Manual Sync (${formatTime(parsedTs)})`;
+            }
+            return "Manual Sync";
         }
 
+        // 2. If data is genuinely missing and no override exists
         if (!hasData) return null;
 
-        const targetKey = overrideKey || '__global__';
-        const changedTs = lastChangedTimesRef.current[targetKey];
-
-        if (changedTs) {
-            console.log(`[Freshness Debug] ${targetKey} returned changedTs: ${changedTs}`);
-            return formatTime(changedTs);
+        // 3. AUTO Mode: Clean intervals based on Market Status
+        if (typeof isMarketOpen === 'function' && isMarketOpen()) {
+            return `Realtime (${fetchFrequency})`;
         }
 
-        if (isMarketOpen()) return "Live";
-        if (liveData && (liveData.calculated_at || liveData.updated_at)) {
-            console.log(`[Freshness Debug] ${targetKey} returned fallback calculated_at: ${liveData.calculated_at}`);
-            return formatTime(liveData.calculated_at || liveData.updated_at);
-        }
-        return "3:30 PM";
-    }, [liveData, manualOverrides, manualOverrideTimes, isMarketOpen, formatTime]);
+        return `Offline Sync`;
+
+    }, [manualOverrides, manualOverrideTimes, isMarketOpen, fetchFrequency, formatTime]);
 
     return resolveTime;
 }

@@ -21,7 +21,7 @@
 // Imports
 // =============================
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowUp, ArrowDown, HelpCircle, ArrowRight } from "lucide-react";
 import { FlipContainer, FlipTrigger } from "@/shared/components/common/FlipContainer";
@@ -101,7 +101,24 @@ export default function GlobalHeader({
     }
 }) {
     const navigate = useNavigate();
+    const [searchQuery, setSearchQuery] = useState("");
     const [isFlipped, setIsFlipped] = useState(false);
+    const [lastFullCoverageTime, setLastFullCoverageTime] = useState(null);
+
+    useEffect(() => {
+        if (integrity?.coveragePercent === 100) {
+            setLastFullCoverageTime(Date.now());
+        }
+    }, [integrity?.coveragePercent]);
+
+    const formatFullTime = (ts) => {
+        if (!ts) return null;
+        return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    };
+
+    const displayFreshness = integrity?.coveragePercent === 100
+        ? integrity?.freshness
+        : (lastFullCoverageTime ? `Last Full Sync: ${formatFullTime(lastFullCoverageTime)}` : "Syncing...");
 
     // 1. Composite Logic
     const compositeState = getCompositeState(score);
@@ -255,7 +272,7 @@ export default function GlobalHeader({
                                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                                     <span className="text-sm text-text-primary">Monitor Active</span>
                                 </div>
-                                <div className="text-xs font-mono text-text-secondary">{integrity.freshness}</div>
+                                <div className="text-xs font-mono text-text-secondary">{displayFreshness}</div>
                             </div>
                             <div className="space-y-1.5">
                                 <div className="flex justify-between text-xs text-text-secondary">
@@ -268,6 +285,11 @@ export default function GlobalHeader({
                                         style={{ width: `${integrity.coveragePercent ?? 100}%` }}
                                     />
                                 </div>
+                                {integrity.snapshotTime && (
+                                    <div className="text-[10px] text-text-tertiary text-right mt-1 font-mono">
+                                        {integrity.snapshotTime}
+                                    </div>
+                                )}
                             </div>
                         </div>
 

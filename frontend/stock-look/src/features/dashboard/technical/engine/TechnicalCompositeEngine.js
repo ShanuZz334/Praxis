@@ -17,10 +17,9 @@ export const TITLE_TO_ID = {
     'Williams %R': 'williams_r',
 
     // Volatility
-    'Bollinger Bands': 'bollinger_bands',
+    'Bollinger Bands': 'bb_20_2',
     'ATR': 'atr',
-    'Keltner Channels': 'keltner_channels',
-    'India VIX': 'india_vix',
+    'Keltner Channels': 'kc',
 
     // Volume
     'Volume SMA': 'volume_sma',
@@ -32,13 +31,14 @@ export const TITLE_TO_ID = {
     'Support': 'support',
     'Resistance': 'resistance',
     'Trendline': 'trendline',
-    'Pivot Points': 'pivot_points',
+    'Pivot Points': 'pivot',
     'Fibonacci': 'fibonacci',
 
     // Breadth (Index)
-    'Advance / Decline': 'ad_ratio',
+    'Advance / Decline': 'breadth_ratio',
     'McClellan Osc': 'mcclellan',
-    'New Highs / Lows': 'nhnl',
+    'New Highs / Lows': 'nh_nl',
+    'A/D Line': 'ad_line',
     'TRIN (Arms Index)': 'trin'
 };
 
@@ -100,10 +100,10 @@ function computeSections(scores) {
 
     // Volatility: Harmonic Mean (penalizes extreme volatility states)
     const volatility = weightedHarmonicMean([
-        { score: g('bollinger_bands'), weight: 0.5 },
-        { score: g('keltner_channels'), weight: 0.3 },
+        { score: g('bb_20_2'), weight: 0.5 },
+        { score: g('kc'), weight: 0.3 },
         { score: g('atr'), weight: 0.2 },
-        { score: g('india_vix'), weight: 0.4 }
+
     ]);
 
     // Volume: Standard Weighted Mean
@@ -116,17 +116,19 @@ function computeSections(scores) {
 
     // Structure: Min-Anchored Blend or Weighted Mean (levels must hold)
     const structure = weightedMean([
-        { score: g('support'), weight: 0.3 },
-        { score: g('resistance'), weight: 0.3 },
-        { score: g('pivot_points'), weight: 0.2 },
-        { score: g('fibonacci'), weight: 0.2 }
+        { score: g('support'), weight: 0.25 },
+        { score: g('resistance'), weight: 0.25 },
+        { score: g('trendline'), weight: 0.2 },
+        { score: g('pivot'), weight: 0.15 },
+        { score: g('fibonacci'), weight: 0.15 }
     ]);
 
     // Breadth: Direct macro proxy
     const breadth = weightedGeometricMean([
-        { score: g('ad_ratio'), weight: 0.4 },
-        { score: g('mcclellan'), weight: 0.3 },
-        { score: g('nhnl'), weight: 0.2 },
+        { score: g('breadth_ratio'), weight: 0.35 },
+        { score: g('mcclellan'), weight: 0.25 },
+        { score: g('ad_line'), weight: 0.2 },
+        { score: g('nh_nl'), weight: 0.1 },
         { score: g('trin'), weight: 0.1 }
     ]);
 
@@ -153,30 +155,33 @@ export function computeTechnicalComposite(rawData, isIndex = false) {
         sma_50: scoreVal(scoreSMA50Card, rawData.sma_50, price),
         sma_200: scoreVal(scoreSMA200Card, rawData.sma_200, price),
         supertrend: scoreVal(scoreSupertrendCard, rawData.supertrend, price),
+        adx: scoreVal(scoreADXCard, rawData.adx),
         
         rsi: scoreVal(scoreRSICard, rawData.rsi),
         macd: scoreVal(scoreMACDCard, rawData.macd),
         stoch_rsi: scoreVal(scoreStochRSICard, rawData.stoch_rsi),
         williams_r: scoreVal(scoreWilliamsRCard, rawData.williams_r),
         
-        bollinger_bands: scoreVal(scoreBBCard, rawData.bb_20_2),
-        keltner_channels: scoreVal(scoreKCCard, rawData.kc, price),
+        bb_20_2: scoreVal(scoreBBCard, rawData.bb_20_2),
+        kc: scoreVal(scoreKCCard, rawData.kc, price),
         atr: scoreVal(scoreATRCard, rawData.atr, price),
-        india_vix: scoreVal(scoreVixCard, rawData.india_vix),
+
         
-        volume_sma: scoreVal(scoreVolumeSmaCard, rawData.volume_sma, rawData.volume),
+        volume_sma: scoreVal(scoreVolumeSmaCard, rawData.volume_sma, rawData.current_volume),
         obv: scoreVal(scoreObvCard, rawData.obv, rawData.obv_sma),
         cmf: scoreVal(scoreCmfCard, rawData.cmf),
         vwap: scoreVal(scoreVwapCard, rawData.vwap, price),
         
         support: scoreVal(scoreSupportCard, rawData.support, price),
         resistance: scoreVal(scoreResistanceCard, rawData.resistance, price),
-        pivot_points: scoreVal(scorePivotCard, rawData.pivot_points, price),
+        pivot: scoreVal(scorePivotCard, rawData.pivot, price),
         fibonacci: scoreVal(scoreFibonacciCard, rawData.fibonacci, price),
+        trendline: scoreVal(scoreTrendlineCard, rawData.trendline, price),
         
-        ad_ratio: scoreVal(scoreBreadthRatioCard, rawData.breadth_ratio),
+        breadth_ratio: scoreVal(scoreBreadthRatioCard, rawData.breadth_ratio),
         mcclellan: scoreVal(scoreMcClellanCard, rawData.mcclellan),
-        nhnl: scoreVal(scoreNhnlCard, rawData.nhnl),
+        ad_line: scoreVal(scoreADLineCard, rawData.ad_line),
+        nh_nl: scoreVal(scoreNhnlCard, rawData.nh_nl),
         trin: scoreVal(scoreTrinCard, rawData.trin)
     };
 
@@ -207,7 +212,7 @@ export function computeTechnicalComposite(rawData, isIndex = false) {
         compositeScore = Math.max(0, compositeScore - distressCount * 4);
     }
 
-    const adxScore = scoreVal(scoreADXCard, rawData.adx);
+    const adxScore = scores.adx;
     if (adxScore !== undefined && adxScore !== null) {
         if (adxScore < 40) {
             // Low ADX (weak trend) pulls composite towards neutral 50
@@ -228,26 +233,12 @@ export function computeTechnicalComposite(rawData, isIndex = false) {
         cssColor: `text-[${compositeColor.hex}]`,
     };
 
-    const gridScores = {
-        ...scores,
-        bb_20_2: scores.bollinger_bands,
-        kc: scores.keltner_channels,
-        pivot: scores.pivot_points,
-        breadth_ratio: scores.ad_ratio,
-        nh_nl: scores.nhnl
-    };
-    delete gridScores.bollinger_bands;
-    delete gridScores.keltner_channels;
-    delete gridScores.pivot_points;
-    delete gridScores.ad_ratio;
-    delete gridScores.nhnl;
-
     return {
         compositeScore,
         regime,
         sections: sectionsData,
         rawSections: { trend, momentum, volatility, volume, structure, breadth },
-        cardScores: gridScores
+        cardScores: scores
     };
 }
 
@@ -264,7 +255,7 @@ export function generateAiInsightTechnical(compositeScore, rawSections, isIndex)
     return `Market is range-bound and consolidating. Wait for a clear breakout above resistance or breakdown below support.`;
 }
 
-const defaultReturn = { score: 50, bias: "Neutral", confidence: "0%", aiInsight: "Awaiting valid data to calculate." };
+const defaultReturn = { score: null, bias: "Neutral", confidence: "0%", aiInsight: "Awaiting valid data to calculate." };
 
 export function scoreADLineCard(val) {
     if (val === null || val === undefined || isNaN(val)) return defaultReturn;
@@ -277,9 +268,15 @@ export function scoreADLineCard(val) {
 }
 
 export function scoreADXCard(valObj) {
+    if (valObj === null || valObj === undefined) return defaultReturn;
+    
+    const manualVal = parseFloat(valObj);
+    if (typeof valObj !== 'object' && !isNaN(manualVal)) valObj = { value: manualVal, prev: undefined };
+    
     if (!valObj || valObj.value === null || valObj.value === undefined || isNaN(valObj.value)) return defaultReturn;
     
-    const { value: val, prev } = valObj;
+    const { prev } = valObj;
+    let val = Number(valObj.value);
     let score = 50, bias = "Neutral", insight = "Trend is weak.";
     
     const isRising = prev !== undefined && prev !== null ? val > prev : true;
@@ -330,6 +327,7 @@ export function scoreBBCard(valObj) {
 
 export function scoreBreadthRatioCard(val) {
     if (val === null || val === undefined || isNaN(val)) return defaultReturn;
+    val = Number(val);
     let score = 50, bias = "Neutral", insight = "Market breadth is evenly balanced between advancing and declining issues.";
     if (val >= 2.0) { score = 85; bias = "Strong Bullish"; insight = `Breadth Ratio at ${val.toFixed(2)}. Overwhelming buying pressure with 2+ stocks advancing for every decliner.`; }
     else if (val > 1.2) { score = 65; bias = "Bullish"; insight = `Breadth Ratio is positive at ${val.toFixed(2)}. Bulls have clear control of the broader market.`; }
@@ -340,6 +338,7 @@ export function scoreBreadthRatioCard(val) {
 
 export function scoreCmfCard(val) {
     if (val === null || val === undefined || isNaN(val)) return defaultReturn;
+    val = Number(val);
     let score = 50, bias = "Neutral", insight = "Money flow is neutral.";
     if (val > 0.2) { 
         score = 85; bias = "Strong Bullish"; 
@@ -413,7 +412,18 @@ export function scoreEMA50Card(val, price) { return evaluateMA(val, price, 50, "
 export function scoreEMA200Card(val, price) { return evaluateMA(val, price, 200, "EMA"); }
 
 export function scoreFibonacciCard(valObj, currentPrice) {
-    if (!valObj || valObj.level_500 === undefined || !currentPrice) return defaultReturn;
+    if (valObj === null || valObj === undefined || !currentPrice) return defaultReturn;
+    
+    const manualVal = parseFloat(valObj);
+    if (typeof valObj !== 'object' && !isNaN(manualVal)) {
+        const dist = ((currentPrice - manualVal) / currentPrice) * 100;
+        let score = 50, bias = "Neutral", insight = "Tracking manual Fibonacci level.";
+        if (currentPrice > manualVal) { score = 65; bias = "Bullish"; insight = "Price is holding above the manual Fibonacci level."; }
+        else { score = 35; bias = "Bearish"; insight = "Price is below the manual Fibonacci level."; }
+        return { score, bias, confidence: "70%", aiInsight: insight, nearestFib: "Manual", nearestFibVal: manualVal, distancePct: Math.abs(dist) };
+    }
+
+    if (!valObj.level_500) return defaultReturn;
     const { level_0, level_236, level_382, level_500, level_618, level_705, level_786, level_100, level_1272, level_1414, level_1618, level_2000, level_2618 } = valObj;
     
     let score = 50, bias = "Neutral", insight = "Tracking Fibonacci retracements.";
@@ -472,7 +482,18 @@ export function scoreFibonacciCard(valObj, currentPrice) {
 }
 
 export function scoreKCCard(valObj, currentPrice) {
-    if (!valObj || valObj.middle === undefined || !currentPrice) return defaultReturn;
+    if (valObj === null || valObj === undefined || !currentPrice) return defaultReturn;
+
+    const manualVal = parseFloat(valObj);
+    if (typeof valObj !== 'object' && !isNaN(manualVal)) {
+        const diffPct = ((currentPrice - manualVal) / manualVal) * 100;
+        let score = 50, bias = "Neutral", insight = "Tracking manual KC Middle.";
+        if (diffPct > 2) { score = 85; bias = "Bullish"; }
+        else if (diffPct < -2) { score = 15; bias = "Bearish"; }
+        return { score, bias, confidence: "70%", aiInsight: insight };
+    }
+
+    if (valObj.middle === undefined) return defaultReturn;
     const { lower, upper } = valObj;
     
     let score = 50, bias = "Neutral", insight = "Trading within Keltner Channels.";
@@ -518,6 +539,7 @@ export function scoreMACDCard(valObj) {
 
 export function scoreMcClellanCard(val) {
     if (val === null || val === undefined || isNaN(val)) return defaultReturn;
+    val = Number(val);
     let score = 50, bias = "Neutral", insight = "Oscillator is hovering near the zero line, indicating a balanced market.";
     if (val > 50) { score = 90; bias = "Overbought / Strong Bull"; insight = `Oscillator is extremely elevated at +${val.toFixed(1)}. Massive liquidity injection, but vulnerable to short-term mean reversion.`; }
     else if (val > 0) { score = 70; bias = "Bullish"; insight = `Oscillator is positive (+${val.toFixed(1)}). Capital is actively flowing into the market, supporting an uptrend.`; }
@@ -558,8 +580,19 @@ export function scoreObvCard(val, sma) {
 }
 
 export function scorePivotCard(valObj, currentPrice) {
-    if (!valObj || valObj.p === undefined || !currentPrice) return defaultReturn;
-    const { p, r1, s1, r2, s2, r3, s3 } = valObj;
+    if (valObj === null || valObj === undefined || !currentPrice) return defaultReturn;
+
+    const manualVal = parseFloat(valObj);
+    if (typeof valObj !== 'object' && !isNaN(manualVal)) {
+        const dist = ((currentPrice - manualVal) / currentPrice) * 100;
+        let score = 50, bias = "Neutral", insight = "Tracking manual Pivot Point.";
+        if (currentPrice > manualVal) { score = 65; bias = "Bullish"; }
+        else { score = 35; bias = "Bearish"; }
+        return { score, bias, confidence: "70%", aiInsight: insight, nearestLabel: "Manual", nearestVal: manualVal, distancePct: Math.abs(dist) };
+    }
+
+    if (valObj.p === undefined) return defaultReturn;
+    const { s1, s2, s3, p, r1, r2, r3 } = valObj;
     let score = 50, bias = "Neutral", insight = "Trading within daily pivot range.";
     
     if (r3 && currentPrice >= r3) {
@@ -605,6 +638,7 @@ export function scoreResistanceCard(val, currentPrice) {
 
 export function scoreRSICard(val) {
     if (val === null || val === undefined || isNaN(val)) return defaultReturn;
+    val = Number(val);
     let score = 50, bias = "Neutral", insight = "RSI is neutral.";
     
     if (val >= 80) { 
@@ -744,6 +778,7 @@ export function scoreTrendlineCard(val, currentPrice) {
 
 export function scoreTrinCard(val) {
     if (val === null || val === undefined || isNaN(val)) return defaultReturn;
+    val = Number(val);
     let score = 50, bias = "Neutral", insight = "TRIN is within the normal 0.8 - 1.2 range, showing balanced volume distribution.";
     if (val < 0.5) { score = 85; bias = "Strong Bullish"; insight = `TRIN is extremely low at ${val.toFixed(2)}. Advancing volume is overwhelming. Very strong bullish conviction.`; }
     else if (val <= 0.8) { score = 65; bias = "Bullish"; insight = `TRIN is low (${val.toFixed(2)}). Disproportionately high volume is flowing into advancing stocks.`; }
@@ -754,6 +789,7 @@ export function scoreTrinCard(val) {
 
 export function scoreVixCard(val) {
     if (val === null || val === undefined || isNaN(val)) return defaultReturn;
+    val = Number(val);
     let score = 50, bias = "Normal", insight = "VIX indicates normal market volatility.";
     
     if (val >= 25) { 
@@ -792,6 +828,7 @@ export function scoreVwapCard(vwapVal, currentPrice) {
 
 export function scoreWilliamsRCard(val) {
     if (val === null || val === undefined || isNaN(val)) return defaultReturn;
+    val = Number(val);
     let score = 50, bias = "Neutral", insight = "Neutral momentum.";
     
     if (val > -20) { 

@@ -20,6 +20,7 @@
 // Imports
 // =============================
 import React, { useMemo } from "react";
+import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import OptionsCard from "./OptionsCard";
 import { optionsSections } from "@/features/dashboard/options/engine/optionsHelper";
 
@@ -55,18 +56,42 @@ export default function OptionsGrid({
 
     const sortCards = (list, mode) => {
         const arr = [...list];
-        switch (mode) {
-            case 'score_desc': // Strongest (Highest Norm)
-                return arr.sort((a, b) => (b.normalized || 0) - (a.normalized || 0));
-            case 'score_asc': // Weakest (Lowest Norm)
-                return arr.sort((a, b) => (a.normalized || 0) - (b.normalized || 0));
-            case 'rel_desc': // Weight (Highest Credit)
-                return arr.sort((a, b) => (b.creditAllocation || 0) - (a.creditAllocation || 0));
-            case 'rel_asc': // Weight (Lowest Credit)
-                return arr.sort((a, b) => (a.creditAllocation || 0) - (b.creditAllocation || 0));
-            default:
-                return arr;
-        }
+        const hasScore = (c) => c.score !== undefined && c.score !== null && !isNaN(c.score);
+
+        return arr.sort((a, b) => {
+            const aValid = hasScore(a);
+            const bValid = hasScore(b);
+
+            // Always push un-scored items to the bottom
+            if (aValid && !bValid) return -1;
+            if (!aValid && bValid) return 1;
+            switch (mode) {
+                case 'score_desc': {
+                    if (!aValid && !bValid) return 0;
+                    const diff1 = b.score - a.score;
+                    return diff1 !== 0 ? diff1 : (b.creditAllocation || 0) - (a.creditAllocation || 0);
+                }
+                case 'score_asc': {
+                    if (!aValid && !bValid) return 0;
+                    const diff2 = a.score - b.score;
+                    return diff2 !== 0 ? diff2 : (b.creditAllocation || 0) - (a.creditAllocation || 0);
+                }
+                case 'rel_desc': {
+                    const diff3 = (b.creditAllocation || 0) - (a.creditAllocation || 0);
+                    if (diff3 !== 0) return diff3;
+                    if (!aValid && !bValid) return 0;
+                    return b.score - a.score;
+                }
+                case 'rel_asc': {
+                    const diff4 = (a.creditAllocation || 0) - (b.creditAllocation || 0);
+                    if (diff4 !== 0) return diff4;
+                    if (!aValid && !bValid) return 0;
+                    return a.score - b.score;
+                }
+                default:
+                    return 0;
+            }
+        });
     };
 
     // Exclude our hardcoded cards
@@ -106,8 +131,13 @@ export default function OptionsGrid({
         const excludeIds = renderList.map(item => item.id);
 
         const flatWithData = renderList.map(item => {
-            const cData = cards.find(c => c.id === item.id) || { normalized: 0, creditAllocation: 0 };
-            return { ...item, ...cData };
+            const cData = cards.find(c => c.id === item.id);
+            const fallbackCredit = getIndicatorConfig(item.id)?.creditScore ?? 5;
+            return { 
+                ...item, 
+                ...(cData || { normalized: 0 }),
+                creditAllocation: cData?.creditAllocation ?? fallbackCredit
+            };
         });
 
         const dynamicCards = cards.filter(card => !excludeIds.includes(card.id) && !card.id.startsWith('dummy_')).map(card => ({

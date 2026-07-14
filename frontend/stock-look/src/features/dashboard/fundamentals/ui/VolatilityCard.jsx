@@ -1,11 +1,12 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightVolatilityCard, scoreVIX } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function VolatilityCard({ data, manualOverride, lastUpdated }) {
     const vixValue = (manualOverride !== undefined && manualOverride !== null && manualOverride !== '')
-        ? parseFloat(manualOverride)
+        ? cleanNum(manualOverride)
         : null;
 
     const configData = getIndicatorConfig('india_vix');
@@ -19,7 +20,7 @@ export default function VolatilityCard({ data, manualOverride, lastUpdated }) {
                 category: 'Market Health',
                 mode: 'MANUAL',
                 creditScore: configData?.creditScore ?? 9,
-                updateTime: lastUpdated ?? '--:--',
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(false) : (lastUpdated || '--:--'),
                 source: 'Manual',
                 aiModel: configData?.aiModel ?? 'Engine v3'
             }}

@@ -1,12 +1,13 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { formatPercentage } from '@/shared/utils/formatters';
 
 export default function MarketCapGDPCard({ data = null, manualOverride, lastUpdated }) {
     // Market Cap to GDP (Buffett Indicator) is a macro-economic indicator.
     // Upstox API v2 provides stock-specific ratios, so this must be 100% manual.
-    const currentRatio = manualOverride ? parseFloat(manualOverride) : null;
+    const currentRatio = manualOverride ? cleanNum(manualOverride) : null;
     const isManual = true;
 
     // Centralized Config

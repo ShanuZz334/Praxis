@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { useDashboardContext } from '@/shared/context/DashboardContext';
 import { FO_EQUITIES } from '@/shared/utils/foInstruments';
 
-export default function CompanySummaryWidget({ data, manualOverrides, selectedInstrument, setEditingKey }) {
+export default function CompanySummaryWidget({ data, manualOverrides, selectedInstrument, setEditingKey, resolveTime }) {
     const { livePrices } = useDashboardContext();
     const liveData = livePrices?.[selectedInstrument];
     const instrumentLabel = FO_EQUITIES.find(e => e.value === selectedInstrument)?.label || selectedInstrument;
@@ -45,7 +45,7 @@ export default function CompanySummaryWidget({ data, manualOverrides, selectedIn
         {
             label: "High / Low",
             value: (extractQuote('ohlc')?.high && extractQuote('ohlc')?.low) 
-                   ? `${extractQuote('ohlc').high} / ${extractQuote('ohlc').low}` 
+                   ? `${parseFloat(extractQuote('ohlc').high).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ${parseFloat(extractQuote('ohlc').low).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
                    : manualOverrides?.high_low,
             prefix: "₹ ",
             overrideKey: 'high_low',
@@ -92,7 +92,7 @@ export default function CompanySummaryWidget({ data, manualOverrides, selectedIn
     // 3. Render Metric Row
     const renderMetric = (m, i) => {
         const isNull = m.value === null || m.value === undefined || m.value === '';
-        const displayVal = isNull ? '--' : (m.isString ? m.value : (m.prefix || '') + parseFloat(m.value).toLocaleString('en-IN') + (m.suffix || ''));
+        const displayVal = isNull ? '--' : (m.isString ? m.value : (m.prefix || '') + parseFloat(m.value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (m.suffix || ''));
         const isManual = isNull || (m.value === manualOverrides?.[m.overrideKey]);
 
         return (
@@ -135,6 +135,37 @@ export default function CompanySummaryWidget({ data, manualOverrides, selectedIn
     const col2 = visibleMetrics.filter((_, i) => i % 3 === 1);
     const col3 = visibleMetrics.filter((_, i) => i % 3 === 2);
 
+    const syncTimes = visibleMetrics.map(m => {
+        if (!resolveTime) return null;
+        let isManual = (m.value === null || m.value === undefined || m.value === '') || false;
+        // Upstox provides most company data, but if it matches override, it might be manual
+        if (!isManual && m.overrideKey && m.value === manualOverrides?.[m.overrideKey]) {
+            isManual = true;
+        }
+        
+        // Pass whether it's manual or Upstox data to resolveTime properly
+        const str = resolveTime(m.value !== undefined && m.value !== null, isManual ? m.overrideKey : null);
+        if (!str) return null;
+        const match = str.match(/(\d{1,2}:\d{2}\s[AP]M)/);
+        return match ? match[1] : null;
+    }).filter(Boolean);
+    
+    const uniqueTimes = Array.from(new Set(syncTimes));
+    
+    let syncTimeText = null;
+    if (uniqueTimes.length === 1) {
+        syncTimeText = `Sync: ${uniqueTimes[0]}`;
+    } else if (uniqueTimes.length > 1) {
+        const sorted = uniqueTimes.sort((a, b) => new Date('1970/01/01 ' + a) - new Date('1970/01/01 ' + b));
+        syncTimeText = `Sync: ${sorted[0]} - ${sorted[sorted.length - 1]}`;
+    } else {
+        const globalSync = resolveTime ? resolveTime(!!data) : null;
+        if (globalSync) {
+            const match = globalSync.match(/(\d{1,2}:\d{2}\s[AP]M)/);
+            syncTimeText = match ? `Sync: ${match[1]}` : globalSync;
+        }
+    }
+
     return (
         <div className="w-full mt-8 bg-background-elevated/95 backdrop-blur-xl border border-border-default rounded-xl p-4 md:p-6 mb-6 shadow-lg overflow-hidden relative">
             {/* Header / Ticker */}
@@ -154,7 +185,14 @@ export default function CompanySummaryWidget({ data, manualOverrides, selectedIn
                                     </span>
                                 )}
                             </h2>
-                            <span className="text-xs text-text-tertiary font-mono">{selectedInstrument}</span>
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs text-text-tertiary font-mono">{instrumentLabel}</span>
+                                {syncTimeText && (
+                                    <span className="text-[10px] text-text-secondary font-mono border-l border-border-subtle pl-3">
+                                        {syncTimeText}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

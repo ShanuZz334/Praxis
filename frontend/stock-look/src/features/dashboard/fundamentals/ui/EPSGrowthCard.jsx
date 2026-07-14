@@ -21,7 +21,8 @@
  *   - Manual only: 55%
  */
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { formatPercentage } from '@/shared/utils/formatters';
 import { scoreEPSGrowth, generateAiInsightEPSGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
@@ -41,7 +42,7 @@ export default function EPSGrowthCard({ data = null, manualOverride, lastUpdated
         r.name?.toLowerCase().includes('eps growth') || r.name?.toLowerCase() === 'eps growth'
     );
     if (ratioEPS?.company_value) {
-        const parsed = parseFloat(ratioEPS.company_value);
+        const parsed = cleanNum(ratioEPS.company_value);
         if (!isNaN(parsed)) {
             cagr = parsed;
             isManual = false;
@@ -93,7 +94,7 @@ export default function EPSGrowthCard({ data = null, manualOverride, lastUpdated
     // ── Attempt 3: Manual override fallback ───────────────────────────────
     if (isManual) {
         const parsed = manualOverride !== undefined && manualOverride !== null && manualOverride !== ''
-            ? parseFloat(manualOverride) : null;
+            ? cleanNum(manualOverride) : null;
         if (parsed !== null && !isNaN(parsed)) {
             cagr = parsed;
             totalPeriods = 0;
@@ -111,7 +112,7 @@ export default function EPSGrowthCard({ data = null, manualOverride, lastUpdated
                 category: 'Growth',
                 mode: isManual ? 'MANUAL' : 'AUTO',
                 creditScore: configData?.creditScore ?? 5,
-                updateTime: lastUpdated ?? '--:--',
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--'),
                 source: sourceLabel,
                 aiModel: configData?.aiModel ?? 'Engine v3'
             }}

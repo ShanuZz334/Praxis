@@ -12,9 +12,16 @@ import IndicatorSettingsModal from "@/shared/components/ui/IndicatorCard/Indicat
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { useDashboardContext } from "@/shared/context/DashboardContext";
+import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
+
+const DEFAULT_OVERRIDES = {
+    ad_line: null, mcclellan: null, nh_nl: null, trin: null,
+    support: null, resistance: null, trendline: null, fibonacci: null, pivot: null,
+    kc: null, cmf: null, breadth_ratio: null
+};
 
 export default function TechnicalPage() {
-    const { selectedCategory } = useDashboardContext();
+    const { selectedCategory, selectedInstrument, livePrices } = useDashboardContext();
     const isIndex = selectedCategory === 'Indices';
 
     const cards = [
@@ -35,7 +42,6 @@ export default function TechnicalPage() {
         { id: "bb_20_2", category: "Volatility" },
         { id: "atr", category: "Volatility" },
         { id: "kc", category: "Volatility" },
-        { id: "india_vix", category: "Volatility" },
         // Volume / Breadth
         ...(!isIndex ? [
             { id: "cmf", category: "Volume" },
@@ -56,14 +62,17 @@ export default function TechnicalPage() {
         { id: "pivot", category: "Structure" },
         { id: "fibonacci", category: "Structure" }
     ];
+
+
     
     const [viewMode, setViewMode] = useState("sectioned");
     const [sortMode, setSortMode] = useState("score_desc");
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCard, setSelectedCard] = useState(null);
-    const [manualOverrides, setManualOverrides] = useState({});
-    const [manualOverrideTimes, setManualOverrideTimes] = useState({});
     const [selectedTimeframe, setSelectedTimeframe] = useState("day");
+
+    // Unified persistent overrides hook
+    const { overrides: manualOverrides, lastUpdated: manualOverrideTimes, handleChange: handleOverrideChange, handleClearAll } = useManualOverrides('technical', selectedInstrument || 'NIFTY', DEFAULT_OVERRIDES);
     
     // Indicator Settings State
     const [indicatorParams, setIndicatorParams] = useState({ 
@@ -79,7 +88,12 @@ export default function TechnicalPage() {
     const [activeSettingsConfig, setActiveSettingsConfig] = useState(null);
 
     // Fetch Upstox data via 1-second polling hook
-    const { liveData: technicalsData, loading: isLoading, error } = useTechnicalsData(selectedTimeframe, indicatorParams);
+    const { liveData: rawTechnicalsData, loading: isLoading, error } = useTechnicalsData(selectedTimeframe, indicatorParams);
+
+    // Inject real-time data if backend DB missed it
+    const technicalsData = React.useMemo(() => {
+        return { ...(rawTechnicalsData || {}) };
+    }, [rawTechnicalsData, livePrices]);
 
     // Merge live technical data with manual overrides. Overrides take precedence if present.
     const activeData = React.useMemo(() => {
@@ -141,22 +155,7 @@ export default function TechnicalPage() {
     const activeCardsCount = cardsForHeader.length;
     const coveragePercent = maxCards > 0 ? Math.min(100, Math.round((activeCardsCount / maxCards) * 100)) : 0;
 
-    // Handlers
-    const handleOverrideChange = (key, val) => {
-        setManualOverrides(prev => ({
-            ...prev,
-            [key]: val !== "" ? parseFloat(val) : null
-        }));
-        setManualOverrideTimes(prev => ({
-            ...prev,
-            [key]: val !== "" ? Date.now() : null
-        }));
-    };
-
-    const handleClearAll = () => {
-        setManualOverrides({});
-        setManualOverrideTimes({});
-    };
+    const hasData = (key) => technicalsData && technicalsData[key] !== undefined && technicalsData[key] !== null;
 
     // Manual Data Overrides Form (rendered on the backside of GlobalHeader)
     const technicalManualForm = (
@@ -178,26 +177,34 @@ export default function TechnicalPage() {
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6">
                 {/* Structure & Breadth */}
-                <div className="space-y-2">
-                    <div className="text-xs font-bold text-yellow-500 mb-2">Structure & Breadth</div>
-                    <DebouncedOverrideInput label="A/D Line" overrideKey="ad_line" value={manualOverrides.ad_line} onChange={handleOverrideChange} />
-                    <DebouncedOverrideInput label="McClellan Osc" overrideKey="mcclellan" value={manualOverrides.mcclellan} onChange={handleOverrideChange} />
-                    <DebouncedOverrideInput label="New Highs / Lows" overrideKey="nh_nl" value={manualOverrides.nh_nl} onChange={handleOverrideChange} />
-                    <DebouncedOverrideInput label="TRIN (Arms Index)" overrideKey="trin" value={manualOverrides.trin} onChange={handleOverrideChange} />
-                    <DebouncedOverrideInput label="Support" overrideKey="support" value={manualOverrides.support} onChange={handleOverrideChange} />
-                    <DebouncedOverrideInput label="Resistance" overrideKey="resistance" value={manualOverrides.resistance} onChange={handleOverrideChange} />
-                    <DebouncedOverrideInput label="Trendline" overrideKey="trendline" value={manualOverrides.trendline} onChange={handleOverrideChange} />
-                    <DebouncedOverrideInput label="Fibonacci" overrideKey="fibonacci" value={manualOverrides.fibonacci} onChange={handleOverrideChange} />
-                    <DebouncedOverrideInput label="Pivot Points" overrideKey="pivot" value={manualOverrides.pivot} onChange={handleOverrideChange} />
-                </div>
+                {((isIndex && (!hasData('ad_line') || !hasData('mcclellan') || !hasData('nh_nl') || !hasData('trin'))) || !hasData('support') || !hasData('resistance') || !hasData('trendline') || !hasData('fibonacci') || !hasData('pivot')) && (
+                    <div className="space-y-2">
+                        <div className="text-xs font-bold text-yellow-500 mb-2">Structure & Breadth</div>
+                        {isIndex && (
+                            <>
+                                {!hasData('breadth_ratio') && <DebouncedOverrideInput label="Breadth Ratio" overrideKey="breadth_ratio" value={manualOverrides.breadth_ratio} onChange={handleOverrideChange} />}
+                                {!hasData('ad_line') && <DebouncedOverrideInput label="A/D Line" overrideKey="ad_line" value={manualOverrides.ad_line} onChange={handleOverrideChange} />}
+                                {!hasData('mcclellan') && <DebouncedOverrideInput label="McClellan Osc" overrideKey="mcclellan" value={manualOverrides.mcclellan} onChange={handleOverrideChange} />}
+                                {!hasData('nh_nl') && <DebouncedOverrideInput label="New Highs / Lows" overrideKey="nh_nl" value={manualOverrides.nh_nl} onChange={handleOverrideChange} />}
+                                {!hasData('trin') && <DebouncedOverrideInput label="TRIN (Arms Index)" overrideKey="trin" value={manualOverrides.trin} onChange={handleOverrideChange} />}
+                            </>
+                        )}
+                        {!hasData('support') && <DebouncedOverrideInput label="Support" overrideKey="support" value={manualOverrides.support} onChange={handleOverrideChange} />}
+                        {!hasData('resistance') && <DebouncedOverrideInput label="Resistance" overrideKey="resistance" value={manualOverrides.resistance} onChange={handleOverrideChange} />}
+                        {!hasData('trendline') && <DebouncedOverrideInput label="Trendline" overrideKey="trendline" value={manualOverrides.trendline} onChange={handleOverrideChange} />}
+                        {!hasData('fibonacci') && <DebouncedOverrideInput label="Fibonacci" overrideKey="fibonacci" value={manualOverrides.fibonacci} onChange={handleOverrideChange} />}
+                        {!hasData('pivot') && <DebouncedOverrideInput label="Pivot Points" overrideKey="pivot" value={manualOverrides.pivot} onChange={handleOverrideChange} />}
+                    </div>
+                )}
  
                 {/* Volatility & Custom */}
-                <div className="space-y-2">
-                    <div className="text-xs font-bold text-purple-500 mb-2">Volatility & Advanced</div>
-                    <DebouncedOverrideInput label="Keltner Channels" overrideKey="kc" value={manualOverrides.kc} onChange={handleOverrideChange} />
-                    <DebouncedOverrideInput label="India VIX" overrideKey="india_vix" value={manualOverrides.india_vix} onChange={handleOverrideChange} />
-                    <DebouncedOverrideInput label="CMF" overrideKey="cmf" value={manualOverrides.cmf} onChange={handleOverrideChange} />
-                </div>
+                {(!hasData('kc') || (!isIndex && !hasData('cmf'))) && (
+                    <div className="space-y-2">
+                        <div className="text-xs font-bold text-purple-500 mb-2">Volatility & Advanced</div>
+                        {!hasData('kc') && <DebouncedOverrideInput label="Keltner Channels" overrideKey="kc" value={manualOverrides.kc} onChange={handleOverrideChange} />}
+                        {!isIndex && !hasData('cmf') && <DebouncedOverrideInput label="CMF" overrideKey="cmf" value={manualOverrides.cmf} onChange={handleOverrideChange} />}
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -225,7 +232,7 @@ export default function TechnicalPage() {
         return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     };
 
-    const resolveTime = useDataFreshness(technicalsData, manualOverrides, manualOverrideTimes, isMarketOpen, formatTime);
+    const resolveTime = useDataFreshness(technicalsData, manualOverrides, manualOverrideTimes, isMarketOpen, formatTime, "1s");
  
     return (
         <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">
@@ -255,7 +262,7 @@ export default function TechnicalPage() {
                     viewMode,
                     onViewChange: setViewMode,
                     sortMode,
-                    onSortChange: setSortMode,
+                    onSortChange: (m) => { setSortMode(m); setViewMode("flat"); },
                     matchCount: cardsForHeader.length,
                     customComponent: (
                         <div className="flex items-center gap-3">

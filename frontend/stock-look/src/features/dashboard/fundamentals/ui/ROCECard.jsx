@@ -1,5 +1,6 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreROCE, generateAiInsightROCECard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
@@ -15,20 +16,20 @@ export default function ROCECard({ data, manualOverride, lastUpdated }) {
     let extractedSector = null;
 
     if (roceItem && roceItem.company_value) {
-        const parsed = parseFloat(roceItem.company_value);
+        const parsed = cleanNum(roceItem.company_value);
         if (!isNaN(parsed)) {
             extractedValue = parsed;
             isManual = false;
         }
         if (roceItem.sector_value) {
-            const parsedSector = parseFloat(roceItem.sector_value);
+            const parsedSector = cleanNum(roceItem.sector_value);
             if (!isNaN(parsedSector)) {
                 extractedSector = parsedSector;
             }
         }
     }
     
-    const currentROCE = isManual ? (manualOverride !== undefined && manualOverride !== null ? parseFloat(manualOverride) : null) : extractedValue;
+    const currentROCE = isManual ? (manualOverride !== undefined && manualOverride !== null ? cleanNum(manualOverride) : null) : extractedValue;
     const sectorROCE = isManual ? null : extractedSector;
 
     // 2. Load Central Config

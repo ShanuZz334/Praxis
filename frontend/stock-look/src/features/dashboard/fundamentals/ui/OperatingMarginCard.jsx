@@ -1,5 +1,6 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreOperatingMargin, generateAiInsightOperatingMarginCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
@@ -16,13 +17,13 @@ export default function OperatingMarginCard({ data, manualOverride, lastUpdated 
     );
     
     if (opMarginItem && opMarginItem.company_value) {
-        const parsed = parseFloat(opMarginItem.company_value);
+        const parsed = cleanNum(opMarginItem.company_value);
         if (!isNaN(parsed)) {
             extractedValue = parsed;
             isManual = false;
         }
         if (opMarginItem.sector_value) {
-            const parsedSector = parseFloat(opMarginItem.sector_value);
+            const parsedSector = cleanNum(opMarginItem.sector_value);
             if (!isNaN(parsedSector)) { extractedSector = parsedSector; }
         }
     }
@@ -44,7 +45,7 @@ export default function OperatingMarginCard({ data, manualOverride, lastUpdated 
         }
     }
     
-    const currentMargin = isManual ? (manualOverride !== undefined && manualOverride !== null ? parseFloat(manualOverride) : null) : extractedValue;
+    const currentMargin = isManual ? (manualOverride !== undefined && manualOverride !== null ? cleanNum(manualOverride) : null) : extractedValue;
     const sectorMargin = isManual ? null : extractedSector;
 
     // 2. Load Central Config

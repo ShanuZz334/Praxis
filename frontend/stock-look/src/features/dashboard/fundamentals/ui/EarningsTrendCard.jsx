@@ -1,5 +1,6 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreEarningsTrend, generateAiInsightEarningsTrendCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
@@ -17,7 +18,7 @@ export default function EarningsTrendCard({ data = null, manualOverride, lastUpd
 
     const isManual = !epsHistory || epsHistory.length < 2;
     const manualCAGR = isManual && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' 
-        ? parseFloat(manualOverride) 
+        ? cleanNum(manualOverride) 
         : null;
 
     // Centralized Config

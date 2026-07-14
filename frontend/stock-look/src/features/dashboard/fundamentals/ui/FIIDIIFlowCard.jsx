@@ -1,5 +1,6 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { formatCompactCurrency } from '@/shared/utils/formatters';
 import { scoreInstitutionalFlow, generateAiInsightFIIDIIFlowCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
@@ -10,9 +11,9 @@ export default function FIIDIIFlowCard({ data = null, manualOverride, lastUpdate
 
     // Core Value States
     const fiiFlow = manualOverride !== undefined && manualOverride !== null && manualOverride !== '' 
-        ? parseFloat(manualOverride) : null;
+        ? cleanNum(manualOverride) : null;
     const diiFlow = data?.manualDiiFlow !== undefined && data?.manualDiiFlow !== null && data?.manualDiiFlow !== ''
-        ? parseFloat(data.manualDiiFlow) : null;
+        ? cleanNum(data.manualDiiFlow) : null;
 
     // Centralized Config
     const configData = getIndicatorConfig('fii_dii_flow');

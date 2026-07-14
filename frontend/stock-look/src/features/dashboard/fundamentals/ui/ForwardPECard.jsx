@@ -1,5 +1,6 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightForwardPECard, scoreForwardPE } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
@@ -13,7 +14,7 @@ export default function ForwardPECard({ data = null, manualOverride, lastUpdated
         r.name?.toLowerCase().includes("forward pe") ||
         r.name?.toLowerCase().includes("fwd pe")
     );
-    const parsedFwdPE = upstoxFwdPEObj?.company_value ? parseFloat(upstoxFwdPEObj.company_value) : null;
+    const parsedFwdPE = upstoxFwdPEObj?.company_value ? cleanNum(upstoxFwdPEObj.company_value) : null;
     
     const isLiveData = parsedFwdPE !== null && !isNaN(parsedFwdPE) && parsedFwdPE > 0;
     const currentFwdPE = isLiveData ? parsedFwdPE : (manualOverride ?? null);
@@ -25,7 +26,7 @@ export default function ForwardPECard({ data = null, manualOverride, lastUpdated
         r.name?.toLowerCase() === 'p/e ratio' ||
         r.name?.toLowerCase().includes('price to earnings')
     );
-    const parsedPE = upstoxPEObj?.company_value ? parseFloat(upstoxPEObj.company_value) : null;
+    const parsedPE = upstoxPEObj?.company_value ? cleanNum(upstoxPEObj.company_value) : null;
     const currentPE = (parsedPE !== null && !isNaN(parsedPE)) ? parsedPE : null;
 
     // Removed Projected EPS to comply with Zero Clutter Rule
@@ -38,7 +39,7 @@ export default function ForwardPECard({ data = null, manualOverride, lastUpdated
 
     // ── Step 6: Display Value Formatting ──────────────────────────────────────
     const displayFwdPE = currentFwdPE !== null && !isNaN(currentFwdPE)
-        ? parseFloat(currentFwdPE).toFixed(2)
+        ? cleanNum(currentFwdPE).toFixed(2)
         : '--';
 
     return (
@@ -48,7 +49,7 @@ export default function ForwardPECard({ data = null, manualOverride, lastUpdated
                 category: 'Valuation',
                 mode: isLiveData ? 'AUTO' : 'MANUAL',
                 creditScore: configData?.creditScore ?? 5,
-                updateTime: lastUpdated ?? '--:--',
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'),
                 source: isLiveData ? 'Upstox' : 'Manual',
                 aiModel: configData?.aiModel ?? 'Engine v2'
             }}
@@ -60,7 +61,7 @@ export default function ForwardPECard({ data = null, manualOverride, lastUpdated
                 details: [
                     currentPE !== null && { 
                         label: 'Trailing P/E (Live)', 
-                        value: parseFloat(currentPE).toFixed(2), 
+                        value: cleanNum(currentPE).toFixed(2), 
                         isManual: false 
                     }
                 ].filter(Boolean),

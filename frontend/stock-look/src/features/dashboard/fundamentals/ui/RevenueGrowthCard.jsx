@@ -1,5 +1,6 @@
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreRevenueGrowth, generateAiInsightRevenueGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
@@ -21,7 +22,7 @@ export default function RevenueGrowthCard({ data = null, manualOverride, lastUpd
 
     const isManual = !revenueHistory || revenueHistory.length < 2;
     const manualCAGR = isManual && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' 
-        ? parseFloat(manualOverride) 
+        ? cleanNum(manualOverride) 
         : null;
 
     // 2. Load Central Config

@@ -13,7 +13,8 @@
  *   Factor 3 (20%): Sector comparison when available
  */
 import React from 'react';
-import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+
+import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreInterestCoverage, generateAiInsightInterestCoverageCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
@@ -30,10 +31,10 @@ export default function InterestCoverageCard({ data, manualOverride, lastUpdated
     );
 
     if (ratioObj?.company_value) {
-        const parsed = parseFloat(ratioObj.company_value);
+        const parsed = cleanNum(ratioObj.company_value);
         if (!isNaN(parsed)) { extractedValue = parsed; isManual = false; sourceLabel = 'Upstox Ratios'; }
         if (ratioObj.sector_value) {
-            const parsedSector = parseFloat(ratioObj.sector_value);
+            const parsedSector = cleanNum(ratioObj.sector_value);
             if (!isNaN(parsedSector)) extractedSector = parsedSector;
         }
     }
@@ -67,7 +68,7 @@ export default function InterestCoverageCard({ data, manualOverride, lastUpdated
     }
 
     const currentCoverage = isManual
-        ? (manualOverride !== undefined && manualOverride !== null ? parseFloat(manualOverride) : null)
+        ? (manualOverride !== undefined && manualOverride !== null ? cleanNum(manualOverride) : null)
         : extractedValue;
     const sectorCoverage = isManual ? null : extractedSector;
 
@@ -82,7 +83,7 @@ export default function InterestCoverageCard({ data, manualOverride, lastUpdated
                 category: 'Financial Health',
                 mode: isManual ? 'MANUAL' : 'AUTO',
                 creditScore: configData?.creditScore ?? 5,
-                updateTime: lastUpdated ?? '--:--',
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--'),
                 source: sourceLabel,
                 aiModel: configData?.aiModel ?? 'Engine v3'
             }}

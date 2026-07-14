@@ -7,9 +7,26 @@ const CACHE_KEYS = {
     QUOTES: 'praxis_quotes_cache'
 };
 
+const getFundamentalTTL = () => {
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const istTime = new Date(utc + (3600000 * 5.5));
+    
+    const day = istTime.getDay();
+    const hours = istTime.getHours();
+    
+    // Weekend: Safe to cache for 24 hours
+    if (day === 0 || day === 6) return 24 * 60 * 60 * 1000; 
+    
+    // Market Hours (9 AM - 4 PM): Cache for 3 hours (Forces fetch at Open, Midday, Close)
+    if (hours >= 9 && hours <= 16) return 3 * 60 * 60 * 1000; 
+    
+    // Post-Market / Pre-Market: Cache for 12 hours
+    return 12 * 60 * 60 * 1000;
+};
+
 const CACHE_TTL = {
-    FUNDAMENTALS: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
-    QUOTES: 1 * 60 * 1000              // 1 minute in milliseconds
+    QUOTES: 1 * 60 * 1000 // 1 minute in milliseconds
 };
 
 const getFromCache = (cacheName, key, ttl) => {
@@ -74,7 +91,7 @@ export function useFundamentalsData(instrumentKey) {
             setLoading(true);
             setError(null);
 
-            const cachedData = getFromCache(CACHE_KEYS.FUNDAMENTALS, instrumentKey, CACHE_TTL.FUNDAMENTALS);
+            const cachedData = getFromCache(CACHE_KEYS.FUNDAMENTALS, instrumentKey, getFundamentalTTL());
             const cachedTime = cachedData ? new Date(JSON.parse(localStorage.getItem(CACHE_KEYS.FUNDAMENTALS))[instrumentKey].timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '--:--';
 
             try {

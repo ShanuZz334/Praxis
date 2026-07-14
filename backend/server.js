@@ -135,5 +135,5 @@ io.on("connection", (socket) => {
 httpServer.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
     // Start the Upstox Market Data Feed V3 service
-    connectUpstoxWebsocket();
+    connectUpstoxWebsocket().catch(e => console.error(e));
 });

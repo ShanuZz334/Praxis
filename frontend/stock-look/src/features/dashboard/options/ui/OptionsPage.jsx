@@ -333,7 +333,7 @@ export default function OptionsPage() {
                             viewMode,
                             onViewChange: setViewMode,
                             sortMode,
-                            onSortChange: setSortMode,
+                            onSortChange: (m) => { setSortMode(m); setViewMode("flat"); },
                             matchCount: cards.length
                         }}
                     />

@@ -100,7 +100,9 @@ function IndicatorHeader({ title, category, mode, creditScore, updateTime, missi
             )}
           </div>
         </div>
-        <span className="text-[9px] text-text-tertiary">Updated {updateTime}</span>
+        <span className="text-[9px] text-text-tertiary">
+            {typeof updateTime === 'function' ? updateTime(isAuto) : updateTime}
+        </span>
       </div>
     </div>
   );

@@ -29,3 +29,9 @@ import { twMerge } from "tailwind-merge"
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+export function cleanNum(v: any): number | null {
+    if (v === undefined || v === null || v === '') return null;
+    const n = parseFloat(v.toString().replace(/,/g, '').replace(/[^\d.-]/g, ''));
+    return isNaN(n) ? null : n;
+}
