@@ -98,7 +98,7 @@ export default function OptionsGrid({
     };
 
     // Exclude our hardcoded cards
-    const excludeIds = ["total_call_oi", "total_put_oi", "oi_change", "delta", "gamma", "theta", "vega", "pcr_oi", "pcr_volume", "max_pain"];
+    const excludeIds = ["total_call_oi", "total_put_oi", "oi_change", "delta", "gamma", "theta", "vega", "pcr_oi", "pcr_volume", "max_pain", "atm_iv", "iv_rank", "iv_percentile"];
     const filteredCards = cards.filter(c => !excludeIds.includes(c.id));
 
     // Memoize categorization
@@ -178,7 +178,14 @@ export default function OptionsGrid({
         
         flatWithData.push(...dynamicCards);
 
-        const filteredFlatWithData = flatWithData.filter(item => cards.some(c => c.id === item.id));
+        const filteredFlatWithData = flatWithData.filter(item => {
+            const inCards = cards.some(c => c.id === item.id);
+            if (!inCards) return false;
+            if (!controls?.search) return true;
+            const cardData = cards.find(c => c.id === item.id);
+            const label = cardData?.module || item.id;
+            return label.toLowerCase().includes(controls.search.toLowerCase());
+        });
 
         const sortedFlat = sortCards(filteredFlatWithData, sortMode);
 

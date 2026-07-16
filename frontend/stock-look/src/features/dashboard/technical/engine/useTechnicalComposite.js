@@ -53,11 +53,27 @@ export function useTechnicalComposite(scoresData, isIndex = false) {
             isIndex
         );
 
-        return {
+        const result = {
             ...engineResult,
             aiInsight,
             tailwinds,
             risks,
         };
+
+        // Fire & Forget DB Sync
+        if (typeof window !== 'undefined' && scoresData && Object.keys(scoresData).length > 0) {
+            import('@/shared/utils/axiosInstance').then(({ default: axiosInstance }) => {
+                axiosInstance.post('/api/v1/snapshots/header', {
+                    instrument_key: scoresData.instrument_token || 'NIFTY', // Requires passing key or detecting it
+                    category: 'technical',
+                    composite_score: engineResult.compositeScore,
+                    regime_json: engineResult.regime,
+                    tailwinds_json: tailwinds,
+                    risks_json: risks
+                }).catch(err => console.error("Failed to sync Technicals header:", err));
+            });
+        }
+
+        return result;
     }, [scoresData, isIndex]);
 }

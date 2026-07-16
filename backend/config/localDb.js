@@ -141,7 +141,63 @@ export const initLocalDb = () => {
             snapshot_date DATE DEFAULT CURRENT_DATE,
             UNIQUE(instrument_key, card_id, snapshot_date)
         );
+
+        -- 9. Fundamentals Data (Raw Cache)
+        CREATE TABLE IF NOT EXISTS fundamentals_data (
+            instrument_key TEXT PRIMARY KEY,
+            raw_json TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 10. Technicals Data (Raw Cache)
+        CREATE TABLE IF NOT EXISTS technicals_data (
+            instrument_key TEXT PRIMARY KEY,
+            raw_json TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 11. Options Data (Raw Cache)
+        CREATE TABLE IF NOT EXISTS options_data (
+            instrument_key TEXT PRIMARY KEY,
+            raw_json TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 12. Global Data (Raw Cache)
+        CREATE TABLE IF NOT EXISTS global_data (
+            instrument_key TEXT PRIMARY KEY,
+            raw_json TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 13. Header AI Data (Composite, Regime, Tailwinds, Risks)
+        CREATE TABLE IF NOT EXISTS header_data (
+            instrument_key TEXT,
+            category TEXT, -- e.g., 'fundamental', 'technical', 'options', 'global'
+            composite_score REAL,
+            regime_json TEXT,
+            tailwinds_json TEXT,
+            risks_json TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(instrument_key, category)
+        );
+
+        -- 14. Index Ticks (High Priority persistence for Topbar)
+        CREATE TABLE IF NOT EXISTS index_ticks (
+            instrument_key TEXT PRIMARY KEY,
+            ltp REAL,
+            net_change REAL,
+            pct_change REAL,
+            status TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
     `);
+
+    try {
+        db.exec(`ALTER TABLE header_data ADD COLUMN counts_json TEXT;`);
+    } catch (e) {
+        // Column already exists
+    }
 
     console.log("✅ SQLite Tables Initialized");
 };

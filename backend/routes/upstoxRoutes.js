@@ -191,11 +191,79 @@ router.get("/market-quote", async (req, res) => {
             });
         }
 
-        res.json({ status: "success", data: response.data?.data, cached: false });
+        let responseData = response.data?.data || {};
+
+        // SQLite Fallback for missing keys (e.g. market closed)
+        try {
+            const keysArray = keys.split(',');
+            const missingKeys = keysArray.filter(k => !responseData[k]);
+            
+            if (missingKeys.length > 0) {
+                const placeholders = missingKeys.map(() => '?').join(',');
+                const fallbackQuotes = db.prepare(`SELECT * FROM quotes WHERE instrument_key IN (${placeholders})`).all(...missingKeys);
+                
+                fallbackQuotes.forEach(row => {
+                    responseData[row.instrument_key] = {
+                        instrument_token: row.instrument_key,
+                        last_price: row.ltp,
+                        net_change: row.ltp - (row.close || row.ltp),
+                        ohlc: {
+                            open: row.open,
+                            high: row.high,
+                            low: row.low,
+                            close: row.close
+                        },
+                        volume: row.volume,
+                        timestamp: row.updated_at
+                    };
+                });
+            }
+        } catch (fbErr) {
+            console.error("SQLite fallback failed:", fbErr.message);
+        }
+
+        res.json({ status: "success", data: responseData, cached: false });
     } catch (error) {
         console.error("Error fetching market quote:", error?.response?.data || error.message);
-        if (error?.response?.data?.errors?.[0]?.errorCode === 'UDAPI100050' || error?.response?.status === 401) {
+        const isAuthError = error?.response?.data?.errors?.[0]?.errorCode === 'UDAPI100050' || error?.response?.status === 401;
+
+        if (isAuthError) {
             await UpstoxAuth.deleteMany({});
+            // Don't return 401 immediately; try fallback first.
+        }
+        
+        // Full SQLite Fallback on API Error
+        try {
+            const keysArray = req.query.instruments ? req.query.instruments.split(',') : [];
+            if (keysArray.length > 0) {
+                const placeholders = keysArray.map(() => '?').join(',');
+                const fallbackQuotes = db.prepare(`SELECT * FROM quotes WHERE instrument_key IN (${placeholders})`).all(...keysArray);
+                
+                if (fallbackQuotes.length > 0) {
+                    const responseData = {};
+                    fallbackQuotes.forEach(row => {
+                        responseData[row.instrument_key] = {
+                            instrument_token: row.instrument_key,
+                            last_price: row.ltp,
+                            net_change: row.ltp - (row.close || row.ltp),
+                            ohlc: {
+                                open: row.open,
+                                high: row.high,
+                                low: row.low,
+                                close: row.close
+                            },
+                            volume: row.volume,
+                            timestamp: row.updated_at
+                        };
+                    });
+                    return res.json({ status: "success", data: responseData, cached: false, fallback: true });
+                }
+            }
+        } catch (fbErr) {
+             console.error("Full SQLite fallback failed:", fbErr.message);
+        }
+
+        if (isAuthError) {
             return res.status(401).json({ error: "Upstox token expired" });
         }
         res.status(500).json({ error: "Internal server error" });
@@ -220,9 +288,36 @@ router.get("/option-contracts", async (req, res) => {
             headers: { "Accept": "application/json", "Authorization": `Bearer ${auth.accessToken}` }
         });
 
+        // --- SQLITE DB WRITE ---
+        try {
+            db.prepare(`
+                INSERT INTO options_data (instrument_key, raw_json, updated_at) 
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(instrument_key) DO UPDATE SET 
+                    raw_json=excluded.raw_json, 
+                    updated_at=CURRENT_TIMESTAMP
+            `).run(`contracts_${instrumentKey}`, JSON.stringify(response.data));
+        } catch (dbErr) {
+            console.error("Failed to save option contracts to SQLite:", dbErr.message);
+        }
+
         res.json(response.data);
     } catch (error) {
         console.error("Error fetching option contracts:", error?.response?.data || error.message);
+        
+        // --- SQLITE FALLBACK ---
+        try {
+            const instrumentKey = req.query.instrument_key;
+            const row = db.prepare("SELECT raw_json FROM options_data WHERE instrument_key = ?").get(`contracts_${instrumentKey}`);
+            if (row && row.raw_json) {
+                console.log(`Using SQLite Fallback for option contracts: ${instrumentKey}`);
+                const payload = JSON.parse(row.raw_json);
+                return res.json(payload);
+            }
+        } catch (dbErr) {
+            console.error("SQLite Fallback failed for option contracts:", dbErr.message);
+        }
+
         if (error?.response?.data?.errors?.[0]?.errorCode === 'UDAPI100050' || error?.response?.status === 401) {
             await UpstoxAuth.deleteMany({});
             return res.status(401).json({ error: "Upstox token expired" });
@@ -251,10 +346,37 @@ router.get("/option-chain", async (req, res) => {
         const data = await fetchOptionChain(instrument_key, expiry_date);
         
         setCache(cacheKey, data, 300); // 5 minutes TTL
+
+        // --- SQLITE DB WRITE ---
+        try {
+            db.prepare(`
+                INSERT INTO options_data (instrument_key, raw_json, updated_at) 
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(instrument_key) DO UPDATE SET 
+                    raw_json=excluded.raw_json, 
+                    updated_at=CURRENT_TIMESTAMP
+            `).run(`chain_${instrument_key}_${expiry_date}`, JSON.stringify(data));
+        } catch (dbErr) {
+            console.error("Failed to save option chain to SQLite:", dbErr.message);
+        }
         
         res.json({ status: "success", data, cached: false });
     } catch (error) {
         console.error("Error fetching option chain:", error?.response?.data || error.message);
+
+        // --- SQLITE FALLBACK ---
+        try {
+            const { instrument_key, expiry_date } = req.query;
+            const row = db.prepare("SELECT raw_json FROM options_data WHERE instrument_key = ?").get(`chain_${instrument_key}_${expiry_date}`);
+            if (row && row.raw_json) {
+                console.log(`Using SQLite Fallback for option chain: ${instrument_key} @ ${expiry_date}`);
+                const payload = JSON.parse(row.raw_json);
+                return res.json({ status: "success", data: payload, cached: false, fallback: true });
+            }
+        } catch (dbErr) {
+            console.error("SQLite Fallback failed for option chain:", dbErr.message);
+        }
+
         res.status(500).json({ error: "Internal server error" });
     }
 });

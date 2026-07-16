@@ -63,7 +63,7 @@ export const DashboardProvider = ({ children }) => {
                         
                     if (uniqueExpiries.length > 0) {
                         setExpiries(uniqueExpiries);
-                        setSelectedExpiry(prev => uniqueExpiries.includes(prev) ? prev : uniqueExpiries[0]);
+                        setSelectedExpiry(prev => uniqueExpiries.includes(prev) ? prev : "");
                     } else {
                         setExpiries([]);
                         setSelectedExpiry("");
@@ -88,6 +88,8 @@ export const DashboardProvider = ({ children }) => {
             "NSE_INDEX|Nifty 50", 
             "NSE_INDEX|Nifty Bank", 
             "NSE_INDEX|India VIX",
+            "GLOBAL_INDICATOR|USDINR",
+            "GLOBAL_INDICATOR|BZUSD",
             selectedInstrument
         ].filter(Boolean)));
 

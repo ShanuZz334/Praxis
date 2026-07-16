@@ -98,6 +98,105 @@ export const INDICATOR_CONFIG = {
         source: "CME Market Data",
         aiModel: "Qwen3 8B"
     },
+    eurusd: {
+        id: "eurusd",
+        creditScore: 5,
+        impactWeight: "4.0%",
+        source: "ICE Data",
+        aiModel: "Qwen3 8B"
+    },
+    usdjpy: {
+        id: "usdjpy",
+        creditScore: 5,
+        impactWeight: "4.0%",
+        source: "ICE Data",
+        aiModel: "Qwen3 8B"
+    },
+    nikkei: {
+        id: "nikkei",
+        creditScore: 7,
+        impactWeight: "5.0%",
+        source: "Global Market Data",
+        aiModel: "Qwen3 8B"
+    },
+    ftse: {
+        id: "ftse",
+        creditScore: 6,
+        impactWeight: "4.0%",
+        source: "Global Market Data",
+        aiModel: "Qwen3 8B"
+    },
+    dax: {
+        id: "dax",
+        creditScore: 6,
+        impactWeight: "4.0%",
+        source: "Global Market Data",
+        aiModel: "Qwen3 8B"
+    },
+    hangseng: {
+        id: "hangseng",
+        creditScore: 6,
+        impactWeight: "4.0%",
+        source: "Global Market Data",
+        aiModel: "Qwen3 8B"
+    },
+    shanghai: {
+        id: "shanghai",
+        creditScore: 5,
+        impactWeight: "4.0%",
+        source: "Global Market Data",
+        aiModel: "Qwen3 8B"
+    },
+    cac40: {
+        id: "cac40",
+        creditScore: 6,
+        impactWeight: "4.0%",
+        source: "Global Market Data",
+        aiModel: "Qwen3 8B"
+    },
+    eurostoxx: {
+        id: "eurostoxx",
+        creditScore: 6,
+        impactWeight: "4.0%",
+        source: "Global Market Data",
+        aiModel: "Qwen3 8B"
+    },
+    copper: {
+        id: "copper",
+        creditScore: 6,
+        impactWeight: "5.0%",
+        source: "COMEX",
+        aiModel: "Qwen3 8B"
+    },
+    natgas: {
+        id: "natgas",
+        creditScore: 6,
+        impactWeight: "4.0%",
+        source: "NYMEX",
+        aiModel: "Qwen3 8B"
+    },
+    wheat: {
+        id: "wheat",
+        creditScore: 5,
+        impactWeight: "3.0%",
+        source: "CBOT",
+        aiModel: "Qwen3 8B"
+    },
+    aluminum: {
+        id: "aluminum",
+        creditScore: 5,
+        impactWeight: "3.0%",
+        source: "LME",
+        aiModel: "Qwen3 8B"
+    },
+    move: {
+        id: "move",
+        creditScore: 7,
+        impactWeight: "5.0%",
+        source: "ICE Data",
+        aiModel: "Qwen3 8B"
+    },
+
     pe_ratio: {
         id: "pe_ratio",
         creditScore: 8,

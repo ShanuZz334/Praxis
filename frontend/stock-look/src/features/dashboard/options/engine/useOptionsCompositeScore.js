@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { getIndicatorColor } from '@/shared/config/scoreColors';
 import { getOptionsRegime, getOptionsGauge } from './optionsHelper';
 
-export function useOptionsCompositeScore(compositeData) {
+export function useOptionsCompositeScore(compositeData, instrumentKey) {
     return useMemo(() => {
         const empty = {
             compositeScore: 50,
@@ -105,7 +105,7 @@ export function useOptionsCompositeScore(compositeData) {
                 ' Defensive positioning and bear spreads are statistically favorable.';
         }
 
-        return {
+        const result = {
             compositeScore,
             gauge,
             regime: { ...regime, description: aiInsight, confidence: validSections.length > 0 ? Math.round((validSections.length / sectionsData.length) * 100) : 0 },
@@ -115,5 +115,22 @@ export function useOptionsCompositeScore(compositeData) {
             aiInsight,
             cardScores
         };
-    }, [compositeData]);
+
+        // Fire & Forget DB Sync
+        if (typeof window !== 'undefined' && compositeData && instrumentKey) {
+            import('@/shared/utils/axiosInstance').then(({ default: axiosInstance }) => {
+                const ik = typeof instrumentKey === 'object' ? instrumentKey.value || instrumentKey.id : instrumentKey;
+                axiosInstance.post('/api/v1/snapshots/header', {
+                    instrument_key: ik || 'NIFTY',
+                    category: 'options',
+                    composite_score: compositeScore,
+                    regime_json: result.regime,
+                    tailwinds_json: tailwinds,
+                    risks_json: risks
+                }).catch(err => console.error("Failed to sync Options header:", err));
+            });
+        }
+
+        return result;
+    }, [compositeData, instrumentKey]);
 }

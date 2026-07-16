@@ -16,10 +16,11 @@
  */
 
 import React, { useContext, useEffect, useState } from "react";
-import { FiBell, FiSettings } from "react-icons/fi";
+import { FiBell, FiSettings, FiCrosshair } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/shared/context/ThemeContext";
 import { useDashboardContext } from "@/shared/context/DashboardContext";
+import DetachableInstrumentSelector from "@/shared/components/controls/DetachableInstrumentSelector";
 
 import nseLogo from "@/assets/images/nse.png";
 import upstoxLogo from "@/assets/images/Upstox.png";
@@ -32,6 +33,7 @@ import ThemeToggle from "@/shared/components/ui/ThemeToggle";
 const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const [isWidgetOpen, setIsWidgetOpen] = useState(false);
 
   const { livePrices: prices, selectedInstrument, filteredInstruments } = useDashboardContext();
 
@@ -191,6 +193,19 @@ const Navbar = ({ onToggleSidebar }) => {
         {/* Animated Theme Toggle */}
         <ThemeToggle />
 
+        {/* Global Controls Widget Toggle */}
+        <button
+          onClick={() => setIsWidgetOpen(!isWidgetOpen)}
+          className={`
+            transition-colors
+            hover:text-accent-primary
+            ${isWidgetOpen ? 'text-blue-500' : 'text-text-tertiary'}
+          `}
+          title="Global Controls"
+        >
+          <FiCrosshair className="text-xl transition-transform hover:scale-110" />
+        </button>
+
         {/* Notifications */}
         <button
           onClick={() => navigate("/dashboard/messages")}
@@ -216,6 +231,9 @@ const Navbar = ({ onToggleSidebar }) => {
         </button>
 
       </div>
+
+      {/* Detachable Magnetic Instrument Selector (Floating Widget) */}
+      <DetachableInstrumentSelector isOpen={isWidgetOpen} onClose={() => setIsWidgetOpen(false)} />
     </header>
   );
 };

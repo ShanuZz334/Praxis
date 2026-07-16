@@ -284,48 +284,35 @@ function buildResult(sections, compositeScore, rawScores) {
         hexColor: compositeColor.hex,
     };
 
-    // Institutional Tailwind/Risk Algorithm based on raw individual indicators
-    const ID_TO_TITLE = {};
-    for (const [title, id] of Object.entries(TITLE_TO_ID)) {
-        ID_TO_TITLE[id] = title;
-    }
+    // Institutional Tailwind/Risk Algorithm based on Sections (Macro Drivers)
+    const validSections = sections.filter(s => s.score !== null);
     
-    const validIndicators = Object.entries(rawScores || {})
-        .filter(([id, val]) => val !== null && val !== undefined && !isNaN(val))
-        .map(([id, score]) => {
-            const config = getIndicatorConfig(id);
-            // Config impactWeight is a string like "6.0%". We need to parse it to a float.
-            const weightStr = config?.impactWeight || "5.0";
-            const weight = parseFloat(weightStr);
-            return { id, title: ID_TO_TITLE[id] || id, score, weight: isNaN(weight) ? 5.0 : weight };
-        });
-
-    // Tailwind: Score >= 70 (Bullish threshold). 
+    // Tailwind: Score >= 60 (Bullish threshold). 
     // Impact = (Deviation from 50) * Configured Impact Weight
     const tailwindImpact = (s) => (s.score - 50) * s.weight;
-    const tailwinds = validIndicators
-        .filter(s => s.score >= 70)
+    const tailwinds = validSections
+        .filter(s => s.score >= 60)
         .sort((a, b) => tailwindImpact(b) - tailwindImpact(a))
         .slice(0, 3)
         .map(s => ({
             id: s.id,
-            label: s.title,
+            label: s.label,
             value: Math.round(s.score),
-            sub: `Impact ${s.weight.toFixed(1)} · ${getIndicatorColor(s.score).label}`,
+            sub: `${Math.round(s.weight * 100)}% weight · ${getIndicatorColor(s.score).label}`,
         }));
 
-    // Risk: Score <= 35 (Bearish threshold). 
+    // Risk: Score <= 40 (Bearish threshold). 
     // Impact = (Deviation from 50) * Configured Impact Weight
     const riskImpact = (s) => (50 - s.score) * s.weight;
-    const risks = validIndicators
-        .filter(s => s.score <= 35)
+    const risks = validSections
+        .filter(s => s.score <= 40)
         .sort((a, b) => riskImpact(b) - riskImpact(a))
         .slice(0, 3)
         .map(s => ({
             id: s.id,
-            label: s.title,
+            label: s.label,
             value: Math.round(s.score),
-            sub: `Impact ${s.weight.toFixed(1)} · ${getIndicatorColor(s.score).label}`,
+            sub: `${Math.round(s.weight * 100)}% weight · ${getIndicatorColor(s.score).label}`,
         }));
 
     return {

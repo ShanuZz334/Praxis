@@ -157,7 +157,14 @@ const handleMarketData = (dataBuffer) => {
 };
 
 // Queue for subscriptions requested before WS connects
-let pendingSubscriptions = new Set(["NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank", "NSE_EQ|RELIANCE", "NSE_INDEX|India VIX"]);
+let pendingSubscriptions = new Set([
+    "NSE_INDEX|Nifty 50", 
+    "NSE_INDEX|Nifty Bank", 
+    "NSE_EQ|RELIANCE", 
+    "NSE_INDEX|India VIX",
+    "GLOBAL_INDICATOR|USDINR",
+    "GLOBAL_INDICATOR|BZUSD"
+]);
 
 export const connectUpstoxWebsocket = async () => {
     if (!FeedResponse) await initProtobuf();

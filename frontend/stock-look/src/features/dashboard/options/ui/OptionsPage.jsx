@@ -8,7 +8,6 @@ import { API_PATHS } from '@/shared/utils/apiPaths';
 import UiverseDropdown from '@/shared/components/ui/UiverseDropdown';
 import { FO_INDICES, FO_EQUITIES } from '@/shared/utils/foInstruments';
 import { generateProDeskPicks } from '../engine/proDeskEngine';
-import { generateLiveCards } from '../engine/optionsEngine';
 import socket from '@/shared/utils/socket';
 import { calculateGreeks, resolveGreeks, timeToExpiry } from '../engine/blackScholesEngine';
 import { calculatePCR, calculateMaxPain } from '../engine/optionsMath';
@@ -301,10 +300,7 @@ export default function OptionsPage() {
         ? expiries.map(exp => ({ label: formatExpiryDate(exp), value: exp }))
         : [{ label: "No expiries", value: "" }];
 
-    // 4. Generate Live Cards
-    const cards = useMemo(() => {
-        return generateLiveCards(chainData, spotPrice, metrics);
-    }, [chainData, spotPrice, metrics]);
+    // Live cards are now managed centrally by cardsForHeader
 
     // --- Market Status Helpers ---
     const getISTDateTime = () => {
@@ -344,7 +340,7 @@ export default function OptionsPage() {
         risks: engineRisks,
         aiInsight: engineAiInsight,
         cardScores
-    } = useOptionsCompositeScore(compositeData);
+    } = useOptionsCompositeScore(compositeData, selectedInstrument);
 
     const resolveTime = useDataFreshness(chainData?.length > 0, manualOverrides, manualOverrideTimes, isMarketOpen, formatTime, "1s");
 
@@ -365,7 +361,17 @@ export default function OptionsPage() {
             else if (score < 30) normalized = -1;
             const config = getIndicatorConfig(id);
             const credit = config?.creditScore ?? 5;
-            return { id, module: config?.title || id, normalized, credit, creditAllocation: credit, score };
+            const allocated = (score / 100) * credit;
+
+            const formatTitle = (str) => {
+                if (!str) return '';
+                return str.split('_').map(word => {
+                    if (word.match(/^(oi|pcr|iv)$/i)) return word.toUpperCase();
+                    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                }).join(' ');
+            };
+
+            return { id, module: config?.title || formatTitle(config?.id) || formatTitle(id), normalized, credit, creditAllocation: allocated, score };
         });
 
     const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
@@ -459,6 +465,8 @@ export default function OptionsPage() {
                     totalCredits={totalCredits}
                     creditLabel="R Credits"
                     cards={cardsForHeader}
+                    enableBreakdown={true}
+                    syncId={{ instrumentKey: selectedInstrument?.value || selectedInstrument, category: 'options' }}
                     infoContent={optionsManualForm}
                     backsideContent={optionsManualForm}
                     controls={{
@@ -482,13 +490,6 @@ export default function OptionsPage() {
                                         { label: "High Delta (₹80)", value: 80 },
                                         { label: "ITM Safe (₹150)", value: 150 }
                                     ]}
-                                />
-                                <UiverseDropdown
-                                    placeholder={loading && expiries.length === 0 ? "Loading expiries..." : "Expiry"}
-                                    value={selectedExpiry}
-                                    onChange={setSelectedExpiry}
-                                    options={expiryOptions}
-                                    disabled={loading || expiries.length === 0}
                                 />
                             </div>
                         )
@@ -519,7 +520,7 @@ export default function OptionsPage() {
                 <>
                     <div className="w-full h-px bg-white/5 my-6" />
                     <OptionsGrid
-                        cards={cards}
+                        cards={cardsForHeader}
                         compositeData={compositeData}
                         onCardClick={setSelectedCard}
                         viewMode={viewMode}
@@ -533,7 +534,7 @@ export default function OptionsPage() {
                             onViewChange: setViewMode,
                             sortMode,
                             onSortChange: (m) => { setSortMode(m); setViewMode("flat"); },
-                            matchCount: cards.length
+                            matchCount: cardsForHeader.length
                         }}
                     />
                 </>

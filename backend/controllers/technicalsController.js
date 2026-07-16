@@ -78,7 +78,18 @@ export const getTechnicalIndicators = async (req, res) => {
         const technicals = calculateTechnicals(instrument, liveQuote, timeframe, config);
 
         if (!technicals) {
-            return res.status(500).json({ success: false, error: "Failed to calculate technicals. Insufficient candle data in DB." });
+            // --- SQLITE FALLBACK ---
+            try {
+                const row = db.prepare("SELECT raw_json FROM technicals_data WHERE instrument_key = ?").get(instrument);
+                if (row && row.raw_json) {
+                    console.log(`Using SQLite Fallback for technicals data: ${instrument}`);
+                    const payload = JSON.parse(row.raw_json);
+                    return res.status(200).json({ success: true, data: payload, source: "sqlite_fallback", fallback: true });
+                }
+            } catch (dbErr) {
+                console.error("SQLite Fallback failed for technicals:", dbErr.message);
+            }
+            return res.status(500).json({ success: false, error: "Failed to calculate technicals. Insufficient candle data in DB, and no fallback available." });
         }
 
         // Add Global India VIX directly into payload
@@ -87,24 +98,51 @@ export const getTechnicalIndicators = async (req, res) => {
             technicals.india_vix = vixQuote.ltp;
         }
 
+        const fallbackTime = technicals.last_candle_timestamp ? new Date(technicals.last_candle_timestamp).getTime() : Date.now();
+        const finalData = {
+            ...technicals,
+            calculated_at: liveQuote && liveQuote.updated_at ? new Date(liveQuote.updated_at).getTime() : fallbackTime
+        };
+
         // 5. Save to in-memory cache
         technicalsCache.set(cacheKey, {
-            data: technicals,
+            data: finalData,
             timestamp: Date.now()
         });
 
-        const fallbackTime = technicals.last_candle_timestamp ? new Date(technicals.last_candle_timestamp).getTime() : Date.now();
-        
+        // --- SQLITE DB WRITE (BACKGROUND) ---
+        try {
+            db.prepare(`
+                INSERT INTO technicals_data (instrument_key, raw_json, updated_at) 
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(instrument_key) DO UPDATE SET 
+                    raw_json=excluded.raw_json, 
+                    updated_at=CURRENT_TIMESTAMP
+            `).run(instrument, JSON.stringify(finalData));
+        } catch (dbErr) {
+            console.error("Failed to save technical data to SQLite:", dbErr.message);
+        }
+
         res.status(200).json({
             success: true,
-            data: {
-                ...technicals,
-                calculated_at: liveQuote && liveQuote.updated_at ? new Date(liveQuote.updated_at).getTime() : fallbackTime
-            },
+            data: finalData,
             source: "calculated"
         });
     } catch (error) {
         console.error("Technicals endpoint error:", error);
+
+        // --- SQLITE FALLBACK ---
+        try {
+            const row = db.prepare("SELECT raw_json FROM technicals_data WHERE instrument_key = ?").get(req.query.instrument);
+            if (row && row.raw_json) {
+                console.log(`Using SQLite Fallback for technicals data (Catch Block): ${req.query.instrument}`);
+                const payload = JSON.parse(row.raw_json);
+                return res.status(200).json({ success: true, data: payload, source: "sqlite_fallback", fallback: true });
+            }
+        } catch (dbErr) {
+            console.error("SQLite Fallback failed for technicals:", dbErr.message);
+        }
+
         res.status(500).json({ success: false, error: "Internal server error" });
     }
 };

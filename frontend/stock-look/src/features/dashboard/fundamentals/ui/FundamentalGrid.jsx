@@ -106,24 +106,8 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
   }, [cards, viewMode]);
 
   /* ------------------------------------------------------------
-     SEARCH CONTROLS (rendered at top)
+     SEARCH CONTROLS (removed due to duplication with GlobalHeader)
      ------------------------------------------------------------ */
-  const SearchControls = controls ? (
-    <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-3">
-      <div className="relative group w-full md:w-64 transition-all focus-within:md:w-80 shrink-0">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-tertiary">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-        </div>
-        <input
-          type="text"
-          value={controls.search || ''}
-          onChange={(e) => controls.onSearchChange(e.target.value)}
-          placeholder="Filter metrics..."
-          className="w-full pl-9 pr-4 py-2 bg-background-app border border-border-subtle rounded-lg text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500/50 transition-all"
-        />
-      </div>
-    </div>
-  ) : null;
 
   const getHardcodedNode = (cardId) => {
       switch (cardId) {
@@ -238,7 +222,6 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
 
     return (
       <div>
-        {SearchControls}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start">
           {sortedFlat.map(item => (
             <React.Fragment key={item.id}>{item.node}</React.Fragment>

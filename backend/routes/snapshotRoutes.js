@@ -81,4 +81,97 @@ router.get("/:instrument_key", (req, res) => {
     }
 });
 
+// @route   POST /api/v1/snapshots/header
+// @desc    Upsert frontend calculated AI header (composite, regime, tailwinds, risks)
+router.post("/header", (req, res) => {
+    try {
+        const { instrument_key, category, composite_score, regime_json, tailwinds_json, risks_json, counts_json } = req.body;
+        
+        if (!instrument_key || !category) {
+            return res.status(400).json({ error: "instrument_key and category are required" });
+        }
+
+        localDb.prepare(`
+            INSERT INTO header_data (
+                instrument_key, category, composite_score, regime_json, tailwinds_json, risks_json, counts_json, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(instrument_key, category) DO UPDATE SET
+                composite_score = COALESCE(excluded.composite_score, header_data.composite_score),
+                regime_json = COALESCE(excluded.regime_json, header_data.regime_json),
+                tailwinds_json = COALESCE(excluded.tailwinds_json, header_data.tailwinds_json),
+                risks_json = COALESCE(excluded.risks_json, header_data.risks_json),
+                counts_json = COALESCE(excluded.counts_json, header_data.counts_json),
+                updated_at = CURRENT_TIMESTAMP
+        `).run(
+            instrument_key,
+            category,
+            composite_score !== undefined ? composite_score : null,
+            regime_json !== undefined ? JSON.stringify(regime_json) : null,
+            tailwinds_json !== undefined ? JSON.stringify(tailwinds_json) : null,
+            risks_json !== undefined ? JSON.stringify(risks_json) : null,
+            counts_json !== undefined ? JSON.stringify(counts_json) : null
+        );
+
+        res.json({ status: "success", message: "Header state saved." });
+    } catch (error) {
+        console.error("Error saving header state:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+// @route   GET /api/v1/snapshots/header/:instrument_key
+// @desc    Get last known AI header state (fallback)
+router.get("/header/:instrument_key", (req, res) => {
+    try {
+        const { instrument_key } = req.params;
+        const { category } = req.query;
+
+        if (category) {
+            const row = localDb.prepare(`
+                SELECT composite_score, regime_json, tailwinds_json, risks_json, updated_at 
+                FROM header_data 
+                WHERE instrument_key = ? AND category = ?
+            `).get(instrument_key, category);
+
+            if (row) {
+                return res.json({
+                    status: "success",
+                    data: {
+                        composite_score: row.composite_score,
+                        regime: row.regime_json ? JSON.parse(row.regime_json) : null,
+                        tailwinds: row.tailwinds_json ? JSON.parse(row.tailwinds_json) : [],
+                        risks: row.risks_json ? JSON.parse(row.risks_json) : [],
+                        updated_at: row.updated_at
+                    }
+                });
+            } else {
+                return res.json({ status: "success", data: null });
+            }
+        } else {
+            // Fetch all categories for this instrument (plus global which is universal)
+            const rows = localDb.prepare(`
+                SELECT category, composite_score, regime_json, tailwinds_json, risks_json, counts_json, updated_at 
+                FROM header_data 
+                WHERE instrument_key = ? OR category = 'global' OR category = 'events'
+            `).all(instrument_key);
+
+            const result = {};
+            for (const row of rows) {
+                result[row.category] = {
+                    composite_score: row.composite_score,
+                    regime: row.regime_json ? JSON.parse(row.regime_json) : null,
+                    tailwinds: row.tailwinds_json ? JSON.parse(row.tailwinds_json) : [],
+                    risks: row.risks_json ? JSON.parse(row.risks_json) : [],
+                    counts: row.counts_json ? JSON.parse(row.counts_json) : null,
+                    updated_at: row.updated_at
+                };
+            }
+            return res.json({ status: "success", data: result });
+        }
+    } catch (error) {
+        console.error("Error fetching header state:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
 export default router;

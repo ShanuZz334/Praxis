@@ -36,6 +36,7 @@ export default function EventsPage() {
                 totalCredits={0}
                 creditLabel="R Credits"
                 cards={[]}
+                syncId={{ instrumentKey: 'EVENTS', category: 'events' }}
                 controls={{
                     search: searchQuery,
                     onSearchChange: setSearchQuery,

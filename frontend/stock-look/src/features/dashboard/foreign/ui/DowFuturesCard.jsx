@@ -1,85 +1,43 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { Edit2 } from 'lucide-react';
 
-export default function DowFuturesCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || null);
-    const [dailyChange, setDailyChange] = useState(initialData?.dailyChange || null);
-
+export default function DowFuturesCard({ cardData, resolveTime, isLive }) {
     const configData = getIndicatorConfig('dow_futures');
 
-    let score = 0, bias = "Neutral", confidence = "90%", aiInsightText = "Waiting for data...";
-    
-    if (dailyChange !== null) {
-        if (dailyChange >= 0.50) {
-            bias = "Bullish";
-            score = 85;
-            aiInsightText = "Blue-chip U.S. stocks indicate strong institutional confidence, supporting a positive global market outlook.";
-        } else if (dailyChange > 0.10 && dailyChange < 0.50) {
-            bias = "Neutral";
-            score = 60;
-            aiInsightText = "Large-cap stocks continue to support overall market sentiment.";
-        } else if (dailyChange >= -0.10 && dailyChange <= 0.10) {
-            bias = "Neutral";
-            score = 50;
-            aiInsightText = "Institutional sentiment remains balanced.";
-        } else if (dailyChange < -0.10 && dailyChange > -0.50) {
-            bias = "Neutral";
-            score = 40;
-            aiInsightText = "Weakness in blue-chip stocks may weigh on broader global markets.";
-        } else if (dailyChange <= -0.50 && dailyChange > -1.25) {
-            bias = "Bearish";
-            score = 25;
-            aiInsightText = "Weakness in blue-chip stocks may weigh on broader global markets.";
-        } else if (dailyChange <= -1.25) {
-            bias = "Strong Bearish";
-            score = 10;
-            aiInsightText = "Strong selling in Dow Futures indicates a broader shift toward risk-off sentiment.";
-        }
-    }
+    const rawValue = cardData?.value;
+    const hasValue = rawValue !== null && rawValue !== undefined && rawValue !== '';
+    const parsed = parseFloat(String(rawValue).replace(/,/g, ''));
+    const displayValue = hasValue && !isNaN(parsed) ? parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--';
 
     return (
         <IndicatorCard
             config={{
                 title: "Dow Jones Futures",
                 category: "Global Macro",
-                mode: "MANUAL",
+                mode: isLive ? "AUTO" : "MANUAL",
                 creditScore: configData.creditScore,
-                updateTime: "--:--",
+                updateTime: resolveTime,
                 source: configData.source,
                 aiModel: configData.aiModel
             }}
             data={{
-                currentValueObj: { label: "Futures Price", value: currentValue ?? "--" },
-                details: [
-                    { label: "Daily Change (%)", value: dailyChange !== null ? `${dailyChange.toFixed(2)}%` : "--" }
-                ],
-                score,
-                bias,
-                confidence,
-                impactWeight: configData.impactWeight
-            }}
-            chartData={{
-                points: initialData?.history || [],
-                valueKey: "value",
-                valueName: "Dow Futures"
+                currentValueObj: { 
+                    label: "Current Value", 
+                    value: displayValue
+                },
+                score: cardData?.score ?? 50,
+                bias: cardData?.bias ?? "Neutral",
+                confidence: `${cardData?.confidence ?? 85}%`,
+                impactWeight: cardData?.impact ?? configData.impactWeight
             }}
             insights={{
-                aiInsight: aiInsightText,
+                aiInsight: cardData?.insight ?? "Waiting for manual input...",
                 whyItMatters: [
-                    "Measures institutional confidence in blue-chip companies.",
-                    "Reflects global risk appetite.",
-                    "Confirms overnight market direction.",
-                    "Complements S&P 500 and Nasdaq Futures.",
-                    "Improves global sentiment analysis."
+                    "Barometer for traditional and industrial sector health.",
+                    "Provides insight into economic cyclicality."
                 ]
-            }}
-            onSave={(val) => {
-                const n = parseFloat(val);
-                if (!isNaN(n)) {
-                    setDailyChange(n);
-                    setCurrentValue(38000 + (38000 * n / 100)); // dummy calculation
-                }
             }}
         />
     );

@@ -40,9 +40,9 @@ const _baseCards = [
 
     // Global Indices
     {
-        id: "sp500",
+        id: "sp_futures",
         label: "S&P 500",
-        category: "Global Indices",
+        category: "US Markets",
         raw: "4,783",
         unit: "",
         normalized: 0.45,
@@ -51,9 +51,9 @@ const _baseCards = [
         reason: "Consolidating near highs, yield sensitive"
     },
     {
-        id: "nasdaq",
+        id: "nasdaq_futures",
         label: "Nasdaq 100",
-        category: "Global Indices",
+        category: "US Markets",
         raw: "16,825",
         unit: "",
         normalized: -0.3,
@@ -220,7 +220,7 @@ const _baseCards = [
 
     // Rates & Volatility
     {
-        id: "us10y",
+        id: "us_10y_yield",
         label: "US 10Y Yield",
         category: "Rates & Volatility",
         raw: "4.32%",
@@ -285,6 +285,18 @@ export const GLOBAL_SECTIONS = {
     rates: {
         label: "Rates & Volatility",
         cards: GLOBAL_STRUCTURE_CARDS.filter(c => c.category === "Rates & Volatility")
+    },
+    us_markets: {
+        label: "US Markets",
+        cards: GLOBAL_STRUCTURE_CARDS.filter(c => c.category === "US Markets")
+    },
+    volatility: {
+        label: "Volatility",
+        cards: GLOBAL_STRUCTURE_CARDS.filter(c => c.category === "Volatility")
+    },
+    digital_assets: {
+        label: "Digital Assets",
+        cards: GLOBAL_STRUCTURE_CARDS.filter(c => c.category === "Digital Assets")
     }
 };
 

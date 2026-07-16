@@ -88,6 +88,7 @@ export default function GlobalHeader({
     cards = [],        // All cards to calculate signal counts
     enableBreakdown = false, // Toggle to show hover details (Dashboard only)
     enableActionPulse = false, // If true, shows the Trading Action Pulse indicator (Dashboard only)
+    syncId = null, // { instrumentKey, category } for DB auto-sync
 
     // Controls
     controls = {
@@ -142,7 +143,8 @@ export default function GlobalHeader({
         if (!cards || cards.length === 0) return counts;
 
         cards.forEach(card => {
-            const mod = card.module || "Items";
+            const engineKey = card.engine ? `${card.engine}||` : '';
+            const mod = `${engineKey}${card.module || "Items"}`;
             const state = getSignalState(card.normalized || 0);
 
             if (state.label === 'Bullish') {
@@ -159,6 +161,25 @@ export default function GlobalHeader({
 
         return counts;
     }, [cards]);
+
+    // DB Sync for Counts (used by MasterDashboard aggregator)
+    useEffect(() => {
+        if (syncId?.instrumentKey && syncId?.category && typeof window !== 'undefined') {
+            import('@/shared/utils/axiosInstance').then(({ default: axiosInstance }) => {
+                axiosInstance.post('/api/v1/snapshots/header', {
+                    instrument_key: syncId.instrumentKey,
+                    category: syncId.category,
+                    counts_json: {
+                        totalCredits,
+                        bulls: signalCounts.bulls,
+                        bears: signalCounts.bears,
+                        neutrals: signalCounts.neutrals,
+                        breakdown: signalCounts.breakdown
+                    }
+                }).catch(err => console.error(`Failed to sync ${syncId.category} counts:`, err));
+            });
+        }
+    }, [syncId?.instrumentKey, syncId?.category, totalCredits, signalCounts]);
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
@@ -200,7 +221,7 @@ export default function GlobalHeader({
                         ) : (
                             <>
                                 <div className="flex flex-row items-center md:items-baseline gap-2 md:gap-3 mb-1 text-left">
-                                    <div className={`${typography.number.giant} text-4xl md:text-6xl lg:text-7xl tracking-tighter`}>{Number(score || 0).toFixed(0)}</div>
+                                    <div className={`${typography.number.giant} text-4xl md:text-6xl lg:text-7xl tracking-tighter font-mono`}>{Number(score || 0).toFixed(0)}</div>
                                     <div className="flex flex-col justify-end h-full pb-1">
                                         <div
                                             className={`text-sm md:text-lg font-bold transition-colors duration-500 uppercase tracking-wide`}
@@ -294,34 +315,40 @@ export default function GlobalHeader({
                         </div>
 
                         {/* BOTTOM SECTION: Credit Distribution (Larger Values) */}
-                        {totalCredits > 0 && (
-                            <div className={`grid grid-cols-4 gap-2 md:gap-3 pt-3 md:pt-4 border-t ${STYLES.BORDER_DIVIDER}`}>
+                        <div className={`grid ${integrity?.missingCards > 0 ? 'grid-cols-5' : 'grid-cols-4'} gap-2 md:gap-3 pt-3 md:pt-4 border-t ${STYLES.BORDER_DIVIDER}`}>
+                            <StatBlock
+                                label={creditLabel}
+                                value={totalCredits}
+                                color="text-text-primary"
+                                breakdown={enableBreakdown ? creditBreakdown : null}
+                            />
+                            <StatBlock
+                                label="Bulls"
+                                value={signalCounts.bulls}
+                                color="text-emerald-600 dark:text-emerald-400"
+                                breakdown={enableBreakdown ? signalCounts.breakdown.bulls : null}
+                            />
+                            <StatBlock
+                                label="Bears"
+                                value={signalCounts.bears}
+                                color="text-red-600 dark:text-red-400"
+                                breakdown={enableBreakdown ? signalCounts.breakdown.bears : null}
+                            />
+                            <StatBlock
+                                label="Neutral"
+                                value={signalCounts.neutrals}
+                                color="text-amber-500 dark:text-amber-400"
+                                breakdown={enableBreakdown ? signalCounts.breakdown.neutrals : null}
+                            />
+                            {integrity?.missingCards > 0 && (
                                 <StatBlock
-                                    label={creditLabel}
-                                    value={totalCredits}
-                                    color="text-text-primary"
-                                    breakdown={enableBreakdown ? creditBreakdown : null}
+                                    label="Pending"
+                                    value={integrity.missingCards}
+                                    color="text-slate-500 dark:text-slate-400"
+                                    breakdown={enableBreakdown ? integrity.missingBreakdown : null}
                                 />
-                                <StatBlock
-                                    label="Bulls"
-                                    value={signalCounts.bulls}
-                                    color="text-emerald-600 dark:text-emerald-400"
-                                    breakdown={enableBreakdown ? signalCounts.breakdown.bulls : null}
-                                />
-                                <StatBlock
-                                    label="Bears"
-                                    value={signalCounts.bears}
-                                    color="text-red-600 dark:text-red-400"
-                                    breakdown={enableBreakdown ? signalCounts.breakdown.bears : null}
-                                />
-                                <StatBlock
-                                    label="Neutral"
-                                    value={signalCounts.neutrals}
-                                    color="text-amber-500 dark:text-amber-400"
-                                    breakdown={enableBreakdown ? signalCounts.breakdown.neutrals : null}
-                                />
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
 
 
@@ -375,18 +402,77 @@ function StatBlock({ label, value, color, breakdown }) {
 
     if (!hasBreakdown) return Content;
 
+    let isGrouped = false;
+    const groupedBreakdown = {};
+    if (hasBreakdown) {
+        Object.entries(breakdown).forEach(([key, count]) => {
+            if (key.includes('||')) {
+                isGrouped = true;
+                const [engine, mod] = key.split('||');
+                if (!groupedBreakdown[engine]) groupedBreakdown[engine] = {};
+                groupedBreakdown[engine][mod] = count;
+            }
+        });
+    }
+
+    if (isGrouped) {
+        // Grouped render for Master Dashboard
+        const totalItems = Object.values(groupedBreakdown).reduce((acc, items) => acc + Object.keys(items).length, 0);
+        let colsClass = "columns-1";
+        if (totalItems > 45) colsClass = "columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5";
+        else if (totalItems > 24) colsClass = "columns-1 sm:columns-2 md:columns-3 lg:columns-4";
+        else if (totalItems > 12) colsClass = "columns-1 sm:columns-2 md:columns-3";
+        else if (totalItems > 6) colsClass = "columns-1 sm:columns-2";
+
+        return (
+            <PortalTooltip
+                content={
+                    <div className="w-max max-w-[95vw] xl:max-w-[1200px] p-2">
+                        <div className="text-[10px] font-bold text-text-tertiary uppercase border-b border-border-default pb-1 mb-3 tracking-wider">
+                            {label} Breakdown
+                        </div>
+                        <div className={`${colsClass} gap-x-6 max-h-[60vh] overflow-y-auto p-1 custom-scrollbar-thin`}>
+                            {Object.entries(groupedBreakdown).map(([engine, items]) => (
+                                <div key={engine} className="mb-5">
+                                    <div className="text-[10px] font-bold text-blue-400 uppercase tracking-widest border-b border-border-default/40 pb-1 mb-2 break-after-avoid">{engine}</div>
+                                    <div className="space-y-1">
+                                        {Object.entries(items).map(([mod, count]) => (
+                                            <div key={mod} className="flex justify-between items-center text-xs break-inside-avoid">
+                                                <span className="text-text-secondary pr-3 truncate">{mod}</span>
+                                                {count > 1 && <span className={`font-mono font-bold ${color} shrink-0`}>{count}</span>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                }
+            >
+                {Content}
+            </PortalTooltip>
+        );
+    }
+
+    // Flat render for individual dashboards
+    const numItems = Object.keys(breakdown).length;
+    let colsClass = "columns-1";
+    if (numItems > 24) colsClass = "columns-1 sm:columns-2 md:columns-3 lg:columns-4";
+    else if (numItems > 12) colsClass = "columns-1 sm:columns-2 md:columns-3";
+    else if (numItems > 6) colsClass = "columns-1 sm:columns-2";
+
     return (
         <PortalTooltip
             content={
-                <div className="w-48">
+                <div className="w-max max-w-[90vw] md:max-w-[800px] p-2">
                     <div className="text-[10px] font-bold text-text-tertiary uppercase border-b border-border-default pb-1 mb-2 tracking-wider">
                         {label} Breakdown
                     </div>
-                    <div className="space-y-1.5">
+                    <div className={`${colsClass} gap-x-8 space-y-1.5 max-h-[50vh] overflow-y-auto p-1 custom-scrollbar-thin`}>
                         {Object.entries(breakdown).map(([mod, count]) => (
-                            <div key={mod} className="flex justify-between items-center text-xs">
-                                <span className="text-text-secondary">{mod}</span>
-                                {count > 1 && <span className={`font-mono font-bold ${color}`}>{count}</span>}
+                            <div key={mod} className="flex justify-between items-center text-xs break-inside-avoid mb-1.5">
+                                <span className="text-text-secondary pr-3 truncate">{mod}</span>
+                                {count > 1 && <span className={`font-mono font-bold ${color} shrink-0`}>{count}</span>}
                             </div>
                         ))}
                     </div>
@@ -454,7 +540,7 @@ function FundamentalGaugePanel({ score, regime, sections }) {
         <div className="flex flex-col w-full h-full justify-between pt-2">
             {/* TOP: Score & Badge */}
             <div className="flex flex-row items-center md:items-baseline gap-2 md:gap-3 mb-1 text-left px-2">
-                <div className={`${typography.number.giant} text-5xl md:text-6xl lg:text-7xl tracking-tighter`} style={{ color: donutColor }}>
+                <div className={`${typography.number.giant} text-5xl md:text-6xl lg:text-7xl tracking-tighter font-mono`} style={{ color: donutColor }}>
                     {Number(score || 0).toFixed(0)}
                 </div>
                 <div className="flex flex-col justify-end h-full pb-1 md:pb-2">

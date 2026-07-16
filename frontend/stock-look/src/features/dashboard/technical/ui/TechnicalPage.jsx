@@ -137,13 +137,22 @@ export default function TechnicalPage() {
 
             const config = getIndicatorConfig(id);
             const credit = config?.creditScore ?? 5;
+            const allocated = (score / 100) * credit;
+
+            const formatTitle = (str) => {
+                if (!str) return '';
+                return str.split('_').map(word => {
+                    if (word.match(/^(ema|sma|rsi|macd|pcr|adx|atr)$/i)) return word.toUpperCase();
+                    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                }).join(' ');
+            };
 
             return {
                 id,
-                module: config?.title || id,
+                module: config?.title || formatTitle(config?.id) || formatTitle(id),
                 normalized,
                 credit,
-                creditAllocation: credit,
+                creditAllocation: allocated,
                 score,
             };
         });
@@ -257,6 +266,8 @@ export default function TechnicalPage() {
                 totalCredits={totalCredits}
                 creditLabel="R Credits"
                 cards={cardsForHeader}
+                enableBreakdown={true}
+                syncId={{ instrumentKey: selectedInstrument, category: 'technical' }}
                 infoContent={technicalManualForm}
                 controls={{
                     search: searchQuery,

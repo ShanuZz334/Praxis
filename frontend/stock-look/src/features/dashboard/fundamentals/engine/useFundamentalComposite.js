@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import axiosInstance from '@/shared/utils/axiosInstance';
 import { 
     computeCompanyComposite, 
     computeIndexComposite, 
@@ -32,6 +33,18 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
                 ? computeIndexComposite(scoresRef.current)
                 : computeCompanyComposite(scoresRef.current);
             setResult({ ...newRes, rawScores: { ...scoresRef.current } });
+
+            // Persist header calculation to Backend (Fire & Forget)
+            if (instrumentKey) {
+                axiosInstance.post('/api/v1/snapshots/header', {
+                    instrument_key: instrumentKey,
+                    category: 'fundamental',
+                    composite_score: newRes.compositeScore,
+                    regime_json: newRes.regime,
+                    tailwinds_json: newRes.tailwinds,
+                    risks_json: newRes.risks
+                }).catch(err => console.error("Failed to sync header:", err));
+            }
         };
 
         const handleSnapshot = (e) => {

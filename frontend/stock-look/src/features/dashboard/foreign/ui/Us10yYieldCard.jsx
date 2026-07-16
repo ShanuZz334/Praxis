@@ -1,39 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function Us10yYieldCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || null);
-    const configData = getIndicatorConfig('us_10y_yield');
+export default function Us10yYieldCard({ cardData, resolveTime, isLive }) {
+    const configData = getIndicatorConfig('us_10y_yield') || {};
     
-    let score = 0, bias = "Neutral", confidence = "92%", aiInsightText = "Waiting...";
-    let impactWeight = configData.impactWeight || "Very High";
+    const currentValue = cardData?.value ?? null;
+    const score = cardData?.score ?? 50;
+    const bias = cardData?.bias ?? "Neutral";
+    const confidence = cardData?.confidence ? `${cardData.confidence}%` : "92%";
+    const aiInsightText = cardData?.insight ?? "Awaiting data input to generate insights.";
+    const impactWeight = cardData?.impact ?? configData.impactWeight ?? "Very High";
     
-    let dailyChange = "0 bps";
-    let dailyChangePercent = "0.00%";
-    
-    if (currentValue !== null) {
-        if (currentValue < 4.0) {
-            score = 90;
-            bias = "Bullish";
-            dailyChange = "-5 bps";
-            dailyChangePercent = "-1.20%";
-            aiInsightText = "Declining Treasury yields improve liquidity conditions and generally support equity markets.";
-        } else if (currentValue > 4.5) {
-            score = 20;
-            bias = "Bearish";
-            dailyChange = "+6 bps";
-            dailyChangePercent = "+1.40%";
-            aiInsightText = "Higher Treasury yields increase borrowing costs and may pressure equity valuations.";
-        } else {
-            score = 70;
-            bias = "Neutral";
-            dailyChange = "0 bps";
-            dailyChangePercent = "0.00%";
-            aiInsightText = "Bond markets remain stable with limited macroeconomic impact.";
-        }
-    }
-
     const whyItMatters = [
         "Measures global interest rate expectations.",
         "Reflects worldwide liquidity conditions.",
@@ -42,31 +20,29 @@ export default function Us10yYieldCard({ initialData = null }) {
         "Critical macroeconomic indicator."
     ];
 
+    const displayValue = currentValue !== null ? `${Number(currentValue).toFixed(3)}%` : "--";
+
     return (
         <IndicatorCard
             config={{ 
                 title: configData.title || "US 10-Year Treasury Yield", 
-                category: configData.category || "Global Macro", 
-                mode: "MANUAL", 
-                creditScore: configData.creditScore, 
-                updateTime: "--:--", 
-                source: configData.source, 
-                aiModel: configData.aiModel 
+                category: configData.category || "Rates & Volatility", 
+                mode: isLive ? "AUTO" : "MANUAL", 
+                creditScore: configData.creditScore ?? 5, 
+                updateTime: resolveTime, 
+                source: configData.source || "Upstox / Manual", 
+                aiModel: configData.aiModel || "Praxis DeepSeek-R1"
             }}
             data={{ 
-                currentValueObj: { label: "10-Year Yield (%)", value: currentValue ?? "--" }, 
-                details: [
-                    { label: "Daily Change", value: dailyChange },
-                    { label: "Daily Change (%)", value: dailyChangePercent }
-                ], 
+                currentValueObj: { label: "10-Year Yield (%)", value: displayValue }, 
+                details: [], 
                 score, 
                 bias, 
                 confidence, 
                 impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "Yield" }}
+            chartData={{ points: [], valueKey: "value", valueName: "Yield" }}
             insights={{ aiInsight: aiInsightText, whyItMatters }}
-            onSave={(val) => { const n = parseFloat(val); if(!isNaN(n)) setCurrentValue(n); }}
         />
     );
 }

@@ -477,6 +477,7 @@ export default function FundamentalPage() {
               cards={cardsForHeader}
               totalCredits={totalCredits}
               enableBreakdown={true}
+              syncId={{ instrumentKey: selectedInstrument, category: 'fundamental' }}
               infoContent={fundamentalManualForm}
               controls={{
                   search: searchQuery,

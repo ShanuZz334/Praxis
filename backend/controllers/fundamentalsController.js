@@ -59,6 +59,19 @@ export const getFundamentals = async (req, res) => {
             }
 
             setCache(cacheKey, payload, 86400); // 24 hours TTL
+
+            // --- SQLITE DB WRITE (BACKGROUND) ---
+            try {
+                localDb.prepare(`
+                    INSERT INTO fundamentals_data (instrument_key, raw_json, updated_at) 
+                    VALUES (?, ?, CURRENT_TIMESTAMP)
+                    ON CONFLICT(instrument_key) DO UPDATE SET 
+                        raw_json=excluded.raw_json, 
+                        updated_at=CURRENT_TIMESTAMP
+                `).run(instrumentKey, JSON.stringify(payload));
+            } catch (dbErr) {
+                console.error("Failed to save fundamental data to SQLite:", dbErr.message);
+            }
         }
 
         // Live Global India VIX Injection (Fetched from local high-frequency DB)
@@ -70,10 +83,21 @@ export const getFundamentals = async (req, res) => {
 
         return res.json({ status: "success", data: payload, cached: !!getCache(cacheKey) });
 
-
-
     } catch (error) {
         console.error("Error fetching fundamentals:", error?.response?.data || error.message);
+        
+        // --- SQLITE FALLBACK ---
+        try {
+            const row = localDb.prepare("SELECT raw_json FROM fundamentals_data WHERE instrument_key = ?").get(req.query.instrument_key);
+            if (row && row.raw_json) {
+                console.log(`Using SQLite Fallback for fundamentals data: ${req.query.instrument_key}`);
+                const payload = JSON.parse(row.raw_json);
+                return res.json({ status: "success", data: payload, cached: false, fallback: true });
+            }
+        } catch (dbErr) {
+            console.error("SQLite Fallback failed for fundamentals:", dbErr.message);
+        }
+
         res.status(500).json({ error: "Internal server error while fetching fundamentals" });
     }
 };
