@@ -52,11 +52,9 @@ export default function EPSGrowthCard({ data = null, manualOverride, lastUpdated
 
     // ── Attempt 2: Calculate from EPS history in income statement ──────────
     if (isManual) {
-        const incomeArray = Array.isArray(data?.income)
-            ? data.income
-            : (Array.isArray(data?.income?.full_statement) ? data.income.full_statement : []);
+        const fullStmt = Array.isArray(data?.income?.full_statement) ? data.income.full_statement : [];
 
-        const epsObj = incomeArray.find(r =>
+        const epsObj = fullStmt.find(r =>
             r.particular === 'EPS - Basic' || r.particular === 'EPS - Diluted' ||
             r.particular?.toLowerCase().includes('eps')
         );

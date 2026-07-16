@@ -1,46 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function PcrVolumeCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || 0.90);
-    const [trend, setTrend] = useState(initialData?.trend || "Stable");
-
+export default function PcrVolumeCard({ liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('pcr_volume');
 
-    // Calculate Bias and Score
-    let score = 50;
-    let bias = "Neutral";
-    let confidence = "85%";
-    let sentiment = "Neutral";
+    const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
+    const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);
 
-    if (currentValue > 1.10) {
-        bias = "Bullish";
-        score = 85;
-        sentiment = "Bullish";
-    } else if (currentValue >= 0.80 && currentValue <= 1.10) {
-        bias = "Neutral";
-        score = 60;
-        sentiment = "Neutral";
-    } else if (currentValue >= 0.60 && currentValue < 0.80) {
-        bias = "Bearish";
-        score = 40;
-        sentiment = "Bearish";
-    } else {
-        bias = "Strong Bearish";
-        score = 20;
-        sentiment = "Strong Bearish";
-    }
-
-    // AI Insight
-    let aiInsightText = "";
-    if (currentValue > 1.10) {
-        aiInsightText = "Explain that Put trading activity is stronger than Call activity, indicating improving bullish sentiment.";
-    } else if (currentValue >= 0.80) {
-        aiInsightText = "Explain that trading activity remains balanced between Calls and Puts.";
-    } else {
-        aiInsightText = "Explain that Call trading activity dominates, indicating bearish market sentiment.";
-    }
+    const trend = isLiveData ? liveData.trend : "Stable";
+    const score = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
+    const bias = isLiveData ? liveData.bias : "Neutral";
+    const sentiment = isLiveData ? liveData.sentiment : "Neutral";
+    const confidence = isLiveData ? liveData.confidence : "0%";
+    const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Waiting for market data...");
 
     const whyItMatters = [
         "Measures real-time options sentiment.",
@@ -50,24 +23,21 @@ export default function PcrVolumeCard({ initialData = null }) {
         "Improves intraday options analysis."
     ];
 
-    const handleSave = (val) => {
-        const n = parseFloat(val);
-        if (!isNaN(n)) setCurrentValue(n);
-    };
+    const displayValue = rawValue !== null && rawValue !== '--' ? parseFloat(rawValue).toFixed(2) : '--';
 
     return (
         <IndicatorCard
             config={{ 
                 title: "Put-Call Ratio (Volume)", 
                 category: "Put-Call Ratio", 
-                mode: "MANUAL", 
+                mode: isLiveData ? "AUTO" : "MANUAL", 
                 creditScore: configData.creditScore, 
-                updateTime: "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel 
             }}
             data={{ 
-                currentValueObj: { label: "PCR (Volume)", value: currentValue.toFixed(2) }, 
+                currentValueObj: { label: "PCR (Volume)", value: displayValue }, 
                 details: [
                     { label: "Trend", value: trend },
                     { label: "Sentiment", value: sentiment }
@@ -77,9 +47,8 @@ export default function PcrVolumeCard({ initialData = null }) {
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "PCR (Volume)" }}
+            chartData={{ points: liveData?.history || [], valueKey: "value", valueName: "PCR (Volume)" }}
             insights={{ aiInsight: aiInsightText, whyItMatters }}
-            onSave={handleSave}
         />
     );
 }

@@ -473,6 +473,8 @@ export const INDICATOR_CONFIG = {
     // Options Indicators
     pcr_oi: {
         id: "pcr_oi",
+        title: "PCR (OI)",
+        category: "Options",
         creditScore: 10,
         impactWeight: "8.0%",
         source: "NSE Option Chain",
@@ -480,6 +482,8 @@ export const INDICATOR_CONFIG = {
     },
     pcr_volume: {
         id: "pcr_volume",
+        title: "PCR (Volume)",
+        category: "Options",
         creditScore: 8,
         impactWeight: "5.0%",
         source: "NSE Option Chain",
@@ -487,6 +491,8 @@ export const INDICATOR_CONFIG = {
     },
     max_pain: {
         id: "max_pain",
+        title: "Max Pain",
+        category: "Options",
         creditScore: 10,
         impactWeight: "8.0%",
         source: "NSE Option Chain",
@@ -494,6 +500,8 @@ export const INDICATOR_CONFIG = {
     },
     total_call_oi: {
         id: "total_call_oi",
+        title: "Total Call OI",
+        category: "Options",
         creditScore: 9,
         impactWeight: "High",
         source: "NSE Option Chain / Upstox API",
@@ -501,6 +509,8 @@ export const INDICATOR_CONFIG = {
     },
     total_put_oi: {
         id: "total_put_oi",
+        title: "Total Put OI",
+        category: "Options",
         creditScore: 9,
         impactWeight: "High",
         source: "NSE Option Chain / Upstox API",
@@ -508,6 +518,8 @@ export const INDICATOR_CONFIG = {
     },
     oi_change: {
         id: "oi_change",
+        title: "OI Change",
+        category: "Options",
         creditScore: 9,
         impactWeight: "High",
         source: "NSE Option Chain / Upstox API",
@@ -547,6 +559,34 @@ export const INDICATOR_CONFIG = {
         creditScore: 8,
         impactWeight: "Medium",
         source: "NSE Option Chain / Upstox API",
+        aiModel: "Qwen3 8B"
+    },
+    // Options Volatility
+    atm_iv: {
+        id: "atm_iv",
+        title: "ATM IV",
+        category: "Volatility",
+        creditScore: 9,
+        impactWeight: "High",
+        source: "NSE Option Chain / Upstox API",
+        aiModel: "Qwen3 8B"
+    },
+    iv_rank: {
+        id: "iv_rank",
+        title: "IV Rank",
+        category: "Volatility",
+        creditScore: 8,
+        impactWeight: "Medium",
+        source: "Manual",
+        aiModel: "Qwen3 8B"
+    },
+    iv_percentile: {
+        id: "iv_percentile",
+        title: "IV Percentile",
+        category: "Volatility",
+        creditScore: 7,
+        impactWeight: "Medium",
+        source: "Manual",
         aiModel: "Qwen3 8B"
     }
 };

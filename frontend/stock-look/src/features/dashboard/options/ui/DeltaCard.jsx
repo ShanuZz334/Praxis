@@ -2,59 +2,34 @@ import React, { useState } from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function DeltaCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || null);
-    const [optionType, setOptionType] = useState(initialData?.optionType || 'Call');
-    const [moneyness, setMoneyness] = useState(initialData?.moneyness || 'ATM');
-
+export default function DeltaCard({ liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('delta');
     
-    let score = 0, bias = "Neutral", confidence = "90%", aiInsightText = "Waiting...";
-    
-    if (currentValue !== null) {
-        if (currentValue > 0.5) {
-            score = 85;
-            bias = "Bullish";
-            aiInsightText = "Explain that the option is highly responsive to upward price movement.";
-        } else if (currentValue < -0.5) {
-            score = 25;
-            bias = "Bearish";
-            aiInsightText = "Explain that the option benefits from declining underlying prices.";
-        } else if (currentValue >= -0.1 && currentValue <= 0.1) {
-            score = 50;
-            bias = "Neutral"; // ATM Delta logic is typically 0.5, but just checking near 0 as an example or maybe around 0.5 is ATM. Actually ATM Call Delta is usually ~0.5. 
-            // Wait, let's just make it simple based on the value.
-            // If we assume currentValue is between -1 and 1.
-            // Rapid Delta Change is another option.
-        }
-    }
-    
-    // Better logic based on the spec
-    if (currentValue !== null) {
-        if (currentValue >= 0.7 || currentValue <= -0.7) {
-            bias = currentValue > 0 ? "Bullish" : "Bearish";
-            score = currentValue > 0 ? 90 : 10;
-            aiInsightText = currentValue > 0 ? "Explain that the option is highly responsive to upward price movement." : "Explain that the option benefits from declining underlying prices.";
-        } else if (currentValue > 0.3 && currentValue < 0.7) {
-            bias = "Neutral";
-            score = 65;
-            aiInsightText = "Explain that the option provides balanced directional exposure.";
-        } else if (currentValue > -0.7 && currentValue < -0.3) {
-            bias = "Neutral";
-            score = 35;
-            aiInsightText = "Explain that the option provides balanced directional exposure.";
-        } else {
-            bias = "Neutral";
-            score = 50;
-            aiInsightText = "Explain that directional sensitivity is changing quickly due to price movement.";
-        }
-    }
+    const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
+    const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);
+
+    const optionType = isLiveData ? liveData.optionType : 'Call';
+    const moneyness = isLiveData ? liveData.moneyness : 'ATM';
+    const score = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
+    const bias = isLiveData ? liveData.bias : "Neutral";
+    const confidence = isLiveData ? liveData.confidence : "0%";
+    const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Waiting for market data...");
+
+    const displayValue = rawValue !== null && rawValue !== '--' ? parseFloat(rawValue).toFixed(3) : '--';
 
     return (
         <IndicatorCard
-            config={{ title: configData.title, category: configData.category, mode: "MANUAL", creditScore: configData.creditScore, updateTime: "--:--", source: configData.source, aiModel: configData.aiModel }}
+            config={{ 
+                title: configData.title, 
+                category: configData.category, 
+                mode: isLiveData ? "AUTO" : "MANUAL", 
+                creditScore: configData.creditScore, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
+                aiModel: configData.aiModel 
+            }}
             data={{ 
-                currentValueObj: { label: "Delta", value: currentValue ?? "--" }, 
+                currentValueObj: { label: "Delta", value: displayValue }, 
                 details: [
                     { label: "Option Type", value: optionType },
                     { label: "Moneyness", value: moneyness }
@@ -64,7 +39,7 @@ export default function DeltaCard({ initialData = null }) {
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "Delta" }}
+            chartData={null}
             insights={{ 
                 aiInsight: aiInsightText, 
                 whyItMatters: [
@@ -75,7 +50,6 @@ export default function DeltaCard({ initialData = null }) {
                     "Widely used by professional options traders."
                 ]
             }}
-            onSave={(val) => { const n = parseFloat(val); if(!isNaN(n)) setCurrentValue(n); }}
         />
     );
 }

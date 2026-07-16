@@ -1,95 +1,227 @@
 /**
  * @file proDeskEngine.js
- * @purpose Evaluates the options chain and returns the top 3 Calls and Top 3 Puts using a scoring algorithm.
+ * @purpose Evaluates the options chain and returns institutional-grade picks and dynamic Golden Zone strikes.
  */
 
-export const generateProDeskPicks = (chain, spotPrice, goldenZone) => {
+export const generateProDeskPicks = (chain, spotPrice, idealPremium = 45) => {
     if (!chain || chain.length === 0 || !spotPrice) {
-        return { ce: [], pe: [] };
+        return { 
+            goldenStrikes: [], 
+            categories: {
+                bullish: null,
+                bearish: null,
+                atm: null,
+                momentum: null,
+                liquidity: null
+            }
+        };
     }
 
-    // 1. Filter: Only consider Golden Zone (to ensure we have Greeks and avoid deep ITM/OTM)
-    // Also reject extreme LTPs (e.g., < 10 or > 1000)
-    const validRows = chain.filter(row => {
-        if (goldenZone) {
-            return row.strike >= goldenZone.minStrike && row.strike <= goldenZone.maxStrike;
-        }
-        return Math.abs(row.strike - spotPrice) <= 1500; // Fallback
-    });
+    // Determine strike step size (e.g. 50 for NIFTY, 100 for BANKNIFTY)
+    const stepSize = chain.length > 1 ? Math.abs(chain[0].strike - chain[1].strike) : 50;
 
-    // We need min/max values across the valid rows to normalize scores (0-1)
+    // We need max values across the chain to normalize scores
     let maxCallOI = 1, maxCallVol = 1, maxCallOiChg = 1;
     let maxPutOI = 1, maxPutVol = 1, maxPutOiChg = 1;
+    let atmIvCall = 15, atmIvPut = 15;
+    
+    // Find ATM for IV baselining
+    let minDiff = Infinity;
+    let atmRow = null;
 
-    validRows.forEach(row => {
-        // Calls
-        if (row.call.ltp >= 10 && row.call.ltp <= 1000) {
+    chain.forEach(row => {
+        const diff = Math.abs(row.strike - spotPrice);
+        if (diff < minDiff) {
+            minDiff = diff;
+            atmRow = row;
+        }
+
+        if (row.call) {
             if (row.call.oi > maxCallOI) maxCallOI = row.call.oi;
             if (row.call.vol > maxCallVol) maxCallVol = row.call.vol;
             if (Math.abs(row.call.oiChg) > maxCallOiChg) maxCallOiChg = Math.abs(row.call.oiChg);
         }
-        // Puts
-        if (row.put.ltp >= 10 && row.put.ltp <= 1000) {
+        if (row.put) {
             if (row.put.oi > maxPutOI) maxPutOI = row.put.oi;
             if (row.put.vol > maxPutVol) maxPutVol = row.put.vol;
             if (Math.abs(row.put.oiChg) > maxPutOiChg) maxPutOiChg = Math.abs(row.put.oiChg);
         }
     });
 
-    const scoreContract = (data, isCall, strike, maxOI, maxVol, maxOiChg) => {
-        if (data.ltp < 10 || data.ltp > 1000 || data.oi < 1000) return 0; // Exclude
+    if (atmRow) {
+        atmIvCall = atmRow.call?.iv || 15;
+        atmIvPut = atmRow.put?.iv || 15;
+    }
 
-        // Normalize metrics 0 to 1
-        const normOI = Math.min(data.oi / maxOI, 1);
-        const normVol = Math.min(data.vol / maxVol, 1);
-        // Reward positive OI change (long buildup or short buildup)
-        const normOiChg = data.oiChg > 0 ? Math.min(data.oiChg / maxOiChg, 1) : 0; 
+    const scoreContract = (data, isCall, strike) => {
+        if (!data || data.ltp < 1 || data.oi < 10) return { score: 0, details: {} };
+
+        const distanceSteps = Math.round(Math.abs(strike - spotPrice) / stepSize);
+        // Visibility cutoff - do not score options that are > 15 strikes away (off-screen)
+        if (distanceSteps > 15) return { score: 0, details: { penalty: 0 } };
+
+        // 1. Liquidity Score (30%)
+        const mOI = isCall ? maxCallOI : maxPutOI;
+        const mVol = isCall ? maxCallVol : maxPutVol;
         
-        // ATM Distance Score: Closer to ATM is better (max 500 pts away = 0)
-        const atmDist = Math.abs(strike - spotPrice);
-        const normAtmDist = Math.max(1 - (atmDist / 500), 0);
+        const normOI = Math.min(data.oi / (mOI || 1), 1) * 100;
+        const normVol = Math.min(data.vol / (mVol || 1), 1) * 100;
+        const liquidityScore = (0.60 * normVol) + (0.40 * normOI);
 
-        // Delta/IV (If null, give 0.5 to not penalize heavily, or use what we have)
-        const deltaTarget = isCall ? 0.5 : -0.5;
-        // The closer Delta is to 0.5 or -0.5 (ATM), the better
-        const normDelta = data.delta !== null ? Math.max(1 - Math.abs(data.delta - deltaTarget) * 2, 0) : 0.5;
-        const normIv = data.iv ? Math.min(15 / Number(data.iv), 1) : 0.5; // Lower IV is slightly better for buying
+        // 2. Premium Quality Score (20%)
+        let premiumScore = 0;
+        const premium = data.ltp;
+        const diffFromIdeal = Math.abs(premium - idealPremium);
+        
+        if (diffFromIdeal <= 10) premiumScore = 100;      
+        else if (diffFromIdeal <= 20) premiumScore = 80;  
+        else if (diffFromIdeal <= 30) premiumScore = 50;  
+        else premiumScore = Math.max(0, 50 - diffFromIdeal);
 
-        // Final Trade Score (Max 100)
-        // 30% OI + 20% OI Change + 20% Volume + 10% ATM + 10% Delta + 10% IV
-        const score = (
-            (normOI * 30) +
-            (normOiChg * 20) +
-            (normVol * 20) +
-            (normAtmDist * 10) +
-            (normDelta * 10) +
-            (normIv * 10)
-        );
+        // 3. Greeks Score (30%) - Industry Level Filtering
+        let greeksScore = 0;
+        const delta = Math.abs(data.delta || 0);
+        const theta = data.theta || 0;
+        
+        // Delta Sweet Spot (0.20 to 0.40 is ideal for Risk/Reward directional buying)
+        let deltaScore = 0;
+        if (delta >= 0.20 && delta <= 0.40) deltaScore = 100;
+        else if (delta > 0.40 && delta <= 0.55) deltaScore = 80;
+        else if (delta > 0.10 && delta < 0.20) deltaScore = 60;
+        else deltaScore = 20;
 
-        return Math.round(score);
-    };
-
-    const scoredCalls = [];
-    const scoredPuts = [];
-
-    validRows.forEach(row => {
-        const ceScore = scoreContract(row.call, true, row.strike, maxCallOI, maxCallVol, maxCallOiChg);
-        if (ceScore > 0) {
-            scoredCalls.push({ ...row.call, strike: row.strike, dte: 'Live', score: ceScore });
+        // Theta Decay Penalty (Theta as % of premium per day)
+        let thetaScore = 100;
+        if (premium > 0 && theta < 0) {
+            const decayPct = Math.abs(theta) / premium;
+            if (decayPct > 0.20) thetaScore = 0;       // Losing > 20% a day = Garbage
+            else if (decayPct > 0.10) thetaScore = 40; // Losing 10-20% = Risky
+            else if (decayPct > 0.05) thetaScore = 80; // Losing 5-10% = Normal
+            else thetaScore = 100;                     // Losing < 5% = Excellent
         }
 
-        const peScore = scoreContract(row.put, false, row.strike, maxPutOI, maxPutVol, maxPutOiChg);
-        if (peScore > 0) {
-            scoredPuts.push({ ...row.put, strike: row.strike, dte: 'Live', score: peScore });
+        greeksScore = (deltaScore * 0.6) + (thetaScore * 0.4);
+
+        // 4. OI Structure & Momentum (20%)
+        let momentumScore = 0;
+        if (data.oiChg > 0 && normVol > 50) momentumScore = 100;
+        else if (data.oiChg > 0) momentumScore = 60;
+        else if (data.oiChg < 0) momentumScore = 20; // Short covering / long unwinding
+
+        // Weighted Final Score
+        const baseFinalScore = (
+            (liquidityScore * 0.30) +
+            (premiumScore * 0.20) +
+            (greeksScore * 0.30) +
+            (momentumScore * 0.20)
+        );
+
+        // Strict Penalties
+        let outOfBoundsPenalty = 1.0;
+        const maxAllowedDiff = Math.max(40, idealPremium * 0.8);
+        if (diffFromIdeal > maxAllowedDiff) {
+            const excess = diffFromIdeal - maxAllowedDiff;
+            outOfBoundsPenalty = Math.max(0.01, 1.0 - (excess / 100));
+        }
+
+        // Moneyness Penalty (Reward OTM, Heavily Penalize ITM)
+        let moneynessPenalty = 1.0;
+        const isITM = isCall ? (strike < spotPrice) : (strike > spotPrice);
+        if (isITM) {
+            moneynessPenalty = 0.2;
+        }
+
+        const finalScore = baseFinalScore * outOfBoundsPenalty * moneynessPenalty;
+
+        return { 
+            score: Math.round(finalScore),
+            details: { liquidityScore, premiumScore, greeksScore, momentumScore, penalty: outOfBoundsPenalty }
+        };
+    };
+
+    const allOptions = [];
+
+    chain.forEach(row => {
+        const ceResult = scoreContract(row.call, true, row.strike);
+        if (ceResult.score > 0) {
+            allOptions.push({ ...row.call, strike: row.strike, type: 'call', score: ceResult.score, details: ceResult.details });
+        }
+
+        const peResult = scoreContract(row.put, false, row.strike);
+        if (peResult.score > 0) {
+            allOptions.push({ ...row.put, strike: row.strike, type: 'put', score: peResult.score, details: peResult.details });
         }
     });
 
-    // Sort descending by score and pick top 3
-    scoredCalls.sort((a, b) => b.score - a.score);
-    scoredPuts.sort((a, b) => b.score - a.score);
+    // Sort descending by score
+    allOptions.sort((a, b) => b.score - a.score);
+
+    const calls = allOptions.filter(o => o.type === 'call');
+    const puts = allOptions.filter(o => o.type === 'put');
+
+    // --- PREPARE SAFE OPTIONS ---
+    // Strictly filter out options that were heavily penalized for missing the premium target
+    const viableOptions = allOptions.filter(o => o.details.penalty > 0.3);
+    const safeOptions = viableOptions.length > 0 ? viableOptions : allOptions.slice(0, 10);
+
+    const safeCalls = safeOptions.filter(o => o.type === 'call');
+    const safePuts = safeOptions.filter(o => o.type === 'put');
+
+    // --- GOLDEN STRIKES (High Precision Selection) ---
+    // User requested EXACTLY top 5 CE and top 6 PE every time, based purely on high-precision Greek/Liquid scoring.
+    // We removed the forced contiguous grouping so it only picks genuinely high-value options.
+    const top5Calls = safeCalls.slice(0, 5).map(o => o.strike).sort((a,b) => a - b);
+    const top6Puts = safePuts.slice(0, 6).map(o => o.strike).sort((a,b) => a - b);
+
+    const goldenStrikes = {
+        calls: top5Calls,
+        puts: top6Puts
+    };
+
+    // --- PRO DESK CATEGORICAL PICKS ---
+
+    const categories = {
+        bullish: null,
+        bearish: null,
+        atm: null,
+        momentum: null,
+        liquidity: null
+    };
+
+    // 1. Best Bullish Call (Highest scoring Call)
+    categories.bullish = safeCalls[0] || null;
+
+    // 2. Best Bearish Put (Highest scoring Put)
+    categories.bearish = safePuts[0] || null;
+
+    // 3. Best ATM Trade (Highest scoring option strictly at distanceSteps 0 or 1)
+    categories.atm = safeOptions.find(o => {
+        const dist = Math.round(Math.abs(o.strike - spotPrice) / stepSize);
+        return dist <= 1;
+    }) || null;
+
+    // 4. Best Momentum Option (Highest momentum score)
+    const momentumCandidates = safeOptions.filter(o => 
+        o.details.momentumScore > 80 && 
+        o.strike !== categories.bullish?.strike && 
+        o.strike !== categories.bearish?.strike
+    );
+    categories.momentum = momentumCandidates.length > 0 
+        ? momentumCandidates.sort((a,b) => b.details.momentumScore - a.details.momentumScore)[0] 
+        : safeOptions.sort((a,b) => b.details.momentumScore - a.details.momentumScore)[0];
+
+    // 5. Best Liquidity Option (Highest liquidity score)
+    const liquidityCandidates = safeOptions.filter(o => 
+        o.strike !== categories.bullish?.strike && 
+        o.strike !== categories.bearish?.strike &&
+        o.strike !== categories.atm?.strike
+    );
+    categories.liquidity = liquidityCandidates.length > 0
+        ? liquidityCandidates.sort((a,b) => b.details.liquidityScore - a.details.liquidityScore)[0]
+        : safeOptions.sort((a,b) => b.details.liquidityScore - a.details.liquidityScore)[0];
 
     return {
-        ce: scoredCalls.slice(0, 3),
-        pe: scoredPuts.slice(0, 3)
+        goldenStrikes,
+        categories
     };
 };

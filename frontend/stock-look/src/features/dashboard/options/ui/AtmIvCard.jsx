@@ -1,31 +1,36 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { gradeAtmIv } from '../engine/optionsScoringEngine';
 
-export default function AtmIvCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || 15.2);
-    
+export default function AtmIvCard({ liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('atm_iv');
     
-    // Scoring logic (dummy values based on spec logic)
-    let score = 0, bias = "Neutral", confidence = "90%", aiInsightText = "Waiting...";
+    // Step 1: Detect if we have live data
+    const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
     
-    if (currentValue < 12) {
-        bias = "Bullish";
-        score = 90;
-        aiInsightText = "Market uncertainty is declining and option premiums are becoming cheaper.";
-    } else if (currentValue < 20) {
-        bias = "Neutral";
-        score = 70;
-        aiInsightText = "Volatility expectations remain relatively unchanged.";
-    } else if (currentValue < 30) {
-        bias = "Cautious";
-        score = 40;
-        aiInsightText = "Traders expect larger future price movements.";
-    } else {
-        bias = "Bearish";
-        score = 15;
-        aiInsightText = "Options are expensive and market uncertainty is elevated.";
+    // Step 2: Use live data OR manual override
+    const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);
+    
+    // Step 3: Grade the manual override if necessary, otherwise use live grade
+    let score = 50;
+    let bias = "Neutral";
+    let confidence = "0%";
+    let aiInsightText = "Awaiting volatility data...";
+    
+    if (isLiveData) {
+        score = liveData.score ?? 50;
+        bias = liveData.bias ?? "Neutral";
+        confidence = liveData.confidence ?? "95%";
+        aiInsightText = liveData.aiInsight ?? "Live Volatility Data.";
+    } else if (rawValue !== null) {
+        const manualGrade = gradeAtmIv(parseFloat(rawValue));
+        if (manualGrade) {
+            score = manualGrade.score;
+            bias = manualGrade.bias;
+            confidence = manualGrade.confidence;
+            aiInsightText = manualGrade.aiInsight;
+        }
     }
 
     const whyItMatters = [
@@ -36,34 +41,31 @@ export default function AtmIvCard({ initialData = null }) {
         "Confirms market uncertainty."
     ];
 
+    const displayValue = rawValue !== null && rawValue !== '--' ? `${parseFloat(rawValue).toFixed(2)}%` : '--';
+
     return (
         <IndicatorCard
             config={{
                 title: "At-the-Money Implied Volatility",
                 category: "Volatility",
-                mode: "MANUAL",
+                mode: isLiveData ? "AUTO" : "MANUAL",
                 creditScore: configData.creditScore,
-                updateTime: "--:--",
-                source: configData.source,
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'),
+                source: isLiveData ? configData.source : "Manual",
                 aiModel: configData.aiModel
             }}
             data={{
-                currentValueObj: { label: "ATM IV (%)", value: `${currentValue}%` },
+                currentValueObj: { label: "ATM IV (%)", value: displayValue },
                 details: [
-                    { label: "Current ATM Strike", value: "22000" },
-                    { label: "IV Trend", value: "Stable" }
+                    { label: "Trend", value: isLiveData ? "Live" : "Static" }
                 ],
-                score,
+                score: rawValue !== null ? score : null,
                 bias,
                 confidence,
                 impactWeight: configData.impactWeight
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "ATM IV" }}
+            chartData={{ points: [], valueKey: "value", valueName: "ATM IV" }}
             insights={{ aiInsight: aiInsightText, whyItMatters }}
-            onSave={(val) => {
-                const n = parseFloat(val);
-                if (!isNaN(n)) setCurrentValue(n);
-            }}
         />
     );
 }

@@ -30,10 +30,10 @@ export default function OperatingMarginCard({ data, manualOverride, lastUpdated 
 
     // Attempt 2: Auto-calculate from Income Statement Summary (if ratios missed it)
     if (isManual) {
-        const summaryArray = Array.isArray(data?.income?.summary) ? data.income.summary : [];
+        const incomeStmt = Array.isArray(data?.income?.income_statement) ? data.income.income_statement : [];
             
-        const opProfitObj = summaryArray.find(m => m.category === 'operating_profit' && Array.isArray(m.history) && m.history.length >= 1);
-        const revObj = summaryArray.find(m => m.category === 'revenue' && Array.isArray(m.history) && m.history.length >= 1);
+        const opProfitObj = incomeStmt.find(m => m.category === 'operating_profit' && Array.isArray(m.history) && m.history.length >= 1);
+        const revObj = incomeStmt.find(m => m.category === 'revenue' && Array.isArray(m.history) && m.history.length >= 1);
 
         if (opProfitObj && revObj) {
             const latestOpProfit = opProfitObj.history[0].value;

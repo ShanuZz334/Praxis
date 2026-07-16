@@ -40,21 +40,21 @@ import { useDataFreshness } from '@/shared/hooks/useDataFreshness';
 
 const DEFAULT_OVERRIDES = {
     // Valuation
-    pe_ratio: null, pe_hist: null, pe_sector: null, forward_pe: null, projected_eps: null,
+    pe_ratio: null, pe_hist: null, pe_sector: null, forward_pe: null, projected_eps: null, ev_ebitda: null,
     pb_ratio: null, pb_hist: null, pb_sector: null, earnings_yield: null, ey_hist: null, bond_yield: null,
     // Market Health
     market_cap_gdp: null, dividend_yield: null, fii_dii_flow: null, earnings_trend: null,
     // Growth
-    eps_growth: null, gdp_growth: null, revenue_growth: null, profit_growth: null,
+    eps_growth: null, gdp_growth: null, revenue_growth: null, profit_growth: null, gdp: null,
     // Profitability & Health
-    roe: null, roce: null, net_margin: null, operating_margin: null, operating_profit: null,
+    roe: null, roce: null, roa: null, net_margin: null, operating_margin: null, operating_profit: null,
     revenue: null, debt_to_equity: null, total_debt: null, shareholders_equity: null,
     current_ratio: null, current_assets: null, current_liabilities: null, interest_coverage: null,
     ebit: null, interest_expense: null, free_cash_flow: null, operating_cf: null, capex: null,
     face_value: null, high_low: null, current_price: null, book_value: null,
     // Index Specific
     index_pe: null, index_pb: null, index_div_yield: null, ad_ratio: null,
-    index_pcr: null, index_macd: null, index_200dma: null, advance_decline: null, trin: null, india_vix: null
+    index_macd: null, index_200dma: null, advance_decline: null, trin: null, india_vix: null
 };
 
 export default function FundamentalPage() {
@@ -63,7 +63,7 @@ export default function FundamentalPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCard, setSelectedCard] = useState(null);
 
-  const { selectedCategory, selectedInstrument, filteredInstruments, livePrices } = useDashboardContext();
+  const { selectedCategory, selectedInstrument, filteredInstruments, livePrices, selectedExpiry } = useDashboardContext();
   const isIndex = selectedCategory === 'Indices';
 
   const cards = isIndex ? [
@@ -75,15 +75,16 @@ export default function FundamentalPage() {
     { id: "gdp_growth", category: "Macro" },
     { id: "fii_dii_flow", category: "Liquidity" },
     { id: "advance_decline", category: "Breadth" },
-    { id: "index_pcr", category: "Breadth" },
     { id: "index_macd", category: "Momentum" },
     { id: "index_200dma", category: "Momentum" },
     { id: "india_vix", category: "Global" }
   ] : [
     { id: "pe_ratio", category: "Valuation" },
     { id: "forward_pe", category: "Valuation" },
+    { id: "ev_ebitda", category: "Valuation" },
     { id: "pb_ratio", category: "Valuation" },
     { id: "earnings_yield", category: "Valuation" },
+    { id: "relative_valuation", category: "Valuation" },
     { id: "market_cap_gdp", category: "Sector" },
     { id: "dividend_yield", category: "Sector" },
     { id: "earnings_trend", category: "Sector" },
@@ -94,12 +95,16 @@ export default function FundamentalPage() {
     { id: "gdp_growth", category: "Macro" },
     { id: "roe", category: "Corporate" },
     { id: "roce", category: "Corporate" },
+    { id: "roa", category: "Corporate" },
     { id: "net_margin", category: "Corporate" },
     { id: "operating_margin", category: "Corporate" },
     { id: "debt_to_equity", category: "Global" },
     { id: "interest_coverage", category: "Global" },
     { id: "free_cash_flow", category: "Global" },
     { id: "current_ratio", category: "Global" },
+    { id: "promoter_holding", category: "Ownership" },
+    { id: "smart_money_flow", category: "Ownership" },
+    { id: "earnings_quality", category: "Ownership" },
   ];
 
   // Standardized Manual Overrides Hook
@@ -109,15 +114,34 @@ export default function FundamentalPage() {
 
   const { data: rawFundamentalsData, loading, error, lastUpdated } = useFundamentalsData(selectedInstrument);
 
-  // Inject real-time India VIX from WebSocket if backend DB missed it
+  const [liveInstFlow, setLiveInstFlow] = useState(null);
+
+  React.useEffect(() => {
+      const fetchInstFlow = async () => {
+          try {
+              const res = await axiosInstance.get('/api/v1/upstox/inst-flow');
+              if (res.data?.data) {
+                  setLiveInstFlow(res.data.data);
+              }
+          } catch (err) {
+              console.error("Failed to fetch inst flow:", err);
+          }
+      };
+      fetchInstFlow();
+  }, []);
+
+  // Inject real-time India VIX from WebSocket and live Inst Flow if backend DB missed it
   const fundamentalsData = useMemo(() => {
+      let data = { ...(rawFundamentalsData || {}) };
       const vixLtp = livePrices?.["NSE_INDEX|India VIX"]?.ltp;
       if (vixLtp) {
-          // If we have VIX, inject it even if rawFundamentalsData is null
-          return { ...(rawFundamentalsData || {}), india_vix: vixLtp };
+          data.india_vix = vixLtp;
       }
-      return rawFundamentalsData;
-  }, [rawFundamentalsData, livePrices]);
+      if (liveInstFlow) {
+          data.fii_dii_flow = liveInstFlow;
+      }
+      return data;
+  }, [rawFundamentalsData, livePrices, liveInstFlow]);
 
   // Fundamental Composite Engine integration
   const compositeData = useFundamentalComposite(selectedCategory, selectedInstrument);
@@ -222,31 +246,35 @@ export default function FundamentalPage() {
       return obj?.company_value !== undefined && obj?.company_value !== null && obj?.company_value !== '';
   };
   
-  const hasMarketCap = (fundamentalsData?.company_profile?.market_cap !== undefined && fundamentalsData?.company_profile?.market_cap !== null && fundamentalsData?.company_profile?.market_cap !== '') || extractRatioExists(['market_cap']);
-  const hasBookValue = extractRatioExists(['book value', 'bvps']);
-  const hasFaceValue = fundamentalsData?.company_profile?.face_value !== undefined && fundamentalsData?.company_profile?.face_value !== null && fundamentalsData?.company_profile?.face_value !== '';
+  const hasMarketCap = extractRatioExists(['market_cap']);
   const hasPeRatio = extractRatioExists(['p/e', 'pe', 'pe ratio']);
+  const hasDividendYield = extractRatioExists(['dividend yield', 'div yield']);
   
-  const incomeStatement = fundamentalsData?.income?.full_statement || [];
-  const validTrendPeriods = incomeStatement.filter(p => !isNaN(parseFloat(p?.['EPS - Basic'])));
-  const hasEarningsTrend = validTrendPeriods.length >= 2;
+  const incomeStmtArray = fundamentalsData?.income?.income_statement || [];
+  const incomeFull = fundamentalsData?.income?.full_statement || [];
   
+  const hasEarningsTrend = incomeFull.some(p => (p.particular === 'EPS - Basic' || p.particular === 'EPS') && p.history?.length >= 2);
   const hasEpsGrowth = extractRatioExists(['eps growth']) || hasEarningsTrend;
-  const hasRevenueGrowth = extractRatioExists(['revenue growth']) || incomeStatement.filter(p => p?.['Total Revenue']).length >= 2;
-  const hasProfitGrowth = extractRatioExists(['profit growth']) || incomeStatement.filter(p => p?.['Net Income']).length >= 2;
   
+  const hasRevenueGrowth = extractRatioExists(['revenue growth']) || incomeStmtArray.some(p => p.category === 'revenue' && p.history?.length >= 2);
+  const hasProfitGrowth = extractRatioExists(['profit growth']) || incomeStmtArray.some(p => p.category === 'net_profit' && p.history?.length >= 2);
+  
+  const hasEvEbitda = extractRatioExists(['ev/ebitda', 'ev / ebitda']);
   const hasRoe = extractRatioExists(['return on equity', 'roe']);
   const hasRoce = extractRatioExists(['return on capital employed', 'roce']);
-  const hasNetMargin = extractRatioExists(['net profit margin', 'net margin']);
-  const hasOperatingMargin = extractRatioExists(['operating margin', 'opm']);
-  const hasDebtToEquity = extractRatioExists(['debt to equity', 'd/e']);
-  const hasInterestCoverage = extractRatioExists(['interest coverage']);
+  const hasRoa = extractRatioExists(['return on asset', 'roa']);
   
-  const cashFlowStatement = fundamentalsData?.cashFlow?.full_statement || [];
-  const hasFreeCashFlow = extractRatioExists(['free cash flow', 'fcf']) || cashFlowStatement.length > 0;
+  // We can compute net margin if we have Profit After Tax and Total Revenue
+  const hasNetMargin = extractRatioExists(['net profit margin', 'net margin']) || (incomeFull.some(p => p.particular === 'Profit After Tax') && incomeFull.some(p => p.particular === 'Total Revenue'));
+  const hasOperatingMargin = extractRatioExists(['operating margin', 'opm']) || incomeStmtArray.some(p => p.category === 'operating_profit');
   
   const balanceSheet = fundamentalsData?.balanceSheet?.full_statement || [];
-  const hasCurrentRatio = extractRatioExists(['current ratio']) || balanceSheet.length > 0;
+  const hasDebtToEquity = extractRatioExists(['debt to equity', 'd/e']) || (balanceSheet.some(p => p.particular === 'Equity Capital') && balanceSheet.some(p => p.particular === 'Non-Current Liabilities' || p.particular === 'Current Liabilities'));
+  const hasCurrentRatio = extractRatioExists(['current ratio']) || (balanceSheet.some(p => p.particular === 'Current Assets') && balanceSheet.some(p => p.particular === 'Current Liabilities'));
+  
+  const cashFlowStmtArray = fundamentalsData?.cashFlow?.cash_flow || [];
+  const hasFreeCashFlow = extractRatioExists(['free cash flow', 'fcf']) || cashFlowStmtArray.some(p => p.category === 'operating' || p.category === 'investing');
+  const hasInterestCoverage = extractRatioExists(['interest coverage']);
   // ------------------------------------------
 
   const fundamentalManualForm = (
@@ -291,20 +319,17 @@ export default function FundamentalPage() {
                       <div className="text-xs font-bold text-yellow-500 mb-3 border-b border-border-default pb-2">Market Internals</div>
                       <DebouncedOverrideInput label="A/D Ratio" overrideKey="ad_ratio" value={manualOverrides.ad_ratio} onChange={handleOverrideChange} />
                       <div className="flex flex-col gap-3">
-                      <DebouncedOverrideInput label="Index PCR" overrideKey="index_pcr" value={manualOverrides.index_pcr} onChange={handleOverrideChange} />
                       <DebouncedOverrideInput label="Index MACD" overrideKey="index_macd" value={manualOverrides.index_macd} onChange={handleOverrideChange} />
                       <DebouncedOverrideInput label="Index 200DMA" overrideKey="index_200dma" value={manualOverrides.index_200dma} onChange={handleOverrideChange} />
                       <DebouncedOverrideInput label="Advance/Decline" overrideKey="advance_decline" value={manualOverrides.advance_decline} onChange={handleOverrideChange} />
                       <DebouncedOverrideInput label="TRIN (Arms Index)" overrideKey="trin" value={manualOverrides.trin} onChange={handleOverrideChange} />
                   </div>
-                      <DebouncedOverrideInput label="FII Flow (₹ Cr)" overrideKey="fii_flow" value={manualOverrides.fii_flow} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="DII Flow (₹ Cr)" overrideKey="dii_flow" value={manualOverrides.dii_flow} onChange={handleOverrideChange} />
                   </div>
 
                   <div className="space-y-3">
                       <div className="text-xs font-bold text-purple-500 mb-3 border-b border-border-default pb-2">Macro Environment</div>
                       <DebouncedOverrideInput label="GDP Growth (%)" overrideKey="gdp_growth" value={manualOverrides.gdp_growth} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Market Cap to GDP (%)" overrideKey="market_cap_gdp" value={manualOverrides.market_cap_gdp} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Total GDP (in Cr ₹)" overrideKey="gdp" value={manualOverrides.gdp} onChange={handleOverrideChange} />
                       <DebouncedOverrideInput label="10Y Bond Yield (%)" overrideKey="bond_yield" value={manualOverrides.bond_yield} onChange={handleOverrideChange} />
                       <DebouncedOverrideInput label="EPS Growth (%)" overrideKey="eps_growth" value={manualOverrides.eps_growth} onChange={handleOverrideChange} />
                       <DebouncedOverrideInput label="Revenue Growth (%)" overrideKey="revenue_growth" value={manualOverrides.revenue_growth} onChange={handleOverrideChange} />
@@ -314,118 +339,91 @@ export default function FundamentalPage() {
               </div>
           ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6">
-                  {/* Company Snapshot */}
-                  {(!hasMarketCap || !hasBookValue || !hasFaceValue || !hasPeRatio) && (
+                  {/* Company Snapshot — only if at least one field missing */}
+                  {(!hasMarketCap || !hasPeRatio) && (
                       <div className="space-y-2">
                           <div className="text-xs font-bold text-emerald-500 mb-2">Company Snapshot</div>
-                          {!hasMarketCap && <DebouncedOverrideInput label="Market Cap" overrideKey="market_cap" value={manualOverrides.market_cap} onChange={handleOverrideChange} />}
-                          {!hasBookValue && <DebouncedOverrideInput label="Book Value" overrideKey="book_value" value={manualOverrides.book_value} onChange={handleOverrideChange} />}
-                          {!hasFaceValue && <DebouncedOverrideInput label="Face Value" overrideKey="face_value" value={manualOverrides.face_value} onChange={handleOverrideChange} />}
+                          {!hasMarketCap && <DebouncedOverrideInput label="Market Cap (in Cr ₹)" overrideKey="market_cap" value={manualOverrides.market_cap} onChange={handleOverrideChange} />}
                           {!hasPeRatio && <DebouncedOverrideInput label="Stock P/E (x)" overrideKey="pe_ratio" value={manualOverrides.pe_ratio} onChange={handleOverrideChange} />}
                       </div>
                   )}
 
-                  {/* Dividends */}
-                  <div className="space-y-2">
-                      <div className="text-xs font-bold text-pink-500 mb-2">Dividends</div>
-                      <DebouncedOverrideInput 
-                          label="Dividend Yield (%)" 
-                          overrideKey="dividend_yield" 
-                          value={manualOverrides.dividend_yield}
-                          onChange={handleOverrideChange}
-                      />
-                  </div>
+                  {/* Dividends — conditionally hide if Upstox has it */}
+                  {!hasDividendYield && (
+                      <div className="space-y-2">
+                          <div className="text-xs font-bold text-pink-500 mb-2">Dividends</div>
+                          <DebouncedOverrideInput label="Dividend Yield (%)" overrideKey="dividend_yield" value={manualOverrides.dividend_yield} onChange={handleOverrideChange} />
+                      </div>
+                  )}
 
-                  {/* Trends & Flows */}
-                  <div className="space-y-2">
-                      <div className="text-xs font-bold text-yellow-500 mb-2">Trends & Flows</div>
-                      {!hasEarningsTrend && <DebouncedOverrideInput label="Earnings Trend (CAGR %)" overrideKey="earnings_trend" value={manualOverrides.earnings_trend} onChange={handleOverrideChange} />}
-                      <DebouncedOverrideInput label="FII Flow (₹ Cr)" overrideKey="fii_flow" value={manualOverrides.fii_flow} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="DII Flow (₹ Cr)" overrideKey="dii_flow" value={manualOverrides.dii_flow} onChange={handleOverrideChange} />
-                  </div>
+                  {/* Trends & Flows — only show if earnings trend is missing */}
+                  {!hasEarningsTrend && (
+                      <div className="space-y-2">
+                          <div className="text-xs font-bold text-yellow-500 mb-2">Trends & Flows</div>
+                          <DebouncedOverrideInput label="Earnings Trend (CAGR %)" overrideKey="earnings_trend" value={manualOverrides.earnings_trend} onChange={handleOverrideChange} />
+                      </div>
+                  )}
 
-                  {/* Valuation */}
+                  {/* Valuation — always show (Forward PE is always manual) */}
                   <div className="space-y-2">
                       <div className="text-xs font-bold text-blue-500 mb-2">Valuation</div>
-                      <DebouncedOverrideInput 
-                          label="Forward P/E (x)" 
-                          overrideKey="forward_pe" 
-                          value={manualOverrides.forward_pe}
-                          onChange={handleOverrideChange}
-                      />
+                      <DebouncedOverrideInput label="Forward P/E (x)" overrideKey="forward_pe" value={manualOverrides.forward_pe} onChange={handleOverrideChange} />
+                      {!hasEvEbitda && <DebouncedOverrideInput label="EV/EBITDA (x)" overrideKey="ev_ebitda" value={manualOverrides.ev_ebitda} onChange={handleOverrideChange} />}
                   </div>
 
-                  {/* Macro Indicators */}
+                  {/* Macro Indicators — always show (GDP is always manual) */}
                   <div className="space-y-2">
                       <div className="text-xs font-bold text-purple-500 mb-2">Macro Indicators</div>
-                      <DebouncedOverrideInput 
-                          label="GDP Growth (%)" 
-                          overrideKey="gdp_growth" 
-                          value={manualOverrides.gdp_growth}
-                          onChange={handleOverrideChange}
-                      />
-                      <DebouncedOverrideInput 
-                          label="Market Cap to GDP (%)" 
-                          overrideKey="market_cap_gdp" 
-                          value={manualOverrides.market_cap_gdp}
-                          onChange={handleOverrideChange}
-                      />
-                      <DebouncedOverrideInput 
-                          label="10Y Bond Yield" 
-                          overrideKey="bond_yield" 
-                          value={manualOverrides.bond_yield}
-                          onChange={handleOverrideChange}
-                      />
+                      <DebouncedOverrideInput label="GDP Growth (%)" overrideKey="gdp_growth" value={manualOverrides.gdp_growth} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Total GDP (in Cr ₹)" overrideKey="gdp" value={manualOverrides.gdp} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="10Y Bond Yield (%)" overrideKey="bond_yield" value={manualOverrides.bond_yield} onChange={handleOverrideChange} />
                   </div>
 
-                  {/* Growth */}
-                  <div className="space-y-2">
-                      <div className="text-xs font-bold text-orange-500 mb-2">Growth</div>
-                      {!hasEpsGrowth && <DebouncedOverrideInput 
-                          label="EPS Growth (%)" 
-                          overrideKey="eps_growth" 
-                          value={manualOverrides.eps_growth}
-                          onChange={handleOverrideChange}
-                      />}
-                      {!hasRevenueGrowth && <DebouncedOverrideInput 
-                          label="Revenue Growth (%)" 
-                          overrideKey="revenue_growth" 
-                          value={manualOverrides.revenue_growth}
-                          onChange={handleOverrideChange}
-                      />}
-                      {!hasProfitGrowth && <DebouncedOverrideInput 
-                          label="Profit Growth (%)" 
-                          overrideKey="profit_growth" 
-                          value={manualOverrides.profit_growth}
-                          onChange={handleOverrideChange}
-                      />}
-                  </div>
+                  {/* Growth — only show if at least one growth metric is missing from Upstox */}
+                  {(!hasEpsGrowth || !hasRevenueGrowth || !hasProfitGrowth) && (
+                      <div className="space-y-2">
+                          <div className="text-xs font-bold text-orange-500 mb-2">Growth</div>
+                          {!hasEpsGrowth && <DebouncedOverrideInput label="EPS Growth (%)" overrideKey="eps_growth" value={manualOverrides.eps_growth} onChange={handleOverrideChange} />}
+                          {!hasRevenueGrowth && <DebouncedOverrideInput label="Revenue Growth (%)" overrideKey="revenue_growth" value={manualOverrides.revenue_growth} onChange={handleOverrideChange} />}
+                          {!hasProfitGrowth && <DebouncedOverrideInput label="Profit Growth (%)" overrideKey="profit_growth" value={manualOverrides.profit_growth} onChange={handleOverrideChange} />}
+                      </div>
+                  )}
 
-                  {/* Profitability */}
-                  <div className="space-y-2">
-                      <div className="text-xs font-bold text-green-500 mb-2">Profitability</div>
-                      {!hasRoe && <DebouncedOverrideInput label="ROE (%)" overrideKey="roe" value={manualOverrides.roe} onChange={handleOverrideChange} />}
-                      {!hasRoce && <DebouncedOverrideInput label="ROCE (%)" overrideKey="roce" value={manualOverrides.roce} onChange={handleOverrideChange} />}
-                      {!hasNetMargin && <DebouncedOverrideInput label="Net Margin (%)" overrideKey="net_margin" value={manualOverrides.net_margin} onChange={handleOverrideChange} />}
-                      {!hasOperatingMargin && <DebouncedOverrideInput label="Operating Margin (%)" overrideKey="operating_margin" value={manualOverrides.operating_margin} onChange={handleOverrideChange} />}
-                  </div>
+                  {/* Profitability — only show if at least one metric is missing from Upstox */}
+                  {(!hasRoe || !hasRoce || !hasRoa || !hasNetMargin || !hasOperatingMargin) && (
+                      <div className="space-y-2">
+                          <div className="text-xs font-bold text-green-500 mb-2">Profitability</div>
+                          {!hasRoe && <DebouncedOverrideInput label="ROE (%)" overrideKey="roe" value={manualOverrides.roe} onChange={handleOverrideChange} />}
+                          {!hasRoce && <DebouncedOverrideInput label="ROCE (%)" overrideKey="roce" value={manualOverrides.roce} onChange={handleOverrideChange} />}
+                          {!hasRoa && <DebouncedOverrideInput label="ROA (%)" overrideKey="roa" value={manualOverrides.roa} onChange={handleOverrideChange} />}
+                          {!hasNetMargin && <DebouncedOverrideInput label="Net Margin (%)" overrideKey="net_margin" value={manualOverrides.net_margin} onChange={handleOverrideChange} />}
+                          {!hasOperatingMargin && <DebouncedOverrideInput label="Operating Margin (%)" overrideKey="operating_margin" value={manualOverrides.operating_margin} onChange={handleOverrideChange} />}
+                      </div>
+                  )}
 
-                  {/* Financial Health */}
-                  <div className="space-y-2">
-                      <div className="text-xs font-bold text-red-500 mb-2">Financial Health</div>
-                      {!hasDebtToEquity && <DebouncedOverrideInput label="Debt to Equity" overrideKey="debt_to_equity" value={manualOverrides.debt_to_equity} onChange={handleOverrideChange} />}
-                      {!hasInterestCoverage && <DebouncedOverrideInput label="Interest Coverage" overrideKey="interest_coverage" value={manualOverrides.interest_coverage} onChange={handleOverrideChange} />}
-                      {!hasFreeCashFlow && <DebouncedOverrideInput label="Free Cash Flow" overrideKey="free_cash_flow" value={manualOverrides.free_cash_flow} onChange={handleOverrideChange} />}
-                      {!hasCurrentRatio && <DebouncedOverrideInput label="Current Ratio" overrideKey="current_ratio" value={manualOverrides.current_ratio} onChange={handleOverrideChange} />}
-                  </div>
+                  {/* Financial Health — only show if at least one metric is missing from Upstox */}
+                  {(!hasDebtToEquity || !hasInterestCoverage || !hasFreeCashFlow || !hasCurrentRatio) && (
+                      <div className="space-y-2">
+                          <div className="text-xs font-bold text-red-500 mb-2">Financial Health</div>
+                          {!hasDebtToEquity && <DebouncedOverrideInput label="Debt to Equity" overrideKey="debt_to_equity" value={manualOverrides.debt_to_equity} onChange={handleOverrideChange} />}
+                          {!hasInterestCoverage && <DebouncedOverrideInput label="Interest Coverage" overrideKey="interest_coverage" value={manualOverrides.interest_coverage} onChange={handleOverrideChange} />}
+                          {!hasFreeCashFlow && <DebouncedOverrideInput label="Free Cash Flow (in Cr ₹)" overrideKey="free_cash_flow" value={manualOverrides.free_cash_flow} onChange={handleOverrideChange} />}
+                          {!hasCurrentRatio && <DebouncedOverrideInput label="Current Ratio" overrideKey="current_ratio" value={manualOverrides.current_ratio} onChange={handleOverrideChange} />}
+                      </div>
+                  )}
               </div>
+
           )}
       </div>
   );
 
   // --- Dynamic Coverage & Credits Calculation ---
-  const maxCards = selectedCategory === "Indices" ? 12 : 20;
-  const activeCardsCount = Object.values(compositeData.rawScores || {}).filter(v => v !== null && v !== undefined && !isNaN(v)).length;
+  // Dynamic maxCards = total cards tracked for the current category
+  const maxCards = cards.length;
+  // activeCardsCount: only count cards with score > 0.
+  // All scoring engines return 0 ONLY when there is no data at all.
+  // Minimum score when real data exists is 5-10 (Strong Bearish), never 0.
+  const activeCardsCount = Object.values(compositeData.rawScores || {}).filter(v => v !== null && v !== undefined && !isNaN(v) && v > 0).length;
   const coveragePercent = maxCards > 0 ? Math.min(100, Math.round((activeCardsCount / maxCards) * 100)) : 0;
   
   const ID_TO_TITLE = useMemo(() => {

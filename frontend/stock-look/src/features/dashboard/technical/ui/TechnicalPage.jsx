@@ -248,12 +248,14 @@ export default function TechnicalPage() {
                     coverageText: `${activeCardsCount}/${maxCards}`, 
                     coveragePercent: coveragePercent,
                     source: technicalsData ? "Live Upstox" : "Manual", 
-                    freshness: resolveTime(!!technicalsData) 
+                    freshness: resolveTime(!!technicalsData),
+                    snapshotTime: technicalsData ? `Live: ${new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}` : null
                 }}
                 sections={sections || []}
                 tailwinds={tailwinds || []}
                 risks={risks || []}
                 totalCredits={totalCredits}
+                creditLabel="R Credits"
                 cards={cardsForHeader}
                 infoContent={technicalManualForm}
                 controls={{

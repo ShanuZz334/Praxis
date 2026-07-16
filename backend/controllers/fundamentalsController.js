@@ -39,17 +39,21 @@ export const getFundamentals = async (req, res) => {
                     axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/income-statement?type=consolidated&time_period=yearly&fs=true`, { headers }).catch(e => { console.log('Income Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
                     axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/balance-sheet?type=consolidated&fs=true`, { headers }).catch(e => { console.log('Balance Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
                     axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/cash-flow?type=consolidated&fs=true`, { headers }).catch(e => { console.log('CashFlow Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
-                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/share-holdings`, { headers }).catch(e => { console.log('Holdings Error:', e.response?.data || e.message); return { data: { data: [] }}; })
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/share-holdings`, { headers }).catch(e => { console.log('Holdings Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/corporate-actions`, { headers }).catch(e => { console.log('CorpActions Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/profile`, { headers }).catch(e => { console.log('Profile Error:', e.response?.data || e.message); return { data: { data: {} }}; })
                 ];
 
-                const [ratiosRes, incomeRes, balanceRes, cashRes, holdingsRes] = await Promise.all(endpoints);
+                const [ratiosRes, incomeRes, balanceRes, cashRes, holdingsRes, corpActionsRes, profileRes] = await Promise.all(endpoints);
 
                 payload = {
                     ratios: ratiosRes.data?.data || [],
-                    income: incomeRes.data?.data || [],
-                    balanceSheet: balanceRes.data?.data || [],
-                    cashFlow: cashRes.data?.data || [],
+                    income: incomeRes.data?.data || {},
+                    balanceSheet: balanceRes.data?.data || {},
+                    cashFlow: cashRes.data?.data || {},
                     holdings: holdingsRes.data?.data || [],
+                    corporate_actions: corpActionsRes.data?.data || [],
+                    company_profile: profileRes.data?.data || {},   // full object: sector, sector_market_cap_inr, etc.
                     calculated_at: Date.now()
                 };
             }

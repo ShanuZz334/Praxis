@@ -19,26 +19,27 @@ import { cn } from "@/lib/utils";
 // Helper: Score Bar
 // =============================
 function ScoreRangeBar({ score }) {
-  // Clamp score between 0 and 100, fallback to 50 if NaN
-  const parsedScore = parseFloat(score);
-  const safeScore = isNaN(parsedScore) ? 50 : Math.min(Math.max(parsedScore, 0), 100);
+  const isMissing = score === null || score === undefined || isNaN(parseFloat(score));
+  const safeScore = isMissing ? 50 : Math.min(Math.max(parseFloat(score), 0), 100);
 
   return (
     <div className="mt-4">
       <div className="text-[10px] text-text-tertiary font-mono mb-1">Score Range</div>
       
       {/* Gradient Bar */}
-      <div className="relative h-1.5 w-full rounded-full bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 to-green-500">
+      <div className={cn("relative h-1.5 w-full rounded-full", isMissing ? "bg-border-subtle" : "bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 to-green-500")}>
         
         {/* Pointer */}
-        <div 
-          className="absolute top-full -translate-x-1/2 flex flex-col items-center mt-1 transition-all duration-500 ease-out"
-          style={{ left: `${safeScore}%` }}
-        >
-          {/* Triangle */}
-          <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[5px] border-l-transparent border-r-transparent border-b-blue-500 rotate-180" />
-          <span className="text-[10px] font-mono font-bold text-text-primary mt-0.5">{safeScore}</span>
-        </div>
+        {!isMissing && (
+          <div 
+            className="absolute top-full -translate-x-1/2 flex flex-col items-center mt-1 transition-all duration-500 ease-out"
+            style={{ left: `${safeScore}%` }}
+          >
+            {/* Triangle */}
+            <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[5px] border-l-transparent border-r-transparent border-b-blue-500 rotate-180" />
+            <span className="text-[10px] font-mono font-bold text-text-primary mt-0.5">{safeScore}</span>
+          </div>
+        )}
       </div>
       
       {/* Labels below */}
@@ -167,17 +168,21 @@ function MetricsGrid({
 
       {/* Core Standard Metrics */}
       <div className="shrink-0 flex flex-col gap-0.5 pt-1 border-t border-border-subtle/50 mt-1">
-      {score !== null && (
         <div className={rowClass}>
           <span className={labelClass}>Score</span>
           <span className={valClass}>
-            <span className={cn(
-               score >= 70 ? "text-green-500" : score <= 30 ? "text-red-500" : "text-yellow-500"
-            )}>{isNaN(parseFloat(score)) ? '--' : parseFloat(score).toFixed(0)}</span>
-            <span className="text-text-tertiary"> /100</span>
+            {score === null || score === undefined || isNaN(parseFloat(score)) ? (
+              <span className="text-text-tertiary">-- /100</span>
+            ) : (
+              <>
+                <span className={cn(
+                   score >= 70 ? "text-green-500" : score <= 30 ? "text-red-500" : "text-yellow-500"
+                )}>{parseFloat(score).toFixed(0)}</span>
+                <span className="text-text-tertiary"> /100</span>
+              </>
+            )}
           </span>
         </div>
-      )}
 
       <div className={rowClass}>
         <span className={labelClass}>Bias</span>
@@ -352,7 +357,7 @@ export function IndicatorCard({
         </div>
 
         <div className="mt-auto pt-4 mb-0 shrink-0">
-          {data.score !== null && <ScoreRangeBar score={data.score} />}
+          <ScoreRangeBar score={data.score} />
         </div>
       </div>
 

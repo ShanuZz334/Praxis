@@ -27,6 +27,7 @@
  */
 
 import { getCompositeColor, getIndicatorColor } from '../../../../shared/config/scoreColors.js';
+import { getIndicatorConfig } from '../../../../shared/config/indicatorConfig.js';
 
 // ─── Title → ID Map ──────────────────────────────────────────────────────────
 export const TITLE_TO_ID = {
@@ -34,6 +35,7 @@ export const TITLE_TO_ID = {
     'P/E Ratio':            'pe_ratio',
     'Forward P/E':          'forward_pe',
     'P/B Ratio':            'pb_ratio',
+    'EV/EBITDA':            'ev_ebitda',
     'Earnings Yield':       'earnings_yield',
     // Market Health
     'Market Cap to GDP':    'market_cap_gdp',
@@ -48,6 +50,7 @@ export const TITLE_TO_ID = {
     // Profitability
     'ROE':                  'roe',
     'ROCE':                 'roce',
+    'ROA':                  'roa',
     'Net Margin':           'net_margin',
     'Operating Margin':     'operating_margin',
     // Financial Health
@@ -55,10 +58,14 @@ export const TITLE_TO_ID = {
     'Interest Coverage':    'interest_coverage',
     'Free Cash Flow':       'free_cash_flow',
     'Current Ratio':        'current_ratio',
+    // Ownership & Flow (Mapped to Liquidity section)
+    'Promoter Holding':     'promoter_holding',
+    'Smart Money Flow':     'smart_money_flow',
+    'Earnings Quality':     'earnings_quality',
+    'Relative Valuation':   'relative_valuation',
     // Index-specific
     'Advance / Decline':    'advance_decline',
     'India VIX':            'india_vix',
-    'Put-Call Ratio':       'index_pcr',
     'MACD Momentum':        'index_macd',
     'MACD Histogram':       'index_macd', // Handling both potential titles
     '200 DMA Stretch':      'index_200dma',
@@ -132,10 +139,12 @@ function computeCompanySections(scores) {
     };
 
     const valuation = weightedHarmonicMean([
-        { score: g('pe_ratio'),      weight: 0.35 },
-        { score: g('forward_pe'),    weight: 0.30 },
-        { score: g('pb_ratio'),      weight: 0.25 },
+        { score: g('pe_ratio'),      weight: 0.25 },
+        { score: g('forward_pe'),    weight: 0.20 },
+        { score: g('ev_ebitda'),     weight: 0.15 },
+        { score: g('pb_ratio'),      weight: 0.15 },
         { score: g('earnings_yield'),weight: 0.10 },
+        { score: g('relative_valuation'), weight: 0.15 },
     ]);
 
     const earnings = trimmedWeightedMean([
@@ -146,7 +155,12 @@ function computeCompanySections(scores) {
 
     const macro = g('gdp_growth');
 
-    const liquidity = g('fii_dii_flow');
+    const liquidity = weightedMean([
+        { score: g('fii_dii_flow'),     weight: 0.30 },
+        { score: g('promoter_holding'), weight: 0.30 },
+        { score: g('smart_money_flow'), weight: 0.25 },
+        { score: g('earnings_quality'), weight: 0.15 }
+    ]);
 
     const sector = weightedGeometricMean([
         { score: g('market_cap_gdp'), weight: 0.40 },
@@ -156,11 +170,13 @@ function computeCompanySections(scores) {
 
     const roeS  = g('roe');
     const roceS = g('roce');
+    const roaS  = g('roa');
     let corporate = weightedMean([
-        { score: roeS,             weight: 0.30 },
-        { score: roceS,            weight: 0.30 },
-        { score: g('net_margin'),  weight: 0.20 },
-        { score: g('operating_margin'), weight: 0.20 },
+        { score: roeS,             weight: 0.25 },
+        { score: roceS,            weight: 0.25 },
+        { score: roaS,             weight: 0.15 },
+        { score: g('net_margin'),  weight: 0.17 },
+        { score: g('operating_margin'), weight: 0.18 },
     ]);
     if (corporate !== null) {
         const minQuality = Math.min(roeS ?? 100, roceS ?? 100);
@@ -210,10 +226,7 @@ function computeIndexSections(scores) {
 
     const liquidity = g('fii_dii_flow');
 
-    const sector = weightedGeometricMean([ // Market Breadth & Sentiment
-        { score: g('advance_decline'), weight: 0.60 },
-        { score: g('index_pcr'),       weight: 0.40 } // Adding missing Put-Call Ratio
-    ]) || g('advance_decline'); // Fallback if PCR is missing
+    const sector = g('advance_decline'); // Market Breadth & Sentiment
 
     const corporate = weightedGeometricMean([ // Momentum / Internal strength
         { score: g('index_macd'),   weight: 0.50 },
@@ -255,7 +268,7 @@ function computeComposite(sections, isIndex) {
 
 // ─── Build Result ─────────────────────────────────────────────────────────────
 
-function buildResult(sections, compositeScore) {
+function buildResult(sections, compositeScore, rawScores) {
     const roundedScore = Math.round(compositeScore);
     // Composite uses Table 1 (7-tier palette)
     const compositeColor = getCompositeColor(roundedScore);
@@ -271,29 +284,48 @@ function buildResult(sections, compositeScore) {
         hexColor: compositeColor.hex,
     };
 
-    // True Impact calculation: Deviation from neutral (50) multiplied by the section's weight.
+    // Institutional Tailwind/Risk Algorithm based on raw individual indicators
+    const ID_TO_TITLE = {};
+    for (const [title, id] of Object.entries(TITLE_TO_ID)) {
+        ID_TO_TITLE[id] = title;
+    }
+    
+    const validIndicators = Object.entries(rawScores || {})
+        .filter(([id, val]) => val !== null && val !== undefined && !isNaN(val))
+        .map(([id, score]) => {
+            const config = getIndicatorConfig(id);
+            // Config impactWeight is a string like "6.0%". We need to parse it to a float.
+            const weightStr = config?.impactWeight || "5.0";
+            const weight = parseFloat(weightStr);
+            return { id, title: ID_TO_TITLE[id] || id, score, weight: isNaN(weight) ? 5.0 : weight };
+        });
+
+    // Tailwind: Score >= 70 (Bullish threshold). 
+    // Impact = (Deviation from 50) * Configured Impact Weight
     const tailwindImpact = (s) => (s.score - 50) * s.weight;
-    const tailwinds = sections
-        .filter(s => s.score !== null && s.score >= 60) // Broadened slightly to catch high-weight 60+ drivers
+    const tailwinds = validIndicators
+        .filter(s => s.score >= 70)
         .sort((a, b) => tailwindImpact(b) - tailwindImpact(a))
         .slice(0, 3)
         .map(s => ({
             id: s.id,
-            label: s.label,
-            value: s.score,
-            sub: `${Math.round(s.weight * 100)}% weight · ${getIndicatorColor(s.score).label}`,
+            label: s.title,
+            value: Math.round(s.score),
+            sub: `Impact ${s.weight.toFixed(1)} · ${getIndicatorColor(s.score).label}`,
         }));
 
+    // Risk: Score <= 35 (Bearish threshold). 
+    // Impact = (Deviation from 50) * Configured Impact Weight
     const riskImpact = (s) => (50 - s.score) * s.weight;
-    const risks = sections
-        .filter(s => s.score !== null && s.score <= 40)
+    const risks = validIndicators
+        .filter(s => s.score <= 35)
         .sort((a, b) => riskImpact(b) - riskImpact(a))
         .slice(0, 3)
         .map(s => ({
             id: s.id,
-            label: s.label,
-            value: s.score,
-            sub: `${Math.round(s.weight * 100)}% weight · ${getIndicatorColor(s.score).label}`,
+            label: s.title,
+            value: Math.round(s.score),
+            sub: `Impact ${s.weight.toFixed(1)} · ${getIndicatorColor(s.score).label}`,
         }));
 
     return {
@@ -331,7 +363,7 @@ export function computeCompanyComposite(scores) {
     ];
 
     const composite = computeComposite(sections, false);
-    return buildResult(sections, composite);
+    return buildResult(sections, composite, scores);
 }
 
 export function computeIndexComposite(scores) {
@@ -348,5 +380,5 @@ export function computeIndexComposite(scores) {
     ];
 
     const composite = computeComposite(sections, true);
-    return buildResult(sections, composite);
+    return buildResult(sections, composite, scores);
 }

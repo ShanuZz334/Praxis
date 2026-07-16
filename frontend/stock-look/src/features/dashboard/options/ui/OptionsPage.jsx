@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { Settings } from "lucide-react";
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import OptionsModal from "./OptionsModal";
 import OptionsChainLayout from "@/features/dashboard/options/ui/chain/OptionsChainLayout";
@@ -13,6 +14,14 @@ import { calculateGreeks, resolveGreeks, timeToExpiry } from '../engine/blackSch
 import { calculatePCR, calculateMaxPain } from '../engine/optionsMath';
 import OptionsGrid from './OptionsGrid';
 import { useDashboardContext } from "@/shared/context/DashboardContext";
+import { useOptionsComposite } from '../engine/useOptionsComposite';
+import { useOptionsCompositeScore } from '../engine/useOptionsCompositeScore';
+import { saveDailyOISnapshot, computeLiveOiChange } from '../engine/oiTrackerEngine';
+import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
+import { useSnapshots } from '@/shared/hooks/useSnapshots';
+import { useDataFreshness } from "@/shared/hooks/useDataFreshness";
+import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedOverrideInput";
+import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 export default function OptionsPage() {
     const [selectedCard, setSelectedCard] = useState(null);
@@ -25,17 +34,24 @@ export default function OptionsPage() {
         selectedCategory: category,
         selectedInstrument,
         selectedExpiry, setSelectedExpiry,
-        expiries
+        expiries,
+        livePrices
     } = useDashboardContext();
 
     // Data state
     const [chainData, setChainData] = useState([]);
-    const [spotPrice, setSpotPrice] = useState(24000); // Default, will be updated by chain
-    const [loading, setLoading] = useState(false);
+    const [baseSpotPrice, setBaseSpotPrice] = useState(24000);
+    const spotPrice = livePrices?.[selectedInstrument]?.ltp || baseSpotPrice;
     
-    // Fake metrics for the layout to use
-    const [goldenZone, setGoldenZone] = useState(null);
+    const [loading, setLoading] = useState(false);
     const [manualIvRank, setManualIvRank] = useState(34);
+
+    const [idealPremium, setIdealPremium] = useState(45);
+
+    const DEFAULT_OVERRIDES = {};
+    const { overrides: manualOverrides, lastUpdated: manualOverrideTimes, handleClearAll, handleChange: handleOverrideChange } = useManualOverrides('options', selectedInstrument, DEFAULT_OVERRIDES);
+    const { historicalSnapshots } = useSnapshots(selectedInstrument?.value || selectedInstrument);
+
 
     // Live computed metrics from chain
     const metrics = useMemo(() => {
@@ -67,8 +83,28 @@ export default function OptionsPage() {
                             'call',
                             newRow.call.iv || 15
                         );
-                        newRow.call = { ...newRow.call, ...resolved };
-                        newRow.iv = resolved.iv;
+                        // Also update live market data (LTP, Vol, OI) only if valid
+                        const ltp = data.ltp > 0 ? data.ltp : newRow.call.ltp;
+                        const vol = data.volume > 0 ? data.volume : newRow.call.vol;
+                        const oi = data.openInterest > 0 ? data.openInterest : newRow.call.oi;
+                        
+                        // Calculate Price Change % (CHG%)
+                        const close = newRow.call.close || ltp;
+                        const oiChgPct = close > 0 ? ((ltp - close) / close) * 100 : newRow.call.oiChgPct;
+
+                        // Calculate Live OI Change
+                        const oiChg = computeLiveOiChange(selectedInstrument?.value || selectedInstrument, newRow.strike, 'call', parseFloat(oi) || 0);
+
+                        newRow.call = { 
+                            ...newRow.call, 
+                            ...resolved, 
+                            ltp: parseFloat(ltp) || 0, 
+                            vol: parseFloat(vol) || 0, 
+                            oi: parseFloat(oi) || 0, 
+                            oiChgPct: parseFloat(oiChgPct) || 0,
+                            oiChg: parseFloat(oiChg) || 0
+                        };
+                        newRow.iv = resolved.iv || newRow.iv;
                         updated = true;
                     } else if (newRow.put.instrument_key === instrumentKey) {
                         const T = timeToExpiry(selectedExpiry);
@@ -81,7 +117,26 @@ export default function OptionsPage() {
                             'put',
                             newRow.put.iv || 15
                         );
-                        newRow.put = { ...newRow.put, ...resolved };
+                        const ltp = data.ltp > 0 ? data.ltp : newRow.put.ltp;
+                        const vol = data.volume > 0 ? data.volume : newRow.put.vol;
+                        const oi = data.openInterest > 0 ? data.openInterest : newRow.put.oi;
+                        
+                        // Calculate Price Change % (CHG%)
+                        const close = newRow.put.close || ltp;
+                        const oiChgPct = close > 0 ? ((ltp - close) / close) * 100 : newRow.put.oiChgPct;
+
+                        // Calculate Live OI Change
+                        const oiChg = computeLiveOiChange(selectedInstrument?.value || selectedInstrument, newRow.strike, 'put', parseFloat(oi) || 0);
+
+                        newRow.put = { 
+                            ...newRow.put, 
+                            ...resolved, 
+                            ltp: parseFloat(ltp) || 0, 
+                            vol: parseFloat(vol) || 0, 
+                            oi: parseFloat(oi) || 0, 
+                            oiChgPct: parseFloat(oiChgPct) || 0,
+                            oiChg: parseFloat(oiChg) || 0
+                        };
                         updated = true;
                     }
                     return newRow;
@@ -112,11 +167,10 @@ export default function OptionsPage() {
                         const callData = c.call_options?.market_data || {};
                         const putData = c.put_options?.market_data || {};
                         
-                        // Safely calculate OI change percentage
-                        const calcOiPct = (oi, chg) => {
-                            if (!oi || !chg) return 0;
-                            const prevOi = oi - chg;
-                            return prevOi > 0 ? (chg / prevOi) * 100 : 0;
+                        // Safely calculate Price change percentage
+                        const calcPriceChgPct = (ltp, close) => {
+                            if (!ltp || !close || close === 0) return 0;
+                            return ((ltp - close) / close) * 100;
                         };
 
                         return {
@@ -124,56 +178,41 @@ export default function OptionsPage() {
                             iv: 0, // General IV or placeholder
                             call: {
                                 instrument_key: c.call_options?.instrument_key,
-                                ltp: callData.ltp || 0,
-                                close: callData.close || callData.ltp || 0,
-                                oi: callData.oi || 0,
-                                vol: callData.volume || 0,
-                                oiChg: callData.oi_change || 0,
-                                oiChgPct: calcOiPct(callData.oi, callData.oi_change),
+                                ltp: parseFloat(callData.ltp) || 0,
+                                close: parseFloat(callData.close) || parseFloat(callData.ltp) || 0,
+                                oi: parseFloat(callData.oi) || 0,
+                                vol: parseFloat(callData.volume) || 0,
+                                oiChg: callData.oi_change !== undefined ? parseFloat(callData.oi_change) : 0,
+                                oiChgPct: calcPriceChgPct(parseFloat(callData.ltp), parseFloat(callData.close)),
                                 delta: 0, gamma: 0, theta: 0, vega: 0, iv: 0
                             },
                             put: {
                                 instrument_key: c.put_options?.instrument_key,
-                                ltp: putData.ltp || 0,
-                                close: putData.close || putData.ltp || 0,
-                                oi: putData.oi || 0,
-                                vol: putData.volume || 0,
-                                oiChg: putData.oi_change || 0,
-                                oiChgPct: calcOiPct(putData.oi, putData.oi_change),
+                                ltp: parseFloat(putData.ltp) || 0,
+                                close: parseFloat(putData.close) || parseFloat(putData.ltp) || 0,
+                                oi: parseFloat(putData.oi) || 0,
+                                vol: parseFloat(putData.volume) || 0,
+                                oiChg: putData.oi_change !== undefined ? parseFloat(putData.oi_change) : 0,
+                                oiChgPct: calcPriceChgPct(parseFloat(putData.ltp), parseFloat(putData.close)),
                                 delta: 0, gamma: 0, theta: 0, vega: 0, iv: 0
                             }
                         };
                     });
 
                     // Attempt to extract spot price from the first item if available
-                    let currentSpot = spotPrice;
                     if (chainArray[0].underlying_spot_price) {
-                        currentSpot = chainArray[0].underlying_spot_price;
-                        setSpotPrice(currentSpot);
+                        setBaseSpotPrice(chainArray[0].underlying_spot_price);
                     }
 
-                    let calculatedGoldenZone = null;
+                    // Save base OI snapshot for intraday change tracking
+                    saveDailyOISnapshot(selectedInstrument?.value || selectedInstrument, normalizedChain);
 
-                    const spotIndex = normalizedChain.findIndex(c => c.strike >= currentSpot);
-                    if (spotIndex !== -1) {
-                        // 1. Calculate Golden Zone (12 strikes total: 6 above, 6 below ATM)
-                        const startGolden = Math.max(0, spotIndex - 6);
-                        const endGolden = Math.min(normalizedChain.length - 1, spotIndex + 5);
-                        
-                        calculatedGoldenZone = {
-                            minStrike: normalizedChain[startGolden].strike,
-                            maxStrike: normalizedChain[endGolden].strike
-                        };
-                        setGoldenZone(calculatedGoldenZone);
-                    } else {
-                        setGoldenZone(null);
-                    }
-
-                    // --- SUBSCRIBE TO WEBSOCKET GREEKS + SEED B-S GREEKS ---
+                    setChainData(normalizedChain);  // --- SUBSCRIBE TO WEBSOCKET GREEKS + SEED B-S GREEKS ---
                     try {
-                        if (calculatedGoldenZone && spotIndex !== -1) {
-                            const start = Math.max(0, spotIndex - 6);
-                            const end = Math.min(normalizedChain.length, spotIndex + 6);
+                        const spotIndex = normalizedChain.findIndex(c => c.strike >= (chainArray[0].underlying_spot_price || baseSpotPrice));
+                        if (spotIndex !== -1) {
+                            const start = Math.max(0, spotIndex - 15);
+                            const end = Math.min(normalizedChain.length, spotIndex + 16);
                             const keysToFetch = [];
 
                             // Compute real T from expiry string
@@ -204,8 +243,9 @@ export default function OptionsPage() {
                                     const callVol = callIvRaw / 100.0;
                                     const putVol  = putIvRaw  / 100.0;
 
-                                    const callGreeks = calculateGreeks(currentSpot, row.strike, T, 0.07, callVol, 'call');
-                                    const putGreeks  = calculateGreeks(currentSpot, row.strike, T, 0.07, putVol,  'put');
+                                    const initialSpot = chainArray[0]?.underlying_spot_price || baseSpotPrice || 24000;
+                                    const callGreeks = calculateGreeks(initialSpot, row.strike, T, 0.07, callVol, 'call');
+                                    const putGreeks  = calculateGreeks(initialSpot, row.strike, T, 0.07, putVol,  'put');
 
                                     row.call = { ...row.call, ...callGreeks, iv: callIvRaw };
                                     row.put  = { ...row.put,  ...putGreeks,  iv: putIvRaw  };
@@ -240,24 +280,160 @@ export default function OptionsPage() {
     }, [selectedInstrument, selectedExpiry]);
 
     // 3. Generate Pro Desk Picks using the engine
-    const proDeskPicks = useMemo(() => {
-        if (!chainData || chainData.length === 0) return { ce: [], pe: [] };
+    const proDeskData = useMemo(() => {
+        if (!chainData || chainData.length === 0) return { goldenStrikes: [], categories: {} };
         try {
-            return generateProDeskPicks(chainData, spotPrice, goldenZone);
+            return generateProDeskPicks(chainData, spotPrice, idealPremium);
         } catch (e) {
             console.error("Error generating pro desk picks:", e);
-            return { ce: [], pe: [] };
+            return { goldenStrikes: [], categories: {} };
         }
-    }, [chainData, spotPrice, goldenZone]);
+    }, [chainData, spotPrice, idealPremium]);
+
+    const formatExpiryDate = (dateString) => {
+        if (!dateString) return '';
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return dateString;
+        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
 
     const expiryOptions = expiries.length > 0 
-        ? expiries.map(exp => ({ label: exp, value: exp }))
+        ? expiries.map(exp => ({ label: formatExpiryDate(exp), value: exp }))
         : [{ label: "No expiries", value: "" }];
 
     // 4. Generate Live Cards
     const cards = useMemo(() => {
         return generateLiveCards(chainData, spotPrice, metrics);
     }, [chainData, spotPrice, metrics]);
+
+    // --- Market Status Helpers ---
+    const getISTDateTime = () => {
+        const now = new Date();
+        const istOffset = 5.5 * 60 * 60 * 1000; 
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        return new Date(utc + istOffset);
+    };
+
+    const isMarketOpen = () => {
+        const now = getISTDateTime();
+        const day = now.getDay(); 
+        if (day === 0 || day === 6) return false;
+        
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const timeNum = hours * 100 + minutes;
+        
+        return timeNum >= 915 && timeNum <= 1530; 
+    };
+
+    const formatTime = (ts) => {
+        if (!ts) return null;
+        return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    };
+
+    // Composite Live Engine Scores
+    const compositeData = useOptionsComposite(chainData, spotPrice, selectedInstrument?.value, selectedExpiry, manualOverrides, historicalSnapshots);
+
+    // Higher-order composite score (mirrors TechnicalPage pattern)
+    const {
+        compositeScore,
+        gauge: engineGauge,
+        regime: engineRegime,
+        sections: engineSections,
+        tailwinds: engineTailwinds,
+        risks: engineRisks,
+        aiInsight: engineAiInsight,
+        cardScores
+    } = useOptionsCompositeScore(compositeData);
+
+    const resolveTime = useDataFreshness(chainData?.length > 0, manualOverrides, manualOverrideTimes, isMarketOpen, formatTime, "1s");
+
+    // Build cardsForHeader — mirrors TechnicalPage cardsForHeader logic
+    const OPTIONS_CARD_IDS = new Set([
+        'total_call_oi', 'total_put_oi', 'oi_change',
+        'pcr_oi', 'pcr_volume',
+        'delta', 'gamma', 'theta', 'vega',
+        'atm_iv', 'iv_rank', 'iv_percentile',
+        'max_pain'
+    ]);
+
+    const cardsForHeader = Object.entries(cardScores || {})
+        .filter(([id, score]) => OPTIONS_CARD_IDS.has(id) && score !== null && score !== undefined && !isNaN(score))
+        .map(([id, score]) => {
+            let normalized = 0;
+            if (score > 70) normalized = 1;
+            else if (score < 30) normalized = -1;
+            const config = getIndicatorConfig(id);
+            const credit = config?.creditScore ?? 5;
+            return { id, module: config?.title || id, normalized, credit, creditAllocation: credit, score };
+        });
+
+    const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
+    const maxCards = OPTIONS_CARD_IDS.size;
+    const activeCardsCount = cardsForHeader.length;
+    const coveragePercent = maxCards > 0 ? Math.min(100, Math.round((activeCardsCount / maxCards) * 100)) : 0;
+
+    const hasAtmIv = compositeData?.volatility?.atmIv?.currentValue !== undefined && compositeData?.volatility?.atmIv?.currentValue !== null && !isNaN(compositeData?.volatility?.atmIv?.currentValue);
+    const hasMaxPain = compositeData?.maxPain?.currentValue !== undefined && compositeData?.maxPain?.currentValue !== null && !isNaN(compositeData?.maxPain?.currentValue);
+    const hasTotalCallOI = compositeData?.totalCallOI?.currentValue !== undefined && compositeData?.totalCallOI?.currentValue !== null && !isNaN(compositeData?.totalCallOI?.currentValue);
+    const hasTotalPutOI = compositeData?.totalPutOI?.currentValue !== undefined && compositeData?.totalPutOI?.currentValue !== null && !isNaN(compositeData?.totalPutOI?.currentValue);
+    const hasOiChange = compositeData?.oiChange?.currentValue !== undefined && compositeData?.oiChange?.currentValue !== null && !isNaN(compositeData?.oiChange?.currentValue);
+    const hasPcrOi = compositeData?.pcrOi?.currentValue !== undefined && compositeData?.pcrOi?.currentValue !== null && !isNaN(compositeData?.pcrOi?.currentValue);
+    const hasPcrVolume = compositeData?.pcrVolume?.currentValue !== undefined && compositeData?.pcrVolume?.currentValue !== null && !isNaN(compositeData?.pcrVolume?.currentValue);
+    const hasDelta = compositeData?.atmGreeks?.delta?.currentValue !== undefined && compositeData?.atmGreeks?.delta?.currentValue !== null && !isNaN(compositeData?.atmGreeks?.delta?.currentValue);
+    const hasGamma = compositeData?.atmGreeks?.gamma?.currentValue !== undefined && compositeData?.atmGreeks?.gamma?.currentValue !== null && !isNaN(compositeData?.atmGreeks?.gamma?.currentValue);
+    const hasTheta = compositeData?.atmGreeks?.theta?.currentValue !== undefined && compositeData?.atmGreeks?.theta?.currentValue !== null && !isNaN(compositeData?.atmGreeks?.theta?.currentValue);
+    const hasVega = compositeData?.atmGreeks?.vega?.currentValue !== undefined && compositeData?.atmGreeks?.vega?.currentValue !== null && !isNaN(compositeData?.atmGreeks?.vega?.currentValue);
+
+    const optionsManualForm = (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between border-b border-border-default pb-3 mb-4">
+                <div className="flex items-center gap-4">
+                    <div className="text-sm font-bold text-text-primary tracking-wider uppercase flex items-center gap-2">
+                        MANUAL DATA OVERRIDES
+                    </div>
+                    <button 
+                        onClick={handleClearAll}
+                        className="px-2 py-0.5 text-[10px] font-semibold text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 rounded border border-rose-500/20 transition-colors"
+                    >
+                        Clear All
+                    </button>
+                </div>
+            </div>
+            <p className="text-xs text-text-tertiary mb-6">Enter values for options metrics when live streaming data is unavailable.</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6">
+                <div className="space-y-2">
+                    <div className="text-xs font-bold text-emerald-500 mb-2">Volatility Settings</div>
+                    <DebouncedOverrideInput label="IV Rank (%)" overrideKey="iv_rank" value={manualOverrides.iv_rank} onChange={handleOverrideChange} />
+                    <DebouncedOverrideInput label="IV Percentile (%)" overrideKey="iv_percentile" value={manualOverrides.iv_percentile} onChange={handleOverrideChange} />
+                    <DebouncedOverrideInput label="Lookback (Days)" overrideKey="iv_lookback" value={manualOverrides.iv_lookback} onChange={handleOverrideChange} />
+                    {!hasAtmIv && <DebouncedOverrideInput label="ATM IV (%)" overrideKey="atm_iv" value={manualOverrides.atm_iv} onChange={handleOverrideChange} />}
+                </div>
+
+                {(!hasTotalCallOI || !hasTotalPutOI || !hasOiChange || !hasMaxPain || !hasPcrOi || !hasPcrVolume) && (
+                    <div className="space-y-2">
+                        <div className="text-xs font-bold text-blue-500 mb-2">Open Interest & Positioning</div>
+                        {!hasTotalCallOI && <DebouncedOverrideInput label="Total Call OI" overrideKey="total_call_oi" value={manualOverrides.total_call_oi} onChange={handleOverrideChange} />}
+                        {!hasTotalPutOI && <DebouncedOverrideInput label="Total Put OI" overrideKey="total_put_oi" value={manualOverrides.total_put_oi} onChange={handleOverrideChange} />}
+                        {!hasOiChange && <DebouncedOverrideInput label="OI Change" overrideKey="oi_change" value={manualOverrides.oi_change} onChange={handleOverrideChange} />}
+                        {!hasPcrOi && <DebouncedOverrideInput label="PCR (OI)" overrideKey="pcr_oi" value={manualOverrides.pcr_oi} onChange={handleOverrideChange} />}
+                        {!hasPcrVolume && <DebouncedOverrideInput label="PCR (Volume)" overrideKey="pcr_volume" value={manualOverrides.pcr_volume} onChange={handleOverrideChange} />}
+                        {!hasMaxPain && <DebouncedOverrideInput label="Max Pain Strike" overrideKey="max_pain" value={manualOverrides.max_pain} onChange={handleOverrideChange} />}
+                    </div>
+                )}
+
+                {(!hasDelta || !hasGamma || !hasTheta || !hasVega) && (
+                    <div className="space-y-2">
+                        <div className="text-xs font-bold text-purple-500 mb-2">Option Greeks</div>
+                        {!hasDelta && <DebouncedOverrideInput label="Delta" overrideKey="delta" value={manualOverrides.delta} onChange={handleOverrideChange} />}
+                        {!hasGamma && <DebouncedOverrideInput label="Gamma" overrideKey="gamma" value={manualOverrides.gamma} onChange={handleOverrideChange} />}
+                        {!hasTheta && <DebouncedOverrideInput label="Theta" overrideKey="theta" value={manualOverrides.theta} onChange={handleOverrideChange} />}
+                        {!hasVega && <DebouncedOverrideInput label="Vega" overrideKey="vega" value={manualOverrides.vega} onChange={handleOverrideChange} />}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 
     return (
         <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">
@@ -266,28 +442,47 @@ export default function OptionsPage() {
             <div className="relative z-50">
                 <GlobalHeader
                     title="Options Sentiment"
-                    score={0}
+                    score={compositeScore || 50}
                     prevScore={null}
-                    gauge={{ label: "—", color: "#64748B" }}
-                    regime={{ label: "—", description: "Loading", color: "#64748B", confidence: 0 }}
-                    integrity={{ coverage: "—", source: "—", freshness: "—" }}
-                    sections={[]}
-                    tailwinds={[]}
-                    risks={[]}
-                    totalCredits={0}
-                    cards={cards}
-                    creditLabel="Greeks"
+                    gauge={engineGauge}
+                    regime={{ ...(engineRegime || {}), description: engineAiInsight || 'Awaiting signals', confidence: engineSections ? Math.round((engineSections.filter(s => s.score !== null).length / Math.max(1, engineSections.length)) * 100) : 0 }}
+                    integrity={{
+                        coverageText: `${activeCardsCount}/${maxCards}`,
+                        coveragePercent: coveragePercent,
+                        source: chainData.length > 0 ? 'Live Upstox' : 'Manual',
+                        freshness: resolveTime(!!(chainData.length > 0)),
+                        snapshotTime: chainData.length > 0 ? `Live: ${new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}` : null
+                    }}
+                    sections={engineSections || []}
+                    tailwinds={engineTailwinds || []}
+                    risks={engineRisks || []}
+                    totalCredits={totalCredits}
+                    creditLabel="R Credits"
+                    cards={cardsForHeader}
+                    infoContent={optionsManualForm}
+                    backsideContent={optionsManualForm}
                     controls={{
                         search: searchQuery,
                         onSearchChange: setSearchQuery,
                         viewMode,
                         onViewChange: setViewMode,
                         sortMode,
-                        onSortChange: setSortMode,
-                        matchCount: 0,
+                        onSortChange: (m) => { setSortMode(m); setViewMode('flat'); },
+                        matchCount: cardsForHeader.length,
                         customComponent: (
                             <div className="flex gap-2">
-                                {/* Expiry Date (Kept here per request, synced globally) */}
+                                <UiverseDropdown
+                                    placeholder="Sweet Spot"
+                                    value={idealPremium}
+                                    onChange={(v) => setIdealPremium(Number(v))}
+                                    options={[
+                                        { label: "Deep OTM (₹15)", value: 15 },
+                                        { label: "Retail Sweet (₹30)", value: 30 },
+                                        { label: "Balanced (₹45)", value: 45 },
+                                        { label: "High Delta (₹80)", value: 80 },
+                                        { label: "ITM Safe (₹150)", value: 150 }
+                                    ]}
+                                />
                                 <UiverseDropdown
                                     placeholder={loading && expiries.length === 0 ? "Loading expiries..." : "Expiry"}
                                     value={selectedExpiry}
@@ -305,10 +500,11 @@ export default function OptionsPage() {
             {chainData.length > 0 ? (
                 <OptionsChainLayout 
                     chain={chainData} 
-                    picks={proDeskPicks} 
-                    spotPrice={spotPrice} 
+                    picks={proDeskData.categories} 
+                    spotPrice={spotPrice}
+                    baseSpotPrice={baseSpotPrice} 
                     metrics={metrics} 
-                    goldenZone={goldenZone}
+                    goldenZone={proDeskData.goldenStrikes}
                     manualIvRank={manualIvRank}
                     setManualIvRank={setManualIvRank}
                 />
@@ -324,9 +520,12 @@ export default function OptionsPage() {
                     <div className="w-full h-px bg-white/5 my-6" />
                     <OptionsGrid
                         cards={cards}
+                        compositeData={compositeData}
                         onCardClick={setSelectedCard}
                         viewMode={viewMode}
                         sortMode={sortMode}
+                        manualOverrides={manualOverrides}
+                        resolveTime={resolveTime}
                         controls={{
                             search: searchQuery,
                             onSearchChange: setSearchQuery,

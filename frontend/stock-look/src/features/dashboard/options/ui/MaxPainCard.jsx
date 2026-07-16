@@ -1,41 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function MaxPainCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || 21500); // Max Pain Strike
-    const [spot, setSpot] = useState(initialData?.spot || 21650);
-
+export default function MaxPainCard({ liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('max_pain');
 
-    const distancePct = (((spot - currentValue) / currentValue) * 100).toFixed(2);
-    const absDist = Math.abs(parseFloat(distancePct));
+    const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
+    const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);
 
-    // Calculate Bias and Score
-    let score = 50;
-    let bias = "Neutral";
-    let confidence = "88%";
-
-    if (absDist < 0.5) {
-        bias = "Neutral";
-        score = 50;
-    } else if (absDist < 1.5) {
-        bias = "Moderately Bullish/Bearish"; // In real usage, depends on direction of movement
-        score = 65;
-    } else {
-        bias = "Trend Strengthening";
-        score = 85;
-    }
-
-    // AI Insight
-    let aiInsightText = "";
-    if (absDist < 0.5) {
-        aiInsightText = "Explain that price is trading close to the Max Pain level, indicating balanced options positioning.";
-    } else if (absDist < 1.5) {
-        aiInsightText = "Explain that expiry-related positioning may attract price toward the Max Pain strike.";
-    } else {
-        aiInsightText = "Explain that directional momentum is currently stronger than expiry positioning.";
-    }
+    const distancePct = isLiveData ? liveData.distance : '--';
+    const score = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
+    const bias = isLiveData ? liveData.bias : "Neutral";
+    const confidence = isLiveData ? liveData.confidence : "0%";
+    const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Awaiting live options chain data to calculate Max Pain...");
 
     const whyItMatters = [
         "Identifies important expiry levels.",
@@ -45,36 +22,31 @@ export default function MaxPainCard({ initialData = null }) {
         "Supports short-term market assessment."
     ];
 
-    const handleSave = (val) => {
-        const n = parseFloat(val);
-        if (!isNaN(n)) setCurrentValue(n);
-    };
+    const displayValue = rawValue !== null && rawValue !== '--' ? rawValue.toString() : '--';
 
     return (
         <IndicatorCard
             config={{ 
                 title: "Max Pain", 
                 category: "Market Positioning", 
-                mode: "MANUAL", 
+                mode: isLiveData ? "AUTO" : "MANUAL", 
                 creditScore: configData.creditScore, 
-                updateTime: "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel 
             }}
             data={{ 
-                currentValueObj: { label: "Max Pain Strike", value: currentValue }, 
+                currentValueObj: { label: "Max Pain Strike", value: displayValue }, 
                 details: [
-                    { label: "Current Spot", value: spot },
-                    { label: "Distance", value: `${distancePct}%` }
+                    { label: "Distance", value: (distancePct != null && distancePct !== '--') ? `${parseFloat(distancePct).toFixed(2)}%` : '--' }
                 ], 
                 score, 
                 bias, 
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "Max Pain" }}
+            chartData={{ points: [], valueKey: "value", valueName: "Max Pain" }}
             insights={{ aiInsight: aiInsightText, whyItMatters }}
-            onSave={handleSave}
         />
     );
 }

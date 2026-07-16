@@ -1,53 +1,34 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { formatIndianNumber } from '@/shared/utils/formatters';
 
-export default function OpenInterestChangeCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || 120000);
-    const [percentChange, setPercentChange] = useState(initialData?.percentChange || 5.2);
-    const [marketPosition, setMarketPosition] = useState(initialData?.marketPosition || "Long Build-up");
-
+export default function OpenInterestChangeCard({ liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('oi_change');
     
-    let score = 0, bias = "Neutral", confidence = "90%";
-    
-    // Logic mapping based on OI Change Spec
-    if (marketPosition === "Long Build-up") {
-        bias = "Bullish";
-        score = 85;
-    } else if (marketPosition === "Short Covering") {
-        bias = "Bullish";
-        score = 70;
-    } else if (marketPosition === "Long Unwinding") {
-        bias = "Bearish";
-        score = 40;
-    } else if (marketPosition === "Short Build-up") {
-        bias = "Strong Bearish";
-        score = 15;
-    }
+    const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
+    const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);
 
-    let aiInsightText = "";
-    if (marketPosition === "Long Build-up") {
-        aiInsightText = "Explain that new long positions are being created, supporting continued upward momentum.";
-    } else if (marketPosition === "Short Covering") {
-        aiInsightText = "Explain that bearish positions are being closed, supporting near-term upside.";
-    } else if (marketPosition === "Long Unwinding") {
-        aiInsightText = "Explain that existing long positions are being exited, weakening bullish momentum.";
-    } else {
-        aiInsightText = "Explain that new bearish positions are entering the market, increasing downside pressure.";
-    }
+    const oiChangePct = isLiveData ? liveData.changePercentage : '--';
+    const position = isLiveData ? liveData.position : "Neutral";
+    const score = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
+    const bias = isLiveData ? liveData.bias : "Neutral";
+    const confidence = isLiveData ? liveData.confidence : "0%";
+    const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Waiting for market data...");
 
     const whyItMatters = [
-        "Identifies institutional positioning.",
-        "Distinguishes fresh positions from position unwinding.",
-        "Confirms trend strength.",
-        "Improves options sentiment analysis.",
-        "Supports short-term market direction assessment."
+        "Monitors intraday market flows.",
+        "Highlights institutional directional bets.",
+        "Tracks smart money positioning.",
+        "Identifies short-term trend reversals.",
+        "Crucial for day trading options."
     ];
 
+    const displayValue = rawValue !== null && rawValue !== '--' ? formatIndianNumber(rawValue) : '--';
+
     const details = [
-        { label: "OI Change (%)", value: `${percentChange.toFixed(2)}%`, color: percentChange > 0 ? "text-green-500" : "text-red-500" },
-        { label: "Position", value: marketPosition }
+        { label: "OI Change (%)", value: (oiChangePct != null && oiChangePct !== '--') ? `${oiChangePct > 0 ? '+' : ''}${parseFloat(oiChangePct).toFixed(2)}%` : '--', color: (oiChangePct != null && oiChangePct !== '--') ? (oiChangePct > 0 ? "text-green-500" : "text-red-500") : "" },
+        { label: "Position", value: position, color: bias?.includes("Bullish") ? "text-green-500" : bias?.includes("Bearish") ? "text-red-500" : "text-blue-500" }
     ];
 
     return (
@@ -55,33 +36,22 @@ export default function OpenInterestChangeCard({ initialData = null }) {
             config={{ 
                 title: "Open Interest Change", 
                 category: "Open Interest", 
-                mode: "MANUAL", 
+                mode: isLiveData ? "AUTO" : "MANUAL", 
                 creditScore: configData.creditScore, 
-                updateTime: "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel 
             }}
             data={{ 
-                currentValueObj: { label: "Current OI Change", value: currentValue.toLocaleString() }, 
+                currentValueObj: { label: "Current OI Change", value: displayValue }, 
                 details, 
                 score, 
                 bias, 
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ 
-                points: initialData?.history || [{date:"2026-07-01",value:4.5}, {date:"2026-07-02",value:5.2}], 
-                valueKey: "value", 
-                valueName: "OI Chg %" 
-            }}
-            insights={{ 
-                aiInsight: aiInsightText, 
-                whyItMatters 
-            }}
-            onSave={(val) => { 
-                const n = parseFloat(val); 
-                if(!isNaN(n)) setCurrentValue(n); 
-            }}
+            chartData={null}
+            insights={{ aiInsight: aiInsightText, whyItMatters }}
         />
     );
 }

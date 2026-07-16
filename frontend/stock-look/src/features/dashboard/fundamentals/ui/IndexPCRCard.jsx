@@ -5,9 +5,14 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightIndexPCRCard, scorePCR } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function IndexPCRCard({ data, manualOverride, lastUpdated }) {
-    const pcrValue = (manualOverride !== undefined && manualOverride !== null && manualOverride !== '')
-        ? cleanNum(manualOverride)
-        : null;
+    const livePcr = data?.index_pcr;
+    const isLive = livePcr !== undefined && livePcr !== null && livePcr !== '';
+
+    const pcrValue = isLive
+        ? cleanNum(livePcr)
+        : (manualOverride !== undefined && manualOverride !== null && manualOverride !== '')
+            ? cleanNum(manualOverride)
+            : null;
 
     const configData = getIndicatorConfig('index_pcr');
     const { score, bias, confidence, optionsBias, signalStrength } = scorePCR(pcrValue);
@@ -18,10 +23,10 @@ export default function IndexPCRCard({ data, manualOverride, lastUpdated }) {
             config={{
                 title: 'Put-Call Ratio',
                 category: 'Market Health',
-                mode: 'MANUAL',
+                mode: isLive ? 'AUTO' : 'MANUAL',
                 creditScore: configData?.creditScore ?? 8,
-                updateTime: typeof lastUpdated === 'function' ? lastUpdated(false) : (lastUpdated || '--:--'),
-                source: 'Manual',
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLive) : (lastUpdated || '--:--'),
+                source: isLive ? 'Upstox API' : 'Manual',
                 aiModel: configData?.aiModel ?? 'Engine v3'
             }}
             data={{
@@ -33,12 +38,12 @@ export default function IndexPCRCard({ data, manualOverride, lastUpdated }) {
                     pcrValue !== null && {
                         label: 'Options Bias',
                         value: optionsBias,
-                        isManual: true
+                        isManual: !isLive
                     },
                     pcrValue !== null && {
                         label: 'Signal Strength',
                         value: signalStrength,
-                        isManual: true
+                        isManual: !isLive
                     }
                 ].filter(Boolean),
                 score: score ?? 0,

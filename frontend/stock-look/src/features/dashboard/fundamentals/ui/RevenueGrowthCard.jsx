@@ -6,14 +6,13 @@ import { scoreRevenueGrowth, generateAiInsightRevenueGrowthCard } from '@/featur
 
 export default function RevenueGrowthCard({ data = null, manualOverride, lastUpdated }) {
     // 1. Extract Revenue History
-    const incomeArray = Array.isArray(data?.income) 
-        ? data.income 
-        : (Array.isArray(data?.income?.full_statement) ? data.income.full_statement : []);
-    const revObj = incomeArray.find(m => {
-        const p = m.particular?.toLowerCase() || '';
-        const hasHistory = Array.isArray(m.history) && m.history.length >= 2;
-        return hasHistory && (p === 'total revenue' || p === 'revenue' || p.includes('revenue') || p.includes('sales'));
-    });
+    const incomeStmt = Array.isArray(data?.income?.income_statement) ? data.income.income_statement : [];
+    const fullStmt = Array.isArray(data?.income?.full_statement) ? data.income.full_statement : [];
+    
+    let revObj = incomeStmt.find(m => m.category === 'revenue' && Array.isArray(m.history) && m.history.length >= 2);
+    if (!revObj) {
+        revObj = fullStmt.find(m => m.particular === 'Total Revenue' && Array.isArray(m.history) && m.history.length >= 2);
+    }
 
     let revenueHistory = null;
     if (revObj && Array.isArray(revObj.history) && revObj.history.length > 0) {

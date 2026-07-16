@@ -63,7 +63,7 @@ export const DashboardProvider = ({ children }) => {
                         
                     if (uniqueExpiries.length > 0) {
                         setExpiries(uniqueExpiries);
-                        setSelectedExpiry(""); // Keep placeholder instead of auto-selecting
+                        setSelectedExpiry(prev => uniqueExpiries.includes(prev) ? prev : uniqueExpiries[0]);
                     } else {
                         setExpiries([]);
                         setSelectedExpiry("");

@@ -2,40 +2,34 @@ import React, { useState } from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function VegaCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || null);
-    const [currentIV, setCurrentIV] = useState(initialData?.currentIV || '15%');
-    const [ivSensitivity, setIvSensitivity] = useState(initialData?.ivSensitivity || '--');
-
+export default function VegaCard({ liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('vega');
     
-    let score = 0, bias = "Neutral", confidence = "90%", aiInsightText = "Waiting...";
-    
-    if (currentValue !== null) {
-        if (currentValue < 2) { // Arbitrary low vega
-            score = 85;
-            bias = "Bullish";
-            aiInsightText = "Explain that the option premium is relatively stable against changes in implied volatility.";
-        } else if (currentValue >= 2 && currentValue < 5) {
-            score = 65;
-            bias = "Neutral";
-            aiInsightText = "Explain that option pricing has a normal sensitivity to volatility changes.";
-        } else if (currentValue >= 5 && currentValue < 10) {
-            score = 30;
-            bias = "Cautious";
-            aiInsightText = "Explain that small changes in implied volatility can significantly affect the option premium.";
-        } else {
-            score = 10;
-            bias = "High Risk";
-            aiInsightText = "Explain that the option is highly sensitive to volatility changes and carries increased pricing risk.";
-        }
-    }
+    const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
+    const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);
+
+    const currentIV = isLiveData && liveData.impliedVol ? `${liveData.impliedVol.toFixed(2)}%` : '--%';
+    const ivSensitivity = isLiveData ? liveData.exposure : '--';
+    const score = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
+    const bias = isLiveData ? liveData.bias : "Neutral";
+    const confidence = isLiveData ? liveData.confidence : "0%";
+    const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Waiting for market data...");
+
+    const displayValue = rawValue !== null && rawValue !== '--' ? parseFloat(rawValue).toFixed(2) : '--';
 
     return (
         <IndicatorCard
-            config={{ title: configData.title, category: configData.category, mode: "MANUAL", creditScore: configData.creditScore, updateTime: "--:--", source: configData.source, aiModel: configData.aiModel }}
+            config={{ 
+                title: configData.title, 
+                category: configData.category, 
+                mode: isLiveData ? "AUTO" : "MANUAL", 
+                creditScore: configData.creditScore, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
+                aiModel: configData.aiModel 
+            }}
             data={{ 
-                currentValueObj: { label: "Vega", value: currentValue ?? "--" }, 
+                currentValueObj: { label: "Vega", value: displayValue }, 
                 details: [
                     { label: "Current IV", value: currentIV },
                     { label: "IV Sensitivity", value: ivSensitivity }
@@ -45,7 +39,7 @@ export default function VegaCard({ initialData = null }) {
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "Vega" }}
+            chartData={null}
             insights={{ 
                 aiInsight: aiInsightText, 
                 whyItMatters: [
@@ -56,7 +50,6 @@ export default function VegaCard({ initialData = null }) {
                     "Essential for volatility trading."
                 ]
             }}
-            onSave={(val) => { const n = parseFloat(val); if(!isNaN(n)) setCurrentValue(n); }}
         />
     );
 }

@@ -6,14 +6,20 @@ import { formatCompactCurrency } from '@/shared/utils/formatters';
 import { scoreInstitutionalFlow, generateAiInsightFIIDIIFlowCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function FIIDIIFlowCard({ data = null, manualOverride, lastUpdated }) {
-    // Institutional flows are macro indicators not provided in single-stock Upstox APIs.
-    const isManual = true;
+    // Live Automated Data
+    const liveFlowData = data?.fii_dii_flow;
+    const isLive = !!liveFlowData;
 
     // Core Value States
-    const fiiFlow = manualOverride !== undefined && manualOverride !== null && manualOverride !== '' 
-        ? cleanNum(manualOverride) : null;
-    const diiFlow = data?.manualDiiFlow !== undefined && data?.manualDiiFlow !== null && data?.manualDiiFlow !== ''
-        ? cleanNum(data.manualDiiFlow) : null;
+    const fiiFlow = isLive
+        ? liveFlowData.fii_cash
+        : (manualOverride !== undefined && manualOverride !== null && manualOverride !== '') 
+            ? cleanNum(manualOverride) : null;
+            
+    const diiFlow = isLive
+        ? liveFlowData.dii_cash
+        : (data?.manualDiiFlow !== undefined && data?.manualDiiFlow !== null && data?.manualDiiFlow !== '')
+            ? cleanNum(data.manualDiiFlow) : null;
 
     // Centralized Config
     const configData = getIndicatorConfig('fii_dii_flow');
@@ -27,17 +33,17 @@ export default function FIIDIIFlowCard({ data = null, manualOverride, lastUpdate
             config={{
                 title: 'FII / DII Flow',
                 category: 'Market Health',
-                mode: 'MANUAL',
+                mode: isLive ? 'AUTO' : 'MANUAL',
                 creditScore: configData?.creditScore || 5,
-                updateTime: lastUpdated || '--:--',
-                source: 'Manual Override',
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLive) : (lastUpdated || '--:--'),
+                source: isLive ? 'Upstox API' : 'Manual Override',
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
                 currentValueObj: { label: 'Net Flow', value: netFlow !== null && !isNaN(netFlow) ? formatCompactCurrency(netFlow * 10000000) : '--' },
                 details: [
-                    fiiFlow !== null && !isNaN(fiiFlow) && { label: 'FII Flow', value: formatCompactCurrency(fiiFlow * 10000000), isManual: true },
-                    diiFlow !== null && !isNaN(diiFlow) && { label: 'DII Flow', value: formatCompactCurrency(diiFlow * 10000000), isManual: true }
+                    fiiFlow !== null && !isNaN(fiiFlow) && { label: 'FII Flow', value: formatCompactCurrency(fiiFlow * 10000000), isManual: !isLive },
+                    diiFlow !== null && !isNaN(diiFlow) && { label: 'DII Flow', value: formatCompactCurrency(diiFlow * 10000000), isManual: !isLive }
                 ].filter(Boolean),
                 score: score || 0,
                 bias: bias || 'Neutral',

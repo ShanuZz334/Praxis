@@ -24,6 +24,7 @@ import FundamentalCard from './FundamentalCard';
 import PERatioCard from './PERatioCard';
 import ForwardPECard from './ForwardPECard';
 import PBRatioCard from './PBRatioCard';
+import EVEbitdaCard from './EVEbitdaCard';
 import MarketCapGDPCard from './MarketCapGDPCard';
 import DividendYieldCard from './DividendYieldCard';
 import EarningsTrendCard from './EarningsTrendCard';
@@ -36,6 +37,7 @@ import ProfitGrowthCard from './ProfitGrowthCard';
 import GDPGrowthCard from './GDPGrowthCard';
 import ROECard from './ROECard';
 import ROCECard from './ROCECard';
+import ROACard from './ROACard';
 import NetMarginCard from './NetMarginCard';
 import OperatingMarginCard from './OperatingMarginCard';
 import DebtToEquityCard from './DebtToEquityCard';
@@ -47,15 +49,21 @@ import VolatilityCard from './VolatilityCard';
 import IndexPCRCard from './IndexPCRCard';
 import MACDTrendCard from './MACDTrendCard';
 import MovingAverageCard from './MovingAverageCard';
+import PromoterHoldingCard from './PromoterHoldingCard';
+import SmartMoneyFlowCard from './SmartMoneyFlowCard';
+import EarningsQualityCard from './EarningsQualityCard';
+import RelativeValuationCard from './RelativeValuationCard';
 
 // IDs that are handled by specialized hardcoded cards
 const HARDCODED_IDS = new Set([
-  'pe_ratio', 'forward_pe', 'pb_ratio', 'earnings_yield',
+  'pe_ratio', 'forward_pe', 'pb_ratio', 'ev_ebitda', 'earnings_yield',
   'market_cap_gdp', 'dividend_yield', 'earnings_trend', 'fii_dii_flow',
   'eps_growth', 'revenue_growth', 'profit_growth', 'gdp_growth',
-  'roe', 'roce', 'net_margin', 'operating_margin',
+  'roe', 'roce', 'roa', 'net_margin', 'operating_margin',
   'debt_to_equity', 'interest_coverage', 'free_cash_flow', 'current_ratio',
-  'advance_decline', 'india_vix', 'index_pcr', 'index_macd', 'index_200dma'
+  'advance_decline', 'india_vix', 'index_macd', 'index_200dma',
+  'promoter_holding', 'smart_money_flow', 'earnings_quality',
+  'relative_valuation'
 ]);
 
 // =============================
@@ -128,13 +136,14 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
               const manualPb = selectedCategory === "Indices" ? manualOverrides?.index_pb : (manualOverrides?.pb_ratio || computedPb);
               return <PBRatioCard key={cardId} data={data} manualOverride={manualPb} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'pb_ratio')} />;
           }
+          case 'ev_ebitda': return <EVEbitdaCard key={cardId} data={data} manualOverride={manualOverrides?.ev_ebitda} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'ev_ebitda')} />;
           case 'earnings_yield': {
               const pe = cleanNum(manualOverrides?.pe_ratio);
               const computedEy = (pe !== null && pe > 0) ? ((1 / pe) * 100).toFixed(2) : null;
               const manualEy = manualOverrides?.earnings_yield || computedEy;
               return <EarningsYieldCard key={cardId} data={data} manualOverride={manualEy} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'earnings_yield')} />;
           }
-          case 'market_cap_gdp': return <MarketCapGDPCard key={cardId} data={data} manualOverride={manualOverrides?.market_cap_gdp} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'market_cap_gdp')} />;
+          case 'market_cap_gdp': return <MarketCapGDPCard key={cardId} data={{ ...data, manualMarketCap: manualOverrides?.market_cap }} manualOverride={manualOverrides?.gdp} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'gdp')} />;
           case 'dividend_yield': return <DividendYieldCard key={cardId} data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.index_div_yield : manualOverrides?.dividend_yield} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'dividend_yield')} />;
           case 'earnings_trend': return <EarningsTrendCard key={cardId} data={data} manualOverride={manualOverrides?.earnings_trend} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'earnings_trend')} />;
           case 'fii_dii_flow': return <FIIDIIFlowCard key={cardId} data={{ ...data, manualDiiFlow: manualOverrides?.dii_flow }} manualOverride={manualOverrides?.fii_flow} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'fii_dii_flow')} />;
@@ -144,6 +153,7 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
           case 'gdp_growth': return <GDPGrowthCard key={cardId} data={data} manualOverride={manualOverrides?.gdp_growth} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'gdp_growth')} />;
           case 'roe': return <ROECard key={cardId} data={data} manualOverride={manualOverrides?.roe} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'roe')} />;
           case 'roce': return <ROCECard key={cardId} data={data} manualOverride={manualOverrides?.roce} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'roce')} />;
+          case 'roa': return <ROACard key={cardId} data={data} manualOverride={manualOverrides?.roa} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'roa')} />;
           case 'net_margin': return <NetMarginCard key={cardId} data={data} manualOverride={manualOverrides?.net_margin} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'net_margin')} />;
           case 'operating_margin': return <OperatingMarginCard key={cardId} data={data} manualOverride={manualOverrides?.operating_margin} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'operating_margin')} />;
           case 'debt_to_equity': return <DebtToEquityCard key={cardId} data={data} manualOverride={manualOverrides?.debt_to_equity} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'debt_to_equity')} />;
@@ -152,9 +162,12 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
           case 'current_ratio': return <CurrentRatioCard key={cardId} data={data} manualOverride={manualOverrides?.current_ratio} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'current_ratio')} />;
           case 'advance_decline': return <AdvanceDeclineCard key={cardId} data={data} manualOverride={selectedCategory === "Indices" ? manualOverrides?.ad_ratio : manualOverrides?.advance_decline} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'advance_decline')} />;
           case 'india_vix': return <VolatilityCard key={cardId} data={data} manualOverride={manualOverrides?.india_vix} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'india_vix')} />;
-          case 'index_pcr': return <IndexPCRCard key={cardId} data={data} manualOverride={manualOverrides?.index_pcr} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'index_pcr')} />;
           case 'index_macd': return <MACDTrendCard key={cardId} data={data} manualOverride={manualOverrides?.index_macd} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'index_macd')} />;
           case 'index_200dma': return <MovingAverageCard key={cardId} data={data} manualOverride={manualOverrides?.index_200dma} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'index_200dma')} />;
+          case 'promoter_holding': return <PromoterHoldingCard key={cardId} data={data} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
+          case 'smart_money_flow': return <SmartMoneyFlowCard key={cardId} data={data} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
+          case 'earnings_quality': return <EarningsQualityCard key={cardId} data={data} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
+          case 'relative_valuation': return <RelativeValuationCard key={cardId} data={data} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
           default: return null;
       }
   }
@@ -168,6 +181,7 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
     renderList.push({ id: 'pe_ratio', node: getHardcodedNode('pe_ratio') });
     if (selectedCategory !== "Indices") renderList.push({ id: 'forward_pe', node: getHardcodedNode('forward_pe') });
     renderList.push({ id: 'pb_ratio', node: getHardcodedNode('pb_ratio') });
+    if (selectedCategory !== "Indices") renderList.push({ id: 'ev_ebitda', node: getHardcodedNode('ev_ebitda') });
     if (selectedCategory !== "Indices") renderList.push({ id: 'earnings_yield', node: getHardcodedNode('earnings_yield') });
     renderList.push({ id: 'market_cap_gdp', node: getHardcodedNode('market_cap_gdp') });
     renderList.push({ id: 'dividend_yield', node: getHardcodedNode('dividend_yield') });
@@ -182,7 +196,6 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
 
     if (selectedCategory === "Indices") {
       renderList.push({ id: 'india_vix', node: getHardcodedNode('india_vix') });
-      renderList.push({ id: 'index_pcr', node: getHardcodedNode('index_pcr') });
       renderList.push({ id: 'index_macd', node: getHardcodedNode('index_macd') });
       renderList.push({ id: 'index_200dma', node: getHardcodedNode('index_200dma') });
     }
@@ -190,12 +203,17 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
     if (selectedCategory !== "Indices") {
       renderList.push({ id: 'roe', node: getHardcodedNode('roe') });
       renderList.push({ id: 'roce', node: getHardcodedNode('roce') });
+      renderList.push({ id: 'roa', node: getHardcodedNode('roa') });
       renderList.push({ id: 'net_margin', node: getHardcodedNode('net_margin') });
       renderList.push({ id: 'operating_margin', node: getHardcodedNode('operating_margin') });
       renderList.push({ id: 'debt_to_equity', node: getHardcodedNode('debt_to_equity') });
       renderList.push({ id: 'interest_coverage', node: getHardcodedNode('interest_coverage') });
       renderList.push({ id: 'free_cash_flow', node: getHardcodedNode('free_cash_flow') });
       renderList.push({ id: 'current_ratio', node: getHardcodedNode('current_ratio') });
+      renderList.push({ id: 'promoter_holding', node: getHardcodedNode('promoter_holding') });
+      renderList.push({ id: 'smart_money_flow', node: getHardcodedNode('smart_money_flow') });
+      renderList.push({ id: 'earnings_quality', node: getHardcodedNode('earnings_quality') });
+      renderList.push({ id: 'relative_valuation', node: getHardcodedNode('relative_valuation') });
     }
 
     // Merge data from cards array so they can be sorted
@@ -263,13 +281,14 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
       <div className="space-y-6 md:space-y-12">
         {FUNDAMENTAL_SECTIONS.map(section => {
           const expectedIds = {
-            'Valuation': selectedCategory !== "Indices" ? ['pe_ratio', 'forward_pe', 'pb_ratio', 'earnings_yield'] : ['pe_ratio', 'pb_ratio', 'dividend_yield', 'market_cap_gdp'],
+            'Valuation': selectedCategory !== "Indices" ? ['pe_ratio', 'forward_pe', 'ev_ebitda', 'pb_ratio', 'earnings_yield', 'relative_valuation'] : ['pe_ratio', 'pb_ratio', 'dividend_yield', 'market_cap_gdp'],
             'Earnings': selectedCategory !== "Indices" ? ['eps_growth', 'revenue_growth', 'profit_growth'] : ['eps_growth'],
             'Macro': ['gdp_growth'],
             'Liquidity': ['fii_dii_flow'],
-            'Sector': selectedCategory !== "Indices" ? ['market_cap_gdp', 'dividend_yield', 'earnings_trend'] : ['advance_decline', 'index_pcr'],
-            'Corporate': selectedCategory !== "Indices" ? ['roe', 'roce', 'net_margin', 'operating_margin'] : ['index_macd', 'index_200dma'],
-            'Global': selectedCategory !== "Indices" ? ['debt_to_equity', 'interest_coverage', 'free_cash_flow', 'current_ratio'] : ['india_vix']
+            'Sector': selectedCategory !== "Indices" ? ['market_cap_gdp', 'dividend_yield', 'earnings_trend'] : ['advance_decline'],
+            'Corporate': selectedCategory !== "Indices" ? ['roe', 'roce', 'roa', 'net_margin', 'operating_margin'] : ['index_macd', 'index_200dma'],
+            'Global': selectedCategory !== "Indices" ? ['debt_to_equity', 'interest_coverage', 'free_cash_flow', 'current_ratio'] : ['india_vix'],
+            'Ownership': selectedCategory !== "Indices" ? ['promoter_holding', 'smart_money_flow', 'earnings_quality'] : [],
           }[section.id] || [];
 
           let missingCount = 0;
@@ -320,8 +339,10 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
                   <>
                     {getHardcodedNode('pe_ratio')}
                     {selectedCategory !== "Indices" && getHardcodedNode('forward_pe')}
+                    {selectedCategory !== "Indices" && getHardcodedNode('ev_ebitda')}
                     {getHardcodedNode('pb_ratio')}
                     {selectedCategory !== "Indices" ? getHardcodedNode('earnings_yield') : getHardcodedNode('dividend_yield')}
+                    {selectedCategory !== "Indices" && getHardcodedNode('relative_valuation')}
                     {selectedCategory === "Indices" && getHardcodedNode('market_cap_gdp')}
                   </>
                 )}
@@ -357,7 +378,6 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
                     ) : (
                       <>
                         {getHardcodedNode('advance_decline')}
-                        {getHardcodedNode('index_pcr')}
                       </>
                     )}
                   </>
@@ -370,6 +390,7 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
                       <>
                         <ROECard data={data} manualOverride={manualOverrides?.roe} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'roe')} />
                         <ROCECard data={data} manualOverride={manualOverrides?.roce} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'roce')} />
+                        <ROACard data={data} manualOverride={manualOverrides?.roa} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'roa')} />
                         <NetMarginCard data={data} manualOverride={manualOverrides?.net_margin} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'net_margin')} />
                         <OperatingMarginCard data={data} manualOverride={manualOverrides?.operating_margin} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'operating_margin')} />
                       </>
@@ -395,6 +416,15 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
                     ) : (
                       <VolatilityCard data={data} manualOverride={manualOverrides?.india_vix} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : 'india_vix')} />
                     )}
+                  </>
+                )}
+
+                {/* 8. Ownership & Flow */}
+                {section.id === 'Ownership' && selectedCategory !== "Indices" && (
+                  <>
+                    <PromoterHoldingCard data={data} lastUpdated={(isLive) => resolveTime(isLive, null)} />
+                    <SmartMoneyFlowCard data={data} lastUpdated={(isLive) => resolveTime(isLive, null)} />
+                    <EarningsQualityCard data={data} lastUpdated={(isLive) => resolveTime(isLive, null)} />
                   </>
                 )}
                 {/* Any additional dynamic cards not in hardcoded list */}

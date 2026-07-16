@@ -44,10 +44,13 @@ import MaxPainCard from "./MaxPainCard";
 // =============================
 export default function OptionsGrid({
     cards,
+    compositeData,
     onCardClick,
     viewMode = "sectioned",
     sortMode = "score_desc",
-    controls
+    controls,
+    manualOverrides,
+    resolveTime
 }) {
 
     // =============================
@@ -133,10 +136,37 @@ export default function OptionsGrid({
         const flatWithData = renderList.map(item => {
             const cData = cards.find(c => c.id === item.id);
             const fallbackCredit = getIndicatorConfig(item.id)?.creditScore ?? 5;
+            
+            // Map composite live data to the cards
+            let liveData = null;
+            if (item.id === 'total_call_oi' && compositeData?.totalCallOI) liveData = compositeData.totalCallOI;
+            if (item.id === 'total_put_oi' && compositeData?.totalPutOI) liveData = compositeData.totalPutOI;
+            if (item.id === 'oi_change' && compositeData?.oiChange) liveData = compositeData.oiChange;
+            if (item.id === 'pcr_oi' && compositeData?.pcrOi) liveData = compositeData.pcrOi;
+            if (item.id === 'pcr_volume' && compositeData?.pcrVolume) liveData = compositeData.pcrVolume;
+            if (item.id === 'delta' && compositeData?.atmGreeks?.delta) liveData = compositeData.atmGreeks.delta;
+            if (item.id === 'gamma' && compositeData?.atmGreeks?.gamma) liveData = compositeData.atmGreeks.gamma;
+            if (item.id === 'theta' && compositeData?.atmGreeks?.theta) liveData = compositeData.atmGreeks.theta;
+            if (item.id === 'theta' && compositeData?.atmGreeks?.theta) liveData = compositeData.atmGreeks.theta;
+            if (item.id === 'vega' && compositeData?.atmGreeks?.vega) liveData = compositeData.atmGreeks.vega;
+            if (item.id === 'atm_iv' && compositeData?.volatility?.atmIv) liveData = compositeData.volatility.atmIv;
+            if (item.id === 'iv_rank' && compositeData?.volatility?.ivRank) liveData = { ...compositeData.volatility.ivRank, lookback: compositeData.volatility.lookback };
+            if (item.id === 'iv_percentile' && compositeData?.volatility?.ivPercentile) liveData = { ...compositeData.volatility.ivPercentile, lookback: compositeData.volatility.lookback };
+            if (item.id === 'max_pain' && compositeData?.maxPain) liveData = compositeData.maxPain;
+
+            const manualOverride = manualOverrides ? manualOverrides[item.id] : undefined;
+            const clonedNode = React.cloneElement(item.node, { 
+                liveData, 
+                manualOverride,
+                lastUpdated: (isLive) => resolveTime ? resolveTime(isLive, isLive ? null : item.id) : null 
+            });
+
             return { 
                 ...item, 
                 ...(cData || { normalized: 0 }),
-                creditAllocation: cData?.creditAllocation ?? fallbackCredit
+                creditAllocation: cData?.creditAllocation ?? fallbackCredit,
+                liveData,
+                node: clonedNode
             };
         });
 
@@ -215,34 +245,34 @@ export default function OptionsGrid({
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 items-start">
                             {section.id === 'Open Interest' && (
                                 <>
-                                    <TotalCallOpenInterestCard />
-                                    <TotalPutOpenInterestCard />
-                                    <OpenInterestChangeCard />
+                                    <TotalCallOpenInterestCard liveData={compositeData?.totalCallOI} manualOverride={manualOverrides?.total_call_oi} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'total_call_oi') : null} />
+                                    <TotalPutOpenInterestCard liveData={compositeData?.totalPutOI} manualOverride={manualOverrides?.total_put_oi} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'total_put_oi') : null} />
+                                    <OpenInterestChangeCard liveData={compositeData?.oiChange} manualOverride={manualOverrides?.oi_change} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'oi_change') : null} />
                                 </>
                             )}
                             {section.id === 'Volatility' && (
                                 <>
-                                    <AtmIvCard />
-                                    <IvRankCard />
-                                    <IvPercentileCard />
+                                    <AtmIvCard liveData={compositeData?.volatility?.atmIv} manualOverride={manualOverrides?.atm_iv} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'atm_iv') : null} />
+                                    <IvRankCard liveData={compositeData?.volatility?.ivRank ? { ...compositeData.volatility.ivRank, lookback: compositeData.volatility.lookback } : null} manualOverride={manualOverrides?.iv_rank} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'iv_rank') : null} />
+                                    <IvPercentileCard liveData={compositeData?.volatility?.ivPercentile ? { ...compositeData.volatility.ivPercentile, lookback: compositeData.volatility.lookback } : null} manualOverride={manualOverrides?.iv_percentile} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'iv_percentile') : null} />
                                 </>
                             )}
                             {section.id === 'Greeks' && (
                                 <>
-                                    <DeltaCard />
-                                    <GammaCard />
-                                    <ThetaCard />
-                                    <VegaCard />
+                                    <DeltaCard liveData={compositeData?.atmGreeks?.delta} manualOverride={manualOverrides?.delta} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'delta') : null} />
+                                    <GammaCard liveData={compositeData?.atmGreeks?.gamma} manualOverride={manualOverrides?.gamma} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'gamma') : null} />
+                                    <ThetaCard liveData={compositeData?.atmGreeks?.theta} manualOverride={manualOverrides?.theta} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'theta') : null} />
+                                    <VegaCard liveData={compositeData?.atmGreeks?.vega} manualOverride={manualOverrides?.vega} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'vega') : null} />
                                 </>
                             )}
                             {section.id === 'Put-Call Ratio' && (
                                 <>
-                                    <PcrOiCard />
-                                    <PcrVolumeCard />
+                                    <PcrOiCard liveData={compositeData?.pcrOi} manualOverride={manualOverrides?.pcr_oi} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'pcr_oi') : null} />
+                                    <PcrVolumeCard liveData={compositeData?.pcrVolume} manualOverride={manualOverrides?.pcr_volume} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'pcr_volume') : null} />
                                 </>
                             )}
                             {section.id === 'Market Positioning' && (
-                                <MaxPainCard />
+                                <MaxPainCard liveData={compositeData?.maxPain} manualOverride={manualOverrides?.max_pain} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'max_pain') : null} />
                             )}
                             {sortedSectionCards.map((card) => {
                                 if (excludeIds.includes(card.id) || card.id.startsWith('dummy_')) return null;

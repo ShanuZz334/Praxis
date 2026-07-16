@@ -6,14 +6,13 @@ import { scoreProfitGrowth, generateAiInsightProfitGrowthCard } from '@/features
 
 export default function ProfitGrowthCard({ data = null, manualOverride, lastUpdated }) {
     // 1. Extract Profit History
-    const incomeArray = Array.isArray(data?.income) 
-        ? data.income 
-        : (Array.isArray(data?.income?.full_statement) ? data.income.full_statement : []);
-    const profitObj = incomeArray.find(m => {
-        const p = m.particular?.toLowerCase() || '';
-        const hasHistory = Array.isArray(m.history) && m.history.length >= 2;
-        return hasHistory && (p === 'profit after tax' || p === 'profit before tax' || p.includes('net profit') || p.includes('net income'));
-    });
+    const incomeStmt = Array.isArray(data?.income?.income_statement) ? data.income.income_statement : [];
+    const fullStmt = Array.isArray(data?.income?.full_statement) ? data.income.full_statement : [];
+    
+    let profitObj = incomeStmt.find(m => m.category === 'net_profit' && Array.isArray(m.history) && m.history.length >= 2);
+    if (!profitObj) {
+        profitObj = fullStmt.find(m => (m.particular === 'Profit After Tax' || m.particular === 'Profit Before Tax') && Array.isArray(m.history) && m.history.length >= 2);
+    }
 
     let profitHistory = null;
     if (profitObj && Array.isArray(profitObj.history) && profitObj.history.length > 0) {

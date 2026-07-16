@@ -7,19 +7,8 @@ import { generateAiInsightForwardPECard, scoreForwardPE } from '@/features/dashb
 export default function ForwardPECard({ data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('forward_pe');
 
-    // ── Step 1: Resolve currentFwdPE (Live from Upstox or manual fallback) ────
+    // ── Step 1: Resolve Trailing PE for comparison (Live) ─────────────────────
     const ratiosArray = Array.isArray(data?.ratios) ? data.ratios : [];
-    const upstoxFwdPEObj = ratiosArray.find(r => 
-        r.name?.toLowerCase().includes("forward p/e") || 
-        r.name?.toLowerCase().includes("forward pe") ||
-        r.name?.toLowerCase().includes("fwd pe")
-    );
-    const parsedFwdPE = upstoxFwdPEObj?.company_value ? cleanNum(upstoxFwdPEObj.company_value) : null;
-    
-    const isLiveData = parsedFwdPE !== null && !isNaN(parsedFwdPE) && parsedFwdPE > 0;
-    const currentFwdPE = isLiveData ? parsedFwdPE : (manualOverride ?? null);
-
-    // ── Step 2: Resolve Trailing PE for comparison (Live) ─────────────────────
     const upstoxPEObj = ratiosArray.find(r =>
         r.name === 'P/E' ||
         r.name === 'PE' ||
@@ -28,6 +17,51 @@ export default function ForwardPECard({ data = null, manualOverride, lastUpdated
     );
     const parsedPE = upstoxPEObj?.company_value ? cleanNum(upstoxPEObj.company_value) : null;
     const currentPE = (parsedPE !== null && !isNaN(parsedPE)) ? parsedPE : null;
+
+    // ── Step 2: Resolve currentFwdPE (Live from Upstox, Auto-calculated, or manual fallback) ────
+    const upstoxFwdPEObj = ratiosArray.find(r => 
+        r.name?.toLowerCase().includes("forward p/e") || 
+        r.name?.toLowerCase().includes("forward pe") ||
+        r.name?.toLowerCase().includes("fwd pe")
+    );
+    const parsedFwdPE = upstoxFwdPEObj?.company_value ? cleanNum(upstoxFwdPEObj.company_value) : null;
+    
+    let calculatedFwdPE = null;
+    if (parsedFwdPE === null && currentPE !== null) {
+        let epsGrowth = null;
+        
+        // Try to get EPS Growth from Upstox ratios
+        const ratioEPS = ratiosArray.find(r => r.name?.toLowerCase().includes('eps growth') || r.name?.toLowerCase() === 'eps growth');
+        if (ratioEPS?.company_value) {
+            const parsedGrowth = cleanNum(ratioEPS.company_value);
+            if (!isNaN(parsedGrowth)) epsGrowth = parsedGrowth;
+        }
+        
+        // Try to calculate from income statement history
+        if (epsGrowth === null) {
+            const incomeArray = Array.isArray(data?.income) ? data.income : (Array.isArray(data?.income?.full_statement) ? data.income.full_statement : []);
+            const epsObj = incomeArray.find(r => r.particular === 'EPS - Basic' || r.particular === 'EPS - Diluted' || r.particular?.toLowerCase().includes('eps'));
+            if (epsObj && Array.isArray(epsObj.history) && epsObj.history.length >= 2) {
+                const chronological = [...epsObj.history].reverse();
+                const totalPeriods = chronological.length - 1;
+                const first = chronological[0].value;
+                const last = chronological[chronological.length - 1].value;
+                if (first > 0 && last > 0) {
+                    epsGrowth = (Math.pow(last / first, 1 / totalPeriods) - 1) * 100;
+                }
+            }
+        }
+
+        if (epsGrowth !== null && epsGrowth !== 0) {
+            calculatedFwdPE = currentPE / (1 + (epsGrowth / 100));
+            if (calculatedFwdPE < 0) calculatedFwdPE = null; // Don't show negative P/E
+        }
+    }
+
+    const isLiveData = (parsedFwdPE !== null && !isNaN(parsedFwdPE) && parsedFwdPE > 0) || (calculatedFwdPE !== null && !isNaN(calculatedFwdPE) && calculatedFwdPE > 0);
+    const currentFwdPE = (parsedFwdPE !== null && parsedFwdPE > 0) 
+        ? parsedFwdPE 
+        : ((calculatedFwdPE !== null && calculatedFwdPE > 0) ? calculatedFwdPE : (manualOverride ?? null));
 
     // Removed Projected EPS to comply with Zero Clutter Rule
 
@@ -50,7 +84,7 @@ export default function ForwardPECard({ data = null, manualOverride, lastUpdated
                 mode: isLiveData ? 'AUTO' : 'MANUAL',
                 creditScore: configData?.creditScore ?? 5,
                 updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'),
-                source: isLiveData ? 'Upstox' : 'Manual',
+                source: isLiveData ? (parsedFwdPE !== null ? 'Upstox API' : 'Upstox (Calc)') : 'Manual',
                 aiModel: configData?.aiModel ?? 'Engine v2'
             }}
             data={{

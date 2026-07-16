@@ -2,40 +2,34 @@ import React, { useState } from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function GammaCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || null);
-    const [optionType, setOptionType] = useState(initialData?.optionType || 'Call');
-    const [moneyness, setMoneyness] = useState(initialData?.moneyness || 'ATM');
-
+export default function GammaCard({ liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('gamma');
     
-    let score = 0, bias = "Neutral", confidence = "90%", aiInsightText = "Waiting...";
-    
-    if (currentValue !== null) {
-        if (currentValue < 0.02) { // Arbitrary low value
-            score = 85;
-            bias = "Bullish";
-            aiInsightText = "Explain that Delta is expected to remain relatively stable with small price movements.";
-        } else if (currentValue >= 0.02 && currentValue < 0.05) {
-            score = 65;
-            bias = "Neutral";
-            aiInsightText = "Explain that directional sensitivity remains within normal levels.";
-        } else if (currentValue >= 0.05 && currentValue < 0.1) {
-            score = 30;
-            bias = "Cautious";
-            aiInsightText = "Explain that Delta can change rapidly, increasing both opportunity and trading risk.";
-        } else {
-            score = 10;
-            bias = "High Risk";
-            aiInsightText = "Explain that options are highly sensitive to small market movements, especially near expiry.";
-        }
-    }
+    const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
+    const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);
+
+    const optionType = isLiveData ? liveData.optionType : 'Call';
+    const moneyness = isLiveData ? liveData.moneyness : 'ATM';
+    const score = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
+    const bias = isLiveData ? liveData.bias : "Neutral";
+    const confidence = isLiveData ? liveData.confidence : "0%";
+    const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Waiting for market data...");
+
+    const displayValue = rawValue !== null && rawValue !== '--' ? parseFloat(rawValue).toFixed(4) : '--';
 
     return (
         <IndicatorCard
-            config={{ title: configData.title, category: configData.category, mode: "MANUAL", creditScore: configData.creditScore, updateTime: "--:--", source: configData.source, aiModel: configData.aiModel }}
+            config={{ 
+                title: configData.title, 
+                category: configData.category, 
+                mode: isLiveData ? "AUTO" : "MANUAL", 
+                creditScore: configData.creditScore, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
+                aiModel: configData.aiModel 
+            }}
             data={{ 
-                currentValueObj: { label: "Gamma", value: currentValue ?? "--" }, 
+                currentValueObj: { label: "Gamma", value: displayValue }, 
                 details: [
                     { label: "Option Type", value: optionType },
                     { label: "Moneyness", value: moneyness }
@@ -45,7 +39,7 @@ export default function GammaCard({ initialData = null }) {
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "Gamma" }}
+            chartData={null}
             insights={{ 
                 aiInsight: aiInsightText, 
                 whyItMatters: [
@@ -56,7 +50,6 @@ export default function GammaCard({ initialData = null }) {
                     "Essential for Gamma exposure analysis."
                 ]
             }}
-            onSave={(val) => { const n = parseFloat(val); if(!isNaN(n)) setCurrentValue(n); }}
         />
     );
 }

@@ -3,7 +3,7 @@ import axiosInstance from '@/shared/utils/axiosInstance';
 import { API_PATHS } from '@/shared/utils/apiPaths';
 // ─── Intelligent Caching Engine ─────────────────────────────────────────────
 const CACHE_KEYS = {
-    FUNDAMENTALS: 'praxis_fundamentals_cache',
+    FUNDAMENTALS: 'praxis_fundamentals_cache_v2',
     QUOTES: 'praxis_quotes_cache'
 };
 

@@ -30,19 +30,17 @@ export default function NetMarginCard({ data, manualOverride, lastUpdated }) {
 
     // Attempt 2: Auto-calculate from Income Statement (if ratios missed it)
     if (isManual) {
-        const incomeArray = Array.isArray(data?.income) 
-            ? data.income 
-            : (Array.isArray(data?.income?.full_statement) ? data.income.full_statement : []);
+        const fullStmt = Array.isArray(data?.income?.full_statement) ? data.income.full_statement : [];
             
-        const profitObj = incomeArray.find(m => {
-            const p = m.particular?.toLowerCase() || '';
-            return Array.isArray(m.history) && m.history.length >= 1 && (p === 'profit after tax' || p === 'profit before tax' || p.includes('net profit') || p.includes('net income'));
-        });
+        const profitObj = fullStmt.find(m =>
+            (m.particular === 'Profit After Tax' || m.particular === 'Profit Before Tax') &&
+            Array.isArray(m.history) && m.history.length >= 1
+        );
         
-        const revObj = incomeArray.find(m => {
-            const p = m.particular?.toLowerCase() || '';
-            return Array.isArray(m.history) && m.history.length >= 1 && (p === 'total revenue' || p === 'revenue' || p.includes('revenue') || p.includes('sales'));
-        });
+        const revObj = fullStmt.find(m =>
+            (m.particular === 'Total Revenue' || m.particular === 'Revenue') &&
+            Array.isArray(m.history) && m.history.length >= 1
+        );
 
         if (profitObj && revObj) {
             const latestProfit = profitObj.history[0].value;

@@ -2,44 +2,35 @@ import React, { useState } from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function ThetaCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || null);
-    const [daysToExpiry, setDaysToExpiry] = useState(initialData?.daysToExpiry || 7);
-
+export default function ThetaCard({ liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('theta');
     
-    let score = 0, bias = "Neutral", confidence = "90%", aiInsightText = "Waiting...";
-    
-    if (currentValue !== null) {
-        // Theta is typically negative, so higher absolute value means more decay.
-        const absTheta = Math.abs(currentValue);
-        
-        if (absTheta < 5) { // Arbitrary low decay
-            score = 85;
-            bias = "Bullish";
-            aiInsightText = "Explain that time decay remains limited, making the option less sensitive to the passage of time.";
-        } else if (absTheta >= 5 && absTheta < 15) {
-            score = 65;
-            bias = "Neutral";
-            aiInsightText = "Explain that normal time decay is affecting the option premium.";
-        } else if (absTheta >= 15 && absTheta < 30) {
-            score = 30;
-            bias = "Bearish";
-            aiInsightText = "Explain that option value is declining rapidly as expiry approaches.";
-        } else {
-            score = 10;
-            bias = "High Risk";
-            aiInsightText = "Explain that time decay is accelerating significantly, increasing the risk for option buyers.";
-        }
-    }
+    const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
+    const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);
+
+    const daysToExpiry = isLiveData ? liveData.daysToExpiry : '--';
+    const score = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
+    const bias = isLiveData ? liveData.bias : "Neutral";
+    const confidence = isLiveData ? liveData.confidence : "0%";
+    const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Waiting for market data...");
+
+    const displayValue = rawValue !== null && rawValue !== '--' ? parseFloat(rawValue).toFixed(2) : '--';
 
     return (
         <IndicatorCard
-            config={{ title: configData.title, category: configData.category, mode: "MANUAL", creditScore: configData.creditScore, updateTime: "--:--", source: configData.source, aiModel: configData.aiModel }}
+            config={{ 
+                title: configData.title, 
+                category: configData.category, 
+                mode: isLiveData ? "AUTO" : "MANUAL", 
+                creditScore: configData.creditScore, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
+                aiModel: configData.aiModel 
+            }}
             data={{ 
-                currentValueObj: { label: "Theta", value: currentValue ?? "--" }, 
+                currentValueObj: { label: "Theta", value: displayValue }, 
                 details: [
-                    { label: "Daily Time Decay", value: currentValue !== null ? currentValue.toString() : "--" },
+                    { label: "Daily Time Decay", value: displayValue },
                     { label: "Days to Expiry", value: daysToExpiry }
                 ], 
                 score, 
@@ -47,7 +38,7 @@ export default function ThetaCard({ initialData = null }) {
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "Theta" }}
+            chartData={null}
             insights={{ 
                 aiInsight: aiInsightText, 
                 whyItMatters: [
@@ -58,7 +49,6 @@ export default function ThetaCard({ initialData = null }) {
                     "Improves option selection."
                 ]
             }}
-            onSave={(val) => { const n = parseFloat(val); if(!isNaN(n)) setCurrentValue(n); }}
         />
     );
 }

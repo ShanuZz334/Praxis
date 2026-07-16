@@ -24,6 +24,8 @@ router.get("/login", (req, res) => {
     res.redirect(authUrl);
 });
 
+import { connectUpstoxWebsocket } from "../services/upstoxWebsocket.js";
+
 // @route   GET /api/v1/upstox/callback
 // @desc    Callback URL for Upstox OAuth 2.0 flow
 router.get("/callback", async (req, res) => {
@@ -61,6 +63,13 @@ router.get("/callback", async (req, res) => {
             authCode: code
         });
         await authRecord.save();
+
+        // Reconnect Upstox Market Data Feed immediately using the new token
+        try {
+            connectUpstoxWebsocket();
+        } catch (wsErr) {
+            console.error("Failed to re-initialize websocket after login", wsErr);
+        }
 
         // Redirect back to frontend
         const frontendUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0] : "http://localhost:5173";
@@ -278,6 +287,19 @@ router.get("/option-greeks", async (req, res) => {
 
 import { getFundamentals } from "../controllers/fundamentalsController.js";
 import { getTechnicalIndicators } from "../controllers/technicalsController.js";
+import { fetchFiiDiiFlow } from "../services/upstoxMarketData.js";
+
+// @route   GET /api/v1/upstox/inst-flow
+// @desc    Fetch FII/DII net flow from Upstox API
+router.get("/inst-flow", async (req, res) => {
+    try {
+        const data = await fetchFiiDiiFlow();
+        res.json({ status: "success", data });
+    } catch (error) {
+        console.error("Error fetching inst flow:", error?.response?.data || error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
 
 // @route   GET /api/v1/upstox/fundamentals
 // @desc    Fetch combined fundamental data (ratios, income, balance sheet, cash flow, holdings) using Upstox V2 API

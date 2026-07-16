@@ -45,9 +45,9 @@ export default function FreeCashFlowCard({ data, manualOverride, lastUpdated }) 
 
     // Attempt 2: Calculate from Cash Flow Statement (Operating CF + Investing CF as CapEx proxy)
     if (isManual && data?.cashFlow) {
-        const fullStmt = Array.isArray(data.cashFlow.full_statement) ? data.cashFlow.full_statement : [];
-        const opCashObj = fullStmt.find(m => m.particular?.toLowerCase().includes('operations'));
-        const invCashObj = fullStmt.find(m => m.particular?.toLowerCase().includes('investing'));
+        const cashFlowArr = Array.isArray(data.cashFlow.cash_flow) ? data.cashFlow.cash_flow : [];
+        const opCashObj = cashFlowArr.find(m => m.category === 'operating');
+        const invCashObj = cashFlowArr.find(m => m.category === 'investing');
 
         if (opCashObj?.history?.length > 0 && invCashObj?.history?.length > 0) {
             extractedFCF = opCashObj.history[0].value + invCashObj.history[0].value;
@@ -58,14 +58,8 @@ export default function FreeCashFlowCard({ data, manualOverride, lastUpdated }) 
 
     // Extract revenue for yield normalization
     let revenue = null;
-    const incomeArray = Array.isArray(data?.income)
-        ? data.income
-        : (Array.isArray(data?.income?.full_statement) ? data.income.full_statement : []);
-    const revObj = incomeArray.find(m => {
-        const p = m.particular?.toLowerCase() || '';
-        return Array.isArray(m.history) && m.history.length >= 1 &&
-            (p === 'total revenue' || p === 'revenue' || p.includes('revenue') || p.includes('sales'));
-    });
+    const fullStmt = Array.isArray(data?.income?.full_statement) ? data.income.full_statement : [];
+    const revObj = fullStmt.find(m => m.particular === 'Total Revenue' || m.particular === 'Revenue');
     if (revObj?.history?.length > 0) revenue = revObj.history[0].value;
 
     const currentFCF = isManual

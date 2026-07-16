@@ -1,48 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function PcrOiCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || 0.95);
-    const [trend, setTrend] = useState(initialData?.trend || "Stable");
-
+export default function PcrOiCard({ liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('pcr_oi');
 
-    // Calculate Bias and Score
-    let score = 50;
-    let bias = "Neutral";
-    let confidence = "90%";
-    let sentiment = "Neutral";
+    const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
+    const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);
 
-    if (currentValue > 1.30) {
-        bias = "Contrarian Warning";
-        score = 85;
-        sentiment = "Overbought";
-    } else if (currentValue >= 1.00 && currentValue <= 1.30) {
-        bias = "Bullish";
-        score = 80;
-        sentiment = "Bullish";
-    } else if (currentValue >= 0.80 && currentValue < 1.00) {
-        bias = "Neutral";
-        score = 60;
-        sentiment = "Neutral";
-    } else {
-        bias = "Bearish";
-        score = 25;
-        sentiment = "Bearish";
-    }
-
-    // AI Insight
-    let aiInsightText = "";
-    if (currentValue > 1.30) {
-        aiInsightText = "Explain that sentiment has become excessively bullish and a contrarian reversal risk exists.";
-    } else if (currentValue >= 1.00) {
-        aiInsightText = "Explain that Put positioning exceeds Call positioning, indicating bullish sentiment.";
-    } else if (currentValue >= 0.80) {
-        aiInsightText = "Explain that options positioning remains balanced.";
-    } else {
-        aiInsightText = "Explain that Call positioning dominates, reflecting bearish market sentiment.";
-    }
+    const trend = isLiveData ? liveData.trend : "Stable";
+    const score = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
+    const bias = isLiveData ? liveData.bias : "Neutral";
+    const sentiment = isLiveData ? liveData.sentiment : "Neutral";
+    const confidence = isLiveData ? liveData.confidence : "0%";
+    const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Waiting for market data...");
 
     const whyItMatters = [
         "Measures institutional options sentiment.",
@@ -52,24 +23,21 @@ export default function PcrOiCard({ initialData = null }) {
         "Widely followed by professional options traders."
     ];
 
-    const handleSave = (val) => {
-        const n = parseFloat(val);
-        if (!isNaN(n)) setCurrentValue(n);
-    };
+    const displayValue = rawValue !== null && rawValue !== '--' ? parseFloat(rawValue).toFixed(2) : '--';
 
     return (
         <IndicatorCard
             config={{ 
                 title: "Put-Call Ratio (OI)", 
                 category: "Put-Call Ratio", 
-                mode: "MANUAL", 
+                mode: isLiveData ? "AUTO" : "MANUAL", 
                 creditScore: configData.creditScore, 
-                updateTime: "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel 
             }}
             data={{ 
-                currentValueObj: { label: "PCR (OI)", value: currentValue.toFixed(2) }, 
+                currentValueObj: { label: "PCR (OI)", value: displayValue }, 
                 details: [
                     { label: "Trend", value: trend },
                     { label: "Sentiment", value: sentiment }
@@ -79,9 +47,8 @@ export default function PcrOiCard({ initialData = null }) {
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ points: initialData?.history || [], valueKey: "value", valueName: "PCR (OI)" }}
+            chartData={{ points: liveData?.history || [], valueKey: "value", valueName: "PCR (OI)" }}
             insights={{ aiInsight: aiInsightText, whyItMatters }}
-            onSave={handleSave}
         />
     );
 }

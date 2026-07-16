@@ -5,9 +5,14 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightVolatilityCard, scoreVIX } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function VolatilityCard({ data, manualOverride, lastUpdated }) {
-    const vixValue = (manualOverride !== undefined && manualOverride !== null && manualOverride !== '')
-        ? cleanNum(manualOverride)
-        : null;
+    const liveVix = data?.india_vix;
+    const isLive = liveVix !== undefined && liveVix !== null && liveVix !== '';
+
+    const vixValue = isLive
+        ? cleanNum(liveVix)
+        : (manualOverride !== undefined && manualOverride !== null && manualOverride !== '')
+            ? cleanNum(manualOverride)
+            : null;
 
     const configData = getIndicatorConfig('india_vix');
     const { score, bias, confidence, vixRegime, marketCondition } = scoreVIX(vixValue);
@@ -18,10 +23,10 @@ export default function VolatilityCard({ data, manualOverride, lastUpdated }) {
             config={{
                 title: 'India VIX',
                 category: 'Market Health',
-                mode: 'MANUAL',
+                mode: isLive ? 'AUTO' : 'MANUAL',
                 creditScore: configData?.creditScore ?? 9,
-                updateTime: typeof lastUpdated === 'function' ? lastUpdated(false) : (lastUpdated || '--:--'),
-                source: 'Manual',
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLive) : (lastUpdated || '--:--'),
+                source: isLive ? 'Upstox V3' : 'Manual',
                 aiModel: configData?.aiModel ?? 'Engine v3'
             }}
             data={{
@@ -33,12 +38,12 @@ export default function VolatilityCard({ data, manualOverride, lastUpdated }) {
                     vixValue !== null && {
                         label: 'VIX Regime',
                         value: vixRegime,
-                        isManual: true
+                        isManual: !isLive
                     },
                     vixValue !== null && {
                         label: 'Market Condition',
                         value: marketCondition,
-                        isManual: true
+                        isManual: !isLive
                     }
                 ].filter(Boolean),
                 score: score ?? 0,

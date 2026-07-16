@@ -1908,3 +1908,229 @@ export function generateAiInsightVolatilityCard(vixValue, vixRegime, marketCondi
     }
     return `India VIX is at extreme lows (${rounded}) â€” historically rare and a sign of market complacency. While current conditions are calm, such extreme suppression of volatility has historically been a leading indicator of sudden spikes. Maintain disciplined stops.`;
 }
+export function scoreEVEbitda(currentEV, sectorEV) {
+    if (currentEV === null || isNaN(currentEV)) {
+        return { score: 0, bias: 'Neutral', confidence: 0, valuationZone: 'Unknown' };
+    }
+
+    let f1Score;
+    let valuationZone;
+    if (currentEV < 5) {
+        f1Score = 95; valuationZone = 'Deep Value';
+    } else if (currentEV < 8) {
+        f1Score = 80; valuationZone = 'Undervalued';
+    } else if (currentEV < 12) {
+        f1Score = 60; valuationZone = 'Fairly Valued';
+    } else if (currentEV < 18) {
+        f1Score = 40; valuationZone = 'Overvalued';
+    } else {
+        f1Score = 15; valuationZone = 'Highly Overvalued';
+    }
+
+    let f2Score = f1Score;
+    let hasSector = false;
+    if (sectorEV !== null && !isNaN(sectorEV) && sectorEV > 0) {
+        hasSector = true;
+        const ratio = currentEV / sectorEV;
+        if (ratio < 0.6) f2Score = 95;
+        else if (ratio < 0.8) f2Score = 80;
+        else if (ratio < 1.0) f2Score = 60;
+        else if (ratio < 1.2) f2Score = 40;
+        else f2Score = 15;
+    }
+
+    const blended = hasSector ? (f1Score * 0.5) + (f2Score * 0.5) : f1Score;
+    const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
+
+    let bias;
+    if (finalScore >= 80) bias = 'Strong Bullish';
+    else if (finalScore >= 60) bias = 'Bullish';
+    else if (finalScore >= 40) bias = 'Neutral';
+    else if (finalScore >= 20) bias = 'Bearish';
+    else bias = 'Strong Bearish';
+
+    return { score: finalScore, bias, confidence: hasSector ? 90 : 70, valuationZone };
+}
+
+export function generateAiInsightEVEbitdaCard(currentEV, sectorEV, valuationZone) {
+    if (currentEV === null || isNaN(currentEV)) return 'Waiting for EV/EBITDA data to generate insight.';
+    let text = `The company trades at an EV/EBITDA multiple of ${currentEV.toFixed(2)}x`;
+    if (sectorEV !== null && !isNaN(sectorEV)) {
+        text += ` compared to the sector average of ${sectorEV.toFixed(2)}x.`;
+    } else {
+        text += `.`;
+    }
+
+    if (valuationZone === 'Deep Value' || valuationZone === 'Undervalued') {
+        text += " This suggests the company is trading at a discount relative to its cash flow generation capacity, a potential value opportunity.";
+    } else if (valuationZone === 'Overvalued' || valuationZone === 'Highly Overvalued') {
+        text += " The market is pricing in significant future growth, making the current valuation expensive relative to current cash flows.";
+    } else {
+        text += " The valuation appears reasonable and in line with typical market multiples for its cash flow profile.";
+    }
+    return text;
+}
+
+export function scoreROA(currentROA, sectorROA) {
+    if (currentROA === null || isNaN(currentROA)) {
+        return { score: 0, bias: 'Neutral', confidence: 0, efficiencyZone: 'Unknown' };
+    }
+
+    let f1Score;
+    let efficiencyZone;
+    if (currentROA > 15) {
+        f1Score = 95; efficiencyZone = 'Elite Efficiency';
+    } else if (currentROA > 8) {
+        f1Score = 80; efficiencyZone = 'High Efficiency';
+    } else if (currentROA > 4) {
+        f1Score = 60; efficiencyZone = 'Average Efficiency';
+    } else if (currentROA > 0) {
+        f1Score = 40; efficiencyZone = 'Low Efficiency';
+    } else {
+        f1Score = 15; efficiencyZone = 'Asset Destroyer';
+    }
+
+    let f2Score = f1Score;
+    let hasSector = false;
+    if (sectorROA !== null && !isNaN(sectorROA) && sectorROA !== 0) {
+        hasSector = true;
+        const diff = currentROA - sectorROA;
+        if (diff > 5) f2Score = 95;
+        else if (diff > 2) f2Score = 80;
+        else if (diff > -2) f2Score = 60;
+        else if (diff > -5) f2Score = 40;
+        else f2Score = 15;
+    }
+
+    const blended = hasSector ? (f1Score * 0.5) + (f2Score * 0.5) : f1Score;
+    const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
+
+    let bias;
+    if (finalScore >= 80) bias = 'Strong Bullish';
+    else if (finalScore >= 60) bias = 'Bullish';
+    else if (finalScore >= 40) bias = 'Neutral';
+    else if (finalScore >= 20) bias = 'Bearish';
+    else bias = 'Strong Bearish';
+
+    return { score: finalScore, bias, confidence: hasSector ? 90 : 70, efficiencyZone };
+}
+
+export function generateAiInsightROACard(currentROA, sectorROA, efficiencyZone) {
+    if (currentROA === null || isNaN(currentROA)) return 'Waiting for ROA data to generate insight.';
+    let text = `The company generates a Return on Assets (ROA) of ${currentROA.toFixed(2)}%`;
+    if (sectorROA !== null && !isNaN(sectorROA)) {
+        text += ` compared to the sector average of ${sectorROA.toFixed(2)}%.`;
+    } else {
+        text += `.`;
+    }
+
+    if (efficiencyZone === 'Elite Efficiency' || efficiencyZone === 'High Efficiency') {
+        text += " Management is highly effective at deploying the company's asset base to generate net income, indicating a strong operational moat.";
+    } else if (efficiencyZone === 'Low Efficiency' || efficiencyZone === 'Asset Destroyer') {
+        text += " The company is struggling to extract profitability from its assets, which is a structural concern for long-term compounding.";
+    } else {
+        text += " Asset utilization is stable and in line with typical baseline expectations.";
+    }
+    return text;
+}
+
+// --- Promoter Holding Score ---------------------------------------------------
+export function scorePromoterHolding(currentPct, prevPct) {
+    if (currentPct === null || isNaN(currentPct)) return { score: 0, bias: 'Neutral', confidence: 0, holdingZone: 'Unknown', trend: 'No Data' };
+    let f1Score, holdingZone;
+    if (currentPct >= 70) { f1Score = 90; holdingZone = 'Fortress Control'; }
+    else if (currentPct >= 55) { f1Score = 80; holdingZone = 'Strong Commitment'; }
+    else if (currentPct >= 45) { f1Score = 65; holdingZone = 'Moderate Commitment'; }
+    else if (currentPct >= 30) { f1Score = 48; holdingZone = 'Diluted Control'; }
+    else if (currentPct >= 15) { f1Score = 28; holdingZone = 'Low Promoter Skin'; }
+    else { f1Score = 10; holdingZone = 'Minimal Insider Stake'; }
+    let f2Score = f1Score, trend = 'Stable';
+    if (prevPct !== null && !isNaN(prevPct)) {
+        const delta = currentPct - prevPct;
+        if (delta > 1.0) { f2Score = Math.min(100, f1Score + 10); trend = 'Increasing'; }
+        else if (delta > 0.2) { f2Score = Math.min(100, f1Score + 5); trend = 'Slight Increase'; }
+        else if (delta < -1.0) { f2Score = Math.max(0, f1Score - 15); trend = 'Decreasing'; }
+        else if (delta < -0.2) { f2Score = Math.max(0, f1Score - 7); trend = 'Slight Dilution'; }
+    }
+    const finalScore = Math.round(Math.max(0, Math.min(100, (f1Score * 0.65) + (f2Score * 0.35))));
+    let bias;
+    if (finalScore >= 80) bias = 'Strong Bullish'; else if (finalScore >= 62) bias = 'Bullish';
+    else if (finalScore >= 42) bias = 'Neutral'; else if (finalScore >= 25) bias = 'Bearish'; else bias = 'Strong Bearish';
+    return { score: finalScore, bias, confidence: prevPct !== null ? 88 : 72, holdingZone, trend };
+}
+
+export function generateAiInsightPromoterCard(currentPct, prevPct, holdingZone, trend) {
+    if (currentPct === null || isNaN(currentPct)) return 'Awaiting shareholding data from Upstox.';
+    let text = `Promoters hold ${currentPct.toFixed(2)}% of shares (${holdingZone}).`;
+    if (prevPct !== null && !isNaN(prevPct)) {
+        const delta = currentPct - prevPct;
+        if (delta > 0) text += ` Stake increased by ${delta.toFixed(2)}% QoQ — a vote of confidence in the company's future.`;
+        else if (delta < 0) text += ` Stake decreased by ${Math.abs(delta).toFixed(2)}% QoQ — monitor for continued dilution.`;
+        else text += ' Promoter stake remained unchanged this quarter.';
+    }
+    if (currentPct >= 55) text += ' High promoter stake strongly aligns management with shareholder interests.';
+    else if (currentPct < 30) text += ' Low promoter holding increases governance risk.';
+    return text;
+}
+
+// --- Smart Money Flow Score ---------------------------------------------------
+export function scoreSmartMoneyFlow(latestInstitutional, prevInstitutional) {
+    if (latestInstitutional === null || isNaN(latestInstitutional)) return { score: 0, bias: 'Neutral', confidence: 0, flowZone: 'Unknown', trend: 'No Data' };
+    let f1Score, flowZone;
+    if (latestInstitutional >= 50) { f1Score = 90; flowZone = 'Heavy Institutional Ownership'; }
+    else if (latestInstitutional >= 35) { f1Score = 78; flowZone = 'Strong Institutional Interest'; }
+    else if (latestInstitutional >= 20) { f1Score = 62; flowZone = 'Moderate Institutional Interest'; }
+    else if (latestInstitutional >= 10) { f1Score = 45; flowZone = 'Low Institutional Interest'; }
+    else { f1Score = 25; flowZone = 'Retail-Dominated'; }
+    let f2Score = f1Score, trend = 'Stable';
+    if (prevInstitutional !== null && !isNaN(prevInstitutional)) {
+        const delta = latestInstitutional - prevInstitutional;
+        if (delta > 1.5) { f2Score = Math.min(100, f1Score + 12); trend = 'Accumulating'; }
+        else if (delta > 0.5) { f2Score = Math.min(100, f1Score + 6); trend = 'Slight Accumulation'; }
+        else if (delta < -1.5) { f2Score = Math.max(0, f1Score - 18); trend = 'Distributing'; }
+        else if (delta < -0.5) { f2Score = Math.max(0, f1Score - 8); trend = 'Slight Distribution'; }
+    }
+    const finalScore = Math.round(Math.max(0, Math.min(100, (f1Score * 0.55) + (f2Score * 0.45))));
+    let bias;
+    if (finalScore >= 80) bias = 'Strong Bullish'; else if (finalScore >= 62) bias = 'Bullish';
+    else if (finalScore >= 42) bias = 'Neutral'; else if (finalScore >= 25) bias = 'Bearish'; else bias = 'Strong Bearish';
+    return { score: finalScore, bias, confidence: prevInstitutional !== null ? 90 : 72, flowZone, trend };
+}
+
+export function generateAiInsightSmartMoneyCard(latestInstitutional, prevInstitutional, flowZone, trend) {
+    if (latestInstitutional === null || isNaN(latestInstitutional)) return 'Awaiting shareholding data from Upstox.';
+    let text = `Institutional investors (FII + DII + MF) hold ${latestInstitutional.toFixed(2)}% — classified as "${flowZone}".`;
+    if (prevInstitutional !== null && !isNaN(prevInstitutional)) {
+        const delta = latestInstitutional - prevInstitutional;
+        if (delta > 0) text += ` Institutions are accumulating (+${delta.toFixed(2)}% QoQ), which typically precedes price appreciation.`;
+        else if (delta < 0) text += ` Institutions are distributing (${delta.toFixed(2)}% QoQ). Net outflows from smart money are a cautionary signal.`;
+        else text += ' Institutional holdings are stable this quarter.';
+    }
+    return text;
+}
+
+// --- Earnings Quality Score ---------------------------------------------------
+export function scoreEarningsQuality(cfoToNetProfit) {
+    if (cfoToNetProfit === null || isNaN(cfoToNetProfit)) return { score: 0, bias: 'Neutral', confidence: 0, qualityLabel: 'Unknown' };
+    let score, qualityLabel;
+    if (cfoToNetProfit > 1.5) { score = 95; qualityLabel = 'Exceptional Cash Quality'; }
+    else if (cfoToNetProfit > 1.1) { score = 82; qualityLabel = 'High Quality Earnings'; }
+    else if (cfoToNetProfit > 0.8) { score = 65; qualityLabel = 'Adequate Cash Conversion'; }
+    else if (cfoToNetProfit > 0.5) { score = 45; qualityLabel = 'Weak Cash Conversion'; }
+    else if (cfoToNetProfit > 0) { score = 28; qualityLabel = 'Poor Cash Quality'; }
+    else if (cfoToNetProfit === 0) { score = 40; qualityLabel = 'Break-Even'; }
+    else { score = 10; qualityLabel = 'Negative CFO — Paper Profits'; }
+    let bias;
+    if (score >= 80) bias = 'Strong Bullish'; else if (score >= 62) bias = 'Bullish';
+    else if (score >= 42) bias = 'Neutral'; else if (score >= 25) bias = 'Bearish'; else bias = 'Strong Bearish';
+    return { score, bias, confidence: 88, qualityLabel };
+}
+
+export function generateAiInsightEarningsQualityCard(cfoToNetProfit, qualityLabel) {
+    if (cfoToNetProfit === null || isNaN(cfoToNetProfit)) return 'Awaiting cash flow and income data from Upstox.';
+    let text = `Earnings Quality Ratio (CFO / Net Profit) is ${cfoToNetProfit.toFixed(2)}x — "${qualityLabel}".`;
+    if (cfoToNetProfit > 1.0) text += ` For every ?1 of reported net profit, the company generates ?${cfoToNetProfit.toFixed(2)} of actual operating cash. Profits are real and cash-backed.`;
+    else if (cfoToNetProfit > 0) text += ` Only ?${cfoToNetProfit.toFixed(2)} of every ?1 profit is backed by real cash flows — possible aggressive revenue recognition or working capital buildup.`;
+    else text += ' Operating cash flows are negative despite reported profits — a classic earnings quality warning sign.';
+    return text;
+}

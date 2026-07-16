@@ -156,6 +156,9 @@ const handleMarketData = (dataBuffer) => {
     }
 };
 
+// Queue for subscriptions requested before WS connects
+let pendingSubscriptions = new Set(["NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank", "NSE_EQ|RELIANCE", "NSE_INDEX|India VIX"]);
+
 export const connectUpstoxWebsocket = async () => {
     if (!FeedResponse) await initProtobuf();
 
@@ -180,14 +183,21 @@ export const connectUpstoxWebsocket = async () => {
 
         console.log("🔌 Connecting to Upstox Market Data Feed V3...");
         
+        if (upstoxWs) {
+            upstoxWs.removeAllListeners();
+            upstoxWs.close();
+        }
+
         upstoxWs = new WebSocket(wsUrl, {
             followRedirects: true
         });
 
         upstoxWs.on("open", () => {
             console.log("✅ Connected to Upstox Market Data Feed V3");
-            // Default initial subscriptions for test
-            subscribeToInstruments(["NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank", "NSE_EQ|RELIANCE", "NSE_INDEX|India VIX"], "full");
+            if (pendingSubscriptions.size > 0) {
+                const keys = Array.from(pendingSubscriptions);
+                subscribeToInstruments(keys, "full");
+            }
         });
 
         upstoxWs.on("message", (data) => {
@@ -209,8 +219,11 @@ export const connectUpstoxWebsocket = async () => {
 };
 
 export const subscribeToInstruments = (instrumentKeys, mode = "full") => {
+    // Add to pending subscriptions
+    instrumentKeys.forEach(k => pendingSubscriptions.add(k));
+
     if (!upstoxWs || upstoxWs.readyState !== WebSocket.OPEN) {
-        console.warn("⚠️ Cannot subscribe: Upstox WebSocket is not open.");
+        console.warn(`⚠️ Cannot send subscription immediately (WS not open). Queued ${instrumentKeys.length} instruments.`);
         return;
     }
 
@@ -224,5 +237,5 @@ export const subscribeToInstruments = (instrumentKeys, mode = "full") => {
     };
 
     upstoxWs.send(Buffer.from(JSON.stringify(request)));
-    console.log(`📡 Subscribed to ${instrumentKeys.length} instruments [${mode}]`);
+    console.log(`📡 Sent subscription for ${instrumentKeys.length} instruments [${mode}]`);
 };

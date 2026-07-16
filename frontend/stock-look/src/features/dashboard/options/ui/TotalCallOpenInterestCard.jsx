@@ -1,41 +1,20 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { formatIndianNumber } from '@/shared/utils/formatters';
 
-export default function TotalCallOpenInterestCard({ initialData = null }) {
-    const [currentValue, setCurrentValue] = useState(initialData?.currentValue || 1250000);
-    const [highestOIStrike, setHighestOIStrike] = useState(initialData?.highestOIStrike || 22500);
-    const [oiChange, setOiChange] = useState(initialData?.oiChange || 45000);
-
+export default function TotalCallOpenInterestCard({ liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('total_call_oi');
     
-    let score = 0, bias = "Neutral", confidence = "85%";
-    
-    // Logic mapping based on Total Call OI Spec
-    if (currentValue < 500000) {
-        bias = "Bullish";
-        score = 85;
-    } else if (currentValue >= 500000 && currentValue <= 1500000) {
-        bias = "Neutral";
-        score = 65;
-    } else if (currentValue > 1500000 && currentValue <= 3000000) {
-        bias = "Bearish";
-        score = 45;
-    } else {
-        bias = "Strong Bearish";
-        score = 20;
-    }
+    const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
+    const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);
 
-    let aiInsightText = "";
-    if (bias === "Strong Bearish") {
-        aiInsightText = "Explain that option writers are building resistance near current price levels.";
-    } else if (bias === "Bearish" && oiChange > 100000) {
-        aiInsightText = "Explain that fresh Call writing indicates increasing resistance expectations.";
-    } else if (bias === "Neutral") {
-        aiInsightText = "Explain that resistance remains relatively unchanged.";
-    } else {
-        aiInsightText = "Explain that resistance is weakening as Call writers unwind positions.";
-    }
+    const highestOIStrike = isLiveData ? liveData.highestOIStrike : '--';
+    const oiChange = isLiveData ? liveData.oiChange : '--';
+    const score = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
+    const bias = isLiveData ? liveData.bias : "Neutral";
+    const confidence = isLiveData ? liveData.confidence : "0%";
+    const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Waiting for market data...");
 
     const whyItMatters = [
         "Identifies potential resistance zones.",
@@ -45,9 +24,11 @@ export default function TotalCallOpenInterestCard({ initialData = null }) {
         "Supports options-based market analysis."
     ];
 
+    const displayValue = rawValue !== null && rawValue !== '--' ? formatIndianNumber(rawValue) : '--';
+
     const details = [
-        { label: "Highest OI Strike", value: highestOIStrike.toLocaleString() },
-        { label: "Change", value: oiChange > 0 ? `+${oiChange.toLocaleString()}` : oiChange.toLocaleString(), color: oiChange > 0 ? "text-green-500" : "text-red-500" }
+        { label: "Highest OI Strike", value: highestOIStrike !== '--' ? highestOIStrike.toLocaleString() : '--' },
+        { label: "Change", value: oiChange !== '--' ? (oiChange > 0 ? `+${formatIndianNumber(oiChange)}` : formatIndianNumber(oiChange)) : '--', color: oiChange > 0 ? "text-green-500" : (oiChange < 0 ? "text-red-500" : "") }
     ];
 
     return (
@@ -55,33 +36,22 @@ export default function TotalCallOpenInterestCard({ initialData = null }) {
             config={{ 
                 title: "Total Call Open Interest", 
                 category: "Open Interest", 
-                mode: "MANUAL", 
+                mode: isLiveData ? "AUTO" : "MANUAL", 
                 creditScore: configData.creditScore, 
-                updateTime: "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel 
             }}
             data={{ 
-                currentValueObj: { label: "Total Call OI", value: currentValue.toLocaleString() }, 
+                currentValueObj: { label: "Total Call OI", value: displayValue }, 
                 details, 
                 score, 
                 bias, 
                 confidence, 
                 impactWeight: configData.impactWeight 
             }}
-            chartData={{ 
-                points: initialData?.history || [{date:"2026-07-01",value:1200000}, {date:"2026-07-02",value:1250000}], 
-                valueKey: "value", 
-                valueName: "Call OI" 
-            }}
-            insights={{ 
-                aiInsight: aiInsightText, 
-                whyItMatters 
-            }}
-            onSave={(val) => { 
-                const n = parseFloat(val); 
-                if(!isNaN(n)) setCurrentValue(n); 
-            }}
+            chartData={null}
+            insights={{ aiInsight: aiInsightText, whyItMatters }}
         />
     );
 }

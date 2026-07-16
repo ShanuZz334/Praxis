@@ -41,15 +41,18 @@ export default function DebtToEquityCard({ data, manualOverride, lastUpdated }) 
 
     // Attempt 2: Calculate from Balance Sheet (if ratios missed it)
     if (isManual && data?.balanceSheet) {
-        const bsHistory = Array.isArray(data.balanceSheet.history) ? data.balanceSheet.history : [];
         const fullStmt = Array.isArray(data.balanceSheet.full_statement) ? data.balanceSheet.full_statement : [];
-        const latestSummary = bsHistory[0];
-        const equityObj = fullStmt.find(m => m.particular?.toLowerCase().includes('equity capital'));
+        const equityObj = fullStmt.find(m => m.particular === 'Equity Capital');
+        const nonCurrLiabObj = fullStmt.find(m => m.particular === 'Non-Current Liabilities');
+        const currLiabObj = fullStmt.find(m => m.particular === 'Current Liabilities');
 
-        if (latestSummary?.total_liability !== undefined && equityObj?.history?.length > 0) {
+        if (equityObj?.history?.length > 0 && (nonCurrLiabObj || currLiabObj)) {
             const latestEquity = equityObj.history[0].value;
+            const ncl = nonCurrLiabObj?.history?.[0]?.value || 0;
+            const cl = currLiabObj?.history?.[0]?.value || 0;
+            const totalDebt = ncl + cl;
             if (latestEquity > 0) {
-                extractedValue = latestSummary.total_liability / latestEquity;
+                extractedValue = totalDebt / latestEquity;
                 isManual = false;
             }
         }

@@ -29,14 +29,24 @@ import { formatIndianNumber } from '@/shared/utils/formatters';
 // =============================
 // Main Component
 // =============================
-export default function OptionsChainLayout({ chain, picks, spotPrice, metrics, goldenZone, manualIvRank, setManualIvRank }) {
-    const [selectedOption, setSelectedOption] = React.useState(null);
+export default function OptionsChainLayout({ chain, picks, spotPrice, baseSpotPrice, metrics, goldenZone, manualIvRank, setManualIvRank }) {
+    const [selectedOptionState, setSelectedOption] = React.useState(null);
+
+    // Dynamically lookup the live data from the chain so the panel updates in real-time
+    const liveSelectedRow = selectedOptionState ? chain.find(r => r.strike === selectedOptionState.strike) : null;
+    const liveSelectedData = liveSelectedRow ? (selectedOptionState.type === 'call' ? liveSelectedRow.call : liveSelectedRow.put) : null;
+    
+    // Construct the live selectedOption object
+    const selectedOption = selectedOptionState && liveSelectedData ? {
+        ...selectedOptionState,
+        data: liveSelectedData
+    } : selectedOptionState;
 
     return (
         <div className="w-full flex flex-col lg:flex-row gap-3 mt-4 mb-6">
 
             {/* ================= LEFT PANEL: CONTEXT / DETAILS ================= */}
-            <div className="w-full lg:w-60 shrink-0 bg-background-card rounded-xl border border-border-default p-3 flex flex-col gap-3 min-h-[300px] lg:h-[600px]">
+            <div className="w-full lg:w-56 shrink-0 bg-background-card rounded-xl border border-border-default p-3 flex flex-col gap-3 min-h-[300px] lg:h-[600px]">
 
                 {/* MODE A: DETAIL VIEW (If Option Selected) */}
                 {selectedOption ? (
@@ -62,12 +72,12 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics, g
                             <div className="grid grid-cols-2 gap-3 px-1 mb-4">
                                 <div className="group bg-background-surface/20 hover:bg-background-surface/40 border border-border-default/20 hover:border-border-default/40 rounded-xl p-3 flex flex-col justify-center transition-all shadow-sm">
                                     <div className="text-[9px] text-text-tertiary uppercase font-bold tracking-widest mb-1 flex items-center gap-1">LTP</div>
-                                    <div className="text-xl font-black text-text-primary leading-none tabular-nums italic">₹{selectedOption.data.ltp}</div>
+                                    <div className="text-[17px] font-black text-text-primary leading-none tabular-nums italic">₹{Number(selectedOption.data.ltp || 0).toFixed(2)}</div>
                                 </div>
                                 <div className="group bg-background-surface/20 hover:bg-background-surface/40 border border-border-default/20 hover:border-border-default/40 rounded-xl p-3 flex flex-col justify-center transition-all shadow-sm">
                                     <div className="text-[9px] text-text-tertiary uppercase font-bold tracking-widest mb-1">Change</div>
-                                    <div className={`text-lg font-black leading-none ${selectedOption.data.oiChg >= 0 ? 'text-emerald-500 drop-shadow-[0_0_4px_rgba(16,185,129,0.3)]' : 'text-red-500 drop-shadow-[0_0_4px_rgba(239,68,68,0.3)]'}`}>
-                                        {selectedOption.data.oiChg > 0 ? '+' : ''}{selectedOption.data.oiChg}%
+                                    <div className={`text-base font-black leading-none ${selectedOption.data.oiChgPct >= 0 ? 'text-emerald-500 drop-shadow-[0_0_4px_rgba(16,185,129,0.3)]' : 'text-red-500 drop-shadow-[0_0_4px_rgba(239,68,68,0.3)]'}`}>
+                                        {selectedOption.data.oiChgPct > 0 ? '+' : ''}{Number(selectedOption.data.oiChgPct || 0).toFixed(2)}%
                                     </div>
                                 </div>
                                 <div className="group bg-background-surface/20 hover:bg-background-surface/40 border border-border-default/20 hover:border-border-default/40 rounded-xl p-3 flex flex-col justify-center transition-all shadow-sm">
@@ -99,71 +109,63 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics, g
                                     Greek Metrics
                                 </div>
                                 
-                                {(!goldenZone || selectedOption.strike < goldenZone.minStrike || selectedOption.strike > goldenZone.maxStrike) ? (
-                                    <div className="p-4 border border-border-default/20 rounded-xl bg-background-surface/30 flex flex-col items-center justify-center text-center gap-2 mt-2">
-                                        <svg className="w-6 h-6 text-text-tertiary opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                                        <div className="text-xs font-bold text-text-secondary uppercase tracking-widest">Greeks Not Available</div>
-                                        <div className="text-[10px] text-text-tertiary max-w-[180px]">These metrics are only fetched for the active 12-strike Golden Zone to optimize performance.</div>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 text-xs px-1">
-                                        {/* Delta */}
-                                        <div className="flex flex-col gap-1.5 group transition-all">
-                                            <div className="flex justify-between items-center text-blue-500 font-bold">
-                                                <span className="text-[9px] uppercase tracking-wider">Delta</span>
-                                                <span className="font-mono text-[11px]">{(selectedOption.data.delta || 0).toFixed(3)}</span>
-                                            </div>
-                                            <div className="w-full bg-blue-500/10 h-0.5 rounded-full overflow-hidden">
-                                                <div
-                                                    className="bg-blue-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(59,130,246,0.3)]"
-                                                    style={{ width: `${Math.min(Math.abs(selectedOption.data.delta || 0) * 100, 100)}%` }}
-                                                />
-                                            </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 text-xs px-1">
+                                    {/* Delta */}
+                                    <div className="flex flex-col gap-1.5 group transition-all">
+                                        <div className="flex justify-between items-center text-blue-500 font-bold">
+                                            <span className="text-[9px] uppercase tracking-wider">Delta</span>
+                                            <span className="font-mono text-[11px]">{(selectedOption.data.delta || 0).toFixed(3)}</span>
                                         </div>
-
-                                        {/* Gamma */}
-                                        <div className="flex flex-col gap-1.5 group transition-all">
-                                            <div className="flex justify-between items-center text-purple-500 font-bold">
-                                                <span className="text-[9px] uppercase tracking-wider">Gamma</span>
-                                                <span className="font-mono text-[11px]">{(selectedOption.data.gamma || 0).toFixed(4)}</span>
-                                            </div>
-                                            <div className="w-full bg-purple-500/10 h-0.5 rounded-full overflow-hidden">
-                                                <div
-                                                    className="bg-purple-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(168,85,247,0.3)]"
-                                                    style={{ width: `${Math.min((selectedOption.data.gamma || 0) * 5000, 100)}%` }}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Theta */}
-                                        <div className="flex flex-col gap-1.5 group transition-all">
-                                            <div className="flex justify-between items-center text-orange-500 font-bold">
-                                                <span className="text-[9px] uppercase tracking-wider">Theta</span>
-                                                <span className="font-mono text-[11px]">{(selectedOption.data.theta || 0).toFixed(2)}</span>
-                                            </div>
-                                            <div className="w-full bg-orange-500/10 h-0.5 rounded-full overflow-hidden">
-                                                <div
-                                                    className="bg-orange-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(249,115,22,0.3)]"
-                                                    style={{ width: `${Math.min(Math.abs(selectedOption.data.theta || 0) * 5, 100)}%` }}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Vega */}
-                                        <div className="flex flex-col gap-1.5 group transition-all">
-                                            <div className="flex justify-between items-center text-teal-500 font-bold">
-                                                <span className="text-[9px] uppercase tracking-wider">Vega</span>
-                                                <span className="font-mono text-[11px]">{(selectedOption.data.vega || 0).toFixed(2)}</span>
-                                            </div>
-                                            <div className="w-full bg-teal-500/10 h-0.5 rounded-full overflow-hidden">
-                                                <div
-                                                    className="bg-teal-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(20,184,166,0.3)]"
-                                                    style={{ width: `${Math.min((selectedOption.data.vega || 0) * 15, 100)}%` }}
-                                                />
-                                            </div>
+                                        <div className="w-full bg-blue-500/10 h-0.5 rounded-full overflow-hidden">
+                                            <div
+                                                className="bg-blue-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+                                                style={{ width: `${Math.min(Math.abs(selectedOption.data.delta || 0) * 100, 100)}%` }}
+                                            />
                                         </div>
                                     </div>
-                                )}
+
+                                    {/* Gamma */}
+                                    <div className="flex flex-col gap-1.5 group transition-all">
+                                        <div className="flex justify-between items-center text-purple-500 font-bold">
+                                            <span className="text-[9px] uppercase tracking-wider">Gamma</span>
+                                            <span className="font-mono text-[11px]">{(selectedOption.data.gamma || 0).toFixed(4)}</span>
+                                        </div>
+                                        <div className="w-full bg-purple-500/10 h-0.5 rounded-full overflow-hidden">
+                                            <div
+                                                className="bg-purple-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(168,85,247,0.3)]"
+                                                style={{ width: `${Math.min((selectedOption.data.gamma || 0) * 5000, 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Theta */}
+                                    <div className="flex flex-col gap-1.5 group transition-all">
+                                        <div className="flex justify-between items-center text-orange-500 font-bold">
+                                            <span className="text-[9px] uppercase tracking-wider">Theta</span>
+                                            <span className="font-mono text-[11px]">{(selectedOption.data.theta || 0).toFixed(2)}</span>
+                                        </div>
+                                        <div className="w-full bg-orange-500/10 h-0.5 rounded-full overflow-hidden">
+                                            <div
+                                                className="bg-orange-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(249,115,22,0.3)]"
+                                                style={{ width: `${Math.min(Math.abs(selectedOption.data.theta || 0) * 10, 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Vega */}
+                                    <div className="flex flex-col gap-1.5 group transition-all">
+                                        <div className="flex justify-between items-center text-teal-500 font-bold">
+                                            <span className="text-[9px] uppercase tracking-wider">Vega</span>
+                                            <span className="font-mono text-[11px]">{(selectedOption.data.vega || 0).toFixed(2)}</span>
+                                        </div>
+                                        <div className="w-full bg-teal-500/10 h-0.5 rounded-full overflow-hidden">
+                                            <div
+                                                className="bg-teal-500 h-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(20,184,166,0.3)]"
+                                                style={{ width: `${Math.min(Math.abs(selectedOption.data.vega || 0) * 10, 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -187,7 +189,7 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics, g
                                         </div>
                                     </PortalTooltip>
                                 </div>
-                                <div className="text-2xl font-black text-text-primary tracking-tight leading-none tabular-nums italic truncate">₹{spotPrice.toLocaleString()}</div>
+                                <div className="text-[19px] font-black text-text-primary tracking-tight leading-none tabular-nums italic truncate">₹{spotPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                             </div>
 
                             {/* PCR CARD */}
@@ -225,7 +227,7 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics, g
                                             </div>
                                         </PortalTooltip>
                                     </div>
-                                    <div className="text-lg font-mono font-black text-orange-500 leading-none tracking-tight truncate">
+                                    <div className="text-base font-mono font-black text-orange-500 leading-none tracking-tight truncate">
                                         {metrics.maxPain ? Math.round(metrics.maxPain).toLocaleString() : 'N/A'}
                                     </div>
                                 </div>
@@ -281,13 +283,14 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics, g
                 <OptionsChainTable
                     chain={chain}
                     spotPrice={spotPrice}
+                    baseSpotPrice={baseSpotPrice}
                     goldenZone={goldenZone}
                     onOptionSelect={(data, type, strike) => setSelectedOption({ data, type, strike })}
                 />
             </div>
 
             {/* ================= RIGHT PANEL: PRO PICKS ================= */}
-            <div className="w-full lg:w-64 shrink-0 bg-background-card rounded-xl border border-border-default p-0 flex flex-col overflow-hidden max-h-[400px] lg:max-h-full lg:h-[600px]">
+            <div className="w-full lg:w-56 shrink-0 bg-background-card rounded-xl border border-border-default p-0 flex flex-col overflow-hidden max-h-[400px] lg:max-h-full lg:h-[600px]">
                 <div className="p-4 border-b border-border-default bg-background-surface">
                     <div className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-widest">
                         Pro Desk Picks
@@ -295,53 +298,43 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, metrics, g
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-3 p-3 no-scrollbar">
-                    {/* Calls Collection */}
-                    <div className="space-y-2">
-                        <div className="text-[10px] text-emerald-600 font-bold uppercase">Top Calls (Bullish)</div>
-                        {picks.ce.map((pick, i) => (
-                            <div key={i} className="group p-3 bg-emerald-500/[0.12] border border-emerald-500/20 hover:border-emerald-500/40 rounded-lg transition-colors cursor-pointer"
-                                onClick={() => setSelectedOption({ data: pick, type: 'call', strike: pick.strike })}
-                            >
-                                <div className="flex justify-between items-center mb-1">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-bold text-text-primary text-sm">{pick.strike} CE</span>
-                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-background-surface text-text-secondary font-mono border border-border-default">{pick.dte}</span>
+                    {/* Reusable Card Component for Picks */}
+                    {(() => {
+                        const renderPick = (title, pick, colorClass, borderClass, bgClass, labelColorClass) => {
+                            if (!pick) return null;
+                            return (
+                                <div className="space-y-1 mt-2">
+                                    <div className={`text-[10px] ${labelColorClass} font-bold uppercase`}>{title}</div>
+                                    <div className={`group p-3 ${bgClass} border ${borderClass} hover:opacity-80 rounded-lg transition-colors cursor-pointer`}
+                                        onClick={() => setSelectedOption({ data: pick, type: pick.type, strike: pick.strike })}
+                                    >
+                                        <div className="flex justify-between items-center mb-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-text-primary text-sm">{pick.strike} {pick.type === 'call' ? 'CE' : 'PE'}</span>
+                                            </div>
+                                            <span className={`text-xs font-mono ${colorClass} font-bold`}>₹{Number(pick.ltp).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] text-text-secondary font-medium">
+                                            <span>Δ {(pick.delta || 0).toFixed(2)}</span>
+                                            <span className={pick.oiChgPct > 0 ? 'text-emerald-500 font-bold' : pick.oiChgPct < 0 ? 'text-red-500 font-bold' : 'text-text-secondary'}>
+                                                CHG {pick.oiChgPct > 0 ? '+' : ''}{(pick.oiChgPct || 0).toFixed(2)}%
+                                            </span>
+                                        </div>
                                     </div>
-                                    <span className="text-xs font-mono text-emerald-600 font-bold">₹{pick.ltp}</span>
                                 </div>
-                                <div className="flex justify-between text-[10px] text-text-secondary font-medium">
-                                    <span>Δ {pick.delta.toFixed(2)}</span>
-                                    <span className={pick.oiChgPct > 0 ? 'text-emerald-500 font-bold' : pick.oiChgPct < 0 ? 'text-red-500 font-bold' : 'text-text-secondary'}>
-                                        OI {pick.oiChgPct > 0 ? '+' : ''}{(pick.oiChgPct || 0).toFixed(2)}%
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                            );
+                        };
 
-                    {/* Puts Collection */}
-                    <div className="space-y-2 mt-4">
-                        <div className="text-[10px] text-red-600 font-bold uppercase">Top Puts (Bearish)</div>
-                        {picks.pe.map((pick, i) => (
-                            <div key={i} className="group p-3 bg-red-500/[0.12] border border-red-500/20 hover:border-red-500/40 rounded-lg transition-colors cursor-pointer"
-                                onClick={() => setSelectedOption({ data: pick, type: 'put', strike: pick.strike })}
-                            >
-                                <div className="flex justify-between items-center mb-1">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-bold text-text-primary text-sm">{pick.strike} PE</span>
-                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-background-surface text-text-secondary font-mono border border-border-default">{pick.dte}</span>
-                                    </div>
-                                    <span className="text-xs font-mono text-red-600 font-bold">₹{pick.ltp}</span>
-                                </div>
-                                <div className="flex justify-between text-[10px] text-text-secondary font-medium">
-                                    <span>Δ {pick.delta.toFixed(2)}</span>
-                                    <span className={pick.oiChgPct > 0 ? 'text-emerald-500 font-bold' : pick.oiChgPct < 0 ? 'text-red-500 font-bold' : 'text-text-secondary'}>
-                                        OI {pick.oiChgPct > 0 ? '+' : ''}{(pick.oiChgPct || 0).toFixed(2)}%
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                        return (
+                            <>
+                                {renderPick("Best Bullish Call", picks?.bullish, "text-emerald-500", "border-emerald-500/20", "bg-emerald-500/[0.12]", "text-emerald-600")}
+                                {renderPick("Best Bearish Put", picks?.bearish, "text-red-500", "border-red-500/20", "bg-red-500/[0.12]", "text-red-600")}
+                                {renderPick("Best ATM Trade", picks?.atm, "text-blue-500", "border-blue-500/20", "bg-blue-500/[0.12]", "text-blue-500")}
+                                {renderPick("Top Momentum", picks?.momentum, "text-purple-500", "border-purple-500/20", "bg-purple-500/[0.12]", "text-purple-500")}
+                                {renderPick("Highest Liquidity", picks?.liquidity, "text-amber-500", "border-amber-500/20", "bg-amber-500/[0.12]", "text-amber-500")}
+                            </>
+                        );
+                    })()}
                 </div>
             </div>
 
