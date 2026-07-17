@@ -1,7 +1,8 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { API_PATHS } from '@/shared/utils/apiPaths';
-import { FO_INDICES, FO_EQUITIES } from '@/shared/utils/foInstruments';
+import { FO_INDICES, FO_EQUITIES } from '../utils/foInstruments';
+import { getNifty50Keys } from '@/features/dashboard/master/data/nifty50';
 import socket from '@/shared/utils/socket';
 
 export const DashboardContext = createContext();
@@ -83,6 +84,10 @@ export const DashboardProvider = ({ children }) => {
     }, [selectedInstrument]);
 
     // Global Live Price Polling (Fallback to 1-shot fetch, then stream via WebSockets)
+    const [fiiDiiFlow, setFiiDiiFlow] = useState(null);
+    const [smartlists, setSmartlists] = useState(null);
+    const [sectors, setSectors] = useState(null);
+
     useEffect(() => {
         const keysToFetch = Array.from(new Set([
             "NSE_INDEX|Nifty 50", 
@@ -90,56 +95,24 @@ export const DashboardProvider = ({ children }) => {
             "NSE_INDEX|India VIX",
             "GLOBAL_INDICATOR|USDINR",
             "GLOBAL_INDICATOR|BZUSD",
-            selectedInstrument
+            selectedInstrument,
+            ...getNifty50Keys()
         ].filter(Boolean)));
 
-        // 1. Initial REST Fetch to populate baseline instantly
-        const fetchInitialPrices = async () => {
-            try {
-                const instrumentsStr = encodeURIComponent(keysToFetch.join(','));
-                const res = await axiosInstance.get(`/api/v1/upstox/market-quote?instruments=${instrumentsStr}`);
-                const data = res.data?.data;
-                
-                if (data) {
-                    setLivePrices(prev => {
-                        const newPrices = { ...prev };
-                        Object.values(data).forEach(quote => {
-                            if (quote && quote.instrument_token) {
-                                const key = quote.instrument_token;
-                                const ltp = quote.last_price;
-                                const netChange = quote.net_change || 0;
-                                const prevClose = ltp - netChange;
-                                const pctChange = prevClose ? (netChange / prevClose) * 100 : 0;
-                                newPrices[key] = { 
-                                    ltp, 
-                                    close: prevClose,
-                                    netChange,
-                                    pctChange,
-                                    status: netChange > 0 ? 'up' : netChange < 0 ? 'down' : 'neutral' 
-                                };
-                            }
-                        });
-                        return newPrices;
-                    });
-                }
-            } catch (error) {
-                console.error("Failed to fetch initial live quotes:", error);
-            }
-        };
-        
-        fetchInitialPrices();
+        // Rely strictly on WebSocket for live data to conserve Upstox API limits
+        // The backend Upstox WebSocket automatically requests a 'full' mode snapshot on subscription
 
         // 2. Subscribe via WebSockets for zero-latency streaming
         socket.emit("subscribe:instruments", { keys: keysToFetch, mode: "full" });
 
         const handleMarketUpdate = ({ instrumentKey, data }) => {
-            // Only update if it's one of the global keys we care about
+            // Only update if it's one of the keys we care about
             if (!keysToFetch.includes(instrumentKey)) return;
 
             setLivePrices(prev => {
                 const existing = prev[instrumentKey] || {};
                 const ltp = data.ltp || existing.ltp || 0;
-                const close = data.close || existing.close || ltp;
+                const close = data.cp || data.close || existing.close || ltp;
                 const netChange = ltp - close;
                 const pctChange = close ? (netChange / close) * 100 : 0;
 
@@ -150,16 +123,27 @@ export const DashboardProvider = ({ children }) => {
                         close,
                         netChange,
                         pctChange,
+                        volume: data.volume || existing.volume || 0,
                         status: netChange > 0 ? 'up' : netChange < 0 ? 'down' : 'neutral'
                     }
                 };
             });
         };
 
+        const handleFiiDii = (data) => setFiiDiiFlow(data);
+        const handleSmartlists = (data) => setSmartlists(data);
+        const handleSectors = (data) => setSectors(data);
+
         socket.on("market:update", handleMarketUpdate);
+        socket.on("market:fiidii", handleFiiDii);
+        socket.on("market:smartlists", handleSmartlists);
+        socket.on("market:sectors", handleSectors);
 
         return () => {
             socket.off("market:update", handleMarketUpdate);
+            socket.off("market:fiidii", handleFiiDii);
+            socket.off("market:smartlists", handleSmartlists);
+            socket.off("market:sectors", handleSectors);
         };
     }, [selectedInstrument]);
 
@@ -172,7 +156,10 @@ export const DashboardProvider = ({ children }) => {
         setSelectedExpiry,
         expiries,
         filteredInstruments: selectedCategory === "Indices" ? FO_INDICES : FO_EQUITIES,
-        livePrices
+        livePrices,
+        fiiDiiFlow,
+        smartlists,
+        sectors
     };
 
     return (

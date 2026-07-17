@@ -52,7 +52,17 @@ export const initLocalDb = () => {
         );
         CREATE INDEX IF NOT EXISTS idx_market_ticks_instrument ON market_ticks(instrument_key);
 
-        -- 3. Candles (OHLCV)
+        -- 3. Economic Catalysts & Earnings (Events)
+        CREATE TABLE IF NOT EXISTS catalysts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            event_date TEXT NOT NULL,
+            impact TEXT DEFAULT 'Low', -- High, Medium, Low
+            category TEXT DEFAULT 'Macro', -- Macro, Earnings, Geo
+            description TEXT
+        );
+
+        -- 4. Candles (OHLCV)
         CREATE TABLE IF NOT EXISTS candles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             instrument_key TEXT,
@@ -191,6 +201,18 @@ export const initLocalDb = () => {
             status TEXT,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
+        -- 15. Universal AI Card Store
+        CREATE TABLE IF NOT EXISTS ai_card_store (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            instrument_key TEXT NOT NULL,
+            page_name TEXT NOT NULL,
+            section_name TEXT NOT NULL,
+            card_name TEXT NOT NULL,
+            timestamp DATETIME NOT NULL,
+            data_payload TEXT,
+            UNIQUE(instrument_key, page_name, section_name, card_name, timestamp)
+        );
+        CREATE INDEX IF NOT EXISTS idx_ai_store ON ai_card_store(instrument_key, page_name, timestamp);
     `);
 
     try {
@@ -200,6 +222,133 @@ export const initLocalDb = () => {
     }
 
     console.log("✅ SQLite Tables Initialized");
+};
+
+// Generic Helper for AI Card Store
+export const upsertAiCardStore = (instrument_key, page_name, section_name, card_name, timestamp, data_payload) => {
+    try {
+        const stmt = db.prepare(`
+            INSERT INTO ai_card_store (instrument_key, page_name, section_name, card_name, timestamp, data_payload)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(instrument_key, page_name, section_name, card_name, timestamp)
+            DO UPDATE SET data_payload = excluded.data_payload
+        `);
+        stmt.run(instrument_key, page_name, section_name, card_name, timestamp, JSON.stringify(data_payload));
+    } catch (e) {
+        console.error("SQLite upsertAiCardStore error:", e.message);
+    }
+};
+
+export const getAiCardStoreHistory = (instrument_key, page_name, section_name, card_name, skip = 0, limit = 30) => {
+    try {
+        const stmt = db.prepare(`
+            SELECT timestamp, data_payload 
+            FROM ai_card_store 
+            WHERE instrument_key = ? AND page_name = ? AND section_name = ? AND card_name = ?
+            ORDER BY timestamp DESC
+            LIMIT ? OFFSET ?
+        `);
+        const rows = stmt.all(instrument_key, page_name, section_name, card_name, limit, skip);
+        return rows.map(r => ({
+            timestamp: r.timestamp,
+            ...JSON.parse(r.data_payload)
+        }));
+    } catch (e) {
+        console.error("SQLite getAiCardStoreHistory error:", e.message);
+        return [];
+    }
+};
+
+export const getLatestAiPageSnapshot = (instrument_key, page_name) => {
+    try {
+        // We want the most recent timestamp for this page/instrument
+        const stmt = db.prepare(`
+            SELECT timestamp, section_name, card_name, data_payload 
+            FROM ai_card_store 
+            WHERE instrument_key = ? AND page_name = ?
+            AND timestamp = (
+                SELECT MAX(timestamp) 
+                FROM ai_card_store 
+                WHERE instrument_key = ? AND page_name = ?
+            )
+        `);
+        const rows = stmt.all(instrument_key, page_name, instrument_key, page_name);
+        
+        if (rows.length === 0) return null;
+
+        const snapshot = {
+            timestamp: rows[0].timestamp,
+            cards: [],
+            sections: [],
+        };
+
+        for (const row of rows) {
+            const data = JSON.parse(row.data_payload);
+            if (row.section_name === "Header" && row.card_name === "Summary") {
+                Object.assign(snapshot, data);
+            } else if (row.section_name === "Sections" && row.card_name === "List") {
+                snapshot.sections = data.sections || [];
+            } else if (row.section_name === "Cards") {
+                snapshot.cards.push(data);
+            }
+        }
+        return snapshot;
+    } catch (e) {
+        console.error("SQLite getLatestAiPageSnapshot error:", e.message);
+        return null;
+    }
+};
+
+export const getAiPageHistory = (instrument_key, page_name, limit = 100) => {
+    try {
+        // 1. Get all distinct timestamps for this page/instrument, sorted newest first
+        const tsStmt = db.prepare(`
+            SELECT DISTINCT timestamp 
+            FROM ai_card_store 
+            WHERE instrument_key = ? AND page_name = ?
+            ORDER BY timestamp DESC
+            LIMIT ?
+        `);
+        const tsRows = tsStmt.all(instrument_key, page_name, limit);
+        
+        if (tsRows.length === 0) return [];
+
+        const snapshots = [];
+
+        // 2. Fetch data for each timestamp and reconstruct the snapshot
+        const dataStmt = db.prepare(`
+            SELECT section_name, card_name, data_payload 
+            FROM ai_card_store 
+            WHERE instrument_key = ? AND page_name = ? AND timestamp = ?
+        `);
+
+        for (const tsRow of tsRows) {
+            const rows = dataStmt.all(instrument_key, page_name, tsRow.timestamp);
+            
+            const snapshot = {
+                timestamp: tsRow.timestamp,
+                cards: [],
+                sections: [],
+            };
+
+            for (const row of rows) {
+                const data = JSON.parse(row.data_payload);
+                if (row.section_name === "Header" && row.card_name === "Summary") {
+                    Object.assign(snapshot, data);
+                } else if (row.section_name === "Sections" && row.card_name === "List") {
+                    snapshot.sections = data.sections || [];
+                } else if (row.section_name === "Cards") {
+                    snapshot.cards.push(data);
+                }
+            }
+            snapshots.push(snapshot);
+        }
+
+        return snapshots;
+    } catch (e) {
+        console.error("SQLite getAiPageHistory error:", e.message);
+        return [];
+    }
 };
 
 export default db;

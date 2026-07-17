@@ -40,6 +40,7 @@ import AdminDashboard from "@/features/admin/pages/AdminDashboard";
 import UpstoxCallback from "@/features/admin/pages/UpstoxCallback";
 import JournalPage from "@/features/dashboard/journal/ui/JournalPage";
 import PaiPage from "@/features/dashboard/pai/ui/PaiPage";
+import PaiSettingsPage from "@/features/dashboard/pai/ui/PaiSettingsPage";
 
 // Effects
 import MenuSync from "@/shared/components/effects/MenuSync";
@@ -101,6 +102,15 @@ const DashboardRoutes = ({ setActiveMenu }) => {
           <>
             <MenuSync menu="pai" setActiveMenu={setActiveMenu} />
             <PaiPage />
+          </>
+        }
+      />
+      <Route
+        path="pai/settings"
+        element={
+          <>
+            <MenuSync menu="pai" setActiveMenu={setActiveMenu} />
+            <PaiSettingsPage />
           </>
         }
       />

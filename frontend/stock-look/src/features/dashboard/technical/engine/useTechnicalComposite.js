@@ -69,7 +69,8 @@ export function useTechnicalComposite(scoresData, isIndex = false) {
                     composite_score: engineResult.compositeScore,
                     regime_json: engineResult.regime,
                     tailwinds_json: tailwinds,
-                    risks_json: risks
+                    risks_json: risks,
+                    counts_json: engineResult.cardScores
                 }).catch(err => console.error("Failed to sync Technicals header:", err));
             });
         }

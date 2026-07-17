@@ -93,11 +93,13 @@ const DashboardLayout = () => {
     // Desktop only layout
   }, [location.pathname]);
 
+  const isPaiPage = location.pathname.includes('/pai');
+  const activeSidebarWidth = isPaiPage ? 0 : (collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH);
+
   return (
     <DashboardProvider>
     <div className="min-h-screen bg-background-app text-text-primary relative overflow-hidden flex flex-col md:block">
 
-      {/* LIGHT MODE - SOFT MINT & LAVENDER (LOCKED) */}
       {/* LIGHT MODE - SOFT MINT & LAVENDER (LOCKED) */}
       {theme === "light" && (
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -108,8 +110,6 @@ const DashboardLayout = () => {
           </div>
         </div>
       )}
-
-
 
       {/* PREMIUM ANIMATED BACKGROUND VFX - VIBRANT (DARK MODE ONLY) */}
       {theme === "dark" && (
@@ -147,30 +147,32 @@ const DashboardLayout = () => {
       {/* --- DESKTOP LAYOUT COMPONENTS --- */}
 
       {/* DESKTOP NAVBAR */}
-      <div>
-        <Navbar onToggleSidebar={() => setCollapsed((p) => !p)} />
-      </div>
+      {!isPaiPage && (
+        <div>
+          <Navbar onToggleSidebar={() => setCollapsed((p) => !p)} />
+        </div>
+      )}
 
       {/* DESKTOP SIDEMENU */}
-      <div>
-        <SideMenu
-          collapsed={collapsed}
-          activeMenu={activeMenu}
-          topOffset={NAVBAR_HEIGHT + 10}
-          user={user}
-        />
-      </div>
+      {!isPaiPage && (
+        <div>
+          <SideMenu
+            collapsed={collapsed}
+            activeMenu={activeMenu}
+            topOffset={NAVBAR_HEIGHT + 10}
+            user={user}
+          />
+        </div>
+      )}
 
-
-      {/* --- MAIN CONTENT AREA --- */}
       <main
-        className="
+        className={`
           min-h-screen transition-all duration-300 ease-in-out relative z-10
-          pt-[73px] pb-0
-        "
-        style={{
-          marginLeft: sidebarWidth,
-          "--sidebar-width": `${sidebarWidth}px`,
+          ${isPaiPage ? '!m-0 !p-0 w-full h-screen' : 'pt-[73px] pb-0'}
+        `}
+        style={isPaiPage ? {} : {
+          marginLeft: activeSidebarWidth,
+          "--sidebar-width": `${activeSidebarWidth}px`,
           "--navbar-height": `${NAVBAR_HEIGHT}px`,
         }}
       >

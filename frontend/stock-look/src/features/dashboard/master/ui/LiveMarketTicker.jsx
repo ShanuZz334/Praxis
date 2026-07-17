@@ -1,71 +1,48 @@
-import React, { useEffect, useState } from "react";
-import socket from "@/shared/utils/socket";
+import React from "react";
+import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { ArrowUpRight, ArrowDownRight, Activity } from "lucide-react";
 
+const TICKER_KEYS = [
+    { key: "NSE_INDEX|India VIX", label: "INDIA VIX" },
+    { key: "GLOBAL_INDICATOR|USDINR", label: "USDINR" },
+    { key: "GLOBAL_INDICATOR|BZUSD", label: "BRENT CRUDE" }
+];
+
 export default function LiveMarketTicker() {
-    const [prices, setPrices] = useState({
-        "NSE_INDEX|Nifty 50": { ltp: 0, prev: 0, status: 'neutral' },
-        "NSE_INDEX|Nifty Bank": { ltp: 0, prev: 0, status: 'neutral' },
-        "NSE_EQ|RELIANCE": { ltp: 0, prev: 0, status: 'neutral' }
-    });
-
-    useEffect(() => {
-        const handleUpdate = ({ instrumentKey, data }) => {
-            setPrices(prev => {
-                const oldLtp = prev[instrumentKey]?.ltp || 0;
-                const newLtp = data.ltp;
-                
-                if (oldLtp === newLtp) return prev;
-
-                let status = 'neutral';
-                if (oldLtp > 0) {
-                    status = newLtp > oldLtp ? 'up' : 'down';
-                }
-
-                return {
-                    ...prev,
-                    [instrumentKey]: { ltp: newLtp, prev: oldLtp, status }
-                };
-            });
-        };
-
-        socket.on("market:update", handleUpdate);
-        return () => socket.off("market:update", handleUpdate);
-    }, []);
-
-    const formatName = (key) => {
-        if (key.includes("Nifty 50")) return "NIFTY 50";
-        if (key.includes("Nifty Bank")) return "BANKNIFTY";
-        if (key.includes("RELIANCE")) return "RELIANCE";
-        return key;
-    };
+    const { livePrices } = useDashboardContext();
 
     return (
-        <div className="flex flex-wrap items-center gap-4 py-2 border-b border-white/5 mb-6">
-            <div className="flex items-center text-slate-400 text-sm font-medium mr-2">
-                <Activity className="w-4 h-4 mr-2 text-indigo-400" />
-                LIVE FEED
+        <div className="flex flex-wrap items-center gap-4 w-full">
+            <div className="flex items-center text-text-secondary text-[11px] font-bold uppercase tracking-wider mr-2 hidden md:flex">
+                <Activity className="w-3.5 h-3.5 mr-1.5 text-blue-500" />
+                Live Market
             </div>
-            {Object.entries(prices).map(([key, data]) => {
-                const isUp = data.status === 'up';
-                const isDown = data.status === 'down';
+            {TICKER_KEYS.map(({ key, label }) => {
+                const data = livePrices[key] || {};
+                const ltp = data.ltp || 0;
+                const pctChange = data.pctChange || 0;
+                const netChange = data.netChange || 0;
+                const isUp = netChange > 0;
+                const isDown = netChange < 0;
                 
                 return (
                     <div 
                         key={key} 
                         className={`
-                            px-4 py-1.5 rounded-md flex items-center gap-3 text-sm font-semibold tracking-wide transition-colors duration-300
-                            ${isUp ? "bg-emerald-500/10 text-emerald-400" : ""}
-                            ${isDown ? "bg-rose-500/10 text-rose-400" : ""}
-                            ${data.status === 'neutral' ? "bg-white/5 text-slate-300" : ""}
+                            px-3 py-1.5 rounded bg-background-card border border-border-default flex items-center gap-3 text-xs font-semibold tracking-wide shadow-sm
                         `}
                     >
-                        <span className="text-slate-200">{formatName(key)}</span>
+                        <span className="text-text-primary">{label}</span>
                         
-                        <div className="flex items-center">
-                            {data.ltp > 0 ? data.ltp.toFixed(2) : "---"}
-                            {isUp && <ArrowUpRight className="w-4 h-4 ml-1" />}
-                            {isDown && <ArrowDownRight className="w-4 h-4 ml-1" />}
+                        <div className={`flex items-center tabular-nums ${isUp ? 'text-emerald-400' : isDown ? 'text-rose-400' : 'text-text-secondary'}`}>
+                            {ltp > 0 ? ltp.toFixed(2) : "---"}
+                            {isUp && <ArrowUpRight className="w-3.5 h-3.5 ml-1" />}
+                            {isDown && <ArrowDownRight className="w-3.5 h-3.5 ml-1" />}
+                            {ltp > 0 && (
+                                <span className="ml-2 text-[10px] bg-background-elevated px-1.5 py-0.5 rounded text-text-primary tabular-nums">
+                                    {isUp ? '+' : ''}{pctChange.toFixed(2)}%
+                                </span>
+                            )}
                         </div>
                     </div>
                 );

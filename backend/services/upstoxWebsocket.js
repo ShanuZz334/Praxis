@@ -47,16 +47,47 @@ const insertTickStmt = db.prepare(`
 
 const insertQuoteWsStmt = db.prepare(`
     INSERT INTO quotes (
-        instrument_key, ltp, volume, updated_at
-    ) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        instrument_key, ltp, close, volume, updated_at
+    ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(instrument_key) DO UPDATE SET
         ltp=excluded.ltp,
+        close=COALESCE(excluded.close, quotes.close),
         volume=excluded.volume,
         updated_at=CURRENT_TIMESTAMP
 `);
 
 let tickBatch = [];
 const BATCH_SIZE = 500;
+
+// Cache the latest tick for each instrument to instantly serve new frontend connections
+const latestQuotesCache = new Map();
+const getQuoteStmt = db.prepare(`SELECT ltp, close as cp, volume FROM quotes WHERE instrument_key = ?`);
+
+export const getLatestQuotes = (keys) => {
+    const quotes = [];
+    keys.forEach(k => {
+        let quote = latestQuotesCache.get(k);
+        if (quote) {
+            quotes.push(quote);
+        } else {
+            // Fallback to SQLite so the UI gets baseline data instantly even on backend restart!
+            try {
+                const row = getQuoteStmt.get(k);
+                if (row && row.ltp) {
+                    quote = {
+                        instrumentKey: k,
+                        ltp: row.ltp,
+                        cp: row.cp,
+                        volume: row.volume
+                    };
+                    latestQuotesCache.set(k, quote);
+                    quotes.push(quote);
+                }
+            } catch (e) {}
+        }
+    });
+    return quotes;
+};
 
 const persistTicksLocally = () => {
     if (tickBatch.length === 0) return;
@@ -65,7 +96,7 @@ const persistTicksLocally = () => {
     const insertMany = db.transaction((ticks) => {
         for (const tick of ticks) {
             insertTickStmt.run(tick.instrumentKey, tick.ltp, tick.volume, tick.openInterest, tick.timestamp);
-            insertQuoteWsStmt.run(tick.instrumentKey, tick.ltp, tick.volume);
+            insertQuoteWsStmt.run(tick.instrumentKey, tick.ltp, tick.cp, tick.volume);
         }
     });
 
@@ -100,6 +131,7 @@ const handleMarketData = (dataBuffer) => {
             let tickObj = {
                 instrumentKey: instrumentKey,
                 ltp: null,
+                cp: null,
                 volume: 0,
                 openInterest: 0,
                 optionGreeks: null,
@@ -112,8 +144,10 @@ const handleMarketData = (dataBuffer) => {
                 
                 if (ff.indexFF) {
                     tickObj.ltp = ff.indexFF.ltpc?.ltp;
+                    tickObj.cp = ff.indexFF.ltpc?.cp;
                 } else if (ff.marketFF) {
                     tickObj.ltp = ff.marketFF.ltpc?.ltp;
+                    tickObj.cp = ff.marketFF.ltpc?.cp;
                     tickObj.volume = ff.marketFF.vtt || 0;
                     tickObj.openInterest = ff.marketFF.oi || 0;
                     if (ff.marketFF.optionGreeks) {
@@ -124,17 +158,26 @@ const handleMarketData = (dataBuffer) => {
             } else if (feedData.firstLevelWithGreeks) {
                 const flwg = feedData.firstLevelWithGreeks;
                 tickObj.ltp = flwg.ltpc?.ltp;
+                tickObj.cp = flwg.ltpc?.cp;
                 tickObj.volume = flwg.vtt || 0;
                 tickObj.openInterest = flwg.oi || 0;
                 tickObj.optionGreeks = flwg.optionGreeks;
                 tickObj.iv = flwg.iv;
             } else if (feedData.ltpc) {
                 tickObj.ltp = feedData.ltpc.ltp;
+                tickObj.cp = feedData.ltpc.cp;
             }
 
             if (tickObj.ltp !== null && tickObj.ltp !== undefined) {
                 tickBatch.push(tickObj);
             }
+            
+            // Cache it in memory for instant delivery to new sockets
+            // Merge with existing so we don't lose 'cp' if a subsequent tick only has 'ltp'
+            const existing = latestQuotesCache.get(instrumentKey) || {};
+            if (tickObj.ltp === null || tickObj.ltp === undefined) tickObj.ltp = existing.ltp;
+            if (tickObj.cp === null || tickObj.cp === undefined) tickObj.cp = existing.cp;
+            latestQuotesCache.set(instrumentKey, tickObj);
             
             // Broadcast if we have LTP OR Option Greeks
             if ((tickObj.ltp !== null && tickObj.ltp !== undefined) || tickObj.optionGreeks) {
@@ -156,14 +199,16 @@ const handleMarketData = (dataBuffer) => {
     }
 };
 
+import { getNifty50Keys } from "../utils/nifty50.js";
+
 // Queue for subscriptions requested before WS connects
 let pendingSubscriptions = new Set([
     "NSE_INDEX|Nifty 50", 
     "NSE_INDEX|Nifty Bank", 
-    "NSE_EQ|RELIANCE", 
     "NSE_INDEX|India VIX",
     "GLOBAL_INDICATOR|USDINR",
-    "GLOBAL_INDICATOR|BZUSD"
+    "GLOBAL_INDICATOR|BZUSD",
+    ...getNifty50Keys()
 ]);
 
 export const connectUpstoxWebsocket = async () => {

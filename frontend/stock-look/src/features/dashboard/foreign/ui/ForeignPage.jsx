@@ -21,6 +21,7 @@ import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedO
 import { useGlobalComposite, ID_TO_TITLE_GLOBAL } from "../engine/useGlobalComposite";
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { useDataFreshness } from '@/shared/hooks/useDataFreshness';
+import { useAiSync } from "@/shared/hooks/useAiSync";
 
 const DEFAULT_OVERRIDES = {
     dxy: null,
@@ -197,6 +198,21 @@ export default function ForeignPage() {
     const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
 
     const hasLiveOrManualData = Object.values(liveData).some(v => v !== null) || Object.values(manualOverrides).some(v => v !== null);
+
+    // 7. Silently Stream the Snapshot to SQLite backend
+    useAiSync(
+        "GLOBAL_MACRO", // Generic key for global
+        "Global", 
+        {
+            compositeScore: compositeData.compositeScore,
+            regime: compositeData.regime,
+            sections: compositeData.sections,
+            tailwinds: compositeData.tailwinds,
+            risks: compositeData.risks,
+            aiInsight: compositeData.aiInsight,
+            cards: cardsForHeader
+        }
+    );
 
     return (
         <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">

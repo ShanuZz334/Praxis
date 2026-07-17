@@ -29,19 +29,31 @@ const insertCandleStmt = db.prepare(`
 `);
 
 /**
- * Fetches historical candles from Upstox and persists them locally.
+ * Fetches historical candles from Upstox (V3 API) and persists them locally.
  */
-export const fetchHistoricalCandles = async (instrumentKey, interval, toDate, fromDate) => {
+export const fetchHistoricalCandles = async (instrumentKey, timeframe, toDate, fromDate) => {
     try {
         const token = await getAuthToken();
-        const url = `${UPSTOX_BASE_URL}/historical-candle/${encodeURIComponent(instrumentKey)}/${interval}/${toDate}/${fromDate}`;
+        
+        let unit = 'days';
+        let interval = '1';
+        
+        if (timeframe.includes('minute')) {
+            unit = 'minutes';
+            interval = timeframe.replace('minute', '');
+        } else if (timeframe.includes('hour')) {
+            unit = 'hours';
+            interval = timeframe.replace('hour', '');
+        }
+        
+        const url = `https://api.upstox.com/v3/historical-candle/${encodeURIComponent(instrumentKey)}/${unit}/${interval}/${toDate}/${fromDate}`;
         
         const response = await axios.get(url, {
             headers: { 
                 "Accept": "application/json",
                 "Authorization": `Bearer ${token}`
             },
-            timeout: 5000  // 5s hard timeout — never hang the response
+            timeout: 5000
         });
 
         const candlesData = response.data?.data?.candles || [];
@@ -50,7 +62,7 @@ export const fetchHistoricalCandles = async (instrumentKey, interval, toDate, fr
             for (const c of candles) {
                 insertCandleStmt.run(
                     instrumentKey,
-                    interval,
+                    timeframe,
                     new Date(c[0]).toISOString(),
                     c[1], c[2], c[3], c[4], c[5], c[6] || 0
                 );
@@ -70,8 +82,6 @@ export const fetchHistoricalCandles = async (instrumentKey, interval, toDate, fr
 
 /**
  * Smart Sync Engine with 4-second timeout guard.
- * Checks SQLite for MAX(timestamp). If stale, fetches only the missing days.
- * If empty or < 200, fetches history dynamically based on timeframe.
  */
 export const syncCandlesIfStale = async (instrumentKey, timeframe = 'day') => {
     const SYNC_TIMEOUT_MS = 4000;
@@ -81,8 +91,8 @@ export const syncCandlesIfStale = async (instrumentKey, timeframe = 'day') => {
     const lastCheck = cooldownCache.get(cacheKey);
     const nowTs = Date.now();
     if (lastCheck) {
-        if (timeframe === '1minute' && nowTs - lastCheck < 60000) return; // 1m cooldown
-        if (timeframe === '30minute' && nowTs - lastCheck < 1800000) return; // 30m cooldown
+        if (timeframe.includes('minute') && nowTs - lastCheck < 60000) return; // 1m cooldown
+        if (timeframe.includes('hour') && nowTs - lastCheck < 300000) return; // 5m cooldown
         if (timeframe === 'day' && nowTs - lastCheck < 3600000) return; // 1hr cooldown
     }
     
@@ -95,8 +105,8 @@ export const syncCandlesIfStale = async (instrumentKey, timeframe = 'day') => {
         
         if (!lastTs || count < 200) {
             const fromDateObj = new Date();
-            if (timeframe === '1minute') fromDateObj.setDate(fromDateObj.getDate() - 15);
-            else if (timeframe === '30minute') fromDateObj.setDate(fromDateObj.getDate() - 60);
+            if (timeframe === '1minute' || timeframe === '5minute' || timeframe === '10minute' || timeframe === '15minute') fromDateObj.setDate(fromDateObj.getDate() - 15);
+            else if (timeframe === '30minute' || timeframe === '1hour') fromDateObj.setDate(fromDateObj.getDate() - 60);
             else fromDateObj.setDate(fromDateObj.getDate() - 365);
             
             const fromDate = fromDateObj.toISOString().split('T')[0];

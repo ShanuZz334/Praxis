@@ -1,9 +1,9 @@
 import cron from "node-cron";
 import axios from "axios";
 import Instrument from "../models/Instrument.js";
-import IntelligenceSnapshot from "../models/IntelligenceSnapshot.js";
 import UpstoxAuth from "../models/UpstoxAuth.js";
 import { computeFundamentalsForAI } from "../engine/fundamentalsEngine.js";
+import { upsertAiCardStore, getAiCardStoreHistory } from "../config/localDb.js";
 
 const UPSTOX_FUNDAMENTALS_URL = "https://api.upstox.com/v2/fundamentals";
 
@@ -64,35 +64,62 @@ export const runFundamentalIntelligence = async () => {
 
             // Regime Shift Detection (Delta vs Previous 12hr)
             let regimeShift = false;
-            const prevSnapshot = await IntelligenceSnapshot.findOne({
-                instrumentKey: instrument.instrumentKey,
-                type: "fundamental"
-            }).sort({ timestamp: -1 });
-
-            if (prevSnapshot && prevSnapshot.compositeScore !== null) {
-                if (prevSnapshot.compositeScore - computedSnapshot.compositeScore >= 15) {
-                    regimeShift = true;
-                    console.log(`⚠️ REGIME SHIFT DETECTED for ${instrument.tradingSymbol}! Score dropped from ${prevSnapshot.compositeScore} to ${computedSnapshot.compositeScore}`);
+            
+            // Get previous header from SQLite
+            const prevHeaders = getAiCardStoreHistory(instrument.instrumentKey, "Fundamental", "Header", "Summary", 0, 1);
+            if (prevHeaders && prevHeaders.length > 0) {
+                const prevSnapshot = prevHeaders[0];
+                if (prevSnapshot && prevSnapshot.compositeScore !== null) {
+                    if (prevSnapshot.compositeScore - computedSnapshot.compositeScore >= 15) {
+                        regimeShift = true;
+                        console.log(`⚠️ REGIME SHIFT DETECTED for ${instrument.tradingSymbol}! Score dropped from ${prevSnapshot.compositeScore} to ${computedSnapshot.compositeScore}`);
+                    }
                 }
             }
 
-            // 4. Store structured "box by box" data in MongoDB for AI
-            const snapshot = new IntelligenceSnapshot({
-                instrumentKey: instrument.instrumentKey,
-                instrumentType: instrument.instrumentType || 'Companies',
-                type: "fundamental",
-                timestamp: new Date(), // Exactly when calculated
-                compositeScore: computedSnapshot.compositeScore,
-                regime: computedSnapshot.regime,
-                sections: computedSnapshot.sections,
-                tailwinds: computedSnapshot.tailwinds,
-                risks: computedSnapshot.risks,
-                cards: computedSnapshot.cards,
-                regimeShift: regimeShift
-            });
+            const nowIso = new Date().toISOString();
 
-            await snapshot.save();
-            console.log(`✅ Saved structured AI snapshot for ${instrument.tradingSymbol}`);
+            // 4. Store structured "box by box" data in SQLite for AI
+            
+            // A. Store Header Data (Scores, Tailwinds, Risks, Regime)
+            upsertAiCardStore(
+                instrument.instrumentKey, 
+                "Fundamental", 
+                "Header", 
+                "Summary", 
+                nowIso, 
+                {
+                    compositeScore: computedSnapshot.compositeScore,
+                    regime: computedSnapshot.regime,
+                    tailwinds: computedSnapshot.tailwinds,
+                    risks: computedSnapshot.risks,
+                    regimeShift: regimeShift
+                }
+            );
+
+            // B. Store Sections Data
+            upsertAiCardStore(
+                instrument.instrumentKey,
+                "Fundamental",
+                "Sections",
+                "List",
+                nowIso,
+                { sections: computedSnapshot.sections }
+            );
+
+            // C. Store Each Individual Card natively!
+            for (const card of computedSnapshot.cards) {
+                upsertAiCardStore(
+                    instrument.instrumentKey,
+                    "Fundamental",
+                    "Cards", // Generic section for cards
+                    card.id, // e.g., 'pe_ratio'
+                    nowIso,
+                    card
+                );
+            }
+
+            console.log(`✅ Saved structured AI SQLite snapshot for ${instrument.tradingSymbol}`);
 
             // Rate limiting safety: Sleep 1 second between API bursts
             await new Promise(r => setTimeout(r, 1000));

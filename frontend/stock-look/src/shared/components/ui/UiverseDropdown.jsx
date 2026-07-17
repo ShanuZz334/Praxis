@@ -9,7 +9,11 @@ export default function UiverseDropdown({
     value, 
     onChange, 
     placeholder = "Select...",
-    className = "" 
+    className = "",
+    dropup = false,
+    hideSearch = false,
+    alignRight = false,
+    matchWidth = false
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
@@ -41,7 +45,7 @@ export default function UiverseDropdown({
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
                     w-full h-8 flex items-center justify-between px-3 rounded-md
-                    bg-background-surface/30 hover:bg-background-surface/60 transition-colors
+                    bg-background-tooltip hover:bg-background-surface transition-colors
                     border border-border-default/50 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20
                     text-xs text-text-primary shadow-sm
                 `}
@@ -60,18 +64,20 @@ export default function UiverseDropdown({
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 w-full mt-1.5 bg-background-tooltip/95 backdrop-blur-2xl border border-border-default rounded-lg shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 min-w-[200px]">
-                    <div className="p-2 border-b border-border-default/50 sticky top-0 bg-background-tooltip/95 z-10">
-                        <input
-                            type="text"
-                            className="w-full bg-background-surface/50 border border-border-default/50 rounded-md px-3 py-1 text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-blue-500/50"
-                            placeholder="Search..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            autoFocus
-                        />
-                    </div>
+                <div className={`absolute z-50 ${matchWidth ? 'w-full' : (alignRight ? 'right-0' : 'w-full')} ${dropup ? 'bottom-full mb-1.5' : 'mt-1.5'} bg-background-tooltip/95 backdrop-blur-2xl border border-border-default rounded-lg shadow-xl overflow-hidden animate-in fade-in ${dropup ? 'slide-in-from-bottom-2' : 'slide-in-from-top-2'} duration-200 ${matchWidth ? 'min-w-full' : 'min-w-[200px]'}`}>
+                    {!hideSearch && (
+                        <div className="p-2 border-b border-border-default/50 sticky top-0 bg-background-tooltip/95 z-10">
+                            <input
+                                type="text"
+                                className="w-full bg-background-surface/50 border border-border-default/50 rounded-md px-3 py-1 text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-blue-500/50"
+                                placeholder="Search..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                autoFocus
+                            />
+                        </div>
+                    )}
                     <div className="max-h-60 overflow-y-auto no-scrollbar py-1">
                         {filteredOptions.length === 0 ? (
                             <div className="px-3 py-2 text-xs text-text-tertiary italic">No options</div>

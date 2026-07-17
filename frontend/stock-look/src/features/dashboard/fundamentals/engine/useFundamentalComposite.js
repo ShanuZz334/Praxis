@@ -42,7 +42,9 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
                     composite_score: newRes.compositeScore,
                     regime_json: newRes.regime,
                     tailwinds_json: newRes.tailwinds,
-                    risks_json: newRes.risks
+                    risks_json: newRes.risks,
+                    counts_json: newRes.cardScores,
+                    breakdown: newRes.sections
                 }).catch(err => console.error("Failed to sync header:", err));
             }
         };

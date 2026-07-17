@@ -53,6 +53,7 @@ export default function GlobalHeader({
     title = "Composite Score",
     score = 0,
     prevScore = 0,
+    scoreModifier = 0,
 
     // Context
     gauge = null, // Custom gauge object { label, color, meaning }
@@ -93,11 +94,11 @@ export default function GlobalHeader({
     // Controls
     controls = {
         search: "",
-        onSearchChange: () => { },
+        onSearchChange: null,
         viewMode: "sectioned",
-        onViewChange: () => { },
+        onViewChange: null,
         sortMode: "score_desc",
-        onSortChange: () => { },
+        onSortChange: null,
         matchCount: 0
     }
 }) {
@@ -217,7 +218,7 @@ export default function GlobalHeader({
                         </div>
 
                         {Array.isArray(sections) && sections.length > 0 ? (
-                            <FundamentalGaugePanel score={score} regime={regime} sections={sections} />
+                            <FundamentalGaugePanel score={score} regime={regime} sections={sections} scoreModifier={scoreModifier} />
                         ) : (
                             <>
                                 <div className="flex flex-row items-center md:items-baseline gap-2 md:gap-3 mb-1 text-left">
@@ -525,7 +526,7 @@ function SectionBar({ sections }) {
     );
 }
 
-function FundamentalGaugePanel({ score, regime, sections }) {
+function FundamentalGaugePanel({ score, regime, sections, scoreModifier }) {
     // Pure SVG Animated Donut properties
     const size = 120;
     const strokeWidth = 10;
@@ -545,10 +546,19 @@ function FundamentalGaugePanel({ score, regime, sections }) {
                 </div>
                 <div className="flex flex-col justify-end h-full pb-1 md:pb-2">
                     <div
-                        className="text-lg md:text-xl font-bold transition-colors duration-500 uppercase tracking-wider"
+                        className="text-lg md:text-xl font-bold transition-colors duration-500 uppercase tracking-wider flex items-center gap-2"
                         style={{ color: donutColor }}
                     >
                         {regime?.label || "—"}
+                        {scoreModifier !== undefined && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                                scoreModifier > 0 ? 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10' : 
+                                scoreModifier < 0 ? 'text-rose-400 border-rose-400/30 bg-rose-400/10' :
+                                'text-text-tertiary border-border-default bg-background-surface'
+                            } whitespace-nowrap hidden sm:inline-block`}>
+                                {scoreModifier > 0 ? '+' : ''}{scoreModifier} ADJ
+                            </span>
+                        )}
                     </div>
                     <div className="text-[10px] md:text-[11px] text-text-tertiary font-mono tracking-widest opacity-60">/ 100.00</div>
                 </div>
@@ -600,18 +610,20 @@ function HeaderControls({ controls }) {
     return (
         <div className="flex flex-col md:flex-row justify-between items-center md:pt-4 md:p-4 text-text-primary bg-transparent">
             {/* LEFT: Search */}
-            <div className="relative group w-full md:w-64 transition-all focus-within:md:w-80 mb-3 md:mb-0 shrink-0">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-tertiary">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            {controls.onSearchChange && (
+                <div className="relative group w-full md:w-64 transition-all focus-within:md:w-80 mb-3 md:mb-0 shrink-0">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-tertiary">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </div>
+                    <input
+                        type="text"
+                        value={controls.search}
+                        onChange={(e) => controls.onSearchChange(e.target.value)}
+                        placeholder="Filter metrics..."
+                        className={`w-full h-10 pl-9 pr-4 bg-background-app border ${STYLES.BORDER_INNER} rounded-lg text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all shadow-inner`}
+                    />
                 </div>
-                <input
-                    type="text"
-                    value={controls.search}
-                    onChange={(e) => controls.onSearchChange(e.target.value)}
-                    placeholder="Filter metrics..."
-                    className={`w-full h-10 pl-9 pr-4 bg-background-app border ${STYLES.BORDER_INNER} rounded-lg text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all shadow-inner`}
-                />
-            </div>
+            )}
 
             {/* MIDDLE: Custom Injected Controls (Options/Fundamentals Specific) */}
             {controls.customComponent && (

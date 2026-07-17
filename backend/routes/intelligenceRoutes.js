@@ -1,5 +1,5 @@
 import express from "express";
-import IntelligenceSnapshot from "../models/IntelligenceSnapshot.js";
+import { getLatestAiPageSnapshot, getAiPageHistory, upsertAiCardStore } from "../config/localDb.js";
 import InstrumentOverride from "../models/InstrumentOverride.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -18,12 +18,11 @@ router.get("/history", protect, async (req, res) => {
             return res.status(400).json({ error: "instrument_key is required" });
         }
 
-        const history = await IntelligenceSnapshot.find({ 
-            instrumentKey: instrument_key,
-            type: type
-        })
-        .sort({ timestamp: -1 }) // Newest first
-        .limit(parseInt(limit));
+        const page_name = type === "fundamental" ? "Fundamental" : 
+                          type === "technical" ? "Technical" : 
+                          type === "options" ? "Options" : "Fundamental";
+
+        const history = getAiPageHistory(instrument_key, page_name, parseInt(limit));
 
         res.json({
             status: "success",
@@ -47,14 +46,79 @@ router.get("/latest", protect, async (req, res) => {
         const { instrument_key, type = "fundamental" } = req.query;
         if (!instrument_key) return res.status(400).json({ error: "instrument_key is required" });
 
-        const snapshot = await IntelligenceSnapshot.findOne({ 
-            instrumentKey: instrument_key,
-            type: type
-        }).sort({ timestamp: -1 });
+        const page_name = type === "fundamental" ? "Fundamental" : 
+                          type === "technical" ? "Technical" : 
+                          type === "options" ? "Options" : "Fundamental";
+
+        const snapshot = getLatestAiPageSnapshot(instrument_key, page_name);
 
         res.json({ status: "success", data: snapshot });
     } catch (error) {
         console.error("❌ Error fetching latest intelligence:", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+/**
+ * @route   POST /api/v1/intelligence/sync
+ * @desc    Stream finished AI Snapshots from Frontend natively into SQLite
+ * @access  Private
+ */
+router.post("/sync", protect, async (req, res) => {
+    try {
+        const { instrument_key, page_name, payload } = req.body;
+        
+        if (!instrument_key || !page_name || !payload) {
+            return res.status(400).json({ error: "instrument_key, page_name, and payload are required" });
+        }
+
+        const nowIso = new Date().toISOString();
+
+        // 1. Header (Scores, Tailwinds, Risks, Regime)
+        upsertAiCardStore(
+            instrument_key, 
+            page_name, 
+            "Header", 
+            "Summary", 
+            nowIso, 
+            {
+                compositeScore: payload.compositeScore,
+                regime: payload.regime,
+                tailwinds: payload.tailwinds,
+                risks: payload.risks,
+                aiInsight: payload.aiInsight
+            }
+        );
+
+        // 2. Sections
+        if (payload.sections) {
+            upsertAiCardStore(
+                instrument_key,
+                page_name,
+                "Sections",
+                "List",
+                nowIso,
+                { sections: payload.sections }
+            );
+        }
+
+        // 3. Individual Cards
+        if (payload.cards && Array.isArray(payload.cards)) {
+            for (const card of payload.cards) {
+                upsertAiCardStore(
+                    instrument_key,
+                    page_name,
+                    "Cards",
+                    card.id,
+                    nowIso,
+                    card
+                );
+            }
+        }
+
+        res.json({ status: "success", message: "Snapshot synced to SQLite successfully" });
+    } catch (error) {
+        console.error("❌ Error syncing intelligence:", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 });

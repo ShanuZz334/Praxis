@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import TechnicalGrid from "./TechnicalGrid";
 import TechnicalModal from "./TechnicalModal";
@@ -13,6 +13,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
+import { useAiSync } from "@/shared/hooks/useAiSync";
 
 const DEFAULT_OVERRIDES = {
     ad_line: null, mcclellan: null, nh_nl: null, trin: null,
@@ -69,7 +70,13 @@ export default function TechnicalPage() {
     const [sortMode, setSortMode] = useState("score_desc");
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCard, setSelectedCard] = useState(null);
-    const [selectedTimeframe, setSelectedTimeframe] = useState("day");
+    const [selectedTimeframe, setSelectedTimeframe] = useState(() => {
+        return localStorage.getItem('praxis_technical_timeframe') || "day";
+    });
+
+    useEffect(() => {
+        localStorage.setItem('praxis_technical_timeframe', selectedTimeframe);
+    }, [selectedTimeframe]);
 
     // Unified persistent overrides hook
     const { overrides: manualOverrides, lastUpdated: manualOverrideTimes, handleChange: handleOverrideChange, handleClearAll } = useManualOverrides('technical', selectedInstrument || 'NIFTY', DEFAULT_OVERRIDES);
@@ -111,6 +118,15 @@ export default function TechnicalPage() {
     }, [manualOverrides, technicalsData]);
 
     // Engine: Process the data
+    const compositeData = useTechnicalComposite(activeData, isIndex);
+
+    // Silently Stream the Snapshot to SQLite backend
+    useAiSync(
+        selectedInstrument, 
+        "Technical", 
+        compositeData
+    );
+
     const { 
         compositeScore,
         regime: engineRegime,
@@ -119,7 +135,7 @@ export default function TechnicalPage() {
         risks, 
         aiInsight,
         cardScores
-    } = useTechnicalComposite(activeData, isIndex);
+    } = compositeData;
 
     // --- cardsForHeader: mirrors FundamentalPage exactly ---
     // Only include keys that exist in the static cards registry to prevent
@@ -285,7 +301,11 @@ export default function TechnicalPage() {
                                 onChange={setSelectedTimeframe}
                                 options={[
                                     { value: "1minute", label: "1m" },
+                                    { value: "5minute", label: "5m" },
+                                    { value: "10minute", label: "10m" },
+                                    { value: "15minute", label: "15m" },
                                     { value: "30minute", label: "30m" },
+                                    { value: "1hour", label: "1h" },
                                     { value: "day", label: "Daily" },
                                 ]}
                             />

@@ -30,6 +30,8 @@ import userRoutes from "./routes/userRoutes.js";
 import upstoxRoutes from "./routes/upstoxRoutes.js";
 import snapshotRoutes from "./routes/snapshotRoutes.js";
 import intelligenceRoutes from "./routes/intelligenceRoutes.js";
+import flowRoutes from "./routes/flowRoutes.js";
+import catalystRoutes from "./routes/catalystRoutes.js";
 
 // =============================
 // Express App Setup
@@ -84,6 +86,8 @@ app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/upstox", upstoxRoutes);
 app.use("/api/v1/snapshots", snapshotRoutes);
 app.use("/api/v1/intelligence", intelligenceRoutes);
+app.use("/api/v1/catalysts", catalystRoutes);
+app.use("/api/flow", flowRoutes);
 
 // =============================
 // Static Files
@@ -96,6 +100,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { connectUpstoxWebsocket } from "./services/upstoxWebsocket.js";
+import { startMarketDataPolling, cachedFlowData, cachedSmartlists, cachedSectors } from "./services/upstoxMarketData.js";
 import { initSocketBroadcaster } from "./services/socketBroadcast.js";
 import { initInstrumentCron } from "./services/upstoxInstrument.js";
 import { initIntelligenceCrons } from "./services/intelligenceCron.js";
@@ -117,15 +122,40 @@ initSocketBroadcaster(io);
 initInstrumentCron();
 initIntelligenceCrons();
 
+// Start Background Polling Services
+startMarketDataPolling();
+
 io.on("connection", (socket) => {
     console.log(`🔌 Client connected to Socket.io: ${socket.id}`);
     
     socket.on("subscribe:instruments", async ({ keys, mode }) => {
         if (keys && keys.length > 0) {
-            const { subscribeToInstruments } = await import("./services/upstoxWebsocket.js");
+            const { subscribeToInstruments, getLatestQuotes } = await import("./services/upstoxWebsocket.js");
+            
+            // 1. Immediately send down any cached data we have for these keys so the UI populates instantly
+            const cachedQuotes = getLatestQuotes(keys);
+            if (cachedQuotes.length > 0) {
+                // Send it to this specific socket
+                cachedQuotes.forEach(quote => {
+                    socket.emit("market:update", { instrumentKey: quote.instrumentKey, data: quote });
+                });
+            }
+
+            // 2. Add them to the upstream subscription
             subscribeToInstruments(keys, mode || "full");
         }
     });
+    
+    // Hydrate frontend with cached data immediately upon connection
+    if (cachedFlowData) {
+        socket.emit("market:fiidii", cachedFlowData);
+    }
+    if (cachedSmartlists) {
+        socket.emit("market:smartlists", cachedSmartlists);
+    }
+    if (cachedSectors) {
+        socket.emit("market:sectors", cachedSectors);
+    }
     
     socket.on("disconnect", () => {
         console.log(`🔌 Client disconnected from Socket.io: ${socket.id}`);
@@ -136,4 +166,6 @@ httpServer.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
     // Start the Upstox Market Data Feed V3 service
     connectUpstoxWebsocket().catch(e => console.error(e));
+    // Start periodic polling for FII/DII and Smartlists to broadcast over socket
+    startMarketDataPolling();
 });

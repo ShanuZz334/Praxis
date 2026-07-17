@@ -7,6 +7,7 @@ import { computeCompanyComposite, computeIndexComposite } from '../../fundamenta
 import { computeTechnicalComposite } from '../../technical/engine/TechnicalCompositeEngine';
 import { useOptionsComposite } from '../../options/engine/useOptionsComposite';
 import { useOptionsCompositeScore } from '../../options/engine/useOptionsCompositeScore';
+import { computeInstitutionalComposite } from './masterScoringEngine';
 import { getCompositeState } from '@/shared/global/logic/signals';
 import { getIndicatorConfig, INDICATOR_CONFIG } from '@/shared/config/indicatorConfig';
 import toast from 'react-hot-toast';
@@ -19,7 +20,7 @@ const formatTitle = (str) => {
     }).join(' ');
 };
 
-export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, livePrices) {
+export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, livePrices, extraData = {}) {
     const [loading, setLoading] = useState(true);
     
     // States for raw data
@@ -160,10 +161,9 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
 
         const validScores = scores.filter(s => s.rawScore !== null && !isNaN(s.rawScore) && s.rawScore > 0);
         
-        let praxisComposite = 50;
-        if (validScores.length > 0) {
-            praxisComposite = validScores.reduce((acc, curr) => acc + curr.rawScore, 0) / validScores.length;
-        }
+        const moduleScoreMap = { TECH: techScore, OPT: optScore, FUND: fundScore, GLOB: globScore, EVT: evtScore };
+        const institutionalData = computeInstitutionalComposite(moduleScoreMap, extraData);
+        let praxisComposite = institutionalData.compositeScore;
 
         const getNormalized = (score) => {
             if (score > 70) return 1;
@@ -227,10 +227,14 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
         let totalNeutrals = 0;
         let aggregatedCards = [];
 
+        const mergedTech = { ...(dbFallbackData?.technical?.counts || {}), ...(techEngine?.cardScores || {}) };
+        const mergedFund = { ...(dbFallbackData?.fundamental?.counts || {}), ...(fundEngine?.cardScores || {}) };
+        const mergedOpt = { ...(dbFallbackData?.options?.counts || {}), ...(optionsEngine?.cardScores || {}) };
+
         const activeCounts = {
-            fundamental: parseEngineCounts(rawFundamentals, 'FUND') || dbFallbackData?.fundamental?.counts,
-            technical: parseEngineCounts(rawTechnicals, 'TECH') || dbFallbackData?.technical?.counts,
-            options: parseEngineCounts(optionsEngine?.cardScores, 'OPT') || dbFallbackData?.options?.counts,
+            fundamental: parseEngineCounts(mergedFund, 'FUND'),
+            technical: parseEngineCounts(mergedTech, 'TECH'),
+            options: parseEngineCounts(mergedOpt, 'OPT'),
             global: dbFallbackData?.global?.counts,
             events: dbFallbackData?.events?.counts
         };
@@ -391,6 +395,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
 
         return {
             praxisComposite: Math.round(praxisComposite),
+            modifierImpact: institutionalData.modifierImpact,
             moduleScores: scores,
             sectionsForHeader,
             tailwinds: allTailwinds,

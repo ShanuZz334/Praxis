@@ -11,8 +11,10 @@ import { generateProDeskPicks } from '../engine/proDeskEngine';
 import socket from '@/shared/utils/socket';
 import { calculateGreeks, resolveGreeks, timeToExpiry } from '../engine/blackScholesEngine';
 import { calculatePCR, calculateMaxPain } from '../engine/optionsMath';
+import OptionsStrategyDesk from "./OptionsStrategyDesk";
 import OptionsGrid from './OptionsGrid';
 import { useDashboardContext } from "@/shared/context/DashboardContext";
+import { useAiSync } from "@/shared/hooks/useAiSync";
 import { useOptionsComposite } from '../engine/useOptionsComposite';
 import { useOptionsCompositeScore } from '../engine/useOptionsCompositeScore';
 import { saveDailyOISnapshot, computeLiveOiChange } from '../engine/oiTrackerEngine';
@@ -373,6 +375,21 @@ export default function OptionsPage() {
 
             return { id, module: config?.title || formatTitle(config?.id) || formatTitle(id), normalized, credit, creditAllocation: allocated, score };
         });
+
+    // 6. Silently stream AI Snapshot to backend SQLite
+    useAiSync(
+        selectedInstrument?.value || selectedInstrument,
+        "Options",
+        {
+            compositeScore,
+            regime: engineRegime,
+            sections: engineSections,
+            tailwinds: engineTailwinds,
+            risks: engineRisks,
+            aiInsight: engineAiInsight,
+            cards: cardsForHeader
+        }
+    );
 
     const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
     const maxCards = OPTIONS_CARD_IDS.size;

@@ -1,12 +1,29 @@
-import React from "react";
+import React, { useState } from "react";
+import PaiSidebar from "./PaiSidebar";
+import PaiChatArea from "./PaiChatArea";
 
 export default function PaiPage() {
+    const [activeChatId, setActiveChatId] = useState(null);
+    const [activeChatTitle, setActiveChatTitle] = useState("");
+
+    const handleSelectChat = (chatId, chatTitle) => {
+        setActiveChatId(chatId);
+        setActiveChatTitle(chatTitle);
+    };
+
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h1 className="text-2xl font-brand tracking-widest mb-4">PAI</h1>
-            <div className="bg-background-card p-6 rounded-2xl border border-border-default">
-                <p className="text-text-secondary">PAI features coming soon...</p>
-            </div>
+        <div className="fixed inset-0 z-50 flex overflow-hidden animate-in fade-in duration-300 bg-background-app">
+            {/* Sidebar */}
+            <PaiSidebar 
+                activeChatId={activeChatId} 
+                onSelectChat={handleSelectChat} 
+            />
+            
+            {/* Main Chat Window */}
+            <PaiChatArea 
+                activeChatId={activeChatId} 
+                chatTitle={activeChatTitle} 
+            />
         </div>
     );
 }

@@ -1,5 +1,6 @@
 import axios from "axios";
 import UpstoxAuth from "../models/UpstoxAuth.js";
+import { upsertAiCardStore } from "../config/localDb.js";
 
 const UPSTOX_BASE_URL = "https://api.upstox.com/v2/market";
 
@@ -14,44 +15,220 @@ export const fetchFiiDiiFlow = async () => {
         const token = await getAuthToken();
         const headers = { "Accept": "application/json", "Authorization": `Bearer ${token}` };
 
-        // Fetch FII Cash Data
-        const fiiPromise = axios.get(`${UPSTOX_BASE_URL}/fii?data_type=NSE_EQ|CASH&interval=1D`, { headers })
-            .then(res => res.data?.data?.["NSE_EQ|CASH"]?.[0])
-            .catch(err => null);
+        const fiiDataTypes = "NSE_FO|INDEX_FUTURES,NSE_FO|STOCK_FUTURES,NSE_FO|INDEX_OPTIONS,NSE_FO|STOCK_OPTIONS,NSE_EQ|CASH";
+        const diiDataTypes = "NSE_EQ|CASH";
 
-        // Fetch DII Cash Data
-        const diiPromise = axios.get(`${UPSTOX_BASE_URL}/dii?data_type=NSE_EQ|CASH&interval=1D`, { headers })
-            .then(res => res.data?.data?.["NSE_EQ|CASH"]?.[0])
-            .catch(err => null);
+        const fiiPromise = axios.get(`${UPSTOX_BASE_URL}/fii?interval=1D&data_type=${encodeURIComponent(fiiDataTypes)}`, { headers })
+            .then(res => res.data?.data)
+            .catch(err => { console.error("FII fetch error:", err.response?.data?.errors || err.message); return null; });
 
-        const [fiiData, diiData] = await Promise.all([fiiPromise, diiPromise]);
+        const diiPromise = axios.get(`${UPSTOX_BASE_URL}/dii?interval=1D&data_type=${encodeURIComponent(diiDataTypes)}`, { headers })
+            .then(res => res.data?.data)
+            .catch(err => { console.error("DII fetch error:", err.response?.data?.errors || err.message); return null; });
 
-        let fiiNet = 0;
-        let diiNet = 0;
-        let lastUpdated = null;
-
-        if (fiiData) {
-            fiiNet = (fiiData.buy_amount || 0) - (fiiData.sell_amount || 0);
-            lastUpdated = fiiData.time_stamp;
-        }
-
-        if (diiData) {
-            diiNet = (diiData.buy_amount || 0) - (diiData.sell_amount || 0);
-            if (diiData.time_stamp && (!lastUpdated || diiData.time_stamp > lastUpdated)) {
-                lastUpdated = diiData.time_stamp;
-            }
-        }
+        const [fiiRes, diiRes] = await Promise.all([fiiPromise, diiPromise]);
         
-        // Return net flow
+        // Asynchronously sync the 30-day historical window into MongoDB
+        syncHistoricalFlows(fiiRes, diiRes).catch(console.error);
+
+        const processSegments = (data) => {
+            if (!data) return {};
+            const result = {};
+            for (const [segment, arr] of Object.entries(data)) {
+                if (arr && arr[0]) {
+                    result[segment] = {
+                        buy_amount: arr[0].buy_amount || 0,
+                        sell_amount: arr[0].sell_amount || 0,
+                        net: (arr[0].buy_amount || 0) - (arr[0].sell_amount || 0),
+                        timestamp: arr[0].time_stamp
+                    };
+                }
+            }
+            return result;
+        };
+
+        const fiiSegments = processSegments(fiiRes);
+        const diiSegments = processSegments(diiRes);
+
+        let lastUpdated = null;
+        Object.values(fiiSegments).forEach(s => { if (s.timestamp > lastUpdated) lastUpdated = s.timestamp; });
+        Object.values(diiSegments).forEach(s => { if (s.timestamp > lastUpdated) lastUpdated = s.timestamp; });
+
         return {
-            fii_cash: fiiNet,
-            dii_cash: diiNet,
-            net_flow: fiiNet + diiNet,
+            fii: fiiSegments,
+            dii: diiSegments,
             timestamp: lastUpdated
         };
 
     } catch (error) {
         console.error("❌ Failed to fetch FII/DII data:", error?.message);
-        throw error;
+        return null;
     }
+};
+
+const syncHistoricalFlows = async (fiiData, diiData) => {
+    if (!fiiData && !diiData) return;
+    
+    const flowMap = new Map();
+    
+    // Process FII
+    if (fiiData) {
+        for (const [segment, arr] of Object.entries(fiiData)) {
+            for (const entry of arr) {
+                if (!flowMap.has(entry.time_stamp)) flowMap.set(entry.time_stamp, { fii: {}, dii: {} });
+                flowMap.get(entry.time_stamp).fii[segment] = {
+                    buy_amount: entry.buy_amount || 0,
+                    sell_amount: entry.sell_amount || 0,
+                    net: (entry.buy_amount || 0) - (entry.sell_amount || 0)
+                };
+            }
+        }
+    }
+    
+    // Process DII
+    if (diiData) {
+        for (const [segment, arr] of Object.entries(diiData)) {
+            for (const entry of arr) {
+                if (!flowMap.has(entry.time_stamp)) flowMap.set(entry.time_stamp, { fii: {}, dii: {} });
+                flowMap.get(entry.time_stamp).dii[segment] = {
+                    buy_amount: entry.buy_amount || 0,
+                    sell_amount: entry.sell_amount || 0,
+                    net: (entry.buy_amount || 0) - (entry.sell_amount || 0)
+                };
+            }
+        }
+    }
+    
+    // Upsert each day into SQLite
+    for (const [ts, data] of flowMap.entries()) {
+        const timestampIso = new Date(ts).toISOString();
+        upsertAiCardStore(
+            "GLOBAL", 
+            "Dashboard", 
+            "InstitutionalFlow", 
+            "FiiDiiSegmented", 
+            timestampIso, 
+            { fii: data.fii, dii: data.dii }
+        );
+    }
+};
+
+export const fetchSmartlist = async (assetType, category, type = "options") => {
+    try {
+        const token = await getAuthToken();
+        const headers = { "Accept": "application/json", "Authorization": `Bearer ${token}` };
+        
+        const url = `${UPSTOX_BASE_URL}/smartlist/${type}?asset_type=${assetType}&category=${category}&page_number=1&page_size=20`;
+        const res = await axios.get(url, { headers });
+        const list = res.data?.data?.smartlist || [];
+        return list.map(item => ({ ...item, category }));
+    } catch (error) {
+        // Mute 400 errors if the category doesn't exist, just return empty
+        if (error?.response?.status !== 400) {
+            console.error(`❌ Failed to fetch ${type} smartlist (${category}):`, error?.message);
+        }
+        return [];
+    }
+};
+
+import { broadcast } from "./socketBroadcast.js";
+
+export let cachedFlowData = null;
+export let cachedSmartlists = null;
+export let cachedSectors = null;
+
+export const startMarketDataPolling = () => {
+    console.log("⏱️ Starting Market Data (FII/DII, Smartlists) Polling");
+    
+    const poll = async () => {
+        try {
+            const flowData = await fetchFiiDiiFlow();
+            cachedFlowData = flowData || { fii: {}, dii: {}, timestamp: null };
+            broadcast("market:fiidii", cachedFlowData);
+            
+            const [optOiGainers, optIvSurge, futPremium, optMostActive] = await Promise.all([
+                fetchSmartlist("INDEX", "OI_GAINERS", "options"),
+                fetchSmartlist("INDEX", "IV_GAINERS", "options"),
+                fetchSmartlist("INDEX", "PREMIUM", "futures"),
+                fetchSmartlist("INDEX", "MOST_ACTIVE", "options") // For Volume Shockers
+            ]);
+            
+            const optionsSmartlist = [...optOiGainers, ...optIvSurge, ...optMostActive];
+            const futuresSmartlist = [...futPremium];
+            
+            // Enrich with human-readable trading symbols using Upstox Quotes API
+            const allItems = [...optionsSmartlist, ...futuresSmartlist];
+            const keys = allItems.map(i => i.instrument_key);
+            
+            if (keys.length > 0) {
+                try {
+                    const token = await getAuthToken();
+                    const headers = { "Accept": "application/json", "Authorization": `Bearer ${token}` };
+                    
+                    // Chunk keys to avoid too long URI
+                    const chunkSize = 100;
+                    const symbolMap = {};
+                    
+                    for (let i = 0; i < keys.length; i += chunkSize) {
+                        const chunk = keys.slice(i, i + chunkSize);
+                        const url = `https://api.upstox.com/v2/market-quote/quotes?instrument_key=${encodeURIComponent(chunk.join(','))}`;
+                        const quoteRes = await axios.get(url, { headers });
+                        if (quoteRes.data?.data) {
+                            Object.values(quoteRes.data.data).forEach(quote => {
+                                if (quote.instrument_token && quote.symbol) {
+                                    symbolMap[quote.instrument_token] = quote.symbol;
+                                }
+                            });
+                        }
+                    }
+
+                    optionsSmartlist.forEach(item => {
+                        item.trading_symbol = symbolMap[item.instrument_key] || item.instrument_key;
+                    });
+                    futuresSmartlist.forEach(item => {
+                        item.trading_symbol = symbolMap[item.instrument_key] || item.instrument_key;
+                    });
+                } catch (err) {
+                    console.error("Failed to resolve smartlist symbols via Quotes API:", err.message);
+                }
+            }
+
+            cachedSmartlists = {
+                options: optionsSmartlist,
+                futures: futuresSmartlist
+            };
+            broadcast("market:smartlists", cachedSmartlists);
+
+            // Fetch Sector Indices
+            try {
+                const sectorKeys = [
+                    'NSE_INDEX|Nifty Bank', 'NSE_INDEX|Nifty IT', 'NSE_INDEX|Nifty Auto',
+                    'NSE_INDEX|Nifty Pharma', 'NSE_INDEX|Nifty Metal', 'NSE_INDEX|Nifty FMCG',
+                    'NSE_INDEX|Nifty Energy', 'NSE_INDEX|Nifty Fin Service', 'NSE_INDEX|Nifty PSE'
+                ];
+                const token = await getAuthToken();
+                const url = `https://api.upstox.com/v2/market-quote/quotes?instrument_key=${encodeURIComponent(sectorKeys.join(','))}`;
+                const sectorRes = await axios.get(url, { headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` } });
+                
+                if (sectorRes.data?.data) {
+                    const sectors = Object.values(sectorRes.data.data).map(q => ({
+                        symbol: q.instrument_token ? q.instrument_token.split('|')[1] : q.symbol,
+                        ltp: q.last_price,
+                        change: q.net_change,
+                        change_pct: (q.net_change / (q.last_price - q.net_change)) * 100
+                    }));
+                    cachedSectors = sectors;
+                    broadcast("market:sectors", cachedSectors);
+                }
+            } catch (err) {
+                console.error("Failed to fetch Sector indices:", err.message);
+            }
+        } catch (e) {
+            console.error("Polling error:", e.message);
+        }
+    };
+
+    // Poll immediately, then every 5 minutes
+    poll();
+    setInterval(poll, 5 * 60 * 1000);
 };
