@@ -69,7 +69,8 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
 
                 // 3. Fetch Live Technicals
                 try {
-                    const techRes = await axiosInstance.get(`/api/v1/upstox/technicals?instrument=${selectedInstrument}&timeframe=day`);
+                    const currentLtp = livePrices?.[selectedInstrument]?.ltp || '';
+                    const techRes = await axiosInstance.get(`/api/v1/upstox/technicals?instrument=${selectedInstrument}&timeframe=day&ltp=${currentLtp}`);
                     if (techRes.data?.success && techRes.data?.data) {
                         if (isMounted) setRawTechnicals(techRes.data.data);
                         if (techRes.data?.fallback) missingLiveData.push('Technicals');
@@ -227,9 +228,21 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
         let totalNeutrals = 0;
         let aggregatedCards = [];
 
-        const mergedTech = { ...(dbFallbackData?.technical?.counts || {}), ...(techEngine?.cardScores || {}) };
-        const mergedFund = { ...(dbFallbackData?.fundamental?.counts || {}), ...(fundEngine?.cardScores || {}) };
-        const mergedOpt = { ...(dbFallbackData?.options?.counts || {}), ...(optionsEngine?.cardScores || {}) };
+        const safeMerge = (fallback, live) => {
+            const result = { ...(fallback || {}) };
+            if (live) {
+                Object.entries(live).forEach(([k, v]) => {
+                    if (v !== null && v !== undefined && !isNaN(v) && v !== '--') {
+                        result[k] = v;
+                    }
+                });
+            }
+            return result;
+        };
+
+        const mergedTech = safeMerge(dbFallbackData?.technical?.counts, techEngine?.cardScores);
+        const mergedFund = safeMerge(dbFallbackData?.fundamental?.counts, fundEngine?.cardScores);
+        const mergedOpt = safeMerge(dbFallbackData?.options?.counts, optionsEngine?.cardScores);
 
         const activeCounts = {
             fundamental: parseEngineCounts(mergedFund, 'FUND'),
@@ -289,13 +302,14 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             const title = config.title || formatTitle(config.id) || formatTitle(id);
             if (!activeIds.has(id) && !activeTitles.has(title)) {
                 let engine = 'MISC';
+                const cat = config.category || '';
                 const str = id.toLowerCase();
                 
-                if (str.match(/index_/)) engine = 'GLOB';
-                else if (str.match(/pcr|max_pain|oi|delta|gamma|theta|vega/)) engine = 'OPT';
-                else if (str.match(/sma|ema|rsi|macd|bollinger|bb_|kc|adx|atr|vwap|obv|stoch|supertrend|cmf|trendline|pivot|fibonacci|breadth|mcclellan|ad_line|nh_nl|trin/)) engine = 'TECH';
-                else if (str.match(/pe_ratio|forward_pe|eps|yield|margin|revenue|profit|roe|roce|debt|pb|cash_flow|current_ratio|earnings|fii_dii|market_cap/)) engine = 'FUND';
-                else if (str.match(/vix|oil|gold|silver|bitcoin|futures|usd|eur|jpy|cac|dax|ftse|nikkei|copper|natgas|wheat|aluminum|move|advance_decline|gdp/)) engine = 'GLOB';
+                // Exact matches for specific overrides
+                if (['bitcoin', 'brent_crude_oil', 'gold', 'silver', 'copper', 'natgas', 'wheat', 'aluminum'].includes(str)) engine = 'GLOB';
+                else if (str.includes('atm_iv') || str.includes('iv_rank') || str.includes('iv_percentile') || str.includes('pcr') || str.includes('max_pain') || str.match(/oi|delta|gamma|theta|vega/)) engine = 'OPT';
+                else if (cat.includes('Macro') || cat.includes('Global') || str.includes('vix') || str.match(/index_|move|advance_decline|gdp_growth|futures|usd|eur|jpy|cac|dax|ftse|nikkei|shanghai|hangseng/)) engine = 'GLOB';
+                else if (cat.includes('Technical') || cat.includes('Oscillator') || str.match(/sma|ema|rsi|macd|bollinger|bb_|kc|adx|atr|vwap|obv|stoch|supertrend|cmf|trendline|pivot|fibonacci|breadth|mcclellan|ad_line|nh_nl|trin/)) engine = 'TECH';
                 else engine = 'FUND'; 
 
                 missingBreakdown[`${engine}||${title}`] = 1;
