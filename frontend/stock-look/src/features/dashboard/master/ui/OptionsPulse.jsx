@@ -72,9 +72,9 @@ export default function OptionsPulse() {
                             </span>
                             <div className="flex flex-col items-end shrink-0">
                             <span className="text-text-secondary font-medium">₹{item.price?.current || item.ltp || 0}</span>
-                            <span className={color}>
-                                {item.metric?.change_pct > 0 ? '+' : ''}
-                                {(item.metric?.change_pct || item.pct_change || 0).toFixed(1)}%
+                            <span className={item.price?.change_pct > 0 ? color : color.replace('400', '400')}>
+                                {item.price?.change_pct > 0 ? '+' : ''}
+                                {(item.price?.change_pct || item.pct_change || 0).toFixed(1)}%
                             </span>
                         </div>
                     </div>

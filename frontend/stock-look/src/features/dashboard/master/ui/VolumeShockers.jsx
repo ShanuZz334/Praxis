@@ -53,9 +53,9 @@ export default function VolumeShockers() {
                             </span>
                             <div className="flex flex-col items-end shrink-0">
                                 <span className="text-text-secondary font-medium">&#8377;{item.price?.current || item.ltp || 0}</span>
-                                <span className={item.metric?.change_pct > 0 ? 'text-emerald-400' : 'text-rose-400'}>
-                                    {item.metric?.change_pct > 0 ? '+' : ''}
-                                    {(item.metric?.change_pct || item.pct_change || 0).toFixed(1)}%
+                                <span className={item.price?.change_pct > 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                                    {item.price?.change_pct > 0 ? '+' : ''}
+                                    {(item.price?.change_pct || item.pct_change || 0).toFixed(1)}%
                                 </span>
                             </div>
                         </div>
