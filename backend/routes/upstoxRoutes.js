@@ -108,6 +108,33 @@ router.get("/status", async (req, res) => {
     }
 });
 
+// @route   GET /api/v1/upstox/news
+// @desc    Fetch news for given instrument keys
+router.get("/news", async (req, res) => {
+    try {
+        const { keys } = req.query;
+        if (!keys) return res.status(400).json({ error: "Missing keys parameter" });
+
+        const auth = await UpstoxAuth.findOne().sort({ createdAt: -1 });
+        if (!auth || !auth.accessToken) {
+            return res.status(401).json({ error: "Upstox not authenticated" });
+        }
+
+        const url = `${UPSTOX_BASE_URL}/news?category=instrument_keys&instrument_keys=${encodeURIComponent(keys)}`;
+        const response = await axios.get(url, {
+            headers: {
+                "Accept": "application/json",
+                "Authorization": `Bearer ${auth.accessToken}`
+            }
+        });
+
+        res.json(response.data);
+    } catch (error) {
+        console.error("Error fetching Upstox news:", error?.response?.data || error.message);
+        res.status(500).json({ error: "Failed to fetch news" });
+    }
+});
+
 // @route   GET /api/v1/upstox/market-quote
 // @desc    Fetch initial market quote for a list of instruments
 router.get("/market-quote", async (req, res) => {
