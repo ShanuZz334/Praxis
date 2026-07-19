@@ -104,6 +104,7 @@ export const DashboardProvider = ({ children }) => {
 
         // 2. Subscribe via WebSockets for zero-latency streaming
         socket.emit("subscribe:instruments", { keys: keysToFetch, mode: "full" });
+        socket.emit("request:hydration");
 
         const handleMarketUpdate = ({ instrumentKey, data }) => {
             // Only update if it's one of the keys we care about

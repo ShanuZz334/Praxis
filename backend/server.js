@@ -154,6 +154,12 @@ io.on("connection", (socket) => {
         socket.emit("market:sectors", cachedSectors);
     }
     
+    socket.on("request:hydration", () => {
+        if (cachedFlowData) socket.emit("market:fiidii", cachedFlowData);
+        if (cachedSmartlists) socket.emit("market:smartlists", cachedSmartlists);
+        if (cachedSectors) socket.emit("market:sectors", cachedSectors);
+    });
+
     socket.on("disconnect", () => {
         console.log(`🔌 Client disconnected from Socket.io: ${socket.id}`);
     });
