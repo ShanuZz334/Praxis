@@ -288,11 +288,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                 }
             }
         });
-        
-        // Ensure total missing covers exactly the expected cards based on instrument type
-        // as per the latest Fundamental changes: 73 for Indices, 87 for Companies.
-        const totalPossibleCards = isIndex ? 73 : 87;
-        let totalMissing = Math.max(0, totalPossibleCards - (totalBulls + totalBears + totalNeutrals));
+        // Total missing is calculated dynamically after the missingBreakdown generation.
 
         // Compute missing breakdown
         const activeIds = new Set(aggregatedCards.map(c => c.id));
@@ -322,6 +318,9 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                 }
             }
         });
+
+        // The total missing number MUST dynamically match the length of the breakdown list!
+        const totalMissing = Object.keys(missingBreakdown).length;
 
         // ==========================================
         // INSTITUTIONAL MASTER DRIVER ALGORITHM (SECTION LEVEL)
