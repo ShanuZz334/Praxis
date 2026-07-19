@@ -33,7 +33,6 @@ export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType 
     // Macro / Manual Cards
     const adResult = scorers.scoreADRatio(null);
     const vixResult = scorers.scoreVIX(null);
-    const pcrResult = scorers.scorePCR(null);
     const gdpResult = scorers.scoreGDPGrowth(ext.gdpGrowth);
     const fiiResult = scorers.scoreInstitutionalFlow(ext.fiiFlow, ext.diiFlow);
 
@@ -113,8 +112,7 @@ export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType 
         { id: 'gdp_growth', score: gdpResult.score, bias: gdpResult.bias, rawInput: { gdpGrowth: ext.gdpGrowth } },
         { id: 'fii_dii_flow', score: fiiResult.score, bias: fiiResult.bias, rawInput: { fiiFlow: ext.fiiFlow, diiFlow: ext.diiFlow } },
         { id: 'advance_decline', score: adResult.score, bias: adResult.bias, rawInput: {} },
-        { id: 'india_vix', score: vixResult.score, bias: vixResult.bias, rawInput: {} },
-        { id: 'index_pcr', score: pcrResult.score, bias: pcrResult.bias, rawInput: {} }
+        { id: 'india_vix', score: vixResult.score, bias: vixResult.bias, rawInput: {} }
     ];
 
     // 4. Compute Composite (Simplified version matching frontend)

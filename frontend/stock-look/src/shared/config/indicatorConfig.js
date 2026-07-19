@@ -21,13 +21,6 @@ export const INDICATOR_CONFIG = {
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
-    index_pcr: {
-        id: "index_pcr",
-        creditScore: 7,
-        impactWeight: "5.0%",
-        source: "Manual",
-        aiModel: "Qwen3 8B"
-    },
     index_macd: {
         id: "index_macd",
         creditScore: 7,
