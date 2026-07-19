@@ -100,7 +100,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { connectUpstoxWebsocket } from "./services/upstoxWebsocket.js";
-import { startMarketDataPolling, cachedFlowData, cachedSmartlists, cachedSectors } from "./services/upstoxMarketData.js";
+import { startMarketDataPolling, cachedFlowData, cachedSmartlists, cachedSectors, cachedNews } from "./services/upstoxMarketData.js";
 import { initSocketBroadcaster } from "./services/socketBroadcast.js";
 import { initInstrumentCron } from "./services/upstoxInstrument.js";
 import { initIntelligenceCrons } from "./services/intelligenceCron.js";
@@ -153,11 +153,15 @@ io.on("connection", (socket) => {
     if (cachedSectors) {
         socket.emit("market:sectors", cachedSectors);
     }
+    if (cachedNews) {
+        socket.emit("market:news", cachedNews);
+    }
     
     socket.on("request:hydration", () => {
         if (cachedFlowData) socket.emit("market:fiidii", cachedFlowData);
         if (cachedSmartlists) socket.emit("market:smartlists", cachedSmartlists);
         if (cachedSectors) socket.emit("market:sectors", cachedSectors);
+        if (cachedNews) socket.emit("market:news", cachedNews);
     });
 
     socket.on("disconnect", () => {

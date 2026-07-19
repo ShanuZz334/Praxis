@@ -87,6 +87,7 @@ export const DashboardProvider = ({ children }) => {
     const [fiiDiiFlow, setFiiDiiFlow] = useState(null);
     const [smartlists, setSmartlists] = useState(null);
     const [sectors, setSectors] = useState(null);
+    const [marketNews, setMarketNews] = useState(null);
 
     useEffect(() => {
         const keysToFetch = Array.from(new Set([
@@ -146,17 +147,20 @@ export const DashboardProvider = ({ children }) => {
             }
         };
         const handleSectors = (data) => setSectors(data);
+        const handleNews = (data) => setMarketNews(data);
 
         socket.on("market:update", handleMarketUpdate);
         socket.on("market:fiidii", handleFiiDii);
         socket.on("market:smartlists", handleSmartlists);
         socket.on("market:sectors", handleSectors);
+        socket.on("market:news", handleNews);
 
         return () => {
             socket.off("market:update", handleMarketUpdate);
             socket.off("market:fiidii", handleFiiDii);
             socket.off("market:smartlists", handleSmartlists);
             socket.off("market:sectors", handleSectors);
+            socket.off("market:news", handleNews);
         };
     }, [selectedInstrument]);
 
@@ -172,7 +176,8 @@ export const DashboardProvider = ({ children }) => {
         livePrices,
         fiiDiiFlow,
         smartlists,
-        sectors
+        sectors,
+        marketNews
     };
 
     return (

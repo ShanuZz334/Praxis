@@ -136,6 +136,7 @@ import { broadcast } from "./socketBroadcast.js";
 export let cachedFlowData = null;
 export let cachedSmartlists = null;
 export let cachedSectors = null;
+export let cachedNews = null;
 
 export const startMarketDataPolling = () => {
     console.log("⏱️ Starting Market Data (FII/DII, Smartlists) Polling");
@@ -223,6 +224,40 @@ export const startMarketDataPolling = () => {
             } catch (err) {
                 console.error("Failed to fetch Sector indices:", err.message);
             }
+
+            // Fetch Market News (using major Nifty 50 constituent equity keys)
+            try {
+                const newsKeys = [
+                    'NSE_EQ|INE002A01018', // Reliance
+                    'NSE_EQ|INE040A01034', // HDFC Bank
+                    'NSE_EQ|INE090A01021', // ICICI Bank
+                    'NSE_EQ|INE467B01029', // TCS
+                    'NSE_EQ|INE009A01021', // Infosys
+                    'NSE_EQ|INE585B01010', // Maruti
+                    'NSE_EQ|INE154A01025', // ITC
+                    'NSE_EQ|INE030A01027', // HUL
+                    'NSE_EQ|INE628A01036', // Kotak Bank
+                    'NSE_EQ|INE019A01038', // SBI
+                ];
+                const token = await getAuthToken();
+                const newsUrl = `https://api.upstox.com/v2/news?category=instrument_keys&instrument_keys=${encodeURIComponent(newsKeys.join(','))}&page_size=30`;
+                const newsRes = await axios.get(newsUrl, { headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` } });
+
+                if (newsRes.data?.data) {
+                    let allNews = [];
+                    Object.values(newsRes.data.data).forEach(arr => {
+                        if (Array.isArray(arr)) allNews.push(...arr);
+                    });
+                    // Deduplicate by article_link
+                    const uniqueNews = Array.from(new Map(allNews.map(n => [n.article_link, n])).values());
+                    // Sort descending by publish time
+                    uniqueNews.sort((a, b) => b.published_time - a.published_time);
+                    cachedNews = uniqueNews.slice(0, 25); // Keep top 25
+                    broadcast("market:news", cachedNews);
+                }
+            } catch (err) {
+                console.error("Failed to fetch market news:", err.message);
+            }
         } catch (e) {
             console.error("Polling error:", e.message);
         }
@@ -232,3 +267,4 @@ export const startMarketDataPolling = () => {
     poll();
     setInterval(poll, 5 * 60 * 1000);
 };
+

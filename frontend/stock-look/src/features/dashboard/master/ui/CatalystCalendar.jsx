@@ -4,48 +4,10 @@ import { useDashboardContext } from '@/shared/context/DashboardContext';
 import { Newspaper } from 'lucide-react';
 
 export default function CatalystCalendar() {
-    const { keysToFetch } = useDashboardContext();
-    const [newsItems, setNewsItems] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchNews = async () => {
-            if (!keysToFetch || keysToFetch.length === 0) {
-                setLoading(false);
-                return;
-            }
-            
-            try {
-                setLoading(true);
-                const keysStr = encodeURIComponent(keysToFetch.join(','));
-                const res = await axiosInstance.get(`/api/v1/upstox/news?keys=${keysStr}`);
-                
-                if (res.data?.data) {
-                    // Upstox returns data as { "InstrumentKey": [ newsArray ] }
-                    // Flatten it and sort by published_time descending
-                    let allNews = [];
-                    Object.values(res.data.data).forEach(newsArray => {
-                        allNews = [...allNews, ...newsArray];
-                    });
-                    
-                    // Deduplicate by article_link in case same news applies to multiple instruments
-                    const uniqueNews = Array.from(new Map(allNews.map(item => [item.article_link, item])).values());
-                    
-                    // Sort descending
-                    uniqueNews.sort((a, b) => b.published_time - a.published_time);
-                    
-                    setNewsItems(uniqueNews);
-                }
-            } catch (error) {
-                console.error('Failed to fetch Upstox news:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchNews();
-    }, [keysToFetch]);
-
-    if (loading) {
+    const { marketNews } = useDashboardContext();
+    const newsItems = marketNews || [];
+    
+    if (!marketNews) {
         return (
             <div className="bg-background-card border border-border-default rounded-xl p-4 flex flex-col h-full opacity-50">
                 <div className="flex items-center gap-2 mb-4">
