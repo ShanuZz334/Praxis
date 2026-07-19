@@ -314,10 +314,11 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                     const cat = config.category || '';
                     const str = id.toLowerCase();
                     
-                    // Exact matches for specific overrides
-                    if (['bitcoin', 'brent_crude_oil', 'gold', 'silver', 'copper', 'natgas', 'wheat', 'aluminum'].includes(str)) engine = 'GLOB';
+                    // Strict Exact Matches for Global Dashboard (25 Cards)
+                    const GLOB_CARDS = ['dxy', 'usd_inr', 'crude', 'brent_crude_oil', 'gold', 'silver', 'us_10y_yield', 'sp_futures', 'nasdaq_futures', 'dow_futures', 'vix', 'bitcoin', 'eurusd', 'usdjpy', 'nikkei', 'ftse', 'dax', 'hangseng', 'shanghai', 'cac40', 'eurostoxx', 'copper', 'natgas', 'wheat', 'aluminum', 'move'];
+
+                    if (GLOB_CARDS.includes(str)) engine = 'GLOB';
                     else if (str.includes('atm_iv') || str.includes('iv_rank') || str.includes('iv_percentile') || str.includes('pcr') || str.includes('max_pain') || str.match(/oi|delta|gamma|theta|vega/)) engine = 'OPT';
-                    else if (cat.includes('Macro') || cat.includes('Global') || str.includes('vix') || str.match(/index_|move|advance_decline|gdp_growth|futures|usd|eur|jpy|cac|dax|ftse|nikkei|shanghai|hangseng/)) engine = 'GLOB';
                     else if (cat.includes('Technical') || cat.includes('Oscillator') || str.match(/sma|ema|rsi|macd|bollinger|bb_|kc|adx|atr|vwap|obv|stoch|supertrend|cmf|trendline|pivot|fibonacci|breadth|mcclellan|ad_line|nh_nl|trin/)) engine = 'TECH';
                     else engine = 'FUND'; 
 
