@@ -122,9 +122,6 @@ initSocketBroadcaster(io);
 initInstrumentCron();
 initIntelligenceCrons();
 
-// Start Background Polling Services
-startMarketDataPolling();
-
 io.on("connection", (socket) => {
     console.log(`🔌 Client connected to Socket.io: ${socket.id}`);
     

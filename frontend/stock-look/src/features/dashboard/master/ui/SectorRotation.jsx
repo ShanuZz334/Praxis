@@ -5,14 +5,14 @@ import { PieChart, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 export default function SectorRotation() {
     const { sectors } = useDashboardContext();
 
-    if (!sectors) {
+    if (!sectors || sectors.length === 0) {
         return (
             <div className="bg-background-card border border-border-default rounded-xl p-4 flex flex-col h-full opacity-50">
                 <div className="flex items-center gap-2 mb-4">
                     <PieChart className="w-4 h-4 text-brand-primary" />
                     <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wide">Sector Rotation</h3>
                 </div>
-                <p className="text-[11px] text-text-secondary">Waiting for sector indices...</p>
+                <p className="text-[11px] text-text-secondary">Waiting for sector indices (or no data available)...</p>
             </div>
         );
     }

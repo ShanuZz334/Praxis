@@ -5,11 +5,14 @@ import { TrendingUp, TrendingDown, Activity, AlertTriangle } from 'lucide-react'
 export default function OptionsPulse() {
     const { smartlists } = useDashboardContext();
 
-    if (!smartlists) {
+    if (!smartlists || (Object.keys(smartlists).length === 0)) {
         return (
             <div className="bg-background-card border border-border-default rounded-xl p-4 flex flex-col h-full opacity-50">
-                <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wide mb-1">Options Pulse</h3>
-                <p className="text-[11px] text-text-secondary">Waiting for smartlists...</p>
+                <div className="flex items-center gap-2 mb-4">
+                    <Activity className="w-4 h-4 text-brand-primary" />
+                    <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wide">Options Pulse</h3>
+                </div>
+                <p className="text-[11px] text-text-secondary">{smartlists && Object.keys(smartlists).length === 0 ? "No smartlists data available (market closed)." : "Waiting for smartlists..."}</p>
             </div>
         );
     }

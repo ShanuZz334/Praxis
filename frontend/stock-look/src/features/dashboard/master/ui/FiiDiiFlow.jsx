@@ -42,11 +42,11 @@ export default function FiiDiiFlow() {
     const fiiDiiFlow = historyOffset === 0 ? liveFiiDiiFlow : historicalFlow;
 
     
-    if (!fiiDiiFlow) {
+    if (!fiiDiiFlow || Object.keys(fiiDiiFlow.fii || {}).length === 0) {
         return (
             <div className="bg-background-card border border-border-default rounded-xl p-4 flex flex-col h-full opacity-50">
                 <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wide mb-1">Institutional Flow</h3>
-                <p className="text-[11px] text-text-secondary">Waiting for socket data...</p>
+                <p className="text-[11px] text-text-secondary">{fiiDiiFlow && Object.keys(fiiDiiFlow.fii || {}).length === 0 ? "No flow data available." : "Waiting for socket data..."}</p>
             </div>
         );
     }

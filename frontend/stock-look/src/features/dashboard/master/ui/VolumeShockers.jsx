@@ -5,25 +5,19 @@ import { Zap } from 'lucide-react';
 export default function VolumeShockers() {
     const { smartlists } = useDashboardContext();
 
-    if (!smartlists || !smartlists.options) {
+    if (!smartlists || Object.keys(smartlists).length === 0 || !smartlists['MOST_ACTIVE']) {
         return (
             <div className="bg-background-card border border-border-default rounded-xl p-4 flex flex-col h-full opacity-50">
                 <div className="flex items-center gap-2 mb-4">
                     <Zap className="w-4 h-4 text-warning-500" />
                     <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wide">Volume Shockers</h3>
                 </div>
-                <p className="text-[11px] text-text-secondary">Waiting for active options...</p>
+                <p className="text-[11px] text-text-secondary">{smartlists && Object.keys(smartlists).length === 0 ? "No active options data available." : "Waiting for active options..."}</p>
             </div>
         );
     }
 
-    // Extract MOST_ACTIVE category
-    let activeOpts = [];
-    if (Array.isArray(smartlists.options)) {
-        activeOpts = smartlists.options.filter(i => i.category === 'MOST_ACTIVE');
-    } else if (smartlists.options.MOST_ACTIVE) {
-        activeOpts = smartlists.options.MOST_ACTIVE;
-    }
+    const activeOpts = smartlists['MOST_ACTIVE'] || [];
 
     // Format Trading Symbol
     const formatTradingSymbol = (sym) => {
