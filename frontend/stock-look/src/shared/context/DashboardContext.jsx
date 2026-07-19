@@ -131,7 +131,19 @@ export const DashboardProvider = ({ children }) => {
         };
 
         const handleFiiDii = (data) => setFiiDiiFlow(data);
-        const handleSmartlists = (data) => setSmartlists(data);
+        const handleSmartlists = (data) => {
+            if (data && (data.options || data.futures)) {
+                const map = {};
+                const allItems = [...(data.options || []), ...(data.futures || [])];
+                allItems.forEach(item => {
+                    if (!map[item.category]) map[item.category] = [];
+                    map[item.category].push(item);
+                });
+                setSmartlists(map);
+            } else {
+                setSmartlists(data);
+            }
+        };
         const handleSectors = (data) => setSectors(data);
 
         socket.on("market:update", handleMarketUpdate);
