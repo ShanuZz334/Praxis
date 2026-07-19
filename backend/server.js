@@ -131,15 +131,40 @@ io.on("connection", (socket) => {
             
             // 1. Immediately send down any cached data we have for these keys so the UI populates instantly
             const cachedQuotes = getLatestQuotes(keys);
+            const validKeys = new Set();
+            
             if (cachedQuotes.length > 0) {
                 // Send it to this specific socket
                 cachedQuotes.forEach(quote => {
                     socket.emit("market:update", { instrumentKey: quote.instrumentKey, data: quote });
+                    if (quote.cp != null) validKeys.add(quote.instrumentKey);
                 });
             }
 
             // 2. Add them to the upstream subscription
             subscribeToInstruments(keys, mode || "full");
+
+            // 3. For any keys that don't have a valid close price (cp) yet, fetch them via REST API
+            const keysToFetch = keys.filter(k => !validKeys.has(k));
+            if (keysToFetch.length > 0) {
+                const { fetchQuotes } = await import("./services/upstoxQuote.js");
+                fetchQuotes(keysToFetch).then(async quotesData => {
+                    const { broadcast } = await import("./services/socketBroadcast.js");
+                    for (const [k, q] of Object.entries(quotesData)) {
+                        const payload = {
+                            instrumentKey: k,
+                            ltp: q.last_price,
+                            cp: q.ohlc?.close,
+                            volume: q.volume
+                        };
+                        // Broadcast globally so all sockets get the true close price
+                        broadcast("market:update", { instrumentKey: k, data: payload });
+                        
+                        // We also directly update the SQLite cache by virtue of fetchQuotes() already doing it,
+                        // so future getLatestQuotes() will load it natively.
+                    }
+                }).catch(console.error);
+            }
         }
     });
     

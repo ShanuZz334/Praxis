@@ -2134,3 +2134,644 @@ export function generateAiInsightEarningsQualityCard(cfoToNetProfit, qualityLabe
     else text += ' Operating cash flows are negative despite reported profits � a classic earnings quality warning sign.';
     return text;
 }
+
+
+// ==========================================
+// INDEX FUNDAMENTALS SCORING ENGINE
+// ==========================================
+
+export function scoreNiftyPE(pe) {
+    if (pe === undefined || pe === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(pe);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+
+    let score = 50;
+    let bias = 'Neutral';
+
+    // Historical Nifty PE averages around 20-22
+    if (num < 15) { score = 100; bias = 'Strong Bullish'; }
+    else if (num < 18) { score = 80; bias = 'Bullish'; }
+    else if (num < 22) { score = 50; bias = 'Neutral'; }
+    else if (num < 25) { score = 20; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+
+    return { score, bias, confidence: 95 };
+}
+
+export function generateAiInsightNiftyPE(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Nifty PE ratio data is unavailable.";
+    if (scoreObj.score >= 80) return `Nifty PE at ${val} is deep in the value zone, historically followed by strong forward returns.`;
+    if (scoreObj.score <= 20) return `Nifty PE at ${val} is stretched. High vulnerability to earnings disappointment or rate shocks.`;
+    return `Nifty PE at ${val} is near historical fair value. Market is pricing in steady growth.`;
+}
+
+export function scoreNiftyPB(pb) {
+    if (pb === undefined || pb === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(pb);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+
+    let score = 50;
+    let bias = 'Neutral';
+
+    // Nifty PB historical average around 3.0
+    if (num < 2.5) { score = 100; bias = 'Strong Bullish'; }
+    else if (num < 3.0) { score = 75; bias = 'Bullish'; }
+    else if (num < 3.8) { score = 50; bias = 'Neutral'; }
+    else if (num < 4.5) { score = 25; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+
+    return { score, bias, confidence: 90 };
+}
+
+export function generateAiInsightNiftyPB(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Nifty PB data unavailable.";
+    if (scoreObj.score >= 75) return `Nifty PB at ${val}x suggests severe undervaluation of banking and heavy asset sectors.`;
+    if (scoreObj.score <= 25) return `Nifty PB at ${val}x implies significant premium being paid for future ROE expansion.`;
+    return `Nifty PB at ${val}x is perfectly aligned with historical long-term averages.`;
+}
+
+export function scoreMarketCapGDP(ratio) {
+    if (ratio === undefined || ratio === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(ratio);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+
+    let score = 50;
+    let bias = 'Neutral';
+
+    // Buffett Indicator for India (Historically 75%-100% is fair, >120% is expensive)
+    if (num < 70) { score = 100; bias = 'Strong Bullish'; }
+    else if (num < 90) { score = 80; bias = 'Bullish'; }
+    else if (num < 110) { score = 50; bias = 'Neutral'; }
+    else if (num < 130) { score = 20; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+
+    return { score, bias, confidence: 90 };
+}
+
+export function generateAiInsightMarketCapGDP(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Market Cap/GDP data unavailable.";
+    if (scoreObj.score >= 80) return `At ${val}%, the Buffett Indicator suggests India is structurally undervalued relative to its economic footprint.`;
+    if (scoreObj.score <= 20) return `At ${val}%, total market cap far exceeds GDP. Market is pulling forward multiple years of growth.`;
+    return `At ${val}%, Indian equities are fairly priced relative to the current size of the underlying economy.`;
+}
+
+export function scoreNiftyDividendYield(yieldVal) {
+    if (yieldVal === undefined || yieldVal === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(yieldVal);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+
+    let score = 50;
+    let bias = 'Neutral';
+
+    // Nifty Div Yield average is ~1.2%
+    if (num > 1.8) { score = 100; bias = 'Strong Bullish'; }
+    else if (num > 1.4) { score = 80; bias = 'Bullish'; }
+    else if (num > 1.0) { score = 50; bias = 'Neutral'; }
+    else if (num > 0.7) { score = 20; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+
+    return { score, bias, confidence: 90 };
+}
+
+export function generateAiInsightNiftyDividendYield(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Nifty Dividend Yield data unavailable.";
+    if (scoreObj.score >= 80) return `Aggregate yield of ${val}% provides a massive floor to index drawdowns. Deep value territory.`;
+    if (scoreObj.score <= 20) return `Aggregate yield of ${val}% is extremely low, typical of late-stage bull market euphoria.`;
+    return `Yield of ${val}% represents a standard, healthy baseline for large-cap Indian equities.`;
+}
+
+export function scoreNiftyEPSGrowth(growth) {
+    if (growth === undefined || growth === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(growth);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+
+    let score = 50;
+    let bias = 'Neutral';
+
+    // Nifty long term EPS CAGR is ~12-14%
+    if (num > 20) { score = 100; bias = 'Strong Bullish'; }
+    else if (num > 15) { score = 80; bias = 'Bullish'; }
+    else if (num > 10) { score = 50; bias = 'Neutral'; }
+    else if (num > 5) { score = 20; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+
+    return { score, bias, confidence: 90 };
+}
+
+export function generateAiInsightNiftyEPSGrowth(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Nifty EPS Growth data unavailable.";
+    if (scoreObj.score >= 80) return `Nifty EPS surging ${val}%. The fundamental earnings engine is fully intact to support current valuations.`;
+    if (scoreObj.score <= 20) return `Sluggish EPS growth of ${val}% makes the index highly vulnerable to valuation contraction.`;
+    return `EPS compounding at ${val}%, directly in line with long-term nominal GDP growth plus inflation.`;
+}
+
+export function scoreNiftyForwardEPS(growth) {
+    if (growth === undefined || growth === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(growth);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    
+    let score = 50; let bias = 'Neutral';
+    if (num > 22) { score = 100; bias = 'Strong Bullish'; }
+    else if (num > 16) { score = 80; bias = 'Bullish'; }
+    else if (num > 12) { score = 50; bias = 'Neutral'; }
+    else if (num > 6) { score = 20; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+    return { score, bias, confidence: 85 };
+}
+export function generateAiInsightNiftyForwardEPS(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Forward EPS data unavailable.";
+    if (scoreObj.score >= 80) return `Street expects powerful ${val}% forward growth, providing a massive tailwind for momentum.`;
+    if (scoreObj.score <= 20) return `Forward estimates are collapsing to ${val}%. High risk of downward rerating across the board.`;
+    return `Forward consensus at ${val}% indicates a stable, middle-of-the-road earnings cycle.`;
+}
+
+export function scoreEarningsRevision(netUpgrades) {
+    if (netUpgrades === undefined || netUpgrades === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(netUpgrades); // % of companies with EPS upgrades minus downgrades
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    
+    let score = 50; let bias = 'Neutral';
+    if (num > 20) { score = 100; bias = 'Strong Bullish'; }
+    else if (num > 5) { score = 75; bias = 'Bullish'; }
+    else if (num > -5) { score = 50; bias = 'Neutral'; }
+    else if (num > -20) { score = 25; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+    return { score, bias, confidence: 80 };
+}
+export function generateAiInsightEarningsRevision(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Earnings revision data unavailable.";
+    if (scoreObj.score >= 75) return `Net ${val}% positive revisions. Analysts are scrambling to upgrade targets—classic bull market behavior.`;
+    if (scoreObj.score <= 25) return `Net ${val}% downgrades. The street is aggressively cutting estimates, signaling a deteriorating macro environment.`;
+    return `Revisions are balanced at ${val}%. The street is largely comfortable with current consensus.`;
+}
+
+export function scoreSectorEarnings(breadth) {
+    if (breadth === undefined || breadth === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(breadth); // % of sectors beating estimates
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    
+    let score = 50; let bias = 'Neutral';
+    if (num > 75) { score = 100; bias = 'Strong Bullish'; }
+    else if (num > 60) { score = 75; bias = 'Bullish'; }
+    else if (num > 40) { score = 50; bias = 'Neutral'; }
+    else if (num > 25) { score = 25; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+    return { score, bias, confidence: 85 };
+}
+export function generateAiInsightSectorEarnings(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Sector earnings breadth unavailable.";
+    if (scoreObj.score >= 75) return `${val}% of sectors beating estimates indicates incredibly broad-based economic resilience.`;
+    if (scoreObj.score <= 25) return `Only ${val}% of sectors beating. Growth is heavily isolated, making the broader index fragile.`;
+    return `Sector breadth at ${val}% indicates a standard, mixed earnings season with clear winners and losers.`;
+}
+
+export function scoreAggregateProfitMargin(margin) {
+    if (margin === undefined || margin === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(margin);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    
+    let score = 50; let bias = 'Neutral';
+    if (num > 12) { score = 100; bias = 'Strong Bullish'; }
+    else if (num > 10) { score = 75; bias = 'Bullish'; }
+    else if (num > 8) { score = 50; bias = 'Neutral'; }
+    else if (num > 6) { score = 25; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+    return { score, bias, confidence: 90 };
+}
+export function generateAiInsightAggregateProfitMargin(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Margin data unavailable.";
+    if (scoreObj.score >= 75) return `Record aggregate margins of ${val}%. Corporate India has immense pricing power and cost leverage right now.`;
+    if (scoreObj.score <= 25) return `Margins squeezed to ${val}%. Input cost inflation and lack of pricing power are destroying profitability.`;
+    return `Aggregate margins at ${val}% reflect a steady-state operating environment for Nifty constituents.`;
+}
+
+export function scoreCPIInflation(cpi) {
+    if (cpi === undefined || cpi === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(cpi);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    
+    let score = 50; let bias = 'Neutral';
+    // RBI target is 4%, band 2-6%
+    if (num < 4.5 && num > 2) { score = 100; bias = 'Strong Bullish'; }
+    else if (num <= 5.5) { score = 75; bias = 'Bullish'; }
+    else if (num <= 6.5) { score = 50; bias = 'Neutral'; }
+    else if (num <= 7.5) { score = 25; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+    return { score, bias, confidence: 95 };
+}
+export function generateAiInsightCPIInflation(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "CPI data unavailable.";
+    if (scoreObj.score >= 75) return `Goldilocks CPI at ${val}%. Perfectly aligned with RBI targets, granting maximum policy flexibility.`;
+    if (scoreObj.score <= 25) return `Hot CPI at ${val}% breaches RBI tolerance bands. Expect aggressive liquidity tightening and rate hikes.`;
+    return `CPI at ${val}% is manageable, but RBI will likely maintain a neutral to slightly vigilant stance.`;
+}
+
+export function scoreRepoRate(repo) {
+    if (repo === undefined || repo === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(repo);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    
+    let score = 50; let bias = 'Neutral';
+    // Lower rates are generally bullish for equities
+    if (num < 4.5) { score = 100; bias = 'Strong Bullish'; }
+    else if (num < 5.5) { score = 80; bias = 'Bullish'; }
+    else if (num < 6.5) { score = 50; bias = 'Neutral'; }
+    else if (num < 7.5) { score = 20; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+    return { score, bias, confidence: 95 };
+}
+export function generateAiInsightRepoRate(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Repo rate data unavailable.";
+    if (scoreObj.score >= 80) return `Accommodative repo rate of ${val}% provides massive structural support for equity valuations.`;
+    if (scoreObj.score <= 20) return `Restrictive ${val}% repo rate is severely choking corporate credit flow and suppressing P/E multiples.`;
+    return `Neutral rate of ${val}% implies RBI is balancing growth objectives with inflation management.`;
+}
+
+export function scorePolicyStance(stance) {
+    if (!stance) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const s = stance.toLowerCase();
+    
+    if (s.includes('accommodative')) return { score: 100, bias: 'Strong Bullish', confidence: 90 };
+    if (s.includes('neutral')) return { score: 50, bias: 'Neutral', confidence: 90 };
+    if (s.includes('withdrawal') || s.includes('hawkish')) return { score: 15, bias: 'Bearish', confidence: 90 };
+    
+    return { score: 50, bias: 'Neutral', confidence: 50 };
+}
+export function generateAiInsightPolicyStance(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Policy stance unavailable.";
+    if (scoreObj.score >= 80) return `Explicitly dovish/accommodative stance. The central bank put is firmly in play for equities.`;
+    if (scoreObj.score <= 20) return `Hawkish withdrawal of accommodation. Systemic liquidity will drain, directly pressuring asset prices.`;
+    return `Neutral stance. The central bank is data-dependent and on autopilot.`;
+}
+
+export function scoreFiscalDeficit(deficit) {
+    if (deficit === undefined || deficit === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(deficit);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    
+    let score = 50; let bias = 'Neutral';
+    // Lower is better (Govt target glide path to 4.5%)
+    if (num < 4.5) { score = 100; bias = 'Strong Bullish'; }
+    else if (num <= 5.2) { score = 75; bias = 'Bullish'; }
+    else if (num <= 5.9) { score = 50; bias = 'Neutral'; }
+    else if (num <= 6.5) { score = 25; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+    return { score, bias, confidence: 90 };
+}
+export function generateAiInsightFiscalDeficit(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Fiscal deficit data unavailable.";
+    if (scoreObj.score >= 75) return `Excellent fiscal discipline at ${val}%. Prevents crowding out of private borrowing and supports bond yields.`;
+    if (scoreObj.score <= 25) return `Bloated deficit of ${val}% threatens sovereign ratings and spikes borrowing costs across the curve.`;
+    return `Deficit of ${val}% is manageable and strictly aligns with the government's stated consolidation glide path.`;
+}
+
+export function scoreCurrentAccount(cad) {
+    if (cad === undefined || cad === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(cad); // Negative means deficit, positive means surplus
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    
+    let score = 50; let bias = 'Neutral';
+    if (num >= 0) { score = 100; bias = 'Strong Bullish'; } // Surplus
+    else if (num > -1.5) { score = 80; bias = 'Bullish'; }
+    else if (num > -2.5) { score = 50; bias = 'Neutral'; }
+    else if (num > -3.5) { score = 20; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+    return { score, bias, confidence: 85 };
+}
+export function generateAiInsightCurrentAccount(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "CAD data unavailable.";
+    if (scoreObj.score >= 80) return `Current Account at ${val}% is a massive structural positive, providing an ironclad floor for the INR.`;
+    if (scoreObj.score <= 20) return `Severe CAD of ${val}%. The INR is highly vulnerable to capital flight and imported inflation.`;
+    return `CAD of ${val}% is easily financeable by standard FDI/FPI flows without stressing the currency.`;
+}
+
+export function scoreFiiFlowTrend(persistence) {
+    if (persistence === undefined || persistence === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(persistence); // -10 to +10 scale (days of net buying)
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    
+    let score = 50; let bias = 'Neutral';
+    if (num >= 7) { score = 100; bias = 'Strong Bullish'; }
+    else if (num >= 3) { score = 75; bias = 'Bullish'; }
+    else if (num >= -2) { score = 50; bias = 'Neutral'; }
+    else if (num >= -6) { score = 25; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+    return { score, bias, confidence: 90 };
+}
+export function generateAiInsightFiiFlowTrend(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "FII trend data unavailable.";
+    if (scoreObj.score >= 75) return `Relentless institutional buying momentum (${val} days). This structural tailwind forces shorts to cover.`;
+    if (scoreObj.score <= 25) return `Persistent FII dumping (${val} days). Domestic liquidity is being severely tested by foreign capitulation.`;
+    return `Choppy, non-directional FII flows (${val} factor). Institutions lack conviction at current levels.`;
+}
+
+export function scoreSystemLiquidity(surplus) {
+    if (surplus === undefined || surplus === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(surplus); // In Lakh Crores
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    
+    let score = 50; let bias = 'Neutral';
+    if (num > 2.0) { score = 100; bias = 'Strong Bullish'; } // 2 Lakh Cr surplus
+    else if (num > 0.5) { score = 75; bias = 'Bullish'; }
+    else if (num > -0.5) { score = 50; bias = 'Neutral'; }
+    else if (num > -2.0) { score = 25; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+    return { score, bias, confidence: 85 };
+}
+export function generateAiInsightSystemLiquidity(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "System liquidity data unavailable.";
+    if (scoreObj.score >= 75) return `Banking surplus of ₹${val}L Cr. Abundant liquidity historically bleeds into risk assets like equities.`;
+    if (scoreObj.score <= 25) return `Severe deficit of ₹${val}L Cr. Banks are scrambling for funds, choking off market liquidity.`;
+    return `System liquidity is perfectly balanced near ₹${val}L Cr, allowing orderly transmission of RBI policy.`;
+}
+
+export function scoreMFFlows(sip) {
+    if (sip === undefined || sip === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(sip); // SIP flows in Rs Crores
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    
+    let score = 50; let bias = 'Neutral';
+    if (num > 18000) { score = 100; bias = 'Strong Bullish'; }
+    else if (num > 15000) { score = 80; bias = 'Bullish'; }
+    else if (num > 12000) { score = 50; bias = 'Neutral'; }
+    else if (num > 8000) { score = 20; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+    return { score, bias, confidence: 95 };
+}
+export function generateAiInsightMFFlows(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "MF SIP data unavailable.";
+    if (scoreObj.score >= 80) return `Retail SIP behemoth at ₹${val} Cr/month. Provides an indestructible bid beneath the market during FII selloffs.`;
+    if (scoreObj.score <= 20) return `Retail flows collapsing to ₹${val} Cr. The strongest domestic pillar supporting the market is cracking.`;
+    return `Consistent retail participation at ₹${val} Cr provides a stable, predictable floor for domestic equities.`;
+}
+
+export function scoreSectorValuationSpread(spread) {
+    if (spread === undefined || spread === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(spread); // standard deviation of sector PEs
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    
+    let score = 50; let bias = 'Neutral';
+    // Lower dispersion means broad participation, high means bubble in specific sectors
+    if (num < 10) { score = 90; bias = 'Bullish'; }
+    else if (num < 15) { score = 50; bias = 'Neutral'; }
+    else { score = 20; bias = 'Bearish'; }
+    return { score, bias, confidence: 75 };
+}
+export function generateAiInsightSectorValuationSpread(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Spread data unavailable.";
+    if (scoreObj.score >= 80) return `Low valuation spread (${val}). The rally is incredibly broad and structurally sound across all sectors.`;
+    if (scoreObj.score <= 20) return `Extreme spread (${val}). A few sectors are in bubble territory while the rest of the market languishes.`;
+    return `Valuation dispersion (${val}) is normal. Capital is rotating cleanly between growth and value sectors.`;
+}
+
+export function scoreSectorGrowthDifferential(diff) {
+    if (diff === undefined || diff === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(diff); 
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    let score = 50; let bias = 'Neutral';
+    if (num > 0) { score = 75; bias = 'Bullish'; } // Growth leading
+    else { score = 25; bias = 'Bearish'; } // Laggards leading
+    return { score, bias, confidence: 70 };
+}
+export function generateAiInsightSectorGrowthDifferential(scoreObj, val) {
+    if (scoreObj.score === 0) return "Data unavailable.";
+    if (scoreObj.score > 50) return `High-beta growth sectors are leading the market, confirming a strong risk-on environment.`;
+    return `Defensive laggards are outperforming. This is a classic late-cycle or risk-aversion signal.`;
+}
+
+export function scoreSectorConcentration(top3Weight) {
+    if (top3Weight === undefined || top3Weight === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(top3Weight);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    let score = 50; let bias = 'Neutral';
+    if (num < 45) { score = 90; bias = 'Bullish'; }
+    else if (num < 55) { score = 50; bias = 'Neutral'; }
+    else { score = 15; bias = 'Bearish'; }
+    return { score, bias, confidence: 85 };
+}
+export function generateAiInsightSectorConcentration(scoreObj, val) {
+    if (scoreObj.score === 0) return "Data unavailable.";
+    if (scoreObj.score > 50) return `Top 3 sectors only hold ${val}% weight. Excellent diversification mitigates systemic shock risks.`;
+    return `Dangerous concentration: Top 3 sectors control ${val}% of the index. A shock to one sector drags down the entire market.`;
+}
+
+export function scoreCyclicalDefensive(ratio) {
+    if (ratio === undefined || ratio === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(ratio);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    let score = 50; let bias = 'Neutral';
+    if (num > 1.2) { score = 90; bias = 'Bullish'; }
+    else if (num > 0.9) { score = 50; bias = 'Neutral'; }
+    else { score = 20; bias = 'Bearish'; }
+    return { score, bias, confidence: 80 };
+}
+export function generateAiInsightCyclicalDefensive(scoreObj, val) {
+    if (scoreObj.score === 0) return "Data unavailable.";
+    if (scoreObj.score > 50) return `Ratio of ${val}. Smart money is aggressively accumulating cyclical risk assets over safe-haven defensives.`;
+    return `Ratio of ${val}. Capital is fleeing to defensive sectors (FMCG/Pharma), signaling impending macroeconomic fear.`;
+}
+
+export function scoreBankCreditGrowth(growth) {
+    if (growth === undefined || growth === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(growth);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    let score = 50; let bias = 'Neutral';
+    if (num > 15) { score = 100; bias = 'Strong Bullish'; }
+    else if (num > 12) { score = 80; bias = 'Bullish'; }
+    else if (num > 9) { score = 50; bias = 'Neutral'; }
+    else if (num > 5) { score = 20; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+    return { score, bias, confidence: 90 };
+}
+export function generateAiInsightBankCreditGrowth(scoreObj, val) {
+    if (scoreObj.score === 0) return "Data unavailable.";
+    if (scoreObj.score >= 80) return `Roaring ${val}% credit growth. Capex cycle is firing on all cylinders, driving multiplier effects.`;
+    if (scoreObj.score <= 20) return `Anemic ${val}% credit growth. Banks are risk-averse and the corporate capex cycle is dead.`;
+    return `Credit growing steadily at ${val}%, adequately supporting nominal GDP expansion without overheating.`;
+}
+
+export function scoreAggregateCorporateDebt(debtGdp) {
+    if (debtGdp === undefined || debtGdp === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(debtGdp);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    let score = 50; let bias = 'Neutral';
+    if (num < 45) { score = 90; bias = 'Bullish'; }
+    else if (num < 55) { score = 50; bias = 'Neutral'; }
+    else { score = 15; bias = 'Bearish'; }
+    return { score, bias, confidence: 85 };
+}
+export function generateAiInsightAggregateCorporateDebt(scoreObj, val) {
+    if (scoreObj.score === 0) return "Data unavailable.";
+    if (scoreObj.score > 50) return `Deleveraged balance sheets (${val}% of GDP) mean corporate India can easily absorb massive rate shocks.`;
+    return `Dangerous leverage (${val}% of GDP). The aggregate corporate sector is highly vulnerable to refinancing risks.`;
+}
+
+export function scorePolicyTailwinds(score) {
+    if (score === undefined || score === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(score); // 0-10 scale
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    let finalScore = num * 10;
+    return { 
+        score: finalScore, 
+        bias: finalScore > 60 ? 'Bullish' : (finalScore < 40 ? 'Bearish' : 'Neutral'), 
+        confidence: 70 
+    };
+}
+export function generateAiInsightPolicyTailwinds(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Data unavailable.";
+    if (scoreObj.score >= 70) return `Massive sovereign policy support (PLI, capex) providing an artificial floor to specific sectors.`;
+    return `Regulatory environment is currently passive with minimal structural tailwinds.`;
+}
+
+export function scoreCrudeOil(crude) {
+    if (crude === undefined || crude === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(crude);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    let score = 50; let bias = 'Neutral';
+    if (num < 65) { score = 100; bias = 'Strong Bullish'; }
+    else if (num < 75) { score = 80; bias = 'Bullish'; }
+    else if (num < 85) { score = 50; bias = 'Neutral'; }
+    else if (num < 95) { score = 20; bias = 'Bearish'; }
+    else { score = 0; bias = 'Strong Bearish'; }
+    return { score, bias, confidence: 95 };
+}
+export function generateAiInsightCrudeOil(scoreObj, val) {
+    if (scoreObj.score === 0) return "Data unavailable.";
+    if (scoreObj.score >= 80) return `Brent at $${val}/bbl acts as a massive tax cut for India, significantly compressing the trade deficit.`;
+    if (scoreObj.score <= 20) return `Brent at $${val}/bbl imports severe inflation, destroys corporate margins, and wrecks the INR.`;
+    return `Brent at $${val}/bbl is within India's comfort zone and easily absorbed by the current macro framework.`;
+}
+
+export function scoreUSDINR(usdinr) {
+    if (usdinr === undefined || usdinr === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(usdinr);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    // This requires a proxy for "stability". For simplicity we assume < 82 is bullish, > 84 is bearish
+    let score = 50; let bias = 'Neutral';
+    if (num < 81) { score = 90; bias = 'Bullish'; }
+    else if (num < 83.5) { score = 50; bias = 'Neutral'; }
+    else { score = 15; bias = 'Bearish'; }
+    return { score, bias, confidence: 85 };
+}
+export function generateAiInsightUSDINR(scoreObj, val) {
+    if (scoreObj.score === 0) return "Data unavailable.";
+    if (scoreObj.score > 50) return `Strong INR (${val}) prevents imported inflation and protects FII dollar-denominated returns.`;
+    if (scoreObj.score < 50) return `Depreciating INR (${val}) triggers FII panic selling to protect dollar-adjusted portfolio returns.`;
+    return `INR is highly stable at ${val}, artificially managed by RBI intervention to prevent volatility shocks.`;
+}
+
+export function scoreGlobalLiquidity(stance) {
+    if (!stance) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const s = stance.toLowerCase();
+    if (s.includes('easing') || s.includes('qe')) return { score: 100, bias: 'Strong Bullish', confidence: 90 };
+    if (s.includes('neutral')) return { score: 50, bias: 'Neutral', confidence: 90 };
+    if (s.includes('tightening') || s.includes('qt')) return { score: 10, bias: 'Bearish', confidence: 90 };
+    return { score: 50, bias: 'Neutral', confidence: 50 };
+}
+export function generateAiInsightGlobalLiquidity(scoreObj, val) {
+    if (scoreObj.score === 0) return "Data unavailable.";
+    if (scoreObj.score >= 80) return `Global central banks are flooding the system with liquidity. Emerging markets like India will see massive inflows.`;
+    if (scoreObj.score <= 20) return `Aggressive global QT is sucking dollar liquidity from emerging markets, forcing structural derating.`;
+    return `Global liquidity conditions are neutral. Fed is on hold.`;
+}
+
+export function scoreSovereignRisk(cds) {
+    if (cds === undefined || cds === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(cds); // basis points
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    let score = 50; let bias = 'Neutral';
+    if (num < 100) { score = 90; bias = 'Bullish'; }
+    else if (num < 150) { score = 50; bias = 'Neutral'; }
+    else { score = 10; bias = 'Bearish'; }
+    return { score, bias, confidence: 80 };
+}
+export function generateAiInsightSovereignRisk(scoreObj, val) {
+    if (scoreObj.score === 0) return "Data unavailable.";
+    if (scoreObj.score > 50) return `CDS at ${val} bps indicates zero structural sovereign risk. Foreign capital views India as a safe haven.`;
+    return `Spike in CDS (${val} bps) signals global institutional fear regarding India's macroeconomic stability.`;
+}
+
+export function scoreNPA(npa) {
+    if (npa === undefined || npa === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(npa);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    let score = 50; let bias = 'Neutral';
+    if (num < 3.0) { score = 100; bias = 'Strong Bullish'; }
+    else if (num < 5.0) { score = 75; bias = 'Bullish'; }
+    else if (num < 7.0) { score = 40; bias = 'Bearish'; }
+    else { score = 10; bias = 'Strong Bearish'; }
+    return { score, bias, confidence: 95 };
+}
+export function generateAiInsightNPA(scoreObj, val) {
+    if (scoreObj.score === 0) return "Data unavailable.";
+    if (scoreObj.score >= 75) return `Decade-best asset quality (GNPA ${val}%). Banks have completely cleaned up balance sheets for the next cycle.`;
+    if (scoreObj.score <= 25) return `Toxic asset quality (GNPA ${val}%). Banking system is paralyzed and cannot fund economic growth.`;
+    return `Asset quality at ${val}% is manageable with adequate provisioning buffers in place.`;
+}
+
+export function scoreReformMomentum(momentum) {
+    if (momentum === undefined || momentum === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(momentum); // 0-10 scale
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    let finalScore = num * 10;
+    return { 
+        score: finalScore, 
+        bias: finalScore > 60 ? 'Bullish' : (finalScore < 40 ? 'Bearish' : 'Neutral'), 
+        confidence: 70 
+    };
+}
+export function generateAiInsightReformMomentum(scoreObj, val) {
+    if (scoreObj.score === 0) return "Data unavailable.";
+    if (scoreObj.score >= 70) return `High structural reform momentum triggers long-term FII upgrades and raises potential GDP growth ceilings.`;
+    return `Policy paralysis. Lack of structural reform indicates long-term growth ceilings may be permanently capped.`;
+}
+
+export function scoreFIIFlow(val) {
+    if (val === undefined || val === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(val);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+
+    let score = 50;
+    let bias = 'Neutral';
+
+    if (num > 5000) { score = 90; bias = 'Strong Bullish'; }
+    else if (num > 1000) { score = 75; bias = 'Bullish'; }
+    else if (num > 0) { score = 60; bias = 'Mild Bullish'; }
+    else if (num > -1000) { score = 40; bias = 'Mild Bearish'; }
+    else if (num > -5000) { score = 25; bias = 'Bearish'; }
+    else { score = 10; bias = 'Strong Bearish'; }
+
+    return { score, bias, confidence: 90 };
+}
+
+export function generateAiInsightFIIFlow(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "FII flow data is unavailable.";
+    if (scoreObj.score >= 75) return `Strong FII buying of ₹${val} Cr indicates robust foreign confidence.`;
+    if (scoreObj.score <= 25) return `Heavy FII selling of ₹${val} Cr presents a significant liquidity headwind.`;
+    return `FII flows of ₹${val} Cr are relatively muted, showing no clear aggressive positioning.`;
+}
+
+export function scoreDIIFlow(val) {
+    if (val === undefined || val === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    const num = Number(val);
+    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+
+    let score = 50;
+    let bias = 'Neutral';
+
+    if (num > 5000) { score = 90; bias = 'Strong Bullish'; }
+    else if (num > 1000) { score = 75; bias = 'Bullish'; }
+    else if (num > 0) { score = 60; bias = 'Mild Bullish'; }
+    else if (num > -1000) { score = 40; bias = 'Mild Bearish'; }
+    else if (num > -5000) { score = 25; bias = 'Bearish'; }
+    else { score = 10; bias = 'Strong Bearish'; }
+
+    return { score, bias, confidence: 90 };
+}
+
+export function generateAiInsightDIIFlow(scoreObj, val) {
+    if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "DII flow data is unavailable.";
+    if (scoreObj.score >= 75) return `Strong DII buying of ₹${val} Cr provides excellent domestic support to the market.`;
+    if (scoreObj.score <= 25) return `DII selling of ₹${val} Cr removes a key pillar of domestic market support.`;
+    return `DII flows of ₹${val} Cr are relatively neutral, providing stable but unaggressive support.`;
+}

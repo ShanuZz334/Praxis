@@ -1,0 +1,41 @@
+const fs = require('fs');
+const file = 'C:\\project\\ALLBACKUP\\Praxis\\frontend\\stock-look\\src\\features\\dashboard\\master\\engine\\useMasterComposite.js';
+let content = fs.readFileSync(file, 'utf8');
+
+const regexReplace = /\/\/ Ensure total missing covers exactly the expected cards[\s\S]*?missingBreakdown\[\`\$\{engine\}\|\|\$\{title\}\`\] = 1;\n                \}\n            \}\n        \}\);/m;
+
+const newBlock = `// Compute missing breakdown first
+        const activeIds = new Set(aggregatedCards.map(c => c.id));
+        const activeTitles = new Set(aggregatedCards.map(c => c.module));
+        const missingBreakdown = {};
+        Object.entries(INDICATOR_CONFIG).forEach(([id, config]) => {
+            const title = config.title || formatTitle(config.id) || formatTitle(id);
+            if (!activeIds.has(id) && !activeTitles.has(title)) {
+                let skip = false;
+                // Index-specific exclusions
+                if (isIndex && ['cmf', 'volume_sma', 'obv', 'vwap'].includes(id)) skip = true;
+                if (!isIndex && ['breadth_ratio', 'mcclellan', 'ad_line', 'nh_nl', 'trin'].includes(id)) skip = true;
+                
+                if (!skip) {
+                    let engine = 'MISC';
+                    const cat = config.category || '';
+                    const str = id.toLowerCase();
+                    
+                    // Exact matches for specific overrides
+                    if (['bitcoin', 'brent_crude_oil', 'gold', 'silver', 'copper', 'natgas', 'wheat', 'aluminum'].includes(str)) engine = 'GLOB';
+                    else if (str.includes('atm_iv') || str.includes('iv_rank') || str.includes('iv_percentile') || str.includes('pcr') || str.includes('max_pain') || str.match(/oi|delta|gamma|theta|vega/)) engine = 'OPT';
+                    else if (cat.includes('Macro') || cat.includes('Global') || str.includes('vix') || str.match(/index_|move|advance_decline|gdp_growth|futures|usd|eur|jpy|cac|dax|ftse|nikkei|shanghai|hangseng/)) engine = 'GLOB';
+                    else if (cat.includes('Technical') || cat.includes('Oscillator') || str.match(/sma|ema|rsi|macd|bollinger|bb_|kc|adx|atr|vwap|obv|stoch|supertrend|cmf|trendline|pivot|fibonacci|breadth|mcclellan|ad_line|nh_nl|trin/)) engine = 'TECH';
+                    else engine = 'FUND'; 
+
+                    missingBreakdown[\`\${engine}||\${title}\`] = 1;
+                }
+            }
+        });
+
+        // The total missing number MUST dynamically match the length of the breakdown list!
+        const totalMissing = Object.keys(missingBreakdown).length;`;
+
+content = content.replace(regexReplace, newBlock);
+fs.writeFileSync(file, content);
+console.log("Successfully fixed totalMissing dynamic calculation!");

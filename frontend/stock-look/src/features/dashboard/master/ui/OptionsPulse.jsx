@@ -29,9 +29,9 @@ export default function OptionsPulse() {
         return [];
     };
 
-    const oiGainers = extractList(smartlists.options, 'OI_GAINERS');
-    const ivSurge = extractList(smartlists.options, 'IV_GAINERS');
-    const premium = extractList(smartlists.futures, 'PREMIUM');
+    const oiGainers = smartlists['OI_GAINERS'] || [];
+    const ivSurge = smartlists['IV_GAINERS'] || [];
+    const premium = smartlists['PREMIUM'] || [];
 
     // Helper to format symbols like NSE_FO|RELIANCE24JUL2900CE (if trading_symbol is missing)
     const formatSymbol = (key) => {
@@ -85,13 +85,13 @@ export default function OptionsPulse() {
     );
 
     return (
-        <div className="bg-background-card border border-border-default rounded-xl p-4 flex flex-col h-full shadow-sm overflow-y-auto custom-scrollbar">
-            <div className="mb-4">
+        <div className="bg-background-card border border-border-default rounded-xl p-4 flex flex-col h-full shadow-sm overflow-hidden">
+            <div className="mb-4 shrink-0">
                 <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wide">Options Pulse</h3>
                 <p className="text-[11px] text-text-secondary">Smartlist Signals</p>
             </div>
             
-            <div className="flex-1 space-y-4">
+            <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-1 -mr-1">
                 {renderList("OI Surge", oiGainers, <TrendingUp size={12} className="text-blue-400" />, "text-blue-400")}
                 {renderList("IV Expansion", ivSurge, <Activity size={12} className="text-purple-400" />, "text-purple-400")}
                 {renderList("Futures Premium", premium, <AlertTriangle size={12} className="text-amber-400" />, "text-amber-400")}

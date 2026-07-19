@@ -24,8 +24,10 @@
 import React, { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { motion } from "framer-motion";
 import { SIDE_MENU_DATA } from "../../utils/data";
 import { UserContext } from "../../context/UserContext";
+import { usePaiWidget } from "../../context/PaiWidgetContext";
 import { logoutUser } from "../../../services/userService";
 import paiIcon from "@/assets/icons/pai-round-bgless.png";
 import paiLabelImg from "@/assets/icons/pai-label-bgless.png";
@@ -37,8 +39,39 @@ import paiLabelImg from "@/assets/icons/pai-label-bgless.png";
 const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
   const { user, clearUser } = useContext(UserContext);
   const navigate = useNavigate();
+  
+  const { isDocked, setIsDocked, setIsChatOpen, setSidebarRect } = usePaiWidget();
+  const paiItemRef = React.useRef(null);
 
-  const handleClick = async (route) => {
+  // Sync sidebar rect for magnetic pull
+  React.useEffect(() => {
+    const updateRect = () => {
+        if (paiItemRef.current) {
+            const rect = paiItemRef.current.getBoundingClientRect();
+            setSidebarRect({
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height,
+                centerX: rect.x + rect.width / 2,
+                centerY: rect.y + rect.height / 2
+            });
+        }
+    };
+    
+    updateRect();
+    window.addEventListener('resize', updateRect);
+    return () => window.removeEventListener('resize', updateRect);
+  }, [collapsed, isDocked, setSidebarRect]);
+
+  const handleClick = async (route, itemKey) => {
+    if (itemKey === "pai" && collapsed) {
+        // Detach and open chat
+        setIsDocked(false);
+        setIsChatOpen(true);
+        return;
+    }
+    
     if (route === "/logout") {
       try {
         await logoutUser();
@@ -75,10 +108,33 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
         {SIDE_MENU_DATA.filter(i => i.key !== "logout").map((item) => {
           const isActive = activeMenu === item.key;
 
+          if (item.key === 'pai' && collapsed) {
+             return (
+                 <div key={item.id} ref={paiItemRef} className="relative w-[48px] h-[48px] mx-auto flex items-center justify-center my-2">
+                     {isDocked ? (
+                         <motion.button
+                             layoutId="pai-handle"
+                             onClick={() => handleClick(item.path, item.key)}
+                             className="absolute inset-0 flex items-center justify-center group pointer-events-auto"
+                         >
+                             <img
+                               src={paiIcon}
+                               alt="PAI"
+                               draggable={false}
+                               className={`w-[48px] h-[48px] flex-shrink-0 object-contain transition-all duration-300 ease-out transform ${isActive ? "scale-110 opacity-100" : "opacity-70 group-hover:opacity-100 group-hover:scale-110"}`}
+                             />
+                         </motion.button>
+                     ) : (
+                         <div className="w-[48px] h-[48px] opacity-10" />
+                     )}
+                 </div>
+             );
+          }
+
           return (
             <button
               key={item.id}
-              onClick={() => handleClick(item.path)}
+              onClick={() => handleClick(item.path, item.key)}
               className={`
                 group flex items-center
                 ${collapsed ? "justify-center" : "gap-4"}
@@ -89,18 +145,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
             >
               {/* Icon: custom image (e.g. PAI) or standard react-icon */}
               {item.customIcon === 'pai' ? (
-                collapsed ? (
-                  // Collapsed: full size, no wrapper needed
-                  <img
-                    src={paiIcon}
-                    alt="PAI"
-                    style={{ width: '48px', height: '48px', minWidth: '48px' }}
-                    className={`flex-shrink-0 object-contain transition-all duration-300 ease-out transform
-                      ${isActive ? "scale-110 opacity-100" : "opacity-70 group-hover:opacity-100 group-hover:scale-110"}
-                    `}
-                  />
-                ) : (
-                  // Expanded: fix icon to 20px slot (same as other icons) — image overflows visually
+                  // Expanded: fix icon to 20px slot (same as other icons)
                   <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', flexShrink: 0 }}>
                     <img
                       src={paiIcon}
@@ -111,7 +156,6 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
                       `}
                     />
                   </div>
-                )
               ) : (
                 <item.icon
                   className={`

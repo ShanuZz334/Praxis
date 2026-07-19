@@ -82,7 +82,7 @@ export default function FiiDiiFlow() {
     const CustomTooltip = ({ active, payload }) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-white dark:bg-[#0f1219] border border-border-default p-3 rounded-lg shadow-2xl text-[11px] backdrop-blur-md z-50">
+                <div className="bg-background-tooltip border border-border-default p-3 rounded-lg shadow-2xl text-[11px] backdrop-blur-md z-50">
                     <p className="font-bold mb-2 text-text-primary border-b border-border-default pb-1">{payload[0].payload.name}</p>
                     <p className="text-text-secondary flex justify-between gap-4">
                         <span>FII:</span> 

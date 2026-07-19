@@ -29,6 +29,8 @@ import DashboardRoutes from "@/features/dashboard/routes/DashboardRoutes";
 import { UserContext } from "@/shared/context/UserContext";
 import { useTheme } from "@/shared/context/ThemeContext";
 import { DashboardProvider } from "@/shared/context/DashboardContext";
+import { PaiWidgetProvider } from "@/shared/context/PaiWidgetContext";
+import PaiFloatingWidget from "@/features/dashboard/pai/ui/PaiFloatingWidget";
 
 // =============================
 // Constants
@@ -97,6 +99,7 @@ const DashboardLayout = () => {
   const activeSidebarWidth = isPaiPage ? 0 : (collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH);
 
   return (
+    <PaiWidgetProvider>
     <DashboardProvider>
     <div className="min-h-screen bg-background-app text-text-primary relative overflow-hidden flex flex-col md:block">
 
@@ -178,8 +181,12 @@ const DashboardLayout = () => {
       >
         <DashboardRoutes setActiveMenu={setActiveMenu} />
       </main>
+      
+      <PaiFloatingWidget sidebarCollapsed={collapsed} />
+      
     </div>
     </DashboardProvider>
+    </PaiWidgetProvider>
   );
 };
 

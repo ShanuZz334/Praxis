@@ -39,22 +39,36 @@ import { useDataFreshness } from '@/shared/hooks/useDataFreshness';
 
 
 const DEFAULT_OVERRIDES = {
+    // ─── COMPANY OVERRIDES ───
     // Valuation
-    pe_ratio: null, pe_hist: null, pe_sector: null, forward_pe: null, projected_eps: null, ev_ebitda: null,
-    pb_ratio: null, pb_hist: null, pb_sector: null, earnings_yield: null, ey_hist: null, bond_yield: null,
-    // Market Health
-    market_cap_gdp: null, dividend_yield: null, fii_dii_flow: null, earnings_trend: null,
-    // Growth
-    eps_growth: null, gdp_growth: null, revenue_growth: null, profit_growth: null, gdp: null,
-    // Profitability & Health
-    roe: null, roce: null, roa: null, net_margin: null, operating_margin: null, operating_profit: null,
-    revenue: null, debt_to_equity: null, total_debt: null, shareholders_equity: null,
-    current_ratio: null, current_assets: null, current_liabilities: null, interest_coverage: null,
-    ebit: null, interest_expense: null, free_cash_flow: null, operating_cf: null, capex: null,
-    face_value: null, high_low: null, current_price: null, book_value: null,
-    // Index Specific
-    index_pe: null, index_pb: null, index_div_yield: null, ad_ratio: null,
-    index_macd: null, index_200dma: null, advance_decline: null, trin: null, india_vix: null
+    pe_ratio: null, forward_pe: null, ev_ebitda: null, pb_ratio: null, earnings_yield: null, relative_valuation: null,
+    // Earnings
+    eps_growth: null, revenue_growth: null, profit_growth: null,
+    // Sector/Macro
+    market_cap_gdp: null, dividend_yield: null, earnings_trend: null, gdp_growth: null,
+    // Liquidity/Ownership
+    fii_dii_flow: null, promoter_holding: null, smart_money_flow: null, earnings_quality: null,
+    // Corporate Health
+    roe: null, roce: null, roa: null, net_margin: null, operating_margin: null,
+    // Balance Sheet (Global)
+    debt_to_equity: null, interest_coverage: null, free_cash_flow: null, current_ratio: null,
+
+    // ─── INDEX OVERRIDES ───
+    // Valuation
+    nifty_pe: null, nifty_pb: null, mcap_gdp: null, // earnings_yield shared
+    // Earnings
+    eps_yoy: null, forward_eps: null, earnings_revision: null, sector_earnings: null, profit_margin: null,
+    // Macro
+    gdp: null, cpi: null, repo: null, policy_stance: null, fiscal_deficit: null, current_account: null,
+    // Liquidity
+    fii: null, dii: null, fii_trend: null, system_liquidity: null, mf_flows: null,
+    // Sector
+    advance_decline: null, sector_valuation: null, sector_growth: null, sector_concentration: null, cyc_def: null,
+    // Corporate
+    index_macd: null, index_200dma: null, credit_growth: null, corp_debt: null, policy_tailwinds: null,
+    // Global/Risk
+    india_vix: null, crude: null, usdinr: null, global_liq: null,
+    sovereign_risk: null, npa: null, reform_momentum: null,
 };
 
 export default function FundamentalPage() {
@@ -67,41 +81,84 @@ export default function FundamentalPage() {
   const isIndex = selectedCategory === 'Indices';
 
   const cards = isIndex ? [
-    { id: "pe_ratio", category: "Valuation" },
-    { id: "pb_ratio", category: "Valuation" },
-    { id: "market_cap_gdp", category: "Sector" },
-    { id: "dividend_yield", category: "Sector" },
-    { id: "eps_growth", category: "Earnings" },
-    { id: "gdp_growth", category: "Macro" },
-    { id: "fii_dii_flow", category: "Liquidity" },
-    { id: "advance_decline", category: "Breadth" },
-    { id: "index_macd", category: "Momentum" },
-    { id: "index_200dma", category: "Momentum" },
-    { id: "india_vix", category: "Global" }
+    // Valuation
+    { id: "nifty_pe", category: "Valuation" },
+    { id: "nifty_pb", category: "Valuation" },
+    { id: "mcap_gdp", category: "Valuation" },
+    { id: "earnings_yield", category: "Valuation" },
+    { id: "dividend_yield", category: "Valuation" },
+    // Earnings
+    { id: "eps_yoy", category: "Earnings" },
+    { id: "forward_eps", category: "Earnings" },
+    { id: "earnings_revision", category: "Earnings" },
+    { id: "sector_earnings", category: "Earnings" },
+    { id: "profit_margin", category: "Earnings" },
+    // Macro
+    { id: "gdp", category: "Macro" },
+    { id: "cpi", category: "Macro" },
+    { id: "repo", category: "Macro" },
+    { id: "policy_stance", category: "Macro" },
+    { id: "fiscal_deficit", category: "Macro" },
+    { id: "current_account", category: "Macro" },
+    // Liquidity
+    { id: "fii", category: "Liquidity" },
+    { id: "dii", category: "Liquidity" },
+    { id: "fii_trend", category: "Liquidity" },
+    { id: "system_liquidity", category: "Liquidity" },
+    { id: "mf_flows", category: "Liquidity" },
+    // Sector
+    { id: "advance_decline", category: "Sector" },
+    { id: "sector_valuation", category: "Sector" },
+    { id: "sector_growth", category: "Sector" },
+    { id: "sector_concentration", category: "Sector" },
+    { id: "cyc_def", category: "Sector" },
+    // Corporate
+    { id: "index_macd", category: "Corporate" },
+    { id: "index_200dma", category: "Corporate" },
+    { id: "credit_growth", category: "Corporate" },
+    { id: "corp_debt", category: "Corporate" },
+    { id: "policy_tailwinds", category: "Corporate" },
+    // Global
+    { id: "india_vix", category: "Global" },
+    { id: "crude", category: "Global" },
+    { id: "usdinr", category: "Global" },
+    { id: "global_liq", category: "Global" },
+    // Risk
+    { id: "sovereign_risk", category: "Risk" },
+    { id: "npa", category: "Risk" },
+    { id: "reform_momentum", category: "Risk" },
   ] : [
+    // Valuation
     { id: "pe_ratio", category: "Valuation" },
     { id: "forward_pe", category: "Valuation" },
     { id: "ev_ebitda", category: "Valuation" },
     { id: "pb_ratio", category: "Valuation" },
     { id: "earnings_yield", category: "Valuation" },
     { id: "relative_valuation", category: "Valuation" },
+    // Sector (Context)
     { id: "market_cap_gdp", category: "Sector" },
-    { id: "dividend_yield", category: "Sector" },
     { id: "earnings_trend", category: "Sector" },
+    // Liquidity
     { id: "fii_dii_flow", category: "Liquidity" },
+    { id: "dividend_yield", category: "Liquidity" },
+    // Earnings
     { id: "eps_growth", category: "Earnings" },
     { id: "revenue_growth", category: "Earnings" },
     { id: "profit_growth", category: "Earnings" },
+    // Macro
     { id: "gdp_growth", category: "Macro" },
+    // Corporate
     { id: "roe", category: "Corporate" },
     { id: "roce", category: "Corporate" },
     { id: "roa", category: "Corporate" },
     { id: "net_margin", category: "Corporate" },
     { id: "operating_margin", category: "Corporate" },
+    // Balance Sheet (Global map)
     { id: "debt_to_equity", category: "Global" },
     { id: "interest_coverage", category: "Global" },
     { id: "free_cash_flow", category: "Global" },
     { id: "current_ratio", category: "Global" },
+    // Ownership
     { id: "promoter_holding", category: "Ownership" },
     { id: "smart_money_flow", category: "Ownership" },
     { id: "earnings_quality", category: "Ownership" },
@@ -301,118 +358,112 @@ export default function FundamentalPage() {
               </div>
           </div>
           <p className="text-[10px] text-text-secondary mb-4">
-              When Upstox does not provide data for a specific metric, it falls back to the manual overrides configured here.
+              When live API data is unavailable, the system seamlessly falls back to these manual inputs.
           </p>
           
           {selectedCategory === "Indices" ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6">
                   <div className="space-y-3">
-                      <div className="text-xs font-bold text-emerald-500 mb-3 border-b border-border-default pb-2">Core Snapshot</div>
-                      {!fundamentalsData?.quote?.last_price && <DebouncedOverrideInput label="Current Level" overrideKey="current_price" value={manualOverrides.current_price} onChange={handleOverrideChange} />}
-                      {!(fundamentalsData?.quote?.ohlc?.high && fundamentalsData?.quote?.ohlc?.low) && <DebouncedOverrideInput label="High / Low" overrideKey="high_low" value={manualOverrides.high_low} onChange={handleOverrideChange} />}
-                      <DebouncedOverrideInput label="Index P/E (x)" overrideKey="index_pe" value={manualOverrides.index_pe} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Index P/B (x)" overrideKey="index_pb" value={manualOverrides.index_pb} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Dividend Yield (%)" overrideKey="index_div_yield" value={manualOverrides.index_div_yield} onChange={handleOverrideChange} />
+                      <div className="text-[10px] font-bold text-emerald-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Valuation</div>
+                      <DebouncedOverrideInput label="Nifty P/E" overrideKey="nifty_pe" value={manualOverrides.nifty_pe} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Nifty P/B" overrideKey="nifty_pb" value={manualOverrides.nifty_pb} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="M-Cap/GDP (%)" overrideKey="mcap_gdp" value={manualOverrides.mcap_gdp} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Earnings Yield (%)" overrideKey="earnings_yield" value={manualOverrides.earnings_yield} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Dividend Yield (%)" overrideKey="dividend_yield" value={manualOverrides.dividend_yield} onChange={handleOverrideChange} />
+                      
+                      <div className="text-[10px] font-bold text-orange-500 mt-4 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Earnings</div>
+                      <DebouncedOverrideInput label="EPS YoY (%)" overrideKey="eps_yoy" value={manualOverrides.eps_yoy} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Forward EPS (%)" overrideKey="forward_eps" value={manualOverrides.forward_eps} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Earnings Revision" overrideKey="earnings_revision" value={manualOverrides.earnings_revision} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Sector Earnings" overrideKey="sector_earnings" value={manualOverrides.sector_earnings} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Profit Margin (%)" overrideKey="profit_margin" value={manualOverrides.profit_margin} onChange={handleOverrideChange} />
                   </div>
                   
                   <div className="space-y-3">
-                      <div className="text-xs font-bold text-yellow-500 mb-3 border-b border-border-default pb-2">Market Internals</div>
-                      <DebouncedOverrideInput label="A/D Ratio" overrideKey="ad_ratio" value={manualOverrides.ad_ratio} onChange={handleOverrideChange} />
-                      <div className="flex flex-col gap-3">
+                      <div className="text-[10px] font-bold text-blue-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Macro Economy</div>
+                      <DebouncedOverrideInput label="GDP Growth (%)" overrideKey="gdp" value={manualOverrides.gdp} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="CPI Inflation (%)" overrideKey="cpi" value={manualOverrides.cpi} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Repo Rate (%)" overrideKey="repo" value={manualOverrides.repo} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Policy Stance" overrideKey="policy_stance" value={manualOverrides.policy_stance} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Fiscal Deficit (%)" overrideKey="fiscal_deficit" value={manualOverrides.fiscal_deficit} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Current Account (%)" overrideKey="current_account" value={manualOverrides.current_account} onChange={handleOverrideChange} />
+                      
+                      <div className="text-[10px] font-bold text-indigo-500 mt-4 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Corporate</div>
                       <DebouncedOverrideInput label="Index MACD" overrideKey="index_macd" value={manualOverrides.index_macd} onChange={handleOverrideChange} />
                       <DebouncedOverrideInput label="Index 200DMA" overrideKey="index_200dma" value={manualOverrides.index_200dma} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Advance/Decline" overrideKey="advance_decline" value={manualOverrides.advance_decline} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="TRIN (Arms Index)" overrideKey="trin" value={manualOverrides.trin} onChange={handleOverrideChange} />
-                  </div>
+                      <DebouncedOverrideInput label="Credit Growth (%)" overrideKey="credit_growth" value={manualOverrides.credit_growth} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Corp Debt/Eq" overrideKey="corp_debt" value={manualOverrides.corp_debt} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Policy Tailwinds" overrideKey="policy_tailwinds" value={manualOverrides.policy_tailwinds} onChange={handleOverrideChange} />
                   </div>
 
                   <div className="space-y-3">
-                      <div className="text-xs font-bold text-purple-500 mb-3 border-b border-border-default pb-2">Macro Environment</div>
-                      <DebouncedOverrideInput label="GDP Growth (%)" overrideKey="gdp_growth" value={manualOverrides.gdp_growth} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Total GDP (in Cr ₹)" overrideKey="gdp" value={manualOverrides.gdp} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="10Y Bond Yield (%)" overrideKey="bond_yield" value={manualOverrides.bond_yield} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="EPS Growth (%)" overrideKey="eps_growth" value={manualOverrides.eps_growth} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Revenue Growth (%)" overrideKey="revenue_growth" value={manualOverrides.revenue_growth} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Profit Growth (%)" overrideKey="profit_growth" value={manualOverrides.profit_growth} onChange={handleOverrideChange} />
+                      <div className="text-[10px] font-bold text-purple-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Liquidity & Flow</div>
+                      <DebouncedOverrideInput label="FII Flow (Cr)" overrideKey="fii" value={manualOverrides.fii} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="DII Flow (Cr)" overrideKey="dii" value={manualOverrides.dii} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="FII Trend (Days)" overrideKey="fii_trend" value={manualOverrides.fii_trend} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="MF Flows (Cr)" overrideKey="mf_flows" value={manualOverrides.mf_flows} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Sys Liquidity (LCr)" overrideKey="system_liquidity" value={manualOverrides.system_liquidity} onChange={handleOverrideChange} />
+                      
+                      <div className="text-[10px] font-bold text-cyan-500 mt-4 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Sector Data</div>
+                      <DebouncedOverrideInput label="Advance/Decline" overrideKey="advance_decline" value={manualOverrides.advance_decline} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Sector Valuation" overrideKey="sector_valuation" value={manualOverrides.sector_valuation} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Sector Growth" overrideKey="sector_growth" value={manualOverrides.sector_growth} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Sector Concen." overrideKey="sector_concentration" value={manualOverrides.sector_concentration} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Cyc vs Def" overrideKey="cyc_def" value={manualOverrides.cyc_def} onChange={handleOverrideChange} />
+                  </div>
+
+                  <div className="space-y-3">
+                      <div className="text-[10px] font-bold text-red-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Global & Risk</div>
                       <DebouncedOverrideInput label="India VIX" overrideKey="india_vix" value={manualOverrides.india_vix} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Crude Oil ($)" overrideKey="crude" value={manualOverrides.crude} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="USD/INR" overrideKey="usdinr" value={manualOverrides.usdinr} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Global Liquidity" overrideKey="global_liq" value={manualOverrides.global_liq} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Sovereign CDS" overrideKey="sovereign_risk" value={manualOverrides.sovereign_risk} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="NPA Ratio (%)" overrideKey="npa" value={manualOverrides.npa} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Reform Momentum" overrideKey="reform_momentum" value={manualOverrides.reform_momentum} onChange={handleOverrideChange} />
                   </div>
               </div>
           ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6">
-                  {/* Company Snapshot — only if at least one field missing */}
-                  {(!hasMarketCap || !hasPeRatio) && (
-                      <div className="space-y-2">
-                          <div className="text-xs font-bold text-emerald-500 mb-2">Company Snapshot</div>
-                          {!hasMarketCap && <DebouncedOverrideInput label="Market Cap (in Cr ₹)" overrideKey="market_cap" value={manualOverrides.market_cap} onChange={handleOverrideChange} />}
-                          {!hasPeRatio && <DebouncedOverrideInput label="Stock P/E (x)" overrideKey="pe_ratio" value={manualOverrides.pe_ratio} onChange={handleOverrideChange} />}
-                      </div>
-                  )}
-
-                  {/* Dividends — conditionally hide if Upstox has it */}
-                  {!hasDividendYield && (
-                      <div className="space-y-2">
-                          <div className="text-xs font-bold text-pink-500 mb-2">Dividends</div>
-                          <DebouncedOverrideInput label="Dividend Yield (%)" overrideKey="dividend_yield" value={manualOverrides.dividend_yield} onChange={handleOverrideChange} />
-                      </div>
-                  )}
-
-                  {/* Trends & Flows — only show if earnings trend is missing */}
-                  {!hasEarningsTrend && (
-                      <div className="space-y-2">
-                          <div className="text-xs font-bold text-yellow-500 mb-2">Trends & Flows</div>
-                          <DebouncedOverrideInput label="Earnings Trend (CAGR %)" overrideKey="earnings_trend" value={manualOverrides.earnings_trend} onChange={handleOverrideChange} />
-                      </div>
-                  )}
-
-                  {/* Valuation — always show (Forward PE is always manual) */}
-                  <div className="space-y-2">
-                      <div className="text-xs font-bold text-blue-500 mb-2">Valuation</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6">
+                  {/* Valuation & Macro */}
+                  <div className="space-y-3">
+                      <div className="text-[10px] font-bold text-blue-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Valuation & Macro</div>
+                      {!hasPeRatio && <DebouncedOverrideInput label="P/E Ratio (x)" overrideKey="pe_ratio" value={manualOverrides.pe_ratio} onChange={handleOverrideChange} />}
                       <DebouncedOverrideInput label="Forward P/E (x)" overrideKey="forward_pe" value={manualOverrides.forward_pe} onChange={handleOverrideChange} />
                       {!hasEvEbitda && <DebouncedOverrideInput label="EV/EBITDA (x)" overrideKey="ev_ebitda" value={manualOverrides.ev_ebitda} onChange={handleOverrideChange} />}
-                  </div>
-
-                  {/* Macro Indicators — always show (GDP is always manual) */}
-                  <div className="space-y-2">
-                      <div className="text-xs font-bold text-purple-500 mb-2">Macro Indicators</div>
+                      <DebouncedOverrideInput label="Rel. Valuation (x)" overrideKey="relative_valuation" value={manualOverrides.relative_valuation} onChange={handleOverrideChange} />
                       <DebouncedOverrideInput label="GDP Growth (%)" overrideKey="gdp_growth" value={manualOverrides.gdp_growth} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Total GDP (in Cr ₹)" overrideKey="gdp" value={manualOverrides.gdp} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="10Y Bond Yield (%)" overrideKey="bond_yield" value={manualOverrides.bond_yield} onChange={handleOverrideChange} />
                   </div>
 
-                  {/* Growth — only show if at least one growth metric is missing from Upstox */}
-                  {(!hasEpsGrowth || !hasRevenueGrowth || !hasProfitGrowth) && (
-                      <div className="space-y-2">
-                          <div className="text-xs font-bold text-orange-500 mb-2">Growth</div>
-                          {!hasEpsGrowth && <DebouncedOverrideInput label="EPS Growth (%)" overrideKey="eps_growth" value={manualOverrides.eps_growth} onChange={handleOverrideChange} />}
-                          {!hasRevenueGrowth && <DebouncedOverrideInput label="Revenue Growth (%)" overrideKey="revenue_growth" value={manualOverrides.revenue_growth} onChange={handleOverrideChange} />}
-                          {!hasProfitGrowth && <DebouncedOverrideInput label="Profit Growth (%)" overrideKey="profit_growth" value={manualOverrides.profit_growth} onChange={handleOverrideChange} />}
-                      </div>
-                  )}
+                  {/* Earnings & Flows */}
+                  <div className="space-y-3">
+                      <div className="text-[10px] font-bold text-orange-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Earnings & Flows</div>
+                      {!hasEpsGrowth && <DebouncedOverrideInput label="EPS Growth (%)" overrideKey="eps_growth" value={manualOverrides.eps_growth} onChange={handleOverrideChange} />}
+                      {!hasRevenueGrowth && <DebouncedOverrideInput label="Revenue Growth (%)" overrideKey="revenue_growth" value={manualOverrides.revenue_growth} onChange={handleOverrideChange} />}
+                      {!hasProfitGrowth && <DebouncedOverrideInput label="Profit Growth (%)" overrideKey="profit_growth" value={manualOverrides.profit_growth} onChange={handleOverrideChange} />}
+                      <DebouncedOverrideInput label="Smart Money Flow" overrideKey="smart_money_flow" value={manualOverrides.smart_money_flow} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Promoter Holding" overrideKey="promoter_holding" value={manualOverrides.promoter_holding} onChange={handleOverrideChange} />
+                  </div>
 
-                  {/* Profitability — only show if at least one metric is missing from Upstox */}
-                  {(!hasRoe || !hasRoce || !hasRoa || !hasNetMargin || !hasOperatingMargin) && (
-                      <div className="space-y-2">
-                          <div className="text-xs font-bold text-green-500 mb-2">Profitability</div>
-                          {!hasRoe && <DebouncedOverrideInput label="ROE (%)" overrideKey="roe" value={manualOverrides.roe} onChange={handleOverrideChange} />}
-                          {!hasRoce && <DebouncedOverrideInput label="ROCE (%)" overrideKey="roce" value={manualOverrides.roce} onChange={handleOverrideChange} />}
-                          {!hasRoa && <DebouncedOverrideInput label="ROA (%)" overrideKey="roa" value={manualOverrides.roa} onChange={handleOverrideChange} />}
-                          {!hasNetMargin && <DebouncedOverrideInput label="Net Margin (%)" overrideKey="net_margin" value={manualOverrides.net_margin} onChange={handleOverrideChange} />}
-                          {!hasOperatingMargin && <DebouncedOverrideInput label="Operating Margin (%)" overrideKey="operating_margin" value={manualOverrides.operating_margin} onChange={handleOverrideChange} />}
-                      </div>
-                  )}
+                  {/* Profitability */}
+                  <div className="space-y-3">
+                      <div className="text-[10px] font-bold text-green-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Profitability</div>
+                      {!hasRoe && <DebouncedOverrideInput label="ROE (%)" overrideKey="roe" value={manualOverrides.roe} onChange={handleOverrideChange} />}
+                      {!hasRoce && <DebouncedOverrideInput label="ROCE (%)" overrideKey="roce" value={manualOverrides.roce} onChange={handleOverrideChange} />}
+                      {!hasRoa && <DebouncedOverrideInput label="ROA (%)" overrideKey="roa" value={manualOverrides.roa} onChange={handleOverrideChange} />}
+                      {!hasNetMargin && <DebouncedOverrideInput label="Net Margin (%)" overrideKey="net_margin" value={manualOverrides.net_margin} onChange={handleOverrideChange} />}
+                      {!hasOperatingMargin && <DebouncedOverrideInput label="Op. Margin (%)" overrideKey="operating_margin" value={manualOverrides.operating_margin} onChange={handleOverrideChange} />}
+                  </div>
 
-                  {/* Financial Health — only show if at least one metric is missing from Upstox */}
-                  {(!hasDebtToEquity || !hasInterestCoverage || !hasFreeCashFlow || !hasCurrentRatio) && (
-                      <div className="space-y-2">
-                          <div className="text-xs font-bold text-red-500 mb-2">Financial Health</div>
-                          {!hasDebtToEquity && <DebouncedOverrideInput label="Debt to Equity" overrideKey="debt_to_equity" value={manualOverrides.debt_to_equity} onChange={handleOverrideChange} />}
-                          {!hasInterestCoverage && <DebouncedOverrideInput label="Interest Coverage" overrideKey="interest_coverage" value={manualOverrides.interest_coverage} onChange={handleOverrideChange} />}
-                          {!hasFreeCashFlow && <DebouncedOverrideInput label="Free Cash Flow (in Cr ₹)" overrideKey="free_cash_flow" value={manualOverrides.free_cash_flow} onChange={handleOverrideChange} />}
-                          {!hasCurrentRatio && <DebouncedOverrideInput label="Current Ratio" overrideKey="current_ratio" value={manualOverrides.current_ratio} onChange={handleOverrideChange} />}
-                      </div>
-                  )}
+                  {/* Financial Health */}
+                  <div className="space-y-3">
+                      <div className="text-[10px] font-bold text-red-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Balance Sheet</div>
+                      {!hasDebtToEquity && <DebouncedOverrideInput label="Debt to Equity" overrideKey="debt_to_equity" value={manualOverrides.debt_to_equity} onChange={handleOverrideChange} />}
+                      {!hasInterestCoverage && <DebouncedOverrideInput label="Interest Coverage" overrideKey="interest_coverage" value={manualOverrides.interest_coverage} onChange={handleOverrideChange} />}
+                      {!hasFreeCashFlow && <DebouncedOverrideInput label="Free Cash Flow (Cr)" overrideKey="free_cash_flow" value={manualOverrides.free_cash_flow} onChange={handleOverrideChange} />}
+                      {!hasCurrentRatio && <DebouncedOverrideInput label="Current Ratio" overrideKey="current_ratio" value={manualOverrides.current_ratio} onChange={handleOverrideChange} />}
+                  </div>
               </div>
-
           )}
       </div>
   );

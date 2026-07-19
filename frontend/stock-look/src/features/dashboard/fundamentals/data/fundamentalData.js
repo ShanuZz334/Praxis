@@ -12,6 +12,7 @@ export const FUNDAMENTAL_SECTIONS = [
     { id: 'Corporate',      label: 'Corporate',         desc: 'Balance Sheet Health',   weight: 0.17 },
     { id: 'Global',         label: 'Global',            desc: 'Systemic Stress',        weight: 0.10 },
     { id: 'Ownership',      label: 'Ownership & Flow',  desc: 'Shareholding Quality',   weight: 0.10 },
+    { id: 'Risk',           label: 'Risk',              desc: 'Systemic Vulnerabilities', weight: 0.05 },
 ];
 
 export const WEIGHTS = FUNDAMENTAL_SECTIONS.reduce((acc, curr) => {

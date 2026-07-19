@@ -22,7 +22,7 @@ export default function PaiLoader() {
                 </div>
             </div>
             <div className="flex flex-col gap-2 w-full mt-1.5">
-                <div className="text-[13px] text-text-tertiary font-medium animate-pulse">
+                <div className="text-[11px] text-text-tertiary animate-pulse">
                     PAI is analyzing...
                 </div>
             </div>

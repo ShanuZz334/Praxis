@@ -139,11 +139,11 @@ function computeCompanySections(scores) {
     };
 
     const valuation = weightedHarmonicMean([
-        { score: g('pe_ratio'),      weight: 0.25 },
-        { score: g('forward_pe'),    weight: 0.20 },
-        { score: g('ev_ebitda'),     weight: 0.15 },
-        { score: g('pb_ratio'),      weight: 0.15 },
-        { score: g('earnings_yield'),weight: 0.10 },
+        { score: g('pe_ratio'),           weight: 0.25 },
+        { score: g('forward_pe'),         weight: 0.20 },
+        { score: g('ev_ebitda'),          weight: 0.15 },
+        { score: g('pb_ratio'),           weight: 0.15 },
+        { score: g('earnings_yield'),     weight: 0.10 },
         { score: g('relative_valuation'), weight: 0.15 },
     ]);
 
@@ -156,18 +156,22 @@ function computeCompanySections(scores) {
     const macro = g('gdp_growth');
 
     const liquidity = weightedMean([
-        { score: g('fii_dii_flow'),     weight: 0.30 },
-        { score: g('promoter_holding'), weight: 0.30 },
-        { score: g('smart_money_flow'), weight: 0.25 },
-        { score: g('earnings_quality'), weight: 0.15 }
+        { score: g('fii_dii_flow'),   weight: 0.50 },
+        { score: g('dividend_yield'), weight: 0.50 },
+    ]);
+
+    const ownership = weightedMean([
+        { score: g('promoter_holding'), weight: 0.40 },
+        { score: g('smart_money_flow'), weight: 0.40 },
+        { score: g('earnings_quality'), weight: 0.20 }
     ]);
 
     const sector = weightedGeometricMean([
-        { score: g('market_cap_gdp'), weight: 0.40 },
-        { score: g('dividend_yield'), weight: 0.25 },
-        { score: g('earnings_trend'), weight: 0.35 },
+        { score: g('market_cap_gdp'), weight: 0.50 },
+        { score: g('earnings_trend'), weight: 0.50 },
     ]);
 
+    // Corporate Health (Profitability & Returns)
     const roeS  = g('roe');
     const roceS = g('roce');
     const roaS  = g('roa');
@@ -185,6 +189,7 @@ function computeCompanySections(scores) {
         else if (minQuality < 35) corporate *= 0.88;
     }
 
+    // Balance Sheet / Risk (Mapped to global for company)
     const deS  = g('debt_to_equity');
     const icS  = g('interest_coverage');
     const fcfS = g('free_cash_flow');
@@ -195,14 +200,15 @@ function computeCompanySections(scores) {
         { score: fcfS, weight: 0.25 },
         { score: crS,  weight: 0.15 },
     ].filter(x => x.score !== null);
-    let global = null; // using financial health for Global/Risk aspect of companies
+    
+    let global = null; 
     if (healthItems.length > 0) {
         const mean = weightedMean(healthItems);
         const minScore = Math.min(...healthItems.map(x => x.score));
         global = minScore * 0.40 + mean * 0.60;
     }
 
-    return { valuation, earnings, macro, liquidity, sector, corporate, global };
+    return { valuation, earnings, macro, liquidity, sector, corporate, global, ownership };
 }
 
 // ─── INDEX MODE — 7 Sections ──────────────────────────────────────────────────
@@ -214,31 +220,68 @@ function computeIndexSections(scores) {
     };
 
     const valuation = weightedHarmonicMean([
-        { score: g('pe_ratio'),       weight: 0.35 },
-        { score: g('pb_ratio'),       weight: 0.30 },
-        { score: g('market_cap_gdp'), weight: 0.25 },
+        { score: g('nifty_pe'),       weight: 0.30 },
+        { score: g('nifty_pb'),       weight: 0.20 },
+        { score: g('mcap_gdp'),       weight: 0.20 },
+        { score: g('earnings_yield'), weight: 0.20 },
         { score: g('dividend_yield'), weight: 0.10 },
     ]);
 
-    const earnings = g('eps_growth'); // Index EPS growth
-
-    const macro = g('gdp_growth');
-
-    const liquidity = g('fii_dii_flow');
-
-    const sector = g('advance_decline'); // Market Breadth & Sentiment
-
-    const corporate = weightedGeometricMean([ // Momentum / Internal strength
-        { score: g('index_macd'),   weight: 0.50 },
-        { score: g('index_200dma'), weight: 0.50 },
+    const earnings = weightedMean([
+        { score: g('eps_yoy'),           weight: 0.30 },
+        { score: g('forward_eps'),       weight: 0.30 },
+        { score: g('earnings_revision'), weight: 0.20 },
+        { score: g('sector_earnings'),   weight: 0.10 },
+        { score: g('profit_margin'),     weight: 0.10 },
     ]);
 
-    let global = g('india_vix'); // Volatility & Risk
-    if (global !== null && global < 20) {
-        global *= 0.75;
-    }
+    const macro = weightedMean([
+        { score: g('gdp'),             weight: 0.25 },
+        { score: g('cpi'),             weight: 0.25 },
+        { score: g('repo'),            weight: 0.15 },
+        { score: g('policy_stance'),   weight: 0.15 },
+        { score: g('fiscal_deficit'),  weight: 0.10 },
+        { score: g('current_account'), weight: 0.10 },
+    ]);
 
-    return { valuation, earnings, macro, liquidity, sector, corporate, global };
+    const liquidity = weightedMean([
+        { score: g('fii'),              weight: 0.25 },
+        { score: g('dii'),              weight: 0.20 },
+        { score: g('fii_trend'),        weight: 0.25 },
+        { score: g('system_liquidity'), weight: 0.15 },
+        { score: g('mf_flows'),         weight: 0.15 },
+    ]);
+
+    const sector = weightedMean([
+        { score: g('advance_decline'),      weight: 0.30 },
+        { score: g('sector_valuation'),     weight: 0.20 },
+        { score: g('sector_growth'),        weight: 0.20 },
+        { score: g('sector_concentration'), weight: 0.15 },
+        { score: g('cyc_def'),              weight: 0.15 },
+    ]);
+
+    const corporate = weightedGeometricMean([
+        { score: g('index_macd'),       weight: 0.30 },
+        { score: g('index_200dma'),     weight: 0.30 },
+        { score: g('credit_growth'),    weight: 0.20 },
+        { score: g('corp_debt'),        weight: 0.10 },
+        { score: g('policy_tailwinds'), weight: 0.10 },
+    ]);
+
+    const global = weightedMean([
+        { score: g('india_vix'),  weight: 0.40 },
+        { score: g('crude'),      weight: 0.25 },
+        { score: g('usdinr'),     weight: 0.15 },
+        { score: g('global_liq'), weight: 0.20 },
+    ]);
+
+    const risk = weightedHarmonicMean([
+        { score: g('sovereign_risk'),  weight: 0.40 },
+        { score: g('npa'),             weight: 0.40 },
+        { score: g('reform_momentum'), weight: 0.20 },
+    ]);
+
+    return { valuation, earnings, macro, liquidity, sector, corporate, global, risk };
 }
 
 // ─── Composite Score ──────────────────────────────────────────────────────────
@@ -343,10 +386,11 @@ export function computeCompanyComposite(scores) {
         { id: 'valuation', label: 'Valuation', shortLabel: 'VAL', score: raw.valuation !== null ? clamp(Math.round(raw.valuation)) : null, weight: 0.20 },
         { id: 'earnings',  label: 'Earnings',  shortLabel: 'EAR', score: raw.earnings  !== null ? clamp(Math.round(raw.earnings))  : null, weight: 0.22 },
         { id: 'macro',     label: 'Macro',     shortLabel: 'MAC', score: raw.macro     !== null ? clamp(Math.round(raw.macro))     : null, weight: 0.05 },
-        { id: 'liquidity', label: 'Liquidity', shortLabel: 'LIQ', score: raw.liquidity !== null ? clamp(Math.round(raw.liquidity)) : null, weight: 0.08 },
-        { id: 'sector',    label: 'Sector',    shortLabel: 'SEC', score: raw.sector    !== null ? clamp(Math.round(raw.sector))    : null, weight: 0.15 },
+        { id: 'liquidity', label: 'Liquidity', shortLabel: 'LIQ', score: raw.liquidity !== null ? clamp(Math.round(raw.liquidity)) : null, weight: 0.07 },
+        { id: 'ownership', label: 'Ownership', shortLabel: 'OWN', score: raw.ownership !== null ? clamp(Math.round(raw.ownership)) : null, weight: 0.10 },
+        { id: 'sector',    label: 'Sector',    shortLabel: 'SEC', score: raw.sector    !== null ? clamp(Math.round(raw.sector))    : null, weight: 0.08 },
         { id: 'corporate', label: 'Corporate', shortLabel: 'COR', score: raw.corporate !== null ? clamp(Math.round(raw.corporate)) : null, weight: 0.18 },
-        { id: 'global',    label: 'Global',    shortLabel: 'GLO', score: raw.global    !== null ? clamp(Math.round(raw.global))    : null, weight: 0.12 },
+        { id: 'global',    label: 'Balance Sheet', shortLabel: 'BAL', score: raw.global!== null ? clamp(Math.round(raw.global))    : null, weight: 0.10 },
     ];
 
     const composite = computeComposite(sections, false);
@@ -357,13 +401,14 @@ export function computeIndexComposite(scores) {
     const raw = computeIndexSections(scores);
 
     const sections = [
-        { id: 'valuation', label: 'Valuation', shortLabel: 'VAL', score: raw.valuation !== null ? clamp(Math.round(raw.valuation)) : null, weight: 0.18 },
-        { id: 'earnings',  label: 'Earnings',  shortLabel: 'EAR', score: raw.earnings  !== null ? clamp(Math.round(raw.earnings))  : null, weight: 0.15 },
-        { id: 'macro',     label: 'Macro',     shortLabel: 'MAC', score: raw.macro     !== null ? clamp(Math.round(raw.macro))     : null, weight: 0.10 },
-        { id: 'liquidity', label: 'Liquidity', shortLabel: 'LIQ', score: raw.liquidity !== null ? clamp(Math.round(raw.liquidity)) : null, weight: 0.12 },
-        { id: 'sector',    label: 'Sector',    shortLabel: 'SEC', score: raw.sector    !== null ? clamp(Math.round(raw.sector))    : null, weight: 0.15 },
-        { id: 'corporate', label: 'Corporate', shortLabel: 'COR', score: raw.corporate !== null ? clamp(Math.round(raw.corporate)) : null, weight: 0.15 },
-        { id: 'global',    label: 'Global',    shortLabel: 'GLO', score: raw.global    !== null ? clamp(Math.round(raw.global))    : null, weight: 0.15 },
+        { id: 'valuation', label: 'Valuation', shortLabel: 'VAL', score: raw.valuation !== null ? clamp(Math.round(raw.valuation)) : null, weight: 0.15 },
+        { id: 'earnings',  label: 'Earnings',  shortLabel: 'EAR', score: raw.earnings  !== null ? clamp(Math.round(raw.earnings))  : null, weight: 0.20 },
+        { id: 'macro',     label: 'Macro',     shortLabel: 'MAC', score: raw.macro     !== null ? clamp(Math.round(raw.macro))     : null, weight: 0.20 },
+        { id: 'liquidity', label: 'Liquidity', shortLabel: 'LIQ', score: raw.liquidity !== null ? clamp(Math.round(raw.liquidity)) : null, weight: 0.20 },
+        { id: 'sector',    label: 'Sector',    shortLabel: 'SEC', score: raw.sector    !== null ? clamp(Math.round(raw.sector))    : null, weight: 0.10 },
+        { id: 'corporate', label: 'Corporate', shortLabel: 'COR', score: raw.corporate !== null ? clamp(Math.round(raw.corporate)) : null, weight: 0.05 },
+        { id: 'global',    label: 'Global',    shortLabel: 'GLO', score: raw.global    !== null ? clamp(Math.round(raw.global))    : null, weight: 0.05 },
+        { id: 'risk',      label: 'Risk',      shortLabel: 'RSK', score: raw.risk      !== null ? clamp(Math.round(raw.risk))      : null, weight: 0.05 },
     ];
 
     const composite = computeComposite(sections, true);
