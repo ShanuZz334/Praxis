@@ -13,6 +13,7 @@ export const FUNDAMENTAL_SECTIONS = [
     { id: 'Global',         label: 'Global',            desc: 'Systemic Stress',        weight: 0.10 },
     { id: 'Ownership',      label: 'Ownership & Flow',  desc: 'Shareholding Quality',   weight: 0.10 },
     { id: 'Risk',           label: 'Risk',              desc: 'Systemic Vulnerabilities', weight: 0.05 },
+    { id: 'Peer Comparison', label: 'Peer Comparison', desc: 'Relative Valuation & Peer Analysis', weight: 0.0 },
 ];
 
 export const WEIGHTS = FUNDAMENTAL_SECTIONS.reduce((acc, curr) => {

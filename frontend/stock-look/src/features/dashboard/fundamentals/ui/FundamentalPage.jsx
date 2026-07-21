@@ -42,16 +42,20 @@ const DEFAULT_OVERRIDES = {
     // ─── COMPANY OVERRIDES ───
     // Valuation
     pe_ratio: null, forward_pe: null, ev_ebitda: null, pb_ratio: null, earnings_yield: null, relative_valuation: null,
+    analyst_consensus_rating: null, analyst_target_price: null, analyst_count: null,
     // Earnings
     eps_growth: null, revenue_growth: null, profit_growth: null,
     // Sector/Macro
-    market_cap_gdp: null, dividend_yield: null, earnings_trend: null, gdp_growth: null,
+    dividend_yield: null, earnings_trend: null, gdp_growth: null,
     // Liquidity/Ownership
     fii_dii_flow: null, promoter_holding: null, smart_money_flow: null, earnings_quality: null,
     // Corporate Health
     roe: null, roce: null, roa: null, net_margin: null, operating_margin: null,
+    inventory_days: null, receivable_days: null, payable_days: null,
     // Balance Sheet (Global)
     debt_to_equity: null, interest_coverage: null, free_cash_flow: null, current_ratio: null,
+    // Risk
+    credit_rating_value: null, credit_rating_agency: null, credit_rating_outlook: null,
 
     // ─── INDEX OVERRIDES ───
     // Valuation
@@ -63,7 +67,7 @@ const DEFAULT_OVERRIDES = {
     // Liquidity
     fii: null, dii: null, fii_trend: null, system_liquidity: null, mf_flows: null,
     // Sector
-    advance_decline: null, sector_valuation: null, sector_growth: null, sector_concentration: null, cyc_def: null,
+    advance_decline: null, sector_valuation: null, sector_growth: null, cyc_def: null,
     // Corporate
     credit_growth: null, corp_debt: null, policy_tailwinds: null,
     // Global/Risk
@@ -90,7 +94,6 @@ export default function FundamentalPage() {
     // Earnings
     { id: "eps_yoy", category: "Earnings" },
     { id: "forward_eps", category: "Earnings" },
-    { id: "sector_earnings", category: "Earnings" },
     { id: "profit_margin", category: "Earnings" },
     // Macro
     { id: "gdp", category: "Macro" },
@@ -105,10 +108,7 @@ export default function FundamentalPage() {
     { id: "mf_flows", category: "Liquidity" },
     // Sector
     { id: "advance_decline", category: "Sector" },
-    { id: "sector_valuation", category: "Sector" },
-    { id: "sector_growth", category: "Sector" },
-    { id: "sector_concentration", category: "Sector" },
-    { id: "cyc_def", category: "Sector" },
+    { id: "sector_dashboard", category: "Sector" },
     // Corporate
     { id: "credit_growth", category: "Corporate" },
     { id: "corp_debt", category: "Corporate" },
@@ -129,8 +129,9 @@ export default function FundamentalPage() {
     { id: "pb_ratio", category: "Valuation" },
     { id: "earnings_yield", category: "Valuation" },
     { id: "relative_valuation", category: "Valuation" },
+    { id: "analyst_consensus", category: "Valuation" },
+    // Peer Comparison (Moved to CompanySnapshotWidget)
     // Sector (Context)
-    { id: "market_cap_gdp", category: "Sector" },
     { id: "earnings_trend", category: "Sector" },
     // Liquidity
     { id: "fii_dii_flow", category: "Liquidity" },
@@ -147,6 +148,7 @@ export default function FundamentalPage() {
     { id: "roa", category: "Corporate" },
     { id: "net_margin", category: "Corporate" },
     { id: "operating_margin", category: "Corporate" },
+    { id: "cash_conversion", category: "Corporate" },
     // Balance Sheet (Global map)
     { id: "debt_to_equity", category: "Global" },
     { id: "interest_coverage", category: "Global" },
@@ -156,6 +158,9 @@ export default function FundamentalPage() {
     { id: "promoter_holding", category: "Ownership" },
     { id: "smart_money_flow", category: "Ownership" },
     { id: "earnings_quality", category: "Ownership" },
+    { id: "corporate_actions", category: "Ownership" },
+    // Risk
+    { id: "credit_rating", category: "Risk" },
   ];
 
   // Standardized Manual Overrides Hook
@@ -427,6 +432,9 @@ export default function FundamentalPage() {
                       {!hasEvEbitda && <DebouncedOverrideInput label="EV/EBITDA (x)" overrideKey="ev_ebitda" value={manualOverrides.ev_ebitda} onChange={handleOverrideChange} />}
                       <DebouncedOverrideInput label="Rel. Valuation (x)" overrideKey="relative_valuation" value={manualOverrides.relative_valuation} onChange={handleOverrideChange} />
                       <DebouncedOverrideInput label="GDP Growth (%)" overrideKey="gdp_growth" value={manualOverrides.gdp_growth} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Consensus Rating" overrideKey="analyst_consensus_rating" value={manualOverrides.analyst_consensus_rating} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Target Price" overrideKey="analyst_target_price" value={manualOverrides.analyst_target_price} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Analyst Count" overrideKey="analyst_count" value={manualOverrides.analyst_count} onChange={handleOverrideChange} />
                   </div>
 
                   {/* Earnings & Flows */}
@@ -439,7 +447,7 @@ export default function FundamentalPage() {
                       <DebouncedOverrideInput label="Promoter Holding" overrideKey="promoter_holding" value={manualOverrides.promoter_holding} onChange={handleOverrideChange} />
                   </div>
 
-                  {/* Profitability */}
+                  {/* Profitability & CCC */}
                   <div className="space-y-3 break-inside-avoid mb-6">
                       <div className="text-[10px] font-bold text-green-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Profitability</div>
                       {!hasRoe && <DebouncedOverrideInput label="ROE (%)" overrideKey="roe" value={manualOverrides.roe} onChange={handleOverrideChange} />}
@@ -447,6 +455,9 @@ export default function FundamentalPage() {
                       {!hasRoa && <DebouncedOverrideInput label="ROA (%)" overrideKey="roa" value={manualOverrides.roa} onChange={handleOverrideChange} />}
                       {!hasNetMargin && <DebouncedOverrideInput label="Net Margin (%)" overrideKey="net_margin" value={manualOverrides.net_margin} onChange={handleOverrideChange} />}
                       {!hasOperatingMargin && <DebouncedOverrideInput label="Op. Margin (%)" overrideKey="operating_margin" value={manualOverrides.operating_margin} onChange={handleOverrideChange} />}
+                      <DebouncedOverrideInput label="Inventory Days" overrideKey="inventory_days" value={manualOverrides.inventory_days} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Receivable Days" overrideKey="receivable_days" value={manualOverrides.receivable_days} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Payable Days" overrideKey="payable_days" value={manualOverrides.payable_days} onChange={handleOverrideChange} />
                   </div>
 
                   {/* Financial Health */}
@@ -456,6 +467,14 @@ export default function FundamentalPage() {
                       {!hasInterestCoverage && <DebouncedOverrideInput label="Interest Coverage" overrideKey="interest_coverage" value={manualOverrides.interest_coverage} onChange={handleOverrideChange} />}
                       {!hasFreeCashFlow && <DebouncedOverrideInput label="Free Cash Flow (Cr)" overrideKey="free_cash_flow" value={manualOverrides.free_cash_flow} onChange={handleOverrideChange} />}
                       {!hasCurrentRatio && <DebouncedOverrideInput label="Current Ratio" overrideKey="current_ratio" value={manualOverrides.current_ratio} onChange={handleOverrideChange} />}
+                  </div>
+
+                  {/* Risk */}
+                  <div className="space-y-3 break-inside-avoid mb-6">
+                      <div className="text-[10px] font-bold text-red-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Risk</div>
+                      <DebouncedOverrideInput label="Credit Rating" overrideKey="credit_rating_value" value={manualOverrides.credit_rating_value} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Rating Agency" overrideKey="credit_rating_agency" value={manualOverrides.credit_rating_agency} onChange={handleOverrideChange} />
+                      <DebouncedOverrideInput label="Rating Outlook" overrideKey="credit_rating_outlook" value={manualOverrides.credit_rating_outlook} onChange={handleOverrideChange} />
                   </div>
               </div>
           )}

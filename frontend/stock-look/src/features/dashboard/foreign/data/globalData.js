@@ -37,6 +37,17 @@ const _baseCards = [
         creditAllocation: 9,
         reason: "Yen weakness persists, BOJ maintains policy"
     },
+    {
+        id: "usd_inr",
+        label: "USD/INR",
+        category: "Currency",
+        raw: "83.15",
+        unit: "",
+        normalized: 0.2,
+        creditScore: 0.8,
+        creditAllocation: 8,
+        reason: "Stable within tight RBI intervention band"
+    },
 
     // Global Indices
     {
@@ -60,6 +71,17 @@ const _baseCards = [
         creditScore: 0.9,
         creditAllocation: 9,
         reason: "Tech under pressure from rising rates"
+    },
+    {
+        id: "dow_futures",
+        label: "Dow Jones",
+        category: "US Markets",
+        raw: "37,592",
+        unit: "",
+        normalized: 0.2,
+        creditScore: 0.85,
+        creditAllocation: 8,
+        reason: "Value outperforming tech"
     },
     {
         id: "nikkei",
@@ -251,6 +273,19 @@ const _baseCards = [
         creditScore: 0.85,
         creditAllocation: 8,
         reason: "Bond volatility elevated, rate uncertainty"
+    },
+
+    // Digital Assets
+    {
+        id: "bitcoin",
+        label: "Bitcoin",
+        category: "Digital Assets",
+        raw: "42,500",
+        unit: "",
+        normalized: 0.6,
+        creditScore: 0.7,
+        creditAllocation: 5,
+        reason: "ETF approval momentum driving strength"
     }
 ];
 

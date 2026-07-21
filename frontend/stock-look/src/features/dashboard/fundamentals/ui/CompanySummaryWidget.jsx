@@ -3,6 +3,7 @@ import { Edit2, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardContext } from '@/shared/context/DashboardContext';
 import { FO_EQUITIES } from '@/shared/utils/foInstruments';
+import PeerComparisonTable from './PeerComparisonTable';
 
 export default function CompanySummaryWidget({ data, manualOverrides, selectedInstrument, setEditingKey, resolveTime }) {
     const { livePrices } = useDashboardContext();
@@ -210,6 +211,9 @@ export default function CompanySummaryWidget({ data, manualOverrides, selectedIn
                     {col3.map(renderMetric)}
                 </div>
             </div>
+
+            {/* Embed Peer Comparison directly in the Snapshot */}
+            <PeerComparisonTable data={data} selectedInstrument={selectedInstrument} />
         </div>
     );
 }

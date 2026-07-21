@@ -62,9 +62,18 @@ export const TITLE_TO_ID = {
     'Promoter Holding':     'promoter_holding',
     'Smart Money Flow':     'smart_money_flow',
     'Earnings Quality':     'earnings_quality',
+    'Corporate Actions':    'corporate_actions',
     'Relative Valuation':   'relative_valuation',
+    // Peer / Analyst
+    'Analyst Consensus':    'analyst_consensus',
+    'Peer Comparison':      'peer_comparison',
+    // Risk
+    'Credit Rating':        'credit_rating',
+    // Corporate
+    'Cash Conv. Cycle':     'cash_conversion',
     // Index-specific
     'Advance / Decline':    'advance_decline',
+    'Sector Dashboard':     'sector_dashboard',
     'India VIX':            'india_vix',
 };
 
@@ -136,12 +145,13 @@ function computeCompanySections(scores) {
     };
 
     const valuation = weightedHarmonicMean([
-        { score: g('pe_ratio'),           weight: 0.25 },
+        { score: g('pe_ratio'),           weight: 0.20 },
         { score: g('forward_pe'),         weight: 0.20 },
         { score: g('ev_ebitda'),          weight: 0.15 },
-        { score: g('pb_ratio'),           weight: 0.15 },
+        { score: g('pb_ratio'),           weight: 0.10 },
         { score: g('earnings_yield'),     weight: 0.10 },
-        { score: g('relative_valuation'), weight: 0.15 },
+        { score: g('relative_valuation'), weight: 0.10 },
+        { score: g('analyst_consensus'),  weight: 0.15 },
     ]);
 
     const earnings = trimmedWeightedMean([
@@ -158,26 +168,26 @@ function computeCompanySections(scores) {
     ]);
 
     const ownership = weightedMean([
-        { score: g('promoter_holding'), weight: 0.40 },
-        { score: g('smart_money_flow'), weight: 0.40 },
-        { score: g('earnings_quality'), weight: 0.20 }
+        { score: g('promoter_holding'), weight: 0.35 },
+        { score: g('smart_money_flow'), weight: 0.35 },
+        { score: g('earnings_quality'), weight: 0.15 },
+        { score: g('corporate_actions'),weight: 0.15 }
     ]);
 
     const sector = weightedGeometricMean([
-        { score: g('market_cap_gdp'), weight: 0.50 },
-        { score: g('earnings_trend'), weight: 0.50 },
+        { score: g('earnings_trend'), weight: 1.0 },
     ]);
 
-    // Corporate Health (Profitability & Returns)
     const roeS  = g('roe');
     const roceS = g('roce');
     const roaS  = g('roa');
     let corporate = weightedMean([
-        { score: roeS,             weight: 0.25 },
-        { score: roceS,            weight: 0.25 },
-        { score: roaS,             weight: 0.15 },
-        { score: g('net_margin'),  weight: 0.17 },
-        { score: g('operating_margin'), weight: 0.18 },
+        { score: roeS,             weight: 0.20 },
+        { score: roceS,            weight: 0.20 },
+        { score: roaS,             weight: 0.10 },
+        { score: g('net_margin'),  weight: 0.15 },
+        { score: g('operating_margin'), weight: 0.15 },
+        { score: g('cash_conversion'),  weight: 0.20 },
     ]);
     if (corporate !== null) {
         const minQuality = Math.min(roeS ?? 100, roceS ?? 100);
@@ -192,10 +202,11 @@ function computeCompanySections(scores) {
     const fcfS = g('free_cash_flow');
     const crS  = g('current_ratio');
     const healthItems = [
-        { score: deS,  weight: 0.30 },
-        { score: icS,  weight: 0.30 },
-        { score: fcfS, weight: 0.25 },
-        { score: crS,  weight: 0.15 },
+        { score: deS,  weight: 0.25 },
+        { score: icS,  weight: 0.25 },
+        { score: fcfS, weight: 0.20 },
+        { score: crS,  weight: 0.10 },
+        { score: g('credit_rating'), weight: 0.20 },
     ].filter(x => x.score !== null);
     
     let global = null; 
@@ -227,8 +238,7 @@ function computeIndexSections(scores) {
     const earnings = weightedMean([
         { score: g('eps_yoy'),           weight: 0.40 },
         { score: g('forward_eps'),       weight: 0.40 },
-        { score: g('sector_earnings'),   weight: 0.10 },
-        { score: g('profit_margin'),     weight: 0.10 },
+        { score: g('profit_margin'),     weight: 0.20 },
     ]);
 
     const macro = weightedMean([
@@ -248,10 +258,7 @@ function computeIndexSections(scores) {
 
     const sector = weightedMean([
         { score: g('advance_decline'),      weight: 0.30 },
-        { score: g('sector_valuation'),     weight: 0.20 },
-        { score: g('sector_growth'),        weight: 0.20 },
-        { score: g('sector_concentration'), weight: 0.15 },
-        { score: g('cyc_def'),              weight: 0.15 },
+        { score: g('sector_dashboard'),     weight: 0.70 },
     ]);
 
     const corporate = weightedGeometricMean([

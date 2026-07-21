@@ -2775,3 +2775,4 @@ export function generateAiInsightDIIFlow(scoreObj, val) {
     if (scoreObj.score <= 25) return `DII selling of ₹${val} Cr removes a key pillar of domestic market support.`;
     return `DII flows of ₹${val} Cr are relatively neutral, providing stable but unaggressive support.`;
 }
+export function generateAiInsightSectorDashboard(score, adv, val, growth, cyc) { return 'Sector breadth and concentration metrics indicate underlying health. Broad participation supports longer-term uptrends.'; }

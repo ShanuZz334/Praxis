@@ -28,3 +28,7 @@ When refactoring, updating, or building new indicator cards in the Praxis dashbo
 - **Centralized Math Engines**: All `score*` and `generateAiInsight*` logic must be completely extracted from UI cards and placed into a single shared pure JS file (e.g., `engine/scoringEngine.js`) so that it can be natively imported by both the React frontend and Node backend. Do NOT duplicate math logic in `backend/engine/scorers.js`.
 - **Performance Optimized Inputs**: Any manual fallback data inputs on the main page MUST use the localized `DebouncedOverrideInput` to prevent the heavy card grids from re-rendering on every keystroke.
 - **State Persistence**: Manual overrides must be saved to `localStorage` locally, rather than executing continuous heavy backend API calls to store UI states.
+
+## 6. Global Card Inventory Synchronization
+- **Keep the Master List Updated**: The master list of all dashboard cards is persistently stored at `CARD_INVENTORY.md` in the project root.
+- **Mandatory Update**: Whenever you build, delete, or rename any indicator card anywhere in the Praxis platform, you **MUST** update `CARD_INVENTORY.md` immediately to reflect the change so the inventory remains 100% accurate.

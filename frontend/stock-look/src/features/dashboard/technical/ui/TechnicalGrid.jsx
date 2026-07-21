@@ -35,12 +35,14 @@ import McClellanCard from "./McClellanCard";
 import ADLineCard from "./ADLineCard";
 import NhnlCard from "./NhnlCard";
 import TrinCard from "./TrinCard";
+import BetaCorrelationCard from "./BetaCorrelationCard";
 
 const HARDCODED_IDS = [
     'rsi','macd','stoch_rsi','williams_r','bb_20_2','atr','kc','cmf',
     'volume_sma','obv','vwap','support','resistance','trendline','pivot',
     'fibonacci','ema_20','ema_50','ema_200','sma_50','sma_200','adx',
-    'supertrend','breadth_ratio','mcclellan','ad_line','nh_nl','trin'
+    'supertrend','breadth_ratio','mcclellan','ad_line','nh_nl','trin',
+    'beta_correlation'
 ];
 
 export default function TechnicalGrid({
@@ -185,7 +187,7 @@ export default function TechnicalGrid({
                     {SECTION_ORDER.map((section) => {
                         const hardcodedCounts = { 'Trend':7, 'Momentum':4, 'Volatility':4, 'Volume':4, 'Structure':5, 'Breadth':5 };
                         const expectedIds = {
-                            'Trend': ['ema_20', 'ema_50', 'ema_200', 'sma_50', 'sma_200', 'adx', 'supertrend'],
+                            'Trend': ['ema_20', 'ema_50', 'ema_200', 'sma_50', 'sma_200', 'adx', 'supertrend', 'beta_correlation'],
                             'Momentum': ['rsi', 'macd', 'stoch_rsi', 'williams_r'],
                             'Volatility': ['bb_20_2', 'atr', 'kc'],
                             'Volume': isIndex ? [] : ['cmf', 'volume_sma', 'obv', 'vwap'],
@@ -195,7 +197,8 @@ export default function TechnicalGrid({
 
                         let missingCount = 0;
                         expectedIds.forEach(id => {
-                            if (!data || (data[id] === undefined || data[id] === null || data[id] === '--')) {
+                            const dataKey = id === 'beta_correlation' ? 'beta' : id;
+                            if (!data || (data[dataKey] === undefined || data[dataKey] === null || data[dataKey] === '--')) {
                                 missingCount++;
                             }
                         });
@@ -234,6 +237,7 @@ export default function TechnicalGrid({
                                         <SMA200Card data={data} manualOverride={manualOverrides?.sma_200} lastUpdated={resolveTime(!!data?.sma_200, 'sma_200')} />
                                         <ADXCard data={data} manualOverride={manualOverrides?.adx} lastUpdated={resolveTime(!!data?.adx, 'adx')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
                                         <SupertrendCard data={data} manualOverride={manualOverrides?.supertrend} lastUpdated={resolveTime(!!data?.supertrend, 'supertrend')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <BetaCorrelationCard data={data} lastUpdated={resolveTime(!!data?.beta, 'beta_correlation')} />
                                     </>)}
                                     {section === 'Momentum' && (<>
                                         <RSICard data={data} manualOverride={manualOverrides?.rsi} lastUpdated={resolveTime(!!data?.rsi, 'rsi')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />

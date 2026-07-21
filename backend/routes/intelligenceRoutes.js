@@ -172,7 +172,7 @@ router.post("/overrides", protect, async (req, res) => {
  */
 router.post("/card-insight", protect, async (req, res) => {
     try {
-        const { metric, value, sectorAvg, historicalContext, stockSymbol, module } = req.body;
+        const { metric, metricId, value, sectorAvg, historicalContext, stockSymbol, module } = req.body;
 
         if (!metric || !stockSymbol) {
             return res.status(400).json({ error: "metric and stockSymbol are required" });
@@ -182,12 +182,14 @@ router.post("/card-insight", protect, async (req, res) => {
             return res.json({ insight: null, reason: "insufficient_data", cached: false });
         }
 
+        // @TODO (Phase 0): Use metricId to lookup custom prompt from aiCardPrompts registry
+        // For now, fallback to generic template using the human-readable metric name
         const prompt = `Generate a 1-sentence insight about ${metric} for ${stockSymbol}. Current value: ${value}. ${sectorAvg ? `Sector Average: ${sectorAvg}. ` : ""}${historicalContext ? `Historical Trend: ${historicalContext.trend}. ` : ""} Keep it extremely concise and actionable.`;
 
         const response = await aiGateway.process({
             taskType: 'per_card_insight',
             prompt,
-            data: { metric, value, sectorAvg, historicalContext, stockSymbol, module },
+            data: { metric, metricId, value, sectorAvg, historicalContext, stockSymbol, module },
             jsonMode: false,
             maxTokens: 80
         });

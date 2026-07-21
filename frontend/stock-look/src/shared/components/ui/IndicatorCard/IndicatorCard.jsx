@@ -4,6 +4,7 @@ import { FundamentalContext } from "@/features/dashboard/fundamentals/ui/Fundame
 import { FlipContainer, FlipTrigger } from "@/shared/components/common/FlipContainer";
 import { Star, Lightbulb, Plus, BarChart2, Edit2, Check, Settings } from "lucide-react";
 import axiosInstance from "@/shared/utils/axiosInstance";
+import cardInventory from "../../../../../card-inventory.json";
 import "@/features/dashboard/pai/ui/PaiLoader.css";
 import {
   ResponsiveContainer,
@@ -286,6 +287,7 @@ export function IndicatorCard({
   chartData,   // { points, valueKey, valueName }
   insights,    // { aiInsight, whyItMatters }
   onSave,      // callback for manual input
+  cardId,      // explicitly passed cardId (optional)
   className
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -297,12 +299,19 @@ export function IndicatorCard({
   });
 
   const context = useContext(FundamentalContext);
+  
+  // Resolve unique ID for snapshots and AI routing
+  const resolvedCardId = useMemo(() => {
+    if (cardId) return cardId;
+    const foundCard = cardInventory.find(c => c.card === config.title);
+    return (foundCard ? foundCard.targetId : null) || config.title;
+  }, [cardId, config.title]);
+
   const historicalData = useMemo(() => {
-     if (context?.snapshots && config?.title) {
-        return context.snapshots[config.title] || [];
-     }
-     return [];
-  }, [context?.snapshots, config?.title]);
+    if (!context?.snapshots) return null;
+    const snapshotKey = resolvedCardId;
+    return context.snapshots[snapshotKey] || null;
+  }, [context?.snapshots, resolvedCardId]);
 
   useEffect(() => {
     const rawVal = data?.currentValueObj?.value;
@@ -311,7 +320,7 @@ export function IndicatorCard({
     // Always dispatch, but send null if the value was cleared
     const event = new CustomEvent('SAVE_SNAPSHOT', {
         detail: {
-            card_id: config.title,
+            card_id: resolvedCardId,
             raw_value: isMissing ? null : parseFloat(rawVal) || 0,
             score: isMissing ? null : (data?.score || 50),
             bias: isMissing ? null : (data?.bias || 'Neutral')
@@ -325,7 +334,7 @@ export function IndicatorCard({
     }, 10);
     
     return () => clearTimeout(timeoutId);
-  }, [config?.title, data?.currentValueObj?.value, data?.score, data?.bias]);
+  }, [resolvedCardId, data?.currentValueObj?.value, data?.score, data?.bias]);
 
   useEffect(() => {
     let isSubscribed = true;
@@ -343,6 +352,7 @@ export function IndicatorCard({
       }
 
       const stockSymbol = context?.instrumentKey || 'Unknown';
+      const metricId = resolvedCardId;
 
       setInsightData(prev => ({ ...prev, isLoading: true, error: null }));
 
@@ -351,6 +361,7 @@ export function IndicatorCard({
 
       axiosInstance.post('/api/v1/intelligence/card-insight', {
           metric,
+          metricId,
           value: isNaN(parsedValue) ? null : parsedValue,
           stockSymbol,
           module: 'Fundamentals'

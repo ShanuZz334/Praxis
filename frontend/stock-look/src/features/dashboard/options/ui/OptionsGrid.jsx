@@ -38,6 +38,7 @@ import VegaCard from "./VegaCard";
 import PcrOiCard from "./PcrOiCard";
 import PcrVolumeCard from "./PcrVolumeCard";
 import MaxPainCard from "./MaxPainCard";
+import FnOBanCard from "./FnOBanCard";
 
 // =============================
 // Main Component
@@ -98,7 +99,7 @@ export default function OptionsGrid({
     };
 
     // Exclude our hardcoded cards
-    const excludeIds = ["total_call_oi", "total_put_oi", "oi_change", "delta", "gamma", "theta", "vega", "pcr_oi", "pcr_volume", "max_pain", "atm_iv", "iv_rank", "iv_percentile"];
+    const excludeIds = ["total_call_oi", "total_put_oi", "oi_change", "delta", "gamma", "theta", "vega", "pcr_oi", "pcr_volume", "max_pain", "atm_iv", "iv_rank", "iv_percentile", "fno_ban"];
     const filteredCards = cards.filter(c => !excludeIds.includes(c.id));
 
     // Memoize categorization
@@ -130,6 +131,7 @@ export default function OptionsGrid({
         renderList.push({ id: 'pcr_oi', node: <PcrOiCard /> });
         renderList.push({ id: 'pcr_volume', node: <PcrVolumeCard /> });
         renderList.push({ id: 'max_pain', node: <MaxPainCard /> });
+        renderList.push({ id: 'fno_ban', node: <FnOBanCard /> });
 
         const excludeIds = renderList.map(item => item.id);
 
@@ -153,6 +155,7 @@ export default function OptionsGrid({
             if (item.id === 'iv_rank' && compositeData?.volatility?.ivRank) liveData = { ...compositeData.volatility.ivRank, lookback: compositeData.volatility.lookback };
             if (item.id === 'iv_percentile' && compositeData?.volatility?.ivPercentile) liveData = { ...compositeData.volatility.ivPercentile, lookback: compositeData.volatility.lookback };
             if (item.id === 'max_pain' && compositeData?.maxPain) liveData = compositeData.maxPain;
+            if (item.id === 'fno_ban' && compositeData?.fnoBan) liveData = compositeData.fnoBan;
 
             const manualOverride = manualOverrides ? manualOverrides[item.id] : undefined;
             const clonedNode = React.cloneElement(item.node, { 
@@ -243,7 +246,7 @@ export default function OptionsGrid({
                                     {section.label}
                                 </span>
                                 <span className="text-[10px] px-1.5 py-0.5 rounded border border-border-default bg-background-surface text-text-tertiary font-mono shadow-sm">
-                                    {validDynamicCards.length + (section.id === 'Open Interest' ? 3 : section.id === 'Volatility' ? 3 : section.id === 'Greeks' ? 4 : section.id === 'Put-Call Ratio' ? 2 : section.id === 'Market Positioning' ? 1 : 0)}
+                                    {validDynamicCards.length + (section.id === 'Open Interest' ? 3 : section.id === 'Volatility' ? 3 : section.id === 'Greeks' ? 4 : section.id === 'Put-Call Ratio' ? 2 : section.id === 'Market Positioning' ? 2 : 0)}
                                 </span>
                             </div>
                         </div>
@@ -279,7 +282,10 @@ export default function OptionsGrid({
                                 </>
                             )}
                             {section.id === 'Market Positioning' && (
-                                <MaxPainCard liveData={compositeData?.maxPain} manualOverride={manualOverrides?.max_pain} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'max_pain') : null} />
+                                <>
+                                    <MaxPainCard liveData={compositeData?.maxPain} manualOverride={manualOverrides?.max_pain} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'max_pain') : null} />
+                                    <FnOBanCard data={compositeData?.fnoBan} manualOverrides={manualOverrides} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : 'fno_ban') : null} />
+                                </>
                             )}
                             {sortedSectionCards.map((card) => {
                                 if (excludeIds.includes(card.id) || card.id.startsWith('dummy_')) return null;
