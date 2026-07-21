@@ -49,6 +49,18 @@ const INITIAL_SECTIONS = [
                     { id: 'master_header', title: 'Page Header Insight', type: 'header' },
                     { id: 'master_manual', title: 'Manual Chat', type: 'manual' }
                 ]
+            },
+            {
+                id: 'master_widgets',
+                label: 'Widgets',
+                chats: [
+                    { id: 'market_heatmap', title: 'Market Heatmap', type: 'card' },
+                    { id: 'fii_dii_flow_master', title: 'FII/DII Flow', type: 'card' },
+                    { id: 'options_pulse', title: 'Options Pulse', type: 'card' },
+                    { id: 'sector_rotation', title: 'Sector Rotation', type: 'card' },
+                    { id: 'volume_shockers', title: 'Volume Shockers', type: 'card' },
+                    { id: 'catalyst_calendar', title: 'Catalyst Calendar', type: 'card' }
+                ]
             }
         ]
     },
@@ -61,29 +73,119 @@ const INITIAL_SECTIONS = [
                 id: 'fund_general',
                 label: 'General',
                 chats: [
-                    { id: 'fund_header', title: 'Page Header Insight', type: 'header' },
+                    { id: 'fundamentals_index_header', title: 'Index Header Insight', type: 'header' },
+                    { id: 'fundamentals_company_header', title: 'Company Header Insight', type: 'header' },
                     { id: 'fund_manual', title: 'Manual Chat', type: 'manual' }
                 ]
             },
             {
-                id: 'fund_valuation',
+                id: 'fundamental_valuation',
                 label: 'Valuation',
                 chats: [
-                    { id: 'fund_pe', title: 'PE Ratio', type: 'card' }
+                    { id: 'pe_ratio', title: 'P/E Ratio', type: 'card' },
+                    { id: 'forward_pe', title: 'Forward P/E', type: 'card' },
+                    { id: 'pb_ratio', title: 'P/B Ratio', type: 'card' },
+                    { id: 'ev_ebitda', title: 'EV/EBITDA', type: 'card' },
+                    { id: 'earnings_yield', title: 'Earnings Yield', type: 'card' },
+                    { id: 'relative_valuation', title: 'Relative Valuation', type: 'card' },
+                    { id: 'dividend_yield', title: 'Dividend Yield', type: 'card' },
+                    { id: 'nifty_pe', title: 'Nifty P/E', type: 'card' },
+                    { id: 'nifty_pb', title: 'Nifty P/B', type: 'card' },
+                    { id: 'mcap_gdp', title: 'MCap/GDP (Buffett)', type: 'card' }
                 ]
             },
             {
-                id: 'fund_growth',
-                label: 'Growth',
+                id: 'fundamental_earnings',
+                label: 'Earnings',
                 chats: [
-                    { id: 'fund_eps', title: 'EPS Growth', type: 'card' }
+                    { id: 'eps_growth', title: 'EPS Growth', type: 'card' },
+                    { id: 'revenue_growth', title: 'Revenue Growth', type: 'card' },
+                    { id: 'profit_growth', title: 'Profit Growth', type: 'card' },
+                    { id: 'earnings_trend', title: 'Earnings Trend', type: 'card' },
+                    { id: 'earnings_quality', title: 'Earnings Quality', type: 'card' },
+                    { id: 'eps_yoy', title: 'EPS YoY', type: 'card' },
+                    { id: 'forward_eps', title: 'Forward EPS', type: 'card' },
+                    { id: 'profit_margin', title: 'Profit Margin', type: 'card' }
                 ]
             },
             {
-                id: 'fund_profit',
-                label: 'Profitability',
+                id: 'fundamental_corporate',
+                label: 'Corporate',
                 chats: [
-                    { id: 'fund_roe', title: 'Return on Equity', type: 'card' }
+                    { id: 'roe', title: 'ROE', type: 'card' },
+                    { id: 'roce', title: 'ROCE', type: 'card' },
+                    { id: 'roa', title: 'ROA', type: 'card' },
+                    { id: 'net_margin', title: 'Net Margin', type: 'card' },
+                    { id: 'operating_margin', title: 'Operating Margin', type: 'card' },
+                    { id: 'debt_to_equity', title: 'Debt to Equity', type: 'card' },
+                    { id: 'interest_coverage', title: 'Interest Coverage', type: 'card' },
+                    { id: 'free_cash_flow', title: 'Free Cash Flow', type: 'card' },
+                    { id: 'current_ratio', title: 'Current Ratio', type: 'card' },
+                    { id: 'credit_growth', title: 'Credit Growth', type: 'card' },
+                    { id: 'corp_debt', title: 'Corporate Debt', type: 'card' }
+                ]
+            },
+            {
+                id: 'fundamental_ownership___flow',
+                label: 'Ownership & Flow',
+                chats: [
+                    { id: 'promoter_holding', title: 'Promoter Holding', type: 'card' },
+                    { id: 'smart_money_flow', title: 'Smart Money Flow', type: 'card' },
+                    { id: 'fii_dii_flow', title: 'FII/DII Flow', type: 'card' }
+                ]
+            },
+            {
+                id: 'fundamental_macro',
+                label: 'Macro',
+                chats: [
+                    { id: 'gdp_growth', title: 'GDP Growth', type: 'card' },
+                    { id: 'gdp', title: 'GDP', type: 'card' },
+                    { id: 'cpi', title: 'CPI', type: 'card' },
+                    { id: 'repo', title: 'Repo Rate', type: 'card' },
+                    { id: 'fiscal_deficit', title: 'Fiscal Deficit', type: 'card' }
+                ]
+            },
+            {
+                id: 'fundamental_liquidity',
+                label: 'Liquidity',
+                chats: [
+                    { id: 'fii', title: 'FII', type: 'card' },
+                    { id: 'dii', title: 'DII', type: 'card' },
+                    { id: 'fii_trend', title: 'FII Trend', type: 'card' },
+                    { id: 'system_liquidity', title: 'System Liquidity', type: 'card' },
+                    { id: 'mf_flows', title: 'MF Flows', type: 'card' },
+                    { id: 'advance_decline', title: 'Advance/Decline', type: 'card' }
+                ]
+            },
+            {
+                id: 'fundamental_risk',
+                label: 'Risk',
+                chats: [
+                    { id: 'policy_tailwinds', title: 'Policy Tailwinds', type: 'card' },
+                    { id: 'sovereign_risk', title: 'Sovereign Risk', type: 'card' },
+                    { id: 'npa', title: 'NPA', type: 'card' },
+                    { id: 'reform_momentum', title: 'Reform Momentum', type: 'card' },
+                    { id: 'india_vix', title: 'India VIX', type: 'card' }
+                ]
+            },
+            {
+                id: 'fundamental_global',
+                label: 'Global',
+                chats: [
+                    { id: 'crude', title: 'Crude Oil', type: 'card' },
+                    { id: 'global_liq', title: 'Global Liquidity', type: 'card' }
+                ]
+            },
+            {
+                id: 'fundamental_general',
+                label: 'General',
+                chats: [
+                    { id: 'peer_comparison', title: 'Peer Comparison', type: 'card' },
+                    { id: 'analyst_consensus', title: 'Analyst Consensus', type: 'card' },
+                    { id: 'corporate_actions', title: 'Corporate Actions', type: 'card' },
+                    { id: 'cash_conversion', title: 'Cash Conversion Cycle', type: 'card' },
+                    { id: 'credit_rating', title: 'Credit Rating', type: 'card' },
+                    { id: 'sector_dashboard', title: 'Sector Dashboard', type: 'card' }
                 ]
             }
         ]
@@ -97,23 +199,80 @@ const INITIAL_SECTIONS = [
                 id: 'tech_general',
                 label: 'General',
                 chats: [
-                    { id: 'tech_header', title: 'Page Header Insight', type: 'header' },
+                    { id: 'technical_index_header', title: 'Index Header Insight', type: 'header' },
+                    { id: 'technical_company_header', title: 'Company Header Insight', type: 'header' },
                     { id: 'tech_manual', title: 'Manual Chat', type: 'manual' }
                 ]
             },
             {
-                id: 'tech_trend',
-                label: 'Trend',
+                id: 'technical_momentum',
+                label: 'Momentum',
                 chats: [
-                    { id: 'tech_ema20', title: 'EMA 20', type: 'card' },
-                    { id: 'tech_macd', title: 'MACD', type: 'card' }
+                    { id: 'rsi', title: 'RSI', type: 'card' },
+                    { id: 'macd', title: 'MACD', type: 'card' },
+                    { id: 'stoch_rsi', title: 'Stoch RSI', type: 'card' },
+                    { id: 'williams_r', title: 'Williams %R', type: 'card' }
                 ]
             },
             {
-                id: 'tech_momentum',
-                label: 'Momentum',
+                id: 'technical_volatility',
+                label: 'Volatility',
                 chats: [
-                    { id: 'tech_rsi14', title: 'RSI 14', type: 'card' }
+                    { id: 'bb_20_2', title: 'Bollinger Bands', type: 'card' },
+                    { id: 'atr', title: 'ATR', type: 'card' },
+                    { id: 'kc', title: 'Keltner Channel', type: 'card' }
+                ]
+            },
+            {
+                id: 'technical_trend',
+                label: 'Trend',
+                chats: [
+                    { id: 'ema_20', title: 'EMA 20', type: 'card' },
+                    { id: 'ema_50', title: 'EMA 50', type: 'card' },
+                    { id: 'ema_200', title: 'EMA 200', type: 'card' },
+                    { id: 'sma_50', title: 'SMA 50', type: 'card' },
+                    { id: 'sma_200', title: 'SMA 200', type: 'card' },
+                    { id: 'adx', title: 'ADX', type: 'card' },
+                    { id: 'supertrend', title: 'Supertrend', type: 'card' }
+                ]
+            },
+            {
+                id: 'technical_volume',
+                label: 'Volume',
+                chats: [
+                    { id: 'cmf', title: 'CMF', type: 'card' },
+                    { id: 'volume_sma', title: 'Volume SMA', type: 'card' },
+                    { id: 'obv', title: 'OBV', type: 'card' },
+                    { id: 'vwap', title: 'VWAP', type: 'card' }
+                ]
+            },
+            {
+                id: 'technical_structure',
+                label: 'Structure',
+                chats: [
+                    { id: 'support', title: 'Support', type: 'card' },
+                    { id: 'resistance', title: 'Resistance', type: 'card' },
+                    { id: 'trendline', title: 'Trendline', type: 'card' },
+                    { id: 'pivot', title: 'Pivot Points', type: 'card' },
+                    { id: 'fibonacci', title: 'Fibonacci', type: 'card' }
+                ]
+            },
+            {
+                id: 'technical_breadth',
+                label: 'Breadth',
+                chats: [
+                    { id: 'ad_line', title: 'A/D Line', type: 'card' },
+                    { id: 'nh_nl', title: 'New Highs / New Lows', type: 'card' },
+                    { id: 'breadth_ratio', title: 'Breadth Ratio', type: 'card' },
+                    { id: 'trin', title: 'TRIN', type: 'card' },
+                    { id: 'mcclellan', title: 'McClellan Oscillator', type: 'card' }
+                ]
+            },
+            {
+                id: 'technical_general',
+                label: 'General',
+                chats: [
+                    { id: 'beta_correlation', title: 'Beta Correlation', type: 'card' }
                 ]
             }
         ]
@@ -127,22 +286,58 @@ const INITIAL_SECTIONS = [
                 id: 'opt_general',
                 label: 'General',
                 chats: [
-                    { id: 'opt_header', title: 'Page Header Insight', type: 'header' },
+                    { id: 'options_header', title: 'Page Header Insight', type: 'header' },
                     { id: 'opt_manual', title: 'Manual Chat', type: 'manual' }
                 ]
             },
             {
-                id: 'opt_sentiment',
-                label: 'Sentiment',
+                id: 'options_volatility',
+                label: 'Volatility',
                 chats: [
-                    { id: 'opt_pcr', title: 'PCR (OI)', type: 'card' }
+                    { id: 'atm_iv', title: 'ATM IV', type: 'card' },
+                    { id: 'iv_rank', title: 'IV Rank', type: 'card' },
+                    { id: 'iv_percentile', title: 'IV Percentile', type: 'card' }
                 ]
             },
             {
-                id: 'opt_flow',
-                label: 'Flow',
+                id: 'options_open_interest',
+                label: 'Open Interest',
                 chats: [
-                    { id: 'opt_maxpain', title: 'Max Pain', type: 'card' }
+                    { id: 'total_call_oi', title: 'Total Call OI', type: 'card' },
+                    { id: 'total_put_oi', title: 'Total Put OI', type: 'card' },
+                    { id: 'oi_change', title: 'OI Change', type: 'card' }
+                ]
+            },
+            {
+                id: 'options_greeks',
+                label: 'Greeks',
+                chats: [
+                    { id: 'delta', title: 'Delta', type: 'card' },
+                    { id: 'gamma', title: 'Gamma', type: 'card' },
+                    { id: 'theta', title: 'Theta', type: 'card' },
+                    { id: 'vega', title: 'Vega', type: 'card' }
+                ]
+            },
+            {
+                id: 'options_put_call_ratio',
+                label: 'Put-Call Ratio',
+                chats: [
+                    { id: 'pcr_oi', title: 'PCR OI', type: 'card' },
+                    { id: 'pcr_volume', title: 'PCR Volume', type: 'card' }
+                ]
+            },
+            {
+                id: 'options_market_positioning',
+                label: 'Market Positioning',
+                chats: [
+                    { id: 'max_pain', title: 'Max Pain', type: 'card' }
+                ]
+            },
+            {
+                id: 'options_general',
+                label: 'General',
+                chats: [
+                    { id: 'fno_ban', title: 'F&O Ban Status', type: 'card' }
                 ]
             }
         ]
@@ -156,7 +351,7 @@ const INITIAL_SECTIONS = [
                 id: 'events_general',
                 label: 'General',
                 chats: [
-                    { id: 'events_main', title: 'Event Categorisations', type: 'header' },
+                    { id: 'events_header', title: 'Page Header Insight', type: 'header' },
                     { id: 'events_manual', title: 'Manual Chat', type: 'manual' }
                 ]
             }
@@ -164,23 +359,76 @@ const INITIAL_SECTIONS = [
     },
     {
         id: 'global',
-        label: 'Global',
+        label: 'Global Macro',
         icon: Globe,
         subSections: [
             {
                 id: 'glob_general',
                 label: 'General',
                 chats: [
-                    { id: 'glob_header', title: 'Page Header Insight', type: 'header' },
+                    { id: 'foreign_header', title: 'Page Header Insight', type: 'header' },
                     { id: 'glob_manual', title: 'Manual Chat', type: 'manual' }
                 ]
             },
             {
-                id: 'glob_macro',
-                label: 'Macro',
+                id: 'foreign_us_markets',
+                label: 'US Markets',
                 chats: [
-                    { id: 'glob_vix', title: 'India VIX', type: 'card' },
-                    { id: 'glob_oil', title: 'Brent Crude Oil', type: 'card' }
+                    { id: 'sp_futures', title: 'S&P 500', type: 'card' },
+                    { id: 'nasdaq_futures', title: 'Nasdaq 100', type: 'card' },
+                    { id: 'dow_futures', title: 'Dow Futures', type: 'card' }
+                ]
+            },
+            {
+                id: 'foreign_currency',
+                label: 'Currency',
+                chats: [
+                    { id: 'dxy', title: 'Dollar Index (DXY)', type: 'card' },
+                    { id: 'usd_inr', title: 'USD/INR', type: 'card' },
+                    { id: 'eurusd', title: 'EUR/USD', type: 'card' },
+                    { id: 'usdjpy', title: 'USD/JPY', type: 'card' }
+                ]
+            },
+            {
+                id: 'foreign_rates___volatility',
+                label: 'Rates & Volatility',
+                chats: [
+                    { id: 'us_10y_yield', title: 'US 10Y Yield', type: 'card' },
+                    { id: 'vix_global', title: 'VIX (CBOE)', type: 'card' },
+                    { id: 'move', title: 'MOVE Index', type: 'card' }
+                ]
+            },
+            {
+                id: 'foreign_commodities',
+                label: 'Commodities',
+                chats: [
+                    { id: 'brent_crude_oil', title: 'Brent Crude Oil', type: 'card' },
+                    { id: 'gold', title: 'Gold', type: 'card' },
+                    { id: 'silver', title: 'Silver', type: 'card' },
+                    { id: 'copper', title: 'Copper', type: 'card' },
+                    { id: 'natgas', title: 'Natural Gas', type: 'card' },
+                    { id: 'wheat', title: 'Wheat', type: 'card' },
+                    { id: 'aluminum', title: 'Aluminum', type: 'card' }
+                ]
+            },
+            {
+                id: 'foreign_digital_assets',
+                label: 'Digital Assets',
+                chats: [
+                    { id: 'bitcoin', title: 'Bitcoin', type: 'card' }
+                ]
+            },
+            {
+                id: 'foreign_global_indices',
+                label: 'Global Indices',
+                chats: [
+                    { id: 'nikkei', title: 'Nikkei 225', type: 'card' },
+                    { id: 'ftse', title: 'FTSE 100', type: 'card' },
+                    { id: 'dax', title: 'DAX 40', type: 'card' },
+                    { id: 'hangseng', title: 'Hang Seng', type: 'card' },
+                    { id: 'shanghai', title: 'Shanghai Composite', type: 'card' },
+                    { id: 'cac40', title: 'CAC 40', type: 'card' },
+                    { id: 'eurostoxx', title: 'Euro Stoxx 50', type: 'card' }
                 ]
             }
         ]

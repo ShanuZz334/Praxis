@@ -14,6 +14,7 @@ import { useDrawings } from './drawing/useDrawings';
 import { calculateSupertrend, calculateVWAP, calculateEMA, calculateCPR } from '../../utils/chartUtils';
 import { calculateBollingerBands, calculateMACD, calculateKeltnerChannels, calculateDonchianChannels, calculatePSAR, calculateIchimoku, calculateAnchoredVWAP, calculateAutoFib, calculateRSIDivergence } from '../../utils/advancedIndicators';
 import { useTheme } from '../../context/ThemeContext';
+import { FO_INDICES, FO_EQUITIES } from '../../utils/foInstruments';
 
 const DEFAULT_DATA = [];
 const DEFAULT_FUNDAMENTAL_DATA = {};
@@ -109,6 +110,9 @@ export default function AdvancedCandlestickChart({
             layout: {
                 background: { color: 'transparent' },
                 textColor: isLight ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+            },
+            watermark: {
+                visible: false,
             },
             localization: {
                 timeFormatter: (ts) => {
@@ -278,6 +282,7 @@ export default function AdvancedCandlestickChart({
         const _isLight = theme === 'light';
         chart.applyOptions({
             layout: { textColor: _isLight ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)' },
+            watermark: { visible: false },
             grid: {
                 vertLines: { color: _isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' },
                 horzLines: { color: _isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' },
@@ -481,9 +486,22 @@ export default function AdvancedCandlestickChart({
         setHoveredIndicator({ label, top: rect.bottom + 12, left: rect.left + rect.width / 2 });
     };
 
+    const getSymbolName = () => {
+        if (!instrumentKey || instrumentKey === 'default') return '';
+        const allInstruments = [...(FO_INDICES || []), ...(FO_EQUITIES || [])];
+        const found = allInstruments.find(i => i.value === instrumentKey || i.value.includes(instrumentKey));
+        if (found) return found.label;
+        return instrumentKey.split('|').pop().replace('NSE_EQ:', '').replace('NSE_INDEX:', '');
+    };
+
     return (
         <div className="advanced-candlestick-chart relative w-full h-full flex flex-col">
             <div className="absolute inset-0 pointer-events-none transition-colors duration-1000" style={{ backgroundColor: getRegimeBackground() }} />
+
+            {/* Custom Readable Watermark Overlay */}
+            <div className="absolute top-10 left-3 z-10 pointer-events-none select-none flex flex-col">
+                <span className="text-4xl font-black tracking-widest uppercase text-black/10 dark:text-white/10">{getSymbolName()}</span>
+            </div>
 
             {/* Top Left Toolbar */}
             <div className="absolute top-1.5 left-3 z-20 flex items-center gap-2">

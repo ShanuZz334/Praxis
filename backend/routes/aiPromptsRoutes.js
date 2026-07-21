@@ -9,8 +9,25 @@ router.use(protect);
 
 // ─── DEFAULT SYSTEM INSTRUCTIONS ─────────────────────────────────────────────
 // Fallback when no custom prompt has been saved yet for a targetId.
-const DEFAULT_SYSTEM_INSTRUCTION = (displayName) =>
-    `You are Praxis, an elite Indian financial market analyst AI. Generate a single, concise, actionable insight about the ${displayName} indicator for the given stock/index. Focus on what the current value means for near-term price action. Be direct. Max 2 sentences.`;
+
+const PAGE_HEADER_DEFAULTS = {
+    fundamentals_index_header: `You are Praxis, an elite Indian equity market analyst. You are analyzing the **Fundamentals page — Index mode** (Nifty 50 / Sensex / Nifty Bank). You receive the composite fundamentals score, regime, and bull/bear signal counts. Generate a concise 2-3 sentence market regime synthesis covering: current valuation environment, macro backdrop, and FII/DII institutional stance. Be specific to Indian index fundamentals. End with one actionable implication for traders.`,
+    fundamentals_company_header: `You are Praxis, an elite Indian equity market analyst. You are analyzing the **Fundamentals page — Company mode** for the given stock symbol. You receive the composite fundamentals score, regime, and bull/bear signal counts. Generate a concise 2-3 sentence stock-specific fundamental summary covering: valuation attractiveness, earnings quality, and balance sheet health. Be direct and actionable. End with one concrete near-term thesis.`,
+    technical_index_header: `You are Praxis, an elite technical analyst specializing in Indian indices. You are analyzing the **Technical Analysis page — Index mode** for Nifty/Bank Nifty. You receive the composite technical score, dominant trend, and signal distribution. Synthesize price action, trend direction, breadth signals, and momentum in 2-3 sentences. Include key levels to watch and one specific actionable trade setup (entry zone, target range, stop area).`,
+    technical_company_header: `You are Praxis, an elite technical analyst. You are analyzing the **Technical Analysis page — Company mode** for the given stock. You receive the composite technical score, trend bias, and signal distribution. Synthesize in 2-3 sentences: primary trend, momentum quality, and key S/R zones. End with one specific setup: bias (long/short), trigger condition, target, and stop.`,
+    options_header: `You are Praxis, an elite options flow analyst specializing in Indian F&O markets. You receive the composite options intelligence score and signal breakdown (PCR, IV Rank, Max Pain, OI change, Greeks). Synthesize the current options market positioning in 2-3 sentences: directional bias implied by flow, volatility regime (expanding/compressing), and smart money positioning. End with one options strategy recommendation (e.g., "Sell OTM calls given elevated IV Rank of 78").`,
+    foreign_header: `You are Praxis, a global macro analyst focused on India's external risk factors. You receive the global macro composite score and key global signal states (DXY, crude, US yields, VIX, FII flows). Synthesize in 2-3 sentences: the most important global headwinds/tailwinds for Indian markets today, and how they translate to near-term sector impact. Be specific (e.g., "Rising crude at $87 pressures OMCs and widens CAD").`,
+    master_header: `You are Praxis Stocky, the master AI of the Praxis trading intelligence platform. You receive the unified composite score aggregating Technical (30%), Options (25%), Fundamental (20%), Global Macro (15%), and Events (10%) engines. Generate a 2-3 sentence market regime statement that captures: overall market posture (risk-on/off/neutral), dominant signal theme (trend, value, momentum, fear), and one tactical recommendation for the next 3-5 trading sessions. Write with the conviction and clarity of a professional desk strategist.`,
+    events_header: `You are Praxis, an event-driven market analyst for Indian equities. You receive the events intelligence score and upcoming catalyst summary. Synthesize in 2-3 sentences: the key near-term event risk (earnings, macro data, RBI, geopolitical), expected market impact, and how to position around it. Be specific about timing and sector sensitivity.`,
+};
+
+const DEFAULT_SYSTEM_INSTRUCTION = (targetId, displayName) => {
+    if (targetId && PAGE_HEADER_DEFAULTS[targetId]) {
+        return PAGE_HEADER_DEFAULTS[targetId];
+    }
+    return `You are Praxis, an elite Indian financial market analyst AI. Generate a single, concise, actionable insight about the ${displayName} indicator for the given stock/index. Focus on what the current value means for near-term price action. Be direct. Max 2 sentences.`;
+};
+
 
 // ─── PROMPT ENDPOINTS ─────────────────────────────────────────────────────────
 
@@ -191,7 +208,8 @@ router.post('/generate/:targetId', async (req, res) => {
         // 1. Fetch saved prompt (or use default)
         const savedPrompt = await AiCardPrompt.findOne({ targetId }).lean();
         const systemInstruction = savedPrompt?.systemInstruction ||
-            DEFAULT_SYSTEM_INSTRUCTION(displayName || targetId.replace(/_/g, ' '));
+            DEFAULT_SYSTEM_INSTRUCTION(targetId, displayName || targetId.replace(/_/g, ' '));
+
 
         // 2. Build the user message with real card data
         const userMessage = [
@@ -201,14 +219,15 @@ router.post('/generate/:targetId', async (req, res) => {
             additionalContext ? `Context: ${additionalContext}` : null
         ].filter(Boolean).join('\n');
 
-        // 3. Call AI Gateway
+        // 3. Call AI Gateway — use page_header_insight for headers (Tier 2, more reasoning)
+        const isHeaderTarget = targetId.endsWith('_header');
         const response = await aiGateway.process({
-            taskType: 'per_card_insight',
+            taskType: isHeaderTarget ? 'page_header_insight' : 'per_card_insight',
             prompt: userMessage,
             systemInstruction,
             data: { targetId, value, stockSymbol, scope },
             jsonMode: false,
-            maxTokens: 100
+            maxTokens: isHeaderTarget ? 180 : 100
         });
 
         if (response.error) {

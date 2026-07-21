@@ -3,7 +3,8 @@
  */
 export function classifyTask(taskType) {
     const TIER_1 = ['per_card_insight', 'alert_context', 'event_classification', 'scanner_nl_parsing'];
-    const TIER_2 = ['chat_conversation', 'per_indicator_signal', 'options_oi_interpretation'];
+    const TIER_2 = ['chat_conversation', 'per_indicator_signal', 'options_oi_interpretation', 'page_header_insight'];
+
     const TIER_3 = ['stock_narrative', 'report_generation', 'strategy_suggestion', 'journal_behavioral_patterns', 'macro_cycle_assessment'];
     const TIER_4 = ['chart_qa', 'pattern_recognition_narrative'];
 

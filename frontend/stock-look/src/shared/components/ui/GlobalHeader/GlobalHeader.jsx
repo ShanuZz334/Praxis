@@ -277,12 +277,20 @@ export default function GlobalHeader({
                     </div>
 
                     {/* B. AI INSIGHT (Replaces Regime) */}
-                    <div className="hidden md:block p-0">
+                    <div className="hidden md:block p-0 relative">
                         <AiInsightSection 
                             actionType={regime.label} 
                             confidence={Number(regime.confidence || 0).toFixed(0)} 
+                            score={score}
+                            regime={regime}
+                            bulls={signalCounts.bulls}
+                            bears={signalCounts.bears}
+                            neutrals={signalCounts.neutrals}
+                            stockSymbol={syncId?.instrumentKey || null}
+                            isIndex={syncId?.category === 'Indices' || false}
                         />
                     </div>
+
 
                     {/* C. INTEGRITY */}
                     <div 
