@@ -4,6 +4,7 @@ import { FundamentalContext } from "@/features/dashboard/fundamentals/ui/Fundame
 import { FlipContainer, FlipTrigger } from "@/shared/components/common/FlipContainer";
 import { Star, Lightbulb, Plus, BarChart2, Edit2, Check, Settings } from "lucide-react";
 import axiosInstance from "@/shared/utils/axiosInstance";
+import { useCardInsight } from "@/shared/hooks/useCardInsight";
 import cardInventory from "../../../../../card-inventory.json";
 import "@/features/dashboard/pai/ui/PaiLoader.css";
 import {
@@ -291,12 +292,6 @@ export function IndicatorCard({
   className
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [insightData, setInsightData] = useState({
-    isLoading: false,
-    text: null,
-    error: null,
-    model: null
-  });
 
   const context = useContext(FundamentalContext);
   
@@ -336,67 +331,45 @@ export function IndicatorCard({
     return () => clearTimeout(timeoutId);
   }, [resolvedCardId, data?.currentValueObj?.value, data?.score, data?.bias]);
 
+  // ── useCardInsight: the single hook powering all AI calls ──────────────────
+  const {
+    insight: hookInsight,
+    isLoading: hookLoading,
+    error: hookError,
+    meta: hookMeta,
+    generate
+  } = useCardInsight(resolvedCardId);
+
+  // Trigger insight generation when card expands and has a real value
   useEffect(() => {
-    let isSubscribed = true;
-    
-    // Only fetch if expanded, and we haven't successfully fetched or failed yet for this exact value
-    if (isExpanded && !insightData.text && !insightData.isLoading && !insightData.error) {
-      const metric = config.title;
-      const rawVal = data?.currentValueObj?.value;
-      const parsedValue = cleanNum(rawVal);
-      
-      // GUARD: If data is missing entirely, skip network request
-      const isMissing = data?.score === null || data?.score === undefined || isNaN(parseFloat(data?.score)) || parsedValue === null;
-      if (isMissing) {
-         return; // Don't even ask the server
-      }
+    if (!isExpanded) return;
+    const rawVal = data?.currentValueObj?.value;
+    const parsedValue = cleanNum(rawVal);
+    const isMissing = data?.score === null || data?.score === undefined ||
+                      isNaN(parseFloat(data?.score)) || parsedValue === null;
+    if (isMissing) return;
 
-      const stockSymbol = context?.instrumentKey || 'Unknown';
-      const metricId = resolvedCardId;
+    generate({
+      value: parsedValue,
+      displayName: config.title,
+      stockSymbol: context?.instrumentKey || 'Unknown',
+      scope: 'card'
+    });
+  }, [isExpanded, resolvedCardId, data?.currentValueObj?.value]);
 
-      setInsightData(prev => ({ ...prev, isLoading: true, error: null }));
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
-
-      axiosInstance.post('/api/v1/intelligence/card-insight', {
-          metric,
-          metricId,
-          value: isNaN(parsedValue) ? null : parsedValue,
-          stockSymbol,
-          module: 'Fundamentals'
-      }, { signal: controller.signal })
-      .then(res => {
-        const resData = res.data;
-        if (!isSubscribed) return;
-        if (resData.error || resData.insight === null) {
-          const reason = resData.reason === 'insufficient_data' ? "Insufficient data for AI insight" : "AI insight unavailable";
-          setInsightData(prev => ({ ...prev, isLoading: false, error: reason }));
-        } else {
-          setInsightData(prev => ({ 
-             ...prev, 
-             isLoading: false, 
-             text: resData.insight, 
-             model: resData.model 
-          }));
-        }
-      })
-      .catch(err => {
-        if (!isSubscribed) return;
-        setInsightData(prev => ({ ...prev, isLoading: false, error: "AI insight unavailable" }));
-      })
-      .finally(() => {
-        clearTimeout(timeoutId);
-      });
-    }
-
-    return () => { isSubscribed = false; };
-  }, [isExpanded, config.title, data?.currentValueObj?.value, context?.instrumentKey]);
-
-  // Reset insight cache when value changes
+  // Reset insight when value changes
   useEffect(() => {
-     setInsightData({ isLoading: false, text: null, error: null, model: null });
+    // insight resets automatically since generate() is re-called on next expand
   }, [data?.currentValueObj?.value]);
+
+  // Map hook state to the insightData shape the rest of the render uses
+  const insightData = {
+    isLoading: hookLoading,
+    text: hookInsight,
+    error: hookError,
+    model: hookMeta?.model
+  };
+
 
   const toggleExpand = () => setIsExpanded(!isExpanded);
 

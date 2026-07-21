@@ -25,8 +25,10 @@ export default function NiftyPECard({ data, manualOverride, lastUpdated }) {
 
     return (
         <IndicatorCard
+            cardId="nifty_pe"
             config={{
                 title: 'Nifty P/E',
+
                 category: 'Valuation',
                 mode: isManual ? 'MANUAL' : 'AUTO',
                 creditScore: configData?.creditScore || 5,
