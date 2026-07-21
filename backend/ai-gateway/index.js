@@ -46,13 +46,23 @@ export const aiGateway = {
 
         const routePlan = await getRouteForTask(tier, taskType);
         let messages = [];
+
+        // 1. System instruction (custom per-card prompt from Prompts Studio, or default)
+        if (request.systemInstruction) {
+            messages.push({ role: 'system', content: request.systemInstruction });
+        }
+
+        // 2. Structured data context
         if (data) {
             messages.push({ role: 'system', content: `Context/Data:\n${JSON.stringify(data)}` });
         }
         if (schema && jsonMode) {
             messages.push({ role: 'system', content: `Output strictly as JSON matching this schema:\n${JSON.stringify(schema)}` });
         }
+
+        // 3. User prompt
         messages.push({ role: 'user', content: prompt });
+
 
         console.log(`[AI Gateway] Processing Tier ${tier} task '${taskType}'`);
 

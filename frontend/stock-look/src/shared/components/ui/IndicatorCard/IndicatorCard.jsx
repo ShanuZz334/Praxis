@@ -349,13 +349,29 @@ export function IndicatorCard({
                       isNaN(parseFloat(data?.score)) || parsedValue === null;
     if (isMissing) return;
 
+    // Build rich context from all available card fields
+    const contextLines = [];
+    if (data?.bias) contextLines.push(`Bias: ${data.bias}`);
+    if (data?.confidence) contextLines.push(`Confidence: ${data.confidence}`);
+    if (data?.score != null) contextLines.push(`Score: ${data.score}/100`);
+    if (data?.impactWeight) contextLines.push(`Impact: ${data.impactWeight}`);
+    if (data?.details?.length) {
+      data.details.slice(0, 4).forEach(d => {
+        if (d?.label && d?.value != null && d.value !== '--') {
+          contextLines.push(`${d.label}: ${d.value}`);
+        }
+      });
+    }
+
     generate({
-      value: parsedValue,
+      value: rawVal,               // send raw string value (e.g. "22.4x") not just number
       displayName: config.title,
-      stockSymbol: context?.instrumentKey || 'Unknown',
-      scope: 'card'
+      stockSymbol: context?.instrumentKey || context?.selectedInstrument?.symbol || 'Unknown',
+      scope: 'card',
+      additionalContext: contextLines.length ? contextLines.join(' | ') : null
     });
   }, [isExpanded, resolvedCardId, data?.currentValueObj?.value]);
+
 
   // Reset insight when value changes
   useEffect(() => {
