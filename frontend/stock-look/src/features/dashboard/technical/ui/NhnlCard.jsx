@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreNhnlCard } from '../engine/TechnicalCompositeEngine';
 
-export default function NhnlCard({ data = null, manualOverride, lastUpdated }) {
+export default function NhnlCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('nh_nl');
     
     // Resolve current value
@@ -17,6 +17,7 @@ export default function NhnlCard({ data = null, manualOverride, lastUpdated }) {
     const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) : '--';
 return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "New High / New Low", 
                 category: "Market Breadth", 

@@ -2,7 +2,7 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function CorporateActionsCard({ data, lastUpdated }) {
+export default function CorporateActionsCard({ cardId, data, lastUpdated }) {
     const actions = Array.isArray(data?.corporate_actions) ? data.corporate_actions : [];
     
     // Sort descending by date if available
@@ -15,6 +15,7 @@ export default function CorporateActionsCard({ data, lastUpdated }) {
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Corporate Actions',
                 category: 'Ownership & Flow',

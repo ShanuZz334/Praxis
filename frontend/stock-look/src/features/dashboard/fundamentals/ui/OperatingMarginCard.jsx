@@ -4,7 +4,7 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreOperatingMargin, generateAiInsightOperatingMarginCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function OperatingMarginCard({ data, manualOverride, lastUpdated }) {
+export default function OperatingMarginCard({ cardId, data, manualOverride, lastUpdated }) {
     let isManual = true;
     let extractedValue = null;
     let extractedSector = null;
@@ -57,6 +57,7 @@ export default function OperatingMarginCard({ data, manualOverride, lastUpdated 
 
         return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Operating Margin',
                 category: 'Profitability',

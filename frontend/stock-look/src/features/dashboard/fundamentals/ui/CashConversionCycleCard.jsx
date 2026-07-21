@@ -3,7 +3,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { cleanNum } from '@/lib/utils';
 
-export default function CashConversionCycleCard({ data, manualOverrides = {}, lastUpdated }) {
+export default function CashConversionCycleCard({ cardId, data, manualOverrides = {}, lastUpdated }) {
     const ratiosArray = Array.isArray(data?.ratios) ? data.ratios : [];
 
     // Attempt to extract live data if Upstox provides them
@@ -40,6 +40,7 @@ export default function CashConversionCycleCard({ data, manualOverrides = {}, la
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Cash Conv. Cycle',
                 category: 'Corporate',

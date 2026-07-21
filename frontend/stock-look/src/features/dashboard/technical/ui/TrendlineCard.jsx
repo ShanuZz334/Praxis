@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreTrendlineCard } from '../engine/TechnicalCompositeEngine';
 
-export default function TrendlineCard({ data = null, manualOverride, lastUpdated }) {
+export default function TrendlineCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('trendline');
     
     // Resolve current value
@@ -18,6 +18,7 @@ export default function TrendlineCard({ data = null, manualOverride, lastUpdated
     const displayValue = currentValue !== null && !isNaN(currentValue) ? "₹" + parseFloat(currentValue).toFixed(2) : '--';
 return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Trendline", 
                 category: "Market Structure", 

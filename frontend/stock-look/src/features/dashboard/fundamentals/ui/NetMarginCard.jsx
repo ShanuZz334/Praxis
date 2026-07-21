@@ -4,7 +4,7 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreNetMargin, generateAiInsightNetMarginCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function NetMarginCard({ data, manualOverride, lastUpdated }) {
+export default function NetMarginCard({ cardId, data, manualOverride, lastUpdated }) {
     let isManual = true;
     let extractedValue = null;
     let extractedSector = null;
@@ -64,6 +64,7 @@ export default function NetMarginCard({ data, manualOverride, lastUpdated }) {
 
         return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Net Margin',
                 category: 'Profitability',

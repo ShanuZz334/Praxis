@@ -5,7 +5,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreDIIFlow, generateAiInsightDIIFlow } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function DIICard({ data, manualOverride, lastUpdated }) {
+export default function DIICard({ cardId, data, manualOverride, lastUpdated }) {
     // 1. Core State & Extraction
     let isManual = true;
     let extractedValue = null;
@@ -24,6 +24,7 @@ export default function DIICard({ data, manualOverride, lastUpdated }) {
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'DII Flow',
                 category: 'Liquidity',

@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreTrinCard } from '../engine/TechnicalCompositeEngine';
 
-export default function TrinCard({ data = null, manualOverride, lastUpdated }) {
+export default function TrinCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('trin');
     
     // Resolve current value
@@ -17,6 +17,7 @@ export default function TrinCard({ data = null, manualOverride, lastUpdated }) {
     
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "TRIN (Arms Index)", 
                 category: "Market Breadth", 

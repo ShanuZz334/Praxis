@@ -5,7 +5,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { formatPercentage } from '@/shared/utils/formatters';
 import { scoreDividendYield, generateAiInsightDividendYieldCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function DividendYieldCard({ data = null, manualOverride, lastUpdated }) {
+export default function DividendYieldCard({ cardId, data = null, manualOverride, lastUpdated }) {
     let upstoxYield = null;
     let sourceStr = 'Manual Override';
     
@@ -59,6 +59,7 @@ export default function DividendYieldCard({ data = null, manualOverride, lastUpd
 
         return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Dividend Yield',
                 category: 'Market Health',

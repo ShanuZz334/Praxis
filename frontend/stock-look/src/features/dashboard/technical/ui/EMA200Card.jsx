@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreEMA200Card } from '../engine/TechnicalCompositeEngine';
 
-export default function EMA200Card({ data = null, lastUpdated }) {
+export default function EMA200Card({ cardId, data = null, lastUpdated }) {
     const configData = getIndicatorConfig('ema_200');
     
     // Resolve current value
@@ -17,6 +17,7 @@ export default function EMA200Card({ data = null, lastUpdated }) {
     
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ title: "EMA 200", category: "Trend", mode: "AUTO", creditScore: configData.creditScore, updateTime: lastUpdated ?? "--:--", source: configData.source, aiModel: configData.aiModel }}
             data={{ 
                 currentValueObj: { label: "Value", value: displayValue }, 

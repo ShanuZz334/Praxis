@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function IvRankCard({ liveData = null, manualOverride, lastUpdated }) {
+export default function IvRankCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('iv_rank');
     
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
@@ -23,6 +23,7 @@ export default function IvRankCard({ liveData = null, manualOverride, lastUpdate
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: "IV Rank",
                 category: "Volatility",

@@ -3,7 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightPBRatioCard, scorePBRatio } from '@/features/dashboard/fundamentals/engine/scoringEngine';
-export default function PBRatioCard({ data = null, manualOverride, lastUpdated }) {
+export default function PBRatioCard({ cardId, data = null, manualOverride, lastUpdated }) {
     // 1. Live Data Extraction (Upstox)
     const upstoxPBObj = (Array.isArray(data?.ratios) ? data.ratios : []).find(r => r.name === "P/B" || r.name === "PB" || r.name?.toLowerCase().includes("pb ratio"));
     const parsedUpstoxPB = upstoxPBObj?.company_value ? cleanNum(upstoxPBObj.company_value) : null;
@@ -24,6 +24,7 @@ export default function PBRatioCard({ data = null, manualOverride, lastUpdated }
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'P/B Ratio',
                 category: 'Valuation',

@@ -4,7 +4,7 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreProfitGrowth, generateAiInsightProfitGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function ProfitGrowthCard({ data = null, manualOverride, lastUpdated }) {
+export default function ProfitGrowthCard({ cardId, data = null, manualOverride, lastUpdated }) {
     // 1. Extract Profit History
     const incomeStmt = Array.isArray(data?.income?.income_statement) ? data.income.income_statement : [];
     const fullStmt = Array.isArray(data?.income?.full_statement) ? data.income.full_statement : [];
@@ -33,6 +33,7 @@ export default function ProfitGrowthCard({ data = null, manualOverride, lastUpda
 
         return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Profit Growth',
                 category: 'Growth',

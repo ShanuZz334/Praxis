@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function GammaCard({ liveData = null, manualOverride, lastUpdated }) {
+export default function GammaCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('gamma');
     
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
@@ -19,6 +19,7 @@ export default function GammaCard({ liveData = null, manualOverride, lastUpdated
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: configData.title, 
                 category: configData.category, 

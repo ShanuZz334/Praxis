@@ -4,7 +4,7 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightAdvanceDeclineCard, scoreADRatio } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
-export default function AdvanceDeclineCard({ data, manualOverride, lastUpdated }) {
+export default function AdvanceDeclineCard({ cardId, data, manualOverride, lastUpdated }) {
     const adRatio = (manualOverride !== undefined && manualOverride !== null && manualOverride !== '')
         ? cleanNum(manualOverride)
         : null;
@@ -15,6 +15,7 @@ export default function AdvanceDeclineCard({ data, manualOverride, lastUpdated }
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Advance / Decline',
                 category: 'Market Health',

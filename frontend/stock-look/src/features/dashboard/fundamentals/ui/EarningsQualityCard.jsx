@@ -3,7 +3,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreEarningsQuality, generateAiInsightEarningsQualityCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function EarningsQualityCard({ data = null, lastUpdated }) {
+export default function EarningsQualityCard({ cardId, data = null, lastUpdated }) {
     let cfoToNetProfit = null;
     let cfo = null;
     let netProfit = null;
@@ -38,6 +38,7 @@ export default function EarningsQualityCard({ data = null, lastUpdated }) {
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Earnings Quality',
                 category: 'Ownership & Flow',

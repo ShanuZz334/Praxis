@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreMACDCard } from '../engine/TechnicalCompositeEngine';
 
-export default function MACDCard({ data = null, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function MACDCard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('macd');
     
     const settingsConfig = [
@@ -24,6 +24,7 @@ export default function MACDCard({ data = null, lastUpdated, indicatorParams, on
     
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "MACD", 
                 category: "Trend & Momentum", 

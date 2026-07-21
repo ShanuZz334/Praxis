@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreObvCard } from '../engine/TechnicalCompositeEngine';
 
-export default function ObvCard({ data = null, manualOverride, lastUpdated }) {
+export default function ObvCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('obv');
     
     // Resolve current value from live backend data
@@ -15,6 +15,7 @@ export default function ObvCard({ data = null, manualOverride, lastUpdated }) {
     const displayValue = currentValue !== null && !isNaN(currentValue) ? Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 2 }).format(currentValue) : '--';
 return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: "On-Balance Volume (OBV)",
                 category: "Volume Analysis",

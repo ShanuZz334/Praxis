@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreStochRSICard } from '../engine/TechnicalCompositeEngine';
 
-export default function StochRSICard({ data = null, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function StochRSICard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('stoch_rsi');
     
     const settingsConfig = [
@@ -24,6 +24,7 @@ export default function StochRSICard({ data = null, lastUpdated, indicatorParams
     
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Stochastic RSI", 
                 category: "Momentum", 

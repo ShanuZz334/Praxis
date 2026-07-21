@@ -33,7 +33,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreInterestCoverage, generateAiInsightInterestCoverageCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 // ─── Main Component ─────────────────────────────────────────────────────────
-export default function InterestCoverageCard({ data, manualOverride, lastUpdated }) {
+export default function InterestCoverageCard({ cardId, data, manualOverride, lastUpdated }) {
     let isManual = true;
     let extractedValue = null;
     let extractedSector = null;
@@ -69,6 +69,7 @@ export default function InterestCoverageCard({ data, manualOverride, lastUpdated
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Interest Coverage',
                 category: 'Financial Health',

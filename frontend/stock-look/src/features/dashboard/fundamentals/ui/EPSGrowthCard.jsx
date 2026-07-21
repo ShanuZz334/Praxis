@@ -28,7 +28,7 @@ import { formatPercentage } from '@/shared/utils/formatters';
 import { scoreEPSGrowth, generateAiInsightEPSGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 // ─── Main Component ─────────────────────────────────────────────────────────
-export default function EPSGrowthCard({ data = null, manualOverride, lastUpdated }) {
+export default function EPSGrowthCard({ cardId, data = null, manualOverride, lastUpdated }) {
     let isManual = true;
     let cagr = null;
     let latestYoY = null;
@@ -105,6 +105,7 @@ export default function EPSGrowthCard({ data = null, manualOverride, lastUpdated
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'EPS Growth',
                 category: 'Growth',

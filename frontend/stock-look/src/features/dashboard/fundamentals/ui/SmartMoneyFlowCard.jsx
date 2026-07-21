@@ -3,7 +3,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreSmartMoneyFlow, generateAiInsightSmartMoneyCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function SmartMoneyFlowCard({ data = null, lastUpdated }) {
+export default function SmartMoneyFlowCard({ cardId, data = null, lastUpdated }) {
     const holdingsArr = Array.isArray(data?.holdings) ? data.holdings : [];
     
     const fiiObj   = holdingsArr.find(h => h.category === 'fii');
@@ -39,6 +39,7 @@ export default function SmartMoneyFlowCard({ data = null, lastUpdated }) {
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Smart Money Flow',
                 category: 'Ownership & Flow',

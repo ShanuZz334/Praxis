@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreFibonacciCard } from '../engine/TechnicalCompositeEngine';
 
-export default function FibonacciCard({ data = null, manualOverride, lastUpdated }) {
+export default function FibonacciCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('fibonacci');
     
     const liveValue = data?.fibonacci ?? null;
@@ -35,6 +35,7 @@ export default function FibonacciCard({ data = null, manualOverride, lastUpdated
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Fibonacci Retracement", 
                 category: "Market Structure", 

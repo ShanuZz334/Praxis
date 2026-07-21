@@ -5,7 +5,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightROACard, scoreROA } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function ROACard({ data = null, manualOverride, lastUpdated }) {
+export default function ROACard({ cardId, data = null, manualOverride, lastUpdated }) {
     // 1. Live Data Extraction (Upstox)
     const upstoxROAObj = (Array.isArray(data?.ratios) ? data.ratios : []).find(r => 
         r.name === "ROA" || 
@@ -29,6 +29,7 @@ export default function ROACard({ data = null, manualOverride, lastUpdated }) {
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'ROA',
                 category: 'Profitability',

@@ -124,37 +124,37 @@ export default function TechnicalGrid({
 
             {viewMode === "flat" ? (() => {
                 const renderList = [
-                    { id: 'rsi',          node: <RSICard data={data} manualOverride={manualOverrides?.rsi} lastUpdated={resolveTime(!!data?.rsi, 'rsi')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
-                    { id: 'macd',         node: <MACDCard data={data} manualOverride={manualOverrides?.macd} lastUpdated={resolveTime(!!data?.macd, 'macd')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
-                    { id: 'stoch_rsi',    node: <StochRSICard data={data} manualOverride={manualOverrides?.stoch_rsi} lastUpdated={resolveTime(!!data?.stoch_rsi, 'stoch_rsi')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
-                    { id: 'williams_r',   node: <WilliamsRCard data={data} manualOverride={manualOverrides?.williams_r} lastUpdated={resolveTime(!!data?.williams_r, 'williams_r')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
-                    { id: 'bb_20_2',      node: <BBCard data={data} manualOverride={manualOverrides?.bb_20_2} lastUpdated={resolveTime(!!data?.bb_20_2, 'bb_20_2')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
-                    { id: 'atr',          node: <ATRCard data={data} manualOverride={manualOverrides?.atr} lastUpdated={resolveTime(!!data?.atr, 'atr')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
-                    { id: 'kc',           node: <KCCard data={data} manualOverride={manualOverrides?.kc} lastUpdated={resolveTime(!!data?.kc, 'kc')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: 'rsi',          node: <RSICard cardId="rsi" data={data} manualOverride={manualOverrides?.rsi} lastUpdated={resolveTime(!!data?.rsi, 'rsi')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: 'macd',         node: <MACDCard cardId="macd" data={data} manualOverride={manualOverrides?.macd} lastUpdated={resolveTime(!!data?.macd, 'macd')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: 'stoch_rsi',    node: <StochRSICard cardId="stoch_rsi" data={data} manualOverride={manualOverrides?.stoch_rsi} lastUpdated={resolveTime(!!data?.stoch_rsi, 'stoch_rsi')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: 'williams_r',   node: <WilliamsRCard cardId="williams_r" data={data} manualOverride={manualOverrides?.williams_r} lastUpdated={resolveTime(!!data?.williams_r, 'williams_r')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: 'bb_20_2',      node: <BBCard cardId="bb_20_2" data={data} manualOverride={manualOverrides?.bb_20_2} lastUpdated={resolveTime(!!data?.bb_20_2, 'bb_20_2')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: 'atr',          node: <ATRCard cardId="atr" data={data} manualOverride={manualOverrides?.atr} lastUpdated={resolveTime(!!data?.atr, 'atr')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: 'kc',           node: <KCCard cardId="kc" data={data} manualOverride={manualOverrides?.kc} lastUpdated={resolveTime(!!data?.kc, 'kc')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
                     ...(!isIndex ? [
-                        { id: 'cmf',          node: <CmfCard data={data} manualOverride={manualOverrides?.cmf} lastUpdated={resolveTime(!!data?.cmf, 'cmf')} /> },
-                        { id: 'volume_sma',   node: <VolumeSmaCard data={data} manualOverride={manualOverrides?.volume_sma} lastUpdated={resolveTime(!!data?.volume_sma, 'volume_sma')} /> },
-                        { id: 'obv',          node: <ObvCard data={data} manualOverride={manualOverrides?.obv} lastUpdated={resolveTime(!!data?.obv, 'obv')} /> },
-                        { id: 'vwap',         node: <VwapCard data={data} manualOverride={manualOverrides?.vwap} lastUpdated={resolveTime(!!data?.vwap, 'vwap')} /> },
+                        { id: 'cmf',          node: <CmfCard cardId="cmf" data={data} manualOverride={manualOverrides?.cmf} lastUpdated={resolveTime(!!data?.cmf, 'cmf')} /> },
+                        { id: 'volume_sma',   node: <VolumeSmaCard cardId="volume_sma" data={data} manualOverride={manualOverrides?.volume_sma} lastUpdated={resolveTime(!!data?.volume_sma, 'volume_sma')} /> },
+                        { id: 'obv',          node: <ObvCard cardId="obv" data={data} manualOverride={manualOverrides?.obv} lastUpdated={resolveTime(!!data?.obv, 'obv')} /> },
+                        { id: 'vwap',         node: <VwapCard cardId="vwap" data={data} manualOverride={manualOverrides?.vwap} lastUpdated={resolveTime(!!data?.vwap, 'vwap')} /> },
                     ] : []),
-                    { id: 'support',      node: <SupportCard data={data} manualOverride={manualOverrides?.support} lastUpdated={resolveTime(!!data?.support, 'support')} /> },
-                    { id: 'resistance',   node: <ResistanceCard data={data} manualOverride={manualOverrides?.resistance} lastUpdated={resolveTime(!!data?.resistance, 'resistance')} /> },
-                    { id: 'trendline',    node: <TrendlineCard data={data} manualOverride={manualOverrides?.trendline} lastUpdated={resolveTime(!!data?.trendline, 'trendline')} /> },
-                    { id: 'pivot',        node: <PivotCard data={data} manualOverride={manualOverrides?.pivot} lastUpdated={resolveTime(!!data?.pivot, 'pivot')} /> },
-                    { id: 'fibonacci',    node: <FibonacciCard data={data} manualOverride={manualOverrides?.fibonacci} lastUpdated={resolveTime(!!data?.fibonacci, 'fibonacci')} /> },
-                    { id: 'ema_20',       node: <EMA20Card data={data} lastUpdated={resolveTime(!!data?.ema_20, 'ema_20')} /> },
-                    { id: 'ema_50',       node: <EMA50Card data={data} lastUpdated={resolveTime(!!data?.ema_50, 'ema_50')} /> },
-                    { id: 'ema_200',      node: <EMA200Card data={data} lastUpdated={resolveTime(!!data?.ema_200, 'ema_200')} /> },
-                    { id: 'sma_50',       node: <SMA50Card data={data} manualOverride={manualOverrides?.sma_50} lastUpdated={resolveTime(!!data?.sma_50, 'sma_50')} /> },
-                    { id: 'sma_200',      node: <SMA200Card data={data} manualOverride={manualOverrides?.sma_200} lastUpdated={resolveTime(!!data?.sma_200, 'sma_200')} /> },
-                    { id: 'adx',          node: <ADXCard data={data} manualOverride={manualOverrides?.adx} lastUpdated={resolveTime(!!data?.adx, 'adx')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
-                    { id: 'supertrend',   node: <SupertrendCard data={data} manualOverride={manualOverrides?.supertrend} lastUpdated={resolveTime(!!data?.supertrend, 'supertrend')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: 'support',      node: <SupportCard cardId="support" data={data} manualOverride={manualOverrides?.support} lastUpdated={resolveTime(!!data?.support, 'support')} /> },
+                    { id: 'resistance',   node: <ResistanceCard cardId="resistance" data={data} manualOverride={manualOverrides?.resistance} lastUpdated={resolveTime(!!data?.resistance, 'resistance')} /> },
+                    { id: 'trendline',    node: <TrendlineCard cardId="trendline" data={data} manualOverride={manualOverrides?.trendline} lastUpdated={resolveTime(!!data?.trendline, 'trendline')} /> },
+                    { id: 'pivot',        node: <PivotCard cardId="pivot" data={data} manualOverride={manualOverrides?.pivot} lastUpdated={resolveTime(!!data?.pivot, 'pivot')} /> },
+                    { id: 'fibonacci',    node: <FibonacciCard cardId="fibonacci" data={data} manualOverride={manualOverrides?.fibonacci} lastUpdated={resolveTime(!!data?.fibonacci, 'fibonacci')} /> },
+                    { id: 'ema_20',       node: <EMA20Card cardId="ema_20" data={data} lastUpdated={resolveTime(!!data?.ema_20, 'ema_20')} /> },
+                    { id: 'ema_50',       node: <EMA50Card cardId="ema_50" data={data} lastUpdated={resolveTime(!!data?.ema_50, 'ema_50')} /> },
+                    { id: 'ema_200',      node: <EMA200Card cardId="ema_200" data={data} lastUpdated={resolveTime(!!data?.ema_200, 'ema_200')} /> },
+                    { id: 'sma_50',       node: <SMA50Card cardId="sma_50" data={data} manualOverride={manualOverrides?.sma_50} lastUpdated={resolveTime(!!data?.sma_50, 'sma_50')} /> },
+                    { id: 'sma_200',      node: <SMA200Card cardId="sma_200" data={data} manualOverride={manualOverrides?.sma_200} lastUpdated={resolveTime(!!data?.sma_200, 'sma_200')} /> },
+                    { id: 'adx',          node: <ADXCard cardId="adx" data={data} manualOverride={manualOverrides?.adx} lastUpdated={resolveTime(!!data?.adx, 'adx')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: 'supertrend',   node: <SupertrendCard cardId="supertrend" data={data} manualOverride={manualOverrides?.supertrend} lastUpdated={resolveTime(!!data?.supertrend, 'supertrend')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
                     ...(isIndex ? [
-                        { id: 'breadth_ratio', node: <BreadthRatioCard data={data} manualOverride={manualOverrides?.breadth_ratio} lastUpdated={resolveTime(!!data?.breadth_ratio, 'breadth_ratio')} /> },
-                        { id: 'mcclellan',    node: <McClellanCard data={data} manualOverride={manualOverrides?.mcclellan} lastUpdated={resolveTime(!!data?.mcclellan, 'mcclellan')} /> },
-                        { id: 'ad_line',      node: <ADLineCard data={data} manualOverride={manualOverrides?.ad_line} lastUpdated={resolveTime(!!data?.ad_line, 'ad_line')} /> },
-                        { id: 'nh_nl',        node: <NhnlCard data={data} manualOverride={manualOverrides?.nh_nl} lastUpdated={resolveTime(!!data?.nh_nl, 'nh_nl')} /> },
-                        { id: 'trin',         node: <TrinCard data={data} manualOverride={manualOverrides?.trin} lastUpdated={resolveTime(!!data?.trin, 'trin')} /> }
+                        { id: 'breadth_ratio', node: <BreadthRatioCard cardId="breadth_ratio" data={data} manualOverride={manualOverrides?.breadth_ratio} lastUpdated={resolveTime(!!data?.breadth_ratio, 'breadth_ratio')} /> },
+                        { id: 'mcclellan',    node: <McClellanCard cardId="mcclellan" data={data} manualOverride={manualOverrides?.mcclellan} lastUpdated={resolveTime(!!data?.mcclellan, 'mcclellan')} /> },
+                        { id: 'ad_line',      node: <ADLineCard cardId="ad_line" data={data} manualOverride={manualOverrides?.ad_line} lastUpdated={resolveTime(!!data?.ad_line, 'ad_line')} /> },
+                        { id: 'nh_nl',        node: <NhnlCard cardId="nh_nl" data={data} manualOverride={manualOverrides?.nh_nl} lastUpdated={resolveTime(!!data?.nh_nl, 'nh_nl')} /> },
+                        { id: 'trin',         node: <TrinCard cardId="trin" data={data} manualOverride={manualOverrides?.trin} lastUpdated={resolveTime(!!data?.trin, 'trin')} /> }
                     ] : []),
 
                 ];
@@ -230,45 +230,45 @@ export default function TechnicalGrid({
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start">
                                     {section === 'Trend' && (<>
-                                        <EMA20Card data={data} manualOverride={manualOverrides?.ema_20} lastUpdated={resolveTime(!!data?.ema_20, 'ema_20')} />
-                                        <EMA50Card data={data} manualOverride={manualOverrides?.ema_50} lastUpdated={resolveTime(!!data?.ema_50, 'ema_50')} />
-                                        <EMA200Card data={data} manualOverride={manualOverrides?.ema_200} lastUpdated={resolveTime(!!data?.ema_200, 'ema_200')} />
-                                        <SMA50Card data={data} manualOverride={manualOverrides?.sma_50} lastUpdated={resolveTime(!!data?.sma_50, 'sma_50')} />
-                                        <SMA200Card data={data} manualOverride={manualOverrides?.sma_200} lastUpdated={resolveTime(!!data?.sma_200, 'sma_200')} />
-                                        <ADXCard data={data} manualOverride={manualOverrides?.adx} lastUpdated={resolveTime(!!data?.adx, 'adx')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <SupertrendCard data={data} manualOverride={manualOverrides?.supertrend} lastUpdated={resolveTime(!!data?.supertrend, 'supertrend')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <BetaCorrelationCard data={data} lastUpdated={resolveTime(!!data?.beta, 'beta_correlation')} />
+                                        <EMA20Card cardId="ema_20" data={data} manualOverride={manualOverrides?.ema_20} lastUpdated={resolveTime(!!data?.ema_20, 'ema_20')} />
+                                        <EMA50Card cardId="ema_50" data={data} manualOverride={manualOverrides?.ema_50} lastUpdated={resolveTime(!!data?.ema_50, 'ema_50')} />
+                                        <EMA200Card cardId="ema_200" data={data} manualOverride={manualOverrides?.ema_200} lastUpdated={resolveTime(!!data?.ema_200, 'ema_200')} />
+                                        <SMA50Card cardId="sma_50" data={data} manualOverride={manualOverrides?.sma_50} lastUpdated={resolveTime(!!data?.sma_50, 'sma_50')} />
+                                        <SMA200Card cardId="sma_200" data={data} manualOverride={manualOverrides?.sma_200} lastUpdated={resolveTime(!!data?.sma_200, 'sma_200')} />
+                                        <ADXCard cardId="adx" data={data} manualOverride={manualOverrides?.adx} lastUpdated={resolveTime(!!data?.adx, 'adx')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <SupertrendCard cardId="supertrend" data={data} manualOverride={manualOverrides?.supertrend} lastUpdated={resolveTime(!!data?.supertrend, 'supertrend')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <BetaCorrelationCard cardId="beta_correlation" data={data} lastUpdated={resolveTime(!!data?.beta, 'beta_correlation')} />
                                     </>)}
                                     {section === 'Momentum' && (<>
-                                        <RSICard data={data} manualOverride={manualOverrides?.rsi} lastUpdated={resolveTime(!!data?.rsi, 'rsi')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <MACDCard data={data} manualOverride={manualOverrides?.macd} lastUpdated={resolveTime(!!data?.macd, 'macd')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <StochRSICard data={data} manualOverride={manualOverrides?.stoch_rsi} lastUpdated={resolveTime(!!data?.stoch_rsi, 'stoch_rsi')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <WilliamsRCard data={data} manualOverride={manualOverrides?.williams_r} lastUpdated={resolveTime(!!data?.williams_r, 'williams_r')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <RSICard cardId="rsi" data={data} manualOverride={manualOverrides?.rsi} lastUpdated={resolveTime(!!data?.rsi, 'rsi')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <MACDCard cardId="macd" data={data} manualOverride={manualOverrides?.macd} lastUpdated={resolveTime(!!data?.macd, 'macd')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <StochRSICard cardId="stoch_rsi" data={data} manualOverride={manualOverrides?.stoch_rsi} lastUpdated={resolveTime(!!data?.stoch_rsi, 'stoch_rsi')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <WilliamsRCard cardId="williams_r" data={data} manualOverride={manualOverrides?.williams_r} lastUpdated={resolveTime(!!data?.williams_r, 'williams_r')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
                                     </>)}
                                     {section === 'Volatility' && (<>
-                                        <BBCard data={data} manualOverride={manualOverrides?.bb_20_2} lastUpdated={resolveTime(!!data?.bb_20_2, 'bb_20_2')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <ATRCard data={data} manualOverride={manualOverrides?.atr} lastUpdated={resolveTime(!!data?.atr, 'atr')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <KCCard data={data} manualOverride={manualOverrides?.kc} lastUpdated={resolveTime(!!data?.kc, 'kc')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <BBCard cardId="bb_20_2" data={data} manualOverride={manualOverrides?.bb_20_2} lastUpdated={resolveTime(!!data?.bb_20_2, 'bb_20_2')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <ATRCard cardId="atr" data={data} manualOverride={manualOverrides?.atr} lastUpdated={resolveTime(!!data?.atr, 'atr')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <KCCard cardId="kc" data={data} manualOverride={manualOverrides?.kc} lastUpdated={resolveTime(!!data?.kc, 'kc')} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
                                     </>)}
                                     {section === 'Volume' && (<>
-                                        <CmfCard data={data} manualOverride={manualOverrides?.cmf} lastUpdated={resolveTime(!!data?.cmf, 'cmf')} />
-                                        <VolumeSmaCard data={data} manualOverride={manualOverrides?.volume_sma} lastUpdated={resolveTime(!!data?.volume_sma, 'volume_sma')} />
-                                        <ObvCard data={data} manualOverride={manualOverrides?.obv} lastUpdated={resolveTime(!!data?.obv, 'obv')} />
-                                        <VwapCard data={data} manualOverride={manualOverrides?.vwap} lastUpdated={resolveTime(!!data?.vwap, 'vwap')} />
+                                        <CmfCard cardId="cmf" data={data} manualOverride={manualOverrides?.cmf} lastUpdated={resolveTime(!!data?.cmf, 'cmf')} />
+                                        <VolumeSmaCard cardId="volume_sma" data={data} manualOverride={manualOverrides?.volume_sma} lastUpdated={resolveTime(!!data?.volume_sma, 'volume_sma')} />
+                                        <ObvCard cardId="obv" data={data} manualOverride={manualOverrides?.obv} lastUpdated={resolveTime(!!data?.obv, 'obv')} />
+                                        <VwapCard cardId="vwap" data={data} manualOverride={manualOverrides?.vwap} lastUpdated={resolveTime(!!data?.vwap, 'vwap')} />
                                     </>)}
                                     {section === 'Structure' && (<>
-                                        <SupportCard data={data} manualOverride={manualOverrides?.support} lastUpdated={resolveTime(!!data?.support, 'support')} />
-                                        <ResistanceCard data={data} manualOverride={manualOverrides?.resistance} lastUpdated={resolveTime(!!data?.resistance, 'resistance')} />
-                                        <TrendlineCard data={data} manualOverride={manualOverrides?.trendline} lastUpdated={resolveTime(!!data?.trendline, 'trendline')} />
-                                        <PivotCard data={data} manualOverride={manualOverrides?.pivot} lastUpdated={resolveTime(!!data?.pivot, 'pivot')} />
-                                        <FibonacciCard data={data} manualOverride={manualOverrides?.fibonacci} lastUpdated={resolveTime(!!data?.fibonacci, 'fibonacci')} />
+                                        <SupportCard cardId="support" data={data} manualOverride={manualOverrides?.support} lastUpdated={resolveTime(!!data?.support, 'support')} />
+                                        <ResistanceCard cardId="resistance" data={data} manualOverride={manualOverrides?.resistance} lastUpdated={resolveTime(!!data?.resistance, 'resistance')} />
+                                        <TrendlineCard cardId="trendline" data={data} manualOverride={manualOverrides?.trendline} lastUpdated={resolveTime(!!data?.trendline, 'trendline')} />
+                                        <PivotCard cardId="pivot" data={data} manualOverride={manualOverrides?.pivot} lastUpdated={resolveTime(!!data?.pivot, 'pivot')} />
+                                        <FibonacciCard cardId="fibonacci" data={data} manualOverride={manualOverrides?.fibonacci} lastUpdated={resolveTime(!!data?.fibonacci, 'fibonacci')} />
                                     </>)}
                                     {section === 'Breadth' && (<>
-                                        <ADLineCard data={data} manualOverride={manualOverrides?.ad_line} lastUpdated={resolveTime(!!data?.ad_line, 'ad_line')} />
-                                        <NhnlCard data={data} manualOverride={manualOverrides?.nh_nl} lastUpdated={resolveTime(!!data?.nh_nl, 'nh_nl')} />
-                                        <BreadthRatioCard data={data} manualOverride={manualOverrides?.breadth_ratio} lastUpdated={resolveTime(!!data?.breadth_ratio, 'breadth_ratio')} />
-                                        <TrinCard data={data} manualOverride={manualOverrides?.trin} lastUpdated={resolveTime(!!data?.trin, 'trin')} />
-                                        <McClellanCard data={data} manualOverride={manualOverrides?.mcclellan} lastUpdated={resolveTime(!!data?.mcclellan, 'mcclellan')} />
+                                        <ADLineCard cardId="ad_line" data={data} manualOverride={manualOverrides?.ad_line} lastUpdated={resolveTime(!!data?.ad_line, 'ad_line')} />
+                                        <NhnlCard cardId="nh_nl" data={data} manualOverride={manualOverrides?.nh_nl} lastUpdated={resolveTime(!!data?.nh_nl, 'nh_nl')} />
+                                        <BreadthRatioCard cardId="breadth_ratio" data={data} manualOverride={manualOverrides?.breadth_ratio} lastUpdated={resolveTime(!!data?.breadth_ratio, 'breadth_ratio')} />
+                                        <TrinCard cardId="trin" data={data} manualOverride={manualOverrides?.trin} lastUpdated={resolveTime(!!data?.trin, 'trin')} />
+                                        <McClellanCard cardId="mcclellan" data={data} manualOverride={manualOverrides?.mcclellan} lastUpdated={resolveTime(!!data?.mcclellan, 'mcclellan')} />
                                     </>)}
                                     {sectionCards.filter(card => !HARDCODED_IDS.includes(card.id) && !card.id.startsWith('dummy_')).map(card => (
                                         <TechnicalCard key={card.id} card={card} onClick={() => onCardClick(card)} />

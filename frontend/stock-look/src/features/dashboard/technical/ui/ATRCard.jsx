@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreATRCard } from '../engine/TechnicalCompositeEngine';
 
-export default function ATRCard({ data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function ATRCard({ cardId, data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('atr');
     
     const settingsConfig = [
@@ -21,6 +21,7 @@ export default function ATRCard({ data = null, manualOverride, lastUpdated, indi
 
 return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Average True Range", 
                 category: "Volatility", 

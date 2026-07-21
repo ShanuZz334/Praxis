@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreBreadthRatioCard } from '../engine/TechnicalCompositeEngine';
 
-export default function BreadthRatioCard({ data = null, manualOverride, lastUpdated }) {
+export default function BreadthRatioCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('breadth_ratio');
     
     // Resolve current value
@@ -17,6 +17,7 @@ export default function BreadthRatioCard({ data = null, manualOverride, lastUpda
     const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) : '--';
 return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Market Breadth Ratio", 
                 category: "Market Breadth", 

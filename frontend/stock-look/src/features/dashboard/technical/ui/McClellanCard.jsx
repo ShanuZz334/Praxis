@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreMcClellanCard } from '../engine/TechnicalCompositeEngine';
 
-export default function McClellanCard({ data = null, manualOverride, lastUpdated }) {
+export default function McClellanCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('mcclellan');
     
     // Resolve current value
@@ -17,6 +17,7 @@ export default function McClellanCard({ data = null, manualOverride, lastUpdated
     const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) : '--';
 return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "McClellan Oscillator", 
                 category: "Market Breadth", 

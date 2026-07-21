@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreKCCard } from '../engine/TechnicalCompositeEngine';
 
-export default function KCCard({ data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function KCCard({ cardId, data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('kc');
     
     const settingsConfig = [
@@ -23,6 +23,7 @@ export default function KCCard({ data = null, manualOverride, lastUpdated, indic
 
 return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Keltner Channel", 
                 category: "Volatility", 

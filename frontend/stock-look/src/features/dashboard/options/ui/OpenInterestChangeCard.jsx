@@ -3,7 +3,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { formatIndianNumber } from '@/shared/utils/formatters';
 
-export default function OpenInterestChangeCard({ liveData = null, manualOverride, lastUpdated }) {
+export default function OpenInterestChangeCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('oi_change');
     
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
@@ -33,6 +33,7 @@ export default function OpenInterestChangeCard({ liveData = null, manualOverride
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Open Interest Change", 
                 category: "Open Interest", 

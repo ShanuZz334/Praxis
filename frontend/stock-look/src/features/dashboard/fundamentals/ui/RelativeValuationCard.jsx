@@ -31,7 +31,7 @@ function premiumDiscount(company, sector) {
     return ((company - sector) / sector) * 100;
 }
 
-export default function RelativeValuationCard({ data = null, lastUpdated }) {
+export default function RelativeValuationCard({ cardId, data = null, lastUpdated }) {
     const ratios = Array.isArray(data?.ratios) ? data.ratios : [];
 
     const pe   = extractRatio(ratios, ['p/e', 'pe', 'pe ratio']);
@@ -81,6 +81,7 @@ export default function RelativeValuationCard({ data = null, lastUpdated }) {
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Relative Valuation',
                 category: 'Valuation',

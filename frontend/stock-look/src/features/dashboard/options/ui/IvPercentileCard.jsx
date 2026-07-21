@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function IvPercentileCard({ liveData = null, manualOverride, lastUpdated }) {
+export default function IvPercentileCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('iv_percentile');
     
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
@@ -23,6 +23,7 @@ export default function IvPercentileCard({ liveData = null, manualOverride, last
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: "IV Percentile",
                 category: "Volatility",

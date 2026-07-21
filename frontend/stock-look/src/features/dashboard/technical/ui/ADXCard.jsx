@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreADXCard } from '../engine/TechnicalCompositeEngine';
 
-export default function ADXCard({ data = null, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function ADXCard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('adx');
     
     const settingsConfig = [
@@ -20,6 +20,7 @@ export default function ADXCard({ data = null, lastUpdated, indicatorParams, onO
     
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "ADX", 
                 category: "Trend", 

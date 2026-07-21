@@ -5,7 +5,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightEVEbitdaCard, scoreEVEbitda } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function EVEbitdaCard({ data = null, manualOverride, lastUpdated }) {
+export default function EVEbitdaCard({ cardId, data = null, manualOverride, lastUpdated }) {
     // 1. Live Data Extraction (Upstox)
     const upstoxEVObj = (Array.isArray(data?.ratios) ? data.ratios : []).find(r => 
         r.name === "EV/EBITDA" || 
@@ -29,6 +29,7 @@ export default function EVEbitdaCard({ data = null, manualOverride, lastUpdated 
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'EV/EBITDA',
                 category: 'Valuation',

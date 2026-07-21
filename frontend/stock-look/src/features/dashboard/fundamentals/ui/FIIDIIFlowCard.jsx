@@ -5,7 +5,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { formatCompactCurrency } from '@/shared/utils/formatters';
 import { scoreInstitutionalFlow, generateAiInsightFIIDIIFlowCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function FIIDIIFlowCard({ data = null, manualOverride, lastUpdated }) {
+export default function FIIDIIFlowCard({ cardId, data = null, manualOverride, lastUpdated }) {
     // Live Automated Data
     const liveFlowData = data?.fii_dii_flow;
     const isLive = !!liveFlowData;
@@ -30,6 +30,7 @@ export default function FIIDIIFlowCard({ data = null, manualOverride, lastUpdate
 
         return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'FII / DII Flow',
                 category: 'Market Health',

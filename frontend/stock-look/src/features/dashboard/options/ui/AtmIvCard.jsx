@@ -3,7 +3,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { gradeAtmIv } from '../engine/optionsScoringEngine';
 
-export default function AtmIvCard({ liveData = null, manualOverride, lastUpdated }) {
+export default function AtmIvCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('atm_iv');
     
     // Step 1: Detect if we have live data
@@ -45,6 +45,7 @@ export default function AtmIvCard({ liveData = null, manualOverride, lastUpdated
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: "At-the-Money Implied Volatility",
                 category: "Volatility",

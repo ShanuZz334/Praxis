@@ -2,7 +2,7 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function AnalystConsensusCard({ manualOverrides = {}, lastUpdated }) {
+export default function AnalystConsensusCard({ cardId, manualOverrides = {}, lastUpdated }) {
     // Analyst Consensus is manual-only for now
     const rating = manualOverrides.analyst_consensus_rating || null;
     const targetPrice = manualOverrides.analyst_target_price ? parseFloat(manualOverrides.analyst_target_price) : null;
@@ -24,6 +24,7 @@ export default function AnalystConsensusCard({ manualOverrides = {}, lastUpdated
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Analyst Consensus',
                 category: 'Valuation',

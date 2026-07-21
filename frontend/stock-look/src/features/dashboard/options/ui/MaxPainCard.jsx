@@ -2,7 +2,7 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function MaxPainCard({ liveData = null, manualOverride, lastUpdated }) {
+export default function MaxPainCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('max_pain');
 
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
@@ -26,6 +26,7 @@ export default function MaxPainCard({ liveData = null, manualOverride, lastUpdat
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Max Pain", 
                 category: "Market Positioning", 

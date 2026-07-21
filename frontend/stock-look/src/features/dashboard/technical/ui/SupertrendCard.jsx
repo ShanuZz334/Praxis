@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreSupertrendCard } from '../engine/TechnicalCompositeEngine';
 
-export default function SupertrendCard({ data = null, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function SupertrendCard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('supertrend');
     
     const settingsConfig = [
@@ -22,6 +22,7 @@ export default function SupertrendCard({ data = null, lastUpdated, indicatorPara
     
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Supertrend", 
                 category: "Trend", 

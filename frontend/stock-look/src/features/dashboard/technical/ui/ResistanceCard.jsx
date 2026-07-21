@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreResistanceCard } from '../engine/TechnicalCompositeEngine';
 
-export default function ResistanceCard({ data = null, manualOverride, lastUpdated }) {
+export default function ResistanceCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('resistance');
     
     const liveValue = data?.resistance ?? null;
@@ -17,6 +17,7 @@ export default function ResistanceCard({ data = null, manualOverride, lastUpdate
     const displayValue = currentValue !== null && !isNaN(currentValue) ? "₹" + parseFloat(currentValue).toFixed(2) : '--';
 return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Resistance Level", 
                 category: "Market Structure", 

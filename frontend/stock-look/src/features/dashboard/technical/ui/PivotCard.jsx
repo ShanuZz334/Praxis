@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scorePivotCard } from '../engine/TechnicalCompositeEngine';
 
-export default function PivotCard({ data = null, manualOverride, lastUpdated }) {
+export default function PivotCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('pivot');
     
     const liveValue = data?.pivot ?? null;
@@ -25,6 +25,7 @@ export default function PivotCard({ data = null, manualOverride, lastUpdated }) 
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Pivot Points", 
                 category: "Market Structure", 

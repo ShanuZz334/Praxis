@@ -2,7 +2,7 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function PcrOiCard({ liveData = null, manualOverride, lastUpdated }) {
+export default function PcrOiCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('pcr_oi');
 
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
@@ -27,6 +27,7 @@ export default function PcrOiCard({ liveData = null, manualOverride, lastUpdated
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Put-Call Ratio (OI)", 
                 category: "Put-Call Ratio", 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function ThetaCard({ liveData = null, manualOverride, lastUpdated }) {
+export default function ThetaCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('theta');
     
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
@@ -18,6 +18,7 @@ export default function ThetaCard({ liveData = null, manualOverride, lastUpdated
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: configData.title, 
                 category: configData.category, 

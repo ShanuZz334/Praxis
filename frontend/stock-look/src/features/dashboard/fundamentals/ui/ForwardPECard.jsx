@@ -4,7 +4,7 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightForwardPECard, scoreForwardPE } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
-export default function ForwardPECard({ data = null, manualOverride, lastUpdated }) {
+export default function ForwardPECard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('forward_pe');
 
     // ── Step 1: Resolve Trailing PE for comparison (Live) ─────────────────────
@@ -78,6 +78,7 @@ export default function ForwardPECard({ data = null, manualOverride, lastUpdated
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Forward P/E',
                 category: 'Valuation',

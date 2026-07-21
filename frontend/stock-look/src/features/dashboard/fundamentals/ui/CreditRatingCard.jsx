@@ -2,7 +2,7 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function CreditRatingCard({ manualOverrides = {}, lastUpdated }) {
+export default function CreditRatingCard({ cardId, manualOverrides = {}, lastUpdated }) {
     // Credit Rating is manual-only for now
     const rating = manualOverrides.credit_rating_value || null;
     const agency = manualOverrides.credit_rating_agency || null;
@@ -28,6 +28,7 @@ export default function CreditRatingCard({ manualOverrides = {}, lastUpdated }) 
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Credit Rating',
                 category: 'Risk',

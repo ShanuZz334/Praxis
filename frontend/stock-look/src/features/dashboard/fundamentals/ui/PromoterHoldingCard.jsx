@@ -3,7 +3,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scorePromoterHolding, generateAiInsightPromoterCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function PromoterHoldingCard({ data = null, lastUpdated }) {
+export default function PromoterHoldingCard({ cardId, data = null, lastUpdated }) {
     const holdingsArr = Array.isArray(data?.holdings) ? data.holdings : [];
     
     const promoterObj = holdingsArr.find(h => h.category === 'promoters');
@@ -26,6 +26,7 @@ export default function PromoterHoldingCard({ data = null, lastUpdated }) {
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Promoter Holding',
                 category: 'Ownership & Flow',

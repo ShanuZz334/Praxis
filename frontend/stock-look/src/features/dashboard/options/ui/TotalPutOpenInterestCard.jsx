@@ -3,7 +3,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { formatIndianNumber } from '@/shared/utils/formatters';
 
-export default function TotalPutOpenInterestCard({ liveData = null, manualOverride, lastUpdated }) {
+export default function TotalPutOpenInterestCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('total_put_oi');
     
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
@@ -33,6 +33,7 @@ export default function TotalPutOpenInterestCard({ liveData = null, manualOverri
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Total Put Open Interest", 
                 category: "Open Interest", 

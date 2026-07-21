@@ -2,7 +2,7 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function FnOBanCard({ data, manualOverrides = {}, lastUpdated }) {
+export default function FnOBanCard({ cardId, data, manualOverrides = {}, lastUpdated }) {
     const mwplPct = data?.mwplPct ?? (manualOverrides.mwpl_pct ? parseFloat(manualOverrides.mwpl_pct) : null);
     const isBanned = data?.banStatus === true || manualOverrides.ban_status === 'true';
     const daysInBan = data?.daysInBan ?? (manualOverrides.days_in_ban ? parseInt(manualOverrides.days_in_ban) : 0);
@@ -26,6 +26,7 @@ export default function FnOBanCard({ data, manualOverrides = {}, lastUpdated }) 
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'F&O Ban Status',
                 category: 'Market Positioning',

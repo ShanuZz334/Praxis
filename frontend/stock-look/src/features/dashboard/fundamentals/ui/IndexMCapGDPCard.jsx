@@ -5,7 +5,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreMarketCapGDP, generateAiInsightMarketCapGDP } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function IndexMCapGDPCard({ data, manualOverride, lastUpdated }) {
+export default function IndexMCapGDPCard({ cardId, data, manualOverride, lastUpdated }) {
     // 1. Core State & Extraction
     let isManual = true;
     let extractedValue = null;
@@ -25,6 +25,7 @@ export default function IndexMCapGDPCard({ data, manualOverride, lastUpdated }) 
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'M-Cap to GDP',
                 category: 'Valuation',

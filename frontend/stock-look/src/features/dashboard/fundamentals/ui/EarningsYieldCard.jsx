@@ -3,7 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightEarningsYieldCard, scoreEarningsYield } from '@/features/dashboard/fundamentals/engine/scoringEngine';
-export default function EarningsYieldCard({ data = null, manualOverride, lastUpdated }) {
+export default function EarningsYieldCard({ cardId, data = null, manualOverride, lastUpdated }) {
     // 1. Live Data Extraction (Upstox)
     const upstoxYieldObj = (Array.isArray(data?.ratios) ? data.ratios : []).find(r => r.name?.toLowerCase().includes("earning yield") || r.name?.toLowerCase().includes("earnings yield"));
     let parsedUpstoxYield = upstoxYieldObj?.company_value ? cleanNum(upstoxYieldObj.company_value) : null;
@@ -40,6 +40,7 @@ export default function EarningsYieldCard({ data = null, manualOverride, lastUpd
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Earnings Yield',
                 category: 'Valuation',

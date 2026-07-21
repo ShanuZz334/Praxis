@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreBBCard } from '../engine/TechnicalCompositeEngine';
 
-export default function BBCard({ data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function BBCard({ cardId, data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('bb_20_2');
     
     const settingsConfig = [
@@ -22,6 +22,7 @@ export default function BBCard({ data = null, manualOverride, lastUpdated, indic
 
 return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Bollinger Bands", 
                 category: "Volatility", 

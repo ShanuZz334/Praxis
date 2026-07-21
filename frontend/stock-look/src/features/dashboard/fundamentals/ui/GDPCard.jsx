@@ -5,7 +5,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreGDPGrowth, generateAiInsightGDPGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function GDPCard({ data, manualOverride, lastUpdated }) {
+export default function GDPCard({ cardId, data, manualOverride, lastUpdated }) {
     // 1. Core State & Extraction
     let isManual = true;
     let extractedValue = null;
@@ -24,6 +24,7 @@ export default function GDPCard({ data, manualOverride, lastUpdated }) {
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'GDP Growth',
                 category: 'Macro',

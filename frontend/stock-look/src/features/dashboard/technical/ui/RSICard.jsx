@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreRSICard } from '../engine/TechnicalCompositeEngine';
 
-export default function RSICard({ data = null, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function RSICard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('rsi');
     
     const settingsConfig = [
@@ -20,6 +20,7 @@ export default function RSICard({ data = null, lastUpdated, indicatorParams, onO
     
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "RSI", 
                 category: "Momentum", 

@@ -3,7 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function CurrentRatioCard({ data, manualOverride, lastUpdated }) {
+export default function CurrentRatioCard({ cardId, data, manualOverride, lastUpdated }) {
     let isManual = true;
     let extractedValue = null;
     let extractedSector = null;
@@ -86,6 +86,7 @@ export default function CurrentRatioCard({ data, manualOverride, lastUpdated }) 
 
         return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Current Ratio',
                 category: 'Financial Health',

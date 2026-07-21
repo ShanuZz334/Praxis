@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreADLineCard } from '../engine/TechnicalCompositeEngine';
 
-export default function ADLineCard({ data = null, manualOverride, lastUpdated }) {
+export default function ADLineCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('ad_line');
     
     // Resolve current value
@@ -17,6 +17,7 @@ export default function ADLineCard({ data = null, manualOverride, lastUpdated })
     const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) : '--';
 return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Advance / Decline Line", 
                 category: "Market Breadth", 

@@ -23,7 +23,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreFreeCashFlow, generateAiInsightFreeCashFlowCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 // ─── Main Component ─────────────────────────────────────────────────────────
-export default function FreeCashFlowCard({ data, manualOverride, lastUpdated }) {
+export default function FreeCashFlowCard({ cardId, data, manualOverride, lastUpdated }) {
     let isManual = true;
     let extractedFCF = null;
     let extractedSector = null;
@@ -72,6 +72,7 @@ export default function FreeCashFlowCard({ data, manualOverride, lastUpdated }) 
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Free Cash Flow',
                 category: 'Financial Health',

@@ -4,7 +4,7 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightVolatilityCard, scoreVIX } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
-export default function VolatilityCard({ data, manualOverride, lastUpdated }) {
+export default function VolatilityCard({ cardId, data, manualOverride, lastUpdated }) {
     const liveVix = data?.india_vix;
     const isLive = liveVix !== undefined && liveVix !== null && liveVix !== '';
 
@@ -20,6 +20,7 @@ export default function VolatilityCard({ data, manualOverride, lastUpdated }) {
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'India VIX',
                 category: 'Market Health',

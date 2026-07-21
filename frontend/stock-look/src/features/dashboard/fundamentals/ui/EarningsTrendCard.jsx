@@ -4,7 +4,7 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreEarningsTrend, generateAiInsightEarningsTrendCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function EarningsTrendCard({ data = null, manualOverride, lastUpdated }) {
+export default function EarningsTrendCard({ cardId, data = null, manualOverride, lastUpdated }) {
     // 1. Find EPS history from Income Statement
     const incomeArray = Array.isArray(data?.income) 
         ? data.income 
@@ -30,6 +30,7 @@ export default function EarningsTrendCard({ data = null, manualOverride, lastUpd
 
         return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Earnings Trend',
                 category: 'Market Health',

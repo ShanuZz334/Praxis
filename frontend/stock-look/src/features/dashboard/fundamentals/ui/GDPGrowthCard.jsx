@@ -5,7 +5,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { formatPercentage } from '@/shared/utils/formatters';
 import { scoreGDPGrowth, generateAiInsightGDPGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function GDPGrowthCard({ data = null, manualOverride, lastUpdated }) {
+export default function GDPGrowthCard({ cardId, data = null, manualOverride, lastUpdated }) {
     // 1. Core State (100% Manual Macro Indicator)
     const isManual = true;
     const currentGrowth = manualOverride !== undefined && manualOverride !== null && manualOverride !== '' 
@@ -21,6 +21,7 @@ export default function GDPGrowthCard({ data = null, manualOverride, lastUpdated
 
         return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'GDP Growth',
                 category: 'Growth',

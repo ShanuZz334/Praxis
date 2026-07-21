@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreSupportCard } from '../engine/TechnicalCompositeEngine';
 
-export default function SupportCard({ data = null, manualOverride, lastUpdated }) {
+export default function SupportCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('support');
     
     const liveValue = data?.support ?? null;
@@ -17,6 +17,7 @@ export default function SupportCard({ data = null, manualOverride, lastUpdated }
     const displayValue = currentValue !== null && !isNaN(currentValue) ? "₹" + parseFloat(currentValue).toFixed(2) : '--';
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Support Level", 
                 category: "Market Structure", 

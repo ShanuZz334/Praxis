@@ -4,7 +4,7 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreROE, generateAiInsightROECard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function ROECard({ data, manualOverride, lastUpdated }) {
+export default function ROECard({ cardId, data, manualOverride, lastUpdated }) {
     // 1. Core State & Extraction
     const roeItem = (Array.isArray(data?.ratios) ? data.ratios : []).find(item => 
         item.name?.toLowerCase().includes('return on equity') || 
@@ -41,6 +41,7 @@ export default function ROECard({ data, manualOverride, lastUpdated }) {
 
         return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'ROE',
                 category: 'Profitability',

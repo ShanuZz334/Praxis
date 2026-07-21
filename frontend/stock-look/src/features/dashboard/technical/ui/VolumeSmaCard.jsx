@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreVolumeSmaCard } from '../engine/TechnicalCompositeEngine';
 
-export default function VolumeSmaCard({ data = null, manualOverride, lastUpdated }) {
+export default function VolumeSmaCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('volume_sma');
     
     const currentValue = data?.volume_sma ?? null;
@@ -15,6 +15,7 @@ export default function VolumeSmaCard({ data = null, manualOverride, lastUpdated
     
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: "Volume SMA (20)",
                 category: "Volume Analysis",

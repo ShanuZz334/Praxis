@@ -4,7 +4,7 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreRevenueGrowth, generateAiInsightRevenueGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function RevenueGrowthCard({ data = null, manualOverride, lastUpdated }) {
+export default function RevenueGrowthCard({ cardId, data = null, manualOverride, lastUpdated }) {
     // 1. Extract Revenue History
     const incomeStmt = Array.isArray(data?.income?.income_statement) ? data.income.income_statement : [];
     const fullStmt = Array.isArray(data?.income?.full_statement) ? data.income.full_statement : [];
@@ -33,6 +33,7 @@ export default function RevenueGrowthCard({ data = null, manualOverride, lastUpd
 
         return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Revenue Growth',
                 category: 'Growth',

@@ -4,7 +4,7 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { generateAiInsightPERatioCard, scorePERatio } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
-export default function PERatioCard({ data = null, manualOverride, lastUpdated }) {
+export default function PERatioCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('pe_ratio');
 
     // ── Step 1: Resolve currentPE (Live from Upstox or manual fallback) ────
@@ -37,6 +37,7 @@ export default function PERatioCard({ data = null, manualOverride, lastUpdated }
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'P/E Ratio',
                 category: 'Valuation',

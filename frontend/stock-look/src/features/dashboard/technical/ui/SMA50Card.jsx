@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreSMA50Card } from '../engine/TechnicalCompositeEngine';
 
-export default function SMA50Card({ data = null, lastUpdated }) {
+export default function SMA50Card({ cardId, data = null, lastUpdated }) {
     const configData = getIndicatorConfig('sma_50');
     
     // Resolve current value
@@ -17,6 +17,7 @@ export default function SMA50Card({ data = null, lastUpdated }) {
     
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ title: "SMA 50", category: "Trend", mode: "AUTO", creditScore: configData.creditScore, updateTime: lastUpdated ?? "--:--", source: configData.source, aiModel: configData.aiModel }}
             data={{ 
                 currentValueObj: { label: "Value", value: displayValue }, 

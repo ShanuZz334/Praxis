@@ -5,7 +5,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreFiscalDeficit, generateAiInsightFiscalDeficit } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function FiscalDeficitCard({ data, manualOverride, lastUpdated }) {
+export default function FiscalDeficitCard({ cardId, data, manualOverride, lastUpdated }) {
     // 1. Core State & Extraction
     let isManual = true;
     let extractedValue = null;
@@ -25,6 +25,7 @@ export default function FiscalDeficitCard({ data, manualOverride, lastUpdated })
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Fiscal Deficit',
                 category: 'Macro',

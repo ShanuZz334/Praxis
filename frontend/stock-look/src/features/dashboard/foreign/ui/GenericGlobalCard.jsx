@@ -27,8 +27,10 @@ export default function GenericGlobalCard({ id, label, cardData, resolveTime, is
 
     return (
         <IndicatorCard
+            cardId={id}
             config={{
                 title: title,
+
                 category: "Global Macro",
                 mode: isLive ? "AUTO" : "MANUAL",
                 creditScore: configData.creditScore ?? 5,

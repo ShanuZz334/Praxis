@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreVwapCard } from '../engine/TechnicalCompositeEngine';
 
-export default function VwapCard({ data = null, manualOverride, lastUpdated }) {
+export default function VwapCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('vwap');
     
     // Resolve current value from live backend data
@@ -15,6 +15,7 @@ export default function VwapCard({ data = null, manualOverride, lastUpdated }) {
     const displayValue = currentValue !== null && !isNaN(currentValue) ? "₹" + parseFloat(currentValue).toFixed(2) : '--';
 return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: "VWAP",
                 category: "Volume Analysis",

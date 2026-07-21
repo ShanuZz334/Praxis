@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { cleanNum } from '@/lib/utils';
 import { generateAiInsightSectorDashboard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function SectorDashboardCard({ data, manualOverrides = {}, lastUpdated }) {
+export default function SectorDashboardCard({ cardId, data, manualOverrides = {}, lastUpdated }) {
     // 1. Data extraction & fallback to manual overrides
     const getVal = (key) => manualOverrides[key] !== undefined && manualOverrides[key] !== null && manualOverrides[key] !== '' 
         ? cleanNum(manualOverrides[key]) 
@@ -39,6 +39,7 @@ export default function SectorDashboardCard({ data, manualOverrides = {}, lastUp
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Sector Dashboard',
                 category: 'Sector',

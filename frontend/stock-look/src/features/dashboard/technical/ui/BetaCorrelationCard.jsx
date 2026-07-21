@@ -2,7 +2,7 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
-export default function BetaCorrelationCard({ data, lastUpdated }) {
+export default function BetaCorrelationCard({ cardId, data, lastUpdated }) {
     // Expecting data: { beta: 1.2, correlation: 0.85 }
     const beta = data?.beta ?? null;
     const correlation = data?.correlation ?? null;
@@ -20,6 +20,7 @@ export default function BetaCorrelationCard({ data, lastUpdated }) {
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Beta (vs Nifty)',
                 category: 'Trend',

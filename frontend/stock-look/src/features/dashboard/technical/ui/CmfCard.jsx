@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreCmfCard } from '../engine/TechnicalCompositeEngine';
 
-export default function CmfCard({ data = null, manualOverride, lastUpdated }) {
+export default function CmfCard({ cardId, data = null, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig('cmf');
     
     // Resolve current value from live backend data, fallback to manual
@@ -18,6 +18,7 @@ export default function CmfCard({ data = null, manualOverride, lastUpdated }) {
     
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: "Chaikin Money Flow",
                 category: "Volume Analysis",

@@ -5,7 +5,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreAggregateCorporateDebt, generateAiInsightAggregateCorporateDebt } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function CorpDebtCard({ data, manualOverride, lastUpdated }) {
+export default function CorpDebtCard({ cardId, data, manualOverride, lastUpdated }) {
     // 1. Core State & Extraction
     let isManual = true;
     let extractedValue = null;
@@ -25,6 +25,7 @@ export default function CorpDebtCard({ data, manualOverride, lastUpdated }) {
 
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{
                 title: 'Corporate Debt',
                 category: 'Corporate',

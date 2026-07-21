@@ -4,7 +4,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 import { scoreWilliamsRCard } from '../engine/TechnicalCompositeEngine';
 
-export default function WilliamsRCard({ data = null, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function WilliamsRCard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig('williams_r');
     
     const settingsConfig = [
@@ -20,6 +20,7 @@ export default function WilliamsRCard({ data = null, lastUpdated, indicatorParam
     
     return (
         <IndicatorCard
+            cardId={cardId}
             config={{ 
                 title: "Williams %R", 
                 category: "Momentum", 
