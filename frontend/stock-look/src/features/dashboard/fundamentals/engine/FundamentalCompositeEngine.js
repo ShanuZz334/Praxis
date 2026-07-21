@@ -66,9 +66,6 @@ export const TITLE_TO_ID = {
     // Index-specific
     'Advance / Decline':    'advance_decline',
     'India VIX':            'india_vix',
-    'MACD Momentum':        'index_macd',
-    'MACD Histogram':       'index_macd', // Handling both potential titles
-    '200 DMA Stretch':      'index_200dma',
 };
 
 // ─── Aggregation Utilities ────────────────────────────────────────────────────
@@ -228,20 +225,17 @@ function computeIndexSections(scores) {
     ]);
 
     const earnings = weightedMean([
-        { score: g('eps_yoy'),           weight: 0.30 },
-        { score: g('forward_eps'),       weight: 0.30 },
-        { score: g('earnings_revision'), weight: 0.20 },
+        { score: g('eps_yoy'),           weight: 0.40 },
+        { score: g('forward_eps'),       weight: 0.40 },
         { score: g('sector_earnings'),   weight: 0.10 },
         { score: g('profit_margin'),     weight: 0.10 },
     ]);
 
     const macro = weightedMean([
-        { score: g('gdp'),             weight: 0.25 },
-        { score: g('cpi'),             weight: 0.25 },
+        { score: g('gdp'),             weight: 0.35 },
+        { score: g('cpi'),             weight: 0.35 },
         { score: g('repo'),            weight: 0.15 },
-        { score: g('policy_stance'),   weight: 0.15 },
-        { score: g('fiscal_deficit'),  weight: 0.10 },
-        { score: g('current_account'), weight: 0.10 },
+        { score: g('fiscal_deficit'),  weight: 0.15 },
     ]);
 
     const liquidity = weightedMean([
@@ -261,18 +255,15 @@ function computeIndexSections(scores) {
     ]);
 
     const corporate = weightedGeometricMean([
-        { score: g('index_macd'),       weight: 0.30 },
-        { score: g('index_200dma'),     weight: 0.30 },
-        { score: g('credit_growth'),    weight: 0.20 },
-        { score: g('corp_debt'),        weight: 0.10 },
-        { score: g('policy_tailwinds'), weight: 0.10 },
+        { score: g('credit_growth'),    weight: 0.50 },
+        { score: g('corp_debt'),        weight: 0.25 },
+        { score: g('policy_tailwinds'), weight: 0.25 },
     ]);
 
     const global = weightedMean([
-        { score: g('india_vix'),  weight: 0.40 },
+        { score: g('india_vix'),  weight: 0.50 },
         { score: g('crude'),      weight: 0.25 },
-        { score: g('usdinr'),     weight: 0.15 },
-        { score: g('global_liq'), weight: 0.20 },
+        { score: g('global_liq'), weight: 0.25 },
     ]);
 
     const risk = weightedHarmonicMean([

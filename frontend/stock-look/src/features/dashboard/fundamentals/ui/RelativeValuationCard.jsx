@@ -103,7 +103,7 @@ export default function RelativeValuationCard({ data = null, lastUpdated }) {
                     pb.company   !== null && { label: 'P/B',      value: `${pb.company.toFixed(2)}x${pb.sector !== null ? ` (Sector: ${pb.sector.toFixed(2)}x)` : ''}`,     isManual: false },
                     eveb.company !== null && { label: 'EV/EBITDA',value: `${eveb.company.toFixed(1)}x${eveb.sector !== null ? ` (Sector: ${eveb.sector.toFixed(1)}x)` : ''}`, isManual: false },
                 ].filter(Boolean),
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: `${confidence}%`,
                 impactWeight: configData?.impactWeight || 7.0

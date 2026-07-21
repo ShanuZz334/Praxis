@@ -43,10 +43,10 @@ export const useTechnicalsData = (timeframe = "day", indicatorParams = null) => 
         // Initial fetch with loading state
         fetchTechnicals(true);
 
-        // Poll every 1 second
+        // Poll every 5 seconds to reduce React state thrashing and network load
         intervalId = setInterval(() => {
             fetchTechnicals(false);
-        }, 1000);
+        }, 5000);
 
         return () => {
             isMounted = false;

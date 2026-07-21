@@ -53,8 +53,8 @@ export const scoreUSDINR = (currentUsdInr) => {
     if (!currentUsdInr || isNaN(currentUsdInr)) return null;
     const val = parseFloat(currentUsdInr);
     
-    // Scale: 81 (Bullish) to 85 (Bearish)
-    const score = normalize(val, 81, 85, true);
+    // Scale: 80 (Bullish) to 100 (Bearish) - adjusted for higher baselines
+    const score = normalize(val, 80, 100, true);
     const bias = getBias(score);
     
     let insight = "Rupee remains stable, minimizing imported inflation risks.";

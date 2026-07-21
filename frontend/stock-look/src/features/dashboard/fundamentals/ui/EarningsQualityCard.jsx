@@ -54,7 +54,7 @@ export default function EarningsQualityCard({ data = null, lastUpdated }) {
                     cfo !== null && { label: 'Op. Cash Flow', value: `₹${(cfo / 100).toFixed(0)} Cr`, isManual: false },
                     netProfit !== null && { label: 'Net Profit', value: `₹${(netProfit / 100).toFixed(0)} Cr`, isManual: false },
                 ].filter(Boolean),
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: `${confidence}%`,
                 impactWeight: configData?.impactWeight || 7.0

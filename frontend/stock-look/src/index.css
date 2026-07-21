@@ -387,3 +387,7 @@ body {
   animation: drift 30s ease-in-out infinite;
   animation-delay: 4s;
 }
+
+/* Hide TradingView Watermark Logo */
+#tv-attr-logo { display: none !important; opacity: 0 !important; pointer-events: none !important; z-index: -1 !important; }
+a[href*='tradingview'] { display: none !important; }

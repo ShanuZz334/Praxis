@@ -42,7 +42,7 @@ export default function PromoterHoldingCard({ data = null, lastUpdated }) {
                     { label: 'QoQ Trend', value: trend, isManual: false },
                     prevPct !== null && { label: 'Previous Qtr', value: `${prevPct.toFixed(2)}%`, isManual: false }
                 ].filter(Boolean),
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: `${confidence}%`,
                 impactWeight: configData?.impactWeight || 5.0

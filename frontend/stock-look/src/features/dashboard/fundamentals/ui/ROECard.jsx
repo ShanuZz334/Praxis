@@ -55,7 +55,7 @@ export default function ROECard({ data, manualOverride, lastUpdated }) {
                 details: [
                     sectorROE !== null && !isNaN(sectorROE) && { label: 'Sector ROE', value: sectorROE.toFixed(2) + '%', isManual: false }
                 ].filter(Boolean),
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: `${confidence}%`,
                 impactWeight: configData?.impactWeight || 5.0

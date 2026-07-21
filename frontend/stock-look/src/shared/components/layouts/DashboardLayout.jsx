@@ -170,7 +170,7 @@ const DashboardLayout = () => {
 
       <main
         className={`
-          min-h-screen transition-all duration-300 ease-in-out relative z-10
+          min-h-screen relative z-10
           ${isPaiPage ? '!m-0 !p-0 w-full h-screen' : 'pt-[73px] pb-0'}
         `}
         style={isPaiPage ? {} : {

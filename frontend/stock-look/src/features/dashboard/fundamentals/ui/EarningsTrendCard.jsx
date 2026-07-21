@@ -45,7 +45,7 @@ export default function EarningsTrendCard({ data = null, manualOverride, lastUpd
                     cagr !== null && !isNaN(cagr) && { label: 'Calculated CAGR', value: cagr.toFixed(2) + '%', isManual: isManual },
                     { label: 'Periods Analyzed', value: epsHistory ? `${epsHistory.length} Years` : (isManual ? 'Manual Input' : '--'), isManual: isManual }
                 ].filter(Boolean),
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: confidence || '85%',
                 impactWeight: configData?.impactWeight || 5.0

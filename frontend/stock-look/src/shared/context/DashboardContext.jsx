@@ -83,11 +83,34 @@ export const DashboardProvider = ({ children }) => {
         fetchExpiries();
     }, [selectedInstrument]);
 
-    // Global Live Price Polling (Fallback to 1-shot fetch, then stream via WebSockets)
-    const [fiiDiiFlow, setFiiDiiFlow] = useState(null);
-    const [smartlists, setSmartlists] = useState(null);
-    const [sectors, setSectors] = useState(null);
-    const [marketNews, setMarketNews] = useState(null);
+    const [fiiDiiFlow, setFiiDiiFlow] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('dash_fiiDiiFlow')) || null; } catch { return null; }
+    });
+    const [smartlists, setSmartlists] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('dash_smartlists')) || null; } catch { return null; }
+    });
+    const [sectors, setSectors] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('dash_sectors')) || null; } catch { return null; }
+    });
+    const [marketNews, setMarketNews] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('dash_marketNews')) || null; } catch { return null; }
+    });
+
+    useEffect(() => {
+        if (fiiDiiFlow) localStorage.setItem('dash_fiiDiiFlow', JSON.stringify(fiiDiiFlow));
+    }, [fiiDiiFlow]);
+
+    useEffect(() => {
+        if (smartlists) localStorage.setItem('dash_smartlists', JSON.stringify(smartlists));
+    }, [smartlists]);
+
+    useEffect(() => {
+        if (sectors) localStorage.setItem('dash_sectors', JSON.stringify(sectors));
+    }, [sectors]);
+
+    useEffect(() => {
+        if (marketNews) localStorage.setItem('dash_marketNews', JSON.stringify(marketNews));
+    }, [marketNews]);
 
     useEffect(() => {
         const keysToFetch = Array.from(new Set([
@@ -114,9 +137,14 @@ export const DashboardProvider = ({ children }) => {
             setLivePrices(prev => {
                 const existing = prev[instrumentKey] || {};
                 const ltp = data.ltp || existing.ltp || 0;
-                const close = data.cp || data.close || existing.close || ltp;
-                const netChange = ltp - close;
-                const pctChange = close ? (netChange / close) * 100 : 0;
+                
+                // Keep the true close price if available. Don't fake it to ltp, 
+                // which causes 0.00% netChange bugs when the market is closed or cp is missing.
+                let close = data.cp || data.close || existing.close || 0;
+                
+                // Only calculate netChange if we actually have a close price
+                const netChange = close > 0 ? ltp - close : 0;
+                const pctChange = close > 0 ? (netChange / close) * 100 : 0;
 
                 return {
                     ...prev,

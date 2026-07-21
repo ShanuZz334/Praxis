@@ -66,7 +66,7 @@ export default function EarningsYieldCard({ data = null, manualOverride, lastUpd
                         isManual: true,
                     }
                 ].filter(Boolean),
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: confidence || '0%',
                 impactWeight: configData?.impactWeight || 5.0

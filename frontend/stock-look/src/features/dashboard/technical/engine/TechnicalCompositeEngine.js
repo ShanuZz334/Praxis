@@ -787,22 +787,6 @@ export function scoreTrinCard(val) {
     return { score, bias, confidence: "85%", aiInsight: insight };
 }
 
-export function scoreVixCard(val) {
-    if (val === null || val === undefined || isNaN(val)) return defaultReturn;
-    val = Number(val);
-    let score = 50, bias = "Normal", insight = "VIX indicates normal market volatility.";
-    
-    if (val >= 25) { 
-        score = 10; bias = "Extreme Fear"; insight = `VIX at ${val.toFixed(2)} indicates extreme fear and high volatility. Often marks market bottoms.`; 
-    }
-    else if (val >= 20) { 
-        score = 30; bias = "High Volatility"; insight = `VIX at ${val.toFixed(2)} indicates elevated fear and uncertainty. Expect larger intraday swings.`; 
-    }
-    else if (val <= 15) { 
-        score = 80; bias = "Low Volatility"; insight = `VIX at ${val.toFixed(2)} indicates complacency and low volatility. Trend-following works well.`; 
-    }
-    return { score, bias, confidence: "85%", aiInsight: insight };
-}
 
 export function scoreVolumeSmaCard(volumeSma, currentVolume) {
     if (volumeSma === null || volumeSma === undefined || isNaN(volumeSma) || !currentVolume) return defaultReturn;

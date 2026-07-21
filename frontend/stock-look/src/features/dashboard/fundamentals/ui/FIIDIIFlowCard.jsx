@@ -45,7 +45,7 @@ export default function FIIDIIFlowCard({ data = null, manualOverride, lastUpdate
                     fiiFlow !== null && !isNaN(fiiFlow) && { label: 'FII Flow', value: formatCompactCurrency(fiiFlow * 10000000), isManual: !isLive },
                     diiFlow !== null && !isNaN(diiFlow) && { label: 'DII Flow', value: formatCompactCurrency(diiFlow * 10000000), isManual: !isLive }
                 ].filter(Boolean),
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: confidence || '85%',
                 impactWeight: configData?.impactWeight || 5.0

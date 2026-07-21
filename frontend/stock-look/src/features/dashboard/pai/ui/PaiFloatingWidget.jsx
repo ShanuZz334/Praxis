@@ -122,28 +122,22 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
         };
     }, [isDocked, isChatOpen, hasDragged, controls]);
 
-    // Force dock when the sidebar is expanded to prevent two chats
+    const prevSidebarCollapsed = useRef(sidebarCollapsed);
+
+    // Auto-dock the widget ONLY when the sidebar explicitly opens (transitions from true to false).
+    // This allows the user to still pop it out manually while the sidebar is open!
     useEffect(() => {
-        if (sidebarCollapsed === false && !isDocked) {
-            setShowPanel(false);
-            setIsSnappingState(true);
-            
-            // Wait 1 frame so React updates the DOM to disable drag, preventing race conditions
-            requestAnimationFrame(() => {
-                controls.start({
-                    x: 0,
-                    y: 0,
-                    transition: { type: "spring", stiffness: 300, damping: 25 }
-                }).then(() => {
-                    // Manually zero out internal state before unmounting so it wakes up fresh next time
-                    x.set(0);
-                    y.set(0);
-                    setIsDocked(true);
-                    setIsChatOpen(false);
-                    setIsSnappingState(false);
-                });
-            });
+        if (prevSidebarCollapsed.current === true && sidebarCollapsed === false) {
+            if (!isDocked) {
+                // Instantly dock it to avoid animation race conditions where it gets stuck in an undraggable state
+                setIsDocked(true);
+                setIsChatOpen(false);
+                x.set(0);
+                y.set(0);
+                setIsSnappingState(false);
+            }
         }
+        prevSidebarCollapsed.current = sidebarCollapsed;
     }, [sidebarCollapsed, isDocked, controls, setIsDocked, setIsChatOpen, x, y]);
 
     if (isDocked) return null;
@@ -163,8 +157,8 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
         // Calculate distance from current drag point to the sidebar dock center
         const dist = Math.hypot(info.point.x - sidebarRect.centerX, info.point.y - sidebarRect.centerY);
         
-        // Magnetic Snapping: If pulled within 120px, rip it from the cursor and dock it!
-        if (dist < 120) {
+        // Magnetic Snapping: If pulled within 160px, rip it from the cursor and dock it!
+        if (dist < 160) {
             isSnapping.current = true;
             setIsSnappingState(true); // Triggers re-render to set drag={false}, forcefully disengaging the user's mouse
             setIsChatOpen(false); // Close chat panel immediately
@@ -199,7 +193,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
         if (!sidebarRect || isSnapping.current) return;
         // Check once more on release, just in case
         const dist = Math.hypot(info.point.x - sidebarRect.centerX, info.point.y - sidebarRect.centerY);
-        if (dist < 180) { // considerably more generous on release
+        if (dist < 220) { // considerably more generous on release
             isSnapping.current = true;
             setIsSnappingState(true);
             setIsChatOpen(false);
@@ -235,8 +229,8 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
             {/* The draggable wrapper holds BOTH the icon and the panel */}
             <motion.div 
                 className="absolute"
+                style={{ x, y, willChange: 'transform' }} // Force GPU layer to prevent dragging lag
                 animate={controls}
-                style={{ x, y }}
                 drag={!isSnappingState}
                 dragControls={dragControls}
                 dragListener={false} // Prevents dragging via the chat panel
@@ -255,21 +249,20 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
             >
                 {/* The PAI Handle (Chat Head) */}
                 <motion.div
-                    layoutId="pai-handle"
                     onPointerDown={(e) => dragControls.start(e)}
                     onClick={handleIconClick}
                     whileHover={!isDragging ? { scale: 1.05 } : {}}
                     whileDrag={{ scale: 1.1, cursor: 'grabbing' }}
                     style={{
                         scale: isChatOpen ? 1.08 : 1,
-                        boxShadow: isChatOpen ? "0 0 20px rgba(59,130,246,0.5)" : "0 0 0px rgba(0,0,0,0)",
+                        boxShadow: isChatOpen ? "0 0 20px rgba(59,130,246,0.5)" : "0 4px 15px rgba(0,0,0,0.3)", // Use box-shadow instead of expensive drop-shadow
                     }}
-                    className="w-[48px] h-[48px] rounded-full flex-shrink-0 cursor-pointer pointer-events-auto relative z-20"
+                    className="w-[48px] h-[48px] rounded-full flex-shrink-0 cursor-pointer pointer-events-auto relative z-20 bg-background-surface"
                 >
                     <img
                         src={paiIcon}
                         alt="PAI"
-                        className="w-full h-full object-contain drop-shadow-xl pointer-events-none"
+                        className="w-full h-full object-contain pointer-events-none" // Removed drop-shadow-xl for performance
                         draggable={false}
                     />
                 </motion.div>

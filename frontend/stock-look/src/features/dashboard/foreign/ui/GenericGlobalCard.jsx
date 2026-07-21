@@ -41,9 +41,9 @@ export default function GenericGlobalCard({ id, label, cardData, resolveTime, is
                     label: "Current Value", 
                     value: displayValue
                 },
-                score: cardData?.score ?? 50,
+                score: cardData?.score ?? null,
                 bias: cardData?.bias ?? "Neutral",
-                confidence: `${cardData?.confidence ?? 80}%`,
+                confidence: cardData?.confidence ? `${cardData.confidence}%` : "0%",
                 impactWeight: cardData?.impact ?? (configData.impactWeight || "Moderate")
             }}
             insights={{

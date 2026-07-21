@@ -1,5 +1,6 @@
 import { calculateTechnicals } from '../services/technicalCalculationService.js';
 import { syncCandlesIfStale } from '../services/upstoxHistorical.js';
+import { triggerBackfillIfNeeded } from '../services/backfillEngine.js';
 import db from '../config/localDb.js';
 
 // In-Memory cache (TTL: 2 seconds)
@@ -147,4 +148,60 @@ export const getTechnicalIndicators = async (req, res) => {
     }
 };
 
+export const getCandles = async (req, res) => {
+    try {
+        const { instrument, timeframe = 'day', limit = 1000 } = req.query;
+        if (!instrument) {
+            return res.status(400).json({ success: false, error: "Instrument key is required" });
+        }
 
+        // Smart Sync Historical Data to ensure latest candles are in DB
+        try {
+            await syncCandlesIfStale(instrument, timeframe);
+        } catch (syncErr) {
+            console.warn(`[Candles] Sync skipped for ${instrument}: ${syncErr.message}`);
+        }
+
+        // Fetch from DB
+        const stmt = db.prepare(`
+            SELECT timestamp, open, high, low, close, volume 
+            FROM candles 
+            WHERE instrument_key = ? AND timeframe = ? 
+            ORDER BY timestamp DESC
+            LIMIT ?
+        `);
+        
+        const rows = stmt.all(instrument, timeframe, parseInt(limit, 10));
+        rows.reverse();
+
+        // Format for lightweight-charts: { time: 'YYYY-MM-DD' or unix timestamp, open, high, low, close }
+        const formattedData = rows.map(row => {
+            // lightweight-charts requires time in seconds for intraday, or string for daily
+            const dateObj = new Date(row.timestamp);
+            const time = timeframe === 'day' || timeframe === 'week' || timeframe === 'month' 
+                ? dateObj.toISOString().split('T')[0] 
+                : Math.floor(dateObj.getTime() / 1000);
+            
+            return {
+                time,
+                open: row.open,
+                high: row.high,
+                low: row.low,
+                close: row.close,
+                volume: row.volume
+            };
+        });
+
+        // Send response immediately — don't block on backfill
+        res.status(200).json({
+            success: true,
+            data: formattedData
+        });
+
+        // Fire-and-forget: silently backfill up to 1 year in the background
+        triggerBackfillIfNeeded(instrument, timeframe);
+    } catch (error) {
+        console.error("Candles endpoint error:", error);
+        res.status(500).json({ success: false, error: "Internal server error" });
+    }
+};

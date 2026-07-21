@@ -31,22 +31,20 @@ const insertCandleStmt = db.prepare(`
 /**
  * Fetches historical candles from Upstox (V3 API) and persists them locally.
  */
-export const fetchHistoricalCandles = async (instrumentKey, timeframe, toDate, fromDate) => {
+export const fetchHistoricalCandles = async (instrumentKey, timeframe, toDate, fromDate, isIntraday = false) => {
     try {
         const token = await getAuthToken();
         
-        let unit = 'days';
-        let interval = '1';
-        
-        if (timeframe.includes('minute')) {
-            unit = 'minutes';
-            interval = timeframe.replace('minute', '');
-        } else if (timeframe.includes('hour')) {
-            unit = 'hours';
-            interval = timeframe.replace('hour', '');
+        let apiInterval = 'day';
+        if (timeframe.includes('minute') || timeframe.includes('hour')) {
+            apiInterval = '1minute';
+        } else {
+            apiInterval = timeframe;
         }
         
-        const url = `https://api.upstox.com/v3/historical-candle/${encodeURIComponent(instrumentKey)}/${unit}/${interval}/${toDate}/${fromDate}`;
+        const url = isIntraday 
+            ? `https://api.upstox.com/v2/historical-candle/intraday/${encodeURIComponent(instrumentKey)}/${apiInterval}`
+            : `https://api.upstox.com/v2/historical-candle/${encodeURIComponent(instrumentKey)}/${apiInterval}/${toDate}/${fromDate}`;
         
         const response = await axios.get(url, {
             headers: { 
@@ -56,7 +54,67 @@ export const fetchHistoricalCandles = async (instrumentKey, timeframe, toDate, f
             timeout: 5000
         });
 
-        const candlesData = response.data?.data?.candles || [];
+        let candlesData = response.data?.data?.candles || [];
+
+        // If requested timeframe is not 1minute but we fetched 1minute, we must aggregate
+        if (apiInterval === '1minute' && timeframe !== '1minute') {
+            const minutesToGroup = timeframe.includes('hour') 
+                ? parseInt(timeframe) * 60 
+                : parseInt(timeframe);
+                
+            if (minutesToGroup && !isNaN(minutesToGroup)) {
+                // Upstox returns data descending (newest first).
+                // Sort ascending first to aggregate chronologically
+                candlesData.reverse();
+                
+                const aggregated = [];
+                let currentCandle = null;
+                let currentWindowMs = 0;
+                
+                for (const c of candlesData) {
+                    const ts = new Date(c[0]).getTime();
+                    // Align window to the start of the interval (e.g. 09:15)
+                    // Indian market opens at 09:15 IST (03:45 UTC). We can just group by mathematical intervals of the day.
+                    // But simpler: just group every N minutes starting from the first candle of the day.
+                    const dateStr = new Date(ts).toISOString().split('T')[0];
+                    const marketOpenMs = new Date(`${dateStr}T03:45:00.000Z`).getTime();
+                    let windowStartMs;
+                    if (ts < marketOpenMs) {
+                        windowStartMs = Math.floor(ts / (minutesToGroup * 60000)) * (minutesToGroup * 60000);
+                    } else {
+                        const msSinceOpen = ts - marketOpenMs;
+                        const windowIndex = Math.floor(msSinceOpen / (minutesToGroup * 60000));
+                        windowStartMs = marketOpenMs + (windowIndex * minutesToGroup * 60000);
+                    }
+                    
+                    if (!currentCandle || currentWindowMs !== windowStartMs) {
+                        if (currentCandle) aggregated.push(currentCandle);
+                        currentWindowMs = windowStartMs;
+                        currentCandle = [
+                            new Date(windowStartMs).toISOString(), // timestamp
+                            c[1], // open
+                            c[2], // high
+                            c[3], // low
+                            c[4], // close
+                            c[5], // volume
+                            c[6] || 0 // oi
+                        ];
+                    } else {
+                        if (c[2] > currentCandle[2]) currentCandle[2] = c[2]; // high
+                        if (c[3] < currentCandle[3]) currentCandle[3] = c[3]; // low
+                        currentCandle[4] = c[4]; // close
+                        currentCandle[5] += c[5]; // volume
+                        currentCandle[6] = c[6] || currentCandle[6]; // oi
+                    }
+                }
+                if (currentCandle) aggregated.push(currentCandle);
+                
+                // Reverse back to descending for standard format
+                aggregated.reverse();
+                candlesData = aggregated;
+            }
+        }
+
         
         const insertAll = db.transaction((candles) => {
             for (const c of candles) {
@@ -84,7 +142,7 @@ export const fetchHistoricalCandles = async (instrumentKey, timeframe, toDate, f
  * Smart Sync Engine with 4-second timeout guard.
  */
 export const syncCandlesIfStale = async (instrumentKey, timeframe = 'day') => {
-    const SYNC_TIMEOUT_MS = 4000;
+    const SYNC_TIMEOUT_MS = 8000;
     const cacheKey = `${instrumentKey}_${timeframe}`;
 
     // 1. Check Cooldown Cache (CRITICAL: Prevents API spam when market is closed)
@@ -111,7 +169,8 @@ export const syncCandlesIfStale = async (instrumentKey, timeframe = 'day') => {
             
             const fromDate = fromDateObj.toISOString().split('T')[0];
             console.log(`[Historical Sync] Missing/Insufficient data for ${instrumentKey} (${timeframe}). Fetching: ${fromDate} to ${todayStr}`);
-            await fetchHistoricalCandles(instrumentKey, timeframe, todayStr, fromDate);
+            await fetchHistoricalCandles(instrumentKey, timeframe, todayStr, fromDate, false);
+            await fetchHistoricalCandles(instrumentKey, timeframe, todayStr, todayStr, true);
             cooldownCache.set(cacheKey, Date.now());
             return;
         }
@@ -121,9 +180,14 @@ export const syncCandlesIfStale = async (instrumentKey, timeframe = 'day') => {
         
         if (lastDateStr < todayStr || (timeframe !== 'day' && (nowTs - lastDateObj.getTime()) > 60000)) {
             // Need to update. If it's intraday, any gap > 1 minute might mean we need to fetch today's data again.
-            // For simplicity, just fetch from lastDateStr to todayStr
-            console.log(`[Historical Sync] Data stale for ${instrumentKey} (${timeframe}). Fetching: ${lastDateStr} to ${todayStr}`);
-            await fetchHistoricalCandles(instrumentKey, timeframe, todayStr, lastDateStr);
+            if (lastDateStr < todayStr) {
+                console.log(`[Historical Sync] Data stale for ${instrumentKey} (${timeframe}). Fetching historical: ${lastDateStr} to ${todayStr}`);
+                await fetchHistoricalCandles(instrumentKey, timeframe, todayStr, lastDateStr, false);
+            }
+            if (timeframe !== 'day') {
+                console.log(`[Historical Sync] Fetching intraday for ${instrumentKey} (${timeframe})`);
+                await fetchHistoricalCandles(instrumentKey, timeframe, todayStr, todayStr, true);
+            }
         }
         
         // Update cooldown

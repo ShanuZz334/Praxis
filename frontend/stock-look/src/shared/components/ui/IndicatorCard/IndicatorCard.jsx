@@ -3,6 +3,8 @@ import Card from "@/shared/components/common/Card";
 import { FundamentalContext } from "@/features/dashboard/fundamentals/ui/FundamentalContext";
 import { FlipContainer, FlipTrigger } from "@/shared/components/common/FlipContainer";
 import { Star, Lightbulb, Plus, BarChart2, Edit2, Check, Settings } from "lucide-react";
+import axiosInstance from "@/shared/utils/axiosInstance";
+import "@/features/dashboard/pai/ui/PaiLoader.css";
 import {
   ResponsiveContainer,
   LineChart,
@@ -13,14 +15,16 @@ import {
   Tooltip,
   ReferenceLine
 } from "recharts";
-import { cn } from "@/lib/utils";
+import { cn, cleanNum } from "@/lib/utils";
 
 // =============================
 // Helper: Score Bar
 // =============================
-function ScoreRangeBar({ score }) {
-  const isMissing = score === null || score === undefined || isNaN(parseFloat(score));
-  const safeScore = isMissing ? 50 : Math.min(Math.max(parseFloat(score), 0), 100);
+function ScoreRangeBar({ score, currentValue }) {
+  const isMissing = score === null || score === undefined || isNaN(parseFloat(score)) || currentValue === '--' || currentValue == null;
+  if (isMissing) return null;
+
+  const safeScore = Math.min(Math.max(parseFloat(score), 0), 100);
 
   return (
     <div className="mt-4">
@@ -285,6 +289,13 @@ export function IndicatorCard({
   className
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [insightData, setInsightData] = useState({
+    isLoading: false,
+    text: null,
+    error: null,
+    model: null
+  });
+
   const context = useContext(FundamentalContext);
   const historicalData = useMemo(() => {
      if (context?.snapshots && config?.title) {
@@ -315,6 +326,66 @@ export function IndicatorCard({
     
     return () => clearTimeout(timeoutId);
   }, [config?.title, data?.currentValueObj?.value, data?.score, data?.bias]);
+
+  useEffect(() => {
+    let isSubscribed = true;
+    
+    // Only fetch if expanded, and we haven't successfully fetched or failed yet for this exact value
+    if (isExpanded && !insightData.text && !insightData.isLoading && !insightData.error) {
+      const metric = config.title;
+      const rawVal = data?.currentValueObj?.value;
+      const parsedValue = cleanNum(rawVal);
+      
+      // GUARD: If data is missing entirely, skip network request
+      const isMissing = data?.score === null || data?.score === undefined || isNaN(parseFloat(data?.score)) || parsedValue === null;
+      if (isMissing) {
+         return; // Don't even ask the server
+      }
+
+      const stockSymbol = context?.instrumentKey || 'Unknown';
+
+      setInsightData(prev => ({ ...prev, isLoading: true, error: null }));
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+      axiosInstance.post('/api/v1/intelligence/card-insight', {
+          metric,
+          value: isNaN(parsedValue) ? null : parsedValue,
+          stockSymbol,
+          module: 'Fundamentals'
+      }, { signal: controller.signal })
+      .then(res => {
+        const resData = res.data;
+        if (!isSubscribed) return;
+        if (resData.error || resData.insight === null) {
+          const reason = resData.reason === 'insufficient_data' ? "Insufficient data for AI insight" : "AI insight unavailable";
+          setInsightData(prev => ({ ...prev, isLoading: false, error: reason }));
+        } else {
+          setInsightData(prev => ({ 
+             ...prev, 
+             isLoading: false, 
+             text: resData.insight, 
+             model: resData.model 
+          }));
+        }
+      })
+      .catch(err => {
+        if (!isSubscribed) return;
+        setInsightData(prev => ({ ...prev, isLoading: false, error: "AI insight unavailable" }));
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
+      });
+    }
+
+    return () => { isSubscribed = false; };
+  }, [isExpanded, config.title, data?.currentValueObj?.value, context?.instrumentKey]);
+
+  // Reset insight cache when value changes
+  useEffect(() => {
+     setInsightData({ isLoading: false, text: null, error: null, model: null });
+  }, [data?.currentValueObj?.value]);
 
   const toggleExpand = () => setIsExpanded(!isExpanded);
 
@@ -356,9 +427,11 @@ export function IndicatorCard({
           />
         </div>
 
-        <div className="mt-auto pt-4 mb-0 shrink-0">
-          <ScoreRangeBar score={data.score} />
-        </div>
+        {!(data.score === null || data.score === undefined || isNaN(parseFloat(data.score)) || data?.currentValueObj?.value === '--' || data?.currentValueObj?.value == null) && (
+          <div className="mt-auto pt-4 mb-0 shrink-0">
+            <ScoreRangeBar score={data.score} currentValue={data?.currentValueObj?.value} />
+          </div>
+        )}
       </div>
 
       {/* Expandable Section */}
@@ -384,17 +457,33 @@ export function IndicatorCard({
                 </div>
 
                 {/* AI Insight */}
-                <div className="mt-4">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <Star className="w-4 h-4 text-purple-400" />
-                    <span className="text-[12px] font-bold text-purple-400">AI Insight</span>
-                  </div>
-                  <p className="text-[12px] text-text-secondary leading-relaxed">
-                    {insights?.aiInsight}
-                  </p>
-                </div>
+                {!(data.score === null || data.score === undefined || isNaN(parseFloat(data.score)) || data?.currentValueObj?.value === '--' || data?.currentValueObj?.value == null) && (
+                  <>
+                    <div className="mt-4">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Star className="w-4 h-4 text-purple-400" />
+                        <span className="text-[12px] font-bold text-purple-400">AI Insight</span>
+                        {insightData.isLoading && (
+                            <div className="three-body scale-[0.35] ml-1" style={{ '--uib-color': '#c084fc' }}>
+                                <div className="three-body__dot"></div>
+                                <div className="three-body__dot"></div>
+                                <div className="three-body__dot"></div>
+                            </div>
+                        )}
+                      </div>
+                      
+                      {insightData.error ? (
+                         <p className="text-[12px] text-text-tertiary italic leading-relaxed">{insightData.error}</p>
+                      ) : insightData.text ? (
+                         <p className="text-[12px] text-text-secondary leading-relaxed">{insightData.text}</p>
+                      ) : (
+                         <p className="text-[12px] text-text-secondary leading-relaxed">{insightData.isLoading ? "Generating deeper analysis..." : (insights?.aiInsight || "No insights available.")}</p>
+                      )}
+                    </div>
 
-                <div className="my-4 border-t border-border-subtle" />
+                    <div className="my-4 border-t border-border-subtle" />
+                  </>
+                )}
 
                 {/* Why it Matters */}
                 <div className="mt-4 mb-2">
@@ -421,7 +510,7 @@ export function IndicatorCard({
                 
                 <div className="flex items-center gap-4">
                   <span className="text-[10px] text-text-tertiary font-mono">Source: {config.source || (isManual ? "Manual" : "Auto")}</span>
-                  <span className="text-[10px] text-text-tertiary font-mono">AI Model: {config.aiModel || "Qwen3 8B"}</span>
+                  <span className="text-[10px] text-text-tertiary font-mono">AI Model: {insightData.model || config.aiModel || "Qwen3 8B"}</span>
                   <span className="text-[10px] text-text-tertiary font-mono">{config.updateTime}</span>
                 </div>
 

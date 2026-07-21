@@ -100,7 +100,7 @@ export default function CurrentRatioCard({ data, manualOverride, lastUpdated }) 
                 details: [
                     sectorRatio !== null && !isNaN(sectorRatio) && { label: 'Sector Avg', value: sectorRatio.toFixed(2), isManual: false }
                 ].filter(Boolean),
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: confidence || '85%',
                 impactWeight: configData?.impactWeight || 5.0

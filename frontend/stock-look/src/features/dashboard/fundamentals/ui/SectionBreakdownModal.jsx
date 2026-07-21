@@ -84,7 +84,7 @@ export default function SectionBreakdownModal({ open, onClose, sections }) {
             />
 
             {/* MODAL */}
-            <div className="relative w-full max-w-2xl bg-background-card/85 border border-border-default backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="relative w-full max-w-2xl bg-background-card/85 border border-border-default backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
 
                 {/* HEADER */}
                 <div className="flex items-center justify-between p-6 border-b border-border-subtle bg-transparent">

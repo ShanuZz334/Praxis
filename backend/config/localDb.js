@@ -213,6 +213,16 @@ export const initLocalDb = () => {
             UNIQUE(instrument_key, page_name, section_name, card_name, timestamp)
         );
         CREATE INDEX IF NOT EXISTS idx_ai_store ON ai_card_store(instrument_key, page_name, timestamp);
+
+        -- 16. Backfill State (Smart Backfill Engine tracker)
+        CREATE TABLE IF NOT EXISTS backfill_state (
+            instrument_key  TEXT NOT NULL,
+            timeframe       TEXT NOT NULL,
+            oldest_date     TEXT,           -- ISO date string of the oldest candle fetched
+            is_complete     INTEGER DEFAULT 0,  -- 1 = full year of history fetched
+            last_run_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(instrument_key, timeframe)
+        );
     `);
 
     try {

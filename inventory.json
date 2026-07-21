@@ -1,0 +1,1902 @@
+[
+  {
+    "cardId": "advancedeclinecard",
+    "cardName": "Advance / Decline",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "companysummarywidget",
+    "cardName": "Market Cap",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": false,
+    "requiredDataFields": [
+      "ratios",
+      "company_profile",
+      "quote",
+      "ltp",
+      "netChange",
+      "pctChange",
+      "status"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "corpdebtcard",
+    "cardName": "Corporate Debt",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "cpicard",
+    "cardName": "CPI Inflation",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "creditgrowthcard",
+    "cardName": "Credit Growth",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "crudecard",
+    "cardName": "Crude Oil",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "currentaccountcard",
+    "cardName": "Current Account",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "currentratiocard",
+    "cardName": "Current Ratio",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios",
+      "balanceSheet"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "cycdefcard",
+    "cardName": "Cyclical / Defensive",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "debttoequitycard",
+    "cardName": "Debt to Equity",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios",
+      "balanceSheet"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "diicard",
+    "cardName": "DII Flow",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "dividendyieldcard",
+    "cardName": "Dividend Yield",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios",
+      "corporate_actions",
+      "quote",
+      "manualBondYield"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "earningsqualitycard",
+    "cardName": "Earnings Quality",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "cashFlow",
+      "income"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "earningsrevisioncard",
+    "cardName": "Earnings Revision",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "earningstrendcard",
+    "cardName": "Earnings Trend",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "income"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "earningsyieldcard",
+    "cardName": "Earnings Yield",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios",
+      "manualBondYield"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "epsgrowthcard",
+    "cardName": "EPS Growth",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "income",
+      "ratios"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "epsyoycard",
+    "cardName": "EPS YoY",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "evebitdacard",
+    "cardName": "EV/EBITDA",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "fiicard",
+    "cardName": "FII Flow",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "fiidiiflowcard",
+    "cardName": "FII / DII Flow",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "fii_dii_flow",
+      "manualDiiFlow"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "fiitrendcard",
+    "cardName": "FII Trend",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "fiscaldeficitcard",
+    "cardName": "Fiscal Deficit",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "forwardepscard",
+    "cardName": "Forward EPS",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "forwardpecard",
+    "cardName": "Forward P/E",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios",
+      "income"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "freecashflowcard",
+    "cardName": "Free Cash Flow",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios",
+      "cashFlow",
+      "income"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "gdpcard",
+    "cardName": "GDP Growth",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "gdpgrowthcard",
+    "cardName": "GDP Growth",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "globalliqcard",
+    "cardName": "Global Liquidity",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "indexdividendyieldcard",
+    "cardName": "Dividend Yield",
+    "page": "Fundamentals",
+    "appliesTo": "indices",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "indexmcapgdpcard",
+    "cardName": "M-Cap to GDP",
+    "page": "Fundamentals",
+    "appliesTo": "indices",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "indexsummarywidget",
+    "cardName": "Current Level",
+    "page": "Fundamentals",
+    "appliesTo": "indices",
+    "existingPromptKey": null,
+    "hasChatSection": false,
+    "requiredDataFields": [
+      "quote",
+      "ltp",
+      "netChange",
+      "pctChange",
+      "status"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "interestcoveragecard",
+    "cardName": "Interest Coverage",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "macdtrendcard",
+    "cardName": "MACD Momentum",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "marketcapgdpcard",
+    "cardName": "Market Cap to GDP",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "manualMarketCap",
+      "company_profile"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "mfflowscard",
+    "cardName": "MF Flows",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "movingaveragecard",
+    "cardName": "200 DMA Stretch",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "netmargincard",
+    "cardName": "Net Margin",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios",
+      "income"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "niftypbcard",
+    "cardName": "Nifty P/B",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "niftypecard",
+    "cardName": "Nifty P/E",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "npacard",
+    "cardName": "NPA Ratio",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "operatingmargincard",
+    "cardName": "Operating Margin",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios",
+      "income"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "pbratiocard",
+    "cardName": "P/B Ratio",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "peratiocard",
+    "cardName": "P/E Ratio",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "policystancecard",
+    "cardName": "Policy Stance",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "policytailwindscard",
+    "cardName": "Policy Tailwinds",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "profitgrowthcard",
+    "cardName": "Profit Growth",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "income"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "profitmargincard",
+    "cardName": "Profit Margin",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "promoterholdingcard",
+    "cardName": "Promoter Holding",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "holdings"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "reformmomentumcard",
+    "cardName": "Reform Momentum",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "relativevaluationcard",
+    "cardName": "Relative Valuation",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "repocard",
+    "cardName": "Repo Rate",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "revenuegrowthcard",
+    "cardName": "Revenue Growth",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "income"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "roacard",
+    "cardName": "ROA",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "rocecard",
+    "cardName": "ROCE",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "roecard",
+    "cardName": "ROE",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ratios"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "sectorconcentrationcard",
+    "cardName": "Sector Concentration",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "sectorearningscard",
+    "cardName": "Sector Earnings",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "sectorgrowthcard",
+    "cardName": "Sector Growth",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "sectorvaluationcard",
+    "cardName": "Sector Valuation",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "smartmoneyflowcard",
+    "cardName": "Smart Money Flow",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "holdings"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "sovereignriskcard",
+    "cardName": "Sovereign Risk",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "systemliquiditycard",
+    "cardName": "System Liquidity",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "usdinrcard",
+    "cardName": "USD/INR",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "volatilitycard",
+    "cardName": "India VIX",
+    "page": "Fundamentals",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "india_vix"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "adlinecard",
+    "cardName": "Advance / Decline Line",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "adx_period",
+    "cardName": "ADX Period",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "adx",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "atr_period",
+    "cardName": "ATR Period",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "atr",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "bb_period",
+    "cardName": "BB Period",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "bb_20_2",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "breadthratiocard",
+    "cardName": "Market Breadth Ratio",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "cmfcard",
+    "cardName": "Chaikin Money Flow",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "cmf",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "ema200card",
+    "cardName": "EMA 200",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ema_200",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "ema20card",
+    "cardName": "EMA 20",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ema_20",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "ema50card",
+    "cardName": "EMA 50",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "ema_50",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "fibonaccicard",
+    "cardName": "Fibonacci Retracement",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "fibonacci"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "kc_period",
+    "cardName": "KC Period",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "kc",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "macd_fast",
+    "cardName": "Fast Length",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "macd",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "mcclellancard",
+    "cardName": "McClellan Oscillator",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "nhnlcard",
+    "cardName": "New High / New Low",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "obvcard",
+    "cardName": "On-Balance Volume (OBV)",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "obv",
+      "obv_sma",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "pivotcard",
+    "cardName": "Pivot Points",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "pivot"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "resistancecard",
+    "cardName": "Resistance Level",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "resistance"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "rsi_period",
+    "cardName": "RSI Period",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "rsi",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "sma200card",
+    "cardName": "SMA 200",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "sma_200",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "sma50card",
+    "cardName": "SMA 50",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "sma_50",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "stoch_rsi_period",
+    "cardName": "RSI Length",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "stoch_rsi",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "supertrend_period",
+    "cardName": "Supertrend Period",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "supertrend",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "supportcard",
+    "cardName": "Support Level",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "support"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "trendlinecard",
+    "cardName": "Trendline",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "trincard",
+    "cardName": "TRIN (Arms Index)",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "volumesmacard",
+    "cardName": "Volume SMA (20)",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "volume_sma",
+      "current_volume",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "vwapcard",
+    "cardName": "VWAP",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "vwap",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "williams_period",
+    "cardName": "Lookback Period",
+    "page": "Technical",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "williams_r",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "atmivcard",
+    "cardName": "At-the-Money Implied Volatility",
+    "page": "Options",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "currentValue",
+      "score",
+      "bias",
+      "confidence",
+      "aiInsight"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "deltacard",
+    "cardName": "Delta",
+    "page": "Options",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "currentValue",
+      "optionType",
+      "moneyness",
+      "score",
+      "bias",
+      "confidence",
+      "aiInsight"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "gammacard",
+    "cardName": "Gamma",
+    "page": "Options",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "currentValue",
+      "optionType",
+      "moneyness",
+      "score",
+      "bias",
+      "confidence",
+      "aiInsight"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "ivpercentilecard",
+    "cardName": "IV Percentile",
+    "page": "Options",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "currentValue",
+      "score",
+      "bias",
+      "confidence",
+      "aiInsight",
+      "lookback"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "ivrankcard",
+    "cardName": "IV Rank",
+    "page": "Options",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "currentValue",
+      "score",
+      "bias",
+      "confidence",
+      "aiInsight",
+      "lookback"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "maxpaincard",
+    "cardName": "Max Pain",
+    "page": "Options",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "currentValue",
+      "distance",
+      "score",
+      "bias",
+      "confidence",
+      "aiInsight"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "openinterestchangecard",
+    "cardName": "OI Change (%)",
+    "page": "Options",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "currentValue",
+      "changePercentage",
+      "position",
+      "score",
+      "bias",
+      "confidence",
+      "aiInsight"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "pcroicard",
+    "cardName": "Put-Call Ratio (OI)",
+    "page": "Options",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "currentValue",
+      "trend",
+      "score",
+      "bias",
+      "sentiment",
+      "confidence",
+      "aiInsight",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "pcrvolumecard",
+    "cardName": "Put-Call Ratio (Volume)",
+    "page": "Options",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "currentValue",
+      "trend",
+      "score",
+      "bias",
+      "sentiment",
+      "confidence",
+      "aiInsight",
+      "history"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "thetacard",
+    "cardName": "Theta",
+    "page": "Options",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "currentValue",
+      "daysToExpiry",
+      "score",
+      "bias",
+      "confidence",
+      "aiInsight"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "totalcallopeninterestcard",
+    "cardName": "Highest OI Strike",
+    "page": "Options",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "currentValue",
+      "highestOIStrike",
+      "oiChange",
+      "score",
+      "bias",
+      "confidence",
+      "aiInsight"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "totalputopeninterestcard",
+    "cardName": "Highest OI Strike",
+    "page": "Options",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "currentValue",
+      "highestOIStrike",
+      "oiChange",
+      "score",
+      "bias",
+      "confidence",
+      "aiInsight"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "vegacard",
+    "cardName": "Vega",
+    "page": "Options",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "currentValue",
+      "impliedVol",
+      "exposure",
+      "score",
+      "bias",
+      "confidence",
+      "aiInsight"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "bitcoincard",
+    "cardName": "Bitcoin (BTC/USD)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "brentcrudeoilcard",
+    "cardName": "Price / bbl",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "dowfuturescard",
+    "cardName": "Dow Jones Futures",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "dxycard",
+    "cardName": "Index Value",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "globalaiinsight",
+    "cardName": "Global A I Insight",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "goldcard",
+    "cardName": "Price / oz",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "nasdaqfuturescard",
+    "cardName": "Nasdaq Futures",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "silvercard",
+    "cardName": "Price / oz",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "spfuturescard",
+    "cardName": "S&P 500 Futures",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "us10yyieldcard",
+    "cardName": "10-Year Yield (%)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "usdinrcard",
+    "cardName": "USD/INR Rate",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "vixcard",
+    "cardName": "CBOE Volatility Index (VIX)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "paichatarea",
+    "cardName": "Llama 3",
+    "page": "Master Dashboard",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "paifloatingwidget",
+    "cardName": "Pai Floating Widget",
+    "page": "Master Dashboard",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "optionspulse",
+    "cardName": "Options Pulse",
+    "page": "Master Dashboard",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": false,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "eventcard",
+    "cardName": "Event Card",
+    "page": "Events",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": false,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "newscard",
+    "cardName": "News Card",
+    "page": "Events",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": false,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": ""
+  },
+  {
+    "cardId": "eurusd",
+    "cardName": "EURUSD (Generic)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": "Rendered via GenericGlobalCard"
+  },
+  {
+    "cardId": "usdjpy",
+    "cardName": "USDJPY (Generic)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": "Rendered via GenericGlobalCard"
+  },
+  {
+    "cardId": "nikkei",
+    "cardName": "NIKKEI (Generic)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": "Rendered via GenericGlobalCard"
+  },
+  {
+    "cardId": "ftse",
+    "cardName": "FTSE (Generic)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": "Rendered via GenericGlobalCard"
+  },
+  {
+    "cardId": "dax",
+    "cardName": "DAX (Generic)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": "Rendered via GenericGlobalCard"
+  },
+  {
+    "cardId": "hangseng",
+    "cardName": "HANGSENG (Generic)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": "Rendered via GenericGlobalCard"
+  },
+  {
+    "cardId": "shanghai",
+    "cardName": "SHANGHAI (Generic)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": "Rendered via GenericGlobalCard"
+  },
+  {
+    "cardId": "cac40",
+    "cardName": "CAC40 (Generic)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": "Rendered via GenericGlobalCard"
+  },
+  {
+    "cardId": "eurostoxx",
+    "cardName": "EUROSTOXX (Generic)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": "Rendered via GenericGlobalCard"
+  },
+  {
+    "cardId": "copper",
+    "cardName": "COPPER (Generic)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": "Rendered via GenericGlobalCard"
+  },
+  {
+    "cardId": "natgas",
+    "cardName": "NATGAS (Generic)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": "Rendered via GenericGlobalCard"
+  },
+  {
+    "cardId": "wheat",
+    "cardName": "WHEAT (Generic)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": "Rendered via GenericGlobalCard"
+  },
+  {
+    "cardId": "aluminum",
+    "cardName": "ALUMINUM (Generic)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": "Rendered via GenericGlobalCard"
+  },
+  {
+    "cardId": "move",
+    "cardName": "MOVE (Generic)",
+    "page": "Global",
+    "appliesTo": "both",
+    "existingPromptKey": null,
+    "hasChatSection": true,
+    "requiredDataFields": [
+      "value"
+    ],
+    "currentPromptText": null,
+    "notes": "Rendered via GenericGlobalCard"
+  }
+]

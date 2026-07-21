@@ -249,6 +249,232 @@ export function smoothData(data, alpha = 0.3) {
       value,
     });
   }
-
   return smoothed;
+}
+
+// =============================
+// Supertrend Calculation
+// =============================
+
+export function calculateSupertrend(data, period = 10, multiplier = 3) {
+    if (!data || data.length < period) return { up: [], down: [] };
+    
+    // 1. Calculate True Range (TR)
+    const tr = [0];
+    for (let i = 1; i < data.length; i++) {
+        const high = data[i].high;
+        const low = data[i].low;
+        const prevClose = data[i-1].close;
+        const currentTr = Math.max(
+            high - low,
+            Math.abs(high - prevClose),
+            Math.abs(low - prevClose)
+        );
+        tr.push(currentTr);
+    }
+    
+    // 2. Calculate Average True Range (ATR) using RMA (Wilder's Smoothing)
+    const atr = [tr[0]];
+    for (let i = 1; i < data.length; i++) {
+        const currentAtr = (atr[i-1] * (period - 1) + tr[i]) / period;
+        atr.push(currentAtr);
+    }
+    
+    // 3. Calculate Supertrend Bands
+    const upSeries = [];
+    const downSeries = [];
+    
+    let finalUpper = 0;
+    let finalLower = 0;
+    let prevFinalUpper = 0;
+    let prevFinalLower = 0;
+    let supertrend = 1; // 1 for up, -1 for down
+    let prevSupertrend = 1;
+    
+    for (let i = 0; i < data.length; i++) {
+        if (i < period) {
+            continue;
+        }
+        
+        const close = data[i].close;
+        const high = data[i].high;
+        const low = data[i].low;
+        const prevClose = data[i-1].close;
+        
+        const basicUpper = (high + low) / 2 + multiplier * atr[i];
+        const basicLower = (high + low) / 2 - multiplier * atr[i];
+        
+        if (basicUpper < prevFinalUpper || prevClose > prevFinalUpper) {
+            finalUpper = basicUpper;
+        } else {
+            finalUpper = prevFinalUpper;
+        }
+        
+        if (basicLower > prevFinalLower || prevClose < prevFinalLower) {
+            finalLower = basicLower;
+        } else {
+            finalLower = prevFinalLower;
+        }
+        
+        if (prevSupertrend === 1 && close <= finalUpper) {
+            supertrend = -1;
+        } else if (prevSupertrend === -1 && close >= finalLower) {
+            supertrend = 1;
+        } else {
+            supertrend = prevSupertrend;
+        }
+        
+        const time = data[i].time;
+        
+        if (supertrend === 1) {
+            upSeries.push({ time, value: finalLower });
+        } else {
+            downSeries.push({ time, value: finalUpper });
+        }
+        
+        prevFinalUpper = finalUpper;
+        prevFinalLower = finalLower;
+        prevSupertrend = supertrend;
+    }
+    
+    return { up: upSeries, down: downSeries };
+}
+
+// =============================
+// VWAP Calculation
+// =============================
+export function calculateVWAP(data) {
+    if (!data || data.length === 0) return [];
+    
+    const vwapSeries = [];
+    let cumulativeVolume = 0;
+    let cumulativeVolumePrice = 0;
+    let currentDay = null;
+    
+    for (let i = 0; i < data.length; i++) {
+        const item = data[i];
+        
+        // Extract day from unix timestamp or time object to handle intraday resets
+        let itemDay = null;
+        if (typeof item.time === 'number') {
+            const date = new Date(item.time * 1000); // lightweight charts unix is usually seconds
+            itemDay = date.getUTCFullYear() + '-' + date.getUTCMonth() + '-' + date.getUTCDate();
+        } else if (item.time && typeof item.time === 'object' && item.time.year) {
+            itemDay = `${item.time.year}-${item.time.month}-${item.time.day}`;
+        } else if (typeof item.time === 'string') {
+            const date = new Date(item.time);
+            itemDay = date.getUTCFullYear() + '-' + date.getUTCMonth() + '-' + date.getUTCDate();
+        }
+        
+        // Reset at start of new day
+        if (itemDay !== currentDay) {
+            cumulativeVolume = 0;
+            cumulativeVolumePrice = 0;
+            currentDay = itemDay;
+        }
+        
+        const typicalPrice = (item.high + item.low + item.close) / 3;
+        const volume = item.volume || 0;
+        
+        cumulativeVolume += volume;
+        cumulativeVolumePrice += (typicalPrice * volume);
+        
+        if (cumulativeVolume > 0) {
+            vwapSeries.push({ time: item.time, value: cumulativeVolumePrice / cumulativeVolume });
+        }
+    }
+    
+    return vwapSeries;
+}
+
+// =============================
+// EMA Calculation
+// =============================
+export function calculateEMA(data, period) {
+    if (!data || data.length < period) return [];
+    
+    const emaSeries = [];
+    const multiplier = 2 / (period + 1);
+    
+    // Calculate initial SMA for first EMA point
+    let sum = 0;
+    for (let i = 0; i < period; i++) {
+        sum += data[i].close;
+    }
+    let prevEma = sum / period;
+    
+    // We can output the SMA as the first point
+    emaSeries.push({ time: data[period - 1].time, value: prevEma });
+    
+    for (let i = period; i < data.length; i++) {
+        const currentEma = (data[i].close - prevEma) * multiplier + prevEma;
+        emaSeries.push({ time: data[i].time, value: currentEma });
+        prevEma = currentEma;
+    }
+    
+    return emaSeries;
+}
+
+// =============================
+// CPR Calculation (Central Pivot Range)
+// =============================
+export function calculateCPR(data) {
+    if (!data || data.length === 0) return { tc: [], p: [], bc: [] };
+    
+    const dailyData = {};
+    
+    // 1. Group data by day to find daily High, Low, Close
+    for (let i = 0; i < data.length; i++) {
+        const item = data[i];
+        let itemDay = null;
+        if (typeof item.time === 'number') {
+            const date = new Date(item.time * 1000);
+            itemDay = date.getUTCFullYear() + '-' + date.getUTCMonth() + '-' + date.getUTCDate();
+        } else if (item.time && typeof item.time === 'object' && item.time.year) {
+            itemDay = `${item.time.year}-${item.time.month}-${item.time.day}`;
+        } else if (typeof item.time === 'string') {
+            const date = new Date(item.time);
+            itemDay = date.getUTCFullYear() + '-' + date.getUTCMonth() + '-' + date.getUTCDate();
+        }
+        
+        if (!itemDay) continue;
+        
+        if (!dailyData[itemDay]) {
+            dailyData[itemDay] = { high: item.high, low: item.low, close: item.close, items: [] };
+        } else {
+            dailyData[itemDay].high = Math.max(dailyData[itemDay].high, item.high);
+            dailyData[itemDay].low = Math.min(dailyData[itemDay].low, item.low);
+            dailyData[itemDay].close = item.close; // Will end up being the last close of the day
+        }
+        dailyData[itemDay].items.push(item);
+    }
+    
+    const tcSeries = [];
+    const pSeries = [];
+    const bcSeries = [];
+    
+    const days = Object.keys(dailyData);
+    
+    // 2. Calculate CPR for each day using PREVIOUS day's HLC
+    for (let i = 1; i < days.length; i++) {
+        const prevDay = dailyData[days[i - 1]];
+        const currentDay = dailyData[days[i]];
+        
+        const pivot = (prevDay.high + prevDay.low + prevDay.close) / 3;
+        const bc = (prevDay.high + prevDay.low) / 2;
+        const tc = (pivot - bc) + pivot;
+        
+        // Ensure TC is always the higher value and BC is lower (Standard CPR convention)
+        const topCentral = Math.max(tc, bc);
+        const bottomCentral = Math.min(tc, bc);
+        
+        // Project across all intraday bars of the current day
+        for (const item of currentDay.items) {
+            tcSeries.push({ time: item.time, value: topCentral });
+            pSeries.push({ time: item.time, value: pivot });
+            bcSeries.push({ time: item.time, value: bottomCentral });
+        }
+    }
+    
+    return { tc: tcSeries, p: pSeries, bc: bcSeries };
 }

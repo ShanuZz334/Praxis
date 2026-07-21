@@ -32,6 +32,7 @@ import snapshotRoutes from "./routes/snapshotRoutes.js";
 import intelligenceRoutes from "./routes/intelligenceRoutes.js";
 import flowRoutes from "./routes/flowRoutes.js";
 import catalystRoutes from "./routes/catalystRoutes.js";
+import aiSettingsRoutes from "./routes/aiSettingsRoutes.js";
 
 // =============================
 // Express App Setup
@@ -87,6 +88,7 @@ app.use("/api/v1/upstox", upstoxRoutes);
 app.use("/api/v1/snapshots", snapshotRoutes);
 app.use("/api/v1/intelligence", intelligenceRoutes);
 app.use("/api/v1/catalysts", catalystRoutes);
+app.use("/api/v1/ai-settings", aiSettingsRoutes);
 app.use("/api/flow", flowRoutes);
 
 // =============================

@@ -73,7 +73,7 @@ export function scoreADRatio(adRatio) {
 
 export function scoreDebtToEquity(currentDE, sectorDE) {
     if (currentDE === null || isNaN(currentDE)) {
-        return { score: 0, bias: 'Neutral', confidence: 0, leverageZone: 'Unknown' };
+        return { score: null, bias: 'Neutral', confidence: 0, leverageZone: 'Unknown' };
     }
 
     // ── Factor 1: Absolute D/E Thresholds (0–100) ─────────────────────────
@@ -139,7 +139,7 @@ export function scoreDebtToEquity(currentDE, sectorDE) {
 }
 
 export function scoreDividendYield(currentYield, bondYield) {
-    if (currentYield === null || isNaN(currentYield)) return { score: 0, bias: 'Neutral', confidence: '0%' };
+    if (currentYield === null || isNaN(currentYield)) return { score: null, bias: 'Neutral', confidence: '0%' };
 
     let score = 50;
     let confidencePoints = 40;
@@ -246,7 +246,7 @@ export function scoreEarningsTrend(epsHistory, manualCAGR) {
 
 export function scoreEarningsYield(currentYield, historicalYield, bondYield) {
     if (!currentYield) {
-        return { score: 0, bias: "Unknown", confidence: "0%" };
+        return { score: null, bias: "Unknown", confidence: "0%" };
     }
 
     let score = 50;
@@ -304,7 +304,7 @@ export function scoreEarningsYield(currentYield, historicalYield, bondYield) {
 
 export function scoreEPSGrowth(cagr, latestYoY, positiveYears, totalPeriods) {
     if (cagr === null || isNaN(cagr)) {
-        return { score: 0, bias: 'Neutral', confidence: 0, growthTier: 'Unknown', momentumLabel: 'Unknown' };
+        return { score: null, bias: 'Neutral', confidence: 0, growthTier: 'Unknown', momentumLabel: 'Unknown' };
     }
 
     // ── Factor 1: CAGR Level (0–100) ─────────────────────────────────────
@@ -457,7 +457,7 @@ export function scoreForwardPE(currentFwdPE, currentPE) {
 
 export function scoreFreeCashFlow(currentFCF, revenue) {
     if (currentFCF === null || isNaN(currentFCF)) {
-        return { score: 0, bias: 'Neutral', confidence: 0, fcfCategory: 'Unknown', fcfYield: null };
+        return { score: null, bias: 'Neutral', confidence: 0, fcfCategory: 'Unknown', fcfYield: null };
     }
 
     // ── Compute FCF Yield when revenue is available ───────────────────────
@@ -638,7 +638,7 @@ export function scorePCR(pcrValue) {
 
 export function scoreInterestCoverage(currentCoverage, sectorCoverage) {
     if (currentCoverage === null || isNaN(currentCoverage)) {
-        return { score: 0, bias: 'Neutral', confidence: 0, safetyZone: 'Unknown' };
+        return { score: null, bias: 'Neutral', confidence: 0, safetyZone: 'Unknown' };
     }
 
     // ── Factor 1: Absolute Safety Threshold ───────────────────────────────
@@ -964,7 +964,7 @@ export function scoreOperatingMargin(currentMargin, sectorMargin) {
 
 export function scorePBRatio(currentPB, historicalPB, sectorPB) {
     if (!currentPB) {
-        return { score: 0, bias: "Unknown", confidence: "0%" };
+        return { score: null, bias: "Unknown", confidence: "0%" };
     }
 
     let score = 50;
@@ -1910,7 +1910,7 @@ export function generateAiInsightVolatilityCard(vixValue, vixRegime, marketCondi
 }
 export function scoreEVEbitda(currentEV, sectorEV) {
     if (currentEV === null || isNaN(currentEV)) {
-        return { score: 0, bias: 'Neutral', confidence: 0, valuationZone: 'Unknown' };
+        return { score: null, bias: 'Neutral', confidence: 0, valuationZone: 'Unknown' };
     }
 
     let f1Score;
@@ -1973,7 +1973,7 @@ export function generateAiInsightEVEbitdaCard(currentEV, sectorEV, valuationZone
 
 export function scoreROA(currentROA, sectorROA) {
     if (currentROA === null || isNaN(currentROA)) {
-        return { score: 0, bias: 'Neutral', confidence: 0, efficiencyZone: 'Unknown' };
+        return { score: null, bias: 'Neutral', confidence: 0, efficiencyZone: 'Unknown' };
     }
 
     let f1Score;
@@ -2036,7 +2036,7 @@ export function generateAiInsightROACard(currentROA, sectorROA, efficiencyZone) 
 
 // --- Promoter Holding Score ---------------------------------------------------
 export function scorePromoterHolding(currentPct, prevPct) {
-    if (currentPct === null || isNaN(currentPct)) return { score: 0, bias: 'Neutral', confidence: 0, holdingZone: 'Unknown', trend: 'No Data' };
+    if (currentPct === null || isNaN(currentPct)) return { score: null, bias: 'Neutral', confidence: 0, holdingZone: 'Unknown', trend: 'No Data' };
     let f1Score, holdingZone;
     if (currentPct >= 70) { f1Score = 90; holdingZone = 'Fortress Control'; }
     else if (currentPct >= 55) { f1Score = 80; holdingZone = 'Strong Commitment'; }
@@ -2064,8 +2064,8 @@ export function generateAiInsightPromoterCard(currentPct, prevPct, holdingZone, 
     let text = `Promoters hold ${currentPct.toFixed(2)}% of shares (${holdingZone}).`;
     if (prevPct !== null && !isNaN(prevPct)) {
         const delta = currentPct - prevPct;
-        if (delta > 0) text += ` Stake increased by ${delta.toFixed(2)}% QoQ � a vote of confidence in the company's future.`;
-        else if (delta < 0) text += ` Stake decreased by ${Math.abs(delta).toFixed(2)}% QoQ � monitor for continued dilution.`;
+        if (delta > 0) text += ` Stake increased by ${delta.toFixed(2)}% QoQ � a vote of confidence in the company's future.`;
+        else if (delta < 0) text += ` Stake decreased by ${Math.abs(delta).toFixed(2)}% QoQ � monitor for continued dilution.`;
         else text += ' Promoter stake remained unchanged this quarter.';
     }
     if (currentPct >= 55) text += ' High promoter stake strongly aligns management with shareholder interests.';
@@ -2075,7 +2075,7 @@ export function generateAiInsightPromoterCard(currentPct, prevPct, holdingZone, 
 
 // --- Smart Money Flow Score ---------------------------------------------------
 export function scoreSmartMoneyFlow(latestInstitutional, prevInstitutional) {
-    if (latestInstitutional === null || isNaN(latestInstitutional)) return { score: 0, bias: 'Neutral', confidence: 0, flowZone: 'Unknown', trend: 'No Data' };
+    if (latestInstitutional === null || isNaN(latestInstitutional)) return { score: null, bias: 'Neutral', confidence: 0, flowZone: 'Unknown', trend: 'No Data' };
     let f1Score, flowZone;
     if (latestInstitutional >= 50) { f1Score = 90; flowZone = 'Heavy Institutional Ownership'; }
     else if (latestInstitutional >= 35) { f1Score = 78; flowZone = 'Strong Institutional Interest'; }
@@ -2099,7 +2099,7 @@ export function scoreSmartMoneyFlow(latestInstitutional, prevInstitutional) {
 
 export function generateAiInsightSmartMoneyCard(latestInstitutional, prevInstitutional, flowZone, trend) {
     if (latestInstitutional === null || isNaN(latestInstitutional)) return 'Awaiting shareholding data from Upstox.';
-    let text = `Institutional investors (FII + DII + MF) hold ${latestInstitutional.toFixed(2)}% � classified as "${flowZone}".`;
+    let text = `Institutional investors (FII + DII + MF) hold ${latestInstitutional.toFixed(2)}% � classified as "${flowZone}".`;
     if (prevInstitutional !== null && !isNaN(prevInstitutional)) {
         const delta = latestInstitutional - prevInstitutional;
         if (delta > 0) text += ` Institutions are accumulating (+${delta.toFixed(2)}% QoQ), which typically precedes price appreciation.`;
@@ -2111,7 +2111,7 @@ export function generateAiInsightSmartMoneyCard(latestInstitutional, prevInstitu
 
 // --- Earnings Quality Score ---------------------------------------------------
 export function scoreEarningsQuality(cfoToNetProfit) {
-    if (cfoToNetProfit === null || isNaN(cfoToNetProfit)) return { score: 0, bias: 'Neutral', confidence: 0, qualityLabel: 'Unknown' };
+    if (cfoToNetProfit === null || isNaN(cfoToNetProfit)) return { score: null, bias: 'Neutral', confidence: 0, qualityLabel: 'Unknown' };
     let score, qualityLabel;
     if (cfoToNetProfit > 1.5) { score = 95; qualityLabel = 'Exceptional Cash Quality'; }
     else if (cfoToNetProfit > 1.1) { score = 82; qualityLabel = 'High Quality Earnings'; }
@@ -2119,7 +2119,7 @@ export function scoreEarningsQuality(cfoToNetProfit) {
     else if (cfoToNetProfit > 0.5) { score = 45; qualityLabel = 'Weak Cash Conversion'; }
     else if (cfoToNetProfit > 0) { score = 28; qualityLabel = 'Poor Cash Quality'; }
     else if (cfoToNetProfit === 0) { score = 40; qualityLabel = 'Break-Even'; }
-    else { score = 10; qualityLabel = 'Negative CFO � Paper Profits'; }
+    else { score = 10; qualityLabel = 'Negative CFO � Paper Profits'; }
     let bias;
     if (score >= 80) bias = 'Strong Bullish'; else if (score >= 62) bias = 'Bullish';
     else if (score >= 42) bias = 'Neutral'; else if (score >= 25) bias = 'Bearish'; else bias = 'Strong Bearish';
@@ -2128,10 +2128,10 @@ export function scoreEarningsQuality(cfoToNetProfit) {
 
 export function generateAiInsightEarningsQualityCard(cfoToNetProfit, qualityLabel) {
     if (cfoToNetProfit === null || isNaN(cfoToNetProfit)) return 'Awaiting cash flow and income data from Upstox.';
-    let text = `Earnings Quality Ratio (CFO / Net Profit) is ${cfoToNetProfit.toFixed(2)}x � "${qualityLabel}".`;
+    let text = `Earnings Quality Ratio (CFO / Net Profit) is ${cfoToNetProfit.toFixed(2)}x � "${qualityLabel}".`;
     if (cfoToNetProfit > 1.0) text += ` For every ?1 of reported net profit, the company generates ?${cfoToNetProfit.toFixed(2)} of actual operating cash. Profits are real and cash-backed.`;
-    else if (cfoToNetProfit > 0) text += ` Only ?${cfoToNetProfit.toFixed(2)} of every ?1 profit is backed by real cash flows � possible aggressive revenue recognition or working capital buildup.`;
-    else text += ' Operating cash flows are negative despite reported profits � a classic earnings quality warning sign.';
+    else if (cfoToNetProfit > 0) text += ` Only ?${cfoToNetProfit.toFixed(2)} of every ?1 profit is backed by real cash flows � possible aggressive revenue recognition or working capital buildup.`;
+    else text += ' Operating cash flows are negative despite reported profits � a classic earnings quality warning sign.';
     return text;
 }
 
@@ -2141,9 +2141,9 @@ export function generateAiInsightEarningsQualityCard(cfoToNetProfit, qualityLabe
 // ==========================================
 
 export function scoreNiftyPE(pe) {
-    if (pe === undefined || pe === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (pe === undefined || pe === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(pe);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
 
     let score = 50;
     let bias = 'Neutral';
@@ -2166,9 +2166,9 @@ export function generateAiInsightNiftyPE(scoreObj, val) {
 }
 
 export function scoreNiftyPB(pb) {
-    if (pb === undefined || pb === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (pb === undefined || pb === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(pb);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
 
     let score = 50;
     let bias = 'Neutral';
@@ -2191,9 +2191,9 @@ export function generateAiInsightNiftyPB(scoreObj, val) {
 }
 
 export function scoreMarketCapGDP(ratio) {
-    if (ratio === undefined || ratio === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (ratio === undefined || ratio === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(ratio);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
 
     let score = 50;
     let bias = 'Neutral';
@@ -2216,9 +2216,9 @@ export function generateAiInsightMarketCapGDP(scoreObj, val) {
 }
 
 export function scoreNiftyDividendYield(yieldVal) {
-    if (yieldVal === undefined || yieldVal === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (yieldVal === undefined || yieldVal === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(yieldVal);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
 
     let score = 50;
     let bias = 'Neutral';
@@ -2241,9 +2241,9 @@ export function generateAiInsightNiftyDividendYield(scoreObj, val) {
 }
 
 export function scoreNiftyEPSGrowth(growth) {
-    if (growth === undefined || growth === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (growth === undefined || growth === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(growth);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
 
     let score = 50;
     let bias = 'Neutral';
@@ -2266,9 +2266,9 @@ export function generateAiInsightNiftyEPSGrowth(scoreObj, val) {
 }
 
 export function scoreNiftyForwardEPS(growth) {
-    if (growth === undefined || growth === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (growth === undefined || growth === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(growth);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     
     let score = 50; let bias = 'Neutral';
     if (num > 22) { score = 100; bias = 'Strong Bullish'; }
@@ -2286,9 +2286,9 @@ export function generateAiInsightNiftyForwardEPS(scoreObj, val) {
 }
 
 export function scoreEarningsRevision(netUpgrades) {
-    if (netUpgrades === undefined || netUpgrades === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (netUpgrades === undefined || netUpgrades === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(netUpgrades); // % of companies with EPS upgrades minus downgrades
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     
     let score = 50; let bias = 'Neutral';
     if (num > 20) { score = 100; bias = 'Strong Bullish'; }
@@ -2306,9 +2306,9 @@ export function generateAiInsightEarningsRevision(scoreObj, val) {
 }
 
 export function scoreSectorEarnings(breadth) {
-    if (breadth === undefined || breadth === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (breadth === undefined || breadth === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(breadth); // % of sectors beating estimates
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     
     let score = 50; let bias = 'Neutral';
     if (num > 75) { score = 100; bias = 'Strong Bullish'; }
@@ -2326,9 +2326,9 @@ export function generateAiInsightSectorEarnings(scoreObj, val) {
 }
 
 export function scoreAggregateProfitMargin(margin) {
-    if (margin === undefined || margin === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (margin === undefined || margin === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(margin);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     
     let score = 50; let bias = 'Neutral';
     if (num > 12) { score = 100; bias = 'Strong Bullish'; }
@@ -2346,9 +2346,9 @@ export function generateAiInsightAggregateProfitMargin(scoreObj, val) {
 }
 
 export function scoreCPIInflation(cpi) {
-    if (cpi === undefined || cpi === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (cpi === undefined || cpi === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(cpi);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     
     let score = 50; let bias = 'Neutral';
     // RBI target is 4%, band 2-6%
@@ -2367,9 +2367,9 @@ export function generateAiInsightCPIInflation(scoreObj, val) {
 }
 
 export function scoreRepoRate(repo) {
-    if (repo === undefined || repo === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (repo === undefined || repo === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(repo);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     
     let score = 50; let bias = 'Neutral';
     // Lower rates are generally bullish for equities
@@ -2388,7 +2388,7 @@ export function generateAiInsightRepoRate(scoreObj, val) {
 }
 
 export function scorePolicyStance(stance) {
-    if (!stance) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (!stance) return { score: null, bias: 'Unknown', confidence: 0 };
     const s = stance.toLowerCase();
     
     if (s.includes('accommodative')) return { score: 100, bias: 'Strong Bullish', confidence: 90 };
@@ -2405,9 +2405,9 @@ export function generateAiInsightPolicyStance(scoreObj, val) {
 }
 
 export function scoreFiscalDeficit(deficit) {
-    if (deficit === undefined || deficit === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (deficit === undefined || deficit === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(deficit);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     
     let score = 50; let bias = 'Neutral';
     // Lower is better (Govt target glide path to 4.5%)
@@ -2426,9 +2426,9 @@ export function generateAiInsightFiscalDeficit(scoreObj, val) {
 }
 
 export function scoreCurrentAccount(cad) {
-    if (cad === undefined || cad === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (cad === undefined || cad === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(cad); // Negative means deficit, positive means surplus
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     
     let score = 50; let bias = 'Neutral';
     if (num >= 0) { score = 100; bias = 'Strong Bullish'; } // Surplus
@@ -2446,9 +2446,9 @@ export function generateAiInsightCurrentAccount(scoreObj, val) {
 }
 
 export function scoreFiiFlowTrend(persistence) {
-    if (persistence === undefined || persistence === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (persistence === undefined || persistence === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(persistence); // -10 to +10 scale (days of net buying)
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     
     let score = 50; let bias = 'Neutral';
     if (num >= 7) { score = 100; bias = 'Strong Bullish'; }
@@ -2466,9 +2466,9 @@ export function generateAiInsightFiiFlowTrend(scoreObj, val) {
 }
 
 export function scoreSystemLiquidity(surplus) {
-    if (surplus === undefined || surplus === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (surplus === undefined || surplus === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(surplus); // In Lakh Crores
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     
     let score = 50; let bias = 'Neutral';
     if (num > 2.0) { score = 100; bias = 'Strong Bullish'; } // 2 Lakh Cr surplus
@@ -2486,9 +2486,9 @@ export function generateAiInsightSystemLiquidity(scoreObj, val) {
 }
 
 export function scoreMFFlows(sip) {
-    if (sip === undefined || sip === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (sip === undefined || sip === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(sip); // SIP flows in Rs Crores
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     
     let score = 50; let bias = 'Neutral';
     if (num > 18000) { score = 100; bias = 'Strong Bullish'; }
@@ -2506,9 +2506,9 @@ export function generateAiInsightMFFlows(scoreObj, val) {
 }
 
 export function scoreSectorValuationSpread(spread) {
-    if (spread === undefined || spread === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (spread === undefined || spread === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(spread); // standard deviation of sector PEs
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     
     let score = 50; let bias = 'Neutral';
     // Lower dispersion means broad participation, high means bubble in specific sectors
@@ -2525,9 +2525,9 @@ export function generateAiInsightSectorValuationSpread(scoreObj, val) {
 }
 
 export function scoreSectorGrowthDifferential(diff) {
-    if (diff === undefined || diff === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (diff === undefined || diff === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(diff); 
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     let score = 50; let bias = 'Neutral';
     if (num > 0) { score = 75; bias = 'Bullish'; } // Growth leading
     else { score = 25; bias = 'Bearish'; } // Laggards leading
@@ -2540,9 +2540,9 @@ export function generateAiInsightSectorGrowthDifferential(scoreObj, val) {
 }
 
 export function scoreSectorConcentration(top3Weight) {
-    if (top3Weight === undefined || top3Weight === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (top3Weight === undefined || top3Weight === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(top3Weight);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     let score = 50; let bias = 'Neutral';
     if (num < 45) { score = 90; bias = 'Bullish'; }
     else if (num < 55) { score = 50; bias = 'Neutral'; }
@@ -2556,9 +2556,9 @@ export function generateAiInsightSectorConcentration(scoreObj, val) {
 }
 
 export function scoreCyclicalDefensive(ratio) {
-    if (ratio === undefined || ratio === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (ratio === undefined || ratio === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(ratio);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     let score = 50; let bias = 'Neutral';
     if (num > 1.2) { score = 90; bias = 'Bullish'; }
     else if (num > 0.9) { score = 50; bias = 'Neutral'; }
@@ -2572,9 +2572,9 @@ export function generateAiInsightCyclicalDefensive(scoreObj, val) {
 }
 
 export function scoreBankCreditGrowth(growth) {
-    if (growth === undefined || growth === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (growth === undefined || growth === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(growth);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     let score = 50; let bias = 'Neutral';
     if (num > 15) { score = 100; bias = 'Strong Bullish'; }
     else if (num > 12) { score = 80; bias = 'Bullish'; }
@@ -2591,9 +2591,9 @@ export function generateAiInsightBankCreditGrowth(scoreObj, val) {
 }
 
 export function scoreAggregateCorporateDebt(debtGdp) {
-    if (debtGdp === undefined || debtGdp === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (debtGdp === undefined || debtGdp === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(debtGdp);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     let score = 50; let bias = 'Neutral';
     if (num < 45) { score = 90; bias = 'Bullish'; }
     else if (num < 55) { score = 50; bias = 'Neutral'; }
@@ -2607,9 +2607,9 @@ export function generateAiInsightAggregateCorporateDebt(scoreObj, val) {
 }
 
 export function scorePolicyTailwinds(score) {
-    if (score === undefined || score === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (score === undefined || score === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(score); // 0-10 scale
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     let finalScore = num * 10;
     return { 
         score: finalScore, 
@@ -2624,9 +2624,9 @@ export function generateAiInsightPolicyTailwinds(scoreObj, val) {
 }
 
 export function scoreCrudeOil(crude) {
-    if (crude === undefined || crude === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (crude === undefined || crude === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(crude);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     let score = 50; let bias = 'Neutral';
     if (num < 65) { score = 100; bias = 'Strong Bullish'; }
     else if (num < 75) { score = 80; bias = 'Bullish'; }
@@ -2643,9 +2643,9 @@ export function generateAiInsightCrudeOil(scoreObj, val) {
 }
 
 export function scoreUSDINR(usdinr) {
-    if (usdinr === undefined || usdinr === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (usdinr === undefined || usdinr === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(usdinr);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     // This requires a proxy for "stability". For simplicity we assume < 82 is bullish, > 84 is bearish
     let score = 50; let bias = 'Neutral';
     if (num < 81) { score = 90; bias = 'Bullish'; }
@@ -2661,7 +2661,7 @@ export function generateAiInsightUSDINR(scoreObj, val) {
 }
 
 export function scoreGlobalLiquidity(stance) {
-    if (!stance) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (!stance) return { score: null, bias: 'Unknown', confidence: 0 };
     const s = stance.toLowerCase();
     if (s.includes('easing') || s.includes('qe')) return { score: 100, bias: 'Strong Bullish', confidence: 90 };
     if (s.includes('neutral')) return { score: 50, bias: 'Neutral', confidence: 90 };
@@ -2676,9 +2676,9 @@ export function generateAiInsightGlobalLiquidity(scoreObj, val) {
 }
 
 export function scoreSovereignRisk(cds) {
-    if (cds === undefined || cds === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (cds === undefined || cds === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(cds); // basis points
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     let score = 50; let bias = 'Neutral';
     if (num < 100) { score = 90; bias = 'Bullish'; }
     else if (num < 150) { score = 50; bias = 'Neutral'; }
@@ -2692,9 +2692,9 @@ export function generateAiInsightSovereignRisk(scoreObj, val) {
 }
 
 export function scoreNPA(npa) {
-    if (npa === undefined || npa === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (npa === undefined || npa === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(npa);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     let score = 50; let bias = 'Neutral';
     if (num < 3.0) { score = 100; bias = 'Strong Bullish'; }
     else if (num < 5.0) { score = 75; bias = 'Bullish'; }
@@ -2710,9 +2710,9 @@ export function generateAiInsightNPA(scoreObj, val) {
 }
 
 export function scoreReformMomentum(momentum) {
-    if (momentum === undefined || momentum === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (momentum === undefined || momentum === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(momentum); // 0-10 scale
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
     let finalScore = num * 10;
     return { 
         score: finalScore, 
@@ -2727,9 +2727,9 @@ export function generateAiInsightReformMomentum(scoreObj, val) {
 }
 
 export function scoreFIIFlow(val) {
-    if (val === undefined || val === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (val === undefined || val === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(val);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
 
     let score = 50;
     let bias = 'Neutral';
@@ -2752,9 +2752,9 @@ export function generateAiInsightFIIFlow(scoreObj, val) {
 }
 
 export function scoreDIIFlow(val) {
-    if (val === undefined || val === null) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (val === undefined || val === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(val);
-    if (isNaN(num)) return { score: 0, bias: 'Unknown', confidence: 0 };
+    if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
 
     let score = 50;
     let bias = 'Neutral';

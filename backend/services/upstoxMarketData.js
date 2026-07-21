@@ -138,12 +138,9 @@ export let cachedSmartlists = null;
 export let cachedSectors = null;
 export let cachedNews = null;
 
-export const startMarketDataPolling = () => {
-    console.log("⏱️ Starting Market Data (FII/DII, Smartlists) Polling");
-    
-    const poll = async () => {
-        try {
-            const flowData = await fetchFiiDiiFlow();
+export const forceMarketDataPoll = async () => {
+    try {
+        const flowData = await fetchFiiDiiFlow();
             cachedFlowData = flowData || { fii: {}, dii: {}, timestamp: null };
             broadcast("market:fiidii", cachedFlowData);
             
@@ -258,13 +255,16 @@ export const startMarketDataPolling = () => {
             } catch (err) {
                 console.error("Failed to fetch market news:", err.message);
             }
-        } catch (e) {
-            console.error("Polling error:", e.message);
-        }
-    };
+    } catch (e) {
+        console.error("Polling error:", e.message);
+    }
+};
 
+export const startMarketDataPolling = () => {
+    console.log("⏱️ Starting Market Data (FII/DII, Smartlists) Polling");
+    
     // Poll immediately, then every 5 minutes
-    poll();
-    setInterval(poll, 5 * 60 * 1000);
+    forceMarketDataPoll();
+    setInterval(forceMarketDataPoll, 5 * 60 * 1000);
 };
 

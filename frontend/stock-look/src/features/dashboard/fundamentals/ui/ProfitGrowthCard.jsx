@@ -48,7 +48,7 @@ export default function ProfitGrowthCard({ data = null, manualOverride, lastUpda
                     { label: 'Latest Profit', value: latestProfit !== null ? latestProfit : '--', isManual: isManual },
                     { label: 'Previous Profit', value: previousProfit !== null ? previousProfit : '--', isManual: isManual }
                 ],
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: confidence || '85%',
                 impactWeight: configData?.impactWeight || 5.0

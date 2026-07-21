@@ -34,7 +34,6 @@ import BreadthRatioCard from "./BreadthRatioCard";
 import McClellanCard from "./McClellanCard";
 import ADLineCard from "./ADLineCard";
 import NhnlCard from "./NhnlCard";
-import VixCard from "./VixCard";
 import TrinCard from "./TrinCard";
 
 const HARDCODED_IDS = [

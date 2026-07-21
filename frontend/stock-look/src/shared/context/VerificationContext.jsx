@@ -80,18 +80,20 @@ export const VerificationProvider = ({ children }) => {
 
     // --- Render ---
 
+    const contextValue = React.useMemo(() => ({
+        isVerifying,
+        isVerified,
+        signupToken, // Expose token
+        email,
+        loading,
+        error,
+        initiateVerification,
+        verifyCredentials,
+        resetVerification
+    }), [isVerifying, isVerified, signupToken, email, loading, error, initiateVerification, verifyCredentials, resetVerification]);
+
     return (
-        <VerificationContext.Provider value={{
-            isVerifying,
-            isVerified,
-            signupToken, // Expose token
-            email,
-            loading,
-            error,
-            initiateVerification,
-            verifyCredentials,
-            resetVerification
-        }}>
+        <VerificationContext.Provider value={contextValue}>
             {children}
         </VerificationContext.Provider>
     );

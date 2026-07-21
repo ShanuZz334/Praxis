@@ -36,7 +36,7 @@ export default function FIICard({ data, manualOverride, lastUpdated }) {
             data={{
                 currentValueObj: { label: 'Flow (Cr)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
                 details: [],
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: `${confidence}%`,
                 impactWeight: configData?.impactWeight || 5.0

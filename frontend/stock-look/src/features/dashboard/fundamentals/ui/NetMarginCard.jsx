@@ -78,7 +78,7 @@ export default function NetMarginCard({ data, manualOverride, lastUpdated }) {
                 details: [
                     sectorMargin !== null && { label: 'Sector Margin', value: sectorMargin.toFixed(2) + '%', isManual: false }
                 ].filter(Boolean),
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: confidence,
                 impactWeight: configData?.impactWeight || 5.0

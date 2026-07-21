@@ -73,7 +73,7 @@ export default function DividendYieldCard({ data = null, manualOverride, lastUpd
                 details: [
                     bondYield !== null && !isNaN(bondYield) && { label: '10Y Bond Yield', value: formatPercentage(bondYield), isManual: true }
                 ].filter(Boolean),
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: confidence || '85%',
                 impactWeight: configData?.impactWeight || 5.0

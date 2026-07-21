@@ -117,7 +117,7 @@ export default function NewsModal({ open, onClose, news }) {
                 </div>
 
                 {/* Center Panel */}
-                <div className="flex-1 min-w-0 bg-background-card/98 border border-border-default backdrop-blur-3xl rounded-2xl shadow-xl flex flex-col overflow-hidden pointer-events-auto">
+                <div className="flex-1 min-w-0 bg-background-card/98 border border-border-default backdrop-blur-md rounded-2xl shadow-xl flex flex-col overflow-hidden pointer-events-auto">
                     <div className="shrink-0 p-8 border-b border-border-subtle flex justify-between items-start bg-transparent z-10">
                         <div>
                             <h2 className="text-2xl font-black text-text-primary leading-tight pr-10 tracking-tighter">

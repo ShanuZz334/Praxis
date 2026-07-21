@@ -10,7 +10,19 @@ export default function ProfitMarginCard({ data, manualOverride, lastUpdated }) 
     let isManual = true;
     let extractedValue = null;
 
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
+    // Attempt to extract live data
+    const marginItem = (Array.isArray(data?.ratios) ? data.ratios : []).find(item => 
+        item.name?.toLowerCase().includes('profit margin') || 
+        item.name?.toLowerCase().includes('net profit margin')
+    );
+    
+    if (marginItem && marginItem.company_value) {
+        const parsed = cleanNum(marginItem.company_value);
+        if (!isNaN(parsed)) {
+            extractedValue = parsed;
+            isManual = false;
+        }
+    }
     
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
@@ -37,7 +49,7 @@ export default function ProfitMarginCard({ data, manualOverride, lastUpdated }) 
             data={{
                 currentValueObj: { label: 'Margin (%)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
                 details: [],
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: `${confidence}%`,
                 impactWeight: configData?.impactWeight || 5.0

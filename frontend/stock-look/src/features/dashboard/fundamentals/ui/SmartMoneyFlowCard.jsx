@@ -57,7 +57,7 @@ export default function SmartMoneyFlowCard({ data = null, lastUpdated }) {
                     dii0 !== null && { label: 'DII', value: `${dii0.toFixed(2)}%`, isManual: false },
                     mf0  !== null && { label: 'MF', value: `${mf0.toFixed(2)}%`, isManual: false },
                 ].filter(Boolean),
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: `${confidence}%`,
                 impactWeight: configData?.impactWeight || 6.0

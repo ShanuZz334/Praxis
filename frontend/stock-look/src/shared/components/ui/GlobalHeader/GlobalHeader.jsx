@@ -100,7 +100,10 @@ export default function GlobalHeader({
         sortMode: "score_desc",
         onSortChange: null,
         matchCount: 0
-    }
+    },
+    
+    // Custom Backside
+    customBackContent = null
 }) {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState("");
@@ -376,8 +379,12 @@ export default function GlobalHeader({
                             onClick={() => setIsFlipped(false)} 
                         />
                     </div>
-                    <div className="w-full h-full p-4 md:p-6 overflow-y-auto custom-scrollbar">
-                        {infoContent}
+                    <div className="w-full h-full p-0 md:p-0 overflow-hidden relative">
+                        {customBackContent || (
+                            <div className="w-full h-full p-4 md:p-6 overflow-y-auto custom-scrollbar">
+                                {infoContent}
+                            </div>
+                        )}
                     </div>
                 </div>
             }
@@ -488,11 +495,11 @@ function StatBlock({ label, value, color, breakdown }) {
 function SectionBar({ sections }) {
     // Prevent layout shift: Always render the structural block even if empty
     if (!sections || !sections.length) {
-        return <div className={`grid grid-cols-7 gap-1 h-28 mt-0 border-t ${STYLES.BORDER_DIVIDER} pt-2 pb-3`}></div>;
+        return <div className={`flex w-full gap-1 h-28 mt-0 border-t ${STYLES.BORDER_DIVIDER} pt-2 pb-3`}></div>;
     }
 
     return (
-        <div className={`grid grid-cols-7 gap-1 h-28 mt-0 border-t ${STYLES.BORDER_DIVIDER} pt-2 pb-3`}>
+        <div className={`flex w-full gap-1 h-28 mt-0 border-t ${STYLES.BORDER_DIVIDER} pt-2 pb-3`}>
             {sections.map(s => {
                 const sc = s.score;
                 const heightPct = sc !== null ? Math.min(100, Math.max(0, sc)) : 0;
@@ -501,7 +508,7 @@ function SectionBar({ sections }) {
                 const barHex = getIndicatorColor(sc).hex;
 
                 return (
-                    <div key={s.id} className="relative flex flex-col items-center justify-end h-full group">
+                    <div key={s.id} className="relative flex-1 flex flex-col items-center justify-end h-full group min-w-[20px]">
                         <div className={`w-2 rounded-full bg-background-surface flex-1 relative overflow-hidden border ${STYLES.BORDER_INNER} shadow-inner`}>
                             <div
                                 className="absolute bottom-0 w-full transition-all duration-700 ease-out"

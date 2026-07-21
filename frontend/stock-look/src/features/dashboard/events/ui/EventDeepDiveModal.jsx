@@ -163,7 +163,7 @@ export default function EventDeepDiveModal({ open, onClose, event }) {
                 </div>
 
                 {/* Center Main Panel */}
-                <div className="flex-1 min-w-0 bg-background-card/98 border border-border-default backdrop-blur-3xl rounded-2xl shadow-xl flex flex-col overflow-hidden pointer-events-auto order-1 lg:order-2 min-h-[400px]">
+                <div className="flex-1 min-w-0 bg-background-card/98 border border-border-default backdrop-blur-md rounded-2xl shadow-xl flex flex-col overflow-hidden pointer-events-auto order-1 lg:order-2 min-h-[400px]">
                     {/* Header */}
                     <div className="shrink-0 p-4 md:p-8 border-b border-border-subtle flex justify-between items-start bg-transparent z-10">
                         <div>

@@ -18,16 +18,16 @@ export const PaiWidgetProvider = ({ children }) => {
     // Is Sidebar Expanded?
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
+    const contextValue = React.useMemo(() => ({
+        isDocked, setIsDocked,
+        isChatOpen, setIsChatOpen,
+        floatingPos, setFloatingPos,
+        sidebarRect, setSidebarRect,
+        isSidebarExpanded, setIsSidebarExpanded
+    }), [isDocked, isChatOpen, floatingPos, sidebarRect, isSidebarExpanded]);
+
     return (
-        <PaiWidgetContext.Provider 
-            value={{ 
-                isDocked, setIsDocked,
-                isChatOpen, setIsChatOpen,
-                floatingPos, setFloatingPos,
-                sidebarRect, setSidebarRect,
-                isSidebarExpanded, setIsSidebarExpanded
-            }}
-        >
+        <PaiWidgetContext.Provider value={contextValue}>
             {children}
         </PaiWidgetContext.Provider>
     );

@@ -24,6 +24,20 @@ import paiLogoDark from '@/assets/images/pai 3-bgless.png';
 
 const INITIAL_SECTIONS = [
     {
+        id: 'assistant',
+        label: 'Assistant',
+        icon: MessageSquare,
+        subSections: [
+            {
+                id: 'assist_general',
+                label: 'General',
+                chats: [
+                    { id: 'assist_global', title: 'Global Chat', type: 'manual' }
+                ]
+            }
+        ]
+    },
+    {
         id: 'master',
         label: 'Master Dashboard',
         icon: LayoutDashboard,

@@ -10,7 +10,19 @@ export default function SectorConcentrationCard({ data, manualOverride, lastUpda
     let isManual = true;
     let extractedValue = null;
 
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
+    // Attempt to extract live data
+    const sectorConcentrationItem = (Array.isArray(data?.ratios) ? data.ratios : []).find(item => 
+        item.name?.toLowerCase().includes('sector concentration') ||
+        item.name?.toLowerCase().includes('concentration')
+    );
+    
+    if (sectorConcentrationItem && sectorConcentrationItem.company_value) {
+        const parsed = cleanNum(sectorConcentrationItem.company_value);
+        if (!isNaN(parsed)) {
+            extractedValue = parsed;
+            isManual = false;
+        }
+    }
     
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
@@ -37,7 +49,7 @@ export default function SectorConcentrationCard({ data, manualOverride, lastUpda
             data={{
                 currentValueObj: { label: 'Top 3 Weight (%)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
                 details: [],
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: `${confidence}%`,
                 impactWeight: configData?.impactWeight || 5.0

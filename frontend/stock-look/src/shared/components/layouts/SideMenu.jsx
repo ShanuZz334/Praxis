@@ -66,7 +66,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
 
   const handleClick = async (route, itemKey) => {
     if (itemKey === "pai" && collapsed) {
-        // Detach and open chat
+        // Detach and open chat only when the sidebar is collapsed
         setIsDocked(false);
         setIsChatOpen(true);
         return;
@@ -113,7 +113,6 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
                  <div key={item.id} ref={paiItemRef} className="relative w-[48px] h-[48px] mx-auto flex items-center justify-center my-2">
                      {isDocked ? (
                          <motion.button
-                             layoutId="pai-handle"
                              onClick={() => handleClick(item.path, item.key)}
                              className="absolute inset-0 flex items-center justify-center group pointer-events-auto"
                          >
@@ -173,7 +172,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
               {/* LABEL */}
               {!collapsed && (
                 item.key === 'pai' ? (
-                  <img
+                  <motion.img
                     src={paiLabelImg}
                     alt="PAI"
                     className="h-8 object-contain transition-all duration-300 group-hover:translate-x-2 group-hover:opacity-100 opacity-90"

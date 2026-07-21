@@ -48,7 +48,7 @@ export default function RevenueGrowthCard({ data = null, manualOverride, lastUpd
                     { label: 'Latest Revenue', value: latestRevenue !== null ? latestRevenue : '--', isManual: isManual },
                     { label: 'Previous Revenue', value: previousRevenue !== null ? previousRevenue : '--', isManual: isManual }
                 ],
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: confidence || '85%',
                 impactWeight: configData?.impactWeight || 5.0

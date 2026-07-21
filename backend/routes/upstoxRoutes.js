@@ -25,6 +25,7 @@ router.get("/login", (req, res) => {
 });
 
 import { connectUpstoxWebsocket } from "../services/upstoxWebsocket.js";
+import { forceMarketDataPoll } from "../services/upstoxMarketData.js";
 
 // @route   GET /api/v1/upstox/callback
 // @desc    Callback URL for Upstox OAuth 2.0 flow
@@ -64,11 +65,12 @@ router.get("/callback", async (req, res) => {
         });
         await authRecord.save();
 
-        // Reconnect Upstox Market Data Feed immediately using the new token
+        // Reconnect Upstox Market Data Feed and Poll APIs immediately using the new token
         try {
             connectUpstoxWebsocket();
+            forceMarketDataPoll(); // Instantly fetch FII/DII, Smartlists, News, and Sectors
         } catch (wsErr) {
-            console.error("Failed to re-initialize websocket after login", wsErr);
+            console.error("Failed to re-initialize websocket or polling after login", wsErr);
         }
 
         // Redirect back to frontend
@@ -435,8 +437,9 @@ router.get("/option-greeks", async (req, res) => {
 });
 
 import { getFundamentals } from "../controllers/fundamentalsController.js";
-import { getTechnicalIndicators } from "../controllers/technicalsController.js";
+import { getTechnicalIndicators, getCandles } from "../controllers/technicalsController.js";
 import { fetchFiiDiiFlow } from "../services/upstoxMarketData.js";
+import { getBackfillStatus } from "../services/backfillEngine.js";
 
 // @route   GET /api/v1/upstox/inst-flow
 // @desc    Fetch FII/DII net flow from Upstox API
@@ -457,5 +460,23 @@ router.get("/fundamentals", getFundamentals);
 // @route   GET /api/v1/upstox/technicals
 // @desc    Fetch and calculate technical indicators from Upstox historical OHLC
 router.get("/technicals", getTechnicalIndicators);
+
+// @route   GET /api/v1/upstox/candles
+// @desc    Fetch historical raw candlestick data from Upstox (via SQLite cache)
+router.get("/candles", getCandles);
+
+// @route   GET /api/v1/upstox/candles/backfill-status
+// @desc    Returns current backfill progress for a given instrument+timeframe
+router.get("/candles/backfill-status", (req, res) => {
+    try {
+        const { instrument, timeframe = 'day' } = req.query;
+        if (!instrument) return res.status(400).json({ success: false, error: "instrument is required" });
+        const status = getBackfillStatus(instrument, timeframe);
+        res.json({ success: true, ...status });
+    } catch (err) {
+        console.error("Backfill status error:", err.message);
+        res.status(500).json({ success: false, error: "Internal server error" });
+    }
+});
 
 export default router;

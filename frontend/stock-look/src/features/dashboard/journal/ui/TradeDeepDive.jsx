@@ -139,12 +139,21 @@ export default function TradeDeepDive({ trade, onClose }) {
                     </Section>
 
                     {/* 4. ELITE VERDICT */}
-                    {trade.verdict && (
+                    {trade.isAnalyzing ? (
+                        <div className="mt-6 p-4 rounded-xl bg-blue-500/[0.05] border border-blue-500/20 flex flex-col items-center justify-center py-8">
+                            <div className="relative flex h-5 w-5 mb-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-5 w-5 bg-blue-500"></span>
+                            </div>
+                            <div className="text-sm font-bold text-blue-400 animate-pulse">Generating deeper analysis...</div>
+                            <div className="text-[10px] text-text-tertiary mt-1">Local processing (Privacy Priority)</div>
+                        </div>
+                    ) : trade.verdict ? (
                         <div className="mt-6 p-4 rounded-xl bg-blue-500/[0.05] border border-blue-500/20">
                             <div className="text-[10px] uppercase font-bold text-blue-400 mb-1">Praxis AI Verdict</div>
                             <div className="text-lg font-bold text-text-primary">{trade.verdict}</div>
                         </div>
-                    )}
+                    ) : null}
                 </div>
             </div>
         </div>

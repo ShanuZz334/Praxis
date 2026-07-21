@@ -10,7 +10,18 @@ export default function SectorGrowthCard({ data, manualOverride, lastUpdated }) 
     let isManual = true;
     let extractedValue = null;
 
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
+    // Attempt to extract live data
+    const sectorGrowthItem = (Array.isArray(data?.ratios) ? data.ratios : []).find(item => 
+        item.name?.toLowerCase().includes('sector growth')
+    );
+    
+    if (sectorGrowthItem && sectorGrowthItem.company_value) {
+        const parsed = cleanNum(sectorGrowthItem.company_value);
+        if (!isNaN(parsed)) {
+            extractedValue = parsed;
+            isManual = false;
+        }
+    }
     
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
@@ -37,7 +48,7 @@ export default function SectorGrowthCard({ data, manualOverride, lastUpdated }) 
             data={{
                 currentValueObj: { label: 'Differential', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
                 details: [],
-                score: score || 0,
+                score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: `${confidence}%`,
                 impactWeight: configData?.impactWeight || 5.0

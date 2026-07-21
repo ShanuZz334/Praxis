@@ -140,21 +140,21 @@ export function ThemeProvider({ children }) {
         setTheme(prev => prev === 'dark' ? 'light' : 'dark');
     };
 
-    // --- Render ---
+    const contextValue = React.useMemo(() => ({
+        theme,
+        toggleTheme,
+        vfxPreset,
+        setVfxPreset,
+        gradientBorder,
+        setGradientBorder,
+        tradingMode,
+        setTradingMode,
+        tradingModeVfx,
+        setTradingModeVfx
+    }), [theme, vfxPreset, gradientBorder, tradingMode, tradingModeVfx]);
 
     return (
-        <ThemeContext.Provider value={{
-            theme,
-            toggleTheme,
-            vfxPreset,
-            setVfxPreset,
-            gradientBorder,
-            setGradientBorder,
-            tradingMode,
-            setTradingMode,
-            tradingModeVfx,
-            setTradingModeVfx
-        }}>
+        <ThemeContext.Provider value={contextValue}>
             {children}
         </ThemeContext.Provider>
     );
