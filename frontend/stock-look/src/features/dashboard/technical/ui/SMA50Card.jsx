@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreSMA50Card } from '../engine/TechnicalCompositeEngine';
 
 export default function SMA50Card({ cardId, data = null, lastUpdated }) {
-    const configData = getIndicatorConfig('sma_50');
+    const configData = getIndicatorConfig(CARD_REGISTRY.sma_50.id);
     
     // Resolve current value
     const currentValue = data?.sma_50 ?? null;

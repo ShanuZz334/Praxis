@@ -8,7 +8,9 @@ import React, { useState, useEffect } from "react";
 // Shared UI
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import { useDashboardContext } from "@/shared/context/DashboardContext";
+import { useDataRegistry } from "@/shared/context/DataRegistryContext";
 import { useAiSync } from "@/shared/hooks/useAiSync";
+import { CARD_REGISTRY } from "@/shared/config/cardRegistry";
 
 import LiveMarketTicker from "./LiveMarketTicker";
 import MarketHeatmap from "./MarketHeatmap";
@@ -22,6 +24,8 @@ import CatalystCalendar from "./CatalystCalendar";
 
 import { useMasterComposite } from "../engine/useMasterComposite";
 import { getCompositeColor } from "@/shared/config/scoreColors";
+import { FO_INDICES, FO_EQUITIES } from "@/shared/utils/foInstruments";
+import { getNifty50Keys, NIFTY_50_SYMBOLS } from "../data/nifty50";
 
 // =============================
 // Main Component
@@ -49,11 +53,40 @@ export default function MasterDashboard() {
     const isIndex = selectedCategory === 'Indices';
     const activeOpts = smartlists?.['MOST_ACTIVE'] || [];
     
-    const { praxisComposite, modifierImpact, sectionsForHeader, tailwinds, risks, regime, loading, integrity, totalCredits, aggregatedCards } = useMasterComposite(selectedInstrument, isIndex, selectedExpiry, livePrices, {
+    // Compute Market Heatmap Data for AI Payload
+    const heatmapKeys = getNifty50Keys();
+    const marketHeatmapData = NIFTY_50_SYMBOLS.map((symbol, index) => {
+        const tick = livePrices[heatmapKeys[index]];
+        return { symbol, pctChange: tick?.pctChange || 0 };
+    });
+
+    const { praxisComposite, modifierImpact, sectionsForHeader, tailwinds, risks, regime, loading, integrity, totalCredits, aggregatedCards, nestedTreePayload } = useMasterComposite(selectedInstrument, isIndex, selectedExpiry, livePrices, {
         sectors,
         activeOpts,
         fiiDiiFlow
     });
+
+    const { getMasterSnapshot, registerBulk } = useDataRegistry();
+
+    // Register fallback cards globally so autocomplete has live values for unmounted cards
+    useEffect(() => {
+        if (aggregatedCards && aggregatedCards.length > 0) {
+            registerBulk('master', aggregatedCards);
+        }
+    }, [aggregatedCards, registerBulk]);
+
+    const masterPayload = nestedTreePayload ? {
+        ...nestedTreePayload,
+        // Live card-level data from all pages — used by AI for richer insights
+        // and by summarizePageData() on the backend
+        liveCardData: getMasterSnapshot(),
+        master_widgets: {
+            [CARD_REGISTRY.fii_dii_flow_master.id]: fiiDiiFlow || null,
+            [CARD_REGISTRY.sector_rotation.id]: sectors || null,
+            [CARD_REGISTRY.options_pulse.id]: activeOpts || null,
+            [CARD_REGISTRY.market_heatmap.id]: marketHeatmapData || null
+        }
+    } : null;
 
     const c = getCompositeColor(praxisComposite);
     const gauge = { label: c.label, color: c.hex };
@@ -61,7 +94,7 @@ export default function MasterDashboard() {
     // Silently Stream the Snapshot to SQLite backend
     useAiSync(
         selectedInstrument?.value || selectedInstrument,
-        "Master", 
+        CARD_REGISTRY.praxis_composite_header.id, 
         {
             compositeScore: praxisComposite,
             regime: regime,
@@ -74,15 +107,22 @@ export default function MasterDashboard() {
     );
 
     const instKey = selectedInstrument?.value || selectedInstrument || 'NSE_INDEX|Nifty 50';
-    const { data: candleData, loading: candlesLoading, isBackfilling } = useHistoricalCandles(instKey, selectedTimeframe);
+    const { data: candleData, loading: candlesLoading, isBackfilling, liveCandle } = useHistoricalCandles(instKey, selectedTimeframe);
+
+    const getReadableName = (inst) => {
+        if (!inst) return 'NIFTY 50';
+        const val = typeof inst === 'string' ? inst : inst.value;
+        if (!val) return 'NIFTY 50';
+        const all = [...(FO_INDICES || []), ...(FO_EQUITIES || [])];
+        const found = all.find(i => i.value === val || i.value.includes(val) || val.includes(i.value));
+        return found ? found.label : val.split('|').pop().replace('NSE_EQ:', '').replace('NSE_INDEX:', '');
+    };
 
     const chartBackside = (
         <div className="w-full h-full min-h-[350px] bg-background-card rounded-2xl flex flex-col p-2 relative">
             <div className="flex justify-between items-center mb-2 px-2 pt-2 z-10 relative">
-                <div className="text-xs font-bold text-text-secondary uppercase tracking-wider">
-                    {typeof selectedInstrument === 'string' 
-                        ? selectedInstrument.split('|').pop() 
-                        : (selectedInstrument?.label || 'NIFTY 50').split('|').pop()}
+                <div className="text-[15px] font-black text-text-primary uppercase tracking-widest drop-shadow-sm">
+                    {getReadableName(selectedInstrument)}
                 </div>
                 <div className="flex bg-transparent rounded-lg p-[2px] mr-12 border border-border-subtle shadow-sm pointer-events-auto">
                     {['1minute', '5minute', '15minute', '1hour', 'day', 'week'].map((tf) => (
@@ -109,6 +149,7 @@ export default function MasterDashboard() {
                 )}
                 <AdvancedCandlestickChart 
                     data={candleData} 
+                    liveCandle={liveCandle}
                     showValuationBands={false} 
                     showEvents={false}
                     isBackfilling={isBackfilling}
@@ -137,6 +178,7 @@ export default function MasterDashboard() {
                 totalCredits={totalCredits}
                 enableBreakdown={true}
                 cards={aggregatedCards}
+                masterPayload={masterPayload}
                 controls={{ customComponent: <LiveMarketTicker /> }}
                 customBackContent={chartBackside}
             />

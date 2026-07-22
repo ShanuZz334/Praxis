@@ -2,6 +2,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreOperatingMargin, generateAiInsightOperatingMarginCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function OperatingMarginCard({ cardId, data, manualOverride, lastUpdated }) {
@@ -49,7 +50,7 @@ export default function OperatingMarginCard({ cardId, data, manualOverride, last
     const sectorMargin = isManual ? null : extractedSector;
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('operating_margin');
+    const configData = getIndicatorConfig(CARD_REGISTRY.operating_margin.id);
 
     // 3. Praxis Engine
     const { score, bias, confidence, trendDesc } = scoreOperatingMargin(currentMargin, sectorMargin);

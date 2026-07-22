@@ -2,10 +2,11 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { generateAiInsightPERatioCard, scorePERatio } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function PERatioCard({ cardId, data = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('pe_ratio');
+    const configData = getIndicatorConfig(CARD_REGISTRY.pe_ratio.id);
 
     // ── Step 1: Resolve currentPE (Live from Upstox or manual fallback) ────
     const ratiosArray = Array.isArray(data?.ratios) ? data.ratios : [];

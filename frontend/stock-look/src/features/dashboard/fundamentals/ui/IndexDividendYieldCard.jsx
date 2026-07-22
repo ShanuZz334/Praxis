@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreNiftyDividendYield, generateAiInsightNiftyDividendYield } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function IndexDividendYieldCard({ cardId, data, manualOverride, lastUpdated }) {
@@ -15,7 +16,7 @@ export default function IndexDividendYieldCard({ cardId, data, manualOverride, l
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('dividend_yield');
+    const configData = getIndicatorConfig(CARD_REGISTRY.dividend_yield.id);
 
     // 3. Praxis Engine
     // Note: Most macro indicators just take a single value for scoring

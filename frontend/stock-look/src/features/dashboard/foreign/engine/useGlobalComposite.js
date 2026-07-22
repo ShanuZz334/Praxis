@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { scoreDXY, scoreUSDINR, scoreCrude, scoreGold, scoreSilver, scoreUS10Y, scoreSPFutures, scoreNasdaqFutures, scoreDowFutures, scoreVIX, scoreBitcoin, scoreEurusd, scoreUsdjpy, scoreNikkei, scoreFtse, scoreDax, scoreHangseng, scoreShanghai, scoreCac40, scoreEurostoxx, scoreCopper, scoreNatgas, scoreWheat, scoreAluminum, scoreMove } from './globalScoringEngine';
 import { getCompositeColor, getIndicatorColor } from '../../../../shared/config/scoreColors';
 
@@ -265,6 +266,53 @@ export const computeGlobalComposite = (scores) => {
             move: scores.move?.score ?? null
         }
     };
+
+    const SECTION_MAPPING = {
+        dxy: 'Currency', usd_inr: 'Currency', eurusd: 'Currency', usdjpy: 'Currency',
+        crude: 'Commodities', gold: 'Commodities', silver: 'Commodities', copper: 'Commodities', natgas: 'Commodities', wheat: 'Commodities', aluminum: 'Commodities',
+        us_10y_yield: 'Rates & Vol', vix: 'Rates & Vol', move: 'Rates & Vol',
+        sp_futures: 'US Markets', nasdaq_futures: 'US Markets', dow_futures: 'US Markets',
+        bitcoin: 'Digital Assets',
+        nikkei: 'Global Indices', ftse: 'Global Indices', dax: 'Global Indices', hangseng: 'Global Indices', shanghai: 'Global Indices', cac40: 'Global Indices', eurostoxx: 'Global Indices'
+    };
+
+    const sectionsMap = {};
+    sectionsArray.forEach(sec => {
+        sectionsMap[sec.label] = {
+            name: sec.label,
+            score: sec.score,
+            weight: sec.weight,
+            cards: []
+        };
+    });
+
+    Object.entries(result.rawScores).forEach(([id, score]) => {
+        if (score === null || score === undefined || isNaN(score)) return;
+        const secName = SECTION_MAPPING[id] || 'General';
+        if (sectionsMap[secName]) {
+            let normalized = 0;
+            if (score > 70) normalized = 1;
+            else if (score < 30) normalized = -1;
+            const configId = id === 'crude' ? 'brent_crude_oil' : id;
+            const config = getIndicatorConfig(configId);
+            sectionsMap[secName].cards.push({
+                name: config?.title || ID_TO_TITLE_GLOBAL[id] || id,
+                score: normalized,
+                value: Number(score),
+                weight: config?.creditScore ?? 5
+            });
+        }
+    });
+
+    result.nestedTreePayload = {
+        engines: [{
+            name: "Global Macro",
+            score: finalScore,
+            sections: Object.values(sectionsMap)
+        }]
+    };
+
+    return result;
 };
 
 export const useGlobalComposite = (manualOverrides, liveData = {}) => {

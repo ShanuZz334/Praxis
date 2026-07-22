@@ -20,8 +20,9 @@ const DEFAULT_DATA = [];
 const DEFAULT_FUNDAMENTAL_DATA = {};
 const DEFAULT_EVENTS = [];
 
-export default function AdvancedCandlestickChart({
+export default React.memo(function AdvancedCandlestickChart({
     data = DEFAULT_DATA,
+    liveCandle = null,
     fundamentalData = DEFAULT_FUNDAMENTAL_DATA,
     events = DEFAULT_EVENTS,
     showValuationBands = true,
@@ -296,6 +297,19 @@ export default function AdvancedCandlestickChart({
         });
     }, [theme]);
 
+    // Live update for the latest candle without redrawing the whole chart
+    useEffect(() => {
+        if (!candleSeriesRef.current || !liveCandle) return;
+        candleSeriesRef.current.update(liveCandle);
+        if (volumeSeriesRef.current) {
+            volumeSeriesRef.current.update({
+                time: liveCandle.time,
+                value: liveCandle.volume || 0,
+                color: liveCandle.close >= liveCandle.open ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)'
+            });
+        }
+    }, [liveCandle]);
+
     useEffect(() => {
         if (!candleSeriesRef.current || !volumeSeriesRef.current || !data || data.length === 0) return;
         candleSeriesRef.current.setData(data);
@@ -486,22 +500,9 @@ export default function AdvancedCandlestickChart({
         setHoveredIndicator({ label, top: rect.bottom + 12, left: rect.left + rect.width / 2 });
     };
 
-    const getSymbolName = () => {
-        if (!instrumentKey || instrumentKey === 'default') return '';
-        const allInstruments = [...(FO_INDICES || []), ...(FO_EQUITIES || [])];
-        const found = allInstruments.find(i => i.value === instrumentKey || i.value.includes(instrumentKey));
-        if (found) return found.label;
-        return instrumentKey.split('|').pop().replace('NSE_EQ:', '').replace('NSE_INDEX:', '');
-    };
-
     return (
         <div className="advanced-candlestick-chart relative w-full h-full flex flex-col">
             <div className="absolute inset-0 pointer-events-none transition-colors duration-1000" style={{ backgroundColor: getRegimeBackground() }} />
-
-            {/* Custom Readable Watermark Overlay */}
-            <div className="absolute top-10 left-3 z-10 pointer-events-none select-none flex flex-col">
-                <span className="text-4xl font-black tracking-widest uppercase text-black/10 dark:text-white/10">{getSymbolName()}</span>
-            </div>
 
             {/* Top Left Toolbar */}
             <div className="absolute top-1.5 left-3 z-20 flex items-center gap-2">
@@ -723,7 +724,7 @@ export default function AdvancedCandlestickChart({
             </AnimatePresence>
         </div>
     );
-}
+});
 
 function FundamentalTimeline({ data, height }) {
     const canvasRef = useRef(null);

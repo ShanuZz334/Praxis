@@ -85,7 +85,7 @@ router.get("/:instrument_key", (req, res) => {
 // @desc    Upsert frontend calculated AI header (composite, regime, tailwinds, risks)
 router.post("/header", (req, res) => {
     try {
-        const { instrument_key, category, composite_score, regime_json, tailwinds_json, risks_json, counts_json } = req.body;
+        const { instrument_key, category, composite_score, regime_json, tailwinds_json, risks_json, counts_json, tree_payload_json } = req.body;
         
         if (!instrument_key || !category) {
             return res.status(400).json({ error: "instrument_key and category are required" });
@@ -93,14 +93,15 @@ router.post("/header", (req, res) => {
 
         localDb.prepare(`
             INSERT INTO header_data (
-                instrument_key, category, composite_score, regime_json, tailwinds_json, risks_json, counts_json, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                instrument_key, category, composite_score, regime_json, tailwinds_json, risks_json, counts_json, tree_payload_json, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(instrument_key, category) DO UPDATE SET
                 composite_score = COALESCE(excluded.composite_score, header_data.composite_score),
                 regime_json = COALESCE(excluded.regime_json, header_data.regime_json),
                 tailwinds_json = COALESCE(excluded.tailwinds_json, header_data.tailwinds_json),
                 risks_json = COALESCE(excluded.risks_json, header_data.risks_json),
                 counts_json = COALESCE(excluded.counts_json, header_data.counts_json),
+                tree_payload_json = COALESCE(excluded.tree_payload_json, header_data.tree_payload_json),
                 updated_at = CURRENT_TIMESTAMP
         `).run(
             instrument_key,
@@ -109,7 +110,8 @@ router.post("/header", (req, res) => {
             regime_json !== undefined ? JSON.stringify(regime_json) : null,
             tailwinds_json !== undefined ? JSON.stringify(tailwinds_json) : null,
             risks_json !== undefined ? JSON.stringify(risks_json) : null,
-            counts_json !== undefined ? JSON.stringify(counts_json) : null
+            counts_json !== undefined ? JSON.stringify(counts_json) : null,
+            tree_payload_json !== undefined ? JSON.stringify(tree_payload_json) : null
         );
 
         res.json({ status: "success", message: "Header state saved." });
@@ -128,7 +130,7 @@ router.get("/header/:instrument_key", (req, res) => {
 
         if (category) {
             const row = localDb.prepare(`
-                SELECT composite_score, regime_json, tailwinds_json, risks_json, updated_at 
+                SELECT composite_score, regime_json, tailwinds_json, risks_json, tree_payload_json, updated_at 
                 FROM header_data 
                 WHERE instrument_key = ? AND category = ?
             `).get(instrument_key, category);
@@ -141,6 +143,7 @@ router.get("/header/:instrument_key", (req, res) => {
                         regime: row.regime_json ? JSON.parse(row.regime_json) : null,
                         tailwinds: row.tailwinds_json ? JSON.parse(row.tailwinds_json) : [],
                         risks: row.risks_json ? JSON.parse(row.risks_json) : [],
+                        tree_payload: row.tree_payload_json ? JSON.parse(row.tree_payload_json) : null,
                         updated_at: row.updated_at
                     }
                 });
@@ -150,7 +153,7 @@ router.get("/header/:instrument_key", (req, res) => {
         } else {
             // Fetch all categories for this instrument (plus global which is universal)
             const rows = localDb.prepare(`
-                SELECT category, composite_score, regime_json, tailwinds_json, risks_json, counts_json, updated_at 
+                SELECT category, composite_score, regime_json, tailwinds_json, risks_json, counts_json, tree_payload_json, updated_at 
                 FROM header_data 
                 WHERE instrument_key = ? OR category = 'global' OR category = 'events'
             `).all(instrument_key);
@@ -163,6 +166,7 @@ router.get("/header/:instrument_key", (req, res) => {
                     tailwinds: row.tailwinds_json ? JSON.parse(row.tailwinds_json) : [],
                     risks: row.risks_json ? JSON.parse(row.risks_json) : [],
                     counts: row.counts_json ? JSON.parse(row.counts_json) : null,
+                    tree_payload: row.tree_payload_json ? JSON.parse(row.tree_payload_json) : null,
                     updated_at: row.updated_at
                 };
             }

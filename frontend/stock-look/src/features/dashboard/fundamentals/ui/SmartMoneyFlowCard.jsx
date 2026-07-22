@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreSmartMoneyFlow, generateAiInsightSmartMoneyCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function SmartMoneyFlowCard({ cardId, data = null, lastUpdated }) {
@@ -33,7 +34,7 @@ export default function SmartMoneyFlowCard({ cardId, data = null, lastUpdated })
         ? [...fiiObj.history].reverse().map(h => ({ name: h.period, value: h.value }))
         : [];
 
-    const configData = getIndicatorConfig('smart_money_flow') || { creditScore: 7, impactWeight: 6.0, aiModel: 'Engine v3' };
+    const configData = getIndicatorConfig(CARD_REGISTRY.smart_money_flow.id) || { creditScore: 7, impactWeight: 6.0, aiModel: 'Engine v3' };
     const { score, bias, confidence, flowZone, trend } = scoreSmartMoneyFlow(latestInstitutional, prevInstitutional);
     const aiInsightText = generateAiInsightSmartMoneyCard(latestInstitutional, prevInstitutional, flowZone, trend);
 

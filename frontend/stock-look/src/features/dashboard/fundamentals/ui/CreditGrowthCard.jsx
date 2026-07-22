@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreBankCreditGrowth, generateAiInsightBankCreditGrowth } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function CreditGrowthCard({ cardId, data, manualOverride, lastUpdated }) {
@@ -15,7 +16,7 @@ export default function CreditGrowthCard({ cardId, data, manualOverride, lastUpd
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('credit_growth');
+    const configData = getIndicatorConfig(CARD_REGISTRY.credit_growth.id);
 
     // 3. Praxis Engine
     // Note: Most macro indicators just take a single value for scoring

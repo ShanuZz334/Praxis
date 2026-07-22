@@ -60,7 +60,15 @@ export const aiGateway = {
             messages.push({ role: 'system', content: `Output strictly as JSON matching this schema:\n${JSON.stringify(schema)}` });
         }
 
-        // 3. User prompt
+        // 3. Chat history
+        if (request.history && Array.isArray(request.history)) {
+            messages.push(...request.history.map(msg => ({
+                role: msg.role === 'ai' || msg.role === 'assistant' ? 'assistant' : 'user',
+                content: msg.content
+            })));
+        }
+
+        // 4. User prompt
         messages.push({ role: 'user', content: prompt });
 
 

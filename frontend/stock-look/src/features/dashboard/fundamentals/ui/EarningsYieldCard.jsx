@@ -2,6 +2,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { generateAiInsightEarningsYieldCard, scoreEarningsYield } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 export default function EarningsYieldCard({ cardId, data = null, manualOverride, lastUpdated }) {
     // 1. Live Data Extraction (Upstox)
@@ -36,7 +37,7 @@ export default function EarningsYieldCard({ cardId, data = null, manualOverride,
     const aiInsightText = generateAiInsightEarningsYieldCard(currentYield, historicalYield, bondYield);
 
     // 4. Configuration
-    const configData = getIndicatorConfig('earnings_yield');
+    const configData = getIndicatorConfig(CARD_REGISTRY.earnings_yield.id);
 
     return (
         <IndicatorCard

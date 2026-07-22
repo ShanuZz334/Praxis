@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreATRCard } from '../engine/TechnicalCompositeEngine';
 
 export default function ATRCard({ cardId, data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings }) {
-    const configData = getIndicatorConfig('atr');
+    const configData = getIndicatorConfig(CARD_REGISTRY.atr.id);
     
     const settingsConfig = [
         { id: "atr_period", label: "ATR Period", type: "number", min: 2, max: 100, default: 14 }

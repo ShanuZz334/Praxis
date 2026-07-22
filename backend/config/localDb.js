@@ -188,6 +188,8 @@ export const initLocalDb = () => {
             regime_json TEXT,
             tailwinds_json TEXT,
             risks_json TEXT,
+            counts_json TEXT,
+            tree_payload_json TEXT,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY(instrument_key, category)
         );
@@ -227,9 +229,11 @@ export const initLocalDb = () => {
 
     try {
         db.exec(`ALTER TABLE header_data ADD COLUMN counts_json TEXT;`);
-    } catch (e) {
-        // Column already exists
-    }
+    } catch (e) {}
+
+    try {
+        db.exec(`ALTER TABLE header_data ADD COLUMN tree_payload_json TEXT;`);
+    } catch (e) {}
 
     console.log("✅ SQLite Tables Initialized");
 };

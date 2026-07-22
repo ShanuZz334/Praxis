@@ -2,6 +2,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreROE, generateAiInsightROECard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function ROECard({ cardId, data, manualOverride, lastUpdated }) {
@@ -33,7 +34,7 @@ export default function ROECard({ cardId, data, manualOverride, lastUpdated }) {
     const sectorROE = isManual ? null : extractedSector; // Fallback sector not supported if manual
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('roe');
+    const configData = getIndicatorConfig(CARD_REGISTRY.roe.id);
 
     // 3. Praxis Engine
     const { score, bias, confidence, trendDesc } = scoreROE(currentROE, sectorROE);

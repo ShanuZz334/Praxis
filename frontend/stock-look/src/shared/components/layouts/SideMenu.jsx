@@ -110,7 +110,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
 
           if (item.key === 'pai' && collapsed) {
              return (
-                 <div key={item.id} ref={paiItemRef} className="relative w-[48px] h-[48px] mx-auto flex items-center justify-center my-2">
+                 <div id="pai-sidebar-dock-slot" key={item.id} ref={paiItemRef} className="relative w-[48px] h-[48px] mx-auto flex items-center justify-center my-2">
                      {isDocked ? (
                          <motion.button
                              onClick={() => handleClick(item.path, item.key)}
@@ -132,7 +132,9 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
 
           return (
             <button
+              id={item.key === 'pai' ? "pai-sidebar-dock-slot" : undefined}
               key={item.id}
+              ref={item.key === 'pai' ? paiItemRef : null}
               onClick={() => handleClick(item.path, item.key)}
               className={`
                 group flex items-center

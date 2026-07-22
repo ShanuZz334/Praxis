@@ -8,21 +8,9 @@ import PaiLoader from './PaiLoader';
 
 import paiLogoLightCenter from '@/assets/images/icon 2-Photoroom.png';
 import paiLogoDarkCenter from '@/assets/images/icon 4-Photoroom.png';
+import axiosInstance from '@/shared/utils/axiosInstance';
 
-const MOCK_MESSAGES = [
-    { id: 1, role: 'user', content: 'What are your thoughts on this indicator?' },
-    { id: 2, role: 'ai', content: `Based on the current data structures, this indicator is showing a strong divergence from the sector average. The momentum oscillators are confirming this trend.
-
-Here is a quick breakdown of the key resistance levels:
-| Level | Price | Confidence |
-| :--- | :---: | :---: |
-| **R1** | ₹21,450 | High |
-| **R2** | ₹21,600 | Medium |
-
-I recommend watching the key resistance levels closely over the **next 48 hours**.` }
-];
-
-export default function PaiChatArea({ activeChatId, chatTitle }) {
+export default function PaiChatArea({ activeChatId, chatTitle, chatType, refreshTrigger }) {
     const navigate = useNavigate();
     const { theme, toggleTheme } = useTheme();
     const [messages, setMessages] = useState([]);
@@ -32,14 +20,32 @@ export default function PaiChatArea({ activeChatId, chatTitle }) {
     const bottomRef = useRef(null);
     const generationTimeoutRef = useRef(null);
 
-    // Reset messages when chat changes (simulate loading history)
+    // Fetch messages when chat changes (or refresh is triggered)
     useEffect(() => {
+        let isMounted = true;
         if (activeChatId) {
-            setMessages(MOCK_MESSAGES);
+            const fetchHistory = async () => {
+                try {
+                    const scope = chatType === 'header' ? 'page' : 'card';
+                    const res = await axiosInstance.get(`/api/v1/ai-prompts/thread/${activeChatId}`, { params: { scope } });
+                    if (isMounted && res.data?.entries) {
+                        setMessages(res.data.entries.map((m, i) => ({
+                            id: i,
+                            role: m.role === 'assistant' ? 'ai' : m.role,
+                            content: m.content
+                        })));
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch chat history:", err);
+                    if (isMounted) setMessages([]);
+                }
+            };
+            fetchHistory();
         } else {
             setMessages([]);
         }
-    }, [activeChatId]);
+        return () => { isMounted = false; };
+    }, [activeChatId, refreshTrigger, chatType]);
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -55,7 +61,7 @@ export default function PaiChatArea({ activeChatId, chatTitle }) {
         setIsGenerating(false);
     };
 
-    const handleSend = (e) => {
+    const handleSend = async (e) => {
         e.preventDefault();
         
         if (isGenerating) {
@@ -70,15 +76,30 @@ export default function PaiChatArea({ activeChatId, chatTitle }) {
         setInput('');
         setIsGenerating(true);
 
-        // Simulate AI response delay
-        generationTimeoutRef.current = setTimeout(() => {
+        try {
+            const scope = chatType === 'header' ? 'page' : 'card';
+            const res = await axiosInstance.post(`/api/v1/ai-prompts/chat/${activeChatId}`, {
+                message: newMsg.content,
+                scope
+            });
+            
+            if (res.data?.message) {
+                setMessages(prev => [...prev, {
+                    id: Date.now() + 1,
+                    role: 'ai',
+                    content: res.data.message
+                }]);
+            }
+        } catch (err) {
+            console.error("Failed to send message:", err);
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 role: 'ai',
-                content: 'This is a placeholder response for the UI mockup. Once the local LLM via Ollama is connected, real insights will stream here!'
+                content: "Sorry, I encountered an error connecting to the AI Gateway."
             }]);
+        } finally {
             setIsGenerating(false);
-        }, 5000); // 5 seconds delay to allow testing the stop button
+        }
     };
 
 

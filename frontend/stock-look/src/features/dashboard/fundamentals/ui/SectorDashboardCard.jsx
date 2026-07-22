@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { cleanNum } from '@/lib/utils';
 import { generateAiInsightSectorDashboard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
@@ -18,7 +19,7 @@ export default function SectorDashboardCard({ cardId, data, manualOverrides = {}
 
     const isManual = true; // Mostly manual for now, assuming index metrics aren't fully live
 
-    const configData = getIndicatorConfig('sector_dashboard') || { creditScore: 6, impactWeight: 5.0, aiModel: 'Engine v3' };
+    const configData = getIndicatorConfig(CARD_REGISTRY.sector_dashboard.id) || { creditScore: 6, impactWeight: 5.0, aiModel: 'Engine v3' };
 
     // 2. Score Calculation
     let validCount = 0;

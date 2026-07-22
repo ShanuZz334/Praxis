@@ -5,6 +5,7 @@ import { FlipContainer, FlipTrigger } from "@/shared/components/common/FlipConta
 import { Star, Lightbulb, Plus, BarChart2, Edit2, Check, Settings } from "lucide-react";
 import axiosInstance from "@/shared/utils/axiosInstance";
 import { useCardInsight } from "@/shared/hooks/useCardInsight";
+import { useDataRegistry } from "@/shared/context/DataRegistryContext";
 import cardInventory from "../../../../../card-inventory.json";
 import "@/features/dashboard/pai/ui/PaiLoader.css";
 import {
@@ -308,28 +309,63 @@ export function IndicatorCard({
     return context.snapshots[snapshotKey] || null;
   }, [context?.snapshots, resolvedCardId]);
 
+  // ── Derive page context from card inventory
+  const resolvedPage = useMemo(() => {
+    const found = cardInventory.find(c => c.targetId === resolvedCardId || c.card === config.title);
+    if (found?.page) return found.page.toLowerCase();
+    // Infer from category string as fallback
+    const cat = (config.category || '').toLowerCase();
+    if (cat.includes('technical')) return 'technical';
+    if (cat.includes('option'))    return 'options';
+    if (cat.includes('global') || cat.includes('foreign')) return 'foreign';
+    if (cat.includes('event'))     return 'events';
+    return 'fundamentals';
+  }, [resolvedCardId, config.title, config.category]);
+
+  // ── DataRegistry: register this card's live snapshot (replaces legacy SAVE_SNAPSHOT)
+  const { register } = useDataRegistry();
+
   useEffect(() => {
     const rawVal = data?.currentValueObj?.value;
     const isMissing = rawVal === undefined || rawVal === null || rawVal === '--' || rawVal === '';
-    
-    // Always dispatch, but send null if the value was cleared
-    const event = new CustomEvent('SAVE_SNAPSHOT', {
-        detail: {
-            card_id: resolvedCardId,
-            raw_value: isMissing ? null : parseFloat(rawVal) || 0,
-            score: isMissing ? null : (data?.score || 50),
-            bias: isMissing ? null : (data?.bias || 'Neutral')
+    if (isMissing) return;
+
+    // Build contextLines (same format used for generate() below — no duplication)
+    const ctxParts = [];
+    if (data?.bias)        ctxParts.push(`Bias: ${data.bias}`);
+    if (data?.confidence)  ctxParts.push(`Confidence: ${data.confidence}`);
+    if (data?.score != null) ctxParts.push(`Score: ${data.score}/100`);
+    if (data?.impactWeight) ctxParts.push(`Impact: ${data.impactWeight}`);
+    if (data?.details?.length) {
+      data.details.slice(0, 4).forEach(d => {
+        if (d?.label && d?.value != null && d.value !== '--') {
+          ctxParts.push(`${d.label}: ${d.value}`);
         }
+      });
+    }
+
+    register(resolvedPage, resolvedCardId, {
+      displayName: config.title,
+      value:       rawVal,
+      score:       data?.score ?? null,
+      signal:      data?.bias ?? null,
+      confidence:  data?.confidence ?? null,
+      weight:      config?.creditScore ?? null,
+      additionalContext: ctxParts.join(' | '),
+      details:     data?.details?.slice(0, 4) ?? [],
+      isLive:      config.mode?.toUpperCase() === 'AUTO',
     });
-    
-    // Delay the dispatch slightly so that parent hooks (like useFundamentalComposite) 
-    // have time to attach their event listeners during the mount phase.
-    const timeoutId = setTimeout(() => {
-        window.dispatchEvent(event);
-    }, 10);
-    
-    return () => clearTimeout(timeoutId);
-  }, [resolvedCardId, data?.currentValueObj?.value, data?.score, data?.bias]);
+
+    // ── Dispatch ai-snapshot for Composite Engine ─────────────────────────────
+    if (data?.score !== undefined && data?.score !== null) {
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('ai-snapshot', {
+          detail: { card_id: resolvedCardId, score: data.score }
+        }));
+      }, 0);
+    }
+  }, [resolvedPage, resolvedCardId, data?.currentValueObj?.value, data?.score, data?.bias,
+      data?.confidence, data?.impactWeight, config.title, config.creditScore, config.mode, register]);
 
   // ── useCardInsight: the single hook powering all AI calls ──────────────────
   const {
@@ -364,7 +400,7 @@ export function IndicatorCard({
     }
 
     generate({
-      value: rawVal,               // send raw string value (e.g. "22.4x") not just number
+      value: rawVal,
       displayName: config.title,
       stockSymbol: context?.instrumentKey || context?.selectedInstrument?.symbol || 'Unknown',
       scope: 'card',

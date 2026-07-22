@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { generateAiInsightROACard, scoreROA } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function ROACard({ cardId, data = null, manualOverride, lastUpdated }) {
@@ -25,7 +26,7 @@ export default function ROACard({ cardId, data = null, manualOverride, lastUpdat
     const aiInsightText = generateAiInsightROACard(currentROA, sectorROA, efficiencyZone);
 
     // 4. Configuration
-    const configData = getIndicatorConfig('roa');
+    const configData = getIndicatorConfig(CARD_REGISTRY.roa.id);
 
     return (
         <IndicatorCard

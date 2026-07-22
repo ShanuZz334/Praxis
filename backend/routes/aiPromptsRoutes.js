@@ -17,7 +17,7 @@ const PAGE_HEADER_DEFAULTS = {
     technical_company_header: `You are Praxis, an elite technical analyst. You are analyzing the **Technical Analysis page — Company mode** for the given stock. You receive the composite technical score, trend bias, and signal distribution. Synthesize in 2-3 sentences: primary trend, momentum quality, and key S/R zones. End with one specific setup: bias (long/short), trigger condition, target, and stop.`,
     options_header: `You are Praxis, an elite options flow analyst specializing in Indian F&O markets. You receive the composite options intelligence score and signal breakdown (PCR, IV Rank, Max Pain, OI change, Greeks). Synthesize the current options market positioning in 2-3 sentences: directional bias implied by flow, volatility regime (expanding/compressing), and smart money positioning. End with one options strategy recommendation (e.g., "Sell OTM calls given elevated IV Rank of 78").`,
     foreign_header: `You are Praxis, a global macro analyst focused on India's external risk factors. You receive the global macro composite score and key global signal states (DXY, crude, US yields, VIX, FII flows). Synthesize in 2-3 sentences: the most important global headwinds/tailwinds for Indian markets today, and how they translate to near-term sector impact. Be specific (e.g., "Rising crude at $87 pressures OMCs and widens CAD").`,
-    master_header: `You are Praxis Stocky, the master AI of the Praxis trading intelligence platform. You receive the unified composite score aggregating Technical (30%), Options (25%), Fundamental (20%), Global Macro (15%), and Events (10%) engines. Generate a 2-3 sentence market regime statement that captures: overall market posture (risk-on/off/neutral), dominant signal theme (trend, value, momentum, fear), and one tactical recommendation for the next 3-5 trading sessions. Write with the conviction and clarity of a professional desk strategist.`,
+    master_header: `You are Praxis Stocky, the master AI of the Praxis trading intelligence platform. You receive the unified composite score aggregating Technical, Options, Fundamental, and Global Macro engines. Generate a 2-3 sentence market regime statement that captures: overall market posture (risk-on/off/neutral), dominant signal theme (trend, value, momentum, fear), and one tactical recommendation for the next 3-5 trading sessions. Write with the conviction and clarity of a professional desk strategist.`,
     events_header: `You are Praxis, an event-driven market analyst for Indian equities. You receive the events intelligence score and upcoming catalyst summary. Synthesize in 2-3 sentences: the key near-term event risk (earnings, macro data, RBI, geopolitical), expected market impact, and how to position around it. Be specific about timing and sector sensitivity.`,
 };
 
@@ -28,6 +28,71 @@ const DEFAULT_SYSTEM_INSTRUCTION = (targetId, displayName) => {
     return `You are Praxis, an elite Indian financial market analyst AI. Generate a single, concise, actionable insight about the ${displayName} indicator for the given stock/index. Focus on what the current value means for near-term price action. Be direct. Max 2 sentences.`;
 };
 
+// ─── TEMPLATE VARIABLE RESOLUTION ────────────────────────────────────────────
+
+/**
+ * Parses a pipe-separated additionalContext string (produced by IndicatorCard.jsx)
+ * into a structured object of named fields.
+ *
+ * Input:  "Bias: Bullish | Confidence: 65% | Score: 68/100 | Impact: 5 | Sector P/E: 21.5x"
+ * Output: { bias: 'Bullish', confidence: '65%', score: '68', impactWeight: '5', sectorValue: '21.5x' }
+ */
+function parseAdditionalContext(contextStr) {
+    if (!contextStr || typeof contextStr !== 'string') return {};
+    const result = {};
+    contextStr.split('|').forEach(part => {
+        const idx = part.indexOf(':');
+        if (idx < 0) return;
+        const rawKey = part.substring(0, idx).trim().toLowerCase().replace(/[\s/]/g, '');
+        const val    = part.substring(idx + 1).trim();
+        if (!val) return;
+        if (rawKey === 'bias')              result.bias = val;
+        else if (rawKey === 'confidence')   result.confidence = val;
+        else if (rawKey === 'score')        result.score = val.split('/')[0].trim();
+        else if (rawKey === 'impact')       result.impactWeight = val;
+        else if (rawKey === 'regime')       result.regime = val;
+        else if (rawKey === 'bulls')        result.bulls = val;
+        else if (rawKey === 'bears')        result.bears = val;
+        else if (rawKey === 'neutrals')     result.neutrals = val;
+        else if (rawKey === 'techscore')    result.techScore = val;
+        else if (rawKey === 'fundscore')    result.fundScore = val;
+        else if (rawKey === 'optsscore')    result.optsScore = val;
+        else if (rawKey === 'globscore')    result.globScore = val;
+        else if (rawKey === 'evtscore')     result.evtScore = val;
+        // ── Extended technical/options variable resolution ─────────────────────
+        else if (rawKey === 'ivlow')        result.ivLow = val;
+        else if (rawKey === 'ivhigh')       result.ivHigh = val;
+        else if (rawKey === 'keylevel')     result.keyLevel = val;
+        else if (rawKey === 'signalline')   result.signalLine = val;
+        else if (rawKey === 'histogram')    result.histogram = val;
+        else if (rawKey === 'upperband')    result.upperBand = val;
+        else if (rawKey === 'lowerband')    result.lowerBand = val;
+        else if (rawKey === 'midband')      result.midBand = val;
+        else if (rawKey === 'overbought')   result.overbought = val;
+        else if (rawKey === 'oversold')     result.oversold = val;
+        else if (rawKey.startsWith('sector') && !result.sectorValue) {
+            result.sectorValue = val; // e.g. "Sector P/E: 21.5x"
+        }
+    });
+    return result;
+}
+
+/**
+ * Resolves {variable} tokens in a template string using the provided data map.
+ * Unresolved tokens are left as-is (not replaced), so the AI can still see the
+ * intent of the prompt even if a value is unavailable.
+ *
+ * @param {string} template  - The system instruction with {key} placeholders
+ * @param {object} data      - Map of key → resolved value strings
+ * @returns {string}
+ */
+function resolveTemplateVars(template, data) {
+    if (!template || typeof template !== 'string') return template;
+    return template.replace(/\{(\w+)\}/g, (match, key) => {
+        const val = data[key];
+        return (val !== undefined && val !== null && val !== '') ? String(val) : match;
+    });
+}
 
 // ─── PROMPT ENDPOINTS ─────────────────────────────────────────────────────────
 
@@ -48,7 +113,8 @@ router.get('/:targetId', async (req, res) => {
                 systemInstruction: '',
                 isDefault: true,
                 displayName: targetId.replace(/_/g, ' '),
-                page: 'Unknown'
+                page: 'Unknown',
+                presets: []
             });
         }
 
@@ -67,21 +133,19 @@ router.get('/:targetId', async (req, res) => {
 router.put('/:targetId', async (req, res) => {
     try {
         const { targetId } = req.params;
-        const { systemInstruction, displayName, page, isHeaderPrompt, applicability } = req.body;
-
-        if (systemInstruction === undefined) {
-            return res.status(400).json({ error: 'systemInstruction is required' });
-        }
+        const { systemInstruction, displayName, page, isHeaderPrompt, applicability, presets, activePresetId } = req.body;
 
         const prompt = await AiCardPrompt.findOneAndUpdate(
             { targetId },
             {
                 targetId,
-                systemInstruction,
+                systemInstruction: systemInstruction || '',
                 displayName: displayName || targetId.replace(/_/g, ' '),
                 page: page || 'Unknown',
                 isHeaderPrompt: isHeaderPrompt || false,
-                applicability: applicability || 'both'
+                applicability: applicability || 'both',
+                presets: presets || [],
+                activePresetId: activePresetId || 'default'
             },
             { upsert: true, new: true, runValidators: true }
         );
@@ -195,10 +259,66 @@ router.delete('/thread/:targetId', async (req, res) => {
  * 3. Persists the exchange to the targetId's thread.
  * 4. Returns the insight.
  */
+// ─── PAGE DATA SUMMARIZER ──────────────────────────────────────────────────────────────
+/**
+ * Converts pageData into a concise human-readable summary for the AI.
+ * Handles two shapes:
+ *   1. nestedTreePayload: { engines: [{ name, score, sections[], marketContext }] }
+ *   2. DataRegistry snapshot: { [cardId]: { displayName, value, score, signal } }
+ *
+ * Replaces raw JSON.stringify() — avoids massive token-heavy blobs.
+ */
+function summarizePageData(pageData) {
+    if (!pageData) return null;
+
+    // Shape 1: nested engine tree (nestedTreePayload or masterPayload)
+    if (Array.isArray(pageData.engines) && pageData.engines.length > 0) {
+        const lines = pageData.engines.map(e => {
+            let line = `${e.name}: ${e.score}/100`;
+            // Append market-specific context (Options: PCR, IV Rank, MaxPain)
+            if (e.marketContext) {
+                const mc = e.marketContext;
+                if (mc.pcr     != null) line += ` | PCR ${Number(mc.pcr).toFixed(2)}`;
+                if (mc.maxPain != null) line += ` | MaxPain ${mc.maxPain}`;
+                if (mc.ivRank  != null) line += ` | IVR ${Number(mc.ivRank).toFixed(0)}%`;
+            }
+            // Top 3 sections sorted by absolute contribution
+            if (Array.isArray(e.sections) && e.sections.length > 0) {
+                const topSections = [...e.sections]
+                    .filter(s => s.score != null)
+                    .sort((a, b) => Math.abs(b.score) - Math.abs(a.score))
+                    .slice(0, 3)
+                    .map(s => `${s.name}(${s.score > 0 ? '+' : ''}${s.score})`)
+                    .join(', ');
+                if (topSections) line += ` | Sections: ${topSections}`;
+            }
+            return line;
+        });
+        return lines.join('\n');
+    }
+
+    // Shape 2: DataRegistry flat card map { [cardId]: { displayName, value, score, signal } }
+    if (typeof pageData === 'object' && !Array.isArray(pageData)) {
+        const entries = Object.entries(pageData)
+            .filter(([, v]) => v && typeof v === 'object' && v.value != null)
+            .slice(0, 12) // cap to keep tokens manageable
+            .map(([id, v]) => {
+                const sig = v.signal || 'N/A';
+                const sc  = v.score != null ? `${v.score}/100` : '?/100';
+                let line = `${v.displayName || id}: ${v.value} (${sc}, ${sig})`;
+                if (v.additionalContext) line += ` | ${v.additionalContext}`;
+                return line;
+            });
+        return entries.length > 0 ? entries.join('\n') : null;
+    }
+
+    return null;
+}
+
 router.post('/generate/:targetId', async (req, res) => {
     try {
         const { targetId } = req.params;
-        const { value, displayName, stockSymbol, scope = 'card', additionalContext } = req.body;
+        const { value, displayName, stockSymbol, scope = 'card', additionalContext, pageData, presetId } = req.body;
         const userId = req.user._id;
 
         if (value === null || value === undefined) {
@@ -207,16 +327,65 @@ router.post('/generate/:targetId', async (req, res) => {
 
         // 1. Fetch saved prompt (or use default)
         const savedPrompt = await AiCardPrompt.findOne({ targetId }).lean();
-        const systemInstruction = savedPrompt?.systemInstruction ||
-            DEFAULT_SYSTEM_INSTRUCTION(targetId, displayName || targetId.replace(/_/g, ' '));
+        
+        let rawInstruction = DEFAULT_SYSTEM_INSTRUCTION(targetId, displayName || targetId.replace(/_/g, ' '));
+        
+        if (savedPrompt) {
+            const targetPresetId = presetId || savedPrompt.activePresetId;
+            if (targetPresetId && targetPresetId !== 'default' && Array.isArray(savedPrompt.presets)) {
+                const preset = savedPrompt.presets.find(p => p.id === targetPresetId);
+                if (preset && preset.systemInstruction) {
+                    rawInstruction = preset.systemInstruction;
+                }
+            } else if (savedPrompt.systemInstruction) {
+                rawInstruction = savedPrompt.systemInstruction;
+            }
+        }
 
+
+        // 1a. Resolve {template variables} in the system instruction with real data
+        const parsedCtx = parseAdditionalContext(additionalContext);
+        const systemInstruction = resolveTemplateVars(rawInstruction, {
+            name:              displayName || targetId.replace(/_/g, ' '),
+            value:             value != null ? String(value) : '',
+            stockSymbol:       stockSymbol || 'Unknown',
+            score:             parsedCtx.score        || null,
+            bias:              parsedCtx.bias         || null,
+            confidence:        parsedCtx.confidence   || null,
+            impactWeight:      parsedCtx.impactWeight || null,
+            sectorValue:       parsedCtx.sectorValue  || null,
+            additionalContext: additionalContext       || null,
+            // Page header vars
+            regime:            parsedCtx.regime    || null,
+            bulls:             parsedCtx.bulls     || null,
+            bears:             parsedCtx.bears     || null,
+            neutrals:          parsedCtx.neutrals  || null,
+            techScore:         parsedCtx.techScore || null,
+            fundScore:         parsedCtx.fundScore || null,
+            optsScore:         parsedCtx.optsScore || null,
+            globScore:         parsedCtx.globScore || null,
+            evtScore:          parsedCtx.evtScore  || null,
+            // Extended technical / options vars (now fully resolved)
+            ivLow:             parsedCtx.ivLow      || null,
+            ivHigh:            parsedCtx.ivHigh     || null,
+            keyLevel:          parsedCtx.keyLevel   || null,
+            signalLine:        parsedCtx.signalLine || null,
+            histogram:         parsedCtx.histogram  || null,
+            upperBand:         parsedCtx.upperBand  || null,
+            lowerBand:         parsedCtx.lowerBand  || null,
+            midBand:           parsedCtx.midBand    || null,
+            overbought:        parsedCtx.overbought || null,
+            oversold:          parsedCtx.oversold   || null,
+        });
 
         // 2. Build the user message with real card data
+        const pageDataSummary = summarizePageData(pageData);
         const userMessage = [
             `Stock/Index: ${stockSymbol || 'Unknown'}`,
             `Indicator: ${displayName || targetId}`,
             `Current Value: ${value}`,
-            additionalContext ? `Context: ${additionalContext}` : null
+            additionalContext ? `Context: ${additionalContext}` : null,
+            pageDataSummary   ? `Page Data:\n${pageDataSummary}` : null
         ].filter(Boolean).join('\n');
 
         // 3. Call AI Gateway — use page_header_insight for headers (Tier 2, more reasoning)
@@ -275,6 +444,104 @@ router.post('/generate/:targetId', async (req, res) => {
         });
     } catch (err) {
         console.error('POST /ai-prompts/generate/:targetId error:', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+/**
+ * POST /api/v1/ai-prompts/chat/:targetId
+ * An interactive chat endpoint that reads previous thread history,
+ * appends the new user message, gets an AI response, and saves both to the thread.
+ */
+router.post('/chat/:targetId', async (req, res) => {
+    try {
+        const { targetId } = req.params;
+        const { message, scope = 'card', contextData = {}, cardSnapshots = [] } = req.body;
+        const userId = req.user._id;
+
+        if (!message) return res.status(400).json({ error: 'Message is required' });
+
+        // Build card context prefix from #mention snapshots (e.g. #pe_ratio typed in chat)
+        const cardContextPrefix = cardSnapshots.length > 0
+            ? '[Live Card Data from Dashboard]\n' + cardSnapshots.map(s =>
+                `${s.displayName || s.cardId}: ${s.value ?? 'N/A'} (${s.score ?? '?'}/100 — ${s.signal ?? 'N/A'})` +
+                (s.additionalContext ? ` | ${s.additionalContext}` : '')
+            ).join('\n') + '\n\n'
+            : '';
+
+        // 1. Fetch saved system instruction for targetId
+        const savedPrompt = await AiCardPrompt.findOne({ targetId }).lean();
+        let systemInstruction = savedPrompt?.systemInstruction;
+        
+        if (!systemInstruction) {
+            if (targetId.startsWith('qchat_')) {
+                systemInstruction = `You are PAI, the Praxis AI assistant. You are engaging in an interactive chat with the user regarding ${targetId.replace('qchat_', '')}. Be helpful, concise, and conversational. Do not hallucinate data; if you don't know, ask the user to provide it.`;
+            } else {
+                systemInstruction = `You are Praxis, an elite Indian financial market analyst AI. You are chatting with the user about the ${targetId.replace(/_/g, ' ')} indicator. Answer their specific message directly, be conversational, and do not auto-generate generic insights if the user is just saying hello.`;
+            }
+        } else {
+            systemInstruction += `\n\n(NOTE: You are currently in an interactive chat session with the user. Respond directly to their latest message in a conversational manner, using the rules above as your persona. Do not blindly generate an insight if they are just saying hello.)`;
+        }
+
+        // 2. Fetch thread history
+        const thread = await AiChatThread.findOne({ targetId, scope, userId }).lean();
+        // Take last 10 messages for context window size limits
+        const history = thread?.entries?.slice(-10) || [];
+
+        // 3. Call AI Gateway
+        const response = await aiGateway.process({
+            taskType: 'chat_conversation',
+            prompt: cardContextPrefix + message,  // #mention card data prepended
+            systemInstruction,
+            history,
+            data: Object.keys(contextData).length > 0 ? contextData : null,
+            jsonMode: false,
+            maxTokens: 300
+        });
+
+        if (response.error) {
+            return res.status(500).json({ error: response.message || 'AI Gateway error' });
+        }
+
+        const insight = response.text?.trim() || null;
+
+        // 4. Persist to thread
+        if (insight) {
+            await AiChatThread.findOneAndUpdate(
+                { targetId, scope, userId },
+                {
+                    $push: {
+                        entries: {
+                            $each: [
+                                { role: 'user', content: message, cardValue: contextData?.score },
+                                {
+                                    role: 'assistant',
+                                    content: insight,
+                                    model: response.model,
+                                    provider: response.provider,
+                                    latencyMs: response.latencyMs,
+                                    cardValue: contextData?.score
+                                }
+                            ],
+                            $slice: -100
+                        }
+                    },
+                    $inc: { entryCount: 2 }
+                },
+                { upsert: true }
+            );
+        }
+
+        // 5. Return latest message
+        res.json({
+            message: insight,
+            targetId,
+            provider: response.provider,
+            model: response.model,
+            latencyMs: response.latencyMs,
+        });
+
+    } catch (err) {
+        console.error('POST /ai-prompts/chat/:targetId error:', err.message);
         res.status(500).json({ error: 'Internal server error' });
     }
 });

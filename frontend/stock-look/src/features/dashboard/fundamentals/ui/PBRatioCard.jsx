@@ -2,6 +2,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { generateAiInsightPBRatioCard, scorePBRatio } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 export default function PBRatioCard({ cardId, data = null, manualOverride, lastUpdated }) {
     // 1. Live Data Extraction (Upstox)
@@ -20,7 +21,7 @@ export default function PBRatioCard({ cardId, data = null, manualOverride, lastU
     const aiInsightText = generateAiInsightPBRatioCard(currentPB, historicalPB, sectorPB);
 
     // 4. Configuration
-    const configData = getIndicatorConfig('pb_ratio');
+    const configData = getIndicatorConfig(CARD_REGISTRY.pb_ratio.id);
 
     return (
         <IndicatorCard

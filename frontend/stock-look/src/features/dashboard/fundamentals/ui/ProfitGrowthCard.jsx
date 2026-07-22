@@ -2,6 +2,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreProfitGrowth, generateAiInsightProfitGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function ProfitGrowthCard({ cardId, data = null, manualOverride, lastUpdated }) {
@@ -25,7 +26,7 @@ export default function ProfitGrowthCard({ cardId, data = null, manualOverride, 
         : null;
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('profit_growth');
+    const configData = getIndicatorConfig(CARD_REGISTRY.profit_growth.id);
 
     // 3. Praxis Engine
     const { score, bias, confidence, calculatedCAGR, latestProfit, previousProfit, trendDesc } = scoreProfitGrowth(profitHistory, manualCAGR);

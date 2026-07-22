@@ -484,10 +484,10 @@ export default function FundamentalPage() {
   // --- Dynamic Coverage & Credits Calculation ---
   // Dynamic maxCards = total cards tracked for the current category
   const maxCards = cards.length;
-  // activeCardsCount: only count cards with score > 0.
-  // All scoring engines return 0 ONLY when there is no data at all.
-  // Minimum score when real data exists is 5-10 (Strong Bearish), never 0.
-  const activeCardsCount = Object.values(compositeData.rawScores || {}).filter(v => v !== null && v !== undefined && !isNaN(v) && v > 0).length;
+  // activeCardsCount: count all cards that have a valid numeric score.
+  // Cards with no data are already removed from rawScores by the engine.
+  // Valid scores can range from 0 (Strong Bearish) to 100 (Strong Bullish).
+  const activeCardsCount = Object.values(compositeData.rawScores || {}).filter(v => v !== null && v !== undefined && !isNaN(v) && v >= 0).length;
   const coveragePercent = maxCards > 0 ? Math.min(100, Math.round((activeCardsCount / maxCards) * 100)) : 0;
   
   const ID_TO_TITLE = useMemo(() => {
@@ -541,6 +541,7 @@ export default function FundamentalPage() {
               cards={cardsForHeader}
               totalCredits={totalCredits}
               enableBreakdown={true}
+              masterPayload={compositeData.nestedTreePayload}
               syncId={{ instrumentKey: selectedInstrument, category: 'fundamental' }}
               infoContent={fundamentalManualForm}
               controls={{

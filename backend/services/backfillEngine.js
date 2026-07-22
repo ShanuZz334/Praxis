@@ -1,4 +1,4 @@
-﻿import db from '../config/localDb.js';
+import db from '../config/localDb.js';
 import { fetchHistoricalCandles } from './upstoxHistorical.js';
 
 const activeBackfills = new Set();
@@ -58,7 +58,19 @@ const runBackfill = async (instrumentKey, timeframe) => {
                 windowsProcessed++;
                 upsertBackfillState(instrumentKey, timeframe, actualFrom, false);
             } catch (err) {
-                console.warn('[Backfill] Window failed:', err.message, '- pausing backfill');
+                console.warn('[Backfill] Window failed:', err.message);
+                
+                // If we fail on intraday data that is older than ~120 days, it's highly likely 
+                // we've hit Upstox's hard retention limit for 1-minute historical data.
+                // Mark it as complete so we don't infinitely retry this dead zone.
+                const daysOld = Math.floor((new Date() - new Date(actualFrom)) / (1000 * 60 * 60 * 24));
+                if (timeframe !== 'day' && timeframe !== 'week' && timeframe !== 'month' && daysOld > 120) {
+                    console.log(`[Backfill] Hit Upstox intraday retention limit around ${actualFrom}. Marking complete.`);
+                    upsertBackfillState(instrumentKey, timeframe, actualFrom, true);
+                    break;
+                }
+
+                console.log('[Backfill] Pausing backfill due to error.');
                 break;
             }
             currentToDate = subtractDays(actualFrom, 1);

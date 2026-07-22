@@ -2,6 +2,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { formatCompactCurrency } from '@/shared/utils/formatters';
 import { scoreInstitutionalFlow, generateAiInsightFIIDIIFlowCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
@@ -22,7 +23,7 @@ export default function FIIDIIFlowCard({ cardId, data = null, manualOverride, la
             ? cleanNum(data.manualDiiFlow) : null;
 
     // Centralized Config
-    const configData = getIndicatorConfig('fii_dii_flow');
+    const configData = getIndicatorConfig(CARD_REGISTRY.fii_dii_flow.id);
 
     // --- Scoring Engine ---
     const { score, bias, confidence, netFlow } = scoreInstitutionalFlow(fiiFlow, diiFlow);

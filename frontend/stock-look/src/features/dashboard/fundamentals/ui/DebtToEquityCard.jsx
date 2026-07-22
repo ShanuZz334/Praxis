@@ -16,6 +16,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreDebtToEquity, generateAiInsightDebtToEquityCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 // ─── Main Component ─────────────────────────────────────────────────────────
@@ -63,7 +64,7 @@ export default function DebtToEquityCard({ data, manualOverride, lastUpdated }) 
         : extractedValue;
     const sectorDE = isManual ? null : extractedSector;
 
-    const configData = getIndicatorConfig('debt_to_equity');
+    const configData = getIndicatorConfig(CARD_REGISTRY.debt_to_equity.id);
     const { score, bias, confidence, leverageZone } = scoreDebtToEquity(currentDE, sectorDE);
     const aiInsightText = generateAiInsightDebtToEquityCard(currentDE, sectorDE, leverageZone);
 

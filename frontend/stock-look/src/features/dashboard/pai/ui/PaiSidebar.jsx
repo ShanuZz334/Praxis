@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { useTheme } from '@/shared/context/ThemeContext';
+import axiosInstance from '@/shared/utils/axiosInstance';
 import { 
     MessageSquare, 
     ChevronDown, 
@@ -34,6 +36,19 @@ const INITIAL_SECTIONS = [
                 chats: [
                     { id: 'assist_global', title: 'Global Chat', type: 'manual' }
                 ]
+            },
+            {
+                id: 'assist_contexts',
+                label: 'QChat Contexts',
+                chats: [
+                    { id: 'qchat_global', title: 'Global QChat', type: 'header' },
+                    { id: 'qchat_fundamentals', title: 'Fundamentals Context', type: 'header' },
+                    { id: 'qchat_technicals', title: 'Technicals Context', type: 'header' },
+                    { id: 'qchat_options', title: 'Options Context', type: 'header' },
+                    { id: 'qchat_global_macros', title: 'Global Macros Context', type: 'header' },
+                    { id: 'qchat_events', title: 'Events Context', type: 'header' },
+                    { id: CARD_REGISTRY.master_qchat.id, title: 'Dashboard Context', type: 'header' },
+                ]
             }
         ]
     },
@@ -46,20 +61,20 @@ const INITIAL_SECTIONS = [
                 id: 'master_general',
                 label: 'General',
                 chats: [
-                    { id: 'master_header', title: 'Page Header Insight', type: 'header' },
-                    { id: 'master_manual', title: 'Manual Chat', type: 'manual' }
+                    { id: CARD_REGISTRY.praxis_composite_header.id, title: 'Page Header Insight', type: 'header' },
+                    { id: CARD_REGISTRY.master_manual_chat.id, title: 'Manual Chat', type: 'manual' }
                 ]
             },
             {
                 id: 'master_widgets',
                 label: 'Widgets',
                 chats: [
-                    { id: 'market_heatmap', title: 'Market Heatmap', type: 'card' },
-                    { id: 'fii_dii_flow_master', title: 'FII/DII Flow', type: 'card' },
-                    { id: 'options_pulse', title: 'Options Pulse', type: 'card' },
-                    { id: 'sector_rotation', title: 'Sector Rotation', type: 'card' },
-                    { id: 'volume_shockers', title: 'Volume Shockers', type: 'card' },
-                    { id: 'catalyst_calendar', title: 'Catalyst Calendar', type: 'card' }
+                    { id: CARD_REGISTRY.market_heatmap.id, title: 'Market Heatmap', type: 'card' },
+                    { id: CARD_REGISTRY.fii_dii_flow_master.id, title: 'FII/DII Flow', type: 'card' },
+                    { id: CARD_REGISTRY.options_pulse.id, title: 'Options Pulse', type: 'card' },
+                    { id: CARD_REGISTRY.sector_rotation.id, title: 'Sector Rotation', type: 'card' },
+                    { id: CARD_REGISTRY.volume_shockers.id, title: 'Volume Shockers', type: 'card' },
+                    { id: CARD_REGISTRY.catalyst_calendar.id, title: 'Catalyst Calendar', type: 'card' }
                 ]
             }
         ]
@@ -73,119 +88,119 @@ const INITIAL_SECTIONS = [
                 id: 'fund_general',
                 label: 'General',
                 chats: [
-                    { id: 'fundamentals_index_header', title: 'Index Header Insight', type: 'header' },
-                    { id: 'fundamentals_company_header', title: 'Company Header Insight', type: 'header' },
-                    { id: 'fund_manual', title: 'Manual Chat', type: 'manual' }
+                    { id: CARD_REGISTRY.fundamentals_index_header.id, title: 'Index Header Insight', type: 'header' },
+                    { id: CARD_REGISTRY.fundamentals_company_header.id, title: 'Company Header Insight', type: 'header' },
+                    { id: CARD_REGISTRY.fund_manual.id, title: 'Manual Chat', type: 'manual' }
                 ]
             },
             {
                 id: 'fundamental_valuation',
                 label: 'Valuation',
                 chats: [
-                    { id: 'pe_ratio', title: 'P/E Ratio', type: 'card' },
-                    { id: 'forward_pe', title: 'Forward P/E', type: 'card' },
-                    { id: 'pb_ratio', title: 'P/B Ratio', type: 'card' },
-                    { id: 'ev_ebitda', title: 'EV/EBITDA', type: 'card' },
-                    { id: 'earnings_yield', title: 'Earnings Yield', type: 'card' },
-                    { id: 'relative_valuation', title: 'Relative Valuation', type: 'card' },
-                    { id: 'dividend_yield', title: 'Dividend Yield', type: 'card' },
-                    { id: 'nifty_pe', title: 'Nifty P/E', type: 'card' },
-                    { id: 'nifty_pb', title: 'Nifty P/B', type: 'card' },
-                    { id: 'mcap_gdp', title: 'MCap/GDP (Buffett)', type: 'card' }
+                    { id: CARD_REGISTRY.pe_ratio.id, title: 'P/E Ratio', type: 'card' },
+                    { id: CARD_REGISTRY.forward_pe.id, title: 'Forward P/E', type: 'card' },
+                    { id: CARD_REGISTRY.pb_ratio.id, title: 'P/B Ratio', type: 'card' },
+                    { id: CARD_REGISTRY.ev_ebitda.id, title: 'EV/EBITDA', type: 'card' },
+                    { id: CARD_REGISTRY.earnings_yield.id, title: 'Earnings Yield', type: 'card' },
+                    { id: CARD_REGISTRY.relative_valuation.id, title: 'Relative Valuation', type: 'card' },
+                    { id: CARD_REGISTRY.dividend_yield.id, title: 'Dividend Yield', type: 'card' },
+                    { id: CARD_REGISTRY.nifty_pe.id, title: 'Nifty P/E', type: 'card' },
+                    { id: CARD_REGISTRY.nifty_pb.id, title: 'Nifty P/B', type: 'card' },
+                    { id: CARD_REGISTRY.mcap_gdp.id, title: 'MCap/GDP (Buffett)', type: 'card' }
                 ]
             },
             {
                 id: 'fundamental_earnings',
                 label: 'Earnings',
                 chats: [
-                    { id: 'eps_growth', title: 'EPS Growth', type: 'card' },
-                    { id: 'revenue_growth', title: 'Revenue Growth', type: 'card' },
-                    { id: 'profit_growth', title: 'Profit Growth', type: 'card' },
-                    { id: 'earnings_trend', title: 'Earnings Trend', type: 'card' },
-                    { id: 'earnings_quality', title: 'Earnings Quality', type: 'card' },
-                    { id: 'eps_yoy', title: 'EPS YoY', type: 'card' },
-                    { id: 'forward_eps', title: 'Forward EPS', type: 'card' },
-                    { id: 'profit_margin', title: 'Profit Margin', type: 'card' }
+                    { id: CARD_REGISTRY.eps_growth.id, title: 'EPS Growth', type: 'card' },
+                    { id: CARD_REGISTRY.revenue_growth.id, title: 'Revenue Growth', type: 'card' },
+                    { id: CARD_REGISTRY.profit_growth.id, title: 'Profit Growth', type: 'card' },
+                    { id: CARD_REGISTRY.earnings_trend.id, title: 'Earnings Trend', type: 'card' },
+                    { id: CARD_REGISTRY.earnings_quality.id, title: 'Earnings Quality', type: 'card' },
+                    { id: CARD_REGISTRY.eps_yoy.id, title: 'EPS YoY', type: 'card' },
+                    { id: CARD_REGISTRY.forward_eps.id, title: 'Forward EPS', type: 'card' },
+                    { id: CARD_REGISTRY.profit_margin.id, title: 'Profit Margin', type: 'card' }
                 ]
             },
             {
                 id: 'fundamental_corporate',
                 label: 'Corporate',
                 chats: [
-                    { id: 'roe', title: 'ROE', type: 'card' },
-                    { id: 'roce', title: 'ROCE', type: 'card' },
-                    { id: 'roa', title: 'ROA', type: 'card' },
-                    { id: 'net_margin', title: 'Net Margin', type: 'card' },
-                    { id: 'operating_margin', title: 'Operating Margin', type: 'card' },
-                    { id: 'debt_to_equity', title: 'Debt to Equity', type: 'card' },
-                    { id: 'interest_coverage', title: 'Interest Coverage', type: 'card' },
-                    { id: 'free_cash_flow', title: 'Free Cash Flow', type: 'card' },
-                    { id: 'current_ratio', title: 'Current Ratio', type: 'card' },
-                    { id: 'credit_growth', title: 'Credit Growth', type: 'card' },
-                    { id: 'corp_debt', title: 'Corporate Debt', type: 'card' }
+                    { id: CARD_REGISTRY.roe.id, title: 'ROE', type: 'card' },
+                    { id: CARD_REGISTRY.roce.id, title: 'ROCE', type: 'card' },
+                    { id: CARD_REGISTRY.roa.id, title: 'ROA', type: 'card' },
+                    { id: CARD_REGISTRY.net_margin.id, title: 'Net Margin', type: 'card' },
+                    { id: CARD_REGISTRY.operating_margin.id, title: 'Operating Margin', type: 'card' },
+                    { id: CARD_REGISTRY.debt_to_equity.id, title: 'Debt to Equity', type: 'card' },
+                    { id: CARD_REGISTRY.interest_coverage.id, title: 'Interest Coverage', type: 'card' },
+                    { id: CARD_REGISTRY.free_cash_flow.id, title: 'Free Cash Flow', type: 'card' },
+                    { id: CARD_REGISTRY.current_ratio.id, title: 'Current Ratio', type: 'card' },
+                    { id: CARD_REGISTRY.credit_growth.id, title: 'Credit Growth', type: 'card' },
+                    { id: CARD_REGISTRY.corp_debt.id, title: 'Corporate Debt', type: 'card' }
                 ]
             },
             {
                 id: 'fundamental_ownership___flow',
                 label: 'Ownership & Flow',
                 chats: [
-                    { id: 'promoter_holding', title: 'Promoter Holding', type: 'card' },
-                    { id: 'smart_money_flow', title: 'Smart Money Flow', type: 'card' },
-                    { id: 'fii_dii_flow', title: 'FII/DII Flow', type: 'card' }
+                    { id: CARD_REGISTRY.promoter_holding.id, title: 'Promoter Holding', type: 'card' },
+                    { id: CARD_REGISTRY.smart_money_flow.id, title: 'Smart Money Flow', type: 'card' },
+                    { id: CARD_REGISTRY.fii_dii_flow.id, title: 'FII/DII Flow', type: 'card' }
                 ]
             },
             {
                 id: 'fundamental_macro',
                 label: 'Macro',
                 chats: [
-                    { id: 'gdp_growth', title: 'GDP Growth', type: 'card' },
-                    { id: 'gdp', title: 'GDP', type: 'card' },
-                    { id: 'cpi', title: 'CPI', type: 'card' },
-                    { id: 'repo', title: 'Repo Rate', type: 'card' },
-                    { id: 'fiscal_deficit', title: 'Fiscal Deficit', type: 'card' }
+                    { id: CARD_REGISTRY.gdp_growth.id, title: 'GDP Growth', type: 'card' },
+                    { id: CARD_REGISTRY.gdp.id, title: 'GDP', type: 'card' },
+                    { id: CARD_REGISTRY.cpi.id, title: 'CPI', type: 'card' },
+                    { id: CARD_REGISTRY.repo.id, title: 'Repo Rate', type: 'card' },
+                    { id: CARD_REGISTRY.fiscal_deficit.id, title: 'Fiscal Deficit', type: 'card' }
                 ]
             },
             {
                 id: 'fundamental_liquidity',
                 label: 'Liquidity',
                 chats: [
-                    { id: 'fii', title: 'FII', type: 'card' },
-                    { id: 'dii', title: 'DII', type: 'card' },
-                    { id: 'fii_trend', title: 'FII Trend', type: 'card' },
-                    { id: 'system_liquidity', title: 'System Liquidity', type: 'card' },
-                    { id: 'mf_flows', title: 'MF Flows', type: 'card' },
-                    { id: 'advance_decline', title: 'Advance/Decline', type: 'card' }
+                    { id: CARD_REGISTRY.fii.id, title: 'FII', type: 'card' },
+                    { id: CARD_REGISTRY.dii.id, title: 'DII', type: 'card' },
+                    { id: CARD_REGISTRY.fii_trend.id, title: 'FII Trend', type: 'card' },
+                    { id: CARD_REGISTRY.system_liquidity.id, title: 'System Liquidity', type: 'card' },
+                    { id: CARD_REGISTRY.mf_flows.id, title: 'MF Flows', type: 'card' },
+                    { id: CARD_REGISTRY.advance_decline.id, title: 'Advance/Decline', type: 'card' }
                 ]
             },
             {
                 id: 'fundamental_risk',
                 label: 'Risk',
                 chats: [
-                    { id: 'policy_tailwinds', title: 'Policy Tailwinds', type: 'card' },
-                    { id: 'sovereign_risk', title: 'Sovereign Risk', type: 'card' },
-                    { id: 'npa', title: 'NPA', type: 'card' },
-                    { id: 'reform_momentum', title: 'Reform Momentum', type: 'card' },
-                    { id: 'india_vix', title: 'India VIX', type: 'card' }
+                    { id: CARD_REGISTRY.policy_tailwinds.id, title: 'Policy Tailwinds', type: 'card' },
+                    { id: CARD_REGISTRY.sovereign_risk.id, title: 'Sovereign Risk', type: 'card' },
+                    { id: CARD_REGISTRY.npa.id, title: 'NPA', type: 'card' },
+                    { id: CARD_REGISTRY.reform_momentum.id, title: 'Reform Momentum', type: 'card' },
+                    { id: CARD_REGISTRY.india_vix.id, title: 'India VIX', type: 'card' }
                 ]
             },
             {
                 id: 'fundamental_global',
                 label: 'Global',
                 chats: [
-                    { id: 'crude', title: 'Crude Oil', type: 'card' },
-                    { id: 'global_liq', title: 'Global Liquidity', type: 'card' }
+                    { id: CARD_REGISTRY.crude.id, title: 'Crude Oil', type: 'card' },
+                    { id: CARD_REGISTRY.global_liq.id, title: 'Global Liquidity', type: 'card' }
                 ]
             },
             {
                 id: 'fundamental_general',
                 label: 'General',
                 chats: [
-                    { id: 'peer_comparison', title: 'Peer Comparison', type: 'card' },
-                    { id: 'analyst_consensus', title: 'Analyst Consensus', type: 'card' },
-                    { id: 'corporate_actions', title: 'Corporate Actions', type: 'card' },
-                    { id: 'cash_conversion', title: 'Cash Conversion Cycle', type: 'card' },
-                    { id: 'credit_rating', title: 'Credit Rating', type: 'card' },
-                    { id: 'sector_dashboard', title: 'Sector Dashboard', type: 'card' }
+                    { id: CARD_REGISTRY.peer_comparison.id, title: 'Peer Comparison', type: 'card' },
+                    { id: CARD_REGISTRY.analyst_consensus.id, title: 'Analyst Consensus', type: 'card' },
+                    { id: CARD_REGISTRY.corporate_actions.id, title: 'Corporate Actions', type: 'card' },
+                    { id: CARD_REGISTRY.cash_conversion.id, title: 'Cash Conversion Cycle', type: 'card' },
+                    { id: CARD_REGISTRY.credit_rating.id, title: 'Credit Rating', type: 'card' },
+                    { id: CARD_REGISTRY.sector_dashboard.id, title: 'Sector Dashboard', type: 'card' }
                 ]
             }
         ]
@@ -199,80 +214,80 @@ const INITIAL_SECTIONS = [
                 id: 'tech_general',
                 label: 'General',
                 chats: [
-                    { id: 'technical_index_header', title: 'Index Header Insight', type: 'header' },
-                    { id: 'technical_company_header', title: 'Company Header Insight', type: 'header' },
-                    { id: 'tech_manual', title: 'Manual Chat', type: 'manual' }
+                    { id: CARD_REGISTRY.technical_index_header.id, title: 'Index Header Insight', type: 'header' },
+                    { id: CARD_REGISTRY.technical_company_header.id, title: 'Company Header Insight', type: 'header' },
+                    { id: CARD_REGISTRY.tech_manual.id, title: 'Manual Chat', type: 'manual' }
                 ]
             },
             {
                 id: 'technical_momentum',
                 label: 'Momentum',
                 chats: [
-                    { id: 'rsi', title: 'RSI', type: 'card' },
-                    { id: 'macd', title: 'MACD', type: 'card' },
-                    { id: 'stoch_rsi', title: 'Stoch RSI', type: 'card' },
-                    { id: 'williams_r', title: 'Williams %R', type: 'card' }
+                    { id: CARD_REGISTRY.rsi.id, title: 'RSI', type: 'card' },
+                    { id: CARD_REGISTRY.macd.id, title: 'MACD', type: 'card' },
+                    { id: CARD_REGISTRY.stoch_rsi.id, title: 'Stoch RSI', type: 'card' },
+                    { id: CARD_REGISTRY.williams_r.id, title: 'Williams %R', type: 'card' }
                 ]
             },
             {
                 id: 'technical_volatility',
                 label: 'Volatility',
                 chats: [
-                    { id: 'bb_20_2', title: 'Bollinger Bands', type: 'card' },
-                    { id: 'atr', title: 'ATR', type: 'card' },
-                    { id: 'kc', title: 'Keltner Channel', type: 'card' }
+                    { id: CARD_REGISTRY.bb_20_2.id, title: 'Bollinger Bands', type: 'card' },
+                    { id: CARD_REGISTRY.atr.id, title: 'ATR', type: 'card' },
+                    { id: CARD_REGISTRY.kc.id, title: 'Keltner Channel', type: 'card' }
                 ]
             },
             {
                 id: 'technical_trend',
                 label: 'Trend',
                 chats: [
-                    { id: 'ema_20', title: 'EMA 20', type: 'card' },
-                    { id: 'ema_50', title: 'EMA 50', type: 'card' },
-                    { id: 'ema_200', title: 'EMA 200', type: 'card' },
-                    { id: 'sma_50', title: 'SMA 50', type: 'card' },
-                    { id: 'sma_200', title: 'SMA 200', type: 'card' },
-                    { id: 'adx', title: 'ADX', type: 'card' },
-                    { id: 'supertrend', title: 'Supertrend', type: 'card' }
+                    { id: CARD_REGISTRY.ema_20.id, title: 'EMA 20', type: 'card' },
+                    { id: CARD_REGISTRY.ema_50.id, title: 'EMA 50', type: 'card' },
+                    { id: CARD_REGISTRY.ema_200.id, title: 'EMA 200', type: 'card' },
+                    { id: CARD_REGISTRY.sma_50.id, title: 'SMA 50', type: 'card' },
+                    { id: CARD_REGISTRY.sma_200.id, title: 'SMA 200', type: 'card' },
+                    { id: CARD_REGISTRY.adx.id, title: 'ADX', type: 'card' },
+                    { id: CARD_REGISTRY.supertrend.id, title: 'Supertrend', type: 'card' }
                 ]
             },
             {
                 id: 'technical_volume',
                 label: 'Volume',
                 chats: [
-                    { id: 'cmf', title: 'CMF', type: 'card' },
-                    { id: 'volume_sma', title: 'Volume SMA', type: 'card' },
-                    { id: 'obv', title: 'OBV', type: 'card' },
-                    { id: 'vwap', title: 'VWAP', type: 'card' }
+                    { id: CARD_REGISTRY.cmf.id, title: 'CMF', type: 'card' },
+                    { id: CARD_REGISTRY.volume_sma.id, title: 'Volume SMA', type: 'card' },
+                    { id: CARD_REGISTRY.obv.id, title: 'OBV', type: 'card' },
+                    { id: CARD_REGISTRY.vwap.id, title: 'VWAP', type: 'card' }
                 ]
             },
             {
                 id: 'technical_structure',
                 label: 'Structure',
                 chats: [
-                    { id: 'support', title: 'Support', type: 'card' },
-                    { id: 'resistance', title: 'Resistance', type: 'card' },
-                    { id: 'trendline', title: 'Trendline', type: 'card' },
-                    { id: 'pivot', title: 'Pivot Points', type: 'card' },
-                    { id: 'fibonacci', title: 'Fibonacci', type: 'card' }
+                    { id: CARD_REGISTRY.support.id, title: 'Support', type: 'card' },
+                    { id: CARD_REGISTRY.resistance.id, title: 'Resistance', type: 'card' },
+                    { id: CARD_REGISTRY.trendline.id, title: 'Trendline', type: 'card' },
+                    { id: CARD_REGISTRY.pivot.id, title: 'Pivot Points', type: 'card' },
+                    { id: CARD_REGISTRY.fibonacci.id, title: 'Fibonacci', type: 'card' }
                 ]
             },
             {
                 id: 'technical_breadth',
                 label: 'Breadth',
                 chats: [
-                    { id: 'ad_line', title: 'A/D Line', type: 'card' },
-                    { id: 'nh_nl', title: 'New Highs / New Lows', type: 'card' },
-                    { id: 'breadth_ratio', title: 'Breadth Ratio', type: 'card' },
-                    { id: 'trin', title: 'TRIN', type: 'card' },
-                    { id: 'mcclellan', title: 'McClellan Oscillator', type: 'card' }
+                    { id: CARD_REGISTRY.ad_line.id, title: 'A/D Line', type: 'card' },
+                    { id: CARD_REGISTRY.nh_nl.id, title: 'New Highs / New Lows', type: 'card' },
+                    { id: CARD_REGISTRY.breadth_ratio.id, title: 'Breadth Ratio', type: 'card' },
+                    { id: CARD_REGISTRY.trin.id, title: 'TRIN', type: 'card' },
+                    { id: CARD_REGISTRY.mcclellan.id, title: 'McClellan Oscillator', type: 'card' }
                 ]
             },
             {
                 id: 'technical_general',
                 label: 'General',
                 chats: [
-                    { id: 'beta_correlation', title: 'Beta Correlation', type: 'card' }
+                    { id: CARD_REGISTRY.beta_correlation.id, title: 'Beta Correlation', type: 'card' }
                 ]
             }
         ]
@@ -286,58 +301,68 @@ const INITIAL_SECTIONS = [
                 id: 'opt_general',
                 label: 'General',
                 chats: [
-                    { id: 'options_header', title: 'Page Header Insight', type: 'header' },
-                    { id: 'opt_manual', title: 'Manual Chat', type: 'manual' }
+                    { id: CARD_REGISTRY.options_index_header.id, title: 'Index Header Insight', type: 'header' },
+                    { id: CARD_REGISTRY.options_company_header.id, title: 'Company Header Insight', type: 'header' },
+                    { id: CARD_REGISTRY.options_manual.id, title: 'Manual Chat', type: 'manual' }
                 ]
             },
             {
                 id: 'options_volatility',
                 label: 'Volatility',
                 chats: [
-                    { id: 'atm_iv', title: 'ATM IV', type: 'card' },
-                    { id: 'iv_rank', title: 'IV Rank', type: 'card' },
-                    { id: 'iv_percentile', title: 'IV Percentile', type: 'card' }
+                    { id: CARD_REGISTRY.atm_iv.id, title: 'ATM IV', type: 'card' },
+                    { id: CARD_REGISTRY.iv_rank.id, title: 'IV Rank', type: 'card' },
+                    { id: CARD_REGISTRY.iv_percentile.id, title: 'IV Percentile', type: 'card' }
                 ]
             },
             {
                 id: 'options_open_interest',
                 label: 'Open Interest',
                 chats: [
-                    { id: 'total_call_oi', title: 'Total Call OI', type: 'card' },
-                    { id: 'total_put_oi', title: 'Total Put OI', type: 'card' },
-                    { id: 'oi_change', title: 'OI Change', type: 'card' }
+                    { id: CARD_REGISTRY.total_call_oi.id, title: 'Total Call OI', type: 'card' },
+                    { id: CARD_REGISTRY.total_put_oi.id, title: 'Total Put OI', type: 'card' },
+                    { id: CARD_REGISTRY.oi_change.id, title: 'OI Change', type: 'card' }
                 ]
             },
             {
                 id: 'options_greeks',
                 label: 'Greeks',
                 chats: [
-                    { id: 'delta', title: 'Delta', type: 'card' },
-                    { id: 'gamma', title: 'Gamma', type: 'card' },
-                    { id: 'theta', title: 'Theta', type: 'card' },
-                    { id: 'vega', title: 'Vega', type: 'card' }
+                    { id: CARD_REGISTRY.delta.id, title: 'Delta', type: 'card' },
+                    { id: CARD_REGISTRY.gamma.id, title: 'Gamma', type: 'card' },
+                    { id: CARD_REGISTRY.theta.id, title: 'Theta', type: 'card' },
+                    { id: CARD_REGISTRY.vega.id, title: 'Vega', type: 'card' }
                 ]
             },
             {
                 id: 'options_put_call_ratio',
                 label: 'Put-Call Ratio',
                 chats: [
-                    { id: 'pcr_oi', title: 'PCR OI', type: 'card' },
-                    { id: 'pcr_volume', title: 'PCR Volume', type: 'card' }
+                    { id: CARD_REGISTRY.pcr_oi.id, title: 'PCR OI', type: 'card' },
+                    { id: CARD_REGISTRY.pcr_volume.id, title: 'PCR Volume', type: 'card' }
                 ]
             },
             {
                 id: 'options_market_positioning',
                 label: 'Market Positioning',
                 chats: [
-                    { id: 'max_pain', title: 'Max Pain', type: 'card' }
+                    { id: CARD_REGISTRY.max_pain.id, title: 'Max Pain', type: 'card' }
                 ]
             },
             {
                 id: 'options_general',
                 label: 'General',
                 chats: [
-                    { id: 'fno_ban', title: 'F&O Ban Status', type: 'card' }
+                    { id: CARD_REGISTRY.fno_ban.id, title: 'F&O Ban Status', type: 'card' }
+                ]
+            },
+            {
+                id: 'options_widgets',
+                label: 'Widgets',
+                chats: [
+                    { id: CARD_REGISTRY.options_prodesk.id, title: 'ProDesk Action Signal', type: 'widget' },
+                    { id: CARD_REGISTRY.options_chain_table.id, title: 'Options Chain', type: 'widget' },
+                    { id: CARD_REGISTRY.options_history_chart.id, title: 'Options History', type: 'widget' }
                 ]
             }
         ]
@@ -435,7 +460,7 @@ const INITIAL_SECTIONS = [
     }
 ];
 
-export default function PaiSidebar({ activeChatId, onSelectChat }) {
+export default function PaiSidebar({ activeChatId, onSelectChat, onChatCleared }) {
     const navigate = useNavigate();
     const { theme } = useTheme();
     const [sections, setSections] = useState(INITIAL_SECTIONS);
@@ -565,7 +590,7 @@ export default function PaiSidebar({ activeChatId, onSelectChat }) {
                                                                     }`}
                                                                 >
                                                                     <button
-                                                                        onClick={() => onSelectChat(chat.id, chat.title)}
+                                                                        onClick={() => onSelectChat(chat.id, chat.title, chat.type)}
                                                                         className="flex items-center gap-2 flex-1 min-w-0"
                                                                     >
                                                                         <span className="truncate text-left text-[11.5px]" title={chat.title}>{chat.title}</span>
@@ -627,8 +652,14 @@ export default function PaiSidebar({ activeChatId, onSelectChat }) {
                                 Cancel
                             </button>
                             <button 
-                                onClick={() => {
-                                    // Here you would also call an API to actually clear the history of this chat
+                                onClick={async () => {
+                                    const scope = chatToDelete.chat.type === 'header' ? 'page' : 'card';
+                                    try {
+                                        await axiosInstance.delete(`/api/v1/ai-prompts/thread/${chatToDelete.chat.id}`, { params: { scope } });
+                                        if (onChatCleared) onChatCleared();
+                                    } catch (err) {
+                                        console.error('Failed to clear chat history:', err);
+                                    }
                                     setChatToDelete(null);
                                 }}
                                 className="px-3 py-1.5 rounded-lg text-[13px] font-medium bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors"
@@ -637,7 +668,14 @@ export default function PaiSidebar({ activeChatId, onSelectChat }) {
                             </button>
                             {chatToDelete.chat.isSubChat && (
                                 <button 
-                                    onClick={() => {
+                                    onClick={async () => {
+                                        const scope = chatToDelete.chat.type === 'header' ? 'page' : 'card';
+                                        try {
+                                            await axiosInstance.delete(`/api/v1/ai-prompts/thread/${chatToDelete.chat.id}`, { params: { scope } });
+                                        } catch (err) {
+                                            console.error('Failed to delete chat:', err);
+                                        }
+
                                         setSections(prev => prev.map(s => {
                                             if (s.id !== chatToDelete.sectionId) return s;
                                             
@@ -653,6 +691,8 @@ export default function PaiSidebar({ activeChatId, onSelectChat }) {
                                         }));
                                         if (activeChatId === chatToDelete.chat.id) {
                                             onSelectChat(null, '');
+                                        } else if (onChatCleared) {
+                                            onChatCleared();
                                         }
                                         setChatToDelete(null);
                                     }}

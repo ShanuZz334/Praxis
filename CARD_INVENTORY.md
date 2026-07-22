@@ -117,3 +117,21 @@
 | 113 | ROCE | Fundamentals | Auto | Company Only |
 | 114 | Net Margin | Fundamentals | Manual | Company Only |
 | 115 | Free Cash Flow | Fundamentals | Auto | Company Only |
+
+| 50 | F&O Ban Status | Options | Manual / Upstox | Company |
+| 51 | ProDesk Action Signal | Options | Auto (Engine) | Both |
+| 52 | Options Chain Table | Options | Upstox | Both |
+| 53 | Options History Chart | Options | Auto | Both |
+| 54 | ATM IV | Options | Upstox | Both |
+| 55 | IV Rank | Options | Auto / Manual | Both |
+| 56 | IV Percentile | Options | Auto / Manual | Both |
+| 57 | Total Call OI | Options | Upstox | Both |
+| 58 | Total Put OI | Options | Upstox | Both |
+| 59 | OI Change | Options | Upstox | Both |
+| 60 | Delta | Options | Auto (Engine) | Both |
+| 61 | Gamma | Options | Auto (Engine) | Both |
+| 62 | Theta | Options | Auto (Engine) | Both |
+| 63 | Vega | Options | Auto (Engine) | Both |
+| 64 | PCR OI | Options | Auto (Engine) | Both |
+| 65 | PCR Volume | Options | Auto (Engine) | Both |
+| 66 | Max Pain | Options | Auto (Engine) | Both |

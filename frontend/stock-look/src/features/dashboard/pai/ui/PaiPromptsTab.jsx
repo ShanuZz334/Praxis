@@ -1,29 +1,84 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { LayoutDashboard, LineChart, Activity, Briefcase, ChevronDown, ChevronRight, MessageSquare, FileText, Save, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+    LayoutDashboard, LineChart, Activity, Briefcase,
+    ChevronDown, ChevronRight, MessageSquare, FileText,
+    Save, CheckCircle, AlertCircle,
+    BookOpen, Plus
+} from 'lucide-react';
 import { useCardPrompt } from '@/shared/hooks/useCardInsight';
 import cardInventory from '../../../../../card-inventory.json';
+import Loader from '@/shared/components/ui/Loader';
 
-// Page structure matching the dashboard nav
-const PAGE_CATEGORIES = [
-    { id: 'Master',           label: 'Master Dashboard',   icon: LayoutDashboard },
-    { id: 'Fundamentals',     label: 'Fundamentals',        icon: Briefcase },
-    { id: 'Technical Analysis', label: 'Technical Analysis', icon: LineChart },
-    { id: 'Options Analysis', label: 'Options Analysis',    icon: Activity },
-    { id: 'Foreign Markets',  label: 'Foreign Markets',     icon: Globe },
+// ─── Inline Globe Icon ────────────────────────────────────────────────────────
+function Globe(props) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 16} height={props.size || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props.className}>
+            <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
+    );
+}
+
+// ─── Golden Rules (injected by backend regardless of custom prompt) ──────────
+const GOLDEN_RULES = [
+    'Always substitute {variables} with their real values in your response — never echo back {name} or {value} literally.',
+    'Be direct and concise: max 2 sentences for individual cards, max 3 sentences for page headers.',
+    'Do not hallucinate or invent data beyond what is present in the template variables.',
+    'Focus on actionable implications for Indian equity traders, not generic financial theory.',
+    'End with a specific near-term directional implication (bullish, bearish, hold, caution).',
 ];
 
-// Header prompt entries per page (not in card-inventory.json — these are page-level)
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAGE TREE DEFINITIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const PAGE_CATEGORIES = [
+    { id: 'Master',             label: 'Master Dashboard',   icon: LayoutDashboard },
+    { id: 'Fundamentals',       label: 'Fundamentals',        icon: Briefcase        },
+    { id: 'Technical Analysis', label: 'Technical Analysis',  icon: LineChart        },
+    { id: 'Options Analysis',   label: 'Options Analysis',    icon: Activity         },
+    { id: 'Foreign Markets',    label: 'Foreign Markets',     icon: Globe            },
+    { id: 'QChat',              label: 'QChat (Floating)',    icon: MessageSquare    },
+];
+
+/**
+ * Header & Manual Chat prompt entries per page.
+ * ⚠  targetIds MUST exactly match AiInsightSection.jsx resolveTargetId() output.
+ */
 const PAGE_HEADERS = {
-    'Master':             [{ targetId: 'master_header',                     displayName: 'Master Dashboard Header' }],
-    'Fundamentals':       [{ targetId: 'fundamentals_header_index',          displayName: 'Header — Index Mode'    },
-                           { targetId: 'fundamentals_header_company',        displayName: 'Header — Company Mode'  }],
-    'Technical Analysis': [{ targetId: 'technical_header_index',             displayName: 'Header — Index Mode'    },
-                           { targetId: 'technical_header_company',           displayName: 'Header — Company Mode'  }],
-    'Options Analysis':   [{ targetId: 'options_header',                     displayName: 'Options Header'         }],
-    'Foreign Markets':    [{ targetId: 'foreign_header',                     displayName: 'Foreign Markets Header' }],
+    Master: [
+        { targetId: 'master_header',               displayName: 'Master Dashboard Header' },
+        { targetId: 'master_manual',               displayName: 'Manual Chat'              },
+    ],
+    Fundamentals: [
+        { targetId: 'fundamentals_index_header',   displayName: 'Header — Index Mode'   },
+        { targetId: 'fundamentals_company_header', displayName: 'Header — Company Mode' },
+        { targetId: 'fund_manual',                 displayName: 'Manual Chat'            },
+    ],
+    'Technical Analysis': [
+        { targetId: 'technical_index_header',      displayName: 'Header — Index Mode'   },
+        { targetId: 'technical_company_header',    displayName: 'Header — Company Mode' },
+        { targetId: 'tech_manual',                 displayName: 'Manual Chat'            },
+    ],
+    'Options Analysis': [
+        { targetId: 'options_header',              displayName: 'Options Header'         },
+        { targetId: 'opt_manual',                  displayName: 'Manual Chat'            },
+    ],
+    'Foreign Markets': [
+        { targetId: 'foreign_header',              displayName: 'Foreign Markets Header' },
+        { targetId: 'global_manual',               displayName: 'Manual Chat'            },
+    ],
+    QChat: [
+        { targetId: 'qchat_global',        displayName: 'Global QChat'         },
+        { targetId: 'qchat_fundamentals',  displayName: 'Fundamentals Context' },
+        { targetId: 'qchat_technicals',    displayName: 'Technicals Context'   },
+        { targetId: 'qchat_options',       displayName: 'Options Context'      },
+        { targetId: 'qchat_global_macros', displayName: 'Global Macros Context'},
+        { targetId: 'qchat_events',        displayName: 'Events Context'       },
+        { targetId: 'qchat_dashboard',     displayName: 'Dashboard Context'    },
+    ],
 };
 
-// Build the full sidebar tree from real card-inventory.json
 function buildTree() {
     const tree = {};
     PAGE_CATEGORIES.forEach(p => {
@@ -31,7 +86,7 @@ function buildTree() {
             headers: PAGE_HEADERS[p.id] || [],
             cards: cardInventory
                 .filter(c => c.page === p.id)
-                .map(c => ({ targetId: c.targetId, displayName: c.card, applicability: c.applicability }))
+                .map(c => ({ targetId: c.targetId, displayName: c.card, applicability: c.applicability })),
         };
     });
     return tree;
@@ -39,27 +94,78 @@ function buildTree() {
 
 const TREE = buildTree();
 
-// ─── Prompt Editor (real) ────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROMPT EDITOR COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
 function PromptEditor({ targetId, displayName, page, isHeaderPrompt, applicability }) {
+    console.log("Rendering PromptEditor for", targetId, "isHeaderPrompt:", isHeaderPrompt);
     const {
         systemInstruction,
         setSystemInstruction,
+        presets,
+        setPresets,
+        activePresetId,
+        setActivePresetId,
         isDefault,
         isLoading,
         isSaving,
         fetchPrompt,
-        savePrompt
+        savePrompt,
     } = useCardPrompt(targetId);
 
-    const [saveStatus, setSaveStatus] = useState(null); // 'saved' | 'error'
+    const textareaRef       = useRef(null);
+    const [saveStatus, setSaveStatus]         = useState(null);      // 'saved' | 'error'
+    const [showRules, setShowRules]           = useState(false);
 
+    // Decouple the tab being edited from the active dashboard mode
+    const [editingPresetId, setEditingPresetId] = useState('default');
+
+    // Sync editing tab when the active preset changes (e.g., on initial fetch)
+    useEffect(() => {
+        setEditingPresetId(activePresetId || 'default');
+    }, [activePresetId, targetId]);
+
+    // Fetch prompt whenever selected card changes
     useEffect(() => {
         if (targetId) fetchPrompt();
     }, [targetId]);
 
-    const handleSave = async () => {
+    const activeContent = isHeaderPrompt && editingPresetId !== 'default'
+        ? (presets.find(p => p.id === editingPresetId)?.systemInstruction || '')
+        : systemInstruction;
+
+    const handleTextChange = (val) => {
+        if (isHeaderPrompt && editingPresetId !== 'default') {
+            setPresets(prev => prev.map(p => p.id === editingPresetId ? { ...p, systemInstruction: val } : p));
+        } else {
+            setSystemInstruction(val);
+        }
+    };
+
+    // ── Save handler ─────────────────────────────────────────────────────────
+    const handleSave = async (overrideActivePresetId = undefined) => {
+        // Sync the edited content into the presets array for the current tab
+        const latestPresets = presets.map(p =>
+            p.id === editingPresetId ? { ...p, systemInstruction: activeContent } : p
+        );
+
+        // When editing the Default tab, activeContent IS the root systemInstruction.
+        // When editing a named preset tab, the root systemInstruction stays as-is.
+        const rootInstruction = (editingPresetId === 'default' || !isHeaderPrompt)
+            ? activeContent
+            : systemInstruction;
+
         try {
-            await savePrompt({ displayName, page, isHeaderPrompt, applicability });
+            await savePrompt({
+                systemInstruction: rootInstruction,
+                displayName,
+                page,
+                isHeaderPrompt,
+                applicability,
+                overrideActivePresetId,
+                overridePresets: latestPresets
+            });
             setSaveStatus('saved');
             setTimeout(() => setSaveStatus(null), 3000);
         } catch {
@@ -68,79 +174,198 @@ function PromptEditor({ targetId, displayName, page, isHeaderPrompt, applicabili
         }
     };
 
+    const handleSetCurrent = async () => {
+        // Set activePresetId optimistically in state, then save with the explicit override
+        setActivePresetId(editingPresetId);
+        await handleSave(editingPresetId);
+    };
+
+    const addCustomPreset = async () => {
+        const name = prompt("Enter a name for the new preset (e.g., 'Scalping'):");
+        if (!name || !name.trim()) return;
+        const id = 'custom_' + Date.now();
+        // Start with the current Default content so the new preset has something useful
+        const newPreset = { id, name: name.trim(), systemInstruction: systemInstruction, isCustom: true };
+        const newPresets = [...presets, newPreset];
+        setPresets(newPresets);
+        setEditingPresetId(id);
+        // Auto-save immediately so the preset persists without requiring a manual Save click
+        try {
+            await savePrompt({
+                systemInstruction,
+                displayName,
+                page,
+                isHeaderPrompt,
+                applicability,
+                overrideActivePresetId: activePresetId,   // don't change the active preset
+                overridePresets: newPresets
+            });
+        } catch {
+            // Silent — user will see stale state and can retry with Save Prompt
+        }
+    };
+
+    // ── Placeholder text ─────────────────────────────────────────────────────
+    const placeholder = `e.g. You are Praxis, an elite Indian market analyst. Analyze {name} for {stockSymbol}. The current value is {value} with a score of {score}/100 and a {bias} bias. Provide a 2-sentence verdict focusing on near-term price action implications.`;
+
     return (
-        <div className="flex-1 p-5 flex flex-col">
-            <label className="block text-[13px] font-semibold text-text-primary mb-1 flex items-center gap-2">
-                <MessageSquare size={16} className="text-blue-500" />
-                System Instruction
-                {isDefault && (
-                    <span className="text-[10px] font-normal text-text-tertiary bg-background-surface px-2 py-0.5 rounded-full border border-border-subtle">
-                        No custom prompt saved — using default
+        <>
+            <div className="absolute top-[22px] right-5 lg:right-6 pointer-events-none z-10">
+                {isDefault ? (
+                    <span className="text-[10px] font-medium text-text-tertiary bg-background-elevated/80 backdrop-blur-sm px-2.5 py-1 rounded-md border border-border-default/30 uppercase tracking-wider">
+                        Using Default
+                    </span>
+                ) : (
+                    <span className="text-[10px] font-medium text-blue-400 bg-blue-500/10 backdrop-blur-sm px-2.5 py-1 rounded-md border border-blue-500/20 uppercase tracking-wider">
+                        Custom Prompt
                     </span>
                 )}
-                {!isDefault && (
-                    <span className="text-[10px] font-normal text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
-                        Custom prompt active
-                    </span>
-                )}
-            </label>
+            </div>
+            <div className="flex-1 p-5 lg:p-6 flex flex-col gap-5 overflow-y-auto custom-scrollbar">
 
-            <p className="text-[11px] text-text-tertiary mb-3">
-                This instruction is sent to the AI Gateway when generating the insight for <strong className="text-text-secondary">{displayName}</strong>.
-                Leave blank to use the default template.
-            </p>
+            {/* ── Golden Rules Banner ──────────────────────────────────────── */}
+            <div className="border border-border-default/40 rounded-xl bg-background-elevated/50">
+                <button
+                    type="button"
+                    onClick={() => setShowRules(prev => !prev)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-background-surface transition-colors cursor-pointer rounded-xl"
+                >
+                    <div className="flex items-center gap-2">
+                        <BookOpen size={14} className="text-amber-500/80" />
+                        <span className="text-[12px] font-medium text-text-secondary">
+                            Golden Rules <span className="text-text-tertiary font-normal">— Enforced system-wide regardless of custom prompt</span>
+                        </span>
+                    </div>
+                    {showRules
+                        ? <ChevronDown size={14} className="text-text-tertiary" />
+                        : <ChevronRight size={14} className="text-text-tertiary" />
+                    }
+                </button>
+                <div className={`px-4 pb-4 pt-1 space-y-2.5 border-t border-border-default/30 ${showRules ? 'block' : 'hidden'}`}>
+                    {GOLDEN_RULES.map((rule, idx) => (
+                        <div key={idx} className="flex items-start gap-2.5 text-[12px] text-text-tertiary">
+                            <span className="text-amber-500/60 font-mono mt-0.5 shrink-0">{idx + 1}.</span>
+                            <span className="leading-relaxed">{rule}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
+
+
+            {/* ── Preset Tabs (Headers Only) ───────────────────────────────── */}
+            {(isHeaderPrompt || targetId === 'master_header') && (
+                <div className="flex items-center gap-2 mb-4 overflow-x-auto custom-scrollbar min-h-[36px]">
+                    <button
+                        onClick={() => setEditingPresetId('default')}
+                        className={`px-3 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded-lg ${
+                            activePresetId === 'default'
+                                ? 'bg-blue-500/15 border border-blue-500/30 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                                : editingPresetId === 'default'
+                                    ? 'border border-blue-500/50 text-blue-400 bg-transparent'
+                                    : 'border border-transparent text-text-secondary hover:text-text-primary hover:bg-background-elevated'
+                        }`}
+                    >
+                        Default
+                    </button>
+                    {presets && presets.map(p => (
+                        <button
+                            key={p.id}
+                            onClick={() => setEditingPresetId(p.id)}
+                            className={`px-3 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded-lg ${
+                                activePresetId === p.id
+                                    ? 'bg-blue-500/15 border border-blue-500/30 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                                    : editingPresetId === p.id
+                                        ? 'border border-blue-500/50 text-blue-400 bg-transparent'
+                                        : 'border border-transparent text-text-secondary hover:text-text-primary hover:bg-background-elevated'
+                            }`}
+                        >
+                            {p.name}
+                        </button>
+                    ))}
+                    <button
+                        onClick={addCustomPreset}
+                        title="Add Custom Preset"
+                        className="px-3 py-2 text-text-tertiary hover:text-text-primary transition-colors ml-2"
+                    >
+                        <Plus size={14} />
+                    </button>
+                </div>
+            )}
+
+            {/* ── Textarea ─────────────────────────────────────────────────── */}
             {isLoading ? (
-                <div className="flex-1 flex items-center justify-center">
-                    <Loader2 size={20} className="animate-spin text-text-tertiary" />
+                <div className="flex-1 flex items-center justify-center min-h-[250px]">
+                    <Loader size="sm" color="blue" />
                 </div>
             ) : (
                 <textarea
-                    value={systemInstruction}
-                    onChange={e => setSystemInstruction(e.target.value)}
-                    placeholder={`e.g. You are Praxis, an elite Indian market analyst. When analyzing the ${displayName}, focus on its relationship to historical Nifty valuations and mention the current macro environment. Keep insight under 2 sentences.`}
-                    className="flex-1 w-full bg-background-app border border-border-default/50 rounded-xl p-4 text-[13px] text-text-primary leading-relaxed focus:border-blue-500/50 outline-none custom-scrollbar resize-none shadow-inner font-mono"
+                    ref={textareaRef}
+                    value={activeContent}
+                    onChange={e => handleTextChange(e.target.value)}
+                    placeholder={placeholder}
+                    spellCheck={false}
+                    className="flex-1 w-full min-h-[250px] bg-background-app/50 border border-border-default/40 focus:border-blue-500/50 rounded-xl p-5 text-[13px] text-text-primary leading-loose focus:outline-none custom-scrollbar resize-none font-mono transition-colors"
                 />
             )}
 
-            <div className="mt-4 flex items-center justify-between">
-                <span className="text-[11px] text-text-tertiary font-mono">
-                    targetId: <span className="text-blue-400">{targetId}</span>
-                </span>
-                <div className="flex items-center gap-3">
+            {/* ── Footer: targetId + Save ─────────────────────────────────── */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-2 gap-4">
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wider text-text-tertiary font-semibold">Target ID</span>
+                    <code className="text-[11px] text-blue-400 font-mono">
+                        {targetId}
+                    </code>
+                </div>
+                <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
                     {saveStatus === 'saved' && (
-                        <span className="flex items-center gap-1 text-[12px] text-emerald-400">
-                            <CheckCircle size={13} /> Saved
+                        <span className="flex items-center gap-1.5 text-[12px] font-medium text-emerald-500 animate-in fade-in">
+                            <CheckCircle size={14} /> Saved
                         </span>
                     )}
                     {saveStatus === 'error' && (
-                        <span className="flex items-center gap-1 text-[12px] text-red-400">
-                            <AlertCircle size={13} /> Save failed
+                        <span className="flex items-center gap-1.5 text-[12px] font-medium text-rose-500 animate-in fade-in">
+                            <AlertCircle size={14} /> Failed
                         </span>
                     )}
+                    
+                    {isHeaderPrompt && editingPresetId !== activePresetId && (
+                        <button
+                            onClick={handleSetCurrent}
+                            disabled={isSaving || isLoading}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-900/20 hover:bg-blue-900/40 border border-blue-500/30 text-blue-400 text-[13px] font-semibold rounded-xl transition-colors w-full sm:w-auto"
+                        >
+                            Set as Active Preset
+                        </button>
+                    )}
+
                     <button
-                        onClick={handleSave}
+                        onClick={() => handleSave()}
                         disabled={isSaving || isLoading}
-                        className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-[13px] font-medium rounded-lg transition-colors shadow-md"
+                        className="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-[13px] font-semibold rounded-xl transition-colors w-full sm:w-auto"
                     >
-                        {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                        {isSaving ? <Loader size="xxs" color="white" /> : <Save size={15} />}
                         Save Prompt
                     </button>
                 </div>
             </div>
         </div>
+        </>
     );
 }
 
-// ─── Main Component ──────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN PAGE COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export default function PaiPromptsTab() {
-    const [expandedPages, setExpandedPages] = useState({ 'Fundamentals': true });
+    const [expandedPages, setExpandedPages] = useState({ Fundamentals: true });
     const [selected, setSelected] = useState({
-        targetId: 'nifty_pe',
-        displayName: 'Nifty P/E',
-        page: 'Fundamentals',
-        isHeaderPrompt: false,
-        applicability: 'index_only'
+        targetId:      'fundamentals_index_header',
+        displayName:   'Header — Index Mode',
+        page:          'Fundamentals',
+        isHeaderPrompt: true,
+        applicability: 'both',
     });
 
     const togglePage = useCallback((pageId) => {
@@ -149,34 +374,37 @@ export default function PaiPromptsTab() {
 
     const selectEntry = useCallback((entry, page, isHeader) => {
         setSelected({
-            targetId: entry.targetId,
-            displayName: entry.displayName,
+            targetId:       entry.targetId,
+            displayName:    entry.displayName,
             page,
             isHeaderPrompt: isHeader || false,
-            applicability: entry.applicability || 'both'
+            applicability:  entry.applicability || 'both',
         });
     }, []);
 
     return (
         <div className="animate-in fade-in duration-300 flex flex-col lg:flex-row gap-5 h-[calc(100vh-200px)]">
 
-            {/* Left Sidebar — real tree from card-inventory.json */}
+            {/* ── Left Sidebar ─────────────────────────────────────────────── */}
             <div className="w-full lg:w-64 shrink-0 flex flex-col border border-border-default/40 rounded-xl bg-background-card overflow-hidden">
                 <div className="p-3 border-b border-border-default/40 bg-background-surface/30">
                     <h2 className="text-[14px] font-bold text-text-primary px-1">
-                        Pages & Cards
-                        <span className="ml-2 text-[10px] font-normal text-text-tertiary">({cardInventory.length} cards)</span>
+                        Pages &amp; Cards
+                        <span className="ml-2 text-[10px] font-normal text-text-tertiary">
+                            ({cardInventory.length} cards)
+                        </span>
                     </h2>
                 </div>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
                     {PAGE_CATEGORIES.map(page => {
                         const isExpanded = expandedPages[page.id];
-                        const pageData = TREE[page.id];
+                        const pageData   = TREE[page.id];
                         const totalCount = pageData.headers.length + pageData.cards.length;
 
                         return (
                             <div key={page.id} className="flex flex-col">
+                                {/* Page row */}
                                 <button
                                     onClick={() => togglePage(page.id)}
                                     className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors ${
@@ -184,7 +412,10 @@ export default function PaiPromptsTab() {
                                     }`}
                                 >
                                     <div className="flex items-center gap-2.5">
-                                        <page.icon size={16} className={isExpanded ? 'text-blue-500' : 'text-text-tertiary'} />
+                                        <page.icon
+                                            size={16}
+                                            className={isExpanded ? 'text-blue-500' : 'text-text-tertiary'}
+                                        />
                                         <span className={`text-[13px] font-medium ${isExpanded ? 'text-text-primary' : 'text-text-secondary'}`}>
                                             {page.label}
                                         </span>
@@ -192,48 +423,52 @@ export default function PaiPromptsTab() {
                                             {totalCount}
                                         </span>
                                     </div>
-                                    {isExpanded ? (
-                                        <ChevronDown size={14} className="text-text-tertiary" />
-                                    ) : (
-                                        <ChevronRight size={14} className="text-text-tertiary" />
-                                    )}
+                                    {isExpanded
+                                        ? <ChevronDown size={14} className="text-text-tertiary" />
+                                        : <ChevronRight size={14} className="text-text-tertiary" />
+                                    }
                                 </button>
 
+                                {/* Children */}
                                 {isExpanded && (
                                     <div className="flex flex-col mt-1 ml-4 pl-3 border-l border-border-default/30 space-y-0.5">
-                                        {/* Page header prompts */}
+
+                                        {/* Page-level headers + manual chats (purple) */}
                                         {pageData.headers.map(h => {
-                                            const isSelected = selected.targetId === h.targetId;
+                                            const isSel = selected.targetId === h.targetId;
+                                            const isChat = h.targetId.endsWith('_manual') || h.targetId.startsWith('qchat_');
                                             return (
                                                 <button
                                                     key={h.targetId}
-                                                    onClick={() => selectEntry(h, page.id, true)}
+                                                    onClick={() => selectEntry(h, page.id, !isChat)}
                                                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${
-                                                        isSelected
-                                                            ? 'bg-purple-600/10 text-purple-400 font-medium'
+                                                        isSel
+                                                            ? isChat
+                                                                ? 'bg-teal-600/10 text-teal-400 font-medium'
+                                                                : 'bg-purple-600/10 text-purple-400 font-medium'
                                                             : 'text-text-tertiary hover:bg-background-surface hover:text-text-primary'
                                                     }`}
                                                 >
-                                                    <MessageSquare size={12} className={isSelected ? 'text-purple-400' : ''} />
+                                                    <MessageSquare size={12} className={isSel ? (isChat ? 'text-teal-400' : 'text-purple-400') : ''} />
                                                     <span className="text-[11px] truncate">{h.displayName}</span>
                                                 </button>
                                             );
                                         })}
 
-                                        {/* Card prompts */}
+                                        {/* Card prompts (blue) */}
                                         {pageData.cards.map(card => {
-                                            const isSelected = selected.targetId === card.targetId;
+                                            const isSel = selected.targetId === card.targetId;
                                             return (
                                                 <button
                                                     key={card.targetId}
                                                     onClick={() => selectEntry(card, page.id, false)}
                                                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${
-                                                        isSelected
+                                                        isSel
                                                             ? 'bg-blue-600/10 text-blue-400 font-medium'
                                                             : 'text-text-tertiary hover:bg-background-surface hover:text-text-primary'
                                                     }`}
                                                 >
-                                                    <FileText size={12} className={isSelected ? 'text-blue-400' : ''} />
+                                                    <FileText size={12} className={isSel ? 'text-blue-400' : ''} />
                                                     <span className="text-[11px] truncate">{card.displayName}</span>
                                                 </button>
                                             );
@@ -246,30 +481,37 @@ export default function PaiPromptsTab() {
                 </div>
             </div>
 
-            {/* Right Content — real prompt editor */}
-            <div className="flex-1 min-w-0 flex flex-col bg-background-card border border-border-default/40 rounded-xl overflow-hidden">
-                <div className="p-5 border-b border-border-default/40 bg-background-surface/30">
+            {/* ── Right Content — enhanced prompt editor ───────────────────── */}
+            <div className="flex-1 min-w-0 flex flex-col bg-background-card border border-border-default/40 rounded-xl overflow-hidden relative">
+
+                {/* Breadcrumb header */}
+                <div className="p-5 border-b border-border-default/40 bg-background-surface/30 shrink-0">
                     <div className="flex items-center gap-2 mb-1">
                         <span className="text-[12px] font-medium text-blue-500 uppercase tracking-wider">
                             {selected.page}
                         </span>
                         <ChevronRight size={12} className="text-text-tertiary" />
                         <span className="text-[12px] text-text-tertiary">{selected.displayName}</span>
-                        {selected.isHeaderPrompt && (
+                        {selected.isHeaderPrompt && !selected.targetId?.endsWith('_manual') && (
                             <span className="text-[10px] px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded-full border border-purple-500/20">
                                 Page Header
                             </span>
                         )}
+                        {selected.targetId?.endsWith('_manual') && (
+                            <span className="text-[10px] px-2 py-0.5 bg-teal-500/10 text-teal-400 rounded-full border border-teal-500/20">
+                                Manual Chat
+                            </span>
+                        )}
+                        {selected.targetId?.startsWith('qchat_') && (
+                            <span className="text-[10px] px-2 py-0.5 bg-teal-500/10 text-teal-400 rounded-full border border-teal-500/20">
+                                QChat
+                            </span>
+                        )}
                     </div>
-                    <h2 className="text-[18px] font-bold text-text-primary mt-1">{selected.displayName}</h2>
-                    <p className="text-[12px] text-text-secondary mt-1">
-                        {selected.isHeaderPrompt
-                            ? `Controls the summary insight shown at the top of the ${selected.page} page.`
-                            : `Controls the AI insight generated when a user expands this card.`
-                        }
-                    </p>
+
                 </div>
 
+                {/* Editor — keyed by targetId so it fully remounts on selection change */}
                 <PromptEditor
                     key={selected.targetId}
                     targetId={selected.targetId}
@@ -281,8 +523,4 @@ export default function PaiPromptsTab() {
             </div>
         </div>
     );
-}
-
-function Globe(props) {
-    return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
 }

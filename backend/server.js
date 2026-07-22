@@ -155,11 +155,16 @@ io.on("connection", (socket) => {
                 const { fetchQuotes } = await import("./services/upstoxQuote.js");
                 fetchQuotes(keysToFetch).then(async quotesData => {
                     const { broadcast } = await import("./services/socketBroadcast.js");
-                    for (const [k, q] of Object.entries(quotesData)) {
+                    for (const [rawKey, q] of Object.entries(quotesData)) {
+                        const k = rawKey.replace(":", "|");
+                        const cp = (q.net_change !== undefined && q.net_change !== null) 
+                            ? Number((q.last_price - q.net_change).toFixed(2)) 
+                            : q.ohlc?.close;
+                        
                         const payload = {
                             instrumentKey: k,
                             ltp: q.last_price,
-                            cp: q.ohlc?.close,
+                            cp: cp,
                             volume: q.volume
                         };
                         // Broadcast globally so all sockets get the true close price

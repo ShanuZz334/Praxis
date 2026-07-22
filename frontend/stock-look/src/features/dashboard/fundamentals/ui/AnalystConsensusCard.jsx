@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 export default function AnalystConsensusCard({ cardId, manualOverrides = {}, lastUpdated }) {
     // Analyst Consensus is manual-only for now
@@ -20,7 +21,7 @@ export default function AnalystConsensusCard({ cardId, manualOverrides = {}, las
     else if (rating?.toLowerCase().includes('sell')) { score = 20; bias = 'Bearish'; }
     else if (rating) { score = 50; }
 
-    const configData = getIndicatorConfig('analyst_consensus') || { creditScore: 6, impactWeight: 4.0, aiModel: 'Engine v2' };
+    const configData = getIndicatorConfig(CARD_REGISTRY.analyst_consensus.id) || { creditScore: 6, impactWeight: 4.0, aiModel: 'Engine v2' };
 
     return (
         <IndicatorCard

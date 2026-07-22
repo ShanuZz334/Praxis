@@ -14,6 +14,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 function extractRatio(ratios, names) {
     const item = ratios.find(r => names.some(n => r.name?.toLowerCase() === n.toLowerCase()));
@@ -77,7 +78,7 @@ export default function RelativeValuationCard({ cardId, data = null, lastUpdated
 
     const confidence = hasSectorComparison ? (weights >= 0.75 ? 92 : 78) : 0;
 
-    const configData = getIndicatorConfig('relative_valuation') || { creditScore: 8, impactWeight: 7.0, aiModel: 'Engine v3' };
+    const configData = getIndicatorConfig(CARD_REGISTRY.relative_valuation.id) || { creditScore: 8, impactWeight: 7.0, aiModel: 'Engine v3' };
 
     return (
         <IndicatorCard

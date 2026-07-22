@@ -8,11 +8,201 @@
 
 | Page | Count |
 |---|---|
+| Master Dashboard | 9 |
 | Fundamentals | 55 |
 | Technical Analysis | 29 |
 | Options Analysis | 14 |
 | Foreign Markets | 25 |
-| **Total** | **123** |
+| **Total** | **132** |
+
+---
+
+## Unified Registry: Master Dashboard
+
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| Master Dashboard Header | `praxis_composite_header` | widget | Master | Header | both | `Master`, `master_header`, `dashboard` |
+| Master Manual Chat | `master_manual_chat` | widget | Master | General | both | `master_manual` |
+| Master QChat Context | `master_qchat` | widget | Master | General | both | `qchat_dashboard` |
+| Market Heatmap | `market_heatmap` | widget | Master | Widgets | n/a | - |
+| Institutional Flow | `fii_dii_flow_master` | widget | Master | Widgets | n/a | `fii_dii` |
+| Options Pulse | `options_pulse` | widget | Master | Widgets | n/a | - |
+| Sector Rotation | `sector_rotation` | widget | Master | Widgets | n/a | - |
+| Volume Shockers | `volume_shockers` | widget | Master | Widgets | n/a | - |
+| Catalyst Calendar | `catalyst_calendar` | widget | Master | Widgets | n/a | - |
+
+---
+
+
+## Unified Registry: Fundamentals Dashboard
+
+### General / Headers
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| Index Header Insight | `fundamentals_index_header` | widget | Fundamentals | General | indices | - |
+| Company Header Insight | `fundamentals_company_header` | widget | Fundamentals | General | company | - |
+| Fundamental Manual Chat | `fund_manual` | widget | Fundamentals | General | both | - |
+| Fundamental QChat | `qchat_fundamentals` | widget | Fundamentals | General | both | - |
+
+### Valuation
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| P/E Ratio | `pe_ratio` | card | Fundamentals | Valuation | company | - |
+| Forward P/E | `forward_pe` | card | Fundamentals | Valuation | company | - |
+| P/B Ratio | `pb_ratio` | card | Fundamentals | Valuation | company | - |
+| EV/EBITDA | `ev_ebitda` | card | Fundamentals | Valuation | company | - |
+| Earnings Yield | `earnings_yield` | card | Fundamentals | Valuation | company | - |
+| Relative Valuation | `relative_valuation` | card | Fundamentals | Valuation | company | - |
+| Dividend Yield | `dividend_yield` | card | Fundamentals | Valuation | both | - |
+| Index P/E | `nifty_pe` | card | Fundamentals | Valuation | indices | - |
+| Index P/B | `nifty_pb` | card | Fundamentals | Valuation | indices | - |
+| Market Cap / GDP | `mcap_gdp` | card | Fundamentals | Valuation | indices | `market_cap_gdp` |
+
+### Earnings
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| EPS Growth | `eps_growth` | card | Fundamentals | Earnings | company | - |
+| Revenue Growth | `revenue_growth` | card | Fundamentals | Earnings | company | - |
+| Profit Growth | `profit_growth` | card | Fundamentals | Earnings | company | - |
+| Earnings Trend | `earnings_trend` | card | Fundamentals | Earnings | company | - |
+| Earnings Quality | `earnings_quality` | card | Fundamentals | Earnings | company | - |
+| Index EPS YoY | `eps_yoy` | card | Fundamentals | Earnings | indices | - |
+| Index Fwd EPS | `forward_eps` | card | Fundamentals | Earnings | indices | - |
+| Index Profit Margin | `profit_margin` | card | Fundamentals | Earnings | indices | - |
+
+### Corporate / Financial Health
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| ROE | `roe` | card | Fundamentals | Corporate | company | - |
+| ROCE | `roce` | card | Fundamentals | Corporate | company | - |
+| ROA | `roa` | card | Fundamentals | Corporate | company | - |
+| Net Margin | `net_margin` | card | Fundamentals | Corporate | company | - |
+| Operating Margin | `operating_margin` | card | Fundamentals | Corporate | company | - |
+| Debt to Equity | `debt_to_equity` | card | Fundamentals | Corporate | company | - |
+| Interest Coverage | `interest_coverage` | card | Fundamentals | Corporate | company | - |
+| Free Cash Flow | `free_cash_flow` | card | Fundamentals | Corporate | company | - |
+| Current Ratio | `current_ratio` | card | Fundamentals | Corporate | company | - |
+| Credit Growth | `credit_growth` | card | Fundamentals | Corporate | indices | - |
+| Corporate Debt | `corp_debt` | card | Fundamentals | Corporate | indices | - |
+
+### Ownership & Institutional
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| Promoter Holding | `promoter_holding` | card | Fundamentals | Ownership | company | - |
+| Smart Money Flow | `smart_money_flow` | card | Fundamentals | Ownership | company | - |
+| FII / DII Flow (Company) | `fii_dii_flow` | card | Fundamentals | Ownership | company | - |
+
+### Macro
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| GDP Growth | `gdp_growth` | card | Fundamentals | Macro | both | - |
+| Index GDP | `gdp` | card | Fundamentals | Macro | indices | - |
+| CPI | `cpi` | card | Fundamentals | Macro | indices | - |
+| Repo Rate | `repo` | card | Fundamentals | Macro | indices | - |
+| Fiscal Deficit | `fiscal_deficit` | card | Fundamentals | Macro | indices | - |
+
+### Liquidity & Flow
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| FII Flow | `fii` | card | Fundamentals | Liquidity | indices | - |
+| DII Flow | `dii` | card | Fundamentals | Liquidity | indices | - |
+| FII Trend | `fii_trend` | card | Fundamentals | Liquidity | indices | - |
+| System Liquidity | `system_liquidity` | card | Fundamentals | Liquidity | indices | - |
+| MF Flows | `mf_flows` | card | Fundamentals | Liquidity | indices | - |
+| Advance / Decline | `advance_decline` | card | Fundamentals | Liquidity | indices | - |
+
+### Risk
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| Policy Tailwinds | `policy_tailwinds` | card | Fundamentals | Risk | indices | - |
+| Sovereign Risk | `sovereign_risk` | card | Fundamentals | Risk | indices | - |
+| NPA | `npa` | card | Fundamentals | Risk | indices | - |
+| Reform Momentum | `reform_momentum` | card | Fundamentals | Risk | indices | - |
+| India VIX | `india_vix` | card | Fundamentals | Risk | indices | - |
+
+### Global
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| Crude Oil | `crude` | card | Fundamentals | Global | indices | - |
+| Global Liquidity | `global_liq` | card | Fundamentals | Global | indices | - |
+
+### General / Peer
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| Peer Comparison | `peer_comparison` | card | Fundamentals | General | company | - |
+| Analyst Consensus | `analyst_consensus` | card | Fundamentals | General | company | - |
+| Corporate Actions | `corporate_actions` | card | Fundamentals | General | company | - |
+| Cash Conversion | `cash_conversion` | card | Fundamentals | General | company | - |
+| Credit Rating | `credit_rating` | card | Fundamentals | General | company | - |
+| Sector Dashboard | `sector_dashboard` | card | Fundamentals | General | both | - |
+
+---
+
+
+## Unified Registry: Technical Analysis Dashboard
+
+### General / Headers
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| Index Header Insight | `technical_index_header` | widget | Technical | General | indices | - |
+| Company Header Insight | `technical_company_header` | widget | Technical | General | company | - |
+| Technical Manual Chat | `tech_manual` | widget | Technical | General | both | - |
+
+### Trend
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| EMA 20 | `ema_20` | card | Technical | Trend | both | - |
+| EMA 50 | `ema_50` | card | Technical | Trend | both | - |
+| EMA 200 | `ema_200` | card | Technical | Trend | both | - |
+| SMA 50 | `sma_50` | card | Technical | Trend | both | - |
+| SMA 200 | `sma_200` | card | Technical | Trend | both | - |
+| ADX (14) | `adx` | card | Technical | Trend | both | - |
+| Supertrend | `supertrend` | card | Technical | Trend | both | - |
+
+### Momentum
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| RSI (14) | `rsi` | card | Technical | Momentum | both | - |
+| MACD | `macd` | card | Technical | Momentum | both | - |
+| Stoch RSI | `stoch_rsi` | card | Technical | Momentum | both | - |
+| Williams %R | `williams_r` | card | Technical | Momentum | both | - |
+
+### Volatility
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| Bollinger Bands | `bb_20_2` | card | Technical | Volatility | both | - |
+| ATR | `atr` | card | Technical | Volatility | both | - |
+| Keltner Channels | `kc` | card | Technical | Volatility | both | - |
+
+### Volume
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| Volume SMA | `volume_sma` | card | Technical | Volume | both | - |
+| OBV | `obv` | card | Technical | Volume | both | - |
+| CMF | `cmf` | card | Technical | Volume | both | - |
+| VWAP | `vwap` | card | Technical | Volume | both | - |
+
+### Structure
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| Support | `support` | card | Technical | Structure | both | - |
+| Resistance | `resistance` | card | Technical | Structure | both | - |
+| Trendline | `trendline` | card | Technical | Structure | both | - |
+| Pivot Points | `pivot` | card | Technical | Structure | both | - |
+| Fibonacci | `fibonacci` | card | Technical | Structure | both | - |
+
+### Breadth
+| Card/Widget Name | Unified ID | Type | Page | Section | Applies To | Legacy IDs |
+|---|---|---|---|---|---|---|
+| Breadth Ratio (ADR) | `breadth_ratio` | card | Technical | Breadth | indices | - |
+| McClellan Osc | `mcclellan` | card | Technical | Breadth | indices | - |
+| A/D Line | `ad_line` | card | Technical | Breadth | indices | - |
+| New Highs / Lows | `nh_nl` | card | Technical | Breadth | indices | - |
+| TRIN (Arms) | `trin` | card | Technical | Breadth | indices | - |
+
+---
+
+## Full Card Table (Legacy Format)
 
 ---
 

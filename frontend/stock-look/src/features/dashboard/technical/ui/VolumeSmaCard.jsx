@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreVolumeSmaCard } from '../engine/TechnicalCompositeEngine';
 
 export default function VolumeSmaCard({ cardId, data = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('volume_sma');
+    const configData = getIndicatorConfig(CARD_REGISTRY.volume_sma.id);
     
     const currentValue = data?.volume_sma ?? null;
 

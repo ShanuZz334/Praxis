@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreResistanceCard } from '../engine/TechnicalCompositeEngine';
 
 export default function ResistanceCard({ cardId, data = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('resistance');
+    const configData = getIndicatorConfig(CARD_REGISTRY.resistance.id);
     
     const liveValue = data?.resistance ?? null;
     const isManual = liveValue === null && manualOverride !== null && manualOverride !== undefined;

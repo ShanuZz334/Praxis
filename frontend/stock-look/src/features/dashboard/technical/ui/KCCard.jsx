@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreKCCard } from '../engine/TechnicalCompositeEngine';
 
 export default function KCCard({ cardId, data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings }) {
-    const configData = getIndicatorConfig('kc');
+    const configData = getIndicatorConfig(CARD_REGISTRY.kc.id);
     
     const settingsConfig = [
         { id: "kc_period", label: "KC Period", type: "number", min: 2, max: 100, default: 20 },

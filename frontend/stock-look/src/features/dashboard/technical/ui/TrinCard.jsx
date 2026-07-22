@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreTrinCard } from '../engine/TechnicalCompositeEngine';
 
 export default function TrinCard({ cardId, data = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('trin');
+    const configData = getIndicatorConfig(CARD_REGISTRY.trin.id);
     
     // Resolve current value
     const isLiveData = false; 

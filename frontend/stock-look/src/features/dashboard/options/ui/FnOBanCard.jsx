@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 export default function FnOBanCard({ cardId, data, manualOverrides = {}, lastUpdated }) {
     const mwplPct = data?.mwplPct ?? (manualOverrides.mwpl_pct ? parseFloat(manualOverrides.mwpl_pct) : null);
@@ -22,7 +23,7 @@ export default function FnOBanCard({ cardId, data, manualOverrides = {}, lastUpd
         }
     }
 
-    const configData = getIndicatorConfig('fno_ban') || { creditScore: 4, impactWeight: 6.0, aiModel: 'Engine v2' };
+    const configData = getIndicatorConfig(CARD_REGISTRY.fno_ban.id) || { creditScore: 4, impactWeight: 6.0, aiModel: 'Engine v2' };
 
     return (
         <IndicatorCard

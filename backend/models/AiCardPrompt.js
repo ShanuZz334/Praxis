@@ -38,6 +38,17 @@ const aiCardPromptSchema = new mongoose.Schema({
     applicability: {
         type: String,
         default: 'both'
+    },
+    // Array of available presets
+    presets: [{
+        id: String,
+        name: String,
+        systemInstruction: String,
+        isCustom: Boolean
+    }],
+    activePresetId: {
+        type: String,
+        default: 'default'
     }
 }, { timestamps: true });
 

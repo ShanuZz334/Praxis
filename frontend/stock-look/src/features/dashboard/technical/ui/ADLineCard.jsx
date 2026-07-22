@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreADLineCard } from '../engine/TechnicalCompositeEngine';
 
 export default function ADLineCard({ cardId, data = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('ad_line');
+    const configData = getIndicatorConfig(CARD_REGISTRY.ad_line.id);
     
     // Resolve current value
     // (Assuming Upstox live data mapping will be added here later)

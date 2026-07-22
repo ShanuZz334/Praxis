@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreStochRSICard } from '../engine/TechnicalCompositeEngine';
 
 export default function StochRSICard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
-    const configData = getIndicatorConfig('stoch_rsi');
+    const configData = getIndicatorConfig(CARD_REGISTRY.stoch_rsi.id);
     
     const settingsConfig = [
         { id: "stoch_rsi_period", label: "RSI Length", type: "number", min: 1, max: 50, default: 14 },

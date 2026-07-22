@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreSupportCard } from '../engine/TechnicalCompositeEngine';
 
 export default function SupportCard({ cardId, data = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('support');
+    const configData = getIndicatorConfig(CARD_REGISTRY.support.id);
     
     const liveValue = data?.support ?? null;
     const isManual = liveValue === null && manualOverride !== null && manualOverride !== undefined;

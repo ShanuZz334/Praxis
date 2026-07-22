@@ -109,6 +109,10 @@ export const runFundamentalIntelligence = async () => {
 
             // C. Store Each Individual Card natively!
             for (const card of computedSnapshot.cards) {
+                if (!card.id) {
+                    console.error("❌ Card missing ID in Cron:", card);
+                    continue;
+                }
                 upsertAiCardStore(
                     instrument.instrumentKey,
                     "Fundamental",

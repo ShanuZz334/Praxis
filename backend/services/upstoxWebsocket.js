@@ -51,7 +51,7 @@ const insertQuoteWsStmt = db.prepare(`
     ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(instrument_key) DO UPDATE SET
         ltp=excluded.ltp,
-        close=COALESCE(excluded.close, quotes.close),
+        close=CASE WHEN excluded.close = excluded.ltp THEN quotes.close ELSE COALESCE(excluded.close, quotes.close) END,
         volume=excluded.volume,
         updated_at=CURRENT_TIMESTAMP
 `);

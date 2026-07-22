@@ -42,13 +42,19 @@ export const fetchQuotes = async (instrumentKeys) => {
         const quotesData = response.data?.data || {};
         
         const insertAll = db.transaction((keys) => {
-            for (const key of keys) {
-                const q = quotesData[key];
+            for (const rawKey of keys) {
+                const q = quotesData[rawKey];
                 if (!q) continue;
+                
+                const key = rawKey.replace(":", "|");
+                
+                const cp = (q.net_change !== undefined && q.net_change !== null) 
+                    ? Number((q.last_price - q.net_change).toFixed(2)) 
+                    : q.ohlc?.close;
                 
                 insertQuoteStmt.run(
                     key,
-                    q.last_price, q.ohlc?.open, q.ohlc?.high, q.ohlc?.low, q.ohlc?.close,
+                    q.last_price, q.ohlc?.open, q.ohlc?.high, q.ohlc?.low, cp,
                     q.volume, q.lower_circuit_limit, q.upper_circuit_limit,
                     q.all_time_high || 0, q.all_time_low || 0,
                     JSON.stringify(q.depth || {})

@@ -5,17 +5,19 @@
  * Storing credits and weights here allows for easy tuning of the Praxis Engine without modifying UI components.
  */
 
+import { CARD_REGISTRY } from './cardRegistry.js';
+
 export const INDICATOR_CONFIG = {
     // --- Global Macro Indicators ---
     advance_decline: {
-        id: "advance_decline",
+        id: CARD_REGISTRY.advance_decline?.id || "advance_decline",
         creditScore: 8,
         impactWeight: "6.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     india_vix: {
-        id: "india_vix",
+        id: CARD_REGISTRY.india_vix?.id || "india_vix",
         creditScore: 9,
         impactWeight: "8.0%",
         source: "Manual",
@@ -191,56 +193,56 @@ export const INDICATOR_CONFIG = {
     },
 
     pe_ratio: {
-        id: "pe_ratio",
+        id: CARD_REGISTRY.pe_ratio?.id || "pe_ratio",
         creditScore: 8,
         impactWeight: "6.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     forward_pe: {
-        id: "forward_pe",
+        id: CARD_REGISTRY.forward_pe?.id || "forward_pe",
         creditScore: 8,
         impactWeight: "6.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     pb_ratio: {
-        id: "pb_ratio",
+        id: CARD_REGISTRY.pb_ratio?.id || "pb_ratio",
         creditScore: 8,
         impactWeight: "5.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     earnings_yield: {
-        id: "earnings_yield",
+        id: CARD_REGISTRY.earnings_yield?.id || "earnings_yield",
         creditScore: 7,
         impactWeight: "4.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     eps_growth: {
-        id: "eps_growth",
+        id: CARD_REGISTRY.eps_growth?.id || "eps_growth",
         creditScore: 9,
         impactWeight: "6.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     revenue_growth: {
-        id: "revenue_growth",
+        id: CARD_REGISTRY.revenue_growth?.id || "revenue_growth",
         creditScore: 9,
         impactWeight: "6.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     profit_growth: {
-        id: "profit_growth",
+        id: CARD_REGISTRY.profit_growth?.id || "profit_growth",
         creditScore: 8,
         impactWeight: "5.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     gdp_growth: {
-        id: "gdp_growth",
+        id: CARD_REGISTRY.gdp_growth?.id || "gdp_growth",
         creditScore: 6,
         impactWeight: "3.0%",
         source: "Manual",
@@ -303,29 +305,29 @@ export const INDICATOR_CONFIG = {
         aiModel: "Qwen3 8B"
     },
     // --- Market Health Indicators ---
-    market_cap_gdp: {
-        id: "market_cap_gdp",
+    mcap_gdp: {
+        id: CARD_REGISTRY.mcap_gdp?.id || "market_cap_gdp",
         creditScore: 8,
         impactWeight: "5.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     dividend_yield: {
-        id: "dividend_yield",
+        id: CARD_REGISTRY.dividend_yield?.id || "dividend_yield",
         creditScore: 6,
         impactWeight: "3.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     earnings_trend: {
-        id: "earnings_trend",
+        id: CARD_REGISTRY.earnings_trend?.id || "earnings_trend",
         creditScore: 7,
         impactWeight: "4.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     fii_dii_flow: {
-        id: "fii_dii_flow",
+        id: CARD_REGISTRY.fii_dii_flow?.id || "fii_dii_flow",
         creditScore: 8,
         impactWeight: "5.0%",
         source: "Manual",
@@ -333,28 +335,28 @@ export const INDICATOR_CONFIG = {
     },
     // Profitability Indicators
     roe: {
-        id: "roe",
+        id: CARD_REGISTRY.roe?.id || "roe",
         creditScore: 9,
         impactWeight: "6.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     roce: {
-        id: "roce",
+        id: CARD_REGISTRY.roce?.id || "roce",
         creditScore: 9,
         impactWeight: "6.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     net_margin: {
-        id: "net_margin",
+        id: CARD_REGISTRY.net_margin?.id || "net_margin",
         creditScore: 7,
         impactWeight: "4.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     operating_margin: {
-        id: "operating_margin",
+        id: CARD_REGISTRY.operating_margin?.id || "operating_margin",
         creditScore: 7,
         impactWeight: "4.0%",
         source: "Manual",
@@ -362,28 +364,28 @@ export const INDICATOR_CONFIG = {
     },
     // --- Financial Health Indicators ---
     debt_to_equity: {
-        id: "debt_to_equity",
+        id: CARD_REGISTRY.debt_to_equity?.id || "debt_to_equity",
         creditScore: 8,
         impactWeight: "5.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     interest_coverage: {
-        id: "interest_coverage",
+        id: CARD_REGISTRY.interest_coverage?.id || "interest_coverage",
         creditScore: 8,
         impactWeight: "5.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     free_cash_flow: {
-        id: "free_cash_flow",
+        id: CARD_REGISTRY.free_cash_flow?.id || "free_cash_flow",
         creditScore: 8,
         impactWeight: "5.0%",
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
     current_ratio: {
-        id: "current_ratio",
+        id: CARD_REGISTRY.current_ratio?.id || "current_ratio",
         creditScore: 6,
         impactWeight: "3.0%",
         source: "Manual",
@@ -681,12 +683,12 @@ export const INDICATOR_CONFIG = {
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
-    ev_ebitda: { id: "ev_ebitda", title: "EV/EBITDA", creditScore: 7, category: "Valuation" },
-    relative_valuation: { id: "relative_valuation", title: "Relative Valuation", creditScore: 6, category: "Valuation" },
-    roa: { id: "roa", title: "ROA", creditScore: 7, category: "Corporate" },
-    promoter_holding: { id: "promoter_holding", title: "Promoter Holding", creditScore: 8, category: "Ownership" },
-    smart_money_flow: { id: "smart_money_flow", title: "Smart Money Flow", creditScore: 9, category: "Ownership" },
-    earnings_quality: { id: "earnings_quality", title: "Earnings Quality", creditScore: 8, category: "Ownership" }
+    ev_ebitda: { id: CARD_REGISTRY.ev_ebitda?.id || "ev_ebitda", title: "EV/EBITDA", creditScore: 7, category: "Valuation" },
+    relative_valuation: { id: CARD_REGISTRY.relative_valuation?.id || "relative_valuation", title: "Relative Valuation", creditScore: 6, category: "Valuation" },
+    roa: { id: CARD_REGISTRY.roa?.id || "roa", title: "ROA", creditScore: 7, category: "Corporate" },
+    promoter_holding: { id: CARD_REGISTRY.promoter_holding?.id || "promoter_holding", title: "Promoter Holding", creditScore: 8, category: "Ownership" },
+    smart_money_flow: { id: CARD_REGISTRY.smart_money_flow?.id || "smart_money_flow", title: "Smart Money Flow", creditScore: 9, category: "Ownership" },
+    earnings_quality: { id: CARD_REGISTRY.earnings_quality?.id || "earnings_quality", title: "Earnings Quality", creditScore: 8, category: "Ownership" }
 };
 
 /**

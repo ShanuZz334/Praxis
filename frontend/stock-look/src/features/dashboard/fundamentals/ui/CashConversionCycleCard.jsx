@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { cleanNum } from '@/lib/utils';
 
 export default function CashConversionCycleCard({ cardId, data, manualOverrides = {}, lastUpdated }) {
@@ -36,7 +37,7 @@ export default function CashConversionCycleCard({ cardId, data, manualOverrides 
         else { score = 20; bias = 'Bearish'; }
     }
 
-    const configData = getIndicatorConfig('cash_conversion') || { creditScore: 6, impactWeight: 5.0, aiModel: 'Engine v2' };
+    const configData = getIndicatorConfig(CARD_REGISTRY.cash_conversion.id) || { creditScore: 6, impactWeight: 5.0, aiModel: 'Engine v2' };
 
     return (
         <IndicatorCard

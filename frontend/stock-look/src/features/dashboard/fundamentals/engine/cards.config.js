@@ -1,5 +1,6 @@
 import { FUNDAMENTALS_RELIABILITY, TOTAL_FUNDAMENTALS_CREDITS as _TOTAL_CREDITS } from '@/config/reliability';
 import { getCreditFromReliability } from '@/shared/global/logic/signals';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 // =============================
 // Card Definitions
@@ -9,7 +10,7 @@ const _baseCards = [
      SECTION 1: VALUATION
   ----------------------------------------------------- */
   {
-    id: "nifty_pe",
+    id: CARD_REGISTRY.nifty_pe?.id || "nifty_pe",
     label: "NIFTY PE Ratio",
     unit: "",
     category: "Valuation",
@@ -18,7 +19,7 @@ const _baseCards = [
     creditAllocation: 11,
   },
   {
-    id: "forward_pe",
+    id: CARD_REGISTRY.forward_pe?.id || "forward_pe",
     label: "Forward PE",
     unit: "",
     category: "Valuation",
@@ -27,7 +28,7 @@ const _baseCards = [
     creditAllocation: 12,
   },
   {
-    id: "nifty_pb",
+    id: CARD_REGISTRY.nifty_pb?.id || "nifty_pb",
     label: "NIFTY PB Ratio",
     unit: "",
     category: "Valuation",
@@ -36,7 +37,7 @@ const _baseCards = [
     creditAllocation: 10,
   },
   {
-    id: "earnings_yield",
+    id: CARD_REGISTRY.earnings_yield?.id || "earnings_yield",
     label: "Earnings Yield",
     unit: "%",
     category: "Valuation",
@@ -45,7 +46,7 @@ const _baseCards = [
     creditAllocation: 14,
   },
   {
-    id: "mcap_gdp",
+    id: CARD_REGISTRY.mcap_gdp?.id || "mcap_gdp",
     label: "Market Cap to GDP",
     unit: "%",
     category: "Valuation",
@@ -58,7 +59,7 @@ const _baseCards = [
      SECTION 2: EARNINGS & PROFITABILITY
   ----------------------------------------------------- */
   {
-    id: "eps_yoy",
+    id: CARD_REGISTRY.eps_yoy?.id || "eps_yoy",
     label: "EPS YoY Growth",
     unit: "%",
     category: "Earnings",
@@ -67,7 +68,7 @@ const _baseCards = [
     creditAllocation: 12,
   },
   {
-    id: "forward_eps",
+    id: CARD_REGISTRY.forward_eps?.id || "forward_eps",
     label: "Forward EPS Growth",
     unit: "%",
     category: "Earnings",
@@ -76,7 +77,7 @@ const _baseCards = [
     creditAllocation: 11,
   },
   {
-    id: "earnings_revision",
+    id: CARD_REGISTRY.earnings_revision?.id || "earnings_revision",
     label: "Earnings Revision Trend",
     unit: "",
     category: "Earnings",
@@ -85,7 +86,7 @@ const _baseCards = [
     creditAllocation: 12,
   },
   {
-    id: "sector_earnings",
+    id: CARD_REGISTRY.sector_earnings?.id || "sector_earnings",
     label: "Sector Earnings Strength",
     unit: "",
     category: "Earnings",
@@ -94,7 +95,7 @@ const _baseCards = [
     creditAllocation: 8,
   },
   {
-    id: "profit_margin",
+    id: CARD_REGISTRY.profit_margin?.id || "profit_margin",
     label: "Profit Margin Trend",
     unit: "%",
     category: "Earnings",
@@ -107,7 +108,7 @@ const _baseCards = [
      SECTION 3: MACRO
   ----------------------------------------------------- */
   {
-    id: "gdp",
+    id: CARD_REGISTRY.gdp?.id || "gdp",
     label: "GDP Growth",
     unit: "%",
     category: "Macro",
@@ -116,7 +117,7 @@ const _baseCards = [
     creditAllocation: 11,
   },
   {
-    id: "cpi",
+    id: CARD_REGISTRY.cpi?.id || "cpi",
     label: "CPI Inflation",
     unit: "%",
     category: "Macro",
@@ -125,7 +126,7 @@ const _baseCards = [
     creditAllocation: 12,
   },
   {
-    id: "repo",
+    id: CARD_REGISTRY.repo?.id || "repo",
     label: "Interest Rate Cycle",
     unit: "%",
     category: "Macro",
@@ -134,7 +135,7 @@ const _baseCards = [
     creditAllocation: 12,
   },
   {
-    id: "policy_stance",
+    id: CARD_REGISTRY.policy_stance?.id || "policy_stance",
     label: "RBI Policy Stance",
     unit: "",
     category: "Macro",
@@ -143,7 +144,7 @@ const _baseCards = [
     creditAllocation: 10,
   },
   {
-    id: "fiscal_deficit",
+    id: CARD_REGISTRY.fiscal_deficit?.id || "fiscal_deficit",
     label: "Fiscal Deficit",
     unit: "%",
     category: "Macro",
@@ -152,7 +153,7 @@ const _baseCards = [
     creditAllocation: 9,
   },
   {
-    id: "current_account",
+    id: CARD_REGISTRY.current_account?.id || "current_account",
     label: "Current Account Balance",
     unit: "%",
     category: "Macro",
@@ -165,7 +166,7 @@ const _baseCards = [
      SECTION 4: LIQUIDITY & FLOWS
   ----------------------------------------------------- */
   {
-    id: "fii",
+    id: CARD_REGISTRY.fii?.id || "fii",
     label: "FII Net Flow",
     unit: "₹ Cr",
     category: "Liquidity",
@@ -174,7 +175,7 @@ const _baseCards = [
     creditAllocation: 10,
   },
   {
-    id: "dii",
+    id: CARD_REGISTRY.dii?.id || "dii",
     label: "DII Net Flow",
     unit: "₹ Cr",
     category: "Liquidity",
@@ -183,7 +184,7 @@ const _baseCards = [
     creditAllocation: 9,
   },
   {
-    id: "fii_trend",
+    id: CARD_REGISTRY.fii_trend?.id || "fii_trend",
     label: "FII Flow Trend",
     unit: "",
     category: "Liquidity",
@@ -192,7 +193,7 @@ const _baseCards = [
     creditAllocation: 10,
   },
   {
-    id: "system_liquidity",
+    id: CARD_REGISTRY.system_liquidity?.id || "system_liquidity",
     label: "System Liquidity",
     unit: "₹ Cr",
     category: "Liquidity",
@@ -201,7 +202,7 @@ const _baseCards = [
     creditAllocation: 9,
   },
   {
-    id: "mf_flows",
+    id: CARD_REGISTRY.mf_flows?.id || "mf_flows",
     label: "Mutual Fund Flows",
     unit: "₹ Cr",
     category: "Liquidity",
@@ -214,7 +215,7 @@ const _baseCards = [
      SECTION 5: SECTOR & BREADTH
   ----------------------------------------------------- */
   {
-    id: "sector_valuation",
+    id: CARD_REGISTRY.sector_valuation?.id || "sector_valuation",
     label: "Sector Valuation Spread",
     unit: "",
     category: "Sector",
@@ -223,7 +224,7 @@ const _baseCards = [
     creditAllocation: 7,
   },
   {
-    id: "sector_growth",
+    id: CARD_REGISTRY.sector_growth?.id || "sector_growth",
     label: "Sector Growth Differential",
     unit: "%",
     category: "Sector",
@@ -232,7 +233,7 @@ const _baseCards = [
     creditAllocation: 8,
   },
   {
-    id: "sector_concentration",
+    id: CARD_REGISTRY.sector_concentration?.id || "sector_concentration",
     label: "Sector Concentration",
     unit: "%",
     category: "Sector",
@@ -241,7 +242,7 @@ const _baseCards = [
     creditAllocation: 6,
   },
   {
-    id: "cyc_def",
+    id: CARD_REGISTRY.cyc_def?.id || "cyc_def",
     label: "Cyclical vs Defensive",
     unit: "",
     category: "Sector",
@@ -254,7 +255,7 @@ const _baseCards = [
      SECTION 6: CORPORATE & POLICY
   ----------------------------------------------------- */
   {
-    id: "policy_tailwinds",
+    id: CARD_REGISTRY.policy_tailwinds?.id || "policy_tailwinds",
     label: "Govt Capex Push",
     unit: "",
     category: "Corporate",
@@ -263,7 +264,7 @@ const _baseCards = [
     creditAllocation: 7,
   },
   {
-    id: "corp_debt",
+    id: CARD_REGISTRY.corp_debt?.id || "corp_debt",
     label: "Corporate Debt Levels",
     unit: "%",
     category: "Corporate",
@@ -272,7 +273,7 @@ const _baseCards = [
     creditAllocation: 8,
   },
   {
-    id: "credit_growth",
+    id: CARD_REGISTRY.credit_growth?.id || "credit_growth",
     label: "Credit Growth",
     unit: "%",
     category: "Corporate",
@@ -281,7 +282,7 @@ const _baseCards = [
     creditAllocation: 8,
   },
   {
-    id: "tax_env",
+    id: CARD_REGISTRY.tax_env?.id || "tax_env",
     label: "Tax & Regulatory Environment",
     unit: "",
     category: "Corporate",
@@ -294,7 +295,7 @@ const _baseCards = [
      SECTION 7: GLOBAL CONTEXT
   ----------------------------------------------------- */
   {
-    id: "global_growth",
+    id: CARD_REGISTRY.global_growth?.id || "global_growth",
     label: "Global Growth Pulse",
     unit: "",
     category: "Global",
@@ -303,7 +304,7 @@ const _baseCards = [
     creditAllocation: 7,
   },
   {
-    id: "crude",
+    id: CARD_REGISTRY.crude?.id || "crude",
     label: "Commodity Cost Pressure",
     unit: "$",
     category: "Global",
@@ -312,7 +313,7 @@ const _baseCards = [
     creditAllocation: 8,
   },
   {
-    id: "usdinr",
+    id: CARD_REGISTRY.usdinr?.id || "usdinr",
     label: "INR Stability",
     unit: "",
     category: "Global",
@@ -321,7 +322,7 @@ const _baseCards = [
     creditAllocation: 8,
   },
   {
-    id: "global_liq",
+    id: CARD_REGISTRY.global_liq?.id || "global_liq",
     label: "Global Liquidity (Fed)",
     unit: "",
     category: "Global",
@@ -334,7 +335,7 @@ const _baseCards = [
      SECTION 8: RISK & STRESS
   ----------------------------------------------------- */
   {
-    id: "sovereign_risk",
+    id: CARD_REGISTRY.sovereign_risk?.id || "sovereign_risk",
     label: "Sovereign Risk Proxy",
     unit: "",
     category: "Risk",
@@ -343,7 +344,7 @@ const _baseCards = [
     creditAllocation: 7,
   },
   {
-    id: "npa",
+    id: CARD_REGISTRY.npa?.id || "npa",
     label: "NPA / Credit Stress",
     unit: "%",
     category: "Risk",
@@ -352,7 +353,7 @@ const _baseCards = [
     creditAllocation: 8,
   },
   {
-    id: "reform_momentum",
+    id: CARD_REGISTRY.reform_momentum?.id || "reform_momentum",
     label: "Structural Reform Momentum",
     unit: "",
     category: "Risk",

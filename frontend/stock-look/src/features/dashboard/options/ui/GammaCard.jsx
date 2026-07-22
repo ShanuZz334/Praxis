@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 export default function GammaCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('gamma');
+    const configData = getIndicatorConfig(CARD_REGISTRY.gamma.id);
     
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
     const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);

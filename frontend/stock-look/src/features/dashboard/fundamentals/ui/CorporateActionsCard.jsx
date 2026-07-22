@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 export default function CorporateActionsCard({ cardId, data, lastUpdated }) {
     const actions = Array.isArray(data?.corporate_actions) ? data.corporate_actions : [];
@@ -11,7 +12,7 @@ export default function CorporateActionsCard({ cardId, data, lastUpdated }) {
 
     const isLiveData = sortedActions.length > 0;
     
-    const configData = getIndicatorConfig('corporate_actions') || { creditScore: 4, impactWeight: 2.0, aiModel: 'Engine v2' };
+    const configData = getIndicatorConfig(CARD_REGISTRY.corporate_actions.id) || { creditScore: 4, impactWeight: 2.0, aiModel: 'Engine v2' };
 
     return (
         <IndicatorCard

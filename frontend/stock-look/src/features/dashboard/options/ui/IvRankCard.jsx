@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 export default function IvRankCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('iv_rank');
+    const configData = getIndicatorConfig(CARD_REGISTRY.iv_rank.id);
     
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
     const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);

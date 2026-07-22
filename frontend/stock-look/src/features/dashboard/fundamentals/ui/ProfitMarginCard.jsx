@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreAggregateProfitMargin, generateAiInsightAggregateProfitMargin } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function ProfitMarginCard({ cardId, data, manualOverride, lastUpdated }) {
@@ -27,7 +28,7 @@ export default function ProfitMarginCard({ cardId, data, manualOverride, lastUpd
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('profit_margin');
+    const configData = getIndicatorConfig(CARD_REGISTRY.profit_margin.id);
 
     // 3. Praxis Engine
     // Note: Most macro indicators just take a single value for scoring

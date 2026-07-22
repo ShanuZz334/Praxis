@@ -102,23 +102,8 @@ export default function TechnicalPage() {
         return { ...(rawTechnicalsData || {}) };
     }, [rawTechnicalsData, livePrices]);
 
-    // Merge live technical data with manual overrides. Overrides take precedence if present.
-    const activeData = React.useMemo(() => {
-        const base = technicalsData || {};
-        const merged = { ...base };
-        
-        // Manual overrides overwrite live data if the user explicitly types something
-        Object.keys(manualOverrides).forEach(key => {
-            if (manualOverrides[key] !== null && manualOverrides[key] !== undefined) {
-                merged[key] = manualOverrides[key];
-            }
-        });
-        
-        return merged;
-    }, [manualOverrides, technicalsData]);
-
-    // Engine: Process the data
-    const compositeData = useTechnicalComposite(activeData, isIndex);
+    // Engine: Process the data via ai-snapshot events
+    const compositeData = useTechnicalComposite(isIndex);
 
     // Silently Stream the Snapshot to SQLite backend
     useAiSync(
@@ -134,7 +119,8 @@ export default function TechnicalPage() {
         tailwinds, 
         risks, 
         aiInsight,
-        cardScores
+        cardScores,
+        nestedTreePayload
     } = compositeData;
 
     // --- cardsForHeader: mirrors FundamentalPage exactly ---
@@ -177,7 +163,7 @@ export default function TechnicalPage() {
 
     // maxCards: total cards in the registry (static list above)
     const maxCards = cards.length;
-    const activeCardsCount = cardsForHeader.length;
+    const activeCardsCount = cardsForHeader.filter(c => c.score >= 0).length;
     const coveragePercent = maxCards > 0 ? Math.min(100, Math.round((activeCardsCount / maxCards) * 100)) : 0;
 
     const hasData = (key) => technicalsData && technicalsData[key] !== undefined && technicalsData[key] !== null;
@@ -283,6 +269,7 @@ export default function TechnicalPage() {
                 creditLabel="R Credits"
                 cards={cardsForHeader}
                 enableBreakdown={true}
+                masterPayload={nestedTreePayload}
                 syncId={{ instrumentKey: selectedInstrument, category: 'technical' }}
                 infoContent={technicalManualForm}
                 controls={{
@@ -325,7 +312,7 @@ export default function TechnicalPage() {
                 sortMode={sortMode}
                 searchQuery={searchQuery}
                 controls={null}
-                data={activeData}
+                data={technicalsData || {}}
                 indicatorParams={indicatorParams}
                 onOpenSettings={setActiveSettingsConfig}
                 isIndex={isIndex}

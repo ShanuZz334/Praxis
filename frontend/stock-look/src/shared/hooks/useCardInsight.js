@@ -38,7 +38,8 @@ export function useCardInsight(targetId) {
         displayName,
         stockSymbol,
         scope = 'card',
-        additionalContext = null
+        additionalContext = null,
+        pageData = null
     } = {}) => {
         if (!targetId) {
             console.warn('[useCardInsight] No targetId provided — skipping');
@@ -56,7 +57,7 @@ export function useCardInsight(targetId) {
         try {
             const res = await axiosInstance.post(
                 `/api/v1/ai-prompts/generate/${targetId}`,
-                { value, displayName, stockSymbol, scope, additionalContext }
+                { value, displayName, stockSymbol, scope, additionalContext, pageData }
             );
 
             if (!mountedRef.current) return;
@@ -95,6 +96,7 @@ export function useCardInsight(targetId) {
 export function useCardThread(targetId, scope = 'card') {
     const [entries, setEntries] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     const fetchThread = useCallback(async () => {
         if (!targetId) return;
@@ -124,7 +126,34 @@ export function useCardThread(targetId, scope = 'card') {
         }
     }, [targetId, scope]);
 
-    return { entries, isLoading, fetchThread, clearThread };
+    /**
+     * sendMessage — send a chat message, optionally with resolved #mention card snapshots.
+     *
+     * @param {string}   message       - The user's message text
+     * @param {object}   contextData   - Optional additional context (legacy, always {})
+     * @param {Array}    cardSnapshots - Card data from resolved #cardId mentions
+     *                                   [{ cardId, displayName, value, score, signal, additionalContext }]
+     */
+    const sendMessage = useCallback(async (message, contextData = {}, cardSnapshots = []) => {
+        if (!targetId || !message) return null;
+        setIsGenerating(true);
+        try {
+            const res = await axiosInstance.post(
+                `/api/v1/ai-prompts/chat/${targetId}`,
+                { message, scope, contextData, cardSnapshots }
+            );
+            await fetchThread();
+            return res.data;
+        } catch (err) {
+            console.error(`[useCardThread] Send error for ${targetId}:`, err.message);
+            return null;
+        } finally {
+            setIsGenerating(false);
+        }
+    }, [targetId, scope, fetchThread]);
+
+
+    return { entries, isLoading, isGenerating, fetchThread, clearThread, sendMessage };
 }
 
 /**
@@ -135,6 +164,8 @@ export function useCardThread(targetId, scope = 'card') {
  */
 export function useCardPrompt(targetId) {
     const [systemInstruction, setSystemInstruction] = useState('');
+    const [presets, setPresets] = useState([]);
+    const [activePresetId, setActivePresetId] = useState('default');
     const [isDefault, setIsDefault] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -145,6 +176,8 @@ export function useCardPrompt(targetId) {
         try {
             const res = await axiosInstance.get(`/api/v1/ai-prompts/${targetId}`);
             setSystemInstruction(res.data?.systemInstruction || '');
+            setPresets(res.data?.presets || []);
+            setActivePresetId(res.data?.activePresetId || 'default');
             setIsDefault(res.data?.isDefault ?? true);
         } catch (err) {
             console.error(`[useCardPrompt] Fetch error for ${targetId}:`, err.message);
@@ -153,16 +186,28 @@ export function useCardPrompt(targetId) {
         }
     }, [targetId]);
 
-    const savePrompt = useCallback(async ({ displayName, page, isHeaderPrompt, applicability } = {}) => {
+    const savePrompt = useCallback(async ({
+        systemInstruction: overrideInstruction,  // explicit override beats hook state
+        displayName,
+        page,
+        isHeaderPrompt,
+        applicability,
+        overrideActivePresetId,
+        overridePresets
+    } = {}) => {
         if (!targetId) return;
         setIsSaving(true);
         try {
             await axiosInstance.put(`/api/v1/ai-prompts/${targetId}`, {
-                systemInstruction,
+                // If the caller passes the latest content explicitly, use it;
+                // fall back to the hook's own state for safety.
+                systemInstruction: overrideInstruction !== undefined ? overrideInstruction : systemInstruction,
                 displayName,
                 page,
                 isHeaderPrompt,
-                applicability
+                applicability,
+                presets: overridePresets !== undefined ? overridePresets : presets,
+                activePresetId: overrideActivePresetId !== undefined ? overrideActivePresetId : activePresetId
             });
             setIsDefault(false);
         } catch (err) {
@@ -171,11 +216,15 @@ export function useCardPrompt(targetId) {
         } finally {
             setIsSaving(false);
         }
-    }, [targetId, systemInstruction]);
+    }, [targetId, systemInstruction, presets, activePresetId]);
 
     return {
         systemInstruction,
         setSystemInstruction,
+        presets,
+        setPresets,
+        activePresetId,
+        setActivePresetId,
         isDefault,
         isLoading,
         isSaving,

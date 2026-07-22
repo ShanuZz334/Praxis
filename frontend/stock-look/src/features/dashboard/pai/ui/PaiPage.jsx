@@ -5,10 +5,13 @@ import PaiChatArea from "./PaiChatArea";
 export default function PaiPage() {
     const [activeChatId, setActiveChatId] = useState(null);
     const [activeChatTitle, setActiveChatTitle] = useState("");
+    const [activeChatType, setActiveChatType] = useState("");
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-    const handleSelectChat = (chatId, chatTitle) => {
+    const handleSelectChat = (chatId, chatTitle, chatType) => {
         setActiveChatId(chatId);
         setActiveChatTitle(chatTitle);
+        setActiveChatType(chatType);
     };
 
     return (
@@ -17,12 +20,15 @@ export default function PaiPage() {
             <PaiSidebar 
                 activeChatId={activeChatId} 
                 onSelectChat={handleSelectChat} 
+                onChatCleared={() => setRefreshTrigger(k => k + 1)}
             />
             
             {/* Main Chat Window */}
             <PaiChatArea 
                 activeChatId={activeChatId} 
                 chatTitle={activeChatTitle} 
+                chatType={activeChatType}
+                refreshTrigger={refreshTrigger}
             />
         </div>
     );

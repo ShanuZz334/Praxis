@@ -1,3 +1,4 @@
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 /**
  * @file FundamentalDetail.jsx
  * @purpose Detailed view for a specific Fundamental metric.
@@ -75,9 +76,10 @@ function generateMockChartData(cardId, days = 30) {
     date.setDate(date.getDate() + i);
 
     let value;
-    if (cardId === 'nifty_pe' || cardId === 'nifty_pb') {
+    // For Nifty P/E or P/B cards, we might show a distribution scatter or sector weighting chart
+    if (cardId === CARD_REGISTRY.nifty_pe.id || cardId === CARD_REGISTRY.nifty_pb.id) {
       value = 20 + Math.sin(i / 5) * 2 + (Math.random() - 0.5) * 0.5;
-    } else if (cardId === 'earnings_yield') {
+    } else if (cardId === CARD_REGISTRY.earnings_yield.id) {
       value = 5 + Math.sin(i / 7) * 1 + (Math.random() - 0.5) * 0.3;
     } else if (cardId === 'mcap_gdp') {
       value = 95 + Math.sin(i / 10) * 10 + (Math.random() - 0.5) * 2;
@@ -127,7 +129,7 @@ function prepareChartData(cardId, mockData) {
     return mockData.map(d => ({ date: d.date, rate: d.value }));
   }
   // Earnings Yield
-  if (cardId === 'earnings_yield') {
+  if (cardId === CARD_REGISTRY.earnings_yield.id) {
     return mockData.map(d => ({
       date: d.date,
       earningsYield: d.value,

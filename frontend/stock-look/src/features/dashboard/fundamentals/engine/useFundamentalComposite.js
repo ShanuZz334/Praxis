@@ -3,8 +3,12 @@ import axiosInstance from '@/shared/utils/axiosInstance';
 import { 
     computeCompanyComposite, 
     computeIndexComposite, 
-    TITLE_TO_ID 
+    INDEX_CARD_TO_SECTION_MAP,
+    COMPANY_CARD_TO_SECTION_MAP,
+    ID_TO_TITLE
 } from './FundamentalCompositeEngine';
+
+import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 
 /**
  * Hook to manage the Fundamental Composite state based on card snapshots.
@@ -53,8 +57,8 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
             if (!e.detail) return;
             const { card_id, score } = e.detail;
             
-            // Map the display title (card_id) to the underlying metric ID used by the engine
-            const metricId = TITLE_TO_ID[card_id];
+            // card_id is now exactly the metric ID (e.g., 'crude', 'nifty_pe') because IndicatorCard sends resolvedCardId
+            const metricId = card_id;
             
             if (metricId) {
                 if (score === undefined || score === null || score === '--' || score === '') {
@@ -73,12 +77,12 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
             }
         };
 
-        window.addEventListener('SAVE_SNAPSHOT', handleSnapshot);
+        window.addEventListener('ai-snapshot', handleSnapshot);
         
         // Recompute on mount / category change to clear or refresh
         recompute();
 
-        return () => window.removeEventListener('SAVE_SNAPSHOT', handleSnapshot);
+        return () => window.removeEventListener('ai-snapshot', handleSnapshot);
     }, [instrumentType]);
 
     // Automatically clear scores when instrument changes to avoid stale composite

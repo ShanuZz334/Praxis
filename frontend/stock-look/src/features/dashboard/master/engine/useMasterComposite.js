@@ -130,15 +130,10 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
     }, [selectedInstrument, selectedExpiry, isIndex]);
 
     // Compute Live Engines
-    const fundEngine = useMemo(() => {
-        if (!rawFundamentals) return null;
-        return isIndex ? computeIndexComposite(rawFundamentals) : computeCompanyComposite(rawFundamentals, false);
-    }, [rawFundamentals, isIndex]);
+    // Compute Live Engines (Disabled for Fund/Tech because raw API data cannot be passed directly to composite functions which expect AI scores from individual cards. Relying on dbFallbackData snapshots synced from the respective dashboards.)
+    const fundEngine = null;
 
-    const techEngine = useMemo(() => {
-        if (!rawTechnicals) return null;
-        return computeTechnicalComposite(rawTechnicals, isIndex);
-    }, [rawTechnicals, isIndex]);
+    const techEngine = null;
 
     // Options Engine (Hooks)
     const optionsMetrics = useOptionsComposite(chainData, baseSpotPrice, selectedInstrument, selectedExpiry);

@@ -20,6 +20,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreFreeCashFlow, generateAiInsightFreeCashFlowCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 // ─── Main Component ─────────────────────────────────────────────────────────
@@ -66,7 +67,7 @@ export default function FreeCashFlowCard({ cardId, data, manualOverride, lastUpd
         ? (manualOverride !== undefined && manualOverride !== null ? cleanNum(manualOverride) : null)
         : extractedFCF;
 
-    const configData = getIndicatorConfig('free_cash_flow');
+    const configData = getIndicatorConfig(CARD_REGISTRY.free_cash_flow.id);
     const { score, bias, confidence, fcfCategory, fcfYield } = scoreFreeCashFlow(currentFCF, revenue);
     const aiInsightText = generateAiInsightFreeCashFlowCard(currentFCF, fcfYield, fcfCategory);
 

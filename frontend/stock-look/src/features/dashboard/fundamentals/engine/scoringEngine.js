@@ -2388,8 +2388,8 @@ export function generateAiInsightRepoRate(scoreObj, val) {
 }
 
 export function scorePolicyStance(stance) {
-    if (!stance) return { score: null, bias: 'Unknown', confidence: 0 };
-    const s = stance.toLowerCase();
+    if (stance === undefined || stance === null) return { score: null, bias: 'Unknown', confidence: 0 };
+    const s = String(stance).toLowerCase();
     
     if (s.includes('accommodative')) return { score: 100, bias: 'Strong Bullish', confidence: 90 };
     if (s.includes('neutral')) return { score: 50, bias: 'Neutral', confidence: 90 };
@@ -2661,8 +2661,8 @@ export function generateAiInsightUSDINR(scoreObj, val) {
 }
 
 export function scoreGlobalLiquidity(stance) {
-    if (!stance) return { score: null, bias: 'Unknown', confidence: 0 };
-    const s = stance.toLowerCase();
+    if (stance === undefined || stance === null) return { score: null, bias: 'Unknown', confidence: 0 };
+    const s = String(stance).toLowerCase();
     if (s.includes('easing') || s.includes('qe')) return { score: 100, bias: 'Strong Bullish', confidence: 90 };
     if (s.includes('neutral')) return { score: 50, bias: 'Neutral', confidence: 90 };
     if (s.includes('tightening') || s.includes('qt')) return { score: 10, bias: 'Bearish', confidence: 90 };

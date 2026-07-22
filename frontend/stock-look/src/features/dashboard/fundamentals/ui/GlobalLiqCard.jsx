@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreGlobalLiquidity, generateAiInsightGlobalLiquidity } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function GlobalLiqCard({ cardId, data, manualOverride, lastUpdated }) {
@@ -12,10 +13,10 @@ export default function GlobalLiqCard({ cardId, data, manualOverride, lastUpdate
 
     // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
     
-    const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
+    const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? manualOverride : null) : extractedValue;
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('global_liq');
+    const configData = getIndicatorConfig(CARD_REGISTRY.global_liq.id);
 
     // 3. Praxis Engine
     // Note: Most macro indicators just take a single value for scoring

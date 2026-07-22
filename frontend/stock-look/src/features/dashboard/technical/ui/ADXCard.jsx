@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreADXCard } from '../engine/TechnicalCompositeEngine';
 
 export default function ADXCard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
-    const configData = getIndicatorConfig('adx');
+    const configData = getIndicatorConfig(CARD_REGISTRY.adx.id);
     
     const settingsConfig = [
         { id: "adx_period", label: "ADX Period", type: "number", min: 5, max: 50, default: 14 }

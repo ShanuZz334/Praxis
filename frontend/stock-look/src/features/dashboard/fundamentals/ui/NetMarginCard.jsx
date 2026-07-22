@@ -2,6 +2,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreNetMargin, generateAiInsightNetMarginCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function NetMarginCard({ cardId, data, manualOverride, lastUpdated }) {
@@ -56,7 +57,7 @@ export default function NetMarginCard({ cardId, data, manualOverride, lastUpdate
     const sectorMargin = isManual ? null : extractedSector;
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('net_margin');
+    const configData = getIndicatorConfig(CARD_REGISTRY.net_margin.id);
 
     // 3. Praxis Engine
     const { score, bias, confidence, trendDesc } = scoreNetMargin(currentMargin, sectorMargin);

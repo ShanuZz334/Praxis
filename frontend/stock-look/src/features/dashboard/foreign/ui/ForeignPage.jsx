@@ -234,6 +234,7 @@ export default function ForeignPage() {
                     risks={compositeData.risks}
                     totalCredits={totalCredits}
                     cards={cardsForHeader}
+                    masterPayload={compositeData.nestedTreePayload}
                     syncId={{ instrumentKey: 'GLOBAL', category: 'global' }}
                     infoContent={globalManualForm}
                     enableBreakdown={true}

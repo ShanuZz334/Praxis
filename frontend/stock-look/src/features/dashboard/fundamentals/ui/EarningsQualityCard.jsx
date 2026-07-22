@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreEarningsQuality, generateAiInsightEarningsQualityCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function EarningsQualityCard({ cardId, data = null, lastUpdated }) {
@@ -32,7 +33,7 @@ export default function EarningsQualityCard({ cardId, data = null, lastUpdated }
         isLiveData = true;
     }
 
-    const configData = getIndicatorConfig('earnings_quality') || { creditScore: 8, impactWeight: 7.0, aiModel: 'Engine v3' };
+    const configData = getIndicatorConfig(CARD_REGISTRY.earnings_quality.id) || { creditScore: 8, impactWeight: 7.0, aiModel: 'Engine v3' };
     const { score, bias, confidence, qualityLabel } = scoreEarningsQuality(cfoToNetProfit);
     const aiInsightText = generateAiInsightEarningsQualityCard(cfoToNetProfit, qualityLabel);
 

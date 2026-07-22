@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scorePivotCard } from '../engine/TechnicalCompositeEngine';
 
 export default function PivotCard({ cardId, data = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('pivot');
+    const configData = getIndicatorConfig(CARD_REGISTRY.pivot.id);
     
     const liveValue = data?.pivot ?? null;
     const isManual = liveValue === null && manualOverride !== null && manualOverride !== undefined;

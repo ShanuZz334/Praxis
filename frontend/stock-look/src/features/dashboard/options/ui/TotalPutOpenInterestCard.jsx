@@ -1,10 +1,11 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { formatIndianNumber } from '@/shared/utils/formatters';
 
 export default function TotalPutOpenInterestCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('total_put_oi');
+    const configData = getIndicatorConfig(CARD_REGISTRY.total_put_oi.id);
     
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
     const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);

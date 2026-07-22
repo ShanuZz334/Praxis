@@ -30,6 +30,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreInterestCoverage, generateAiInsightInterestCoverageCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 // ─── Main Component ─────────────────────────────────────────────────────────
@@ -63,7 +64,7 @@ export default function InterestCoverageCard({ cardId, data, manualOverride, las
         : extractedValue;
     const sectorCoverage = isManual ? null : extractedSector;
 
-    const configData = getIndicatorConfig('interest_coverage');
+    const configData = getIndicatorConfig(CARD_REGISTRY.interest_coverage.id);
     const { score, bias, confidence, safetyZone } = scoreInterestCoverage(currentCoverage, sectorCoverage);
     const aiInsightText = generateAiInsightInterestCoverageCard(currentCoverage, sectorCoverage, safetyZone);
 

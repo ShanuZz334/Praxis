@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreNiftyEPSGrowth, generateAiInsightNiftyEPSGrowth } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function EPSYoYCard({ cardId, data, manualOverride, lastUpdated }) {
@@ -27,7 +28,7 @@ export default function EPSYoYCard({ cardId, data, manualOverride, lastUpdated }
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('eps_yoy');
+    const configData = getIndicatorConfig(CARD_REGISTRY.eps_yoy.id);
 
     // 3. Praxis Engine
     // Note: Most macro indicators just take a single value for scoring

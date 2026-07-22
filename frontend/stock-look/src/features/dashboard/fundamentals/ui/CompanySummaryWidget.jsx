@@ -2,6 +2,7 @@ import React from 'react';
 import { Edit2, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardContext } from '@/shared/context/DashboardContext';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { FO_EQUITIES } from '@/shared/utils/foInstruments';
 import PeerComparisonTable from './PeerComparisonTable';
 
@@ -53,10 +54,10 @@ export default function CompanySummaryWidget({ data, manualOverrides, selectedIn
             isString: true
         },
         {
-            label: "Stock P/E",
+            label: 'P/E Ratio',
             value: extractRatio(['p/e', 'pe', 'pe ratio']) ?? manualOverrides?.pe_ratio,
             suffix: "x",
-            overrideKey: 'pe_ratio'
+            overrideKey: CARD_REGISTRY.pe_ratio.id
         },
         {
             label: "Book Value",

@@ -2,6 +2,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { formatPercentage } from '@/shared/utils/formatters';
 import { scoreGDPGrowth, generateAiInsightGDPGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
@@ -13,7 +14,7 @@ export default function GDPGrowthCard({ cardId, data = null, manualOverride, las
         : null;
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('gdp_growth');
+    const configData = getIndicatorConfig(CARD_REGISTRY.gdp_growth.id);
 
     // 3. Praxis Engine
     const { score, bias, confidence, trendDesc } = scoreGDPGrowth(currentGrowth);

@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreObvCard } from '../engine/TechnicalCompositeEngine';
 
 export default function ObvCard({ cardId, data = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('obv');
+    const configData = getIndicatorConfig(CARD_REGISTRY.obv.id);
     
     // Resolve current value from live backend data
     const currentValue = data?.obv ?? null;

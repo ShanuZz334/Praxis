@@ -1,10 +1,11 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { gradeAtmIv } from '../engine/optionsScoringEngine';
 
 export default function AtmIvCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('atm_iv');
+    const configData = getIndicatorConfig(CARD_REGISTRY.atm_iv.id);
     
     // Step 1: Detect if we have live data
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';

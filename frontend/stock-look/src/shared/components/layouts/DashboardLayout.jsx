@@ -182,7 +182,7 @@ const DashboardLayout = () => {
         <DashboardRoutes setActiveMenu={setActiveMenu} />
       </main>
       
-      <PaiFloatingWidget sidebarCollapsed={collapsed} />
+      <PaiFloatingWidget sidebarCollapsed={collapsed} isPaiPage={isPaiPage} />
       
     </div>
     </DashboardProvider>

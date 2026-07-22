@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreVwapCard } from '../engine/TechnicalCompositeEngine';
 
 export default function VwapCard({ cardId, data = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('vwap');
+    const configData = getIndicatorConfig(CARD_REGISTRY.vwap.id);
     
     // Resolve current value from live backend data
     const currentValue = data?.vwap ?? null;

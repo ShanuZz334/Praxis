@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreWilliamsRCard } from '../engine/TechnicalCompositeEngine';
 
 export default function WilliamsRCard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
-    const configData = getIndicatorConfig('williams_r');
+    const configData = getIndicatorConfig(CARD_REGISTRY.williams_r.id);
     
     const settingsConfig = [
         { id: "williams_period", label: "Lookback Period", type: "number", min: 1, max: 100, default: 14 }

@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreFIIFlow, generateAiInsightFIIFlow } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function FIICard({ cardId, data, manualOverride, lastUpdated }) {
@@ -15,7 +16,7 @@ export default function FIICard({ cardId, data, manualOverride, lastUpdated }) {
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('fii');
+    const configData = getIndicatorConfig(CARD_REGISTRY.fii.id);
 
     // 3. Praxis Engine
     const scoreObj = scoreFIIFlow(currentValue);

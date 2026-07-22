@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreBBCard } from '../engine/TechnicalCompositeEngine';
 
 export default function BBCard({ cardId, data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings }) {
-    const configData = getIndicatorConfig('bb_20_2');
+    const configData = getIndicatorConfig(CARD_REGISTRY.bb_20_2.id);
     
     const settingsConfig = [
         { id: "bb_period", label: "BB Period", type: "number", min: 2, max: 100, default: 20 },

@@ -2,6 +2,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 export default function CurrentRatioCard({ cardId, data, manualOverride, lastUpdated }) {
     let isManual = true;
@@ -46,7 +47,7 @@ export default function CurrentRatioCard({ cardId, data, manualOverride, lastUpd
     const sectorRatio = isManual ? null : extractedSector;
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('current_ratio');
+    const configData = getIndicatorConfig(CARD_REGISTRY.current_ratio.id);
 
     let score = 0;
     let bias = 'Neutral';

@@ -5,9 +5,11 @@ import { useLocation } from 'react-router-dom';
 import paiIcon from "@/assets/icons/pai-round-bgless.png";
 import paiLabelImg from "@/assets/icons/pai-label-bgless.png";
 import PaiLoader from './PaiLoader';
+import Loader from '@/shared/components/ui/Loader';
 import { X, Send, Sparkles, Globe } from 'lucide-react';
+import axiosInstance from '@/shared/utils/axiosInstance';
 
-export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
+export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage = false }) {
     const { 
         isDocked, setIsDocked, 
         isChatOpen, setIsChatOpen, 
@@ -35,9 +37,12 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
     const [isGenerating, setIsGenerating] = useState(false);
     const bottomRef = useRef(null);
     const generationTimeoutRef = useRef(null);
+    const [isFetchingHistory, setIsFetchingHistory] = useState(true);
+    const [isPanelExpanded, setIsPanelExpanded] = useState(false);
 
     // Compute active context name
-    const getContextName = (pathname) => {
+    const getContextName = (pathname, mode) => {
+        if (mode === 'global') return 'Global Praxis';
         if (pathname.includes('/fundamental')) return 'Fundamentals';
         if (pathname.includes('/technical')) return 'Technicals';
         if (pathname.includes('/options')) return 'Options';
@@ -45,12 +50,53 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
         if (pathname.includes('/events')) return 'Events';
         return 'Dashboard';
     };
-    const activeContext = chatMode === 'global' ? 'Global Praxis' : getContextName(location.pathname);
+
+    const getTargetId = (pathname, mode) => {
+        if (mode === 'global') return 'qchat_global';
+        if (pathname.includes('/fundamental')) return 'qchat_fundamentals';
+        if (pathname.includes('/technical')) return 'qchat_technicals';
+        if (pathname.includes('/options')) return 'qchat_options';
+        if (pathname.includes('/global')) return 'qchat_global_macros';
+        if (pathname.includes('/events')) return 'qchat_events';
+        return 'qchat_dashboard';
+    };
+    
+    const activeContext = getContextName(location.pathname, chatMode);
+    const activeTargetId = getTargetId(location.pathname, chatMode);
 
     // Initial greeting and auto-reset when context changes
     useEffect(() => {
-        setMessages([{ id: 1, role: 'ai', content: `Hello! I'm PAI. What would you like to analyze regarding ${activeContext}?` }]);
-    }, [activeContext]);
+        let isMounted = true;
+        
+        const fetchHistory = async () => {
+            try {
+                const res = await axiosInstance.get(`/api/v1/ai-prompts/thread/${activeTargetId}`, { params: { scope: 'page' } });
+                if (isMounted && res.data?.entries && res.data.entries.length > 0) {
+                    setMessages(res.data.entries.map((m, i) => ({
+                        id: i,
+                        role: m.role === 'assistant' ? 'ai' : m.role,
+                        content: m.content
+                    })));
+                } else if (isMounted) {
+                    setMessages([{ id: 1, role: 'ai', content: `Hello! I'm PAI. What would you like to analyze regarding ${activeContext}?` }]);
+                }
+            } catch (err) {
+                console.error("Failed to fetch chat history:", err);
+                if (isMounted) {
+                    setMessages([{ id: 1, role: 'ai', content: `Hello! I'm PAI. What would you like to analyze regarding ${activeContext}?` }]);
+                }
+            } finally {
+                if (isMounted) setIsFetchingHistory(false);
+            }
+        };
+
+        setIsFetchingHistory(true);
+        setIsPanelExpanded(false); // Reset expansion state
+        setMessages([]); // Clear before fetching
+        fetchHistory();
+
+        return () => { isMounted = false; };
+    }, [activeContext, activeTargetId]);
 
     // Auto-scroll to bottom of chat
     useEffect(() => {
@@ -68,7 +114,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
         };
     }, []);
 
-    const handleSend = (e) => {
+    const handleSend = async (e) => {
         e.preventDefault();
         if (!message.trim() || isGenerating) return;
 
@@ -77,15 +123,29 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
         setMessage('');
         setIsGenerating(true);
 
-        // Simulate AI response delay
-        generationTimeoutRef.current = setTimeout(() => {
+        try {
+            const res = await axiosInstance.post(`/api/v1/ai-prompts/chat/${activeTargetId}`, {
+                message: newMsg.content,
+                scope: 'page'
+            });
+            
+            if (res.data?.message) {
+                setMessages(prev => [...prev, {
+                    id: Date.now() + 1,
+                    role: 'ai',
+                    content: res.data.message
+                }]);
+            }
+        } catch (err) {
+            console.error("Failed to send message:", err);
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 role: 'ai',
-                content: 'This is a placeholder response for the UI mockup. Once the local LLM via Ollama is connected, real insights will stream here!'
+                content: "Sorry, I encountered an error connecting to the AI Gateway."
             }]);
+        } finally {
             setIsGenerating(false);
-        }, 1500);
+        }
     };
 
     // Trigger initial slide out if opened from sidebar
@@ -112,6 +172,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
             }, 450);
         } else if (!isChatOpen) {
             setShowPanel(false);
+            setIsPanelExpanded(false); // Reset when closing
         } else {
             setShowPanel(true);
         }
@@ -135,10 +196,23 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
                 x.set(0);
                 y.set(0);
                 setIsSnappingState(false);
+                setHasDragged(false);
             }
         }
         prevSidebarCollapsed.current = sidebarCollapsed;
     }, [sidebarCollapsed, isDocked, controls, setIsDocked, setIsChatOpen, x, y]);
+
+    // Auto-dock when navigating to the PAI main page
+    useEffect(() => {
+        if (isPaiPage && !isDocked) {
+            setIsDocked(true);
+            setIsChatOpen(false);
+            x.set(0);
+            y.set(0);
+            setIsSnappingState(false);
+            setHasDragged(false);
+        }
+    }, [isPaiPage, isDocked, setIsDocked, setIsChatOpen, x, y]);
 
     if (isDocked) return null;
 
@@ -151,14 +225,29 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
         document.body.style.userSelect = "none";
     };
 
+    const getLatestSidebarRect = () => {
+        const el = document.getElementById('pai-sidebar-dock-slot');
+        if (!el) return sidebarRect;
+        const rect = el.getBoundingClientRect();
+        return {
+            x: rect.x + window.scrollX,
+            y: rect.y + window.scrollY,
+            centerX: rect.x + window.scrollX + rect.width / 2,
+            centerY: rect.y + window.scrollY + rect.height / 2
+        };
+    };
+
     const handleDrag = async (e, info) => {
-        if (!sidebarRect || isSnapping.current) return;
+        if (isSnapping.current) return;
+        const currentRect = getLatestSidebarRect();
+        if (!currentRect) return;
         
         // Calculate distance from current drag point to the sidebar dock center
-        const dist = Math.hypot(info.point.x - sidebarRect.centerX, info.point.y - sidebarRect.centerY);
+        const dist = Math.hypot(info.point.x - currentRect.centerX, info.point.y - currentRect.centerY);
+        console.log("DRAG DEBUG:", { mouse: info.point, sidebar: sidebarRect, dist });
         
-        // Magnetic Snapping: If pulled within 160px, rip it from the cursor and dock it!
-        if (dist < 160) {
+        // Magnetic Snapping: If pulled within 128px, rip it from the cursor and dock it!
+        if (dist < 128) {
             isSnapping.current = true;
             setIsSnappingState(true); // Triggers re-render to set drag={false}, forcefully disengaging the user's mouse
             setIsChatOpen(false); // Close chat panel immediately
@@ -190,10 +279,13 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
         setIsDragging(false);
         // The pointerup listener handles restoring userSelect now
         
-        if (!sidebarRect || isSnapping.current) return;
+        if (isSnapping.current) return;
+        const currentRect = getLatestSidebarRect();
+        if (!currentRect) return;
+
         // Check once more on release, just in case
-        const dist = Math.hypot(info.point.x - sidebarRect.centerX, info.point.y - sidebarRect.centerY);
-        if (dist < 220) { // considerably more generous on release
+        const dist = Math.hypot(info.point.x - currentRect.centerX, info.point.y - currentRect.centerY);
+        if (dist < 176) { // considerably more generous on release
             isSnapping.current = true;
             setIsSnappingState(true);
             setIsChatOpen(false);
@@ -217,13 +309,17 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
         }
     };
 
+    // Continuously grab the real DOM coordinates so the container wrapper never gets stuck in a stale "blank" location on the screen
+    const liveSidebarEl = document.getElementById('pai-sidebar-dock-slot');
+    const liveSidebarRect = liveSidebarEl ? liveSidebarEl.getBoundingClientRect() : null;
+
     return (
         <div 
             className="fixed inset-0 pointer-events-none z-[100]"
             style={{
-                // Anchor the container's 0,0 strictly to the sidebar placeholder!
-                left: sidebarRect?.x || 0,
-                top: sidebarRect?.y || 0
+                // Anchor the container's 0,0 strictly to the LIVE sidebar placeholder!
+                left: liveSidebarRect ? liveSidebarRect.x : (sidebarRect?.x || 0),
+                top: liveSidebarRect ? liveSidebarRect.y : (sidebarRect?.y || 0)
             }}
         >
             {/* The draggable wrapper holds BOTH the icon and the panel */}
@@ -280,6 +376,11 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
                                 opacity: { duration: 0.25 },
                                 filter: { duration: 0.18 }
                             }}
+                            onAnimationComplete={(definition) => {
+                                if (definition.width === 320) {
+                                    setIsPanelExpanded(true);
+                                }
+                            }}
                             onPointerDownCapture={(e) => e.stopPropagation()} // Extra safety to prevent drag on panel
                             // Absolute positioned below the icon, perfectly horizontally centered relative to the icon
                             className="absolute top-full left-1/2 -translate-x-1/2 mt-4 origin-top bg-background-tooltip backdrop-blur-xl border border-border-default shadow-2xl rounded-2xl overflow-hidden pointer-events-auto flex flex-col z-10"
@@ -303,28 +404,36 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true }) {
                                 </button>
                             </div>
                             <div className="flex-1 p-4 overflow-y-auto no-scrollbar flex flex-col gap-3 min-w-0">
-                                {messages.map((msg) => (
-                                    <div key={msg.id} className={`flex gap-2 w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        {msg.role === 'ai' && (
-                                            <div className="shrink-0 flex items-start mt-0.5">
-                                                <img 
-                                                    src="/images/pai-profile.png" 
-                                                    alt="PAI"
-                                                    className="w-6 h-6 rounded-full object-cover shadow-[0_0_10px_rgba(99,102,241,0.2)] bg-black"
-                                                />
-                                            </div>
+                                {(!isPanelExpanded || isFetchingHistory) ? (
+                                    <div className="flex-1 flex flex-col items-center justify-center opacity-70 mt-10">
+                                        <Loader size="sm" color="blue" />
+                                    </div>
+                                ) : (
+                                    <>
+                                        {messages.map((msg) => (
+                                            <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} key={msg.id} className={`flex gap-2 w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                                {msg.role === 'ai' && (
+                                                    <div className="shrink-0 flex items-start mt-0.5">
+                                                        <img 
+                                                            src="/images/pai-profile.png" 
+                                                            alt="PAI"
+                                                            className="w-6 h-6 rounded-full object-cover shadow-[0_0_10px_rgba(99,102,241,0.2)] bg-black"
+                                                        />
+                                                    </div>
+                                                )}
+                                                <div className={`text-[12px] leading-relaxed px-3.5 py-2.5 rounded-2xl shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm max-w-[85%]' : 'bg-background-tooltip border border-border-default/50 text-text-primary rounded-tl-sm max-w-[85%]'}`}>
+                                                    {msg.content}
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                        {isGenerating && (
+                                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full">
+                                                <PaiLoader />
+                                            </motion.div>
                                         )}
-                                        <div className={`text-[12px] leading-relaxed px-3.5 py-2.5 rounded-2xl shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm max-w-[85%]' : 'bg-background-tooltip border border-border-default/50 text-text-primary rounded-tl-sm max-w-[85%]'}`}>
-                                            {msg.content}
-                                        </div>
-                                    </div>
-                                ))}
-                                {isGenerating && (
-                                    <div className="w-full">
-                                        <PaiLoader />
-                                    </div>
+                                        <div ref={bottomRef} />
+                                    </>
                                 )}
-                                <div ref={bottomRef} />
                             </div>
                             <form onSubmit={handleSend} className="p-3 border-t border-border-subtle shrink-0">
                                 <div className="relative">

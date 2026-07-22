@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 export default function BetaCorrelationCard({ cardId, data, lastUpdated }) {
     // Expecting data: { beta: 1.2, correlation: 0.85 }
@@ -16,7 +17,7 @@ export default function BetaCorrelationCard({ cardId, data, lastUpdated }) {
         else { score = 50; }
     }
 
-    const configData = getIndicatorConfig('beta_correlation') || { creditScore: 5, impactWeight: 3.0, aiModel: 'Engine v2' };
+    const configData = getIndicatorConfig(CARD_REGISTRY.beta_correlation.id) || { creditScore: 5, impactWeight: 3.0, aiModel: 'Engine v2' };
 
     return (
         <IndicatorCard

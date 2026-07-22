@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreTrendlineCard } from '../engine/TechnicalCompositeEngine';
 
 export default function TrendlineCard({ cardId, data = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('trendline');
+    const configData = getIndicatorConfig(CARD_REGISTRY.trendline.id);
     
     // Resolve current value
     // (Assuming Upstox live data mapping will be added here later)

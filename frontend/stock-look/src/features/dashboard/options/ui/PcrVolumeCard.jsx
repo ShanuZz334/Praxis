@@ -1,9 +1,10 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 export default function PcrVolumeCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('pcr_volume');
+    const configData = getIndicatorConfig(CARD_REGISTRY.pcr_volume.id);
 
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
     const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);

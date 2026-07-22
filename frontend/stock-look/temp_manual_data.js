@@ -2,7 +2,7 @@ import { Activity, BookOpen, Calculator, Clock, Database, Globe, Lightbulb, Scal
 
 exports.manualData = {
     // --- 1. DASHBOARD ---
-    dashboard: {
+    praxis_composite_header: {
         title: "Master Dashboard",
         description: "The central nervous system of Stocky. Synthesizes data to produce unified scoring and regime identification.",
         topics: [
@@ -10415,7 +10415,7 @@ exports.MANUAL_CONTENT = manualData;
 
 exports.MANUAL_SECTIONS = [
     {
-        id: "dashboard",
+        id: "praxis_composite_header",
         icon: Activity,
         label: "Master Dashboard",
         overview: "The central nervous system of Stocky. Synthesizes data to produce unified scoring and regime identification.",

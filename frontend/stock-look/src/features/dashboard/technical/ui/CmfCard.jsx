@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreCmfCard } from '../engine/TechnicalCompositeEngine';
 
 export default function CmfCard({ cardId, data = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('cmf');
+    const configData = getIndicatorConfig(CARD_REGISTRY.cmf.id);
     
     // Resolve current value from live backend data, fallback to manual
     const liveValue = data?.cmf ?? null;

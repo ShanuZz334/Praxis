@@ -2,7 +2,10 @@ import { useMemo } from 'react';
 import { getIndicatorColor } from '@/shared/config/scoreColors';
 import { getOptionsRegime, getOptionsGauge } from './optionsHelper';
 
-export function useOptionsCompositeScore(compositeData, instrumentKey) {
+import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+
+export function useOptionsCompositeScore(compositeData, instrumentKey, metrics = null, proDeskPicks = null, spotPrice = null) {
     return useMemo(() => {
         const empty = {
             compositeScore: 50,
@@ -21,19 +24,19 @@ export function useOptionsCompositeScore(compositeData, instrumentKey) {
                 ? Math.round(obj.score) : null;
 
         const cardScores = {
-            total_call_oi:  safeScore(compositeData.totalCallOI),
-            total_put_oi:   safeScore(compositeData.totalPutOI),
-            oi_change:      safeScore(compositeData.oiChange),
-            pcr_oi:         safeScore(compositeData.pcrOi),
-            pcr_volume:     safeScore(compositeData.pcrVolume),
-            delta:          safeScore(compositeData.atmGreeks?.delta),
-            gamma:          safeScore(compositeData.atmGreeks?.gamma),
-            theta:          safeScore(compositeData.atmGreeks?.theta),
-            vega:           safeScore(compositeData.atmGreeks?.vega),
-            atm_iv:         safeScore(compositeData.volatility?.atmIv),
-            iv_rank:        safeScore(compositeData.volatility?.ivRank),
-            iv_percentile:  safeScore(compositeData.volatility?.ivPercentile),
-            max_pain:       safeScore(compositeData.maxPain),
+            [CARD_REGISTRY.total_call_oi.id]: safeScore(compositeData.totalCallOI),
+            [CARD_REGISTRY.total_put_oi.id]: safeScore(compositeData.totalPutOI),
+            [CARD_REGISTRY.oi_change.id]: safeScore(compositeData.oiChange),
+            [CARD_REGISTRY.pcr_oi.id]: safeScore(compositeData.pcrOi),
+            [CARD_REGISTRY.pcr_volume.id]: safeScore(compositeData.pcrVolume),
+            [CARD_REGISTRY.delta.id]: safeScore(compositeData.atmGreeks?.delta),
+            [CARD_REGISTRY.gamma.id]: safeScore(compositeData.atmGreeks?.gamma),
+            [CARD_REGISTRY.theta.id]: safeScore(compositeData.atmGreeks?.theta),
+            [CARD_REGISTRY.vega.id]: safeScore(compositeData.atmGreeks?.vega),
+            [CARD_REGISTRY.atm_iv.id]: safeScore(compositeData.volatility?.atmIv),
+            [CARD_REGISTRY.iv_rank.id]: safeScore(compositeData.volatility?.ivRank),
+            [CARD_REGISTRY.iv_percentile.id]: safeScore(compositeData.volatility?.ivPercentile),
+            [CARD_REGISTRY.max_pain.id]: safeScore(compositeData.maxPain),
         };
 
         const avg = (...keys) => {
@@ -43,11 +46,11 @@ export function useOptionsCompositeScore(compositeData, instrumentKey) {
         };
 
         const sectionsData = [
-            { id: 'Open Interest',      label: 'Open Interest',      shortLabel: 'OI',  score: avg('total_call_oi', 'total_put_oi', 'oi_change'), weight: 0.25 },
-            { id: 'Put-Call Ratio',     label: 'Put-Call Ratio',     shortLabel: 'PCR', score: avg('pcr_oi', 'pcr_volume'),                       weight: 0.20 },
-            { id: 'Greeks',             label: 'Greeks',             shortLabel: 'GRK', score: avg('delta', 'gamma', 'theta', 'vega'),             weight: 0.20 },
-            { id: 'Market Positioning', label: 'Market Positioning', shortLabel: 'POS', score: avg('max_pain'),                                   weight: 0.20 },
-            { id: 'Volatility',         label: 'Volatility',         shortLabel: 'VOL', score: avg('atm_iv', 'iv_rank', 'iv_percentile'),          weight: 0.15 },
+            { id: 'Open Interest',      label: 'Open Interest',      shortLabel: 'OI',  score: avg(CARD_REGISTRY.total_call_oi.id, CARD_REGISTRY.total_put_oi.id, CARD_REGISTRY.oi_change.id), weight: 0.25 },
+            { id: 'Put-Call Ratio',     label: 'Put-Call Ratio',     shortLabel: 'PCR', score: avg(CARD_REGISTRY.pcr_oi.id, CARD_REGISTRY.pcr_volume.id),                       weight: 0.20 },
+            { id: 'Greeks',             label: 'Greeks',             shortLabel: 'GRK', score: avg(CARD_REGISTRY.delta.id, CARD_REGISTRY.gamma.id, CARD_REGISTRY.theta.id, CARD_REGISTRY.vega.id),             weight: 0.20 },
+            { id: 'Market Positioning', label: 'Market Positioning', shortLabel: 'POS', score: avg(CARD_REGISTRY.max_pain.id),                                   weight: 0.20 },
+            { id: 'Volatility',         label: 'Volatility',         shortLabel: 'VOL', score: avg(CARD_REGISTRY.atm_iv.id, CARD_REGISTRY.iv_rank.id, CARD_REGISTRY.iv_percentile.id),          weight: 0.15 },
         ];
 
         const validSections = sectionsData.filter(s => s.score !== null);
@@ -105,6 +108,113 @@ export function useOptionsCompositeScore(compositeData, instrumentKey) {
                 ' Defensive positioning and bear spreads are statistically favorable.';
         }
 
+        const formatTitle = (id) => {
+            if (!id) return '';
+            return id.split('_').map(word => {
+                if (word.match(/^(oi|pcr|iv)$/i)) return word.toUpperCase();
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            }).join(' ');
+        };
+
+        const sectionsMap = {};
+        sectionsData.forEach(sec => {
+            sectionsMap[sec.label] = {
+                name: sec.label,
+                score: sec.score,
+                weight: sec.weight,
+                cards: []
+            };
+        });
+
+        const SECTION_MAPPING = {
+            [CARD_REGISTRY.total_call_oi.id]: 'Open Interest', [CARD_REGISTRY.total_put_oi.id]: 'Open Interest', [CARD_REGISTRY.oi_change.id]: 'Open Interest',
+            [CARD_REGISTRY.pcr_oi.id]: 'Put-Call Ratio', [CARD_REGISTRY.pcr_volume.id]: 'Put-Call Ratio',
+            [CARD_REGISTRY.delta.id]: 'Greeks', [CARD_REGISTRY.gamma.id]: 'Greeks', [CARD_REGISTRY.theta.id]: 'Greeks', [CARD_REGISTRY.vega.id]: 'Greeks',
+            [CARD_REGISTRY.atm_iv.id]: 'Volatility', [CARD_REGISTRY.iv_rank.id]: 'Volatility', [CARD_REGISTRY.iv_percentile.id]: 'Volatility',
+            [CARD_REGISTRY.max_pain.id]: 'Market Positioning'
+        };
+
+        Object.entries(cardScores).forEach(([id, score]) => {
+            if (score === null || score === undefined || isNaN(score)) return;
+            const secName = SECTION_MAPPING[id] || 'General';
+            if (sectionsMap[secName]) {
+                let normalized = 0;
+                if (score > 70) normalized = 1;
+                else if (score < 30) normalized = -1;
+                const config = getIndicatorConfig(id);
+                sectionsMap[secName].cards.push({
+                    name: config?.title || formatTitle(config?.id) || formatTitle(id),
+                    score: normalized,
+                    value: Number(score),
+                    weight: config?.creditScore ?? 5
+                });
+            }
+        });
+
+        const nestedTreePayload = {
+            engines: [{
+                name: "Options Dashboard",
+                score: compositeScore,
+                sections: Object.values(sectionsMap),
+                marketContext: metrics ? {
+                    spotPrice: spotPrice,
+                    pcr: metrics.pcr,
+                    maxPain: metrics.maxPain,
+                    ivRank: metrics.ivRank
+                } : null,
+                proDeskPicks: proDeskPicks ? {
+                    bullish: proDeskPicks.bullish ? {
+                        strike: proDeskPicks.bullish.strike,
+                        premium: proDeskPicks.bullish.ltp,
+                        delta: proDeskPicks.bullish.delta,
+                        theta: proDeskPicks.bullish.theta,
+                        gamma: proDeskPicks.bullish.gamma,
+                        vega: proDeskPicks.bullish.vega,
+                        iv: proDeskPicks.bullish.iv
+                    } : null,
+                    bearish: proDeskPicks.bearish ? {
+                        strike: proDeskPicks.bearish.strike,
+                        premium: proDeskPicks.bearish.ltp,
+                        delta: proDeskPicks.bearish.delta,
+                        theta: proDeskPicks.bearish.theta,
+                        gamma: proDeskPicks.bearish.gamma,
+                        vega: proDeskPicks.bearish.vega,
+                        iv: proDeskPicks.bearish.iv
+                    } : null,
+                    atm: proDeskPicks.atm ? {
+                        strike: proDeskPicks.atm.strike,
+                        type: proDeskPicks.atm.type,
+                        premium: proDeskPicks.atm.ltp,
+                        delta: proDeskPicks.atm.delta,
+                        theta: proDeskPicks.atm.theta,
+                        gamma: proDeskPicks.atm.gamma,
+                        vega: proDeskPicks.atm.vega,
+                        iv: proDeskPicks.atm.iv
+                    } : null,
+                    momentum: proDeskPicks.momentum ? {
+                        strike: proDeskPicks.momentum.strike,
+                        type: proDeskPicks.momentum.type,
+                        premium: proDeskPicks.momentum.ltp,
+                        delta: proDeskPicks.momentum.delta,
+                        theta: proDeskPicks.momentum.theta,
+                        gamma: proDeskPicks.momentum.gamma,
+                        vega: proDeskPicks.momentum.vega,
+                        iv: proDeskPicks.momentum.iv
+                    } : null,
+                    liquidity: proDeskPicks.liquidity ? {
+                        strike: proDeskPicks.liquidity.strike,
+                        type: proDeskPicks.liquidity.type,
+                        premium: proDeskPicks.liquidity.ltp,
+                        delta: proDeskPicks.liquidity.delta,
+                        theta: proDeskPicks.liquidity.theta,
+                        gamma: proDeskPicks.liquidity.gamma,
+                        vega: proDeskPicks.liquidity.vega,
+                        iv: proDeskPicks.liquidity.iv
+                    } : null
+                } : null
+            }]
+        };
+
         const result = {
             compositeScore,
             gauge,
@@ -113,7 +223,8 @@ export function useOptionsCompositeScore(compositeData, instrumentKey) {
             tailwinds,
             risks,
             aiInsight,
-            cardScores
+            cardScores,
+            nestedTreePayload
         };
 
         // Fire & Forget DB Sync
@@ -132,5 +243,5 @@ export function useOptionsCompositeScore(compositeData, instrumentKey) {
         }
 
         return result;
-    }, [compositeData, instrumentKey]);
+    }, [compositeData, instrumentKey, metrics, proDeskPicks, spotPrice]);
 }

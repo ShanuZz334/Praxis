@@ -106,6 +106,10 @@ router.post("/sync", protect, async (req, res) => {
         // 3. Individual Cards
         if (payload.cards && Array.isArray(payload.cards)) {
             for (const card of payload.cards) {
+                if (!card.id) {
+                    console.error("❌ Card missing ID in payload from:", page_name, card);
+                    continue;
+                }
                 upsertAiCardStore(
                     instrument_key,
                     page_name,

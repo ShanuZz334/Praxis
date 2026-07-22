@@ -23,6 +23,7 @@ import { useSnapshots } from '@/shared/hooks/useSnapshots';
 import { useDataFreshness } from "@/shared/hooks/useDataFreshness";
 import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedOverrideInput";
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 export default function OptionsPage() {
     const [selectedCard, setSelectedCard] = useState(null);
@@ -341,18 +342,19 @@ export default function OptionsPage() {
         tailwinds: engineTailwinds,
         risks: engineRisks,
         aiInsight: engineAiInsight,
-        cardScores
-    } = useOptionsCompositeScore(compositeData, selectedInstrument);
+        cardScores,
+        nestedTreePayload
+    } = useOptionsCompositeScore(compositeData, selectedInstrument, metrics, proDeskData?.categories, spotPrice);
 
     const resolveTime = useDataFreshness(chainData?.length > 0, manualOverrides, manualOverrideTimes, isMarketOpen, formatTime, "1s");
 
     // Build cardsForHeader — mirrors TechnicalPage cardsForHeader logic
-    const OPTIONS_CARD_IDS = new Set([
-        'total_call_oi', 'total_put_oi', 'oi_change',
-        'pcr_oi', 'pcr_volume',
-        'delta', 'gamma', 'theta', 'vega',
-        'atm_iv', 'iv_rank', 'iv_percentile',
-        'max_pain'
+        const OPTIONS_CARD_IDS = new Set([
+        CARD_REGISTRY.total_call_oi.id, CARD_REGISTRY.total_put_oi.id, CARD_REGISTRY.oi_change.id,
+        CARD_REGISTRY.pcr_oi.id, CARD_REGISTRY.pcr_volume.id,
+        CARD_REGISTRY.delta.id, CARD_REGISTRY.gamma.id, CARD_REGISTRY.theta.id, CARD_REGISTRY.vega.id,
+        CARD_REGISTRY.atm_iv.id, CARD_REGISTRY.iv_rank.id, CARD_REGISTRY.iv_percentile.id,
+        CARD_REGISTRY.max_pain.id, CARD_REGISTRY.fno_ban.id
     ]);
 
     const cardsForHeader = Object.entries(cardScores || {})
@@ -427,31 +429,31 @@ export default function OptionsPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6">
                 <div className="space-y-2">
                     <div className="text-xs font-bold text-emerald-500 mb-2">Volatility Settings</div>
-                    <DebouncedOverrideInput label="IV Rank (%)" overrideKey="iv_rank" value={manualOverrides.iv_rank} onChange={handleOverrideChange} />
-                    <DebouncedOverrideInput label="IV Percentile (%)" overrideKey="iv_percentile" value={manualOverrides.iv_percentile} onChange={handleOverrideChange} />
+                    <DebouncedOverrideInput label="IV Rank (%)" overrideKey={CARD_REGISTRY.iv_rank.id} value={manualOverrides.iv_rank} onChange={handleOverrideChange} />
+                    <DebouncedOverrideInput label="IV Percentile (%)" overrideKey={CARD_REGISTRY.iv_percentile.id} value={manualOverrides.iv_percentile} onChange={handleOverrideChange} />
                     <DebouncedOverrideInput label="Lookback (Days)" overrideKey="iv_lookback" value={manualOverrides.iv_lookback} onChange={handleOverrideChange} />
-                    {!hasAtmIv && <DebouncedOverrideInput label="ATM IV (%)" overrideKey="atm_iv" value={manualOverrides.atm_iv} onChange={handleOverrideChange} />}
+                    {!hasAtmIv && <DebouncedOverrideInput label="ATM IV (%)" overrideKey={CARD_REGISTRY.atm_iv.id} value={manualOverrides.atm_iv} onChange={handleOverrideChange} />}
                 </div>
 
                 {(!hasTotalCallOI || !hasTotalPutOI || !hasOiChange || !hasMaxPain || !hasPcrOi || !hasPcrVolume) && (
                     <div className="space-y-2">
                         <div className="text-xs font-bold text-blue-500 mb-2">Open Interest & Positioning</div>
-                        {!hasTotalCallOI && <DebouncedOverrideInput label="Total Call OI" overrideKey="total_call_oi" value={manualOverrides.total_call_oi} onChange={handleOverrideChange} />}
-                        {!hasTotalPutOI && <DebouncedOverrideInput label="Total Put OI" overrideKey="total_put_oi" value={manualOverrides.total_put_oi} onChange={handleOverrideChange} />}
-                        {!hasOiChange && <DebouncedOverrideInput label="OI Change" overrideKey="oi_change" value={manualOverrides.oi_change} onChange={handleOverrideChange} />}
-                        {!hasPcrOi && <DebouncedOverrideInput label="PCR (OI)" overrideKey="pcr_oi" value={manualOverrides.pcr_oi} onChange={handleOverrideChange} />}
-                        {!hasPcrVolume && <DebouncedOverrideInput label="PCR (Volume)" overrideKey="pcr_volume" value={manualOverrides.pcr_volume} onChange={handleOverrideChange} />}
-                        {!hasMaxPain && <DebouncedOverrideInput label="Max Pain Strike" overrideKey="max_pain" value={manualOverrides.max_pain} onChange={handleOverrideChange} />}
+                        {!hasTotalCallOI && <DebouncedOverrideInput label="Total Call OI" overrideKey={CARD_REGISTRY.total_call_oi.id} value={manualOverrides.total_call_oi} onChange={handleOverrideChange} />}
+                        {!hasTotalPutOI && <DebouncedOverrideInput label="Total Put OI" overrideKey={CARD_REGISTRY.total_put_oi.id} value={manualOverrides.total_put_oi} onChange={handleOverrideChange} />}
+                        {!hasOiChange && <DebouncedOverrideInput label="OI Change" overrideKey={CARD_REGISTRY.oi_change.id} value={manualOverrides.oi_change} onChange={handleOverrideChange} />}
+                        {!hasPcrOi && <DebouncedOverrideInput label="PCR (OI)" overrideKey={CARD_REGISTRY.pcr_oi.id} value={manualOverrides.pcr_oi} onChange={handleOverrideChange} />}
+                        {!hasPcrVolume && <DebouncedOverrideInput label="PCR (Volume)" overrideKey={CARD_REGISTRY.pcr_volume.id} value={manualOverrides.pcr_volume} onChange={handleOverrideChange} />}
+                        {!hasMaxPain && <DebouncedOverrideInput label="Max Pain Strike" overrideKey={CARD_REGISTRY.max_pain.id} value={manualOverrides.max_pain} onChange={handleOverrideChange} />}
                     </div>
                 )}
 
                 {(!hasDelta || !hasGamma || !hasTheta || !hasVega) && (
                     <div className="space-y-2">
                         <div className="text-xs font-bold text-purple-500 mb-2">Option Greeks</div>
-                        {!hasDelta && <DebouncedOverrideInput label="Delta" overrideKey="delta" value={manualOverrides.delta} onChange={handleOverrideChange} />}
-                        {!hasGamma && <DebouncedOverrideInput label="Gamma" overrideKey="gamma" value={manualOverrides.gamma} onChange={handleOverrideChange} />}
-                        {!hasTheta && <DebouncedOverrideInput label="Theta" overrideKey="theta" value={manualOverrides.theta} onChange={handleOverrideChange} />}
-                        {!hasVega && <DebouncedOverrideInput label="Vega" overrideKey="vega" value={manualOverrides.vega} onChange={handleOverrideChange} />}
+                        {!hasDelta && <DebouncedOverrideInput label="Delta" overrideKey={CARD_REGISTRY.delta.id} value={manualOverrides.delta} onChange={handleOverrideChange} />}
+                        {!hasGamma && <DebouncedOverrideInput label="Gamma" overrideKey={CARD_REGISTRY.gamma.id} value={manualOverrides.gamma} onChange={handleOverrideChange} />}
+                        {!hasTheta && <DebouncedOverrideInput label="Theta" overrideKey={CARD_REGISTRY.theta.id} value={manualOverrides.theta} onChange={handleOverrideChange} />}
+                        {!hasVega && <DebouncedOverrideInput label="Vega" overrideKey={CARD_REGISTRY.vega.id} value={manualOverrides.vega} onChange={handleOverrideChange} />}
                     </div>
                 )}
             </div>
@@ -483,6 +485,7 @@ export default function OptionsPage() {
                     creditLabel="R Credits"
                     cards={cardsForHeader}
                     enableBreakdown={true}
+                    masterPayload={nestedTreePayload}
                     syncId={{ instrumentKey: selectedInstrument?.value || selectedInstrument, category: 'options' }}
                     infoContent={optionsManualForm}
                     backsideContent={optionsManualForm}

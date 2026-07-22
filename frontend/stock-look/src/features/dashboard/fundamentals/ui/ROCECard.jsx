@@ -2,6 +2,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreROCE, generateAiInsightROCECard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function ROCECard({ cardId, data, manualOverride, lastUpdated }) {
@@ -33,7 +34,7 @@ export default function ROCECard({ cardId, data, manualOverride, lastUpdated }) 
     const sectorROCE = isManual ? null : extractedSector;
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('roce');
+    const configData = getIndicatorConfig(CARD_REGISTRY.roce.id);
 
     // 3. Praxis Engine
     const { score, bias, confidence, trendDesc } = scoreROCE(currentROCE, sectorROCE);

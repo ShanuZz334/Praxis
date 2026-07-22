@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { generateAiInsightEVEbitdaCard, scoreEVEbitda } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function EVEbitdaCard({ cardId, data = null, manualOverride, lastUpdated }) {
@@ -25,7 +26,7 @@ export default function EVEbitdaCard({ cardId, data = null, manualOverride, last
     const aiInsightText = generateAiInsightEVEbitdaCard(currentEV, sectorEV, valuationZone);
 
     // 4. Configuration
-    const configData = getIndicatorConfig('ev_ebitda');
+    const configData = getIndicatorConfig(CARD_REGISTRY.ev_ebitda.id);
 
     return (
         <IndicatorCard

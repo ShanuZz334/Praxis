@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scorePromoterHolding, generateAiInsightPromoterCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function PromoterHoldingCard({ cardId, data = null, lastUpdated }) {
@@ -20,7 +21,7 @@ export default function PromoterHoldingCard({ cardId, data = null, lastUpdated }
         historyForChart = [...promoterObj.history].reverse().map(h => ({ name: h.period, value: h.value }));
     }
 
-    const configData = getIndicatorConfig('promoter_holding') || { creditScore: 7, impactWeight: 5.0, aiModel: 'Engine v3' };
+    const configData = getIndicatorConfig(CARD_REGISTRY.promoter_holding.id) || { creditScore: 7, impactWeight: 5.0, aiModel: 'Engine v3' };
     const { score, bias, confidence, holdingZone, trend } = scorePromoterHolding(currentPct, prevPct);
     const aiInsightText = generateAiInsightPromoterCard(currentPct, prevPct, holdingZone, trend);
 

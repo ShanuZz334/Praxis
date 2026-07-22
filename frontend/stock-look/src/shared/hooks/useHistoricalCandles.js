@@ -15,6 +15,8 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
     const [error, setError] = useState(null);
     const [isBackfilling, setIsBackfilling] = useState(false);
     const [backfillInfo, setBackfillInfo] = useState(null);
+    const [liveCandle, setLiveCandle] = useState(null);
+    const { livePrices } = useDashboardContext();
     const backfillPollRef = useRef(null);
     const lastTotalCandlesRef = useRef(0);
 
@@ -88,5 +90,39 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
         };
     }, [instrumentKey, timeframe]);
 
-    return { data, loading, error, isBackfilling, backfillInfo };
+    // Real-time live update of the latest candle using websocket data
+    const lastLiveUpdateRef = useRef(0);
+    useEffect(() => {
+        if (!data || data.length === 0 || !livePrices || !instrumentKey) return;
+        
+        const tick = livePrices[instrumentKey];
+        if (!tick || !tick.ltp) return;
+
+        const now = Date.now();
+        // Throttle rapid websocket ticks to 4 frames per second to prevent chart/UI lag
+        if (now - lastLiveUpdateRef.current < 250) {
+            return;
+        }
+
+        const lastHistorical = data[data.length - 1];
+        
+        setLiveCandle(prevLive => {
+            const base = prevLive || lastHistorical;
+            
+            // If the tick doesn't stretch the candle or change the close, do nothing to avoid extra renders
+            if (base.close === tick.ltp && base.high >= tick.ltp && base.low <= tick.ltp) {
+                return prevLive;
+            }
+            
+            lastLiveUpdateRef.current = now;
+            return {
+                ...base,
+                close: tick.ltp,
+                high: Math.max(base.high, tick.ltp),
+                low: Math.min(base.low, tick.ltp)
+            };
+        });
+    }, [livePrices, instrumentKey, data]);
+
+    return { data, loading, error, isBackfilling, backfillInfo, liveCandle };
 }

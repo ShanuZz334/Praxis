@@ -102,6 +102,9 @@ export default function GlobalHeader({
         matchCount: 0
     },
     
+    // Master Payload for AI (Only used in Master Dashboard)
+    masterPayload = null,
+    
     // Custom Backside
     customBackContent = null
 }) {
@@ -179,7 +182,8 @@ export default function GlobalHeader({
                         bears: signalCounts.bears,
                         neutrals: signalCounts.neutrals,
                         breakdown: signalCounts.breakdown
-                    }
+                    },
+                    ...(masterPayload ? { tree_payload_json: masterPayload } : {})
                 }).catch(err => console.error(`Failed to sync ${syncId.category} counts:`, err));
             });
         }
@@ -288,6 +292,10 @@ export default function GlobalHeader({
                             neutrals={signalCounts.neutrals}
                             stockSymbol={syncId?.instrumentKey || null}
                             isIndex={syncId?.category === 'Indices' || false}
+                            coveragePercent={integrity?.coveragePercent ?? 100}
+                            cards={cards}
+                            sections={sections}
+                            masterPayload={masterPayload}
                         />
                     </div>
 

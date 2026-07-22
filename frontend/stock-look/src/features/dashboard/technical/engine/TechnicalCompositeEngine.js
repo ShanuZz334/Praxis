@@ -1,46 +1,62 @@
 import { getCompositeColor } from '../../../../shared/config/scoreColors.js';
 
+import { CARD_REGISTRY } from '../../../../shared/config/cardRegistry.js';
+
 export const TITLE_TO_ID = {
     // Trend
-    'EMA 20': 'ema_20',
-    'EMA 50': 'ema_50',
-    'EMA 200': 'ema_200',
-    'SMA 50': 'sma_50',
-    'SMA 200': 'sma_200',
-    'ADX (14)': 'adx',
-    'Supertrend': 'supertrend',
+    'EMA 20': CARD_REGISTRY.ema_20.id,
+    'EMA 50': CARD_REGISTRY.ema_50.id,
+    'EMA 200': CARD_REGISTRY.ema_200.id,
+    'SMA 50': CARD_REGISTRY.sma_50.id,
+    'SMA 200': CARD_REGISTRY.sma_200.id,
+    'ADX (14)': CARD_REGISTRY.adx.id,
+    'Supertrend': CARD_REGISTRY.supertrend.id,
 
     // Momentum
-    'RSI (14)': 'rsi',
-    'Stoch RSI': 'stoch_rsi',
-    'MACD': 'macd',
-    'Williams %R': 'williams_r',
+    'RSI (14)': CARD_REGISTRY.rsi.id,
+    'Stoch RSI': CARD_REGISTRY.stoch_rsi.id,
+    'MACD': CARD_REGISTRY.macd.id,
+    'Williams %R': CARD_REGISTRY.williams_r.id,
 
     // Volatility
-    'Bollinger Bands': 'bb_20_2',
-    'ATR': 'atr',
-    'Keltner Channels': 'kc',
+    'Bollinger Bands': CARD_REGISTRY.bb_20_2.id,
+    'ATR': CARD_REGISTRY.atr.id,
+    'Keltner Channels': CARD_REGISTRY.kc.id,
 
     // Volume
-    'Volume SMA': 'volume_sma',
-    'OBV': 'obv',
-    'CMF': 'cmf',
-    'VWAP': 'vwap',
+    'Volume SMA': CARD_REGISTRY.volume_sma.id,
+    'OBV': CARD_REGISTRY.obv.id,
+    'CMF': CARD_REGISTRY.cmf.id,
+    'VWAP': CARD_REGISTRY.vwap.id,
 
     // Structure
-    'Support': 'support',
-    'Resistance': 'resistance',
-    'Trendline': 'trendline',
-    'Pivot Points': 'pivot',
-    'Fibonacci': 'fibonacci',
+    'Support': CARD_REGISTRY.support.id,
+    'Resistance': CARD_REGISTRY.resistance.id,
+    'Trendline': CARD_REGISTRY.trendline.id,
+    'Pivot Points': CARD_REGISTRY.pivot.id,
+    'Fibonacci': CARD_REGISTRY.fibonacci.id,
 
-    // Breadth (Index)
-    'Advance / Decline': 'breadth_ratio',
-    'McClellan Osc': 'mcclellan',
-    'New Highs / Lows': 'nh_nl',
-    'A/D Line': 'ad_line',
-    'TRIN (Arms Index)': 'trin'
+    // Breadth
+    'Breadth Ratio (ADR)':  CARD_REGISTRY.breadth_ratio.id,
+    'McClellan Osc':        CARD_REGISTRY.mcclellan.id,
+    'A/D Line':             CARD_REGISTRY.ad_line.id,
+    'New Highs / Lows':     CARD_REGISTRY.nh_nl.id,
+    'TRIN (Arms)':          CARD_REGISTRY.trin.id
 };
+
+export const TECHNICAL_CARD_MAP = {
+    [CARD_REGISTRY.ema_20.id]: 'Trend', [CARD_REGISTRY.ema_50.id]: 'Trend', [CARD_REGISTRY.ema_200.id]: 'Trend', [CARD_REGISTRY.sma_50.id]: 'Trend', [CARD_REGISTRY.sma_200.id]: 'Trend', [CARD_REGISTRY.supertrend.id]: 'Trend', [CARD_REGISTRY.adx.id]: 'Trend',
+    [CARD_REGISTRY.rsi.id]: 'Momentum', [CARD_REGISTRY.macd.id]: 'Momentum', [CARD_REGISTRY.stoch_rsi.id]: 'Momentum', [CARD_REGISTRY.williams_r.id]: 'Momentum',
+    [CARD_REGISTRY.bb_20_2.id]: 'Volatility', [CARD_REGISTRY.kc.id]: 'Volatility', [CARD_REGISTRY.atr.id]: 'Volatility',
+    [CARD_REGISTRY.volume_sma.id]: 'Volume', [CARD_REGISTRY.obv.id]: 'Volume', [CARD_REGISTRY.cmf.id]: 'Volume', [CARD_REGISTRY.vwap.id]: 'Volume',
+    [CARD_REGISTRY.support.id]: 'Structure', [CARD_REGISTRY.resistance.id]: 'Structure', [CARD_REGISTRY.pivot.id]: 'Structure', [CARD_REGISTRY.fibonacci.id]: 'Structure', [CARD_REGISTRY.trendline.id]: 'Structure',
+    [CARD_REGISTRY.breadth_ratio.id]: 'Breadth', [CARD_REGISTRY.mcclellan.id]: 'Breadth', [CARD_REGISTRY.ad_line.id]: 'Breadth', [CARD_REGISTRY.nh_nl.id]: 'Breadth', [CARD_REGISTRY.trin.id]: 'Breadth'
+};
+
+export const ID_TO_TITLE = Object.entries(CARD_REGISTRY).reduce((acc, [key, conf]) => {
+    acc[conf.id] = conf.displayName;
+    return acc;
+}, {});
 
 function weightedHarmonicMean(items) {
     const valid = items.filter(({ score }) => score !== null && !isNaN(score));
@@ -84,107 +100,63 @@ function computeSections(scores) {
 
     // Trend: Geometric Mean (trends must align/compound)
     const trend = weightedGeometricMean([
-        { score: g('ema_20'), weight: 0.2 },
-        { score: g('ema_50'), weight: 0.3 },
-        { score: g('ema_200'), weight: 0.4 },
-        { score: g('supertrend'), weight: 0.1 }
+        { score: g(CARD_REGISTRY.ema_20.id), weight: 0.2 },
+        { score: g(CARD_REGISTRY.ema_50.id), weight: 0.3 },
+        { score: g(CARD_REGISTRY.ema_200.id), weight: 0.4 },
+        { score: g(CARD_REGISTRY.supertrend.id), weight: 0.1 }
     ]);
 
     // Momentum: Trimmed Mean (smooths out extreme outlier oscillators)
     const momentum = trimmedWeightedMean([
-        { score: g('rsi'), weight: 0.35 },
-        { score: g('macd'), weight: 0.35 },
-        { score: g('stoch_rsi'), weight: 0.15 },
-        { score: g('williams_r'), weight: 0.15 }
+        { score: g(CARD_REGISTRY.rsi.id), weight: 0.35 },
+        { score: g(CARD_REGISTRY.macd.id), weight: 0.35 },
+        { score: g(CARD_REGISTRY.stoch_rsi.id), weight: 0.15 },
+        { score: g(CARD_REGISTRY.williams_r.id), weight: 0.15 }
     ]);
 
     // Volatility: Harmonic Mean (penalizes extreme volatility states)
     const volatility = weightedHarmonicMean([
-        { score: g('bb_20_2'), weight: 0.5 },
-        { score: g('kc'), weight: 0.3 },
-        { score: g('atr'), weight: 0.2 },
+        { score: g(CARD_REGISTRY.bb_20_2.id), weight: 0.5 },
+        { score: g(CARD_REGISTRY.kc.id), weight: 0.3 },
+        { score: g(CARD_REGISTRY.atr.id), weight: 0.2 },
 
     ]);
 
     // Volume: Standard Weighted Mean
     const volume = weightedMean([
-        { score: g('volume_sma'), weight: 0.4 },
-        { score: g('obv'), weight: 0.3 },
-        { score: g('cmf'), weight: 0.2 },
-        { score: g('vwap'), weight: 0.1 }
+        { score: g(CARD_REGISTRY.volume_sma.id), weight: 0.4 },
+        { score: g(CARD_REGISTRY.obv.id), weight: 0.3 },
+        { score: g(CARD_REGISTRY.cmf.id), weight: 0.2 },
+        { score: g(CARD_REGISTRY.vwap.id), weight: 0.1 }
     ]);
 
     // Structure: Min-Anchored Blend or Weighted Mean (levels must hold)
     const structure = weightedMean([
-        { score: g('support'), weight: 0.25 },
-        { score: g('resistance'), weight: 0.25 },
-        { score: g('trendline'), weight: 0.2 },
-        { score: g('pivot'), weight: 0.15 },
-        { score: g('fibonacci'), weight: 0.15 }
+        { score: g(CARD_REGISTRY.support.id), weight: 0.25 },
+        { score: g(CARD_REGISTRY.resistance.id), weight: 0.25 },
+        { score: g(CARD_REGISTRY.trendline.id), weight: 0.2 },
+        { score: g(CARD_REGISTRY.pivot.id), weight: 0.15 },
+        { score: g(CARD_REGISTRY.fibonacci.id), weight: 0.15 }
     ]);
 
     // Breadth: Direct macro proxy
     const breadth = weightedGeometricMean([
-        { score: g('breadth_ratio'), weight: 0.35 },
-        { score: g('mcclellan'), weight: 0.25 },
-        { score: g('ad_line'), weight: 0.2 },
-        { score: g('nh_nl'), weight: 0.1 },
-        { score: g('trin'), weight: 0.1 }
+        { score: g(CARD_REGISTRY.breadth_ratio.id), weight: 0.35 },
+        { score: g(CARD_REGISTRY.mcclellan.id), weight: 0.25 },
+        { score: g(CARD_REGISTRY.ad_line.id), weight: 0.2 },
+        { score: g(CARD_REGISTRY.nh_nl.id), weight: 0.1 },
+        { score: g(CARD_REGISTRY.trin.id), weight: 0.1 }
     ]);
 
     return { trend, momentum, volatility, volume, structure, breadth };
 }
 
-export function computeTechnicalComposite(rawData, isIndex = false) {
-    if (!rawData || Object.keys(rawData).length === 0) {
+export function computeTechnicalComposite(scoresData, isIndex = false) {
+    if (!scoresData || Object.keys(scoresData).length === 0) {
         return { compositeScore: 50, regime: { label: 'Unknown', color: 'text-slate-400' }, sections: [], rawSections: {}, cardScores: {} };
     }
 
-    const price = rawData.current_price || null;
-
-    const scoreVal = (scorer, ...args) => {
-        const res = scorer(...args);
-        return (res && res.score !== undefined) ? res.score : null;
-    };
-
-    // Calculate actual card scores (0-100)
-    const scores = {
-        ema_20: scoreVal(scoreEMA20Card, rawData.ema_20, price),
-        ema_50: scoreVal(scoreEMA50Card, rawData.ema_50, price),
-        ema_200: scoreVal(scoreEMA200Card, rawData.ema_200, price),
-        sma_50: scoreVal(scoreSMA50Card, rawData.sma_50, price),
-        sma_200: scoreVal(scoreSMA200Card, rawData.sma_200, price),
-        supertrend: scoreVal(scoreSupertrendCard, rawData.supertrend, price),
-        adx: scoreVal(scoreADXCard, rawData.adx),
-        
-        rsi: scoreVal(scoreRSICard, rawData.rsi),
-        macd: scoreVal(scoreMACDCard, rawData.macd),
-        stoch_rsi: scoreVal(scoreStochRSICard, rawData.stoch_rsi),
-        williams_r: scoreVal(scoreWilliamsRCard, rawData.williams_r),
-        
-        bb_20_2: scoreVal(scoreBBCard, rawData.bb_20_2),
-        kc: scoreVal(scoreKCCard, rawData.kc, price),
-        atr: scoreVal(scoreATRCard, rawData.atr, price),
-
-        
-        volume_sma: scoreVal(scoreVolumeSmaCard, rawData.volume_sma, rawData.current_volume),
-        obv: scoreVal(scoreObvCard, rawData.obv, rawData.obv_sma),
-        cmf: scoreVal(scoreCmfCard, rawData.cmf),
-        vwap: scoreVal(scoreVwapCard, rawData.vwap, price),
-        
-        support: scoreVal(scoreSupportCard, rawData.support, price),
-        resistance: scoreVal(scoreResistanceCard, rawData.resistance, price),
-        pivot: scoreVal(scorePivotCard, rawData.pivot, price),
-        fibonacci: scoreVal(scoreFibonacciCard, rawData.fibonacci, price),
-        trendline: scoreVal(scoreTrendlineCard, rawData.trendline, price),
-        
-        breadth_ratio: scoreVal(scoreBreadthRatioCard, rawData.breadth_ratio),
-        mcclellan: scoreVal(scoreMcClellanCard, rawData.mcclellan),
-        ad_line: scoreVal(scoreADLineCard, rawData.ad_line),
-        nh_nl: scoreVal(scoreNhnlCard, rawData.nh_nl),
-        trin: scoreVal(scoreTrinCard, rawData.trin)
-    };
-
+    const scores = scoresData;
     const { trend, momentum, volatility, volume, structure, breadth } = computeSections(scores);
 
     const sectionsData = [
@@ -212,7 +184,7 @@ export function computeTechnicalComposite(rawData, isIndex = false) {
         compositeScore = Math.max(0, compositeScore - distressCount * 4);
     }
 
-    const adxScore = scores.adx;
+    const adxScore = scores[CARD_REGISTRY.adx.id];
     if (adxScore !== undefined && adxScore !== null) {
         if (adxScore < 40) {
             // Low ADX (weak trend) pulls composite towards neutral 50
@@ -233,12 +205,51 @@ export function computeTechnicalComposite(rawData, isIndex = false) {
         cssColor: `text-[${compositeColor.hex}]`,
     };
 
-    return {
+    const result = {
         compositeScore,
         regime,
         sections: sectionsData,
         rawSections: { trend, momentum, volatility, volume, structure, breadth },
         cardScores: scores
+    };
+    
+    result.nestedTreePayload = buildTechnicalNestedPayload(result, scores, isIndex);
+    return result;
+}
+
+function buildTechnicalNestedPayload(result, scores, isIndex) {
+    const sectionsMap = {};
+
+    Object.entries(scores).forEach(([id, score]) => {
+        if (score === null || score === undefined || isNaN(score)) return;
+        const secName = TECHNICAL_CARD_MAP[id] || 'General';
+        if (!sectionsMap[secName]) sectionsMap[secName] = { name: secName, score: 0, cards: [] };
+        
+        let normalized = 0;
+        if (score > 70) normalized = 1;
+        else if (score < 30) normalized = -1;
+        
+        sectionsMap[secName].cards.push({
+            name: ID_TO_TITLE[id] || id,
+            score: normalized,
+            value: Number(score)
+        });
+    });
+    
+    Object.values(sectionsMap).forEach(sec => {
+        const rSec = result.sections.find(r => r.label.toLowerCase() === sec.name.toLowerCase() || (r.shortLabel && r.shortLabel.toLowerCase() === sec.name.substring(0,3).toLowerCase()));
+        if (rSec) {
+            sec.score = rSec.score;
+            sec.weight = rSec.weight;
+        }
+    });
+
+    return {
+        engines: [{
+            name: isIndex ? "Technicals (Index)" : "Technicals (Company)",
+            score: result.compositeScore,
+            sections: Object.values(sectionsMap)
+        }]
     };
 }
 

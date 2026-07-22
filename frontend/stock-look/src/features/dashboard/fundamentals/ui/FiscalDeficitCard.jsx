@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreFiscalDeficit, generateAiInsightFiscalDeficit } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function FiscalDeficitCard({ cardId, data, manualOverride, lastUpdated }) {
@@ -15,7 +16,7 @@ export default function FiscalDeficitCard({ cardId, data, manualOverride, lastUp
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('fiscal_deficit');
+    const configData = getIndicatorConfig(CARD_REGISTRY.fiscal_deficit.id);
 
     // 3. Praxis Engine
     // Note: Most macro indicators just take a single value for scoring

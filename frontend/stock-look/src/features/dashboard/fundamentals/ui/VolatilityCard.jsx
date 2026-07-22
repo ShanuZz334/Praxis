@@ -2,6 +2,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { generateAiInsightVolatilityCard, scoreVIX } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function VolatilityCard({ cardId, data, manualOverride, lastUpdated }) {
@@ -14,7 +15,7 @@ export default function VolatilityCard({ cardId, data, manualOverride, lastUpdat
             ? cleanNum(manualOverride)
             : null;
 
-    const configData = getIndicatorConfig('india_vix');
+    const configData = getIndicatorConfig(CARD_REGISTRY.india_vix.id);
     const { score, bias, confidence, vixRegime, marketCondition } = scoreVIX(vixValue);
     const aiInsight = generateAiInsightVolatilityCard(vixValue, vixRegime, marketCondition);
 

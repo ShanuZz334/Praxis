@@ -2,6 +2,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { formatPercentage } from '@/shared/utils/formatters';
 import { scoreDividendYield, generateAiInsightDividendYieldCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
@@ -51,7 +52,7 @@ export default function DividendYieldCard({ cardId, data = null, manualOverride,
         ? cleanNum(data.manualBondYield) : null;
 
     // 2. Load Central Config
-    const configData = getIndicatorConfig('dividend_yield');
+    const configData = getIndicatorConfig(CARD_REGISTRY.dividend_yield.id);
 
     // 3. Praxis Engine Variables
     const { score, bias, confidence } = scoreDividendYield(currentYield, bondYield);

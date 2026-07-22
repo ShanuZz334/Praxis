@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 export default function CreditRatingCard({ cardId, manualOverrides = {}, lastUpdated }) {
     // Credit Rating is manual-only for now
@@ -24,7 +25,7 @@ export default function CreditRatingCard({ cardId, manualOverrides = {}, lastUpd
         }
     }
 
-    const configData = getIndicatorConfig('credit_rating') || { creditScore: 7, impactWeight: 6.0, aiModel: 'Engine v2' };
+    const configData = getIndicatorConfig(CARD_REGISTRY.credit_rating.id) || { creditScore: 7, impactWeight: 6.0, aiModel: 'Engine v2' };
 
     return (
         <IndicatorCard

@@ -2,6 +2,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreEarningsTrend, generateAiInsightEarningsTrendCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function EarningsTrendCard({ cardId, data = null, manualOverride, lastUpdated }) {
@@ -22,7 +23,7 @@ export default function EarningsTrendCard({ cardId, data = null, manualOverride,
         : null;
 
     // Centralized Config
-    const configData = getIndicatorConfig('earnings_trend');
+    const configData = getIndicatorConfig(CARD_REGISTRY.earnings_trend.id);
 
     // --- Scoring Engine ---
     const { score, bias, confidence, trendLabel, cagr } = scoreEarningsTrend(epsHistory, manualCAGR);

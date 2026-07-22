@@ -24,6 +24,7 @@ import React from 'react';
 
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { formatPercentage } from '@/shared/utils/formatters';
 import { scoreEPSGrowth, generateAiInsightEPSGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
@@ -99,7 +100,7 @@ export default function EPSGrowthCard({ cardId, data = null, manualOverride, las
         }
     }
 
-    const configData = getIndicatorConfig('eps_growth');
+    const configData = getIndicatorConfig(CARD_REGISTRY.eps_growth.id);
     const { score, bias, confidence, growthTier, momentumLabel } = scoreEPSGrowth(cagr, latestYoY, positiveYears, totalPeriods);
     const aiInsightText = generateAiInsightEPSGrowthCard(cagr, latestYoY, growthTier, momentumLabel, totalPeriods);
 

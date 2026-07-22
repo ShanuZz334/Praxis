@@ -1,11 +1,12 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
 import { scoreNhnlCard } from '../engine/TechnicalCompositeEngine';
 
 export default function NhnlCard({ cardId, data = null, manualOverride, lastUpdated }) {
-    const configData = getIndicatorConfig('nh_nl');
+    const configData = getIndicatorConfig(CARD_REGISTRY.nh_nl.id);
     
     // Resolve current value
     // (Assuming Upstox live data mapping will be added here later)
