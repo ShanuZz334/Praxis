@@ -1,5 +1,6 @@
 import { AI_CONFIG } from './config.js';
 import { providerCache } from './cache/providerCache.js';
+import AiRouting from '../models/AiRouting.js';
 
 const circuitBreakerState = {};
 
@@ -30,16 +31,44 @@ export async function getRouteForTask(tier, taskType) {
     const providers = await providerCache.getProviders();
     const routePlan = [];
     
+    // First, check explicit user routing preferences
+    try {
+        const routing = await AiRouting.findOne({ isSingleton: true }).lean();
+        if (routing) {
+            let explicitPref = null;
+            if (taskType === 'per_card_insight') explicitPref = routing.cardInsight;
+            else if (taskType === 'page_header_insight') explicitPref = routing.headerInsight;
+            else if (taskType === 'chat_conversation') explicitPref = routing.manualChat;
+            else explicitPref = routing.pageInsight; // Default map for others or actual pageInsight
+            
+            if (explicitPref && explicitPref.providerId && explicitPref.modelId) {
+                const explicitProvider = providers.find(p => p.providerId === explicitPref.providerId && p.isActive);
+                if (explicitProvider) {
+                    routePlan.push({ provider: explicitProvider.providerId, model: explicitPref.modelId, isExplicit: true });
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Failed to fetch explicit routing:", err);
+    }
+    
     const sorted = [...providers].sort((a, b) => a.priority - b.priority);
     const available = sorted.filter(p => p.supportedTiers.includes(tier.toString()) && p.isActive);
 
     if (tier === 1) {
+        // If an explicit route was added, we don't need to add the default tier 1 ollama unless they are different
         const ollama = available.find(p => p.providerId === 'ollama');
         if (ollama && ollama.models.tier1_simple) {
-            routePlan.push({ provider: 'ollama', model: ollama.models.tier1_simple });
+            const hasOllamaT1 = routePlan.some(r => r.provider === 'ollama' && r.model === ollama.models.tier1_simple);
+            if (!hasOllamaT1) {
+                routePlan.push({ provider: 'ollama', model: ollama.models.tier1_simple });
+            }
         }
         available.filter(p => p.providerId !== 'ollama').forEach(p => {
-            if (p.models.tier1_simple) routePlan.push({ provider: p.providerId, model: p.models.tier1_simple });
+            if (p.models.tier1_simple) {
+                const hasModel = routePlan.some(r => r.provider === p.providerId && r.model === p.models.tier1_simple);
+                if (!hasModel) routePlan.push({ provider: p.providerId, model: p.models.tier1_simple });
+            }
         });
         return routePlan;
     }

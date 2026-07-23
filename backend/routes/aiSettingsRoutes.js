@@ -1,6 +1,7 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.js';
 import AiProvider from '../models/AiProvider.js';
+import AiRouting from '../models/AiRouting.js';
 import { encrypt, decrypt } from '../ai-gateway/utils/encryption.js';
 import { providerCache } from '../ai-gateway/cache/providerCache.js';
 
@@ -164,6 +165,59 @@ router.post('/providers/:providerId/test', async (req, res) => {
         res.json({ success: true, latencyMs: Date.now() - startTime });
     } catch (error) {
         res.json({ success: false, error: error.message });
+    }
+});
+
+router.get('/routing', async (req, res) => {
+    try {
+        let routing = await AiRouting.findOne({ isSingleton: true }).lean();
+        if (!routing) {
+            routing = await AiRouting.create({ isSingleton: true });
+        }
+        res.json(routing);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.put('/routing', async (req, res) => {
+    try {
+        const body = req.body;
+        // Strip out immutable fields if any
+        delete body._id;
+        delete body.isSingleton;
+        
+        const routing = await AiRouting.findOneAndUpdate(
+            { isSingleton: true },
+            { $set: body },
+            { new: true, upsert: true }
+        );
+        res.json(routing);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/providers/ollama/models', async (req, res) => {
+    try {
+        const ollama = await AiProvider.findOne({ providerId: 'ollama' }).lean();
+        if (!ollama || !ollama.baseUrl) return res.json([]);
+        
+        // Fetch from Ollama tags API
+        const response = await fetch(`${ollama.baseUrl}/api/tags`);
+        if (!response.ok) return res.json([]);
+        
+        const data = await response.json();
+        if (!data.models) return res.json([]);
+        
+        // Format to [{ modelId: "...", displayName: "..." }]
+        const models = data.models.map(m => ({
+            modelId: m.name,
+            displayName: m.name
+        }));
+        res.json(models);
+    } catch (error) {
+        res.json([]); // Fail silently, return empty models if ollama is down
     }
 });
 

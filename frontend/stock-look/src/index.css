@@ -42,6 +42,7 @@
   --color-background-subtle: var(--bg-subtle);
   --color-background-card: var(--bg-card);
   --color-background-tooltip: var(--bg-tooltip);
+  --color-background-elevated: var(--bg-elevated);
   --font-mono: "JetBrains Mono", monospace;
 
   /* Praxis Standard Palette */
@@ -126,19 +127,19 @@ html[data-theme="dark"] {
 [data-theme="light"],
 html[data-theme="light"],
 .light {
-  --bg-app: #F5F7FA;
-  --bg-card: transparent;
-  --bg-card-primary: transparent;
-  --bg-card-secondary: transparent;
-  --bg-surface: transparent;
-  --bg-elevated: transparent;
-  --bg-tooltip: #ffffff;
+  --bg-app: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-card-primary: #FFFFFF;
+  --bg-card-secondary: #F1F5F9;
+  --bg-surface: #F1F5F9;
+  --bg-elevated: #FFFFFF;
+  --bg-tooltip: #FFFFFF;
 
-  --border-default: #000000;
-  --border-subtle: #000000;
-  --border-subtle-translucent: rgba(0, 0, 0, 0.2);
-  --border-subtle-faint: rgba(0, 0, 0, 0.1);
-  --border-hover: #334155;
+  --border-default: #E2E8F0;
+  --border-subtle: #CBD5E1;
+  --border-subtle-translucent: rgba(148, 163, 184, 0.2);
+  --border-subtle-faint: rgba(148, 163, 184, 0.1);
+  --border-hover: #94A3B8;
   --border-active: #3B82F6;
 
   --text-primary: #0F172A;

@@ -58,8 +58,7 @@ const PAGE_HEADERS = {
         { targetId: 'tech_manual',                 displayName: 'Manual Chat'            },
     ],
     Options: [
-        { targetId: 'options_index_header',        displayName: 'Options Header — Index Mode'         },
-        { targetId: 'options_company_header',      displayName: 'Options Header — Company Mode'         },
+        { targetId: 'options_header',              displayName: 'Options Header Insight' },
         { targetId: 'options_manual',              displayName: 'Manual Chat'            },
     ],
     Foreign: [
@@ -70,11 +69,11 @@ const PAGE_HEADERS = {
         { targetId: 'events_header',               displayName: 'Events Header' },
     ],
     QChat: [
-        { targetId: 'qchat_global',        displayName: 'Global QChat'         },
+        { targetId: 'qchat_global',        displayName: 'Foreign Markets Context' },
         { targetId: 'qchat_fundamentals',  displayName: 'Fundamentals Context' },
         { targetId: 'qchat_technical',     displayName: 'Technicals Context'   },
         { targetId: 'qchat_options',       displayName: 'Options Context'      },
-        { targetId: 'master_qchat',        displayName: 'Master/Global Context'},
+        { targetId: 'master_qchat',        displayName: 'Master Dashboard Context'},
         { targetId: 'qchat_events',        displayName: 'Events Context'       },
     ],
 };
@@ -122,6 +121,7 @@ function PromptEditor({ targetId, displayName, page, isHeaderPrompt, applicabili
         isSaving,
         fetchPrompt,
         savePrompt,
+        goldenRules: targetGoldenRules
     } = useCardPrompt(targetId);
 
     const textareaRef       = useRef(null);
@@ -130,6 +130,10 @@ function PromptEditor({ targetId, displayName, page, isHeaderPrompt, applicabili
 
     // Decouple the tab being edited from the active dashboard mode
     const [editingPresetId, setEditingPresetId] = useState('default');
+    
+    // Modal state for adding a custom preset
+    const [showNameModal, setShowNameModal] = useState(false);
+    const [newPresetName, setNewPresetName] = useState('');
 
     // Sync editing tab when the active preset changes (e.g., on initial fetch)
     useEffect(() => {
@@ -190,15 +194,24 @@ function PromptEditor({ targetId, displayName, page, isHeaderPrompt, applicabili
         await handleSave(editingPresetId);
     };
 
-    const addCustomPreset = async () => {
-        const name = prompt("Enter a name for the new preset (e.g., 'Scalping'):");
-        if (!name || !name.trim()) return;
+    const handleOpenNameModal = () => {
+        setNewPresetName('');
+        setShowNameModal(true);
+    };
+
+    const confirmCustomPreset = async (e) => {
+        e.preventDefault();
+        const name = newPresetName.trim();
+        if (!name) return;
+        setShowNameModal(false);
+        
         const id = 'custom_' + Date.now();
         // Start with the current Default content so the new preset has something useful
-        const newPreset = { id, name: name.trim(), systemInstruction: systemInstruction, isCustom: true };
+        const newPreset = { id, name: name, systemInstruction: systemInstruction, isCustom: true };
         const newPresets = [...presets, newPreset];
         setPresets(newPresets);
         setEditingPresetId(id);
+        
         // Auto-save immediately so the preset persists without requiring a manual Save click
         try {
             await savePrompt({
@@ -207,7 +220,7 @@ function PromptEditor({ targetId, displayName, page, isHeaderPrompt, applicabili
                 page,
                 isHeaderPrompt,
                 applicability,
-                overrideActivePresetId: activePresetId,   // don't change the active preset
+                overrideActivePresetId: id,
                 overridePresets: newPresets
             });
         } catch {
@@ -266,6 +279,15 @@ function PromptEditor({ targetId, displayName, page, isHeaderPrompt, applicabili
                             <span className="leading-relaxed">{rule}</span>
                         </div>
                     ))}
+                    {targetGoldenRules && (
+                        <div className="flex items-start gap-2.5 text-[12px] text-text-tertiary mt-4 pt-4 border-t border-border-default/20">
+                            <span className="text-amber-500/60 font-mono mt-0.5 shrink-0">{goldenRules.length + 1}.</span>
+                            <div className="flex flex-col gap-1">
+                                <span className="text-amber-400/80 font-medium">{displayName} Golden Rule</span>
+                                <span className="leading-relaxed text-text-muted">Enforces the dedicated institutional directives for the {displayName} context.</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -308,7 +330,7 @@ function PromptEditor({ targetId, displayName, page, isHeaderPrompt, applicabili
                                 </button>
                             ))}
                             <button
-                                onClick={addCustomPreset}
+                                onClick={handleOpenNameModal}
                                 title="Add Custom Preset"
                                 className="px-3 py-2 text-text-tertiary hover:text-text-primary transition-colors ml-2"
                             >
@@ -369,6 +391,52 @@ function PromptEditor({ targetId, displayName, page, isHeaderPrompt, applicabili
                     </button>
                 </div>
             </div>
+            
+            {/* ── Custom Preset Name Modal ────────────────────────────────────────── */}
+            {showNameModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-background-elevated border border-border-default shadow-2xl rounded-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="px-5 py-4 border-b border-border-default/40 flex justify-between items-center">
+                            <h3 className="text-[14px] font-medium text-text-primary">Create Custom Preset</h3>
+                            <button 
+                                onClick={() => setShowNameModal(false)}
+                                className="text-text-tertiary hover:text-text-primary"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                        <form onSubmit={confirmCustomPreset} className="p-5 flex flex-col gap-4">
+                            <div>
+                                <label className="block text-[12px] text-text-secondary mb-1.5">Preset Name</label>
+                                <input 
+                                    autoFocus
+                                    type="text"
+                                    value={newPresetName}
+                                    onChange={(e) => setNewPresetName(e.target.value)}
+                                    placeholder="e.g., Scalping, Swing, Earnings..."
+                                    className="w-full bg-background-surface border border-border-default/50 rounded-lg px-3 py-2 text-[13px] text-text-primary focus:outline-none focus:border-blue-500/50"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setShowNameModal(false)}
+                                    className="px-4 py-2 text-[12px] font-medium text-text-secondary hover:bg-background-surface rounded-lg transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="submit"
+                                    disabled={!newPresetName.trim()}
+                                    className="px-4 py-2 text-[12px] font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Create Preset
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
         </>
     );

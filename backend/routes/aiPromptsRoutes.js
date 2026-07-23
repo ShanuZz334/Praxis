@@ -17,8 +17,7 @@ const PAGE_HEADER_DEFAULTS = {
     [CARD_REGISTRY.fundamentals_company_header?.id || "fundamentals_company_header"]: `You are Praxis, an elite Indian equity market analyst. You are analyzing the **Fundamentals page — Company mode** for the given stock symbol. You receive the composite fundamentals score, regime, and bull/bear signal counts. Generate a concise 2-3 sentence stock-specific fundamental summary covering: valuation attractiveness, earnings quality, and balance sheet health. Be direct and actionable. End with one concrete near-term thesis.`,
     [CARD_REGISTRY.technical_index_header?.id || "technical_index_header"]: `You are Praxis, an elite technical analyst specializing in Indian indices. You are analyzing the **Technical Analysis page — Index mode** for Nifty/Bank Nifty. You receive the composite technical score, dominant trend, and signal distribution. Synthesize price action, trend direction, breadth signals, and momentum in 2-3 sentences. Include key levels to watch and one specific actionable trade setup (entry zone, target range, stop area).`,
     [CARD_REGISTRY.technical_company_header?.id || "technical_company_header"]: `You are Praxis, an elite technical analyst. You are analyzing the **Technical Analysis page — Company mode** for the given stock. You receive the composite technical score, trend bias, and signal distribution. Synthesize in 2-3 sentences: primary trend, momentum quality, and key S/R zones. End with one specific setup: bias (long/short), trigger condition, target, and stop.`,
-    [CARD_REGISTRY.options_index_header?.id || "options_index_header"]: `You are Praxis, an elite options flow analyst specializing in Indian F&O index markets. You receive the composite options intelligence score and signal breakdown (PCR, IV Rank, Max Pain, OI change, Greeks). Synthesize the current options market positioning in 2-3 sentences: directional bias implied by flow, volatility regime (expanding/compressing), and smart money positioning. End with one options strategy recommendation (e.g., "Sell OTM calls given elevated IV Rank of 78").`,
-    [CARD_REGISTRY.options_company_header?.id || "options_company_header"]: `You are Praxis, an elite options flow analyst specializing in Indian F&O single stock markets. You receive the composite options intelligence score and signal breakdown (PCR, IV Rank, Max Pain, OI change, Greeks). Synthesize the current options market positioning in 2-3 sentences: directional bias implied by flow, volatility regime (expanding/compressing), and smart money positioning. End with one options strategy recommendation (e.g., "Sell OTM calls given elevated IV Rank of 78").`,
+    [CARD_REGISTRY.options_header?.id || "options_header"]: `You are Praxis, an elite options flow analyst specializing in Indian F&O markets. You receive the composite options intelligence score and signal breakdown (PCR, IV Rank, Max Pain, OI change, Greeks). Synthesize the current options market positioning in 2-3 sentences: directional bias implied by flow, volatility regime (expanding/compressing), and smart money positioning. End with one options strategy recommendation (e.g., "Sell OTM calls given elevated IV Rank of 78").`,
     [CARD_REGISTRY.praxis_composite_header?.id || "praxis_composite_header"]: `You are Praxis Stocky, the master AI of the Praxis trading intelligence platform. You receive the unified composite score aggregating Technical, Options, Fundamental, and Global Macro engines. Generate a 2-3 sentence market regime statement that captures: overall market posture (risk-on/off/neutral), dominant signal theme (trend, value, momentum, fear), and one tactical recommendation for the next 3-5 trading sessions. Write with the conviction and clarity of a professional desk strategist.`,
     foreign_header: `You are Praxis, a global macro analyst focused on India's external risk factors. You receive the global macro composite score and key global signal states (DXY, crude, US yields, VIX, FII flows). Synthesize in 2-3 sentences: the most important global headwinds/tailwinds for Indian markets today, and how they translate to near-term sector impact. Be specific (e.g., "Rising crude at $87 pressures OMCs and widens CAD").`,
     events_header: `You are Praxis, an event-driven market analyst for Indian equities. You receive the events intelligence score and upcoming catalyst summary. Synthesize in 2-3 sentences: the key near-term event risk (earnings, macro data, RBI, geopolitical), expected market impact, and how to position it. Be specific about timing and sector sensitivity.`,
@@ -400,8 +399,14 @@ router.post('/generate/:targetId', async (req, res) => {
         // 3. Call AI Gateway — use page_header_insight for headers (Tier 2, more reasoning)
         const isHeaderTarget = targetId.endsWith('_header');
         
-        // 3a. Enforce Golden Rules system-wide
-        const enforcedSystemInstruction = `System Guardrails:\n${GOLDEN_RULES.map((r, i) => `${i+1}. ${r}`).join('\n')}\n\nTask Instruction:\n${systemInstruction}`;
+        // 3a. Enforce Golden Rules system-wide or per-header
+        let goldenRulesStr = '';
+        if (savedPrompt && savedPrompt.goldenRules) {
+            goldenRulesStr = `System Guardrails:\n${savedPrompt.goldenRules}\n\n`;
+        } else {
+            goldenRulesStr = `System Guardrails:\n${GOLDEN_RULES.map((r, i) => `${i+1}. ${r}`).join('\n')}\n\n`;
+        }
+        const enforcedSystemInstruction = `${goldenRulesStr}Task Instruction:\n${systemInstruction}`;
 
         const response = await aiGateway.process({
             taskType: isHeaderTarget ? 'page_header_insight' : 'per_card_insight',
@@ -457,7 +462,7 @@ router.post('/generate/:targetId', async (req, res) => {
         });
     } catch (err) {
         console.error('POST /ai-prompts/generate/:targetId error:', err.message);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: err.message || 'Internal server error' });
     }
 });
 /**
@@ -468,7 +473,7 @@ router.post('/generate/:targetId', async (req, res) => {
 router.post('/chat/:targetId', async (req, res) => {
     try {
         const { targetId } = req.params;
-        const { message, scope = 'card', contextData = {}, cardSnapshots = [] } = req.body;
+        const { message, scope = 'card', contextData = {}, cardSnapshots = [], explicitProvider, explicitModel } = req.body;
         const userId = req.user._id;
 
         if (!message) return res.status(400).json({ error: 'Message is required' });
@@ -533,7 +538,9 @@ router.post('/chat/:targetId', async (req, res) => {
             history,
             data: Object.keys(contextData).length > 0 ? contextData : null,
             jsonMode: false,
-            maxTokens: 300
+            maxTokens: 300,
+            explicitProvider,
+            explicitModel
         });
 
         if (response.error) {

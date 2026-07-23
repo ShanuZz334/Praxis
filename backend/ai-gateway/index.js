@@ -44,7 +44,13 @@ export const aiGateway = {
             return semanticHit;
         }
 
-        const routePlan = await getRouteForTask(tier, taskType);
+        let routePlan = await getRouteForTask(tier, taskType);
+        
+        // UI manual override for interactive chat
+        if (request.explicitProvider && request.explicitModel) {
+            routePlan = [{ provider: request.explicitProvider, model: request.explicitModel, isExplicit: true }, ...routePlan];
+        }
+
         let messages = [];
 
         // 1. System instruction (custom per-card prompt from Prompts Studio, or default)

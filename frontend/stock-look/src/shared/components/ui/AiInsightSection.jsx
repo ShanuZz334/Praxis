@@ -22,7 +22,7 @@ function resolveTargetId(path, isIndex) {
     if (path.includes("/home") || path.endsWith("/dashboard")) return "praxis_composite_header";
     if (path.includes("/technical")) return isIndex ? "technical_index_header" : "technical_company_header";
     if (path.includes("/fundamental")) return isIndex ? "fundamentals_index_header" : "fundamentals_company_header";
-    if (path.includes("/options")) return isIndex ? "options_index_header" : "options_company_header";
+    if (path.includes("/options")) return "options_header";
     if (path.includes("/foreign") || path.includes("/global")) return "foreign_header";
     if (path.includes("/events")) return "events_header";
     return "praxis_composite_header";

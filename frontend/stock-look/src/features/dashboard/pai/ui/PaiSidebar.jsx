@@ -41,13 +41,13 @@ const INITIAL_SECTIONS = [
                 id: 'assist_contexts',
                 label: 'QChat Contexts',
                 chats: [
-                    { id: 'qchat_global', title: 'Global QChat', type: 'header' },
+                    { id: 'qchat_global', title: 'Foreign Markets Context', type: 'header' },
                     { id: 'qchat_fundamentals', title: 'Fundamentals Context', type: 'header' },
                     { id: 'qchat_technicals', title: 'Technicals Context', type: 'header' },
                     { id: 'qchat_options', title: 'Options Context', type: 'header' },
                     { id: 'qchat_global_macros', title: 'Global Macros Context', type: 'header' },
                     { id: 'qchat_events', title: 'Events Context', type: 'header' },
-                    { id: CARD_REGISTRY.master_qchat.id, title: 'Dashboard Context', type: 'header' },
+                    { id: CARD_REGISTRY.master_qchat.id, title: 'Master Dashboard Context', type: 'header' },
                 ]
             }
         ]
@@ -301,8 +301,7 @@ const INITIAL_SECTIONS = [
                 id: 'opt_general',
                 label: 'General',
                 chats: [
-                    { id: CARD_REGISTRY.options_index_header.id, title: 'Index Header Insight', type: 'header' },
-                    { id: CARD_REGISTRY.options_company_header.id, title: 'Company Header Insight', type: 'header' },
+                    { id: CARD_REGISTRY.options_header.id, title: 'Options Header Insight', type: 'header' },
                     { id: CARD_REGISTRY.options_manual.id, title: 'Manual Chat', type: 'manual' }
                 ]
             },

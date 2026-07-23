@@ -22,6 +22,11 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
     const bottomRef = useRef(null);
     const generationTimeoutRef = useRef(null);
     const textareaRef = useRef(null);
+    const [modelOptions, setModelOptions] = useState([
+        { value: 'llama3', label: 'Llama 3' },
+        { value: 'gpt4o', label: 'GPT-4o' },
+        { value: 'claude3', label: 'Claude 3.5' }
+    ]);
 
     // Infer page scope from the active chat's registry entry — registry-driven, zero prefix guessing
     const scopePageId = inferPageFromChatId(activeChatId);
@@ -41,7 +46,10 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                         setMessages(res.data.entries.map((m, i) => ({
                             id: i,
                             role: m.role === 'assistant' ? 'ai' : m.role,
-                            content: m.content
+                            content: m.content,
+                            provider: m.provider,
+                            model: m.model,
+                            latencyMs: m.latencyMs
                         })));
                     }
                 } catch (err) {
@@ -55,6 +63,46 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
         }
         return () => { isMounted = false; };
     }, [activeChatId, refreshTrigger, chatType]);
+
+    // Fetch available AI models
+    useEffect(() => {
+        let isMounted = true;
+        const fetchModels = async () => {
+            try {
+                const res = await axiosInstance.get('/api/v1/ai-settings/providers');
+                if (isMounted && res.data) {
+                    const options = [];
+                    const seen = new Set();
+                    res.data.forEach(p => {
+                        if (!p.isActive) return;
+                        Object.values(p.models || {}).forEach(modelId => {
+                            if (modelId) {
+                                const val = `${p.providerId}|${modelId}`;
+                                if (!seen.has(val)) {
+                                    seen.add(val);
+                                    let formattedLabel = modelId;
+                                    if (formattedLabel.includes('/')) {
+                                        formattedLabel = formattedLabel.split('/').pop();
+                                    }
+                                    options.push({ value: val, label: formattedLabel });
+                                }
+                            }
+                        });
+                    });
+                    if (options.length > 0) {
+                        setModelOptions(options);
+                        if (!options.some(o => o.value === selectedModel)) {
+                            setSelectedModel(options[0].value);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch AI models:", err);
+            }
+        };
+        fetchModels();
+        return () => { isMounted = false; };
+    }, []);
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -90,18 +138,33 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
 
         try {
             const scope = chatType === 'header' ? 'page' : 'card';
+            
+            // Extract explicit provider/model if possible
+            let explicitProvider = null;
+            let explicitModel = null;
+            if (selectedModel && selectedModel.includes('|')) {
+                const parts = selectedModel.split('|');
+                explicitProvider = parts[0];
+                explicitModel = parts[1];
+            }
+
             const res = await axiosInstance.post(`/api/v1/ai-prompts/chat/${activeChatId}`, {
                 message: cleanText,
                 scope,
                 // Pass card snapshots so backend prepends [Live Card Data from Dashboard] block
                 cardSnapshots: cardSnapshots.length > 0 ? cardSnapshots : undefined,
+                explicitProvider,
+                explicitModel
             });
 
             if (res.data?.message) {
                 setMessages(prev => [...prev, {
                     id: Date.now() + 1,
                     role: 'ai',
-                    content: res.data.message
+                    content: res.data.message,
+                    provider: res.data.provider,
+                    model: res.data.model,
+                    latencyMs: res.data.latencyMs
                 }]);
             }
         } catch (err) {
@@ -204,6 +267,9 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                                     <PaiMessageBubble
                                         role={msg.role}
                                         content={msg.content}
+                                        provider={msg.provider}
+                                        model={msg.model}
+                                        latencyMs={msg.latencyMs}
                                         onRegenerate={msg.role === 'ai' ? () => console.log('Regenerating...', msg.id) : undefined}
                                     />
                                     {/* Show attached card badges under user messages */}
@@ -303,14 +369,10 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                         {/* Model Selector Dropdown (Absolute Bottom Right) */}
                         <div className="absolute bottom-6 right-4 md:right-8">
                             <UiverseDropdown
-                                options={[
-                                    { value: 'llama3', label: 'Llama 3' },
-                                    { value: 'gpt4o', label: 'GPT-4o' },
-                                    { value: 'claude3', label: 'Claude 3.5' }
-                                ]}
+                                options={modelOptions}
                                 value={selectedModel}
                                 onChange={(val) => setSelectedModel(val)}
-                                className="w-[140px]"
+                                className="w-auto min-w-[160px] md:min-w-[200px] max-w-[220px] md:max-w-[280px]"
                                 dropup={true}
                                 hideSearch={true}
                                 alignRight={true}

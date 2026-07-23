@@ -55,6 +55,8 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     const [messages, setMessages] = useState([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const bottomRef = useRef(null);
+    const lastUserMsgRef = useRef(null);
+    const chatContainerRef = useRef(null);
     const generationTimeoutRef = useRef(null);
     const [isFetchingHistory, setIsFetchingHistory] = useState(true);
     const [isPanelExpanded, setIsPanelExpanded] = useState(false);
@@ -104,12 +106,33 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
         return () => { isMounted = false; };
     }, [activeContext, activeTargetId]);
 
-    // Auto-scroll to bottom of chat
+    // Auto-scroll to the last user message so the question stays in view
     useEffect(() => {
-        if (bottomRef.current) {
-            bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-    }, [messages, isGenerating, showPanel]);
+        if (!isPanelExpanded || isFetchingHistory || !chatContainerRef.current) return;
+
+        // Use a short polling mechanism to wait for the DOM to settle after animation
+        const scrollTarget = () => {
+            const container = chatContainerRef.current;
+            if (!container) return;
+            
+            if (lastUserMsgRef.current) {
+                // Manually calculate scrollTop to perfectly place it at the top of the container
+                // We subtract 16px to account for the container's p-4 padding
+                const targetScrollTop = lastUserMsgRef.current.offsetTop - 16;
+                container.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+            } else if (bottomRef.current) {
+                container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+            }
+        };
+
+        const t1 = setTimeout(scrollTarget, 100);
+        const t2 = setTimeout(scrollTarget, 350); // Double check after animation fully finishes
+
+        return () => {
+            clearTimeout(t1);
+            clearTimeout(t2);
+        };
+    }, [messages, isGenerating, isPanelExpanded, isFetchingHistory]);
 
     // Cleanup generation timeout on unmount
     useEffect(() => {
@@ -419,7 +442,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                     <X className="w-4 h-4 text-text-tertiary" />
                                 </button>
                             </div>
-                            <div className="flex-1 p-4 overflow-y-auto no-scrollbar min-w-0 relative">
+                            <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto no-scrollbar min-w-0 relative">
                                 <AnimatePresence mode="wait">
                                     {(!isPanelExpanded || isFetchingHistory) ? (
                                         <motion.div 
@@ -440,8 +463,11 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                             transition={{ duration: 0.3 }}
                                             className="flex flex-col gap-3"
                                         >
-                                            {messages.map((msg, index) => (
+                                            {messages.map((msg, index) => {
+                                                const isLastUserMsg = msg.role === 'user' && index === messages.findLastIndex(m => m.role === 'user');
+                                                return (
                                                 <motion.div 
+                                                    ref={isLastUserMsg ? lastUserMsgRef : null}
                                                     initial={{ opacity: 0, y: 10 }} 
                                                     animate={{ opacity: 1, y: 0 }} 
                                                     transition={{ delay: index * 0.05, duration: 0.3 }}
@@ -461,13 +487,15 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                                         {msg.content}
                                                     </div>
                                                 </motion.div>
-                                            ))}
+                                                );
+                                            })}
                                             {isGenerating && (
                                                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full">
                                                     <PaiLoader />
                                                 </motion.div>
                                             )}
-                                            <div ref={bottomRef} className="h-1" />
+                                            {/* Extra padding so the last message can actually be scrolled to the top even if it's short */}
+                                            <div ref={bottomRef} className="h-[200px]" />
                                         </motion.div>
                                     )}
                                 </AnimatePresence>

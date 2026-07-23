@@ -231,19 +231,18 @@ function ValueChart({ data, valueKey, valueName }) {
   }
 
   return (
-    <div className="h-40 w-full mt-2 mb-4">
-      <div className="text-center text-[11px] font-bold text-text-primary mb-2">Value vs Engine Score</div>
-      <div className="flex justify-center gap-4 mb-2">
+    <div className="w-full h-48 mt-2 relative">
+      <div className="absolute top-0 right-0 z-10 bg-background-elevated/80 px-2 py-1 rounded text-xs flex gap-3">
         <div className="flex items-center gap-1">
-          <div className="w-2 h-2 rounded-full bg-blue-500" />
-          <span className="text-[9px] text-text-secondary font-mono">{valueName || "Value"}</span>
+          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+          <span className="text-[9px] text-text-secondary font-mono">Metric</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-2 h-2 rounded-full bg-green-500" />
+          <div className="w-2 h-2 rounded-full bg-green-500"></div>
           <span className="text-[9px] text-text-secondary font-mono">Engine Score</span>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
         <LineChart data={data} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1f2937" />
           <XAxis 
@@ -545,20 +544,20 @@ export function IndicatorCard({
 
               {/* Footer */}
               <div 
-                className="flex items-center justify-between border-t border-border-subtle pt-4 mt-auto"
+                className="flex items-center justify-between border-t border-border-subtle pt-4 mt-auto w-full"
                 onClick={(e) => e.stopPropagation()} // Prevent clicks here from closing card
               >
-                <button className="text-text-tertiary hover:text-text-primary transition-colors p-1 -ml-2">
+                <button className="text-text-tertiary hover:text-text-primary transition-colors p-1 -ml-2 shrink-0">
                   <Plus className="w-4 h-4" />
                 </button>
                 
-                <div className="flex items-center gap-4">
-                  <span className="text-[10px] text-text-tertiary font-mono">Source: {config.source || (isManual ? "Manual" : "Auto")}</span>
-                  <span className="text-[10px] text-text-tertiary font-mono">AI Model: {insightData.model || config.aiModel || "Qwen3 8B"}</span>
-                  <span className="text-[10px] text-text-tertiary font-mono">{config.updateTime}</span>
+                <div className="flex items-center justify-center gap-x-2 gap-y-1 flex-wrap overflow-hidden px-1 flex-1">
+                  <span className="text-[10px] text-text-tertiary font-mono truncate">Src: {config.source || (isManual ? "Manual" : "Auto")}</span>
+                  <span className="text-[10px] text-text-tertiary font-mono truncate">Model: {insightData?.meta?.model || insightData?.model || config.aiModel || "Qwen3 8B"}</span>
+                  <span className="text-[10px] text-text-tertiary font-mono whitespace-nowrap">{typeof config.updateTime === 'function' ? config.updateTime(config.mode?.toUpperCase() !== 'MANUAL') : config.updateTime}</span>
                 </div>
 
-                <button className="text-text-tertiary hover:text-text-primary transition-colors p-1 -mr-2">
+                <button className="text-text-tertiary hover:text-text-primary transition-colors p-1 -mr-2 shrink-0">
                   <BarChart2 className="w-4 h-4" />
                 </button>
               </div>

@@ -49,6 +49,11 @@ const aiCardPromptSchema = new mongoose.Schema({
     activePresetId: {
         type: String,
         default: 'default'
+    },
+    // Enforced baseline rules for this specific target, injected below the preset instruction
+    goldenRules: {
+        type: String,
+        default: ''
     }
 }, { timestamps: true });
 

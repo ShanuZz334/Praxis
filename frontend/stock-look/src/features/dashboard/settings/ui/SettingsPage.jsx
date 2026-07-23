@@ -611,8 +611,8 @@ const SettingsPage = () => {
     };
 
     return (
-        <div className="min-h-screen p-3 sm:p-4 text-text-primary md:p-8 font-sans">
-            <div className="mx-auto max-w-6xl">
+        <div className="min-h-screen px-4 md:px-6 pt-4 pb-8 text-text-primary font-sans w-full">
+            <div className="w-full">
 
                 {/* Header */}
                 <div className="mb-4 md:mb-8 flex items-end justify-between">

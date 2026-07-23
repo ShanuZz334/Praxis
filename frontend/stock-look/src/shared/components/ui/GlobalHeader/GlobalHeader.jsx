@@ -450,6 +450,7 @@ function StatBlock({ label, value, color, breakdown }) {
 
         return (
             <PortalTooltip
+                trigger="click"
                 content={
                     <div className="w-max max-w-[95vw] xl:max-w-[1200px] p-2">
                         <div className="text-[10px] font-bold text-text-tertiary uppercase border-b border-border-default pb-1 mb-3 tracking-wider">
@@ -487,6 +488,7 @@ function StatBlock({ label, value, color, breakdown }) {
 
     return (
         <PortalTooltip
+            trigger="click"
             content={
                 <div className="w-max max-w-[90vw] md:max-w-[800px] p-2">
                     <div className="text-[10px] font-bold text-text-tertiary uppercase border-b border-border-default pb-1 mb-2 tracking-wider">

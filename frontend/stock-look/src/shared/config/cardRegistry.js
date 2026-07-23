@@ -220,8 +220,7 @@ export const CARD_REGISTRY = {
     // ══════════════════════════════════════════════════════════════════════════
     // OPTIONS DASHBOARD
     // ══════════════════════════════════════════════════════════════════════════
-    options_index_header: { id: 'options_index_header', type: 'widget', displayName: 'Index Header Insight', page: 'Options', section: 'General', appliesTo: 'indices', legacyIds: ['options_header'] },
-    options_company_header: { id: 'options_company_header', type: 'widget', displayName: 'Company Header Insight', page: 'Options', section: 'General', appliesTo: 'company', legacyIds: ['options_header'] },
+    options_header: { id: 'options_header', type: 'widget', displayName: 'Options Header Insight', page: 'Options', section: 'General', appliesTo: 'both', legacyIds: [] },
     options_manual:          { id: 'options_manual',          type: 'widget', displayName: 'Options Manual Chat',   page: 'Options',   section: 'General', appliesTo: 'both', legacyIds: ['opt_manual'] },
     qchat_options:           { id: 'qchat_options',           type: 'widget', displayName: 'Options QChat',         page: 'Options',   section: 'General', appliesTo: 'both', legacyIds: [] },
 

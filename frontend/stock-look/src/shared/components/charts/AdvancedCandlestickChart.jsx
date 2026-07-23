@@ -7,7 +7,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createChart, CandlestickSeries, LineSeries, HistogramSeries, createSeriesMarkers } from 'lightweight-charts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PencilRuler, Activity, TrendingUp, BarChart2, Layers, Plus, Minimize2, Network, Anchor, AlignEndHorizontal, Crosshair, Cloud, ListCollapse } from 'lucide-react';
+import { PencilRuler, Activity, TrendingUp, BarChart2, Layers, Plus, Waves, TrendingUpDown, Anchor, AlignJustify, MoreHorizontal, Cloud, Frame, SlidersHorizontal, Spline } from 'lucide-react';
 import DrawingToolbar, { COLORS } from './drawing/DrawingToolbar';
 import DrawingCanvas from './drawing/DrawingCanvas';
 import { useDrawings } from './drawing/useDrawings';
@@ -565,7 +565,7 @@ export default React.memo(function AdvancedCandlestickChart({
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -10, scale: 0.95 }}
                             transition={{ duration: 0.15, ease: 'easeOut' }}
-                            className="absolute top-full left-[26px] mt-2 bg-white/80 dark:bg-[#1e222d]/80 border border-black/5 dark:border-white/5 rounded-xl backdrop-blur-md shadow-2xl p-2 z-30"
+                            className="absolute top-full left-0 mt-2 bg-white/80 dark:bg-[#1e222d]/80 border border-black/5 dark:border-white/5 rounded-xl backdrop-blur-md shadow-2xl p-2 z-30"
                         >
                             <div className="grid grid-cols-4 gap-2">
                                 <button
@@ -574,7 +574,7 @@ export default React.memo(function AdvancedCandlestickChart({
                                     onClick={() => setShowBollinger(p => !p)}
                                     className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showBollinger ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
                                 >
-                                    <Minimize2 size={13} strokeWidth={2} />
+                                    <Waves size={13} strokeWidth={2} />
                                 </button>
                                 <button
                                     onMouseEnter={(e) => handleMouseEnter(e, 'MACD (12, 26, 9)')}
@@ -582,7 +582,7 @@ export default React.memo(function AdvancedCandlestickChart({
                                     onClick={() => setShowMACD(p => !p)}
                                     className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showMACD ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
                                 >
-                                    <Network size={13} strokeWidth={2} />
+                                    <TrendingUpDown size={13} strokeWidth={2} />
                                 </button>
                                 <button
                                     onMouseEnter={(e) => handleMouseEnter(e, 'Anchored VWAP')}
@@ -598,7 +598,7 @@ export default React.memo(function AdvancedCandlestickChart({
                                     onClick={() => setShowAutoFib(p => !p)}
                                     className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAutoFib ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
                                 >
-                                    <AlignEndHorizontal size={13} strokeWidth={2} />
+                                    <AlignJustify size={13} strokeWidth={2} />
                                 </button>
                                 <button
                                     onMouseEnter={(e) => handleMouseEnter(e, 'Parabolic SAR')}
@@ -606,7 +606,7 @@ export default React.memo(function AdvancedCandlestickChart({
                                     onClick={() => setShowPSAR(p => !p)}
                                     className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showPSAR ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
                                 >
-                                    <Crosshair size={13} strokeWidth={2} />
+                                    <MoreHorizontal size={13} strokeWidth={2} />
                                 </button>
                                 <button
                                     onMouseEnter={(e) => handleMouseEnter(e, 'Ichimoku Cloud')}
@@ -622,7 +622,7 @@ export default React.memo(function AdvancedCandlestickChart({
                                     onClick={() => setShowKeltner(p => !p)}
                                     className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showKeltner ? 'bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
                                 >
-                                    <ListCollapse size={13} strokeWidth={2} />
+                                    <Frame size={13} strokeWidth={2} />
                                 </button>
                                 <button
                                     onMouseEnter={(e) => handleMouseEnter(e, 'Donchian Channels')}
@@ -630,7 +630,7 @@ export default React.memo(function AdvancedCandlestickChart({
                                     onClick={() => setShowDonchian(p => !p)}
                                     className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showDonchian ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
                                 >
-                                    <Activity size={13} strokeWidth={2} />
+                                    <SlidersHorizontal size={13} strokeWidth={2} />
                                 </button>
                                 <button
                                     onMouseEnter={(e) => handleMouseEnter(e, 'RSI Divergence')}
@@ -638,7 +638,7 @@ export default React.memo(function AdvancedCandlestickChart({
                                     onClick={() => setShowRSI(p => !p)}
                                     className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showRSI ? 'bg-pink-500/15 text-pink-600 dark:text-pink-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
                                 >
-                                    <BarChart2 size={13} strokeWidth={2} />
+                                    <Spline size={13} strokeWidth={2} />
                                 </button>
                             </div>
                         </motion.div>

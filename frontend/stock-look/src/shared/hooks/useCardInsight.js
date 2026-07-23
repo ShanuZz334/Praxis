@@ -169,6 +169,7 @@ export function useCardPrompt(targetId) {
     const [isDefault, setIsDefault] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [goldenRules, setGoldenRules] = useState('');
 
     const fetchPrompt = useCallback(async () => {
         if (!targetId) return;
@@ -179,6 +180,7 @@ export function useCardPrompt(targetId) {
             setPresets(res.data?.presets || []);
             setActivePresetId(res.data?.activePresetId || 'default');
             setIsDefault(res.data?.isDefault ?? true);
+            setGoldenRules(res.data?.goldenRules || '');
         } catch (err) {
             console.error(`[useCardPrompt] Fetch error for ${targetId}:`, err.message);
         } finally {
@@ -229,6 +231,7 @@ export function useCardPrompt(targetId) {
         isLoading,
         isSaving,
         fetchPrompt,
-        savePrompt
+        savePrompt,
+        goldenRules
     };
 }

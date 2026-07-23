@@ -44,17 +44,17 @@ export default function UiverseDropdown({
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
-                    w-full h-8 flex items-center justify-between px-3 rounded-md
+                    w-full min-h-[32px] py-1.5 flex items-center justify-between px-3 rounded-md
                     bg-background-tooltip hover:bg-background-surface transition-colors
                     border border-border-default/50 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20
-                    text-xs text-text-primary shadow-sm
+                    text-[11px] sm:text-xs text-text-primary shadow-sm gap-2
                 `}
             >
-                <span className={selectedOption ? "text-text-primary" : "text-text-tertiary"}>
+                <span className={`text-left break-words whitespace-normal leading-tight ${selectedOption ? "text-text-primary" : "text-text-tertiary"}`}>
                     {selectedOption ? selectedOption.label : placeholder}
                 </span>
                 <svg 
-                    className={`w-4 h-4 text-text-tertiary transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
+                    className={`w-3.5 h-3.5 shrink-0 text-text-tertiary transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
                     fill="none" 
                     stroke="currentColor" 
                     viewBox="0 0 24 24"
@@ -64,9 +64,9 @@ export default function UiverseDropdown({
             </button>
 
             {isOpen && (
-                <div className={`absolute z-50 ${matchWidth ? 'w-full' : (alignRight ? 'right-0' : 'w-full')} ${dropup ? 'bottom-full mb-1.5' : 'mt-1.5'} bg-background-tooltip/95 backdrop-blur-2xl border border-border-default rounded-lg shadow-xl overflow-hidden animate-in fade-in ${dropup ? 'slide-in-from-bottom-2' : 'slide-in-from-top-2'} duration-200 ${matchWidth ? 'min-w-full' : 'min-w-[200px]'}`}>
+                <div className={`absolute z-50 ${matchWidth ? 'w-full' : (alignRight ? 'right-0' : 'w-full')} ${dropup ? 'bottom-full mb-1.5' : 'mt-1.5'} bg-background-tooltip border border-border-default rounded-lg shadow-xl overflow-hidden animate-in fade-in ${dropup ? 'slide-in-from-bottom-2' : 'slide-in-from-top-2'} duration-200 ${matchWidth ? 'min-w-full' : 'min-w-[200px]'}`}>
                     {!hideSearch && (
-                        <div className="p-2 border-b border-border-default/50 sticky top-0 bg-background-tooltip/95 z-10">
+                        <div className="p-2 border-b border-border-default/50 sticky top-0 bg-background-tooltip z-10">
                             <input
                                 type="text"
                                 className="w-full bg-background-surface/50 border border-border-default/50 rounded-md px-3 py-1 text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-blue-500/50"

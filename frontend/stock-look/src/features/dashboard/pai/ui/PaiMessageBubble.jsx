@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { Copy, RotateCcw, ThumbsUp, ThumbsDown, Check } from 'lucide-react';
+import { Copy, RotateCcw, ThumbsUp, ThumbsDown, Check, Cpu } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-export default function PaiMessageBubble({ role, content, onRegenerate }) {
+export default function PaiMessageBubble({ role, content, onRegenerate, provider, model, latencyMs }) {
     const isUser = role === 'user';
     const [copied, setCopied] = useState(false);
+
+    let displayModel = model;
+    if (displayModel && displayModel.includes('/')) {
+        displayModel = displayModel.split('/').pop();
+    }
 
     const handleCopy = () => {
         navigator.clipboard.writeText(content);
@@ -37,8 +42,17 @@ export default function PaiMessageBubble({ role, content, onRegenerate }) {
                             : 'bg-background-tooltip border border-border-default/50 text-text-primary rounded-tl-sm shadow-md'
                     }`}>
                         {!isUser && (
-                            <div className="font-bold text-[11px] text-blue-600 dark:text-blue-400 mb-1.5 tracking-wider uppercase">
-                                Praxis AI
+                            <div className="flex items-center gap-2 mb-1.5 h-5">
+                                <div className="font-bold text-[11px] text-blue-600 dark:text-blue-400 tracking-wider uppercase">
+                                    Praxis AI
+                                </div>
+                                {displayModel && (
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1.5 text-[9px] text-text-tertiary px-2 py-0.5 rounded-full bg-background-elevated/50 border border-border-default/30 font-mono">
+                                        <Cpu size={10} className="text-blue-400/70" />
+                                        <span>{displayModel}</span>
+                                        {latencyMs && <span className="text-text-tertiary/50">({latencyMs}ms)</span>}
+                                    </div>
+                                )}
                             </div>
                         )}
                         <div className={`text-[14px] leading-relaxed break-words ${isUser ? 'whitespace-pre-wrap' : 'prose prose-sm dark:prose-invert prose-p:my-1 prose-pre:my-2 max-w-none'}`}>

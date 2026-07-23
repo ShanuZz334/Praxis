@@ -33,7 +33,8 @@ export default function PortalTooltip({
     children,
     className = "",
     offset = 8,
-    variant = "default"
+    variant = "default",
+    trigger = "hover" // 'hover' or 'click'
 }) {
     const { theme } = useTheme(); // 'light' or 'dark'
     const [isVisible, setIsVisible] = useState(false);
@@ -77,14 +78,23 @@ export default function PortalTooltip({
 
     // Events
     const show = () => {
+        if (trigger !== 'hover') return;
         if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
         setIsVisible(true);
     };
 
     const hide = () => {
+        if (trigger !== 'hover') return;
         hoverTimeout.current = setTimeout(() => {
             setIsVisible(false);
         }, 100);
+    };
+
+    const toggle = (e) => {
+        if (trigger !== 'click') return;
+        e.preventDefault();
+        e.stopPropagation();
+        setIsVisible(prev => !prev);
     };
 
     // Effects
@@ -106,6 +116,20 @@ export default function PortalTooltip({
         }
     }, [isVisible]);
 
+    useEffect(() => {
+        if (trigger !== 'click' || !isVisible) return;
+        const handleClickOutside = (e) => {
+            if (
+                tooltipRef.current && !tooltipRef.current.contains(e.target) &&
+                triggerRef.current && !triggerRef.current.contains(e.target)
+            ) {
+                setIsVisible(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isVisible, trigger]);
+
     // Simplified Styling: Relies on CSS keys in index.css
     // --bg-tooltip resolves to Solid Grey in Light Mode, Solid Dark Blue in Dark Mode
     const bgClass = 'bg-background-tooltip';
@@ -116,9 +140,10 @@ export default function PortalTooltip({
         <>
             <div
                 ref={triggerRef}
-                className={className}
+                className={`${className} ${trigger === 'click' ? 'cursor-pointer' : ''}`}
                 onMouseEnter={show}
                 onMouseLeave={hide}
+                onClick={toggle}
             >
                 {children}
             </div>
@@ -126,7 +151,6 @@ export default function PortalTooltip({
             {isVisible && createPortal(
                 <div
                     ref={tooltipRef}
-                    // Apply theme class and data-attribute to wrapper
                     className={`fixed z-[9999] pointer-events-auto transition-opacity duration-200 ${theme}`}
                     data-theme={theme}
                     style={{
@@ -136,6 +160,10 @@ export default function PortalTooltip({
                     }}
                     onMouseEnter={show}
                     onMouseLeave={hide}
+                    onClick={(e) => {
+                        // Prevent click inside tooltip from bubbling to outside listener
+                        if (trigger === 'click') e.stopPropagation();
+                    }}
                 >
                     {variant === 'minimal' ? (
                         <div className="bg-[#1a1f2e] border border-white/10 text-white/90 text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-xl pointer-events-none whitespace-nowrap">
