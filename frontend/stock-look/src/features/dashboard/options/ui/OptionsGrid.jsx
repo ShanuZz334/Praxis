@@ -39,7 +39,6 @@ import VegaCard from "./VegaCard";
 import PcrOiCard from "./PcrOiCard";
 import PcrVolumeCard from "./PcrVolumeCard";
 import MaxPainCard from "./MaxPainCard";
-import FnOBanCard from "./FnOBanCard";
 
 // =============================
 // Main Component
@@ -100,7 +99,7 @@ export default function OptionsGrid({
     };
 
     // Exclude our hardcoded cards
-    const excludeIds = [CARD_REGISTRY.total_call_oi.id, CARD_REGISTRY.total_put_oi.id, CARD_REGISTRY.oi_change.id, CARD_REGISTRY.delta.id, CARD_REGISTRY.gamma.id, CARD_REGISTRY.theta.id, CARD_REGISTRY.vega.id, CARD_REGISTRY.pcr_oi.id, CARD_REGISTRY.pcr_volume.id, CARD_REGISTRY.max_pain.id, CARD_REGISTRY.atm_iv.id, CARD_REGISTRY.iv_rank.id, CARD_REGISTRY.iv_percentile.id, CARD_REGISTRY.fno_ban.id];
+    const excludeIds = [CARD_REGISTRY.total_call_oi.id, CARD_REGISTRY.total_put_oi.id, CARD_REGISTRY.oi_change.id, CARD_REGISTRY.delta.id, CARD_REGISTRY.gamma.id, CARD_REGISTRY.theta.id, CARD_REGISTRY.vega.id, CARD_REGISTRY.pcr_oi.id, CARD_REGISTRY.pcr_volume.id, CARD_REGISTRY.max_pain.id, CARD_REGISTRY.atm_iv.id, CARD_REGISTRY.iv_rank.id, CARD_REGISTRY.iv_percentile.id];
     const filteredCards = cards.filter(c => !excludeIds.includes(c.id));
 
     // Memoize categorization
@@ -132,8 +131,6 @@ export default function OptionsGrid({
         renderList.push({ id: CARD_REGISTRY.pcr_oi.id, node: <PcrOiCard cardId={CARD_REGISTRY.pcr_oi.id} /> });
         renderList.push({ id: CARD_REGISTRY.pcr_volume.id, node: <PcrVolumeCard cardId={CARD_REGISTRY.pcr_volume.id} /> });
         renderList.push({ id: CARD_REGISTRY.max_pain.id, node: <MaxPainCard cardId={CARD_REGISTRY.max_pain.id} /> });
-        renderList.push({ id: CARD_REGISTRY.fno_ban.id, node: <FnOBanCard cardId={CARD_REGISTRY.fno_ban.id} /> });
-
         const excludeIds = renderList.map(item => item.id);
 
         const flatWithData = renderList.map(item => {
@@ -156,8 +153,6 @@ export default function OptionsGrid({
             if (item.id === CARD_REGISTRY.iv_rank.id && compositeData?.volatility?.ivRank) liveData = { ...compositeData.volatility.ivRank, lookback: compositeData.volatility.lookback };
             if (item.id === CARD_REGISTRY.iv_percentile.id && compositeData?.volatility?.ivPercentile) liveData = { ...compositeData.volatility.ivPercentile, lookback: compositeData.volatility.lookback };
             if (item.id === CARD_REGISTRY.max_pain.id && compositeData?.maxPain) liveData = compositeData.maxPain;
-            if (item.id === CARD_REGISTRY.fno_ban.id && compositeData?.fnoBan) liveData = compositeData.fnoBan;
-
             const manualOverride = manualOverrides ? manualOverrides[item.id] : undefined;
             const clonedNode = React.cloneElement(item.node, { 
                 liveData, 
@@ -285,7 +280,6 @@ export default function OptionsGrid({
                             {section.id === 'Market Positioning' && (
                                 <>
                                     <MaxPainCard cardId={CARD_REGISTRY.max_pain.id} liveData={compositeData?.maxPain} manualOverride={manualOverrides?.max_pain} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.max_pain.id) : null} />
-                                    <FnOBanCard cardId={CARD_REGISTRY.fno_ban.id} data={compositeData?.fnoBan} manualOverrides={manualOverrides} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.fno_ban.id) : null} />
                                 </>
                             )}
                             {sortedSectionCards.map((card) => {

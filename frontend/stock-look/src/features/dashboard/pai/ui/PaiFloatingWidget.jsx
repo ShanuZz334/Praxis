@@ -6,8 +6,10 @@ import paiIcon from "@/assets/icons/pai-round-bgless.png";
 import paiLabelImg from "@/assets/icons/pai-label-bgless.png";
 import PaiLoader from './PaiLoader';
 import Loader from '@/shared/components/ui/Loader';
-import { X, Send, Sparkles, Globe } from 'lucide-react';
+import { X, Send, Sparkles, Globe, AtSign } from 'lucide-react';
 import axiosInstance from '@/shared/utils/axiosInstance';
+import { useMentions, inferPageFromChatId } from '@/shared/hooks/useMentions';
+import MentionSuggestionDropdown from '@/shared/components/ui/MentionSuggestionDropdown';
 
 export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage = false }) {
     const { 
@@ -18,6 +20,23 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     
     const location = useLocation();
     const [chatMode, setChatMode] = useState('contextual'); // 'contextual' or 'global'
+
+    const getTargetId = (pathname, mode) => {
+        if (mode === 'global') return 'qchat_global';           // Foreign page QChat
+        if (pathname.includes('/fundamental')) return 'qchat_fundamentals';
+        if (pathname.includes('/technical'))  return 'qchat_technical';  // canonical (was qchat_technicals)
+        if (pathname.includes('/options'))    return 'qchat_options';
+        if (pathname.includes('/global'))     return 'qchat_global';     // canonical (was qchat_global_macros)
+        if (pathname.includes('/events'))     return 'qchat_events';
+        return 'master_qchat';                                  // canonical (was qchat_dashboard)
+    };
+
+    const activeTargetId = getTargetId(location.pathname, chatMode);
+
+    // Registry-driven page scope — same unified method as PaiChatArea, zero URL-path duplication
+    const mentionScopePageId = inferPageFromChatId(activeTargetId);
+    const mentions = useMentions(mentionScopePageId);
+    const inputRef = useRef(null);
     
     const [isDragging, setIsDragging] = useState(false);
     const [hasDragged, setHasDragged] = useState(false);
@@ -51,20 +70,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
         return 'Dashboard';
     };
 
-    const getTargetId = (pathname, mode) => {
-        if (mode === 'global') return 'qchat_global';
-        if (pathname.includes('/fundamental')) return 'qchat_fundamentals';
-        if (pathname.includes('/technical')) return 'qchat_technicals';
-        if (pathname.includes('/options')) return 'qchat_options';
-        if (pathname.includes('/global')) return 'qchat_global_macros';
-        if (pathname.includes('/events')) return 'qchat_events';
-        return 'qchat_dashboard';
-    };
-    
-    const activeContext = getContextName(location.pathname, chatMode);
-    const activeTargetId = getTargetId(location.pathname, chatMode);
-
-    // Initial greeting and auto-reset when context changes
+    const activeContext = getContextName(location.pathname, chatMode);    // Initial greeting and auto-reset when context changes
     useEffect(() => {
         let isMounted = true;
         
@@ -118,15 +124,25 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
         e.preventDefault();
         if (!message.trim() || isGenerating) return;
 
-        const newMsg = { id: Date.now(), role: 'user', content: message };
+        // Parse and resolve all @mentions from the message
+        const { cleanText, cardSnapshots } = mentions.parseAndResolveAll(message);
+        mentions.closeMentions();
+
+        const newMsg = {
+            id: Date.now(),
+            role: 'user',
+            content: message, // show original @mention text to user
+            cardSnapshots: cardSnapshots.length > 0 ? cardSnapshots : undefined,
+        };
         setMessages(prev => [...prev, newMsg]);
         setMessage('');
         setIsGenerating(true);
 
         try {
             const res = await axiosInstance.post(`/api/v1/ai-prompts/chat/${activeTargetId}`, {
-                message: newMsg.content,
-                scope: 'page'
+                message: cleanText,
+                scope: 'page',
+                cardSnapshots: cardSnapshots.length > 0 ? cardSnapshots : undefined,
             });
             
             if (res.data?.message) {
@@ -403,51 +419,99 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                     <X className="w-4 h-4 text-text-tertiary" />
                                 </button>
                             </div>
-                            <div className="flex-1 p-4 overflow-y-auto no-scrollbar flex flex-col gap-3 min-w-0">
-                                {(!isPanelExpanded || isFetchingHistory) ? (
-                                    <div className="flex-1 flex flex-col items-center justify-center opacity-70 mt-10">
-                                        <Loader size="sm" color="blue" />
-                                    </div>
-                                ) : (
-                                    <>
-                                        {messages.map((msg) => (
-                                            <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} key={msg.id} className={`flex gap-2 w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                                {msg.role === 'ai' && (
-                                                    <div className="shrink-0 flex items-start mt-0.5">
-                                                        <img 
-                                                            src="/images/pai-profile.png" 
-                                                            alt="PAI"
-                                                            className="w-6 h-6 rounded-full object-cover shadow-[0_0_10px_rgba(99,102,241,0.2)] bg-black"
-                                                        />
+                            <div className="flex-1 p-4 overflow-y-auto no-scrollbar min-w-0 relative">
+                                <AnimatePresence mode="wait">
+                                    {(!isPanelExpanded || isFetchingHistory) ? (
+                                        <motion.div 
+                                            key="loading"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="absolute inset-0 flex flex-col items-center justify-center opacity-70"
+                                        >
+                                            <Loader size="sm" color="blue" />
+                                        </motion.div>
+                                    ) : (
+                                        <motion.div 
+                                            key="messages"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="flex flex-col gap-3"
+                                        >
+                                            {messages.map((msg, index) => (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, y: 10 }} 
+                                                    animate={{ opacity: 1, y: 0 }} 
+                                                    transition={{ delay: index * 0.05, duration: 0.3 }}
+                                                    key={msg.id} 
+                                                    className={`flex gap-2 w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                                >
+                                                    {msg.role === 'ai' && (
+                                                        <div className="shrink-0 flex items-start mt-0.5">
+                                                            <img 
+                                                                src="/images/pai-profile.png" 
+                                                                alt="PAI"
+                                                                className="w-6 h-6 rounded-full object-cover shadow-[0_0_10px_rgba(99,102,241,0.2)] bg-black"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div className={`text-[12px] leading-relaxed px-3.5 py-2.5 rounded-2xl shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm max-w-[85%]' : 'bg-background-tooltip border border-border-default/50 text-text-primary rounded-tl-sm max-w-[85%]'}`}>
+                                                        {msg.content}
                                                     </div>
-                                                )}
-                                                <div className={`text-[12px] leading-relaxed px-3.5 py-2.5 rounded-2xl shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm max-w-[85%]' : 'bg-background-tooltip border border-border-default/50 text-text-primary rounded-tl-sm max-w-[85%]'}`}>
-                                                    {msg.content}
-                                                </div>
-                                            </motion.div>
-                                        ))}
-                                        {isGenerating && (
-                                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full">
-                                                <PaiLoader />
-                                            </motion.div>
-                                        )}
-                                        <div ref={bottomRef} />
-                                    </>
-                                )}
+                                                </motion.div>
+                                            ))}
+                                            {isGenerating && (
+                                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+                                                    <PaiLoader />
+                                                </motion.div>
+                                            )}
+                                            <div ref={bottomRef} className="h-1" />
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                             <form onSubmit={handleSend} className="p-3 border-t border-border-subtle shrink-0">
                                 <div className="relative">
-                                    <input 
+                                    {/* @mention dropdown — above the input */}
+                                    {mentions.isOpen && (
+                                        <MentionSuggestionDropdown
+                                            suggestions={mentions.suggestions}
+                                            highlightedIndex={mentions.highlightedIndex}
+                                            query={mentions.mentionQuery}
+                                            onHighlightChange={mentions.setHighlightedIndex}
+                                            onSelect={(candidate) => {
+                                                const newText = mentions.selectMention(candidate, message);
+                                                setMessage(newText);
+                                                setTimeout(() => inputRef.current?.focus(), 0);
+                                            }}
+                                            onClose={mentions.closeMentions}
+                                        />
+                                    )}
+                                    <input
+                                        ref={inputRef}
                                         type="text"
                                         value={message}
-                                        onChange={(e) => setMessage(e.target.value)}
-                                        placeholder={`Ask PAI about ${activeContext}...`}
+                                        onChange={(e) => {
+                                            setMessage(e.target.value);
+                                            mentions.handleInputChange(e.target.value, e.target.selectionStart);
+                                        }}
+                                        onKeyDown={(e) => {
+                                            const consumed = mentions.handleKeyDown(e, message, (candidate, newText) => {
+                                                setMessage(newText);
+                                                setTimeout(() => inputRef.current?.focus(), 0);
+                                            });
+                                            if (consumed) e.preventDefault();
+                                        }}
+                                        placeholder={`Ask PAI… @ to attach card data`}
                                         className="w-full bg-background-app border border-border-default rounded-xl pl-4 pr-10 py-2.5 text-[12px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-blue-500/50 transition-colors"
                                     />
                                     <button type="submit" disabled={isGenerating || !message.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white rounded-lg transition-colors">
                                         <Send className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
+                                {/* Attached card badges */}
                             </form>
                         </motion.div>
                     )}

@@ -19,13 +19,13 @@ import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 
 // ─── Resolve targetId from URL path + instrument mode ─────────────────────────
 function resolveTargetId(path, isIndex) {
-    if (path.includes("/home") || path.endsWith("/dashboard")) return "master_header";
+    if (path.includes("/home") || path.endsWith("/dashboard")) return "praxis_composite_header";
     if (path.includes("/technical")) return isIndex ? "technical_index_header" : "technical_company_header";
     if (path.includes("/fundamental")) return isIndex ? "fundamentals_index_header" : "fundamentals_company_header";
-    if (path.includes("/options")) return "options_header";
+    if (path.includes("/options")) return isIndex ? "options_index_header" : "options_company_header";
     if (path.includes("/foreign") || path.includes("/global")) return "foreign_header";
     if (path.includes("/events")) return "events_header";
-    return "master_header";
+    return "praxis_composite_header";
 }
 
 // ─── Resolve registry pageId from URL path ────────────────────────────────────
@@ -61,8 +61,8 @@ export default function AiInsightSection({
     const resolvedPageId = resolvePageId(path);
     const colorHex = getCompositeColor(score).hex;
 
-    // ── Registry (provides richer card-level pageData) ────────────────────────
-    const { getPageSnapshot } = useDataRegistry();
+    // ── Registry (provides richer card-level pageData grouped by section) ────
+    const { getPageStructuredData } = useDataRegistry();
 
     // ── AI Hook ──────────────────────────────────────────────────────────────
     const { insight, isLoading, error, generate, meta } = useCardInsight(targetId);
@@ -117,14 +117,14 @@ export default function AiInsightSection({
             ...engineScoreLines,                          // TechScore/FundScore/etc. for Master header
         ].filter(Boolean).join(" | ");
 
-        // ── Build pageData from DataRegistry (richer than manual section/card maps) ──
-        const registrySnapshot = getPageSnapshot(resolvedPageId);
-        const hasRegistryData = Object.keys(registrySnapshot).length > 0;
+        // ── Build pageData from DataRegistry — hierarchical sections/cards ─────────
+        const structuredData = getPageStructuredData(resolvedPageId);
+        const hasStructuredData = structuredData.sections?.some(s => s.cards?.length > 0);
 
         const pageData = masterPayload
             ? masterPayload
-            : hasRegistryData
-                ? registrySnapshot
+            : hasStructuredData
+                ? structuredData  // full { pageId, compositeScore, sections: [{name, cards: [{id, displayName, value, score, signal}]}] }
                 : {
                     sections: sections.map(s => ({ name: s.label, score: s.score })),
                     cards: cards.map(c => ({ id: c.id, name: c.title || c.id, score: c.normalized, signal: c.state?.label, weight: c.credit }))
@@ -139,7 +139,7 @@ export default function AiInsightSection({
             pageData: pageData
         });
     }, [targetId, score, actionType, confidence, bulls, bears, neutrals, stockSymbol, generate,
-        coveragePercent, cards, sections, masterPayload, getPageSnapshot, resolvedPageId]);
+        coveragePercent, cards, sections, masterPayload, getPageStructuredData, resolvedPageId]);
 
     // Auto-trigger when score becomes available
     // Re-run on score or coverage changes

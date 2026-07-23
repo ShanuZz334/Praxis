@@ -1,21 +1,13 @@
 import React from 'react';
 import { useDashboardContext } from '@/shared/context/DashboardContext';
 import { TrendingUp, TrendingDown, Activity, AlertTriangle } from 'lucide-react';
+import Loader from '@/shared/components/ui/Loader';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function OptionsPulse() {
     const { smartlists } = useDashboardContext();
 
-    if (!smartlists || (Object.keys(smartlists).length === 0)) {
-        return (
-            <div className="bg-background-card border border-border-default rounded-xl p-4 flex flex-col h-full opacity-50">
-                <div className="flex items-center gap-2 mb-4">
-                    <Activity className="w-4 h-4 text-brand-primary" />
-                    <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wide">Options Pulse</h3>
-                </div>
-                <p className="text-[11px] text-text-secondary">{smartlists && Object.keys(smartlists).length === 0 ? "No smartlists data available (market closed)." : "Waiting for smartlists..."}</p>
-            </div>
-        );
-    }
+    const isLoading = !smartlists || (Object.keys(smartlists).length === 0);
 
     // Attempt to extract some key signals
     const extractList = (source, category) => {
@@ -29,9 +21,9 @@ export default function OptionsPulse() {
         return [];
     };
 
-    const oiGainers = smartlists['OI_GAINERS'] || [];
-    const ivSurge = smartlists['IV_GAINERS'] || [];
-    const premium = smartlists['PREMIUM'] || [];
+    const oiGainers = smartlists?.['OI_GAINERS'] || [];
+    const ivSurge = smartlists?.['IV_GAINERS'] || [];
+    const premium = smartlists?.['PREMIUM'] || [];
 
     // Helper to format symbols like NSE_FO|RELIANCE24JUL2900CE (if trading_symbol is missing)
     const formatSymbol = (key) => {
@@ -85,16 +77,42 @@ export default function OptionsPulse() {
     );
 
     return (
-        <div className="bg-background-card border border-border-default rounded-xl p-4 flex flex-col h-full shadow-sm overflow-hidden">
-            <div className="mb-4 shrink-0">
+        <div className="bg-background-card border border-border-default rounded-xl p-4 flex flex-col h-full shadow-sm relative">
+            <div className="flex items-center gap-2 mb-4 shrink-0">
+                <Activity className="w-4 h-4 text-brand-primary" />
                 <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wide">Options Pulse</h3>
-                <p className="text-[11px] text-text-secondary">Smartlist Signals</p>
             </div>
             
-            <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-1 -mr-1">
-                {renderList("OI Surge", oiGainers, <TrendingUp size={12} className="text-blue-400" />, "text-blue-400")}
-                {renderList("IV Expansion", ivSurge, <Activity size={12} className="text-purple-400" />, "text-purple-400")}
-                {renderList("Futures Premium", premium, <AlertTriangle size={12} className="text-amber-400" />, "text-amber-400")}
+            <div className="flex-1 overflow-y-auto no-scrollbar relative min-h-[150px]">
+                <AnimatePresence mode="wait">
+                    {isLoading ? (
+                        <motion.div 
+                            key="loader"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute inset-0 flex items-center justify-center opacity-70"
+                        >
+                            <Loader size="sm" color="blue" />
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="content"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.4 }}
+                            className="w-full h-full"
+                        >
+                            <div className="mb-2">
+                                <span className="text-[10px] text-text-tertiary">Smartlist Signals</span>
+                            </div>
+                            {renderList("OI Surge", oiGainers, <TrendingUp className="w-3 h-3 text-blue-400" />, "text-blue-400")}
+                            {renderList("IV Expansion", ivSurge, <AlertTriangle className="w-3 h-3 text-yellow-400" />, "text-yellow-400")}
+                            {renderList("Premium Gainers", premium, <TrendingUp className="w-3 h-3 text-emerald-400" />, "text-emerald-400")}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );

@@ -3,6 +3,8 @@ import { useDashboardContext } from '@/shared/context/DashboardContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import axiosInstance from '@/shared/utils/axiosInstance';
+import Loader from '@/shared/components/ui/Loader';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function FiiDiiFlow() {
     const { fiiDiiFlow: liveFiiDiiFlow } = useDashboardContext();
@@ -41,17 +43,9 @@ export default function FiiDiiFlow() {
 
     const fiiDiiFlow = historyOffset === 0 ? liveFiiDiiFlow : historicalFlow;
 
-    
-    if (!fiiDiiFlow || Object.keys(fiiDiiFlow.fii || {}).length === 0) {
-        return (
-            <div className="bg-background-card border border-border-default rounded-xl p-4 flex flex-col h-full opacity-50">
-                <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wide mb-1">Institutional Flow</h3>
-                <p className="text-[11px] text-text-secondary">{fiiDiiFlow && Object.keys(fiiDiiFlow.fii || {}).length === 0 ? "No flow data available." : "Waiting for socket data..."}</p>
-            </div>
-        );
-    }
+    const isLoading = !fiiDiiFlow || Object.keys(fiiDiiFlow.fii || {}).length === 0 || loadingHistory;
 
-    const { fii, dii } = fiiDiiFlow;
+    const { fii, dii } = fiiDiiFlow || {};
     
     // We want to combine the segments into a single chart format
     // Keys might be "NSE_EQ|CASH" or "INDEX_FUTURES"
@@ -147,25 +141,48 @@ export default function FiiDiiFlow() {
                 </div>
             </div>
             
-            <div className="flex-1 min-h-[150px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff10" />
-                        <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#888' }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 9, fill: '#888' }} axisLine={false} tickLine={false} />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#ffffff05' }} />
-                        <Bar dataKey="fii" radius={[2, 2, 0, 0]} barSize={16}>
-                            {chartData.map((entry, index) => (
-                                <Cell key={`cell-fii-${index}`} fill={entry.fii > 0 ? '#22c55e' : '#ef4444'} />
-                            ))}
-                        </Bar>
-                        <Bar dataKey="dii" radius={[2, 2, 0, 0]} barSize={16}>
-                            {chartData.map((entry, index) => (
-                                <Cell key={`cell-dii-${index}`} fill={entry.dii > 0 ? '#16a34a' : '#dc2626'} opacity={0.8} />
-                            ))}
-                        </Bar>
-                    </BarChart>
-                </ResponsiveContainer>
+            <div className="flex-1 min-h-[150px] w-full relative">
+                <AnimatePresence mode="wait">
+                    {isLoading ? (
+                        <motion.div 
+                            key="loader"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute inset-0 flex items-center justify-center opacity-70"
+                        >
+                            <Loader size="sm" color="blue" />
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="chart"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.4 }}
+                            className="w-full h-full"
+                        >
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff10" />
+                                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#888' }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fontSize: 9, fill: '#888' }} axisLine={false} tickLine={false} />
+                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#ffffff05' }} />
+                                    <Bar dataKey="fii" radius={[2, 2, 0, 0]} barSize={16} isAnimationActive={false}>
+                                        {chartData.map((entry, index) => (
+                                            <Cell key={`cell-fii-${index}`} fill={entry.fii > 0 ? '#22c55e' : '#ef4444'} />
+                                        ))}
+                                    </Bar>
+                                    <Bar dataKey="dii" radius={[2, 2, 0, 0]} barSize={16} isAnimationActive={false}>
+                                        {chartData.map((entry, index) => (
+                                            <Cell key={`cell-dii-${index}`} fill={entry.dii > 0 ? '#16a34a' : '#dc2626'} opacity={0.8} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );

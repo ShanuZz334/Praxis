@@ -1,11 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { useDashboardContext } from '@/shared/context/DashboardContext';
+import { useDataRegistry } from '@/shared/context/DataRegistryContext';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { Newspaper } from 'lucide-react';
 
 export default function CatalystCalendar() {
     const { marketNews } = useDashboardContext();
+    const { register } = useDataRegistry();
     const newsItems = marketNews || [];
+
+    // Phase 2 Fix B: Register into DataRegistry so @Catalyst Calendar resolves with real news
+    useEffect(() => {
+        if (!marketNews || marketNews.length === 0) return;
+        const headlines = marketNews.slice(0, 3).map(n => n.heading || '').filter(Boolean);
+        register('master', CARD_REGISTRY.catalyst_calendar.id, {
+            displayName: 'Catalyst Calendar',
+            value: `${marketNews.length} news items`,
+            score: null,
+            signal: 'neutral',
+            additionalContext: headlines.join(' | '),
+        });
+    }, [marketNews, register]);
+
     
     if (!marketNews) {
         return (

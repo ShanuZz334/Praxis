@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { scoreDXY, scoreUSDINR, scoreCrude, scoreGold, scoreSilver, scoreUS10Y, scoreSPFutures, scoreNasdaqFutures, scoreDowFutures, scoreVIX, scoreBitcoin, scoreEurusd, scoreUsdjpy, scoreNikkei, scoreFtse, scoreDax, scoreHangseng, scoreShanghai, scoreCac40, scoreEurostoxx, scoreCopper, scoreNatgas, scoreWheat, scoreAluminum, scoreMove } from './globalScoringEngine';
 import { getCompositeColor, getIndicatorColor } from '../../../../shared/config/scoreColors';
 
@@ -380,6 +381,35 @@ export const useGlobalComposite = (manualOverrides, liveData = {}) => {
                 move: { value: getVal('move'), ...scores.move }
             }
         };
+
+        const cards = [];
+        Object.values(CARD_REGISTRY).forEach(cardDef => {
+            if (cardDef.page !== 'Global') return;
+
+            const data = result.cardData[cardDef.id];
+            if (!data || data.value === null || data.value === undefined) {
+                cards.push({
+                    id: cardDef.id,
+                    displayName: cardDef.displayName || ID_TO_TITLE_GLOBAL[cardDef.id],
+                    value: null,
+                    score: null,
+                    hasLiveData: false,
+                    status: 'missing',
+                    reason: 'No upstream source',
+                    retryAfter: 10000,
+                    severity: 'warning'
+                });
+            } else {
+                cards.push({
+                    id: cardDef.id,
+                    displayName: cardDef.displayName || ID_TO_TITLE_GLOBAL[cardDef.id],
+                    value: data.value,
+                    score: data.score,
+                    hasLiveData: true
+                });
+            }
+        });
+        result.cards = cards;
 
         // Fire & Forget DB Sync
         if (typeof window !== 'undefined') {

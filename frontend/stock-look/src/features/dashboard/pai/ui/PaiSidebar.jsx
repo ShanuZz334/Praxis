@@ -73,7 +73,7 @@ const INITIAL_SECTIONS = [
                     { id: CARD_REGISTRY.fii_dii_flow_master.id, title: 'FII/DII Flow', type: 'card' },
                     { id: CARD_REGISTRY.options_pulse.id, title: 'Options Pulse', type: 'card' },
                     { id: CARD_REGISTRY.sector_rotation.id, title: 'Sector Rotation', type: 'card' },
-                    { id: CARD_REGISTRY.volume_shockers.id, title: 'Volume Shockers', type: 'card' },
+                    { id: CARD_REGISTRY.volume_shockers.id, title: 'Most Active', type: 'card' },
                     { id: CARD_REGISTRY.catalyst_calendar.id, title: 'Catalyst Calendar', type: 'card' }
                 ]
             }
@@ -353,7 +353,6 @@ const INITIAL_SECTIONS = [
                 id: 'options_general',
                 label: 'General',
                 chats: [
-                    { id: CARD_REGISTRY.fno_ban.id, title: 'F&O Ban Status', type: 'card' }
                 ]
             },
             {

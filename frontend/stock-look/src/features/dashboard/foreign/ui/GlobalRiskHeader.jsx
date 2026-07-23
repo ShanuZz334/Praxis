@@ -85,7 +85,7 @@ export default function GlobalRiskHeader({ riskData }) {
                     <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Live System</span>
                 </div>
                 <div className="text-[10px] text-slate-600 font-mono text-right">
-                    Updated: {lastUpdated || "Now"}
+                    Updated: {typeof lastUpdated === 'function' ? lastUpdated(true) : (lastUpdated || "Now")}
                 </div>
             </div>
 

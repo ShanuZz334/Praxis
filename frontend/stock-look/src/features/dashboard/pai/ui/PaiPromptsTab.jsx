@@ -6,8 +6,9 @@ import {
     BookOpen, Plus
 } from 'lucide-react';
 import { useCardPrompt } from '@/shared/hooks/useCardInsight';
-import cardInventory from '../../../../../card-inventory.json';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import Loader from '@/shared/components/ui/Loader';
+import axiosInstance from '@/shared/utils/axiosInstance';
 
 // ─── Inline Globe Icon ────────────────────────────────────────────────────────
 function Globe(props) {
@@ -19,14 +20,9 @@ function Globe(props) {
     );
 }
 
-// ─── Golden Rules (injected by backend regardless of custom prompt) ──────────
-const GOLDEN_RULES = [
-    'Always substitute {variables} with their real values in your response — never echo back {name} or {value} literally.',
-    'Be direct and concise: max 2 sentences for individual cards, max 3 sentences for page headers.',
-    'Do not hallucinate or invent data beyond what is present in the template variables.',
-    'Focus on actionable implications for Indian equity traders, not generic financial theory.',
-    'End with a specific near-term directional implication (bullish, bearish, hold, caution).',
-];
+// ─── Golden Rules (fetched from backend) ──────────
+// Will be loaded via useEffect
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PAGE TREE DEFINITIONS
@@ -35,9 +31,10 @@ const GOLDEN_RULES = [
 const PAGE_CATEGORIES = [
     { id: 'Master',             label: 'Master Dashboard',   icon: LayoutDashboard },
     { id: 'Fundamentals',       label: 'Fundamentals',        icon: Briefcase        },
-    { id: 'Technical Analysis', label: 'Technical Analysis',  icon: LineChart        },
-    { id: 'Options Analysis',   label: 'Options Analysis',    icon: Activity         },
-    { id: 'Foreign Markets',    label: 'Foreign Markets',     icon: Globe            },
+    { id: 'Technical',          label: 'Technical Analysis',  icon: LineChart        },
+    { id: 'Options',            label: 'Options Analysis',    icon: Activity         },
+    { id: 'Foreign',            label: 'Foreign Markets',     icon: Globe            },
+    { id: 'Events',             label: 'Events',              icon: BookOpen         },
     { id: 'QChat',              label: 'QChat (Floating)',    icon: MessageSquare    },
 ];
 
@@ -47,46 +44,59 @@ const PAGE_CATEGORIES = [
  */
 const PAGE_HEADERS = {
     Master: [
-        { targetId: 'master_header',               displayName: 'Master Dashboard Header' },
-        { targetId: 'master_manual',               displayName: 'Manual Chat'              },
+        { targetId: 'praxis_composite_header',     displayName: 'Master Dashboard Header' },
+        { targetId: 'master_manual_chat',          displayName: 'Manual Chat'              },
     ],
     Fundamentals: [
         { targetId: 'fundamentals_index_header',   displayName: 'Header — Index Mode'   },
         { targetId: 'fundamentals_company_header', displayName: 'Header — Company Mode' },
         { targetId: 'fund_manual',                 displayName: 'Manual Chat'            },
     ],
-    'Technical Analysis': [
+    Technical: [
         { targetId: 'technical_index_header',      displayName: 'Header — Index Mode'   },
         { targetId: 'technical_company_header',    displayName: 'Header — Company Mode' },
         { targetId: 'tech_manual',                 displayName: 'Manual Chat'            },
     ],
-    'Options Analysis': [
-        { targetId: 'options_header',              displayName: 'Options Header'         },
-        { targetId: 'opt_manual',                  displayName: 'Manual Chat'            },
+    Options: [
+        { targetId: 'options_index_header',        displayName: 'Options Header — Index Mode'         },
+        { targetId: 'options_company_header',      displayName: 'Options Header — Company Mode'         },
+        { targetId: 'options_manual',              displayName: 'Manual Chat'            },
     ],
-    'Foreign Markets': [
+    Foreign: [
         { targetId: 'foreign_header',              displayName: 'Foreign Markets Header' },
         { targetId: 'global_manual',               displayName: 'Manual Chat'            },
+    ],
+    Events: [
+        { targetId: 'events_header',               displayName: 'Events Header' },
     ],
     QChat: [
         { targetId: 'qchat_global',        displayName: 'Global QChat'         },
         { targetId: 'qchat_fundamentals',  displayName: 'Fundamentals Context' },
-        { targetId: 'qchat_technicals',    displayName: 'Technicals Context'   },
+        { targetId: 'qchat_technical',     displayName: 'Technicals Context'   },
         { targetId: 'qchat_options',       displayName: 'Options Context'      },
-        { targetId: 'qchat_global_macros', displayName: 'Global Macros Context'},
+        { targetId: 'master_qchat',        displayName: 'Master/Global Context'},
         { targetId: 'qchat_events',        displayName: 'Events Context'       },
-        { targetId: 'qchat_dashboard',     displayName: 'Dashboard Context'    },
     ],
 };
 
 function buildTree() {
     const tree = {};
     PAGE_CATEGORIES.forEach(p => {
+        const cardsForPage = Object.values(CARD_REGISTRY).filter(c => c.page === p.id && c.type === 'card');
+        
+        const expandedCards = [];
+        cardsForPage.forEach(c => {
+            if (c.appliesTo === 'both') {
+                expandedCards.push({ targetId: c.id + '_company', displayName: c.displayName + ' — Company Mode', applicability: 'company' });
+                expandedCards.push({ targetId: c.id + '_index', displayName: c.displayName + ' — Index Mode', applicability: 'indices' });
+            } else {
+                expandedCards.push({ targetId: c.id, displayName: c.displayName, applicability: c.appliesTo });
+            }
+        });
+
         tree[p.id] = {
             headers: PAGE_HEADERS[p.id] || [],
-            cards: cardInventory
-                .filter(c => c.page === p.id)
-                .map(c => ({ targetId: c.targetId, displayName: c.card, applicability: c.applicability })),
+            cards: expandedCards,
         };
     });
     return tree;
@@ -205,6 +215,14 @@ function PromptEditor({ targetId, displayName, page, isHeaderPrompt, applicabili
         }
     };
 
+    const [goldenRules, setGoldenRules] = useState([]);
+
+    useEffect(() => {
+        axiosInstance.get('/api/v1/ai-prompts/golden-rules')
+            .then(res => setGoldenRules(res.data))
+            .catch(err => console.error('Failed to load golden rules', err));
+    }, []);
+
     // ── Placeholder text ─────────────────────────────────────────────────────
     const placeholder = `e.g. You are Praxis, an elite Indian market analyst. Analyze {name} for {stockSymbol}. The current value is {value} with a score of {score}/100 and a {bias} bias. Provide a 2-sentence verdict focusing on near-term price action implications.`;
 
@@ -242,7 +260,7 @@ function PromptEditor({ targetId, displayName, page, isHeaderPrompt, applicabili
                     }
                 </button>
                 <div className={`px-4 pb-4 pt-1 space-y-2.5 border-t border-border-default/30 ${showRules ? 'block' : 'hidden'}`}>
-                    {GOLDEN_RULES.map((rule, idx) => (
+                    {goldenRules.map((rule, idx) => (
                         <div key={idx} className="flex items-start gap-2.5 text-[12px] text-text-tertiary">
                             <span className="text-amber-500/60 font-mono mt-0.5 shrink-0">{idx + 1}.</span>
                             <span className="leading-relaxed">{rule}</span>
@@ -253,60 +271,62 @@ function PromptEditor({ targetId, displayName, page, isHeaderPrompt, applicabili
 
 
 
-            {/* ── Preset Tabs (Headers Only) ───────────────────────────────── */}
-            {(isHeaderPrompt || targetId === 'master_header') && (
-                <div className="flex items-center gap-2 mb-4 overflow-x-auto custom-scrollbar min-h-[36px]">
-                    <button
-                        onClick={() => setEditingPresetId('default')}
-                        className={`px-3 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded-lg ${
-                            activePresetId === 'default'
-                                ? 'bg-blue-500/15 border border-blue-500/30 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
-                                : editingPresetId === 'default'
-                                    ? 'border border-blue-500/50 text-blue-400 bg-transparent'
-                                    : 'border border-transparent text-text-secondary hover:text-text-primary hover:bg-background-elevated'
-                        }`}
-                    >
-                        Default
-                    </button>
-                    {presets && presets.map(p => (
-                        <button
-                            key={p.id}
-                            onClick={() => setEditingPresetId(p.id)}
-                            className={`px-3 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded-lg ${
-                                activePresetId === p.id
-                                    ? 'bg-blue-500/15 border border-blue-500/30 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
-                                    : editingPresetId === p.id
-                                        ? 'border border-blue-500/50 text-blue-400 bg-transparent'
-                                        : 'border border-transparent text-text-secondary hover:text-text-primary hover:bg-background-elevated'
-                            }`}
-                        >
-                            {p.name}
-                        </button>
-                    ))}
-                    <button
-                        onClick={addCustomPreset}
-                        title="Add Custom Preset"
-                        className="px-3 py-2 text-text-tertiary hover:text-text-primary transition-colors ml-2"
-                    >
-                        <Plus size={14} />
-                    </button>
-                </div>
-            )}
-
-            {/* ── Textarea ─────────────────────────────────────────────────── */}
             {isLoading ? (
-                <div className="flex-1 flex items-center justify-center min-h-[250px]">
+                <div className="flex-1 flex items-center justify-center min-h-[300px]">
                     <Loader size="sm" color="blue" />
                 </div>
             ) : (
-                <textarea
-                    ref={textareaRef}
-                    value={activeContent}
-                    onChange={e => handleTextChange(e.target.value)}
-                    placeholder={placeholder}
-                    spellCheck={false}
-                    className="flex-1 w-full min-h-[250px] bg-background-app/50 border border-border-default/40 focus:border-blue-500/50 rounded-xl p-5 text-[13px] text-text-primary leading-loose focus:outline-none custom-scrollbar resize-none font-mono transition-colors"
-                />
+                <>
+                    {/* ── Preset Tabs (Headers Only) ───────────────────────────────── */}
+                    {(isHeaderPrompt || targetId === 'master_header') && (
+                        <div className="flex items-center gap-2 mb-4 overflow-x-auto custom-scrollbar min-h-[36px]">
+                            <button
+                                onClick={() => setEditingPresetId('default')}
+                                className={`px-3 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded-lg ${
+                                    activePresetId === 'default'
+                                        ? 'bg-blue-500/15 border border-blue-500/30 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                                        : editingPresetId === 'default'
+                                            ? 'border border-blue-500/50 text-blue-400 bg-transparent'
+                                            : 'border border-transparent text-text-secondary hover:text-text-primary hover:bg-background-elevated'
+                                }`}
+                            >
+                                Default
+                            </button>
+                            {presets && presets.map(p => (
+                                <button
+                                    key={p.id}
+                                    onClick={() => setEditingPresetId(p.id)}
+                                    className={`px-3 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded-lg ${
+                                        activePresetId === p.id
+                                            ? 'bg-blue-500/15 border border-blue-500/30 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                                            : editingPresetId === p.id
+                                                ? 'border border-blue-500/50 text-blue-400 bg-transparent'
+                                                : 'border border-transparent text-text-secondary hover:text-text-primary hover:bg-background-elevated'
+                                    }`}
+                                >
+                                    {p.name}
+                                </button>
+                            ))}
+                            <button
+                                onClick={addCustomPreset}
+                                title="Add Custom Preset"
+                                className="px-3 py-2 text-text-tertiary hover:text-text-primary transition-colors ml-2"
+                            >
+                                <Plus size={14} />
+                            </button>
+                        </div>
+                    )}
+
+                    {/* ── Textarea ─────────────────────────────────────────────────── */}
+                    <textarea
+                        ref={textareaRef}
+                        value={activeContent}
+                        onChange={e => handleTextChange(e.target.value)}
+                        placeholder={placeholder}
+                        spellCheck={false}
+                        className="flex-1 w-full min-h-[250px] bg-background-app/50 border border-border-default/40 focus:border-blue-500/50 rounded-xl p-5 text-[13px] text-text-primary leading-loose focus:outline-none custom-scrollbar resize-none font-mono transition-colors"
+                    />
+                </>
             )}
 
             {/* ── Footer: targetId + Save ─────────────────────────────────── */}
@@ -359,14 +379,8 @@ function PromptEditor({ targetId, displayName, page, isHeaderPrompt, applicabili
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function PaiPromptsTab() {
-    const [expandedPages, setExpandedPages] = useState({ Fundamentals: true });
-    const [selected, setSelected] = useState({
-        targetId:      'fundamentals_index_header',
-        displayName:   'Header — Index Mode',
-        page:          'Fundamentals',
-        isHeaderPrompt: true,
-        applicability: 'both',
-    });
+    const [expandedPages, setExpandedPages] = useState({});
+    const [selected, setSelected] = useState(null);
 
     const togglePage = useCallback((pageId) => {
         setExpandedPages(prev => ({ ...prev, [pageId]: !prev[pageId] }));
@@ -391,7 +405,7 @@ export default function PaiPromptsTab() {
                     <h2 className="text-[14px] font-bold text-text-primary px-1">
                         Pages &amp; Cards
                         <span className="ml-2 text-[10px] font-normal text-text-tertiary">
-                            ({cardInventory.length} cards)
+                            ({Object.keys(CARD_REGISTRY).length} cards)
                         </span>
                     </h2>
                 </div>
@@ -435,7 +449,7 @@ export default function PaiPromptsTab() {
 
                                         {/* Page-level headers + manual chats (purple) */}
                                         {pageData.headers.map(h => {
-                                            const isSel = selected.targetId === h.targetId;
+                                            const isSel = selected?.targetId === h.targetId;
                                             const isChat = h.targetId.endsWith('_manual') || h.targetId.startsWith('qchat_');
                                             return (
                                                 <button
@@ -457,7 +471,7 @@ export default function PaiPromptsTab() {
 
                                         {/* Card prompts (blue) */}
                                         {pageData.cards.map(card => {
-                                            const isSel = selected.targetId === card.targetId;
+                                            const isSel = selected?.targetId === card.targetId;
                                             return (
                                                 <button
                                                     key={card.targetId}
@@ -483,43 +497,50 @@ export default function PaiPromptsTab() {
 
             {/* ── Right Content — enhanced prompt editor ───────────────────── */}
             <div className="flex-1 min-w-0 flex flex-col bg-background-card border border-border-default/40 rounded-xl overflow-hidden relative">
+                {selected ? (
+                    <>
+                        {/* Breadcrumb header */}
+                        <div className="p-5 border-b border-border-default/40 bg-background-surface/30 shrink-0">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[12px] font-medium text-blue-500 uppercase tracking-wider">
+                                    {selected.page}
+                                </span>
+                                <ChevronRight size={12} className="text-text-tertiary" />
+                                <span className="text-[12px] text-text-tertiary">{selected.displayName}</span>
+                                {selected.isHeaderPrompt && !selected.targetId?.endsWith('_manual') && (
+                                    <span className="text-[10px] px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded-full border border-purple-500/20">
+                                        Page Header
+                                    </span>
+                                )}
+                                {selected.targetId?.endsWith('_manual') && (
+                                    <span className="text-[10px] px-2 py-0.5 bg-teal-500/10 text-teal-400 rounded-full border border-teal-500/20">
+                                        Manual Chat
+                                    </span>
+                                )}
+                                {selected.targetId?.startsWith('qchat_') && (
+                                    <span className="text-[10px] px-2 py-0.5 bg-teal-500/10 text-teal-400 rounded-full border border-teal-500/20">
+                                        QChat
+                                    </span>
+                                )}
+                            </div>
+                        </div>
 
-                {/* Breadcrumb header */}
-                <div className="p-5 border-b border-border-default/40 bg-background-surface/30 shrink-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[12px] font-medium text-blue-500 uppercase tracking-wider">
-                            {selected.page}
-                        </span>
-                        <ChevronRight size={12} className="text-text-tertiary" />
-                        <span className="text-[12px] text-text-tertiary">{selected.displayName}</span>
-                        {selected.isHeaderPrompt && !selected.targetId?.endsWith('_manual') && (
-                            <span className="text-[10px] px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded-full border border-purple-500/20">
-                                Page Header
-                            </span>
-                        )}
-                        {selected.targetId?.endsWith('_manual') && (
-                            <span className="text-[10px] px-2 py-0.5 bg-teal-500/10 text-teal-400 rounded-full border border-teal-500/20">
-                                Manual Chat
-                            </span>
-                        )}
-                        {selected.targetId?.startsWith('qchat_') && (
-                            <span className="text-[10px] px-2 py-0.5 bg-teal-500/10 text-teal-400 rounded-full border border-teal-500/20">
-                                QChat
-                            </span>
-                        )}
+                        {/* Editor — keyed by targetId so it fully remounts on selection change */}
+                        <PromptEditor
+                            key={selected.targetId}
+                            targetId={selected.targetId}
+                            displayName={selected.displayName}
+                            page={selected.page}
+                            isHeaderPrompt={selected.isHeaderPrompt}
+                            applicability={selected.applicability}
+                        />
+                    </>
+                ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-text-tertiary gap-3">
+                        <FileText size={32} className="opacity-20" />
+                        <span className="text-[13px]">Select a card from the left panel to configure its AI instruction</span>
                     </div>
-
-                </div>
-
-                {/* Editor — keyed by targetId so it fully remounts on selection change */}
-                <PromptEditor
-                    key={selected.targetId}
-                    targetId={selected.targetId}
-                    displayName={selected.displayName}
-                    page={selected.page}
-                    isHeaderPrompt={selected.isHeaderPrompt}
-                    applicability={selected.applicability}
-                />
+                )}
             </div>
         </div>
     );

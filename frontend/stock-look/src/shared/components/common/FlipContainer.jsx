@@ -10,13 +10,11 @@ import { motion } from "framer-motion";
 export function FlipContainer({ isFlipped, front, back, className = "" }) {
     return (
         <motion.div 
-            layout 
             className={`relative w-full ${className}`} 
             style={{ perspective: "1000px" }}
             transition={{ duration: 0.5, type: "spring", bounce: 0 }}
         >
             <motion.div
-                layout
                 className="w-full relative"
                 initial={false}
                 animate={{ rotateY: isFlipped ? 180 : 0 }}

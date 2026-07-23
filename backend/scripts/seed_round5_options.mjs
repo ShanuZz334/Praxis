@@ -275,7 +275,7 @@ State what IV Percentile at {value}% reveals about options pricing for {stockSym
     },
 
     // ══════════════════════════════════════════════════════════════════════════
-    // MAX PAIN & F&O BAN
+    // MAX PAIN
     // ══════════════════════════════════════════════════════════════════════════
     {
         targetId: 'max_pain',
@@ -298,14 +298,7 @@ Interpretation framework:
 - Max Pain is NOT reliable more than 10 days from expiry — OI shifts make it a moving target.
 
 State the relationship between current spot {sectorValue} and Max Pain at {keyLevel} for {stockSymbol}, and whether gravity will pull price up, down, or holds it pinned into expiry. Max 2 sentences.`,
-    },
-    {
-        targetId: 'fno_ban',
-        displayName: 'F&O Ban Status',
-        page: 'Options Analysis',
-        isHeaderPrompt: false,
-        applicability: 'Both',
-        systemInstruction: `You are Praxis, an elite Indian F&O desk analyst. Analyze the F&O Ban Status for {stockSymbol}.
+    },.
 
 Current data: F&O Ban Status = {value} | Score: {score}/100 | Signal: {bias} | Confidence: {confidence}
 

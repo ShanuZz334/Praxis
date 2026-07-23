@@ -6,7 +6,7 @@ import { Star, Lightbulb, Plus, BarChart2, Edit2, Check, Settings } from "lucide
 import axiosInstance from "@/shared/utils/axiosInstance";
 import { useCardInsight } from "@/shared/hooks/useCardInsight";
 import { useDataRegistry } from "@/shared/context/DataRegistryContext";
-import cardInventory from "../../../../../card-inventory.json";
+import { CARD_REGISTRY } from "@/shared/config/cardRegistry";
 import "@/features/dashboard/pai/ui/PaiLoader.css";
 import {
   ResponsiveContainer,
@@ -158,7 +158,7 @@ function MetricsGrid({
 
       {/* Dynamic details injected specifically (e.g. MACD Line, Signal Line) */}
       <div className="flex-1 overflow-y-auto no-scrollbar min-h-0 flex flex-col gap-0.5">
-      {details?.filter(d => d && d.value !== '--' && d.value !== null && d.value !== undefined).map((d, i) => (
+      {details?.filter(d => d && (d.isManual || (d.value !== '--' && d.value !== null && d.value !== undefined))).map((d, i) => (
         <div key={i} className={rowClass}>
           <span className={labelClass}>{d.label}</span>
           <div className="flex items-center gap-2">
@@ -297,21 +297,29 @@ export function IndicatorCard({
   const context = useContext(FundamentalContext);
   
   // Resolve unique ID for snapshots and AI routing
-  const resolvedCardId = useMemo(() => {
+  const baseCardId = useMemo(() => {
     if (cardId) return cardId;
-    const foundCard = cardInventory.find(c => c.card === config.title);
-    return (foundCard ? foundCard.targetId : null) || config.title;
+    const foundCard = Object.values(CARD_REGISTRY).find(c => c.displayName === config.title);
+    return (foundCard ? foundCard.id : null) || config.title;
   }, [cardId, config.title]);
+
+  const resolvedCardId = useMemo(() => {
+    const cardDef = CARD_REGISTRY[baseCardId];
+    if (cardDef && cardDef.appliesTo === 'both') {
+      return context?.isIndex ? `${baseCardId}_index` : `${baseCardId}_company`;
+    }
+    return baseCardId;
+  }, [baseCardId, context?.isIndex]);
 
   const historicalData = useMemo(() => {
     if (!context?.snapshots) return null;
-    const snapshotKey = resolvedCardId;
+    const snapshotKey = baseCardId;
     return context.snapshots[snapshotKey] || null;
-  }, [context?.snapshots, resolvedCardId]);
+  }, [context?.snapshots, baseCardId]);
 
-  // ── Derive page context from card inventory
+  // ── Derive page context from card registry
   const resolvedPage = useMemo(() => {
-    const found = cardInventory.find(c => c.targetId === resolvedCardId || c.card === config.title);
+    const found = Object.values(CARD_REGISTRY).find(c => c.id === baseCardId || c.displayName === config.title);
     if (found?.page) return found.page.toLowerCase();
     // Infer from category string as fallback
     const cat = (config.category || '').toLowerCase();
@@ -344,7 +352,7 @@ export function IndicatorCard({
       });
     }
 
-    register(resolvedPage, resolvedCardId, {
+    register(resolvedPage, baseCardId, {
       displayName: config.title,
       value:       rawVal,
       score:       data?.score ?? null,
@@ -360,11 +368,11 @@ export function IndicatorCard({
     if (data?.score !== undefined && data?.score !== null) {
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('ai-snapshot', {
-          detail: { card_id: resolvedCardId, score: data.score }
+          detail: { card_id: baseCardId, score: data.score }
         }));
       }, 0);
     }
-  }, [resolvedPage, resolvedCardId, data?.currentValueObj?.value, data?.score, data?.bias,
+  }, [resolvedPage, baseCardId, data?.currentValueObj?.value, data?.score, data?.bias,
       data?.confidence, data?.impactWeight, config.title, config.creditScore, config.mode, register]);
 
   // ── useCardInsight: the single hook powering all AI calls ──────────────────

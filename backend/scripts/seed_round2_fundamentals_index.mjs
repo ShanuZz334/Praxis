@@ -8,6 +8,7 @@
  */
 
 import axios from 'axios';
+import { CARD_REGISTRY } from '../../frontend/stock-look/src/shared/config/cardRegistry.js';
 
 const BASE_URL  = 'http://localhost:5000';
 const EMAIL     = process.env.SEED_EMAIL    || 'shanifshaz546@gmail.com';
@@ -144,7 +145,7 @@ Key insight: Margin direction matters as much as level. Expanding margins with m
     // MACRO INDICATORS
     // ══════════════════════════════════════════════════════════════════════════
     {
-        targetId: 'gdp_growth',
+        targetId: CARD_REGISTRY.gdp_growth?.id || 'gdp_growth',
         displayName: 'GDP Growth',
         page: 'Fundamentals',
         isHeaderPrompt: false,
@@ -163,7 +164,7 @@ Interpretation framework (India context):
 GDP growth is the single most important macro driver of India's corporate earnings super-cycle. State what {value} implies for the earnings cycle trajectory and which broad sector themes (cyclical vs. defensive) are favored. Max 2 sentences.`,
     },
     {
-        targetId: 'gdp',
+        targetId: CARD_REGISTRY.gdp?.id || 'gdp',
         displayName: 'GDP',
         page: 'Fundamentals',
         isHeaderPrompt: false,
@@ -182,7 +183,7 @@ Key analytical angles:
 State what the current GDP level and trajectory implies for India's equity market structural premium and whether the economic scale justifies current market capitalization levels. Max 2 sentences.`,
     },
     {
-        targetId: 'cpi',
+        targetId: CARD_REGISTRY.cpi?.id || 'cpi',
         displayName: 'CPI Inflation',
         page: 'Fundamentals',
         isHeaderPrompt: false,
@@ -200,7 +201,7 @@ Interpretation framework (RBI MPC context):
 State directly: is {value} a tailwind (rate cuts coming) or headwind (rate hikes or holds) for Indian equities right now? Name the top 2 sectors most impacted. Max 2 sentences.`,
     },
     {
-        targetId: 'repo',
+        targetId: CARD_REGISTRY.repo?.id || 'repo',
         displayName: 'Repo Rate',
         page: 'Fundamentals',
         isHeaderPrompt: false,
@@ -427,7 +428,7 @@ Interpretation framework (NSE India VIX):
 State what {value} implies about current market fear levels and the specific options strategy that is most advantageous given this VIX level. Max 2 sentences.`,
     },
     {
-        targetId: 'crude',
+        targetId: CARD_REGISTRY.crude?.id || 'crude',
         displayName: 'Crude Oil',
         page: 'Fundamentals',
         isHeaderPrompt: false,

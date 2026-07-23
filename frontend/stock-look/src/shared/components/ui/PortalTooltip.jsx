@@ -32,7 +32,8 @@ export default function PortalTooltip({
     content,
     children,
     className = "",
-    offset = 8
+    offset = 8,
+    variant = "default"
 }) {
     const { theme } = useTheme(); // 'light' or 'dark'
     const [isVisible, setIsVisible] = useState(false);
@@ -136,9 +137,15 @@ export default function PortalTooltip({
                     onMouseEnter={show}
                     onMouseLeave={hide}
                 >
-                    <div className={`${bgClass} ${textClass} border ${borderClass} rounded-xl shadow-xl p-4 overflow-hidden`}>
-                        {content}
-                    </div>
+                    {variant === 'minimal' ? (
+                        <div className="bg-[#1a1f2e] border border-white/10 text-white/90 text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-xl pointer-events-none whitespace-nowrap">
+                            {content}
+                        </div>
+                    ) : (
+                        <div className={`${bgClass} ${textClass} border ${borderClass} rounded-xl shadow-xl p-4 overflow-hidden`}>
+                            {content}
+                        </div>
+                    )}
                 </div>,
                 document.body
             )}

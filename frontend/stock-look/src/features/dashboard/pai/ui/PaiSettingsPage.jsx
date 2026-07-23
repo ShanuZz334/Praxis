@@ -8,7 +8,7 @@ import PaiPromptsTab from './PaiPromptsTab';
 
 export default function PaiSettingsPage() {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('prompts');
+    const [activeTab, setActiveTab] = useState('models');
 
     const TABS = [
         { id: 'models', label: 'Models & API', icon: Cpu },

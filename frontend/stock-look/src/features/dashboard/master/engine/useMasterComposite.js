@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { API_PATHS } from '@/shared/utils/apiPaths';
 
@@ -7,9 +7,14 @@ import { computeCompanyComposite, computeIndexComposite } from '../../fundamenta
 import { computeTechnicalComposite } from '../../technical/engine/TechnicalCompositeEngine';
 import { useOptionsComposite } from '../../options/engine/useOptionsComposite';
 import { useOptionsCompositeScore } from '../../options/engine/useOptionsCompositeScore';
+import { useGlobalComposite } from '../../foreign/engine/useGlobalComposite';
 import { computeInstitutionalComposite } from './masterScoringEngine';
+import { FundamentalEngine } from '../../fundamentals/engine/headlessFundamentalParser';
+import { useDataRegistry } from '@/shared/context/DataRegistryContext';
+import { TechnicalEngine } from '../../technical/engine/headlessTechnicalParser';
 import { getCompositeState } from '@/shared/global/logic/signals';
 import { getIndicatorConfig, INDICATOR_CONFIG } from '@/shared/config/indicatorConfig';
+import { validateRegistry } from '@/shared/utils/RegistryValidator';
 import toast from 'react-hot-toast';
 
 const formatTitle = (str) => {
@@ -21,6 +26,7 @@ const formatTitle = (str) => {
 };
 
 export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, livePrices, extraData = {}) {
+    const { getMasterSnapshot, registerBulk } = useDataRegistry();
     const [loading, setLoading] = useState(true);
     
     // States for raw data
@@ -28,9 +34,27 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
     const [rawTechnicals, setRawTechnicals] = useState(null);
     const [chainData, setChainData] = useState([]);
     const [dbFallbackData, setDbFallbackData] = useState({});
+    const [globalOverrides, setGlobalOverrides] = useState({});
+    const [fundState, setFundState] = useState(null);
+    const [techState, setTechState] = useState(null);
 
     // Spot Price for options
     const baseSpotPrice = livePrices?.[selectedInstrument]?.ltp || 24000;
+
+    // Load global overrides from local storage once
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const stored = localStorage.getItem('praxis_manual_overrides_global');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed && parsed['global_macro']) {
+                        setGlobalOverrides(parsed['global_macro']);
+                    }
+                }
+            } catch(e) {}
+        }
+    }, []);
 
     // Fetch all real-time data + fallback
     useEffect(() => {
@@ -123,28 +147,87 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
         
         // Master Dashboard doesn't need 1s polling, 10s is sufficient for high-level composite
         const intervalId = setInterval(fetchMasterData, 10000);
+
         return () => {
             isMounted = false;
             clearInterval(intervalId);
         };
     }, [selectedInstrument, selectedExpiry, isIndex]);
 
-    // Compute Live Engines
-    // Compute Live Engines (Disabled for Fund/Tech because raw API data cannot be passed directly to composite functions which expect AI scores from individual cards. Relying on dbFallbackData snapshots synced from the respective dashboards.)
-    const fundEngine = null;
+    // Engine Lifecycles
+    useEffect(() => {
+        if (!selectedInstrument) return;
 
-    const techEngine = null;
+        const fEngine = fundEngineRef.current;
+        const tEngine = techEngineRef.current;
+
+        fEngine.start(selectedInstrument, {
+            registerBulk,
+            onUpdate: (state) => setFundState({ ...state })
+        });
+
+        tEngine.start(selectedInstrument, {
+            registerBulk,
+            getLtp: () => baseSpotPriceRef.current,
+            onUpdate: (state) => setTechState({ ...state })
+        });
+
+        return () => {
+            fEngine.stop();
+            tEngine.stop();
+        };
+    }, [selectedInstrument, registerBulk]);
+
+    const fundEngine = fundState ? { cardScores: fundState.scores } : null;
+    const techEngine = techState ? { cardScores: techState.scores } : null;
+    const headlessFundCards = fundState?.cards || [];
+    const headlessTechCards = techState?.cards || [];
+
 
     // Options Engine (Hooks)
     const optionsMetrics = useOptionsComposite(chainData, baseSpotPrice, selectedInstrument, selectedExpiry);
     const optionsEngine = useOptionsCompositeScore(optionsMetrics, selectedInstrument);
+
+    // Global Engine (Hooks)
+    const globalLiveData = useMemo(() => {
+        return {
+            dxy: livePrices?.['GLOBAL_INDICATOR|DXY']?.ltp || null,
+            usd_inr: livePrices?.['GLOBAL_INDICATOR|USDINR']?.ltp || null,
+            crude: livePrices?.['GLOBAL_INDICATOR|BZUSD']?.ltp || null,
+            gold: livePrices?.['GLOBAL_INDICATOR|GOLD']?.ltp || null,
+            silver: livePrices?.['GLOBAL_INDICATOR|SILV']?.ltp || null,
+            us_10y_yield: livePrices?.['GLOBAL_INDICATOR|US10Y']?.ltp || null,
+            sp_futures: livePrices?.['GLOBAL_INDICATOR|ES1']?.ltp || null,
+            nasdaq_futures: livePrices?.['GLOBAL_INDICATOR|NQ1']?.ltp || null,
+            dow_futures: livePrices?.['GLOBAL_INDICATOR|YM1']?.ltp || null,
+            vix: livePrices?.['GLOBAL_INDICATOR|VIX']?.ltp || null,
+            bitcoin: livePrices?.['GLOBAL_INDICATOR|BTCUSD']?.ltp || null,
+            eurusd: livePrices?.['GLOBAL_INDICATOR|EURUSD']?.ltp || null,
+            usdjpy: livePrices?.['GLOBAL_INDICATOR|USDJPY']?.ltp || null,
+            nikkei: livePrices?.['GLOBAL_INDICATOR|NIY']?.ltp || null,
+            ftse: livePrices?.['GLOBAL_INDICATOR|Z1']?.ltp || null,
+            dax: livePrices?.['GLOBAL_INDICATOR|FDAX']?.ltp || null,
+            hangseng: livePrices?.['GLOBAL_INDICATOR|HSI']?.ltp || null,
+            shanghai: livePrices?.['GLOBAL_INDICATOR|SSEC']?.ltp || null,
+            cac40: livePrices?.['GLOBAL_INDICATOR|FCE']?.ltp || null,
+            eurostoxx: livePrices?.['GLOBAL_INDICATOR|FESX']?.ltp || null,
+            copper: livePrices?.['GLOBAL_INDICATOR|HG1']?.ltp || null,
+            natgas: livePrices?.['GLOBAL_INDICATOR|NG1']?.ltp || null,
+            wheat: livePrices?.['GLOBAL_INDICATOR|ZW1']?.ltp || null,
+            aluminum: livePrices?.['GLOBAL_INDICATOR|ALI1']?.ltp || null,
+            move: livePrices?.['GLOBAL_INDICATOR|MOVE']?.ltp || null
+        };
+    }, [livePrices]);
+    
+    const globalEngine = useGlobalComposite(globalOverrides, globalLiveData);
+
 
     // Final Aggregation
     const masterScores = useMemo(() => {
         const fundScore = fundEngine?.compositeScore ?? dbFallbackData?.fundamental?.composite_score ?? null;
         const techScore = techEngine?.compositeScore ?? dbFallbackData?.technical?.composite_score ?? null;
         const optScore = optionsEngine?.compositeScore ?? dbFallbackData?.options?.composite_score ?? null;
-        const globScore = dbFallbackData?.global?.composite_score ?? null;
+        const globScore = globalEngine?.compositeScore ?? dbFallbackData?.global?.composite_score ?? null;
         const evtScore = dbFallbackData?.events?.composite_score ?? null;
 
         const scores = [
@@ -243,7 +326,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             fundamental: parseEngineCounts(mergedFund, 'FUND'),
             technical: parseEngineCounts(mergedTech, 'TECH'),
             options: parseEngineCounts(mergedOpt, 'OPT'),
-            global: dbFallbackData?.global?.counts,
+            global: parseEngineCounts(Object.fromEntries(Object.entries(globalEngine?.cardData || {}).map(([k, v]) => [k, v?.score])), 'GLOB', globalEngine?.cards) || dbFallbackData?.global?.counts,
             events: dbFallbackData?.events?.counts
         };
 
@@ -436,5 +519,5 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
 
     }, [fundEngine, techEngine, optionsEngine, dbFallbackData]);
 
-    return { ...masterScores, loading };
+    return { ...masterScores, loading, headlessFundCards, headlessTechCards };
 }

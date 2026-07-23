@@ -2776,3 +2776,23 @@ export function generateAiInsightDIIFlow(scoreObj, val) {
     return `DII flows of ₹${val} Cr are relatively neutral, providing stable but unaggressive support.`;
 }
 export function generateAiInsightSectorDashboard(score, adv, val, growth, cyc) { return 'Sector breadth and concentration metrics indicate underlying health. Broad participation supports longer-term uptrends.'; }
+
+export function scoreCurrentRatio(currentRatio) {
+    if (currentRatio === null || isNaN(currentRatio)) {
+        return { score: null, bias: 'Neutral', confidence: 0 };
+    }
+    let score = 0;
+    let bias = 'Neutral';
+    if (currentRatio > 2.0) {
+        score = 92; bias = 'Strong Bullish';
+    } else if (currentRatio >= 1.5) {
+        score = 75; bias = 'Bullish';
+    } else if (currentRatio >= 1.0) {
+        score = 55; bias = 'Neutral';
+    } else if (currentRatio >= 0.8) {
+        score = 30; bias = 'Bearish';
+    } else {
+        score = 10; bias = 'Strong Bearish';
+    }
+    return { score, bias, confidence: 72 };
+}

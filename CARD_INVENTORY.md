@@ -118,7 +118,6 @@
 | 114 | Net Margin | Fundamentals | Manual | Company Only |
 | 115 | Free Cash Flow | Fundamentals | Auto | Company Only |
 
-| 50 | F&O Ban Status | Options | Manual / Upstox | Company |
 | 51 | ProDesk Action Signal | Options | Auto (Engine) | Both |
 | 52 | Options Chain Table | Options | Upstox | Both |
 | 53 | Options History Chart | Options | Auto | Both |

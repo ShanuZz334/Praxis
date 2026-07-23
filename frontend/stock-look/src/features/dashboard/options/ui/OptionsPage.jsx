@@ -24,6 +24,7 @@ import { useDataFreshness } from "@/shared/hooks/useDataFreshness";
 import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedOverrideInput";
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { useDataRegistry } from '@/shared/context/DataRegistryContext';
 
 export default function OptionsPage() {
     const [selectedCard, setSelectedCard] = useState(null);
@@ -53,6 +54,8 @@ export default function OptionsPage() {
     const DEFAULT_OVERRIDES = {};
     const { overrides: manualOverrides, lastUpdated: manualOverrideTimes, handleClearAll, handleChange: handleOverrideChange } = useManualOverrides('options', selectedInstrument, DEFAULT_OVERRIDES);
     const { historicalSnapshots } = useSnapshots(selectedInstrument?.value || selectedInstrument);
+    const { register } = useDataRegistry();
+
 
 
     // Live computed metrics from chain
@@ -292,6 +295,39 @@ export default function OptionsPage() {
         }
     }, [chainData, spotPrice, idealPremium]);
 
+    // Phase 2 Fix B: Register options widgets into DataRegistry so @Options Chain, @ProDesk, @Options History resolve
+    useEffect(() => {
+        if (!chainData || chainData.length === 0) return;
+        const { pcr, maxPain } = metrics;
+        const instrLabel = typeof selectedInstrument === 'string'
+            ? selectedInstrument.split('|').pop()
+            : selectedInstrument?.label || 'Unknown';
+
+        register('options', CARD_REGISTRY.options_chain_table.id, {
+            displayName: 'Options Chain',
+            value: `${chainData.length} strikes loaded | Expiry: ${selectedExpiry || 'N/A'}`,
+            score: null,
+            signal: 'neutral',
+            additionalContext: `Spot: ${spotPrice} | PCR: ${pcr?.toFixed(2) ?? 'N/A'} | Max Pain: ${maxPain ?? 'N/A'}`,
+        });
+
+        register('options', CARD_REGISTRY.options_prodesk.id, {
+            displayName: 'ProDesk Action Signal',
+            value: `${proDeskData?.goldenStrikes?.length ?? 0} golden strikes`,
+            score: null,
+            signal: 'neutral',
+            additionalContext: `Instrument: ${instrLabel} | Expiry: ${selectedExpiry || 'N/A'}`,
+        });
+
+        register('options', CARD_REGISTRY.options_history_chart.id, {
+            displayName: 'Options History',
+            value: `${historicalSnapshots?.length ?? 0} historical snapshots`,
+            score: null,
+            signal: 'neutral',
+            additionalContext: `Instrument: ${instrLabel}`,
+        });
+    }, [chainData, metrics, proDeskData, historicalSnapshots, selectedExpiry, selectedInstrument, spotPrice, register]);
+
     const formatExpiryDate = (dateString) => {
         if (!dateString) return '';
         const d = new Date(dateString);
@@ -354,7 +390,7 @@ export default function OptionsPage() {
         CARD_REGISTRY.pcr_oi.id, CARD_REGISTRY.pcr_volume.id,
         CARD_REGISTRY.delta.id, CARD_REGISTRY.gamma.id, CARD_REGISTRY.theta.id, CARD_REGISTRY.vega.id,
         CARD_REGISTRY.atm_iv.id, CARD_REGISTRY.iv_rank.id, CARD_REGISTRY.iv_percentile.id,
-        CARD_REGISTRY.max_pain.id, CARD_REGISTRY.fno_ban.id
+        CARD_REGISTRY.max_pain.id
     ]);
 
     const cardsForHeader = Object.entries(cardScores || {})
@@ -456,6 +492,8 @@ export default function OptionsPage() {
                         {!hasVega && <DebouncedOverrideInput label="Vega" overrideKey={CARD_REGISTRY.vega.id} value={manualOverrides.vega} onChange={handleOverrideChange} />}
                     </div>
                 )}
+
+                
             </div>
         </div>
     );

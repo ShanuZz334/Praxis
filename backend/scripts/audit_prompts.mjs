@@ -33,7 +33,7 @@ const EXPECTED_TARGETS = [
     // Options (14)
     'total_call_oi','total_put_oi','oi_change','pcr_oi','pcr_volume',
     'delta','gamma','theta','vega','atm_iv','iv_rank','iv_percentile',
-    'max_pain','fno_ban',
+    'max_pain',
     // Foreign (25)
     'global_dxy','global_eur_usd','global_usd_jpy','global_usd_inr',
     'global_sp500','global_nasdaq','global_dow','global_nikkei_225',

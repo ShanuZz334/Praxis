@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Info } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useDashboardContext } from '@/shared/context/DashboardContext';
 import { getNifty50Keys, NIFTY_50_SYMBOLS } from '../data/nifty50';
 
 export default function MarketHeatmap() {
     const { livePrices } = useDashboardContext();
+    const [activeTooltip, setActiveTooltip] = useState(null);
+
+    // Dismiss tooltip when clicking outside
+    useEffect(() => {
+        const handleClick = () => setActiveTooltip(null);
+        document.addEventListener('click', handleClick);
+        return () => document.removeEventListener('click', handleClick);
+    }, []);
 
     const HEATMAP_TIERS = [
         { min: 3.0, name: 'Exceptional', threshold: '(> +3%)', bg: '#2E5BFF', text: '#FFFFFF' },
@@ -73,25 +82,58 @@ export default function MarketHeatmap() {
                 {sortedStocks.map(stock => {
                     const color = getColor(stock.pctChange);
                     return (
-                    <div 
-                        key={stock.symbol} 
-                        style={{ backgroundColor: color.bg, color: color.text }}
-                        className={`rounded-md p-1.5 flex flex-col items-center justify-center transition-colors aspect-square shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]`}
-                        title={`${stock.symbol}: ${stock.ltp ? '₹'+stock.ltp : 'N/A'} (${stock.pctChange.toFixed(2)}%)`}
-                    >
-                        <span className="text-[10px] font-bold truncate w-full text-center leading-tight mb-0.5">{stock.symbol.substring(0, 6)}</span>
-                        {stock.ltp ? (
-                            <div className="flex flex-col items-center">
-                                <span className="text-[10px] font-medium opacity-90 tabular-nums">{stock.pctChange > 0 ? '+' : ''}{stock.pctChange.toFixed(1)}%</span>
-                                <span className="text-[9px] opacity-75 tabular-nums mt-[1px]">₹{stock.ltp.toFixed(1)}</span>
-                            </div>
-                        ) : (
-                            <span className="text-[9px] opacity-50">-</span>
-                        )}
-                    </div>
+                        <div 
+                            key={stock.symbol}
+                            onClick={(e) => {
+                                e.stopPropagation(); // prevent document click from instantly closing it
+                                if (activeTooltip?.symbol === stock.symbol) {
+                                    setActiveTooltip(null);
+                                    return;
+                                }
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setActiveTooltip({ 
+                                    symbol: stock.symbol,
+                                    label: `${stock.symbol}: ${stock.ltp ? '₹'+stock.ltp : 'N/A'} (${stock.pctChange.toFixed(2)}%)`, 
+                                    top: rect.top - 8, // Place slightly above
+                                    left: rect.left + rect.width / 2 
+                                });
+                            }}
+                            style={{ backgroundColor: color.bg, color: color.text }}
+                            className={`rounded-md p-1.5 flex flex-col items-center justify-center transition-colors aspect-square shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] cursor-pointer`}
+                        >
+                            <span className="text-[10px] font-bold truncate w-full text-center leading-tight mb-0.5">{stock.symbol.substring(0, 6)}</span>
+                            {stock.ltp ? (
+                                <div className="flex flex-col items-center">
+                                    <span className="text-[10px] font-medium opacity-90 tabular-nums">{stock.pctChange > 0 ? '+' : ''}{stock.pctChange.toFixed(1)}%</span>
+                                    <span className="text-[9px] opacity-75 tabular-nums mt-[1px]">₹{stock.ltp.toFixed(1)}</span>
+                                </div>
+                            ) : (
+                                <span className="text-[9px] opacity-50">-</span>
+                            )}
+                        </div>
                     );
                 })}
             </div>
+
+            {/* Custom Fixed Tooltip (Match DrawingToolbar) */}
+            <AnimatePresence>
+                {activeTooltip && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 4 }}
+                        transition={{ duration: 0.15 }}
+                        className="fixed z-[9999] bg-[#1a1f2e] border border-white/10 text-white/90 text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-xl pointer-events-none whitespace-nowrap"
+                        style={{
+                            top: activeTooltip.top,
+                            left: activeTooltip.left,
+                            transform: 'translate(-50%, -100%)'
+                        }}
+                    >
+                        {activeTooltip.label}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

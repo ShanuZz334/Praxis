@@ -66,14 +66,20 @@ export default function MasterDashboard() {
         fiiDiiFlow
     });
 
-    const { getMasterSnapshot, registerBulk } = useDataRegistry();
+    const { getMasterSnapshot, registerBulk, register } = useDataRegistry();
 
     // Register fallback cards globally so autocomplete has live values for unmounted cards
     useEffect(() => {
         if (aggregatedCards && aggregatedCards.length > 0) {
             registerBulk('master', aggregatedCards);
         }
-    }, [aggregatedCards, registerBulk]);
+
+        // Also register Master Widgets into the registry so @mentions in chat can resolve their live data
+        if (fiiDiiFlow) register('master', CARD_REGISTRY.fii_dii_flow_master.id, { value: JSON.stringify(fiiDiiFlow) });
+        if (sectors) register('master', CARD_REGISTRY.sector_rotation.id, { value: JSON.stringify(sectors) });
+        if (activeOpts) register('master', CARD_REGISTRY.options_pulse.id, { value: JSON.stringify(activeOpts) });
+        if (marketHeatmapData) register('master', CARD_REGISTRY.market_heatmap.id, { value: JSON.stringify(marketHeatmapData) });
+    }, [aggregatedCards, registerBulk, register, fiiDiiFlow, sectors, activeOpts, marketHeatmapData]);
 
     const masterPayload = nestedTreePayload ? {
         ...nestedTreePayload,

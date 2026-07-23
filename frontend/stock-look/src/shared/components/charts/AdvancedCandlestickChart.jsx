@@ -560,75 +560,88 @@ export default React.memo(function AdvancedCandlestickChart({
 
                 <AnimatePresence>
                     {showMenu && (
-                        <>
-                            <motion.div
-                                initial={{ width: 0, opacity: 0 }}
-                                animate={{ width: 'auto', opacity: 1 }}
-                                exit={{ width: 0, opacity: 0 }}
-                                transition={{ duration: 0.2, ease: 'easeOut' }}
-                                className="overflow-hidden flex items-center"
-                            >
-                                <div className="flex items-center gap-1 pl-1">
-                                    <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5"></div>
-                                    <button
-                                        onMouseEnter={(e) => handleMouseEnter(e, 'Bollinger Bands (20, 2)')}
-                                        onMouseLeave={() => setHoveredIndicator(null)}
-                                        onClick={() => setShowBollinger(p => !p)}
-                                        className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showBollinger ? 'text-indigo-400' : 'text-text-secondary hover:text-text-primary'}`}
-                                    >
-                                        <Minimize2 size={13} strokeWidth={2} />
-                                    </button>
-                                    <button
-                                        onMouseEnter={(e) => handleMouseEnter(e, 'MACD (12, 26, 9)')}
-                                        onMouseLeave={() => setHoveredIndicator(null)}
-                                        onClick={() => setShowMACD(p => !p)}
-                                        className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showMACD ? 'text-rose-400' : 'text-text-secondary hover:text-text-primary'}`}
-                                    >
-                                        <Network size={13} strokeWidth={2} />
-                                    </button>
-                                    <button
-                                        onMouseEnter={(e) => handleMouseEnter(e, 'Anchored VWAP')}
-                                        onMouseLeave={() => setHoveredIndicator(null)}
-                                        onClick={() => setShowAnchoredVWAP(p => !p)}
-                                        className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showAnchoredVWAP ? 'text-orange-400' : 'text-text-secondary hover:text-text-primary'}`}
-                                    >
-                                        <Anchor size={13} strokeWidth={2} />
-                                    </button>
-                                    <button
-                                        onMouseEnter={(e) => handleMouseEnter(e, 'Auto Fibonacci')}
-                                        onMouseLeave={() => setHoveredIndicator(null)}
-                                        onClick={() => setShowAutoFib(p => !p)}
-                                        className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showAutoFib ? 'text-yellow-400' : 'text-text-secondary hover:text-text-primary'}`}
-                                    >
-                                        <AlignEndHorizontal size={13} strokeWidth={2} />
-                                    </button>
-                                    <button
-                                        onMouseEnter={(e) => handleMouseEnter(e, 'Parabolic SAR')}
-                                        onMouseLeave={() => setHoveredIndicator(null)}
-                                        onClick={() => setShowPSAR(p => !p)}
-                                        className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showPSAR ? 'text-emerald-400' : 'text-text-secondary hover:text-text-primary'}`}
-                                    >
-                                        <Crosshair size={13} strokeWidth={2} />
-                                    </button>
-                                    <button
-                                        onMouseEnter={(e) => handleMouseEnter(e, 'Ichimoku Cloud')}
-                                        onMouseLeave={() => setHoveredIndicator(null)}
-                                        onClick={() => setShowIchimoku(p => !p)}
-                                        className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showIchimoku ? 'text-cyan-400' : 'text-text-secondary hover:text-text-primary'}`}
-                                    >
-                                        <Cloud size={13} strokeWidth={2} />
-                                    </button>
-                                    <button
-                                        onMouseEnter={(e) => handleMouseEnter(e, 'Keltner Channels')}
-                                        onMouseLeave={() => setHoveredIndicator(null)}
-                                        onClick={() => setShowKeltner(p => !p)}
-                                        className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showKeltner ? 'text-fuchsia-400' : 'text-text-secondary hover:text-text-primary'}`}
-                                    >
-                                        <ListCollapse size={13} strokeWidth={2} />
-                                    </button>
-                                </div>
-                            </motion.div>
-                        </>
+                        <motion.div
+                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                            transition={{ duration: 0.15, ease: 'easeOut' }}
+                            className="absolute top-full left-[26px] mt-2 bg-white/80 dark:bg-[#1e222d]/80 border border-black/5 dark:border-white/5 rounded-xl backdrop-blur-md shadow-2xl p-2 z-30"
+                        >
+                            <div className="grid grid-cols-4 gap-2">
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Bollinger Bands (20, 2)')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowBollinger(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showBollinger ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Minimize2 size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'MACD (12, 26, 9)')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowMACD(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showMACD ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Network size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Anchored VWAP')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowAnchoredVWAP(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAnchoredVWAP ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Anchor size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Auto Fibonacci')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowAutoFib(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAutoFib ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <AlignEndHorizontal size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Parabolic SAR')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowPSAR(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showPSAR ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Crosshair size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Ichimoku Cloud')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowIchimoku(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showIchimoku ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Cloud size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Keltner Channels')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowKeltner(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showKeltner ? 'bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <ListCollapse size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Donchian Channels')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowDonchian(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showDonchian ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Activity size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'RSI Divergence')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowRSI(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showRSI ? 'bg-pink-500/15 text-pink-600 dark:text-pink-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <BarChart2 size={13} strokeWidth={2} />
+                                </button>
+                            </div>
+                        </motion.div>
                     )}
                 </AnimatePresence>
             </div>

@@ -21,7 +21,7 @@ export default function GenericGlobalCard({ id, label, cardData, resolveTime, is
             const parsed = parseFloat(rawValue);
             displayValue = isNaN(parsed) ? rawValue : parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         } else {
-            displayValue = parseFloat(rawValue).toFixed(4);
+            displayValue = parseFloat(rawValue).toFixed(2);
         }
     }
 

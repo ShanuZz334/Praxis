@@ -39,6 +39,47 @@ export function useOptionsCompositeScore(compositeData, instrumentKey, metrics =
             [CARD_REGISTRY.max_pain.id]: safeScore(compositeData.maxPain),
         };
 
+        const cards = [];
+        const extractVal = (obj) => {
+            if (obj === null || obj === undefined) return null;
+            if (obj.currentValue !== undefined) return obj.currentValue;
+            if (obj.value !== undefined) return obj.value;
+            if (obj.pcr !== undefined) return obj.pcr;
+            if (obj.strike !== undefined) return obj.strike;
+            return null;
+        };
+
+        const addCard = (cardDef, valObj) => {
+            if (!valObj) return;
+            const score = safeScore(valObj);
+            const value = extractVal(valObj);
+            if (value !== null) {
+                cards.push({ id: cardDef.id, displayName: cardDef.displayName, value, score });
+            }
+        };
+
+        addCard(CARD_REGISTRY.total_call_oi, compositeData.totalCallOI);
+        addCard(CARD_REGISTRY.total_put_oi, compositeData.totalPutOI);
+        addCard(CARD_REGISTRY.oi_change, compositeData.oiChange);
+        addCard(CARD_REGISTRY.pcr_oi, compositeData.pcrOi);
+        addCard(CARD_REGISTRY.pcr_volume, compositeData.pcrVolume);
+        addCard(CARD_REGISTRY.delta, compositeData.atmGreeks?.delta);
+        addCard(CARD_REGISTRY.gamma, compositeData.atmGreeks?.gamma);
+        addCard(CARD_REGISTRY.theta, compositeData.atmGreeks?.theta);
+        addCard(CARD_REGISTRY.vega, compositeData.atmGreeks?.vega);
+        addCard(CARD_REGISTRY.atm_iv, compositeData.volatility?.atmIv);
+        addCard(CARD_REGISTRY.iv_rank, compositeData.volatility?.ivRank);
+        addCard(CARD_REGISTRY.iv_percentile, compositeData.volatility?.ivPercentile);
+        addCard(CARD_REGISTRY.max_pain, compositeData.maxPain);
+
+        // Also register complex widgets if we have data for them
+        if (proDeskPicks) {
+            cards.push({ id: CARD_REGISTRY.options_prodesk.id, displayName: CARD_REGISTRY.options_prodesk.displayName, value: JSON.stringify(proDeskPicks), score: 50 });
+        }
+        if (compositeData.atmGreeks) {
+            cards.push({ id: 'greeks', displayName: 'Greeks Overview', value: JSON.stringify(compositeData.atmGreeks), score: 50 });
+        }
+
         const avg = (...keys) => {
             const vals = keys.map(k => cardScores[k]).filter(v => v !== null);
             if (vals.length === 0) return null;
@@ -224,6 +265,7 @@ export function useOptionsCompositeScore(compositeData, instrumentKey, metrics =
             risks,
             aiInsight,
             cardScores,
+            cards,
             nestedTreePayload
         };
 

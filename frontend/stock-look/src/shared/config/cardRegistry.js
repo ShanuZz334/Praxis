@@ -27,7 +27,7 @@ export const CARD_REGISTRY = {
         page: 'Master',
         section: 'General',
         appliesTo: 'both',
-        legacyIds: ['qchat_dashboard']
+        legacyIds: ['qchat_dashboard', 'qchat_global_macros']
     },
     market_heatmap: {
         id: 'market_heatmap',
@@ -68,11 +68,12 @@ export const CARD_REGISTRY = {
     volume_shockers: {
         id: 'volume_shockers',
         type: 'widget',
-        displayName: 'Volume Shockers',
+        displayName: 'Most Active',
         page: 'Master',
         section: 'Widgets',
         appliesTo: 'n/a', // Passive widget
-        legacyIds: []
+        legacyIds: [],
+        aliases: ['volume shockers', 'most active contracts', 'active options', 'most active options']
     },
     catalyst_calendar: {
         id: 'catalyst_calendar',
@@ -81,7 +82,8 @@ export const CARD_REGISTRY = {
         page: 'Master',
         section: 'Widgets',
         appliesTo: 'n/a', // Passive widget
-        legacyIds: []
+        legacyIds: [],
+        aliases: ['news', 'market news', 'live news', 'catalyst', 'headlines']
     },
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -155,8 +157,7 @@ export const CARD_REGISTRY = {
     india_vix: { id: 'india_vix', type: 'card', displayName: 'India VIX', page: 'Fundamentals', section: 'Risk', appliesTo: 'indices', legacyIds: [] },
 
     // Global
-    crude: { id: 'crude', type: 'card', displayName: 'Crude Oil', page: 'Fundamentals', section: 'Global', appliesTo: 'indices', legacyIds: [] },
-    global_liq: { id: 'global_liq', type: 'card', displayName: 'Global Liquidity', page: 'Fundamentals', section: 'Global', appliesTo: 'indices', legacyIds: [] },
+    global_liq:       { id: 'global_liq', type: 'card', displayName: 'Global Liquidity', page: 'Fundamentals', section: 'Global', appliesTo: 'indices', legacyIds: [] },
 
     // General / Peer
     peer_comparison: { id: 'peer_comparison', type: 'card', displayName: 'Peer Comparison', page: 'Fundamentals', section: 'General', appliesTo: 'company', legacyIds: [] },
@@ -171,7 +172,8 @@ export const CARD_REGISTRY = {
     // ══════════════════════════════════════════════════════════════════════════
     technical_index_header: { id: 'technical_index_header', type: 'widget', displayName: 'Index Header Insight', page: 'Technical', section: 'General', appliesTo: 'indices', legacyIds: [] },
     technical_company_header: { id: 'technical_company_header', type: 'widget', displayName: 'Company Header Insight', page: 'Technical', section: 'General', appliesTo: 'company', legacyIds: [] },
-    tech_manual: { id: 'tech_manual', type: 'widget', displayName: 'Technical Manual Chat', page: 'Technical', section: 'General', appliesTo: 'both', legacyIds: [] },
+    tech_manual:             { id: 'tech_manual',             type: 'widget', displayName: 'Technical Manual Chat', page: 'Technical', section: 'General', appliesTo: 'both', legacyIds: [] },
+    qchat_technical:         { id: 'qchat_technical',         type: 'widget', displayName: 'Technical QChat',       page: 'Technical', section: 'General', appliesTo: 'both', legacyIds: ['qchat_technicals'] },
 
     // Trend
     ema_20: { id: 'ema_20', type: 'card', displayName: 'EMA 20', page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
@@ -220,8 +222,8 @@ export const CARD_REGISTRY = {
     // ══════════════════════════════════════════════════════════════════════════
     options_index_header: { id: 'options_index_header', type: 'widget', displayName: 'Index Header Insight', page: 'Options', section: 'General', appliesTo: 'indices', legacyIds: ['options_header'] },
     options_company_header: { id: 'options_company_header', type: 'widget', displayName: 'Company Header Insight', page: 'Options', section: 'General', appliesTo: 'company', legacyIds: ['options_header'] },
-    options_manual: { id: 'options_manual', type: 'widget', displayName: 'Options Manual Chat', page: 'Options', section: 'General', appliesTo: 'both', legacyIds: ['opt_manual'] },
-    fno_ban: { id: 'fno_ban', type: 'card', displayName: 'F&O Ban Status', page: 'Options', section: 'General', appliesTo: 'company', legacyIds: [] },
+    options_manual:          { id: 'options_manual',          type: 'widget', displayName: 'Options Manual Chat',   page: 'Options',   section: 'General', appliesTo: 'both', legacyIds: ['opt_manual'] },
+    qchat_options:           { id: 'qchat_options',           type: 'widget', displayName: 'Options QChat',         page: 'Options',   section: 'General', appliesTo: 'both', legacyIds: [] },
 
     // Widgets (Data Heavy Components)
     options_prodesk: { id: 'options_prodesk', type: 'widget', displayName: 'ProDesk Action Signal', page: 'Options', section: 'Widgets', appliesTo: 'both', legacyIds: [] },
@@ -248,5 +250,57 @@ export const CARD_REGISTRY = {
     pcr_oi: { id: 'pcr_oi', type: 'card', displayName: 'PCR OI', page: 'Options', section: 'Put-Call Ratio', appliesTo: 'both', legacyIds: [] },
     pcr_volume: { id: 'pcr_volume', type: 'card', displayName: 'PCR Volume', page: 'Options', section: 'Put-Call Ratio', appliesTo: 'both', legacyIds: [] },
     max_pain: { id: 'max_pain', type: 'card', displayName: 'Max Pain', page: 'Options', section: 'Market Positioning', appliesTo: 'both', legacyIds: [] },
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // FOREIGN / GLOBAL MACRO DASHBOARD
+    // ══════════════════════════════════════════════════════════════════════════
+
+    // General / Chat widgets
+    foreign_header:   { id: 'foreign_header',   type: 'widget', displayName: 'Global Macro Header Insight', page: 'Foreign', section: 'General', appliesTo: 'n/a', legacyIds: [] },
+    global_manual:    { id: 'global_manual',    type: 'widget', displayName: 'Global Manual Chat',          page: 'Foreign', section: 'General', appliesTo: 'n/a', legacyIds: [] },
+    qchat_global:     { id: 'qchat_global',     type: 'widget', displayName: 'Global QChat',                page: 'Foreign', section: 'General', appliesTo: 'n/a', legacyIds: [] },
+
+    // Currency (4)
+    dxy:              { id: 'dxy',              type: 'card', displayName: 'Dollar Index (DXY)', page: 'Foreign', section: 'Currency',           appliesTo: 'n/a', legacyIds: [] },
+    eurusd:           { id: 'eurusd',           type: 'card', displayName: 'EUR/USD',            page: 'Foreign', section: 'Currency',           appliesTo: 'n/a', legacyIds: [] },
+    usdjpy:           { id: 'usdjpy',           type: 'card', displayName: 'USD/JPY',            page: 'Foreign', section: 'Currency',           appliesTo: 'n/a', legacyIds: [] },
+    usd_inr:          { id: 'usd_inr',          type: 'card', displayName: 'USD/INR',            page: 'Foreign', section: 'Currency',           appliesTo: 'n/a', legacyIds: [] },
+
+    // US Markets (3)
+    sp_futures:       { id: 'sp_futures',       type: 'card', displayName: 'S&P 500',           page: 'Foreign', section: 'US Markets',         appliesTo: 'n/a', legacyIds: [] },
+    nasdaq_futures:   { id: 'nasdaq_futures',   type: 'card', displayName: 'Nasdaq 100',        page: 'Foreign', section: 'US Markets',         appliesTo: 'n/a', legacyIds: [] },
+    dow_futures:      { id: 'dow_futures',      type: 'card', displayName: 'Dow Jones',         page: 'Foreign', section: 'US Markets',         appliesTo: 'n/a', legacyIds: [] },
+
+    // Global Indices (7)
+    nikkei:           { id: 'nikkei',           type: 'card', displayName: 'Nikkei 225',        page: 'Foreign', section: 'Global Indices',     appliesTo: 'n/a', legacyIds: [] },
+    ftse:             { id: 'ftse',             type: 'card', displayName: 'FTSE 100',          page: 'Foreign', section: 'Global Indices',     appliesTo: 'n/a', legacyIds: [] },
+    dax:              { id: 'dax',              type: 'card', displayName: 'DAX 40',            page: 'Foreign', section: 'Global Indices',     appliesTo: 'n/a', legacyIds: [] },
+    hangseng:         { id: 'hangseng',         type: 'card', displayName: 'Hang Seng',         page: 'Foreign', section: 'Global Indices',     appliesTo: 'n/a', legacyIds: [] },
+    shanghai:         { id: 'shanghai',         type: 'card', displayName: 'Shanghai Comp',     page: 'Foreign', section: 'Global Indices',     appliesTo: 'n/a', legacyIds: [] },
+    cac40:            { id: 'cac40',            type: 'card', displayName: 'CAC 40',            page: 'Foreign', section: 'Global Indices',     appliesTo: 'n/a', legacyIds: [] },
+    eurostoxx:        { id: 'eurostoxx',        type: 'card', displayName: 'Euro Stoxx 50',     page: 'Foreign', section: 'Global Indices',     appliesTo: 'n/a', legacyIds: [] },
+
+    // Commodities (8)
+    gold:             { id: 'gold',             type: 'card', displayName: 'Gold',              page: 'Foreign', section: 'Commodities',        appliesTo: 'n/a', legacyIds: [] },
+    silver:           { id: 'silver',           type: 'card', displayName: 'Silver',            page: 'Foreign', section: 'Commodities',        appliesTo: 'n/a', legacyIds: [] },
+    crude:            { id: 'crude',            type: 'card', displayName: 'Brent Crude',       page: 'Foreign', section: 'Commodities',        appliesTo: 'n/a', legacyIds: ['brent_crude'] },
+    copper:           { id: 'copper',           type: 'card', displayName: 'Copper',            page: 'Foreign', section: 'Commodities',        appliesTo: 'n/a', legacyIds: [] },
+    natgas:           { id: 'natgas',           type: 'card', displayName: 'Natural Gas',       page: 'Foreign', section: 'Commodities',        appliesTo: 'n/a', legacyIds: [] },
+    wheat:            { id: 'wheat',            type: 'card', displayName: 'Wheat',             page: 'Foreign', section: 'Commodities',        appliesTo: 'n/a', legacyIds: [] },
+    aluminum:         { id: 'aluminum',         type: 'card', displayName: 'Aluminum',          page: 'Foreign', section: 'Commodities',        appliesTo: 'n/a', legacyIds: [] },
+
+    // Rates & Volatility (3)
+    us_10y_yield:     { id: 'us_10y_yield',     type: 'card', displayName: 'US 10Y Yield',      page: 'Foreign', section: 'Rates & Volatility', appliesTo: 'n/a', legacyIds: [] },
+    vix:              { id: 'vix',              type: 'card', displayName: 'VIX',               page: 'Foreign', section: 'Rates & Volatility', appliesTo: 'n/a', legacyIds: [] },
+    move:             { id: 'move',             type: 'card', displayName: 'MOVE Index',        page: 'Foreign', section: 'Rates & Volatility', appliesTo: 'n/a', legacyIds: [] },
+
+    // Digital Assets (1)
+    bitcoin:          { id: 'bitcoin',          type: 'card', displayName: 'Bitcoin',           page: 'Foreign', section: 'Digital Assets',     appliesTo: 'n/a', legacyIds: [] },
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // EVENTS DASHBOARD (Stubs for future expansion)
+    // ══════════════════════════════════════════════════════════════════════════
+    events_header:    { id: 'events_header',    type: 'widget', displayName: 'Events Header Insight', page: 'Events', section: 'General', appliesTo: 'both', legacyIds: [] },
+    qchat_events:     { id: 'qchat_events',     type: 'widget', displayName: 'Events QChat',          page: 'Events', section: 'General', appliesTo: 'both', legacyIds: [] },
 };
 

@@ -56,7 +56,6 @@ const OPTS_CARDS = [
     { file: 'GammaCard.jsx',              cardId: 'gamma' },
     { file: 'ThetaCard.jsx',              cardId: 'theta' },
     { file: 'VegaCard.jsx',               cardId: 'vega' },
-    { file: 'FnOBanCard.jsx',             cardId: 'fno_ban' },
 ];
 
 function wireCards(cards, basePath) {

@@ -1,0 +1,244 @@
+import axiosInstance from '@/shared/utils/axiosInstance';
+
+import {
+    scoreADXCard,
+    scoreATRCard,
+    scoreBBCard,
+    scoreCmfCard,
+    scoreEMA20Card,
+    scoreEMA50Card,
+    scoreEMA200Card,
+    scoreFibonacciCard,
+    scoreKCCard,
+    scoreMACDCard,
+    scoreObvCard,
+    scorePivotCard,
+    scoreResistanceCard,
+    scoreRSICard,
+    scoreSMA200Card,
+    scoreSMA50Card,
+    scoreStochRSICard,
+    scoreSupertrendCard,
+    scoreSupportCard,
+    scoreVolumeSmaCard,
+    scoreVwapCard,
+    scoreWilliamsRCard
+} from './TechnicalCompositeEngine';
+
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+
+function parseHeadlessTechnicals(rawTechnicals, currentPrice) {
+    const scores = {};
+    const cards = [];
+    const t = rawTechnicals || {};
+    const p = currentPrice || t.current_price;
+
+    const attemptComputation = (id) => {
+        if (!rawTechnicals) return { success: false, reason: "No upstream data" };
+        
+        switch (id) {
+            case 'adx':
+                if (t.adx) return { success: true, valueObj: t.adx, score: scoreADXCard(t.adx).score };
+                break;
+            case 'atr':
+                if (t.atr && p) return { success: true, valueObj: t.atr, score: scoreATRCard(t.atr, p).score };
+                break;
+            case 'bb_20_2':
+                if (t.bb_20_2) return { success: true, valueObj: t.bb_20_2, score: scoreBBCard(t.bb_20_2).score };
+                break;
+            case 'cmf':
+                if (t.cmf) return { success: true, valueObj: t.cmf, score: scoreCmfCard(t.cmf).score };
+                break;
+            case 'ema_20':
+                if (t.ema_20 && p) return { success: true, valueObj: t.ema_20, score: scoreEMA20Card(t.ema_20, p).score };
+                break;
+            case 'ema_50':
+                if (t.ema_50 && p) return { success: true, valueObj: t.ema_50, score: scoreEMA50Card(t.ema_50, p).score };
+                break;
+            case 'ema_200':
+                if (t.ema_200 && p) return { success: true, valueObj: t.ema_200, score: scoreEMA200Card(t.ema_200, p).score };
+                break;
+            case 'fibonacci':
+                if (t.fibonacci && p) return { success: true, valueObj: t.fibonacci, score: scoreFibonacciCard(t.fibonacci, p).score };
+                break;
+            case 'kc':
+                if (t.kc && p) return { success: true, valueObj: t.kc, score: scoreKCCard(t.kc, p).score };
+                break;
+            case 'macd':
+                if (t.macd) return { success: true, valueObj: t.macd, score: scoreMACDCard(t.macd).score };
+                break;
+            case 'obv':
+                if (t.obv && t.obv_sma) return { success: true, valueObj: t.obv, score: scoreObvCard(t.obv, t.obv_sma).score };
+                break;
+            case 'pivot':
+                if (t.pivot && p) return { success: true, valueObj: t.pivot, score: scorePivotCard(t.pivot, p).score };
+                break;
+            case 'resistance':
+                if (t.resistance && p) return { success: true, valueObj: t.resistance, score: scoreResistanceCard(t.resistance, p).score };
+                break;
+            case 'rsi':
+                if (t.rsi) return { success: true, valueObj: t.rsi, score: scoreRSICard(t.rsi).score };
+                break;
+            case 'sma_50':
+                if (t.sma_50 && p) return { success: true, valueObj: t.sma_50, score: scoreSMA50Card(t.sma_50, p).score };
+                break;
+            case 'sma_200':
+                if (t.sma_200 && p) return { success: true, valueObj: t.sma_200, score: scoreSMA200Card(t.sma_200, p).score };
+                break;
+            case 'stoch_rsi':
+                if (t.stoch_rsi) return { success: true, valueObj: t.stoch_rsi, score: scoreStochRSICard(t.stoch_rsi).score };
+                break;
+            case 'supertrend':
+                if (t.supertrend && p) return { success: true, valueObj: t.supertrend, score: scoreSupertrendCard(t.supertrend, p).score };
+                break;
+            case 'support':
+                if (t.support && p) return { success: true, valueObj: t.support, score: scoreSupportCard(t.support, p).score };
+                break;
+            case 'volume_sma':
+                if (t.volume_sma && t.current_volume) return { success: true, valueObj: t.volume_sma, score: scoreVolumeSmaCard(t.volume_sma, t.current_volume).score };
+                break;
+            case 'vwap':
+                if (t.vwap && p) return { success: true, valueObj: t.vwap, score: scoreVwapCard(t.vwap, p).score };
+                break;
+            case 'williams_r':
+                if (t.williams_r) return { success: true, valueObj: t.williams_r, score: scoreWilliamsRCard(t.williams_r).score };
+                break;
+            default:
+                return { success: false, reason: "Algorithm unavailable or data missing" };
+        }
+        return { success: false, reason: "Data missing in Upstox response or calculation failed" };
+    };
+
+    Object.values(CARD_REGISTRY).forEach(cardConfig => {
+        if (cardConfig.page?.toLowerCase() !== 'technical') return;
+        if (cardConfig.type === 'widget') return;
+
+        const result = attemptComputation(cardConfig.id);
+        
+        if (result.success) {
+            scores[cardConfig.id] = result.score;
+            let val = result.valueObj;
+            if (typeof val === 'object' && val !== null) {
+                val = val.value ?? val.histogram ?? val.rsi ?? JSON.stringify(val);
+            }
+            cards.push({
+                id: cardConfig.id,
+                displayName: cardConfig.displayName,
+                value: val,
+                score: result.score,
+                hasLiveData: true
+            });
+        } else {
+            cards.push({
+                id: cardConfig.id,
+                displayName: cardConfig.displayName,
+                value: null,
+                score: null,
+                hasLiveData: false,
+                status: "missing",
+                reason: result.reason,
+                source: "Upstox API",
+                lastAttempt: Date.now(),
+                retryAfter: 10000,
+                supportsRealtime: true,
+                appliesTo: cardConfig.appliesTo || 'both',
+                severity: "low"
+            });
+        }
+    });
+
+    return { scores, cards };
+}
+
+
+export class TechnicalEngine {
+    constructor() {
+        this.intervalId = null;
+        this.instrument = null;
+        this.callbacks = {};
+        this.cache = { scores: {}, cards: [] };
+        this.previousSnapshot = null;
+    }
+
+    start(instrument, callbacks = {}) {
+        this.instrument = instrument;
+        this.callbacks = callbacks;
+        
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+        }
+        
+        this.poll();
+        this.intervalId = setInterval(() => this.poll(), 10000);
+    }
+
+    stop() {
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
+    }
+
+    async poll() {
+        if (!this.instrument) return;
+        
+        const currentLtp = this.callbacks.getLtp ? this.callbacks.getLtp() : '';
+        try {
+            const res = await axiosInstance.get(`/api/v1/upstox/technicals?instrument=${this.instrument}&timeframe=day&ltp=${currentLtp}`);
+            if (res.data?.success && res.data?.data) {
+                this.parse(res.data.data, currentLtp);
+                this.register();
+                this.publish();
+            }
+        } catch (e) {
+            console.error("TechnicalEngine poll failed", e);
+        }
+    }
+
+    parse(rawData, currentPrice) {
+        this.previousSnapshot = this.cache;
+        this.cache = parseHeadlessTechnicals(rawData, currentPrice);
+    }
+
+    register() {
+        if (this.callbacks.registerBulk && this.cache.cards) {
+            const registryPayload = this.cache.cards.map(c => {
+                const payload = {
+                    id: c.id,
+                    value: c.value,
+                    score: c.score,
+                    hasLiveData: c.hasLiveData
+                };
+                if (!c.hasLiveData) {
+                    payload.status = c.status;
+                    payload.reason = c.reason;
+                    payload.source = c.source;
+                    payload.lastAttempt = c.lastAttempt;
+                    payload.retryAfter = c.retryAfter;
+                    payload.supportsRealtime = c.supportsRealtime;
+                    payload.appliesTo = c.appliesTo;
+                    payload.severity = c.severity;
+                }
+                return payload;
+            });
+            this.callbacks.registerBulk('technical', registryPayload);
+        }
+    }
+
+    publish() {
+        if (this.callbacks.onUpdate) {
+            this.callbacks.onUpdate(this.state());
+        }
+    }
+
+    dispose() {
+        this.stop();
+        this.cache = { scores: {}, cards: [] };
+        this.previousSnapshot = null;
+        this.callbacks = {};
+    }
+
+    state() {
+        return this.cache;
+    }
+}
