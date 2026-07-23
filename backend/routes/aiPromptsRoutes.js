@@ -501,7 +501,17 @@ router.post('/chat/:targetId', async (req, res) => {
         let systemInstruction = savedPrompt?.systemInstruction;
         
         if (!systemInstruction) {
-            if (targetId.startsWith('qchat_')) {
+            if (targetId === 'master_qchat') {
+                systemInstruction = `You are PAI, the Praxis AI assistant. You are engaging in an interactive chat with the user on the Master Dashboard (Global Praxis). You have context of all technicals, fundamentals, and macro indicators. Be helpful, concise, and conversational.`;
+            } else if (targetId === 'qchat_global') {
+                systemInstruction = `You are PAI, the Praxis AI assistant. You are engaging in an interactive chat with the user on the Foreign Markets (Global Macro) dashboard. This page tracks global indices, commodities, and currency. Be helpful, concise, and conversational regarding global impact on India.`;
+            } else if (targetId === 'qchat_fundamentals') {
+                systemInstruction = `You are PAI, the Praxis AI assistant. You are engaging in an interactive chat with the user on the Fundamentals dashboard. Be helpful, concise, and conversational regarding valuation, earnings, and fundamentals.`;
+            } else if (targetId === 'qchat_technical') {
+                systemInstruction = `You are PAI, the Praxis AI assistant. You are engaging in an interactive chat with the user on the Technical Analysis dashboard. Be helpful, concise, and conversational regarding price action, trends, and momentum.`;
+            } else if (targetId === 'qchat_options') {
+                systemInstruction = `You are PAI, the Praxis AI assistant. You are engaging in an interactive chat with the user on the Options Flow dashboard. Be helpful, concise, and conversational regarding derivatives and open interest.`;
+            } else if (targetId.startsWith('qchat_')) {
                 systemInstruction = `You are PAI, the Praxis AI assistant. You are engaging in an interactive chat with the user regarding ${targetId.replace('qchat_', '')}. Be helpful, concise, and conversational. Do not hallucinate data; if you don't know, ask the user to provide it.`;
             } else {
                 systemInstruction = `You are Praxis, an elite Indian financial market analyst AI. You are chatting with the user about the ${targetId.replace(/_/g, ' ')} indicator. Answer their specific message directly, be conversational, and do not auto-generate generic insights if the user is just saying hello.`;
