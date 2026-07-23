@@ -22,7 +22,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     const [chatMode, setChatMode] = useState('contextual'); // 'contextual' or 'global'
 
     const getTargetId = (pathname, mode) => {
-        if (mode === 'global') return 'qchat_global';           // Foreign page QChat
+        if (mode === 'global') return 'master_qchat';           // Cross-dashboard Master QChat
         if (pathname.includes('/fundamental')) return 'qchat_fundamentals';
         if (pathname.includes('/technical'))  return 'qchat_technical';  // canonical (was qchat_technicals)
         if (pathname.includes('/options'))    return 'qchat_options';
