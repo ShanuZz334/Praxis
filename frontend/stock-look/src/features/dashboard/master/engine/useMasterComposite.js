@@ -40,7 +40,16 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
 
     // Spot Price for options
     const baseSpotPrice = livePrices?.[selectedInstrument]?.ltp || 24000;
-
+    
+    // Engine Refs
+    const fundEngineRef = useRef(new FundamentalEngine());
+    const techEngineRef = useRef(new TechnicalEngine());
+    const baseSpotPriceRef = useRef(baseSpotPrice);
+    
+    // Update baseSpotPriceRef whenever it changes
+    useEffect(() => {
+        baseSpotPriceRef.current = baseSpotPrice;
+    }, [baseSpotPrice]);
     // Load global overrides from local storage once
     useEffect(() => {
         if (typeof window !== 'undefined') {
