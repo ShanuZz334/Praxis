@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Check, Loader2, ChevronDown, ChevronUp, Shield, Terminal } from "lucide-react";
 import axiosInstance from "@/shared/utils/axiosInstance";
 import { API_PATHS } from "@/shared/utils/apiPaths";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 const PROVIDERS = [
     { value: "FMP", label: "Financial Modeling Prep" },

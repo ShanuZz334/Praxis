@@ -22,6 +22,7 @@ import { useGlobalComposite, ID_TO_TITLE_GLOBAL } from "../engine/useGlobalCompo
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { useDataFreshness } from '@/shared/hooks/useDataFreshness';
 import { useAiSync } from "@/shared/hooks/useAiSync";
+import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/confidenceEngine";
 
 const DEFAULT_OVERRIDES = {
     dxy: null,
@@ -192,10 +193,21 @@ export default function ForeignPage() {
             const credit = configData?.creditScore ?? 5;
             const allocated = (score / 100) * credit;
 
-            return { id, module: cardName, normalized, credit, creditAllocation: allocated, score };
+            const isManual = manualOverrides && manualOverrides[id] !== undefined && manualOverrides[id] !== null && manualOverrides[id] !== '';
+            const isLive = liveData && liveData[id] !== undefined && liveData[id] !== null;
+            const cardMeta = {
+                hasLiveData: isLive,
+                isManual: isManual,
+                lastUpdated: resolveTime(isLive, isManual ? null : id) ? new Date(resolveTime(isLive, isManual ? null : id)).getTime() : Date.now(),
+                sourcePipeline: isLive ? 'upstox' : (isManual ? 'manual' : 'fallback')
+            };
+            const cCard = computeCardConfidence(cardMeta, 'foreign');
+
+            return { id, module: cardName, normalized, credit, creditAllocation: allocated, score, cCard };
         });
 
     const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
+    const headerConfidence = computeHeaderConfidence(cardsForHeader, 25, 'foreign');
 
     const hasLiveOrManualData = Object.values(liveData).some(v => v !== null) || Object.values(manualOverrides).some(v => v !== null);
 
@@ -222,7 +234,7 @@ export default function ForeignPage() {
                     title="Global Composite"
                     score={compositeData.compositeScore}
                     prevScore={null}
-                    regime={compositeData.regime}
+                    regime={{ ...compositeData.regime, confidence: headerConfidence }}
                     integrity={{ 
                         coverageText: `${activeCardsCount}/${maxCards}`, 
                         coveragePercent: coveragePercent, 

@@ -22,6 +22,7 @@ import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
 import { useSnapshots } from '@/shared/hooks/useSnapshots';
 import { useDataFreshness } from "@/shared/hooks/useDataFreshness";
 import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedOverrideInput";
+import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/confidenceEngine";
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { useDataRegistry } from '@/shared/context/DataRegistryContext';
@@ -284,7 +285,7 @@ export default function OptionsPage() {
         }
     }, [selectedInstrument, selectedExpiry]);
 
-    // 3. Generate Pro Desk Picks using the engine
+    // 3. Generate Pro Desk picks using the engine
     const proDeskData = useMemo(() => {
         if (!chainData || chainData.length === 0) return { goldenStrikes: [], categories: {} };
         try {
@@ -411,8 +412,24 @@ export default function OptionsPage() {
                 }).join(' ');
             };
 
-            return { id, module: config?.title || formatTitle(config?.id) || formatTitle(id), normalized, credit, creditAllocation: allocated, score };
+            const cardName = config?.title || formatTitle(config?.id) || formatTitle(id);
+            const isManual = manualOverrides && manualOverrides[id] !== undefined && manualOverrides[id] !== null && manualOverrides[id] !== '';
+            
+            // In options, we don't have a simple liveData map like ForeignPage, but we know if it's not manual and there is a score, it's live data
+            const isLive = !isManual; 
+            const cardMeta = {
+                hasLiveData: isLive,
+                isManual: isManual,
+                lastUpdated: Date.now(), // Since OptionsPage doesn't use useDataFreshness yet
+                sourcePipeline: isLive ? 'upstox' : (isManual ? 'manual' : 'fallback')
+            };
+            const cCard = computeCardConfidence(cardMeta, 'options');
+
+            return { id, module: cardName, normalized, credit, creditAllocation: allocated, score, cCard };
         });
+
+    const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
+    const headerConfidence = computeHeaderConfidence(cardsForHeader, 14, 'options');
 
     // 6. Silently stream AI Snapshot to backend SQLite
     useAiSync(
@@ -428,13 +445,14 @@ export default function OptionsPage() {
             cards: cardsForHeader
         }
     );
-
-    const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
+    // 6. Silently stream AI Snapshot to backend SQLite
     const maxCards = OPTIONS_CARD_IDS.size;
     const activeCardsCount = cardsForHeader.length;
     const coveragePercent = maxCards > 0 ? Math.min(100, Math.round((activeCardsCount / maxCards) * 100)) : 0;
 
     const hasAtmIv = compositeData?.volatility?.atmIv?.currentValue !== undefined && compositeData?.volatility?.atmIv?.currentValue !== null && !isNaN(compositeData?.volatility?.atmIv?.currentValue);
+    const hasIvRank = compositeData?.volatility?.ivRank?.currentValue !== undefined && compositeData?.volatility?.ivRank?.currentValue !== null && !isNaN(compositeData?.volatility?.ivRank?.currentValue);
+    const hasIvPercentile = compositeData?.volatility?.ivPercentile?.currentValue !== undefined && compositeData?.volatility?.ivPercentile?.currentValue !== null && !isNaN(compositeData?.volatility?.ivPercentile?.currentValue);
     const hasMaxPain = compositeData?.maxPain?.currentValue !== undefined && compositeData?.maxPain?.currentValue !== null && !isNaN(compositeData?.maxPain?.currentValue);
     const hasTotalCallOI = compositeData?.totalCallOI?.currentValue !== undefined && compositeData?.totalCallOI?.currentValue !== null && !isNaN(compositeData?.totalCallOI?.currentValue);
     const hasTotalPutOI = compositeData?.totalPutOI?.currentValue !== undefined && compositeData?.totalPutOI?.currentValue !== null && !isNaN(compositeData?.totalPutOI?.currentValue);
@@ -465,9 +483,9 @@ export default function OptionsPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6">
                 <div className="space-y-2">
                     <div className="text-xs font-bold text-emerald-500 mb-2">Volatility Settings</div>
-                    <DebouncedOverrideInput label="IV Rank (%)" overrideKey={CARD_REGISTRY.iv_rank.id} value={manualOverrides.iv_rank} onChange={handleOverrideChange} />
-                    <DebouncedOverrideInput label="IV Percentile (%)" overrideKey={CARD_REGISTRY.iv_percentile.id} value={manualOverrides.iv_percentile} onChange={handleOverrideChange} />
-                    <DebouncedOverrideInput label="Lookback (Days)" overrideKey="iv_lookback" value={manualOverrides.iv_lookback} onChange={handleOverrideChange} />
+                    {!hasIvRank && <DebouncedOverrideInput label="IV Rank (%)" overrideKey={CARD_REGISTRY.iv_rank.id} value={manualOverrides.iv_rank} onChange={handleOverrideChange} />}
+                    {!hasIvPercentile && <DebouncedOverrideInput label="IV Percentile (%)" overrideKey={CARD_REGISTRY.iv_percentile.id} value={manualOverrides.iv_percentile} onChange={handleOverrideChange} />}
+                    {(!hasIvRank || !hasIvPercentile) && <DebouncedOverrideInput label="Lookback (Days)" overrideKey="iv_lookback" value={manualOverrides.iv_lookback} onChange={handleOverrideChange} />}
                     {!hasAtmIv && <DebouncedOverrideInput label="ATM IV (%)" overrideKey={CARD_REGISTRY.atm_iv.id} value={manualOverrides.atm_iv} onChange={handleOverrideChange} />}
                 </div>
 
@@ -508,7 +526,7 @@ export default function OptionsPage() {
                     score={compositeScore || 50}
                     prevScore={null}
                     gauge={engineGauge}
-                    regime={{ ...(engineRegime || {}), description: engineAiInsight || 'Awaiting signals', confidence: engineSections ? Math.round((engineSections.filter(s => s.score !== null).length / Math.max(1, engineSections.length)) * 100) : 0 }}
+                    regime={{ ...(engineRegime || {}), description: engineAiInsight || 'Awaiting signals', confidence: headerConfidence }}
                     integrity={{
                         coverageText: `${activeCardsCount}/${maxCards}`,
                         coveragePercent: coveragePercent,

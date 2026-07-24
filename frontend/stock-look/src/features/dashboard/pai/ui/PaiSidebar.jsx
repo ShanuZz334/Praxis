@@ -23,6 +23,7 @@ import {
 
 import paiLogoLight from '@/assets/images/pai 2-bgless.png';
 import paiLogoDark from '@/assets/images/pai 3-bgless.png';
+import { FileTreeRoot } from '@/shared/components/ui/FileTree/FileTree';
 
 const INITIAL_SECTIONS = [
     {
@@ -512,6 +513,55 @@ export default function PaiSidebar({ activeChatId, onSelectChat, onChatCleared }
         }));
     };
 
+    const treeData = sections.map(section => ({
+        name: section.label,
+        type: 'folder',
+        icon: section.icon,
+        id: section.id,
+        children: section.subSections.map(subSection => ({
+            name: subSection.label,
+            type: 'folder',
+            id: subSection.id,
+            children: subSection.chats.map(chat => ({
+                name: chat.title,
+                type: 'file',
+                id: chat.id,
+                chatData: chat,
+                sectionId: section.id,
+                subSectionId: subSection.id
+            }))
+        }))
+    }));
+
+    const renderChatActions = (item) => {
+        if (item.type !== 'file' || !item.chatData) return null;
+        
+        return (
+            <>
+                <button 
+                    title="New Thread"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddSubChat(item.sectionId, item.subSectionId, item.chatData);
+                    }}
+                    className="p-1 text-text-tertiary hover:text-blue-500 hover:bg-blue-500/10 rounded-md transition-all"
+                >
+                    <Plus size={13} />
+                </button>
+                <button 
+                    title={item.chatData.isSubChat ? "Manage Chat" : "Clear Chat History"}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setChatToDelete({ sectionId: item.sectionId, subSectionId: item.subSectionId, chat: item.chatData });
+                    }}
+                    className="p-1 text-text-tertiary hover:text-red-500 hover:bg-red-500/10 rounded-md transition-all"
+                >
+                    <Trash2 size={13} />
+                </button>
+            </>
+        );
+    };
+
     return (
         <div className="w-56 h-full bg-background-card border-r border-border-default/40 flex flex-col shrink-0">
             {/* Header & Close Button Area */}
@@ -526,107 +576,13 @@ export default function PaiSidebar({ activeChatId, onSelectChat, onChatCleared }
             </div>
 
             {/* Chat History List */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-4">
-                {sections.map((section) => {
-                    const isOpen = openSections[section.id];
-                    const Icon = section.icon;
-
-                    return (
-                        <div key={section.id} className="space-y-1">
-                            {/* Section Header (Page Level) */}
-                            <button 
-                                onClick={() => toggleSection(section.id)}
-                                className="w-full flex items-center justify-between px-2 py-1 group"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <Icon size={14} className="text-text-tertiary group-hover:text-text-secondary transition-colors" />
-                                    <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider group-hover:text-text-secondary transition-colors">
-                                        {section.label}
-                                    </span>
-                                </div>
-                                {isOpen ? (
-                                    <ChevronDown size={14} className="text-text-tertiary" />
-                                ) : (
-                                    <ChevronRight size={14} className="text-text-tertiary" />
-                                )}
-                            </button>
-
-                            {/* Section's SubSections */}
-                            {isOpen && (
-                                <div className="space-y-1 ml-1 border-l border-border-default/20 pl-2 mt-1">
-                                    {section.subSections.map(subSection => {
-                                        const isSubOpen = openSubSections[subSection.id];
-                                        return (
-                                            <div key={subSection.id} className="space-y-0.5">
-                                                {/* SubSection Header */}
-                                                <button 
-                                                    onClick={() => toggleSubSection(subSection.id)}
-                                                    className="w-full flex items-center justify-between px-2 py-1 group rounded-lg hover:bg-background-elevated transition-colors"
-                                                >
-                                                    <span className="text-[10.5px] font-semibold text-text-secondary/70 uppercase tracking-wide group-hover:text-text-primary transition-colors">
-                                                        {subSection.label}
-                                                    </span>
-                                                    {isSubOpen ? (
-                                                        <ChevronDown size={12} className="text-text-tertiary" />
-                                                    ) : (
-                                                        <ChevronRight size={12} className="text-text-tertiary" />
-                                                    )}
-                                                </button>
-
-                                                {/* Chats under SubSection */}
-                                                {isSubOpen && (
-                                                    <div className="space-y-0.5 ml-2 border-l border-border-default/10 pl-2 mt-1">
-                                                        {subSection.chats.map(chat => {
-                                                            const isActive = activeChatId === chat.id;
-                                                            return (
-                                                                <div
-                                                                    key={chat.id}
-                                                                    className={`w-full flex items-center justify-between px-2 py-1 rounded-lg transition-colors group ${
-                                                                        isActive 
-                                                                            ? 'bg-blue-500/10 text-blue-500 font-medium' 
-                                                                            : 'text-text-secondary hover:bg-background-elevated hover:text-text-primary'
-                                                                    }`}
-                                                                >
-                                                                    <button
-                                                                        onClick={() => onSelectChat(chat.id, chat.title, chat.type)}
-                                                                        className="flex items-center gap-2 flex-1 min-w-0"
-                                                                    >
-                                                                        <span className="truncate text-left text-[11.5px]" title={chat.title}>{chat.title}</span>
-                                                                    </button>
-                                                                    
-                                                                    {/* Actions (visible on hover) */}
-                                                                    <div className="opacity-0 group-hover:opacity-100 flex items-center shrink-0 transition-opacity">
-                                                                        <button 
-                                                                            title="New Thread"
-                                                                            onClick={() => handleAddSubChat(section.id, subSection.id, chat)}
-                                                                            className="p-1 text-text-tertiary hover:text-blue-500 hover:bg-blue-500/10 rounded-md transition-all"
-                                                                        >
-                                                                            <Plus size={13} />
-                                                                        </button>
-                                                                        <button 
-                                                                            title={chat.isSubChat ? "Manage Chat" : "Clear Chat History"}
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                setChatToDelete({ sectionId: section.id, subSectionId: subSection.id, chat });
-                                                                            }}
-                                                                            className="p-1 text-text-tertiary hover:text-red-500 hover:bg-red-500/10 rounded-md transition-all"
-                                                                        >
-                                                                            <Trash2 size={13} />
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
+                <FileTreeRoot 
+                    data={treeData} 
+                    activeId={activeChatId}
+                    onFileClick={(item) => onSelectChat(item.id, item.name, item.chatData.type)}
+                    renderActions={renderChatActions}
+                />
             </div>
 
             {/* Delete/Clear Modal */}

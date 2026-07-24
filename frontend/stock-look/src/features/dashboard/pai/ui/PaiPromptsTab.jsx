@@ -9,6 +9,7 @@ import { useCardPrompt } from '@/shared/hooks/useCardInsight';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import Loader from '@/shared/components/ui/Loader';
 import axiosInstance from '@/shared/utils/axiosInstance';
+import { FileTreeRoot } from '@/shared/components/ui/FileTree/FileTree';
 
 // ─── Inline Globe Icon ────────────────────────────────────────────────────────
 function Globe(props) {
@@ -464,6 +465,38 @@ export default function PaiPromptsTab() {
         });
     }, []);
 
+    const treeData = React.useMemo(() => {
+        const isHeaderOrChat = (h) => h.targetId.endsWith('_manual') || h.targetId.startsWith('qchat_');
+        
+        return PAGE_CATEGORIES.map(page => {
+            const pageData = TREE[page.id];
+            return {
+                name: page.label,
+                type: 'folder',
+                icon: page.icon,
+                id: page.id,
+                children: [
+                    ...pageData.headers.map(h => ({
+                        name: h.displayName,
+                        type: 'file',
+                        id: h.targetId,
+                        entryData: { ...h, isHeader: !isHeaderOrChat(h) },
+                        pageId: page.id,
+                        icon: MessageSquare
+                    })),
+                    ...pageData.cards.map(card => ({
+                        name: card.displayName,
+                        type: 'file',
+                        id: card.targetId,
+                        entryData: { ...card, isHeader: false },
+                        pageId: page.id,
+                        icon: FileText
+                    }))
+                ]
+            };
+        });
+    }, []);
+
     return (
         <div className="animate-in fade-in duration-300 flex flex-col lg:flex-row gap-5 h-[calc(100vh-200px)]">
 
@@ -478,88 +511,12 @@ export default function PaiPromptsTab() {
                     </h2>
                 </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-                    {PAGE_CATEGORIES.map(page => {
-                        const isExpanded = expandedPages[page.id];
-                        const pageData   = TREE[page.id];
-                        const totalCount = pageData.headers.length + pageData.cards.length;
-
-                        return (
-                            <div key={page.id} className="flex flex-col">
-                                {/* Page row */}
-                                <button
-                                    onClick={() => togglePage(page.id)}
-                                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors ${
-                                        isExpanded ? 'bg-background-surface/40' : 'hover:bg-background-surface/20'
-                                    }`}
-                                >
-                                    <div className="flex items-center gap-2.5">
-                                        <page.icon
-                                            size={16}
-                                            className={isExpanded ? 'text-blue-500' : 'text-text-tertiary'}
-                                        />
-                                        <span className={`text-[13px] font-medium ${isExpanded ? 'text-text-primary' : 'text-text-secondary'}`}>
-                                            {page.label}
-                                        </span>
-                                        <span className="text-[10px] text-text-tertiary bg-background-elevated px-1.5 py-0.5 rounded-full">
-                                            {totalCount}
-                                        </span>
-                                    </div>
-                                    {isExpanded
-                                        ? <ChevronDown size={14} className="text-text-tertiary" />
-                                        : <ChevronRight size={14} className="text-text-tertiary" />
-                                    }
-                                </button>
-
-                                {/* Children */}
-                                {isExpanded && (
-                                    <div className="flex flex-col mt-1 ml-4 pl-3 border-l border-border-default/30 space-y-0.5">
-
-                                        {/* Page-level headers + manual chats (purple) */}
-                                        {pageData.headers.map(h => {
-                                            const isSel = selected?.targetId === h.targetId;
-                                            const isChat = h.targetId.endsWith('_manual') || h.targetId.startsWith('qchat_');
-                                            return (
-                                                <button
-                                                    key={h.targetId}
-                                                    onClick={() => selectEntry(h, page.id, !isChat)}
-                                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${
-                                                        isSel
-                                                            ? isChat
-                                                                ? 'bg-teal-600/10 text-teal-400 font-medium'
-                                                                : 'bg-purple-600/10 text-purple-400 font-medium'
-                                                            : 'text-text-tertiary hover:bg-background-surface hover:text-text-primary'
-                                                    }`}
-                                                >
-                                                    <MessageSquare size={12} className={isSel ? (isChat ? 'text-teal-400' : 'text-purple-400') : ''} />
-                                                    <span className="text-[11px] truncate">{h.displayName}</span>
-                                                </button>
-                                            );
-                                        })}
-
-                                        {/* Card prompts (blue) */}
-                                        {pageData.cards.map(card => {
-                                            const isSel = selected?.targetId === card.targetId;
-                                            return (
-                                                <button
-                                                    key={card.targetId}
-                                                    onClick={() => selectEntry(card, page.id, false)}
-                                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${
-                                                        isSel
-                                                            ? 'bg-blue-600/10 text-blue-400 font-medium'
-                                                            : 'text-text-tertiary hover:bg-background-surface hover:text-text-primary'
-                                                    }`}
-                                                >
-                                                    <FileText size={12} className={isSel ? 'text-blue-400' : ''} />
-                                                    <span className="text-[11px] truncate">{card.displayName}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
+                    <FileTreeRoot 
+                        data={treeData} 
+                        activeId={selected?.targetId}
+                        onFileClick={(item) => selectEntry(item.entryData, item.pageId, item.entryData.isHeader)}
+                    />
                 </div>
             </div>
 

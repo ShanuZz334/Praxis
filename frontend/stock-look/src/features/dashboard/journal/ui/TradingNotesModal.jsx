@@ -11,7 +11,7 @@
  * - dayjs (Date Logic)
  * - framer-motion (Animations)
  * - lucide-react (Icons)
- * - react-hot-toast (Notifications)
+ * - sonner (Notifications)
  * @lifecycle
  * - Rendered by JournalPage (Modal).
  * @date 2026-02-03
@@ -26,7 +26,7 @@ import { X, Calendar, Edit3, Save, TrendingUp, TrendingDown, Minus, Info, Palett
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "sonner";
 import axiosInstance from "@/shared/utils/axiosInstance";
 import { API_PATHS } from "@/shared/utils/apiPaths";
 
@@ -249,11 +249,9 @@ export default function TradingNotesModal({ trades, notes, onClose, onNotesUpdat
 
     return createPortal(
         <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0 bg-black/60 backdrop-blur-sm"
             onClick={onClose}
         >
-            <Toaster position="top-right" />
-
             <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}

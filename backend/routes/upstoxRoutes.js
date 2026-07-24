@@ -295,7 +295,10 @@ router.get("/market-quote", async (req, res) => {
         if (isAuthError) {
             return res.status(401).json({ error: "Upstox token expired" });
         }
-        res.status(500).json({ error: "Internal server error" });
+        res.status(500).json({ 
+            error: "Upstox API returned an error and no local fallback data was available.", 
+            details: error?.response?.data || error.message 
+        });
     }
 });
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axiosInstance from "@/shared/utils/axiosInstance";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { CheckCircle, XCircle, Loader } from "lucide-react";
 
 const UpstoxCallback = () => {

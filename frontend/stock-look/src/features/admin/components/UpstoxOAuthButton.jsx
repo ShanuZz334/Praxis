@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ExternalLink, CheckCircle, XCircle } from "lucide-react";
 import axiosInstance from "@/shared/utils/axiosInstance";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 const UpstoxOAuthButton = ({ onSuccess }) => {
     const [loading, setLoading] = useState(false);

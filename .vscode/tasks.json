@@ -1,0 +1,49 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Praxis Backend",
+            "type": "shell",
+            "command": "npm run dev",
+            "options": {
+                "cwd": "${workspaceFolder}/backend"
+            },
+            "isBackground": true,
+            "presentation": {
+                "group": "praxis",
+                "reveal": "never",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Start Praxis Frontend",
+            "type": "shell",
+            "command": "npm run dev",
+            "options": {
+                "cwd": "${workspaceFolder}/frontend/stock-look"
+            },
+            "isBackground": true,
+            "presentation": {
+                "group": "praxis",
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Start Praxis (Full App)",
+            "dependsOn": [
+                "Start Praxis Backend",
+                "Start Praxis Frontend"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        }
+    ]
+}

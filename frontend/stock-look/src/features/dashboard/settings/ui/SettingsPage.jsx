@@ -16,6 +16,8 @@
  */
 
 import React, { useState, useEffect, useContext } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import {
     FiUser,
@@ -52,8 +54,11 @@ import {
     updateEmail,
     requestCurrentEmailVerificationOTP,
     verifyCurrentEmail,
-    deleteUserProfile
+    deleteUserProfile,
+    generateRegistrationOptions,
+    verifyRegistration,
 } from "../../../../services/userService";
+import { startRegistration } from "@simplewebauthn/browser";
 import Loader from "../../../../shared/components/ui/Loader";
 
 import { useTheme } from "../../../../shared/context/ThemeContext";
@@ -227,8 +232,8 @@ const SettingsPage = () => {
         // Basic email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(newEmail)) {
-            setSaveStatus("error"); // Reusing error toast
-            alert("Please enter a valid email address."); // Simple alert for now
+            setSaveStatus(null);
+            toast.error("Please enter a valid email address.");
             return;
         }
 
@@ -242,7 +247,7 @@ const SettingsPage = () => {
             setSaveStatus(null);
         } catch {
             console.error("Failed to request OTP");
-            alert("Failed to send OTP. Please try again.");
+            toast.error("Failed to send OTP. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -278,11 +283,11 @@ const SettingsPage = () => {
             setShowEmailOtpModal(false);
             setEmailOtp("");
             setPendingEmail("");
-            setSaveStatus("success");
-            setTimeout(() => setSaveStatus(null), 3000);
+            setSaveStatus(null);
+            toast.success("Email updated successfully.");
         } catch {
             console.error("Failed to verify OTP");
-            alert("Invalid OTP. Please try again.");
+            toast.error("Invalid OTP. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -297,7 +302,7 @@ const SettingsPage = () => {
             setOtpTimer(300);
         } catch {
             console.error("Failed to request verification OTP");
-            alert("Failed to send verification OTP");
+            toast.error("Failed to send verification OTP");
         } finally {
             setVerifyingEmail(false);
         }
@@ -316,8 +321,8 @@ const SettingsPage = () => {
             setIsEmailVerified(true);
             setShowVerifyEmailOtpModal(false);
             setEmailOtp("");
-            setSaveStatus("success");
-            setTimeout(() => setSaveStatus(null), 3000);
+            setSaveStatus(null);
+            toast.success("Email verified successfully.");
 
             // Update Context
             if (updateUser && token) {
@@ -325,7 +330,7 @@ const SettingsPage = () => {
             }
         } catch {
             console.error("Failed to verify email");
-            alert("Invalid OTP. Please try again.");
+            toast.error("Invalid verification OTP.");
         } finally {
             setLoading(false);
         }
@@ -348,6 +353,35 @@ const SettingsPage = () => {
     };
 
     const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+    const handleRegisterPasskey = async () => {
+        try {
+            setLoading(true);
+            const options = await generateRegistrationOptions();
+            let attResp;
+            try {
+                attResp = await startRegistration({ optionsJSON: options });
+            } catch (error) {
+                if (error.name === 'InvalidStateError') {
+                    alert('Error: Authenticator was probably already registered by user');
+                } else {
+                    alert('Registration failed or cancelled.');
+                }
+                return;
+            }
+            const verificationResp = await verifyRegistration(attResp);
+            if (verificationResp && verificationResp.verified) {
+                alert('Device successfully registered for biometric sign in!');
+            } else {
+                alert('Verification failed.');
+            }
+        } catch (err) {
+            console.error("Passkey registration error:", err);
+            alert("Failed to register device. Your device might not support Passkeys.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // -- Password Logic --
     const handleUpdatePassword = async () => {
@@ -452,12 +486,12 @@ const SettingsPage = () => {
                     success: true,
                     message: `Successfully connected to ${brokerData.broker || 'broker'}!`
                 });
-                setSaveStatus("success");
-                setTimeout(() => setSaveStatus(null), 3000);
+                setSaveStatus(null);
+                toast.success("Password changed successfully.");
             } else {
                 setConnectionStatus({ success: false, message: data.message || 'Connection failed.' });
             }
-        } catch {
+        } catch (err) {
             setConnectionStatus({ success: false, message: 'Failed to connect. Please try again.' });
         } finally {
             setTestingConnection(false);
@@ -546,12 +580,12 @@ const SettingsPage = () => {
             setInitialFormData({ ...formData });
             setInitialSettings({ ...settings });
 
-            setSaveStatus("success");
-            setTimeout(() => setSaveStatus(null), 3000);
+            setSaveStatus(null);
+            toast.success("Settings saved successfully.");
         } catch {
             console.error("Save failed");
-            setSaveStatus("error");
-            setTimeout(() => setSaveStatus(null), 3000);
+            setSaveStatus(null);
+            toast.error("Failed to save changes.");
         }
     };
 
@@ -642,18 +676,6 @@ const SettingsPage = () => {
                     </div>
                 )}
 
-                {/* Save Feedback Toast */}
-                {saveStatus === "success" && !hasUnsavedChanges && (
-                    <div className="mb-6 flex items-center gap-2 rounded-lg border border-green-500/20 bg-green-500/10 p-3 text-green-600 dark:text-green-400">
-                        <FiCheck /> Changes saved successfully
-                    </div>
-                )}
-
-                {saveStatus === "error" && (
-                    <div className="mb-6 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-red-600 dark:text-red-400">
-                        <FiAlertCircle /> Failed to save changes
-                    </div>
-                )}
 
                 <div className="grid gap-4 md:gap-8 lg:grid-cols-[220px_1fr]">
 
@@ -883,6 +905,22 @@ const SettingsPage = () => {
                                 <div>
                                     <h2 className="text-xl font-semibold">Security Settings</h2>
                                     <p className="text-sm text-text-secondary">Manage your password and account security</p>
+                                </div>
+
+                                <div className="rounded-xl border border-border-default bg-transparent px-4 md:px-6 pt-2 pb-6">
+                                    <h3 className="mb-4 text-lg font-medium text-emerald-400 flex items-center gap-2">
+                                        <Shield size={20} /> Biometric Sign-In (Passkey)
+                                    </h3>
+                                    <p className="text-sm text-text-secondary mb-4">
+                                        Register your device's Fingerprint or FaceID to sign in instantly without a password.
+                                    </p>
+                                    <button
+                                        onClick={handleRegisterPasskey}
+                                        disabled={loading}
+                                        className="rounded-lg bg-emerald-600/20 border border-emerald-500/50 px-6 py-2.5 text-sm font-semibold text-emerald-400 hover:bg-emerald-600/40 transition-colors disabled:opacity-50"
+                                    >
+                                        Register this Device
+                                    </button>
                                 </div>
 
                                 <div className="rounded-xl border border-border-default bg-transparent px-4 md:px-6 pt-2">

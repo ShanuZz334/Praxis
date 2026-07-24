@@ -1,0 +1,1 @@
+import { generateAuthenticationOptions } from '@simplewebauthn/server'; async function test() { try { const options = await generateAuthenticationOptions({ rpID: 'localhost', userVerification: 'preferred', }); console.log('SUCCESS'); } catch(err) { console.error('FAILED:', err.message); } } test();

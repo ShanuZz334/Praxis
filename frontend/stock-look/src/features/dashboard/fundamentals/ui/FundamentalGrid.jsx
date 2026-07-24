@@ -92,7 +92,7 @@ const HARDCODED_IDS = new Set([
   CARD_REGISTRY.nifty_pe.id, CARD_REGISTRY.nifty_pb.id, CARD_REGISTRY.mcap_gdp.id, CARD_REGISTRY.gdp.id, CARD_REGISTRY.cpi.id, CARD_REGISTRY.repo.id, CARD_REGISTRY.fiscal_deficit.id, CARD_REGISTRY.fii.id, CARD_REGISTRY.dii.id, CARD_REGISTRY.fii_trend.id, CARD_REGISTRY.system_liquidity.id, CARD_REGISTRY.mf_flows.id, CARD_REGISTRY.sector_dashboard.id, CARD_REGISTRY.credit_growth.id, CARD_REGISTRY.corp_debt.id, CARD_REGISTRY.policy_tailwinds.id, CARD_REGISTRY.crude.id, CARD_REGISTRY.global_liq.id, CARD_REGISTRY.sovereign_risk.id, CARD_REGISTRY.npa.id, CARD_REGISTRY.reform_momentum.id
 ]);
 
-export default function FundamentalGrid({ cards, viewMode, sortMode = "score_desc", onCardClick, data, selectedCategory, manualOverrides, resolveTime }) {
+export default function FundamentalGrid({ cards, viewMode, sortMode = "score_desc", onCardClick, data, selectedCategory, manualOverrides, resolveTime, rawScores }) {
 
   const sortCards = (list) => {
     const arr = [...list];

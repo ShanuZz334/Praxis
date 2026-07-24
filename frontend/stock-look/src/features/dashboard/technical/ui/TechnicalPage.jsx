@@ -14,6 +14,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
 import { useAiSync } from "@/shared/hooks/useAiSync";
+import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/confidenceEngine";
 
 const DEFAULT_OVERRIDES = {
     ad_line: null, mcclellan: null, nh_nl: null, trin: null,
@@ -117,6 +118,31 @@ export default function TechnicalPage() {
         nestedTreePayload
     } = compositeData;
 
+    const getISTDateTime = () => {
+        const date = new Date();
+        const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+        return new Date(utc + (3600000 * 5.5)); // UTC+5.5 (IST)
+    };
+
+    const isMarketOpen = () => {
+        const now = getISTDateTime();
+        const day = now.getDay(); // 0 is Sunday, 6 is Saturday
+        if (day === 0 || day === 6) return false;
+        
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const timeNum = hours * 100 + minutes;
+        
+        return timeNum >= 915 && timeNum <= 1530; // 9:15 AM to 3:30 PM IST
+    };
+
+    const formatTime = (ts) => {
+        if (!ts) return null;
+        return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    };
+
+    const resolveTime = useDataFreshness(technicalsData, manualOverrides, manualOverrideTimes, isMarketOpen, formatTime, "1s");
+
     // --- cardsForHeader: mirrors FundamentalPage exactly ---
     // Only include keys that exist in the static cards registry to prevent
     // extra API/alias keys from inflating coverage (e.g. raw Upstox keys alongside aliases)
@@ -143,15 +169,30 @@ export default function TechnicalPage() {
                 }).join(' ');
             };
 
+            const cardName = config?.title || formatTitle(config?.id) || formatTitle(id);
+            const isManual = manualOverrides && manualOverrides[id] !== undefined && manualOverrides[id] !== null && manualOverrides[id] !== '';
+            const isLive = technicalsData && technicalsData[id] !== undefined && technicalsData[id] !== null;
+            const cardMeta = {
+                hasLiveData: isLive,
+                isManual: isManual,
+                lastUpdated: resolveTime(isLive, isManual ? null : id) ? new Date(resolveTime(isLive, isManual ? null : id)).getTime() : Date.now(),
+                sourcePipeline: isLive ? 'upstox' : (isManual ? 'manual' : 'fallback')
+            };
+            const cCard = computeCardConfidence(cardMeta, 'technical');
+
             return {
                 id,
-                module: config?.title || formatTitle(config?.id) || formatTitle(id),
+                module: cardName,
                 normalized,
                 credit,
                 creditAllocation: allocated,
                 score,
+                cCard,
             };
         });
+
+    const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
+    const headerConfidence = computeHeaderConfidence(cardsForHeader, 35, 'technical');
 
     // Silently Stream the Snapshot to SQLite backend
     useAiSync(
@@ -163,9 +204,7 @@ export default function TechnicalPage() {
         }
     );
 
-    const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
-
-    // maxCards: total cards in the registry (static list above)
+    // Silently Stream the Snapshot to SQLite backend
     const maxCards = cards.length;
     const activeCardsCount = cardsForHeader.filter(c => c.score >= 0).length;
     const coveragePercent = maxCards > 0 ? Math.min(100, Math.round((activeCardsCount / maxCards) * 100)) : 0;
@@ -225,31 +264,6 @@ export default function TechnicalPage() {
         </div>
     );
  
-    const getISTDateTime = () => {
-        const date = new Date();
-        const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-        return new Date(utc + (3600000 * 5.5)); // UTC+5.5 (IST)
-    };
-
-    const isMarketOpen = () => {
-        const now = getISTDateTime();
-        const day = now.getDay(); // 0 is Sunday, 6 is Saturday
-        if (day === 0 || day === 6) return false;
-        
-        const hours = now.getHours();
-        const minutes = now.getMinutes();
-        const timeNum = hours * 100 + minutes;
-        
-        return timeNum >= 915 && timeNum <= 1530; // 9:15 AM to 3:30 PM IST
-    };
-
-    const formatTime = (ts) => {
-        if (!ts) return null;
-        return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    };
-
-    const resolveTime = useDataFreshness(technicalsData, manualOverrides, manualOverrideTimes, isMarketOpen, formatTime, "1s");
- 
     return (
         <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">
  
@@ -259,7 +273,7 @@ export default function TechnicalPage() {
                 score={compositeScore || 50}
                 prevScore={null} // Hide delta pill until historical data is wired
                 gauge={engineRegime}
-                regime={{ ...(engineRegime || {}), description: aiInsight || "Awaiting signals", confidence: sections ? Math.round((sections.filter(s => s.score !== null).length / Math.max(1, sections.length)) * 100) : 0 }}
+                regime={{ ...(engineRegime || {}), description: aiInsight || "Awaiting signals", confidence: headerConfidence }}
                 integrity={{ 
                     coverageText: `${activeCardsCount}/${maxCards}`, 
                     coveragePercent: coveragePercent,

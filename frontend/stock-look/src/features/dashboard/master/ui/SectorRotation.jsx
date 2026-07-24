@@ -10,7 +10,7 @@ export default function SectorRotation() {
     const isLoading = !sectors || sectors.length === 0;
 
     // Sort sectors by percent change descending
-    const sortedSectors = [...sectors].sort((a, b) => b.change_pct - a.change_pct);
+    const sortedSectors = isLoading ? [] : [...sectors].sort((a, b) => b.change_pct - a.change_pct);
 
     return (
         <div className="bg-background-card border border-border-default rounded-xl p-4 flex flex-col h-full shadow-sm">

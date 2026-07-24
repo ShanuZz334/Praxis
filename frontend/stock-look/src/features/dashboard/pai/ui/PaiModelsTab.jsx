@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Server, Cloud, Cpu, SlidersHorizontal, Plus, Edit2, Trash2, Play, CheckCircle, AlertCircle, Waypoints, GripVertical, Zap, Timer, Ban } from 'lucide-react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import UiverseDropdown from '@/shared/components/ui/UiverseDropdown';
+import { toast } from 'sonner';
 
 export default function PaiModelsTab() {
     const [temperature, setTemperature] = useState(0.2);
@@ -14,7 +15,7 @@ export default function PaiModelsTab() {
     const [showAddForm, setShowAddForm] = useState(false);
     
     // Custom UI states to replace native browser popups
-    const [toast, setToast] = useState(null);
+    // Custom UI states to replace native browser popups
     const [providerToDelete, setProviderToDelete] = useState(null);
     
     // Drag & Drop State
@@ -22,8 +23,11 @@ export default function PaiModelsTab() {
     const [dragOverIdx, setDragOverIdx] = useState(null);
 
     const showToast = (message, type = 'success') => {
-        setToast({ message, type });
-        setTimeout(() => setToast(null), 3500);
+        if (type === 'error') {
+            toast.error(message);
+        } else {
+            toast.success(message);
+        }
     };
 
     const [formData, setFormData] = useState({
@@ -525,17 +529,7 @@ export default function PaiModelsTab() {
                     </div>
                 </div>
             )}
-        {/* ── Custom Toast Notification ────────────────────────────────────────── */}
-        {toast && (
-            <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg border flex items-center gap-3 animate-in slide-in-from-bottom-5 fade-in duration-300 ${
-                toast.type === 'error' 
-                    ? 'bg-red-500/10 border-red-500/20 text-red-400' 
-                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-            }`}>
-                {toast.type === 'error' ? <AlertCircle size={16} /> : <CheckCircle size={16} />}
-                <span className="text-[13px] font-medium">{toast.message}</span>
-            </div>
-        )}
+        {/* ── Custom Toast Notification Removed (Handled by Sonner) ── */}
 
         {/* ── Confirm Delete Modal ───────────────────────────────────────────── */}
         {providerToDelete && (

@@ -28,6 +28,12 @@ import {
     getUserInfo,
     verifyCredentials,
 } from "../controllers/authController.js";
+import {
+    generateRegistration,
+    verifyRegistration,
+    generateAuthentication,
+    verifyAuthentication,
+} from "../controllers/webauthnController.js";
 import upload from "../middleware/uploadMiddleware.js";
 
 // =============================
@@ -42,6 +48,12 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.get("/getUser", protect, getUserInfo);
 router.post("/verify-credentials", verifyCredentials);
+
+// WebAuthn Routes
+router.get("/webauthn/generate-registration-options", protect, generateRegistration);
+router.post("/webauthn/verify-registration", protect, verifyRegistration);
+router.get("/webauthn/generate-authentication-options", generateAuthentication);
+router.post("/webauthn/verify-authentication", verifyAuthentication);
 
 // =============================
 // Export

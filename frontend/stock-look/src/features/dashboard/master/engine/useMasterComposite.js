@@ -15,7 +15,7 @@ import { TechnicalEngine } from '../../technical/engine/headlessTechnicalParser'
 import { getCompositeState } from '@/shared/global/logic/signals';
 import { getIndicatorConfig, INDICATOR_CONFIG } from '@/shared/config/indicatorConfig';
 import { validateRegistry } from '@/shared/utils/RegistryValidator';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 const formatTitle = (str) => {
     if (!str) return '';

@@ -196,14 +196,6 @@ export default function TechnicalGrid({
                             'Breadth': isIndex ? [CARD_REGISTRY.ad_line.id, CARD_REGISTRY.nh_nl.id, CARD_REGISTRY.breadth_ratio.id, CARD_REGISTRY.trin.id, CARD_REGISTRY.mcclellan.id] : []
                         }[section] || [];
 
-                        let missingCount = 0;
-                        expectedIds.forEach(id => {
-                            const dataKey = id === CARD_REGISTRY.beta_correlation.id ? 'beta' : id;
-                            if (!data || (data[dataKey] === undefined || data[dataKey] === null || data[dataKey] === '--')) {
-                                missingCount++;
-                            }
-                        });
-
                         const rawList = grouped[section];
                         const validDynamicCards = rawList ? rawList.filter(c => !c.id?.startsWith('dummy_')) : [];
                         
@@ -218,15 +210,6 @@ export default function TechnicalGrid({
                                         <span className="text-[10px] px-1.5 py-0.5 rounded border border-border-default bg-background-surface text-text-tertiary font-mono shadow-sm">
                                             {expectedIds.length + sectionCards.length}
                                         </span>
-                                        {missingCount > 0 ? (
-                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/30">
-                                                {missingCount} missing
-                                            </span>
-                                        ) : (
-                                            <span className="text-[10px] px-1.5 py-0.5 rounded border border-border-default bg-emerald-500/10 text-emerald-500 font-mono shadow-sm border-emerald-500/30">
-                                                100%
-                                            </span>
-                                        )}
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start">

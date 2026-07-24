@@ -232,3 +232,47 @@ export const logoutUser = async () => {
         throw error;
     }
 };
+
+// =============================
+// WebAuthn / Passkeys
+// =============================
+
+export const generateRegistrationOptions = async () => {
+    try {
+        const response = await axiosInstance.get("/api/v1/auth/webauthn/generate-registration-options");
+        return response.data;
+    } catch (error) {
+        console.error('Error generating registration options:', error);
+        throw error;
+    }
+};
+
+export const verifyRegistration = async (responseObj) => {
+    try {
+        const response = await axiosInstance.post("/api/v1/auth/webauthn/verify-registration", responseObj);
+        return response.data;
+    } catch (error) {
+        console.error('Error verifying registration:', error);
+        throw error;
+    }
+};
+
+export const generateAuthenticationOptions = async () => {
+    try {
+        const response = await axiosInstance.get("/api/v1/auth/webauthn/generate-authentication-options");
+        return response.data;
+    } catch (error) {
+        console.error('Error generating authentication options:', error);
+        throw error;
+    }
+};
+
+export const verifyAuthentication = async (data) => {
+    try {
+        const response = await axiosInstance.post("/api/v1/auth/webauthn/verify-authentication", data);
+        return response.data;
+    } catch (error) {
+        console.error('Error verifying authentication:', error);
+        throw error;
+    }
+};

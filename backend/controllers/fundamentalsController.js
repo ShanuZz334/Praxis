@@ -33,18 +33,23 @@ export const getFundamentals = async (req, res) => {
                     "Authorization": `Bearer ${auth.accessToken}`
                 };
 
-                // Fetch all 5 endpoints concurrently
+                // Fetch all endpoints concurrently. Mark error: true if they fail.
                 const endpoints = [
-                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/key-ratios`, { headers }).catch(e => { console.log('Ratios Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
-                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/income-statement?type=consolidated&time_period=yearly&fs=true`, { headers }).catch(e => { console.log('Income Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
-                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/balance-sheet?type=consolidated&fs=true`, { headers }).catch(e => { console.log('Balance Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
-                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/cash-flow?type=consolidated&fs=true`, { headers }).catch(e => { console.log('CashFlow Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
-                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/share-holdings`, { headers }).catch(e => { console.log('Holdings Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
-                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/corporate-actions`, { headers }).catch(e => { console.log('CorpActions Error:', e.response?.data || e.message); return { data: { data: [] }}; }),
-                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/profile`, { headers }).catch(e => { console.log('Profile Error:', e.response?.data || e.message); return { data: { data: {} }}; })
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/key-ratios`, { headers }).catch(e => { console.log('Ratios Error:', e.response?.data || e.message); return { error: true, data: { data: [] }}; }),
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/income-statement?type=consolidated&time_period=yearly&fs=true`, { headers }).catch(e => { console.log('Income Error:', e.response?.data || e.message); return { error: true, data: { data: [] }}; }),
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/balance-sheet?type=consolidated&fs=true`, { headers }).catch(e => { console.log('Balance Error:', e.response?.data || e.message); return { error: true, data: { data: [] }}; }),
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/cash-flow?type=consolidated&fs=true`, { headers }).catch(e => { console.log('CashFlow Error:', e.response?.data || e.message); return { error: true, data: { data: [] }}; }),
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/share-holdings`, { headers }).catch(e => { console.log('Holdings Error:', e.response?.data || e.message); return { error: true, data: { data: [] }}; }),
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/corporate-actions`, { headers }).catch(e => { console.log('CorpActions Error:', e.response?.data || e.message); return { error: true, data: { data: [] }}; }),
+                    axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/profile`, { headers }).catch(e => { console.log('Profile Error:', e.response?.data || e.message); return { error: true, data: { data: {} }}; })
                 ];
 
                 const [ratiosRes, incomeRes, balanceRes, cashRes, holdingsRes, corpActionsRes, profileRes] = await Promise.all(endpoints);
+
+                // If critical endpoints failed, throw error to trigger SQLite fallback and avoid poisoning cache
+                if (ratiosRes.error && incomeRes.error && balanceRes.error) {
+                    throw new Error("Upstox API critical fundamental endpoints failed. Triggering fallback.");
+                }
 
                 payload = {
                     ratios: ratiosRes.data?.data || [],

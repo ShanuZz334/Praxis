@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@simplewebauthn/server": "^13.3.2",
     "axios": "^1.18.1",
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^12.11.1",
@@ -29,7 +30,9 @@
     "nodemailer": "^7.0.12",
     "otplib": "^13.1.1",
     "protobufjs": "^8.7.0",
+    "resend": "^6.18.0",
     "socket.io": "^4.8.3",
+    "technicalindicators": "^3.1.0",
     "ws": "^8.21.0"
   },
   "devDependencies": {

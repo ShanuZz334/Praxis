@@ -31,6 +31,7 @@ import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedO
 import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
 import { useSnapshots } from "@/shared/hooks/useSnapshots";
 import { useAiSync } from "@/shared/hooks/useAiSync";
+import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/confidenceEngine";
 import { useDataFreshness } from '@/shared/hooks/useDataFreshness';
 
 
@@ -415,8 +416,6 @@ export default function FundamentalPage() {
 
                   <div className="space-y-3 break-inside-avoid mb-6">
                       <div className="text-[10px] font-bold text-red-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Global & Risk</div>
-                      <DebouncedOverrideInput label="India VIX" overrideKey="india_vix" value={manualOverrides.india_vix} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Crude Oil ($)" overrideKey="crude" value={manualOverrides.crude} onChange={handleOverrideChange} />
                       <DebouncedOverrideInput label="Global Liquidity" overrideKey="global_liq" value={manualOverrides.global_liq} onChange={handleOverrideChange} />
                       <DebouncedOverrideInput label="Sovereign CDS" overrideKey="sovereign_risk" value={manualOverrides.sovereign_risk} onChange={handleOverrideChange} />
                       <DebouncedOverrideInput label="NPA Ratio (%)" overrideKey="npa" value={manualOverrides.npa} onChange={handleOverrideChange} />
@@ -513,11 +512,21 @@ export default function FundamentalPage() {
           const cardName = ID_TO_TITLE[id] || id;
           const configData = getIndicatorConfig(id);
           const credit = configData?.creditScore ?? 5;
+          
+          const isManual = manualOverrides && manualOverrides[id] !== undefined && manualOverrides[id] !== null && manualOverrides[id] !== '';
+          const cardMeta = {
+              hasLiveData: !isManual,
+              isManual: isManual,
+              lastUpdated: resolveTime(!isManual, isManual ? null : id) ? new Date(resolveTime(!isManual, isManual ? null : id)).getTime() : Date.now(),
+              sourcePipeline: isManual ? 'manual' : 'upstox'
+          };
+          const cCard = computeCardConfidence(cardMeta, 'fundamentals');
 
-          return { id, module: cardName, normalized, credit, creditAllocation: credit, score };
+          return { id, module: cardName, normalized, credit, creditAllocation: credit, score, cCard };
       });
 
   const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
+  const headerConfidence = computeHeaderConfidence(cardsForHeader, 31, 'fundamentals');
 
   // Silently Stream the Snapshot to SQLite backend
   useAiSync(
@@ -538,7 +547,7 @@ export default function FundamentalPage() {
               title="Fundamental Composite"
               score={compositeData.compositeScore}
               prevScore={prevCompositeScore} // Calculated from historical snapshots
-              regime={compositeData.regime}
+              regime={{ ...compositeData.regime, confidence: headerConfidence }}
               sections={compositeData.sections}
               tailwinds={compositeData.tailwinds}
               risks={compositeData.risks}

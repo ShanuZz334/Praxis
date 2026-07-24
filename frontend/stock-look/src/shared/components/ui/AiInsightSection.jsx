@@ -83,7 +83,7 @@ export default function AiInsightSection({
 
     const triggerGenerate = useCallback((forceOrEvent) => {
         if (score === null || score === undefined) return;
-        if (coveragePercent < 90) return;
+        if (coveragePercent < 75) return;
 
         const isForce = forceOrEvent === true || (forceOrEvent && forceOrEvent.type === 'click');
         const currentScore = typeof score === 'number' ? score : parseFloat(score) || 0;
@@ -154,7 +154,7 @@ export default function AiInsightSection({
     // Auto-trigger when score becomes available
     // Re-run on score or coverage changes
     useEffect(() => {
-        if (coveragePercent >= 90) {
+        if (coveragePercent >= 75) {
             triggerGenerate();
         }
     }, [score, stockSymbol, triggerGenerate, coveragePercent]);
@@ -251,7 +251,7 @@ export default function AiInsightSection({
                 {/* Action Badge / AI Summary */}
                 <div className="flex items-center gap-3 mb-2 shrink-0">
                     <AnimatePresence mode="wait">
-                        {coveragePercent < 90 ? (
+                        {coveragePercent < 75 ? (
                             <motion.div
                                 key="low-coverage-title"
                                 initial={{ opacity: 0 }}

@@ -28,6 +28,7 @@ import { ThemeProvider } from "@/shared/context/ThemeContext";
 import { DataRegistryProvider } from "@/shared/context/DataRegistryContext";
 import AppRoutes from "./routes";
 import AppShell from "./AppShell";
+import { Toaster } from "@/components/ui/sonner";
 
 // =============================
 // Main Component
@@ -40,6 +41,7 @@ const App = () => {
           <ThemeProvider>
             <AppShell>
               <AppRoutes />
+              <Toaster />
             </AppShell>
           </ThemeProvider>
         </VerificationProvider>

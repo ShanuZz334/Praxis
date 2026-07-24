@@ -30,6 +30,9 @@ import { API_PATHS } from "@/shared/utils/apiPaths";
 import { UserContext } from "@/shared/context/UserContext";
 import { validateEmail } from "@/shared/utils/helper";
 import Loader from "@/shared/components/ui/Loader";
+import { startAuthentication } from "@simplewebauthn/browser";
+import { generateAuthenticationOptions, verifyAuthentication } from "@/services/userService";
+import { Fingerprint } from "lucide-react";
 
 // =============================
 // Main Component
@@ -42,12 +45,47 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [fingerprintFailCount, setFingerprintFailCount] = useState(0);
 
   const { updateUser } = useContext(UserContext);
   const navigate = useNavigate();
 
   // -----------------------------
   // Event Handlers
+  // -----------------------------
+  const handleBiometricLogin = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+      
+      const { options, challengeToken } = await generateAuthenticationOptions();
+      
+      let asseResp;
+      try {
+        asseResp = await startAuthentication({ optionsJSON: options });
+      } catch (err) {
+        throw new Error("Biometric sign in cancelled or failed.");
+      }
+
+      const verificationResp = await verifyAuthentication({
+        response: asseResp,
+        challengeToken
+      });
+
+      if (verificationResp && verificationResp.verified) {
+        updateUser(verificationResp.user, verificationResp.token);
+        navigate("/dashboard/home");
+      } else {
+        throw new Error("Biometric verification failed.");
+      }
+    } catch (err) {
+      console.error(err);
+      setFingerprintFailCount(prev => prev + 1);
+      setError(err.message || "Failed to authenticate with biometrics.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
   // -----------------------------
   /**
    * handleLogin
@@ -99,7 +137,38 @@ const Login = () => {
         Access your trading dashboard
       </p>
 
-      <form onSubmit={handleLogin} className="space-y-3 md:space-y-3">
+      {fingerprintFailCount < 4 ? (
+        <div className="flex flex-col items-center justify-center space-y-8 py-8 animate-in fade-in zoom-in-95 duration-500">
+          <button
+            type="button"
+            onClick={handleBiometricLogin}
+            disabled={isLoading}
+            className="group relative w-32 h-32 rounded-full bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/20 hover:border-blue-500/50 flex flex-col items-center justify-center text-blue-400 hover:text-blue-300 transition-all shadow-[0_0_30px_-10px_rgba(59,130,246,0.2)] hover:shadow-[0_0_50px_-10px_rgba(59,130,246,0.4)] hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+          >
+            {isLoading ? (
+              <Loader size="sm" color="blue" />
+            ) : (
+              <Fingerprint size={64} strokeWidth={1.5} className="group-hover:animate-pulse" />
+            )}
+          </button>
+          
+          <div className="text-center space-y-2">
+            <h3 className="text-lg font-medium text-white/90">Biometric Sign In</h3>
+            <p className="text-xs text-white/50">Tap the icon to unlock with Fingerprint or FaceID</p>
+          </div>
+          
+          {error && <p className="text-red-400/90 text-sm text-center max-w-[250px]">{error}</p>}
+          
+          <button
+            type="button"
+            onClick={() => setFingerprintFailCount(4)}
+            className="text-xs text-white/30 hover:text-white/70 transition-colors underline pt-4"
+          >
+            Use Email & Password instead
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleLogin} className="space-y-3 md:space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
         {/* Email Section */}
         <div>
           <label className="text-xs text-white/70 block mb-2">
@@ -160,6 +229,7 @@ const Login = () => {
           </button>
         </p>
       </form>
+      )}
     </div>
   );
 };
