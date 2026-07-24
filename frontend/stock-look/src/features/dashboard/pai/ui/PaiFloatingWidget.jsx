@@ -6,7 +6,7 @@ import paiIcon from "@/assets/icons/pai-round-bgless.png";
 import paiLabelImg from "@/assets/icons/pai-label-bgless.png";
 import PaiLoader from './PaiLoader';
 import Loader from '@/shared/components/ui/Loader';
-import { X, Send, Sparkles, Globe, AtSign } from 'lucide-react';
+import { X, Send, Sparkles, Globe, AtSign, Brain } from 'lucide-react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { useMentions, inferPageFromChatId } from '@/shared/hooks/useMentions';
 import MentionSuggestionDropdown from '@/shared/components/ui/MentionSuggestionDropdown';
@@ -60,6 +60,52 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     const generationTimeoutRef = useRef(null);
     const [isFetchingHistory, setIsFetchingHistory] = useState(true);
     const [isPanelExpanded, setIsPanelExpanded] = useState(false);
+
+    const [tempModel, setTempModel] = useState(null);
+    const [showModelSelector, setShowModelSelector] = useState(false);
+    const [availableModels, setAvailableModels] = useState([]);
+
+    useEffect(() => {
+        let isMounted = true;
+        const fetchModels = async () => {
+            try {
+                // 1. Fetch live local models
+                const ollamaRes = await axiosInstance.get('/api/v1/ai-settings/providers/ollama/models').catch(() => ({ data: [] }));
+                let localModels = ollamaRes.data || [];
+                
+                // 2. Fetch configured cloud providers
+                const providersRes = await axiosInstance.get('/api/v1/ai-settings/providers').catch(() => ({ data: [] }));
+                const cloudProviders = providersRes.data || [];
+                
+                // 3. Extract unique cloud models
+                const cloudModelsSet = new Set();
+                const cloudModels = [];
+                
+                cloudProviders.forEach(p => {
+                    if (p.providerId === 'ollama') return; // Skip local models mapping
+                    if (p.models) {
+                        Object.values(p.models).forEach(modelStr => {
+                            if (modelStr && !cloudModelsSet.has(modelStr)) {
+                                cloudModelsSet.add(modelStr);
+                                cloudModels.push({
+                                    modelId: modelStr,
+                                    displayName: `${p.displayName}: ${modelStr}`
+                                });
+                            }
+                        });
+                    }
+                });
+
+                if (isMounted) {
+                    setAvailableModels([...cloudModels, ...localModels]);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        };
+        fetchModels();
+        return () => { isMounted = false; };
+    }, []);
 
     // Compute active context name
     const getContextName = (pathname, mode) => {
@@ -166,6 +212,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                 message: cleanText,
                 scope: 'page',
                 cardSnapshots: cardSnapshots.length > 0 ? cardSnapshots : undefined,
+                explicitModel: tempModel,
             });
             
             if (res.data?.message) {
@@ -212,6 +259,8 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
         } else if (!isChatOpen) {
             setShowPanel(false);
             setIsPanelExpanded(false); // Reset when closing
+            setTempModel(null);        // Reset temp model to original setting when closed
+            setShowModelSelector(false);
         } else {
             setShowPanel(true);
         }
@@ -283,7 +332,6 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
         
         // Calculate distance from current drag point to the sidebar dock center
         const dist = Math.hypot(info.point.x - currentRect.centerX, info.point.y - currentRect.centerY);
-        console.log("DRAG DEBUG:", { mouse: info.point, sidebar: sidebarRect, dist });
         
         // Magnetic Snapping: If pulled within 128px, rip it from the cursor and dock it!
         if (dist < 128) {
@@ -425,7 +473,16 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                             className="absolute top-full left-1/2 -translate-x-1/2 mt-4 origin-top bg-background-tooltip backdrop-blur-xl border border-border-default shadow-2xl rounded-2xl overflow-hidden pointer-events-auto flex flex-col z-10"
                         >
                             <div className="flex items-center justify-between p-4 border-b border-border-subtle shrink-0">
-                                <div className="w-6 shrink-0" /> {/* Spacer to perfectly center the logo */}
+                                <button 
+                                    onClick={() => setShowModelSelector(!showModelSelector)}
+                                    className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors shrink-0 group relative ${showModelSelector ? 'bg-blue-500/10' : 'hover:bg-black/5 dark:hover:bg-white/10'}`}
+                                    title="Temporary Model Override"
+                                >
+                                    <Brain className={`w-4 h-4 transition-colors ${showModelSelector || tempModel ? 'text-blue-500' : 'text-text-tertiary group-hover:text-blue-500'}`} />
+                                    {tempModel && !showModelSelector && (
+                                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
+                                    )}
+                                </button>
                                 <div 
                                     className="flex justify-center items-center cursor-pointer relative group"
                                     onDoubleClick={() => setChatMode(p => p === 'global' ? 'contextual' : 'global')}
@@ -444,7 +501,46 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                             </div>
                             <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto no-scrollbar min-w-0 relative">
                                 <AnimatePresence mode="wait">
-                                    {(!isPanelExpanded || isFetchingHistory) ? (
+                                    {showModelSelector ? (
+                                        <motion.div
+                                            key="model-selector"
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -10 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="absolute inset-0 bg-background-app/95 backdrop-blur-xl z-[60] flex flex-col p-5"
+                                        >
+                                            <div className="text-sm font-semibold text-text-primary mb-1">Temporary Model Override</div>
+                                            <div className="text-[11px] text-text-tertiary mb-4 leading-relaxed">
+                                                Select a model to use for this session. It will reset to default when you close the widget.
+                                            </div>
+                                            <div className="flex flex-col gap-2 overflow-y-auto no-scrollbar pb-2">
+                                                <button
+                                                    onClick={() => { setTempModel(null); setShowModelSelector(false); }}
+                                                    className={`px-3 py-2 text-left text-xs rounded-lg transition-colors border ${
+                                                        !tempModel 
+                                                            ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 font-medium' 
+                                                            : 'bg-background-surface border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-default'
+                                                    }`}
+                                                >
+                                                    Default (Global Setting)
+                                                </button>
+                                                {availableModels.map(m => (
+                                                    <button
+                                                        key={m.modelId}
+                                                        onClick={() => { setTempModel(m.modelId); setShowModelSelector(false); }}
+                                                        className={`px-3 py-2 text-left text-xs rounded-lg transition-colors border ${
+                                                            tempModel === m.modelId 
+                                                                ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 font-medium' 
+                                                                : 'bg-background-surface border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-default'
+                                                        }`}
+                                                    >
+                                                        {m.displayName || m.modelId}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    ) : (!isPanelExpanded || isFetchingHistory) ? (
                                         <motion.div 
                                             key="loading"
                                             initial={{ opacity: 0 }}

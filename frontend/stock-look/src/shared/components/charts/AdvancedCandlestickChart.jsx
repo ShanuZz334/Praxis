@@ -80,6 +80,7 @@ export default React.memo(function AdvancedCandlestickChart({
     const anchoredVwapRef = useRef(null);
     const autoFibLinesRef = useRef([]);
     const rsiRef = useRef(null);
+    const lastDataTimeRef = useRef(null);
     
     const [showSupertrend, setShowSupertrend] = useState(false);
     const [showVWAP, setShowVWAP] = useState(false);
@@ -129,8 +130,8 @@ export default React.memo(function AdvancedCandlestickChart({
                 }
             },
             grid: {
-                vertLines: { color: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' },
-                horzLines: { color: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' },
+                vertLines: { color: isLight ? 'rgba(0, 0, 0, 0.09)' : 'rgba(255, 255, 255, 0.05)' },
+                horzLines: { color: isLight ? 'rgba(0, 0, 0, 0.09)' : 'rgba(255, 255, 255, 0.05)' },
             },
             crosshair: {
                 mode: 1,
@@ -152,6 +153,19 @@ export default React.memo(function AdvancedCandlestickChart({
                     else if (typeof time === 'string') date = new Date(time);
                     else return '';
                     if (isNaN(date)) return '';
+
+                    if (lastDataTimeRef.current) {
+                        let lastDate;
+                        const lt = lastDataTimeRef.current;
+                        if (typeof lt === 'number') lastDate = new Date(lt * 1000);
+                        else if (lt.year) lastDate = new Date(lt.year, lt.month - 1, lt.day);
+                        else if (typeof lt === 'string') lastDate = new Date(lt);
+                        
+                        if (lastDate && date > lastDate) {
+                            return ''; // Hide labels for future grid lines
+                        }
+                    }
+
                     if (tickMarkType === 0) return date.getFullYear().toString();
                     if (tickMarkType === 1) return date.toLocaleString('en-US', { month: 'short' });
                     if (tickMarkType === 2) return date.toLocaleString('en-US', { day: 'numeric', month: 'short' });
@@ -169,9 +183,13 @@ export default React.memo(function AdvancedCandlestickChart({
         });
 
         volumeSeriesRef.current = chart.addSeries(HistogramSeries, {
-            color: '#26a69a', priceFormat: { type: 'volume' }, priceScaleId: '',
+            color: '#26a69a', priceFormat: { type: 'volume' }, priceScaleId: 'volume_scale',
+            lastValueVisible: false, priceLineVisible: false
         });
-        chart.priceScale('').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+        chart.priceScale('volume_scale').applyOptions({ 
+            scaleMargins: { top: 0.8, bottom: 0 },
+            visible: false
+        });
 
         undervaluedSeriesRef.current = chart.addSeries(LineSeries, {
             color: 'rgba(34,197,94,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false,
@@ -285,12 +303,18 @@ export default React.memo(function AdvancedCandlestickChart({
             layout: { textColor: _isLight ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)' },
             watermark: { visible: false },
             grid: {
-                vertLines: { color: _isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' },
-                horzLines: { color: _isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' },
+                vertLines: { color: _isLight ? 'rgba(0, 0, 0, 0.09)' : 'rgba(255, 255, 255, 0.05)' },
+                horzLines: { color: _isLight ? 'rgba(0, 0, 0, 0.09)' : 'rgba(255, 255, 255, 0.05)' },
             },
             crosshair: {
-                vertLine: { color: _isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)' },
-                horzLine: { color: _isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)' },
+                vertLine: { 
+                    color: _isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)',
+                    labelBackgroundColor: _isLight ? '#4b5563' : '#4b5563'
+                },
+                horzLine: { 
+                    color: _isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)',
+                    labelBackgroundColor: _isLight ? '#4b5563' : '#4b5563'
+                },
             },
             rightPriceScale: { borderColor: _isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
             timeScale: { borderColor: _isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
@@ -300,19 +324,54 @@ export default React.memo(function AdvancedCandlestickChart({
     // Live update for the latest candle without redrawing the whole chart
     useEffect(() => {
         if (!candleSeriesRef.current || !liveCandle) return;
-        candleSeriesRef.current.update(liveCandle);
-        if (volumeSeriesRef.current) {
-            volumeSeriesRef.current.update({
-                time: liveCandle.time,
-                value: liveCandle.volume || 0,
-                color: liveCandle.close >= liveCandle.open ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)'
-            });
+        try {
+            candleSeriesRef.current.update(liveCandle);
+            if (volumeSeriesRef.current) {
+                volumeSeriesRef.current.update({
+                    time: liveCandle.time,
+                    value: liveCandle.volume || 0,
+                    color: liveCandle.close >= liveCandle.open ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)'
+                });
+            }
+        } catch (e) {
+            // Ignore error if live tick is older than our latest historical candle
         }
     }, [liveCandle]);
 
     useEffect(() => {
         if (!candleSeriesRef.current || !volumeSeriesRef.current || !data || data.length === 0) return;
-        candleSeriesRef.current.setData(data);
+        
+        lastDataTimeRef.current = data[data.length - 1].time;
+        
+        // --- Generate Future Grid Space ---
+        const lastCandle = data[data.length - 1];
+        const futureData = [];
+        if (lastCandle) {
+            if (typeof lastCandle.time === 'number') {
+                const timeDiff = data.length > 1 ? lastCandle.time - data[data.length - 2].time : 86400; // default 1 day
+                let nextTime = lastCandle.time;
+                for (let i = 0; i < 60; i++) {
+                    nextTime += timeDiff;
+                    futureData.push({ time: nextTime });
+                }
+            } else if (typeof lastCandle.time === 'string') {
+                const timeDiffMs = data.length > 1 ? new Date(lastCandle.time).getTime() - new Date(data[data.length - 2].time).getTime() : 86400000;
+                let nextTimeMs = new Date(lastCandle.time).getTime();
+                for (let i = 0; i < 60; i++) {
+                    nextTimeMs += timeDiffMs;
+                    futureData.push({ time: new Date(nextTimeMs).toISOString().split('T')[0] });
+                }
+            } else if (lastCandle.time && lastCandle.time.year) {
+                // business day object fallback
+                let date = new Date(lastCandle.time.year, lastCandle.time.month - 1, lastCandle.time.day);
+                for (let i = 0; i < 60; i++) {
+                    date.setDate(date.getDate() + 1);
+                    futureData.push({ time: { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() } });
+                }
+            }
+        }
+        
+        candleSeriesRef.current.setData([...data, ...futureData]);
         const volumeData = data.map(item => ({
             time: item.time, value: item.volume || 0,
             color: item.close >= item.open ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)'

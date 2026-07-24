@@ -96,7 +96,14 @@ export default function UiverseDropdown({
                                         ${value === opt.value ? 'bg-blue-500/10 text-blue-500 font-medium' : 'text-text-primary'}
                                     `}
                                 >
-                                    {opt.label}
+                                    <div className="flex items-center justify-between w-full">
+                                        <span>{opt.label}</span>
+                                        {opt.badge && (
+                                            <span className="text-[9px] font-bold bg-white/10 text-text-secondary px-1.5 py-0.5 rounded ml-2 uppercase tracking-wider">
+                                                {opt.badge}
+                                            </span>
+                                        )}
+                                    </div>
                                 </button>
                             ))
                         )}

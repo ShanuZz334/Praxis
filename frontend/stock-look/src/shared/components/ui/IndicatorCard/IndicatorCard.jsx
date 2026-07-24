@@ -6,6 +6,7 @@ import { Star, Lightbulb, Plus, BarChart2, Edit2, Check, Settings } from "lucide
 import axiosInstance from "@/shared/utils/axiosInstance";
 import { useCardInsight } from "@/shared/hooks/useCardInsight";
 import { useDataRegistry } from "@/shared/context/DataRegistryContext";
+import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { CARD_REGISTRY } from "@/shared/config/cardRegistry";
 import "@/features/dashboard/pai/ui/PaiLoader.css";
 import {
@@ -383,6 +384,10 @@ export function IndicatorCard({
     generate
   } = useCardInsight(resolvedCardId);
 
+  const dashboardContext = useDashboardContext() || {};
+  const livePrices = dashboardContext.livePrices;
+  const globalSelectedInstrument = dashboardContext.selectedInstrument;
+
   // Trigger insight generation when card expands and has a real value
   useEffect(() => {
     if (!isExpanded) return;
@@ -406,10 +411,16 @@ export function IndicatorCard({
       });
     }
 
+    const liveData = livePrices?.[globalSelectedInstrument];
+    if (liveData) {
+      const pct = liveData.pctChange ? liveData.pctChange.toFixed(2) : 0;
+      contextLines.push(`Live Ticker: ₹${liveData.ltp || 'N/A'} (${liveData.netChange || 0}, ${pct}%)`);
+    }
+
     generate({
       value: rawVal,
       displayName: config.title,
-      stockSymbol: context?.instrumentKey || context?.selectedInstrument?.symbol || 'Unknown',
+      stockSymbol: context?.instrumentKey || context?.selectedInstrument?.symbol || globalSelectedInstrument?.split('|')[1] || 'Unknown',
       scope: 'card',
       additionalContext: contextLines.length ? contextLines.join(' | ') : null
     });

@@ -227,11 +227,11 @@ export default function PaiModelsTab() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-border-default/30">
-                                <th className="py-3 px-2 text-[12px] font-medium text-text-secondary w-10">#</th>
+                                <th className="py-3 px-2 text-[12px] font-medium text-text-secondary w-10 text-center">#</th>
                                 <th className="py-3 px-2 text-[12px] font-medium text-text-secondary">Provider</th>
                                 <th className="py-3 px-2 text-[12px] font-medium text-text-secondary">API Key</th>
-                                <th className="py-3 px-2 text-[12px] font-medium text-text-secondary">Status</th>
-                                <th className="py-3 px-2 text-[12px] font-medium text-text-secondary">Usage</th>
+                                <th className="py-3 px-2 text-[12px] font-medium text-text-secondary text-center">Status</th>
+                                <th className="py-3 px-2 text-[12px] font-medium text-text-secondary text-center">Usage</th>
                                 <th className="py-3 px-2 text-[12px] font-medium text-text-secondary text-right">Actions</th>
                             </tr>
                         </thead>
@@ -291,7 +291,7 @@ export default function PaiModelsTab() {
                                         <td className="py-3 px-2">
                                             <button 
                                                 onClick={() => handleToggle(p.providerId)}
-                                                className={`w-[64px] flex justify-center px-2 py-0.5 rounded text-[11px] font-medium ${p.isActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}
+                                                className={`mx-auto w-[64px] flex justify-center px-2 py-0.5 rounded text-[11px] font-medium ${p.isActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}
                                             >
                                                 {p.isActive ? 'Active' : 'Inactive'}
                                             </button>
@@ -301,24 +301,21 @@ export default function PaiModelsTab() {
                                                 const status = p.limitStatus || 'healthy';
                                                 if (status === 'warning') {
                                                     return (
-                                                        <div title="Approaching rate limit" className="flex items-center justify-center gap-1.5 text-amber-500 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 w-[100px]">
-                                                            <Timer size={13} />
-                                                            <span className="text-[11px] font-medium">Throttling</span>
+                                                        <div title="Approaching rate limit: Throttling" className="flex items-center justify-center text-amber-500 w-full">
+                                                            <Timer size={18} />
                                                         </div>
                                                     );
                                                 }
                                                 if (status === 'exhausted') {
                                                     return (
-                                                        <div title="Rate limit reached" className="flex items-center justify-center gap-1.5 text-red-500 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20 w-[100px]">
-                                                            <Ban size={13} />
-                                                            <span className="text-[11px] font-medium">Blocked</span>
+                                                        <div title="Rate limit reached: Blocked" className="flex items-center justify-center text-red-500 w-full">
+                                                            <AlertCircle size={18} />
                                                         </div>
                                                     );
                                                 }
                                                 return (
-                                                    <div title="API limits healthy" className="flex items-center justify-center gap-1.5 text-green-600 dark:text-emerald-400 bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20 w-[100px]">
-                                                        <Zap size={13} />
-                                                        <span className="text-[11px] font-medium">Unthrottled</span>
+                                                    <div title="API limits healthy: Unthrottled" className="flex items-center justify-center text-emerald-500 w-full">
+                                                        <CheckCircle size={18} />
                                                     </div>
                                                 );
                                             })()}

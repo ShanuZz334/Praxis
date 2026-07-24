@@ -20,27 +20,21 @@ export function useCardInsight(targetId) {
     const [error, setError] = useState(null);
     const [meta, setMeta] = useState(null); // { provider, model, latencyMs, usedCustomPrompt }
 
-    // Guard against calling generate on an unmounted component
+    // Refs for throttling
     const mountedRef = useRef(true);
+    const lastExecuteRef = useRef(0);
+    const timeoutRef = useRef(null);
+    const latestArgsRef = useRef(null);
 
-    /**
-     * generate — call this to trigger an AI insight for the card.
-     *
-     * @param {object} options
-     * @param {any}    options.value          — the current card value (number or string)
-     * @param {string} options.displayName    — human-readable name shown to AI (e.g. "Nifty P/E")
-     * @param {string} options.stockSymbol    — active stock/index (e.g. "NIFTY 50", "RELIANCE")
-     * @param {string} [options.scope]        — 'card' (default) | 'page' | 'global'
-     * @param {string} [options.additionalContext] — optional extra context string
-     */
-    const generate = useCallback(async ({
-        value,
-        displayName,
-        stockSymbol,
-        scope = 'card',
-        additionalContext = null,
-        pageData = null
-    } = {}) => {
+    const executeGenerate = useCallback(async (options) => {
+        const {
+            value,
+            displayName,
+            stockSymbol,
+            scope = 'card',
+            additionalContext = null,
+            pageData = null
+        } = options;
         if (!targetId) {
             console.warn('[useCardInsight] No targetId provided — skipping');
             return;
@@ -82,6 +76,41 @@ export function useCardInsight(targetId) {
             if (mountedRef.current) setIsLoading(false);
         }
     }, [targetId]);
+
+    /**
+     * generate — public facing function that throttles calls to executeGenerate.
+     * Ensures we only hit the AI once every 10 seconds max.
+     */
+    const generate = useCallback((options = {}) => {
+        if (!targetId) {
+            console.warn('[useCardInsight] No targetId provided — skipping');
+            return;
+        }
+
+        const now = Date.now();
+        const timeSinceLast = now - lastExecuteRef.current;
+        latestArgsRef.current = options;
+
+        if (timeSinceLast >= 10000) {
+            // It's been over 10s, fire immediately
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
+            lastExecuteRef.current = now;
+            executeGenerate(latestArgsRef.current);
+        } else {
+            // Within 10s, schedule a trailing execution
+            if (!timeoutRef.current) {
+                timeoutRef.current = setTimeout(() => {
+                    timeoutRef.current = null;
+                    if (!mountedRef.current) return;
+                    lastExecuteRef.current = Date.now();
+                    executeGenerate(latestArgsRef.current);
+                }, 10000 - timeSinceLast);
+            }
+        }
+    }, [executeGenerate, targetId]);
 
     return { insight, isLoading, error, meta, generate };
 }

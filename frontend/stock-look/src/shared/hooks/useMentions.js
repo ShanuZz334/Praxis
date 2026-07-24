@@ -14,6 +14,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useDataRegistry } from '../context/DataRegistryContext';
 import { CARD_REGISTRY } from '../config/cardRegistry';
+import { useDashboardContext } from '../context/DashboardContext';
 
 /**
  * inferPageFromChatId — resolves a chatId to a pageId via CARD_REGISTRY.
@@ -34,7 +35,89 @@ export function inferPageFromChatId(chatId) {
 }
 
 export function useMentions(scopePageId = null) {
-    const { getAtMentionCandidates, resolveAtMention } = useDataRegistry();
+    const { getAtMentionCandidates: getRegistryCandidates, resolveAtMention: resolveRegistryMention } = useDataRegistry();
+    const { livePrices, selectedInstrument } = useDashboardContext();
+
+    const getAtMentionCandidates = useCallback((pageId, query = '') => {
+        const q = query.toLowerCase().trim();
+        const registryCandidates = getRegistryCandidates(pageId, query);
+
+        const customMentions = [
+            {
+                id: 'nifty',
+                displayName: 'NIFTY 50',
+                page: 'global',
+                section: 'Markets',
+                hasLiveData: true,
+                value: livePrices?.['NSE_INDEX|Nifty 50']?.ltp || 'N/A'
+            },
+            {
+                id: 'banknifty',
+                displayName: 'NIFTY BANK',
+                page: 'global',
+                section: 'Markets',
+                hasLiveData: true,
+                value: livePrices?.['NSE_INDEX|Nifty Bank']?.ltp || 'N/A'
+            },
+            {
+                id: 'instrument',
+                displayName: selectedInstrument?.split('|')?.[1] || 'Selected Instrument',
+                page: 'global',
+                section: 'Markets',
+                hasLiveData: true,
+                value: livePrices?.[selectedInstrument]?.ltp || 'N/A'
+            }
+        ];
+
+        const filteredCustom = customMentions.filter(c => 
+            !q || 
+            c.id.includes(q) || 
+            c.displayName.toLowerCase().includes(q)
+        );
+
+        return [...filteredCustom, ...registryCandidates];
+    }, [getRegistryCandidates, livePrices, selectedInstrument]);
+
+    const resolveAtMention = useCallback((query) => {
+        const q = query?.toLowerCase().trim();
+        if (!q) return null;
+        
+        const formatContext = (data) => `Live Tick Price: ${data?.ltp || 'N/A'}, Net Change: ${data?.netChange || '0'}, Percent Change: ${data?.pctChange?.toFixed(2) || '0'}%`;
+
+        if (q === 'nifty' || q === 'nifty 50') {
+            const data = livePrices?.['NSE_INDEX|Nifty 50'];
+            return {
+                cardId: 'nifty',
+                displayName: 'NIFTY 50',
+                value: data?.ltp || 'N/A',
+                score: null, signal: null, confidence: null,
+                additionalContext: formatContext(data)
+            };
+        }
+        if (q === 'banknifty' || q === 'nifty bank') {
+            const data = livePrices?.['NSE_INDEX|Nifty Bank'];
+            return {
+                cardId: 'banknifty',
+                displayName: 'NIFTY BANK',
+                value: data?.ltp || 'N/A',
+                score: null, signal: null, confidence: null,
+                additionalContext: formatContext(data)
+            };
+        }
+        const selName = (selectedInstrument?.split('|')?.[1] || '').toLowerCase();
+        if (q === 'instrument' || (selName && q === selName)) {
+            const data = livePrices?.[selectedInstrument];
+            return {
+                cardId: 'instrument',
+                displayName: selectedInstrument?.split('|')?.[1] || 'Selected Instrument',
+                value: data?.ltp || 'N/A',
+                score: null, signal: null, confidence: null,
+                additionalContext: formatContext(data)
+            };
+        }
+
+        return resolveRegistryMention(query);
+    }, [resolveRegistryMention, livePrices, selectedInstrument]);
 
     // The text fragment after the last unresolved @ (null = no active mention query)
     const [mentionQuery, setMentionQuery] = useState(null);

@@ -29,11 +29,28 @@ import logo2Bgless from "@/assets/icons/praxis logo 2 bgless.png"; // dark mode 
 import praxisBgless1 from "@/assets/icons/praxis bgless 1.png"; // light mode Praxis text (black)
 import praxisBgless2 from "@/assets/icons/praxis bgless 2.png"; // dark mode Praxis text (blue)
 import ThemeToggle from "@/shared/components/ui/ThemeToggle";
+import { Database, AlertTriangle } from 'lucide-react';
+import { upstoxService } from "@/shared/services/upstoxService";
 
 const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const [isWidgetOpen, setIsWidgetOpen] = useState(false);
+  const [upstoxConnected, setUpstoxConnected] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkUpstox = async () => {
+      const status = await upstoxService.checkStatus();
+      if (isMounted) setUpstoxConnected(status.connected);
+    };
+    checkUpstox();
+    const interval = setInterval(checkUpstox, 300000); // Check every 5 minutes
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const { livePrices: prices, selectedInstrument, filteredInstruments } = useDashboardContext();
 
@@ -159,6 +176,18 @@ const Navbar = ({ onToggleSidebar }) => {
           alt="Praxis"
           className="h-16 object-contain scale-[1.3]"
         />
+        {!upstoxConnected && (
+            <button 
+                onClick={() => navigate('/admin')}
+                className="absolute -right-10 text-rose-500 hover:text-rose-400 transition-colors flex items-center cursor-pointer"
+                title="Upstox API Disconnected. Go to Data Center to re-authenticate."
+            >
+                <div className="relative">
+                    <Database size={16} className="animate-pulse" />
+                    <AlertTriangle size={8} className="absolute -top-1 -right-1 text-rose-500 fill-rose-500/20" />
+                </div>
+            </button>
+        )}
       </div>
 
       {/* RIGHT */}

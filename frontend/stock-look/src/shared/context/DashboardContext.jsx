@@ -27,6 +27,19 @@ export const DashboardProvider = ({ children }) => {
     useEffect(() => {
         localStorage.setItem('dash_expiry', selectedExpiry);
     }, [selectedExpiry]);
+
+    const [additionalCharts, setAdditionalCharts] = useState(() => {
+        try {
+            const saved = localStorage.getItem('praxis_master_charts');
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    });
+
+    useEffect(() => {
+        localStorage.setItem('praxis_master_charts', JSON.stringify(additionalCharts));
+    }, [additionalCharts]);
     
     // Live Prices State
     const [livePrices, setLivePrices] = useState({
@@ -120,6 +133,7 @@ export const DashboardProvider = ({ children }) => {
             "GLOBAL_INDICATOR|USDINR",
             "GLOBAL_INDICATOR|BZUSD",
             selectedInstrument,
+            ...additionalCharts.map(c => typeof c === 'string' ? c : c.value),
             ...getNifty50Keys()
         ].filter(Boolean)));
 
@@ -190,7 +204,7 @@ export const DashboardProvider = ({ children }) => {
             socket.off("market:sectors", handleSectors);
             socket.off("market:news", handleNews);
         };
-    }, [selectedInstrument]);
+    }, [selectedInstrument, additionalCharts]);
 
     const value = {
         selectedCategory,
@@ -205,7 +219,9 @@ export const DashboardProvider = ({ children }) => {
         fiiDiiFlow,
         smartlists,
         sectors,
-        marketNews
+        marketNews,
+        additionalCharts,
+        setAdditionalCharts
     };
 
     return (

@@ -20,6 +20,16 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
     const backfillPollRef = useRef(null);
     const lastTotalCandlesRef = useRef(0);
 
+    // Synchronously wipe data and show loader when instrument or timeframe changes
+    // This prevents a 1-frame flash of the old chart data before useEffect kicks in
+    const prevKeyRef = useRef(`${instrumentKey}-${timeframe}`);
+    if (prevKeyRef.current !== `${instrumentKey}-${timeframe}`) {
+        prevKeyRef.current = `${instrumentKey}-${timeframe}`;
+        setLoading(true);
+        setData([]);
+        setLiveCandle(null);
+    }
+
     const getLimit = (tf) => {
         if (tf === 'day') return 730;
         if (tf === 'week') return 104;
@@ -32,6 +42,7 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
         setLoading(true);
         setError(null);
         setData([]); // Clear old data immediately for a clean reload
+        setLiveCandle(null); // Clear stale live candle
         try {
             const response = await axiosInstance.get('/api/v1/upstox/candles', {
                 params: { instrument: instrumentKey, timeframe, limit: getLimit(timeframe) }

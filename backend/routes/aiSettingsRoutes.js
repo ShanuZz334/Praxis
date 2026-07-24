@@ -116,7 +116,8 @@ router.patch('/providers/:providerId/toggle', async (req, res) => {
 
 router.patch('/providers/reorder', async (req, res) => {
     try {
-        const order = req.body; 
+        const order = req.body.order || req.body; 
+        if (!Array.isArray(order)) return res.status(400).json({ error: "Invalid payload" });
         for (const item of order) {
             await AiProvider.findOneAndUpdate(
                 { providerId: item.providerId },

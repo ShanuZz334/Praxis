@@ -20,7 +20,10 @@ const normalizeTime = (t) => t;
 function toPixel(p, chart, series) {
     if (!p || !chart || !series) return null;
     try {
-        const x = chart.timeScale().timeToCoordinate(p.time);
+        let x = chart.timeScale().timeToCoordinate(p.time);
+        if (x == null && p.logical != null) {
+            x = chart.timeScale().logicalToCoordinate(p.logical);
+        }
         const y = series.priceToCoordinate(p.price);
         if (x == null || y == null || isNaN(x) || isNaN(y)) return null;
         return { x, y };
@@ -74,9 +77,10 @@ export default function DrawingCanvas({
         const y = clientY - rect.top;
         try {
             const time = chart.timeScale().coordinateToTime(x);
+            const logical = chart.timeScale().coordinateToLogical(x);
             const price = series.coordinateToPrice(y);
             if (time == null || price == null) return null;
-            return { time, price, x, y };
+            return { time, price, logical, x, y };
         } catch { return null; }
     }, [chartRef, candleSeriesRef]);
 
@@ -136,6 +140,7 @@ export default function DrawingCanvas({
 
         allDrawings.forEach(d => {
             const isHovered = hoveredIdRef.current === d.id;
+            const showDetails = isHovered || d === draftRef.current;
             const color = d.color || '#60a5fa';
             const p1 = toPixel(d.p1, chart, series);
             if (!p1) return;
@@ -412,7 +417,16 @@ export default function DrawingCanvas({
                 const entryPrice = d.p1.price;
                 const stopPrice = d.p2.price;
                 const risk = Math.abs(entryPrice - stopPrice);
-                if (risk === 0) return;
+                
+                if (risk === 0) {
+                    if (d === draftRef.current) {
+                        ctx.beginPath();
+                        ctx.arc(p1.x, p1.y, 4, 0, Math.PI * 2);
+                        ctx.fillStyle = isLong ? '#34d399' : '#f87171';
+                        ctx.fill();
+                    }
+                    return;
+                }
                 
                 // Dynamic multi-target levels
                 const tp1Price = isLong ? entryPrice + risk * 2 : entryPrice - risk * 2;
@@ -447,13 +461,13 @@ export default function DrawingCanvas({
                 const w = boxRight - boxLeft;
                 
                 // Colors
-                const greenFill = 'rgba(52, 211, 153, 0.18)';
-                const greenFillLight = 'rgba(52, 211, 153, 0.10)';
-                const redFill = 'rgba(248, 113, 113, 0.22)';
-                const greenBorder = 'rgba(52, 211, 153, 0.5)';
-                const redBorder = 'rgba(248, 113, 113, 0.5)';
-                const greenText = '#34d399';
-                const redText = '#f87171';
+                const greenFill = 'rgba(52, 211, 153, 0.06)';
+                const greenFillLight = 'rgba(52, 211, 153, 0.03)';
+                const redFill = 'rgba(248, 113, 113, 0.08)';
+                const greenBorder = 'rgba(52, 211, 153, 0.4)';
+                const redBorder = 'rgba(248, 113, 113, 0.4)';
+                const greenText = 'rgba(52, 211, 153, 0.75)';
+                const redText = 'rgba(248, 113, 113, 0.75)';
                 
                 ctx.save();
                 
@@ -492,35 +506,43 @@ export default function DrawingCanvas({
                 
                 // TP2 label
                 ctx.fillStyle = isLong ? greenText : redText;
-                ctx.fillText(`TP2: ₹${tp2Price.toFixed(2)}  (${pctTP2}%)  ${rr2}R`, boxLeft + 5, tp2Y + (isLong ? 13 : -5));
-                ctx.font = '9px Inter, sans-serif';
-                ctx.fillStyle = 'rgba(255,255,255,0.45)';
-                ctx.fillText(`P&L: +₹${profitTP2.toLocaleString('en-IN')}`, boxLeft + 5, tp2Y + (isLong ? 24 : -15));
+                ctx.fillText(showDetails ? `TP2: ₹${tp2Price.toFixed(2)}  (${pctTP2}%)  ${rr2}R` : 'TP2', boxLeft + 5, tp2Y + (isLong ? -16 : 13));
+                if (showDetails) {
+                    ctx.font = '9px Inter, sans-serif';
+                    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+                    ctx.fillText(`P&L: +₹${profitTP2.toLocaleString('en-IN')}`, boxLeft + 5, tp2Y + (isLong ? -5 : 24));
+                }
                 
                 // TP1 label
                 ctx.font = 'bold 10px Inter, sans-serif';
                 ctx.fillStyle = isLong ? greenText : redText;
-                ctx.fillText(`TP1: ₹${tp1Price.toFixed(2)}  (${pctTP1}%)  ${rr1}R`, boxLeft + 5, tp1Y + (isLong ? 13 : -5));
-                ctx.font = '9px Inter, sans-serif';
-                ctx.fillStyle = 'rgba(255,255,255,0.45)';
-                ctx.fillText(`P&L: +₹${profitTP1.toLocaleString('en-IN')}`, boxLeft + 5, tp1Y + (isLong ? 24 : -15));
+                ctx.fillText(showDetails ? `TP1: ₹${tp1Price.toFixed(2)}  (${pctTP1}%)  ${rr1}R` : 'TP1', boxLeft + 5, tp1Y + (isLong ? 13 : -5));
+                if (showDetails) {
+                    ctx.font = '9px Inter, sans-serif';
+                    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+                    ctx.fillText(`P&L: +₹${profitTP1.toLocaleString('en-IN')}`, boxLeft + 5, tp1Y + (isLong ? 24 : -15));
+                }
                 
                 // Entry label (center of entry line)
                 ctx.font = 'bold 10px Inter, sans-serif';
-                ctx.fillStyle = '#fff';
-                ctx.fillText(`ENTRY: ₹${entryPrice.toFixed(2)}`, boxLeft + 5, entryY - 6);
-                ctx.font = '9px Inter, sans-serif';
-                ctx.fillStyle = 'rgba(255,255,255,0.6)';
-                const rrActual = (Math.abs(tp1Price - entryPrice) / risk).toFixed(1);
-                ctx.fillText(`R/R: ${rrActual}  |  Qty: ${qty}  |  Risk: ₹${lossAmt.toLocaleString('en-IN')}`, boxLeft + 5, entryY + 12);
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.fillText(showDetails ? `ENTRY: ₹${entryPrice.toFixed(2)}` : 'ENTRY', boxLeft + 5, entryY - 6);
+                if (showDetails) {
+                    ctx.font = '9px Inter, sans-serif';
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    const rrActual = (Math.abs(tp1Price - entryPrice) / risk).toFixed(1);
+                    ctx.fillText(`R/R: ${rrActual}  |  Qty: ${qty}  |  Risk: ₹${lossAmt.toLocaleString('en-IN')}`, boxLeft + 5, entryY + 12);
+                }
                 
                 // Stop label
                 ctx.font = 'bold 10px Inter, sans-serif';
                 ctx.fillStyle = isLong ? redText : greenText;
-                ctx.fillText(`SL: ₹${stopPrice.toFixed(2)}  (-${pctStop}%)  -1R`, boxLeft + 5, stopY + (isLong ? -5 : 13));
-                ctx.font = '9px Inter, sans-serif';
-                ctx.fillStyle = 'rgba(255,255,255,0.45)';
-                ctx.fillText(`Loss: -₹${lossAmt.toLocaleString('en-IN')}`, boxLeft + 5, stopY + (isLong ? -16 : 24));
+                ctx.fillText(showDetails ? `SL: ₹${stopPrice.toFixed(2)}  (-${pctStop}%)  -1R` : 'SL', boxLeft + 5, stopY + (isLong ? 13 : -16));
+                if (showDetails) {
+                    ctx.font = '9px Inter, sans-serif';
+                    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+                    ctx.fillText(`Loss: -₹${lossAmt.toLocaleString('en-IN')}`, boxLeft + 5, stopY + (isLong ? 24 : -5));
+                }
                 
                 // Position type badge (top-right corner)
                 ctx.font = 'bold 10px Inter, sans-serif';
@@ -541,7 +563,16 @@ export default function DrawingCanvas({
                 const stopPrice = d.p2.price;
                 const isLong = entryPrice > stopPrice; // auto-detect direction
                 const risk = Math.abs(entryPrice - stopPrice);
-                if (risk === 0) return;
+                
+                if (risk === 0) {
+                    if (d === draftRef.current) {
+                        ctx.beginPath();
+                        ctx.arc(p1.x, p1.y, 4, 0, Math.PI * 2);
+                        ctx.fillStyle = '#fbbf24';
+                        ctx.fill();
+                    }
+                    return;
+                }
                 
                 // Scalp: 1R partial, 1.5R full target
                 const partialPrice = isLong ? entryPrice + risk : entryPrice - risk;      // 1R
@@ -572,13 +603,13 @@ export default function DrawingCanvas({
                 const w = boxRight - boxLeft;
                 
                 // Scalp amber/orange theme
-                const amberFill = 'rgba(251, 191, 36, 0.15)';
-                const amberFillLight = 'rgba(251, 191, 36, 0.08)';
-                const redFill = 'rgba(248, 113, 113, 0.22)';
-                const amberBorder = 'rgba(251, 191, 36, 0.5)';
-                const redBorder = 'rgba(248, 113, 113, 0.5)';
-                const amberText = '#fbbf24';
-                const redText = '#f87171';
+                const amberFill = 'rgba(251, 191, 36, 0.06)';
+                const amberFillLight = 'rgba(251, 191, 36, 0.03)';
+                const redFill = 'rgba(248, 113, 113, 0.08)';
+                const amberBorder = 'rgba(251, 191, 36, 0.4)';
+                const redBorder = 'rgba(248, 113, 113, 0.4)';
+                const amberText = 'rgba(251, 191, 36, 0.75)';
+                const redText = 'rgba(248, 113, 113, 0.75)';
                 
                 ctx.save();
                 
@@ -620,36 +651,42 @@ export default function DrawingCanvas({
                 
                 // Target label (1.5R)
                 ctx.fillStyle = amberText;
-                const tDir = isLong ? 13 : -5;
-                const tDirAlt = isLong ? -5 : 13;
-                ctx.fillText(`EXIT: ₹${targetPrice.toFixed(2)}  (${pctTarget}%)  1.5R`, boxLeft + 5, targetY + tDir);
-                ctx.font = '9px Inter, sans-serif';
-                ctx.fillStyle = 'rgba(255,255,255,0.45)';
-                ctx.fillText(`Total P&L: +₹${Math.round(totalProfit).toLocaleString('en-IN')}`, boxLeft + 5, targetY + (isLong ? 24 : -15));
+                ctx.fillText(showDetails ? `EXIT: ₹${targetPrice.toFixed(2)}  (${pctTarget}%)  1.5R` : 'EXIT', boxLeft + 5, targetY + (isLong ? -16 : 13));
+                if (showDetails) {
+                    ctx.font = '9px Inter, sans-serif';
+                    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+                    ctx.fillText(`Total P&L: +₹${Math.round(totalProfit).toLocaleString('en-IN')}`, boxLeft + 5, targetY + (isLong ? -5 : 24));
+                }
                 
                 // Partial exit label (1R)
                 ctx.font = 'bold 10px Inter, sans-serif';
                 ctx.fillStyle = amberText;
-                ctx.fillText(`PARTIAL: ₹${partialPrice.toFixed(2)}  1R  (50% exit)`, boxLeft + 5, partialY + tDir);
-                ctx.font = '9px Inter, sans-serif';
-                ctx.fillStyle = 'rgba(255,255,255,0.4)';
-                ctx.fillText(`Book: ${halfQty} of ${qty} qty → +₹${Math.round(partialProfit).toLocaleString('en-IN')}`, boxLeft + 5, partialY + (isLong ? 24 : -15));
+                ctx.fillText(showDetails ? `PARTIAL: ₹${partialPrice.toFixed(2)}  1R  (50% exit)` : 'PARTIAL', boxLeft + 5, partialY + (isLong ? 13 : -5));
+                if (showDetails) {
+                    ctx.font = '9px Inter, sans-serif';
+                    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                    ctx.fillText(`Book: ${halfQty} of ${qty} qty → +₹${Math.round(partialProfit).toLocaleString('en-IN')}`, boxLeft + 5, partialY + (isLong ? 24 : -15));
+                }
                 
                 // Entry label
                 ctx.font = 'bold 10px Inter, sans-serif';
-                ctx.fillStyle = '#fff';
-                ctx.fillText(`ENTRY: ₹${entryPrice.toFixed(2)}`, boxLeft + 5, entryY - 6);
-                ctx.font = '9px Inter, sans-serif';
-                ctx.fillStyle = 'rgba(255,255,255,0.6)';
-                ctx.fillText(`Qty: ${qty}  |  Risk: ₹${lossAmt.toLocaleString('en-IN')}  |  R/R: 1.5`, boxLeft + 5, entryY + 12);
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.fillText(showDetails ? `ENTRY: ₹${entryPrice.toFixed(2)}` : 'ENTRY', boxLeft + 5, entryY - 6);
+                if (showDetails) {
+                    ctx.font = '9px Inter, sans-serif';
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.fillText(`Qty: ${qty}  |  Risk: ₹${lossAmt.toLocaleString('en-IN')}  |  R/R: 1.5`, boxLeft + 5, entryY + 12);
+                }
                 
                 // Stop label
                 ctx.font = 'bold 10px Inter, sans-serif';
                 ctx.fillStyle = redText;
-                ctx.fillText(`SL: ₹${stopPrice.toFixed(2)}  (-${pctStop}%)`, boxLeft + 5, stopY + tDirAlt);
-                ctx.font = '9px Inter, sans-serif';
-                ctx.fillStyle = 'rgba(255,255,255,0.45)';
-                ctx.fillText(`Loss: -₹${lossAmt.toLocaleString('en-IN')}`, boxLeft + 5, stopY + (isLong ? -16 : 24));
+                ctx.fillText(showDetails ? `SL: ₹${stopPrice.toFixed(2)}  (-${pctStop}%)` : 'SL', boxLeft + 5, stopY + (isLong ? 13 : -16));
+                if (showDetails) {
+                    ctx.font = '9px Inter, sans-serif';
+                    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+                    ctx.fillText(`Loss: -₹${lossAmt.toLocaleString('en-IN')}`, boxLeft + 5, stopY + (isLong ? 24 : -5));
+                }
                 
                 // Badge
                 ctx.font = 'bold 10px Inter, sans-serif';
@@ -869,10 +906,10 @@ export default function DrawingCanvas({
         // Update in-progress draft p2
         const draft = draftRef.current;
         if (draft && draft.type === 'brush') {
-            draftRef.current = { ...draft, points: [...draft.points, { price: pt.price, time: pt.time }] };
+            draftRef.current = { ...draft, points: [...draft.points, { price: pt.price, time: pt.time, logical: pt.logical }] };
         } else if (draft && draft.type !== 'text') {
-            if (draft.step === 1) draftRef.current = { ...draft, p2: { price: pt.price, time: pt.time } };
-            if (draft.step === 2) draftRef.current = { ...draft, p3: { price: pt.price, time: pt.time } };
+            if (draft.step === 1) draftRef.current = { ...draft, p2: { price: pt.price, time: pt.time, logical: pt.logical } };
+            if (draft.step === 2) draftRef.current = { ...draft, p3: { price: pt.price, time: pt.time, logical: pt.logical } };
         }
     }, [activeTool, pixelToChartPoint, getHoveredId]);
 
@@ -885,7 +922,7 @@ export default function DrawingCanvas({
 
         // Single-click tools: hline, hray, vline
         if (activeTool === 'hline' || activeTool === 'hray' || activeTool === 'vline') {
-            addDrawing({ id, type: activeTool, p1: { price: pt.price, time: pt.time }, color: activeColor });
+            addDrawing({ id, type: activeTool, p1: { price: pt.price, time: pt.time, logical: pt.logical }, color: activeColor });
             setActiveTool('cursor');
             return;
         }
@@ -894,7 +931,7 @@ export default function DrawingCanvas({
         if (activeTool === 'text') {
             setTextPrompt({
                 id,
-                p1: { price: pt.price, time: pt.time },
+                p1: { price: pt.price, time: pt.time, logical: pt.logical },
                 color: activeColor,
                 x: e.clientX,
                 y: e.clientY
@@ -908,8 +945,8 @@ export default function DrawingCanvas({
             draftRef.current = {
                 id,
                 type: 'brush',
-                p1: { price: pt.price, time: pt.time },
-                points: [{ price: pt.price, time: pt.time }],
+                p1: { price: pt.price, time: pt.time, logical: pt.logical },
+                points: [{ price: pt.price, time: pt.time, logical: pt.logical }],
                 color: activeColor,
                 step: 1
             };
@@ -924,11 +961,11 @@ export default function DrawingCanvas({
                 // 3-point tools (channel)
                 if (activeTool === 'channel') {
                     if (draft.step === 1) {
-                        draftRef.current = { ...draft, p2: { price: pt.price, time: pt.time }, step: 2 };
+                        draftRef.current = { ...draft, p2: { price: pt.price, time: pt.time, logical: pt.logical }, step: 2 };
                         return;
                     }
                     if (draft.step === 2) {
-                        addDrawing({ id: draft.id, type: draft.type, p1: draft.p1, p2: draft.p2, p3: { price: pt.price, time: pt.time }, color: draft.color });
+                        addDrawing({ id: draft.id, type: draft.type, p1: draft.p1, p2: draft.p2, p3: { price: pt.price, time: pt.time, logical: pt.logical }, color: draft.color });
                         draftRef.current = null;
                         setActiveTool('cursor');
                         return;
@@ -936,7 +973,7 @@ export default function DrawingCanvas({
                 }
 
                 // Normal 2-point drag click
-                addDrawing({ id: draft.id, type: draft.type, p1: draft.p1, p2: { price: pt.price, time: pt.time }, color: draft.color });
+                addDrawing({ id: draft.id, type: draft.type, p1: draft.p1, p2: { price: pt.price, time: pt.time, logical: pt.logical }, color: draft.color });
                 draftRef.current = null;
                 setActiveTool('cursor');
                 return;
@@ -945,8 +982,8 @@ export default function DrawingCanvas({
                 draftRef.current = {
                     id,
                     type: activeTool,
-                    p1: { price: pt.price, time: pt.time },
-                    p2: { price: pt.price, time: pt.time },
+                    p1: { price: pt.price, time: pt.time, logical: pt.logical },
+                    p2: { price: pt.price, time: pt.time, logical: pt.logical },
                     color: activeColor,
                     step: 1,
                 };
