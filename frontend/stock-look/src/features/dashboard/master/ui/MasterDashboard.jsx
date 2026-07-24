@@ -149,20 +149,23 @@ export default function MasterDashboard() {
             </div>
             <div className="flex-1 w-full relative flex flex-col">
                 {candlesLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 backdrop-blur-sm rounded-lg">
-                        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background-app/80 z-20 backdrop-blur-md rounded-xl border border-border-subtle">
+                        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin shadow-lg" />
+                        <div className="mt-3 text-xs font-semibold text-text-secondary tracking-widest uppercase">Loading Chart...</div>
                     </div>
                 )}
-                <AdvancedCandlestickChart 
-                    data={candleData} 
-                    liveCandle={liveCandle}
-                    showValuationBands={false} 
-                    showEvents={false}
-                    isBackfilling={isBackfilling}
-                    instrumentKey={selectedInstrument || 'NSE:NIFTY50-INDEX'}
-                    timeframe={selectedTimeframe}
-                />
-
+                {(!candlesLoading || candleData?.length > 0) && (
+                    <AdvancedCandlestickChart 
+                        key={`${instKey}-${selectedTimeframe}`}
+                        data={candleData} 
+                        liveCandle={liveCandle}
+                        showValuationBands={false} 
+                        showEvents={false}
+                        isBackfilling={isBackfilling}
+                        instrumentKey={selectedInstrument || 'NSE:NIFTY50-INDEX'}
+                        timeframe={selectedTimeframe}
+                    />
+                )}
             </div>
         </div>
     );

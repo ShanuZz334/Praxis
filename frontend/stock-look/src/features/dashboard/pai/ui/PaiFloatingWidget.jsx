@@ -464,13 +464,23 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                             className="flex flex-col gap-3"
                                         >
                                             {messages.map((msg, index) => {
-                                                const isLastUserMsg = msg.role === 'user' && index === messages.findLastIndex(m => m.role === 'user');
+                                                // Robust alternative to findLastIndex for older browsers
+                                                let isLastUserMsg = false;
+                                                if (msg.role === 'user') {
+                                                    for (let i = messages.length - 1; i >= index; i--) {
+                                                        if (messages[i].role === 'user') {
+                                                            isLastUserMsg = (i === index);
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                                
                                                 return (
                                                 <motion.div 
                                                     ref={isLastUserMsg ? lastUserMsgRef : null}
                                                     initial={{ opacity: 0, y: 10 }} 
                                                     animate={{ opacity: 1, y: 0 }} 
-                                                    transition={{ delay: index * 0.05, duration: 0.3 }}
+                                                    transition={{ duration: 0.3 }}
                                                     key={msg.id} 
                                                     className={`flex gap-2 w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                                 >

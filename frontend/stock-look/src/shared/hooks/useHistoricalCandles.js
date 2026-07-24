@@ -31,6 +31,7 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
         if (!instrumentKey) return;
         setLoading(true);
         setError(null);
+        setData([]); // Clear old data immediately for a clean reload
         try {
             const response = await axiosInstance.get('/api/v1/upstox/candles', {
                 params: { instrument: instrumentKey, timeframe, limit: getLimit(timeframe) }
