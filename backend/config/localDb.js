@@ -225,6 +225,19 @@ export const initLocalDb = () => {
             last_run_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY(instrument_key, timeframe)
         );
+
+        -- 17. Gauge Score History (Append Only)
+        CREATE TABLE IF NOT EXISTS card_score_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            instrument_key TEXT NOT NULL,
+            page_name TEXT NOT NULL,
+            section_name TEXT NOT NULL,
+            card_name TEXT NOT NULL,
+            signal INTEGER,
+            gauge_score REAL,
+            timestamp DATETIME NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_card_history ON card_score_history(instrument_key, page_name, card_name, timestamp);
     `);
 
     try {
@@ -250,6 +263,18 @@ export const upsertAiCardStore = (instrument_key, page_name, section_name, card_
         stmt.run(instrument_key, page_name, section_name, card_name, timestamp, JSON.stringify(data_payload));
     } catch (e) {
         console.error("SQLite upsertAiCardStore error:", e.message);
+    }
+};
+
+export const insertCardScoreHistory = (instrument_key, page_name, section_name, card_name, timestamp, signal, gauge_score) => {
+    try {
+        const stmt = db.prepare(`
+            INSERT INTO card_score_history (instrument_key, page_name, section_name, card_name, timestamp, signal, gauge_score)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `);
+        stmt.run(instrument_key, page_name, section_name, card_name, timestamp, signal, gauge_score);
+    } catch (e) {
+        console.error("SQLite insertCardScoreHistory error:", e.message);
     }
 };
 

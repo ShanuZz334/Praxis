@@ -42,9 +42,9 @@ export default function CreditRatingCard({ cardId, manualOverrides = {}, lastUpd
             data={{
                 currentValueObj: { label: 'Rating', value: rating || '--' },
                 details: [
-                    agency && { label: 'Agency', value: agency, isManual: false },
-                    outlook && { label: 'Outlook', value: outlook, isManual: false },
-                ].filter(Boolean),
+                    { label: 'Agency', value: agency || '--', isManual: true },
+                    { label: 'Outlook', value: outlook || '--', isManual: true },
+                ],
                 score: score,
                 bias: bias,
                 confidence: '80%',

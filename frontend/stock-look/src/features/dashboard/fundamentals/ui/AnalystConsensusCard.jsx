@@ -21,7 +21,10 @@ export default function AnalystConsensusCard({ cardId, manualOverrides = {}, las
     else if (rating?.toLowerCase().includes('sell')) { score = 20; bias = 'Bearish'; }
     else if (rating) { score = 50; }
 
-    const configData = getIndicatorConfig(CARD_REGISTRY.analyst_consensus.id) || { creditScore: 6, impactWeight: 4.0, aiModel: 'Engine v2' };
+    const baseConfig = getIndicatorConfig(CARD_REGISTRY.analyst_consensus.id);
+    const configData = (baseConfig && baseConfig.impactWeight !== "0.0%") 
+        ? baseConfig 
+        : { creditScore: 6, impactWeight: "4.0%", aiModel: 'Engine v2' };
 
     return (
         <IndicatorCard
@@ -36,12 +39,12 @@ export default function AnalystConsensusCard({ cardId, manualOverrides = {}, las
                 aiModel: configData.aiModel
             }}
             data={{
-                currentValueObj: { label: 'Consensus', value: rating || '--' },
+                currentValueObj: { label: 'Consensus', value: rating || '--', isManual: true },
                 details: [
-                    targetPrice !== null && { label: 'Target Price', value: `₹${targetPrice.toFixed(2)}`, isManual: false },
-                    upside !== null && { label: 'Upside', value: `${upside > 0 ? '+' : ''}${upside.toFixed(2)}%`, isManual: false },
-                    analystCount !== null && { label: 'Analysts', value: analystCount, isManual: false },
-                ].filter(Boolean),
+                    { label: 'Target Price', value: targetPrice !== null && !isNaN(targetPrice) ? `₹${targetPrice.toFixed(2)}` : '--', isManual: true },
+                    { label: 'Upside', value: upside !== null && !isNaN(upside) ? `${upside > 0 ? '+' : ''}${upside.toFixed(2)}%` : '--', isManual: false },
+                    { label: 'Analysts', value: analystCount !== null && !isNaN(analystCount) ? analystCount : '--', isManual: true },
+                ],
                 score: score,
                 bias: bias,
                 confidence: '60%',

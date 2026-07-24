@@ -3,10 +3,21 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
-export default function BetaCorrelationCard({ cardId, data, lastUpdated }) {
+export default function BetaCorrelationCard({ cardId, data, manualOverride, lastUpdated }) {
     // Expecting data: { beta: 1.2, correlation: 0.85 }
-    const beta = data?.beta ?? null;
+    let beta = data?.beta ?? null;
     const correlation = data?.correlation ?? null;
+
+    let isManual = false;
+    if (manualOverride !== undefined && manualOverride !== null && manualOverride !== '') {
+        const parsed = parseFloat(manualOverride);
+        if (!isNaN(parsed)) {
+            beta = parsed;
+            isManual = true;
+        }
+    }
+
+    const isLiveData = data?.beta !== undefined && data?.beta !== null;
 
     let score = null;
     let bias = 'Neutral';
@@ -25,14 +36,14 @@ export default function BetaCorrelationCard({ cardId, data, lastUpdated }) {
             config={{
                 title: 'Beta (vs Nifty)',
                 category: 'Trend',
-                mode: 'AUTO', // Assuming calculated from price history
+                mode: (isLiveData && !isManual) ? 'AUTO' : 'MANUAL',
                 creditScore: configData.creditScore,
-                updateTime: typeof lastUpdated === 'function' ? lastUpdated(beta !== null) : (lastUpdated || '--:--'),
-                source: 'System',
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData && !isManual) : (lastUpdated || '--:--'),
+                source: (isLiveData && !isManual) ? 'System' : 'Manual',
                 aiModel: configData.aiModel
             }}
             data={{
-                currentValueObj: { label: 'Beta', value: beta !== null ? beta.toFixed(2) : '--' },
+                currentValueObj: { label: 'Beta', value: beta !== null ? beta.toFixed(2) : '--', isManual },
                 details: [
                     correlation !== null && { label: 'Correlation', value: correlation.toFixed(2), isManual: false },
                 ].filter(Boolean),

@@ -104,7 +104,7 @@ export default function PeerComparisonTable({ data, selectedInstrument }) {
             axiosInstance.post('/api/v1/intelligence/card-insight', {
                 metric: 'Peer Comparison',
                 value: allPeers, 
-                stockSymbol: currentKey || 'Unknown',
+                stockSymbol: currentSymbol || 'Unknown',
                 module: 'Fundamentals',
                 isPeerComparison: true
             }, { signal: controller.signal })

@@ -1,26 +1,26 @@
 import React from 'react';
-
-import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
+import { cleanNum } from '@/lib/utils';
+import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { formatCompactCurrency } from '@/shared/utils/formatters';
 import { scoreInstitutionalFlow, generateAiInsightFIIDIIFlowCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function FIIDIIFlowCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function FIIDIIFlowCard({ cardId, data = null, manualOverrides = {}, lastUpdated }) {
     // Live Automated Data
     const liveFlowData = data?.fii_dii_flow;
     const isLive = !!liveFlowData;
 
     // Core Value States
-    const fiiFlow = isLive
-        ? liveFlowData.fii_cash
-        : (manualOverride !== undefined && manualOverride !== null && manualOverride !== '') 
-            ? cleanNum(manualOverride) : null;
+    const fiiFlow = isLive && liveFlowData.fii?.['NSE_EQ|CASH']?.net !== undefined
+        ? liveFlowData.fii['NSE_EQ|CASH'].net
+        : (manualOverrides.fii !== undefined && manualOverrides.fii !== null && manualOverrides.fii !== '') 
+            ? cleanNum(manualOverrides.fii) : null;
             
-    const diiFlow = isLive
-        ? liveFlowData.dii_cash
-        : (data?.manualDiiFlow !== undefined && data?.manualDiiFlow !== null && data?.manualDiiFlow !== '')
-            ? cleanNum(data.manualDiiFlow) : null;
+    const diiFlow = isLive && liveFlowData.dii?.['NSE_EQ|CASH']?.net !== undefined
+        ? liveFlowData.dii['NSE_EQ|CASH'].net
+        : (manualOverrides.dii !== undefined && manualOverrides.dii !== null && manualOverrides.dii !== '')
+            ? cleanNum(manualOverrides.dii) : null;
 
     // Centralized Config
     const configData = getIndicatorConfig(CARD_REGISTRY.fii_dii_flow.id);
@@ -29,7 +29,7 @@ export default function FIIDIIFlowCard({ cardId, data = null, manualOverride, la
     const { score, bias, confidence, netFlow } = scoreInstitutionalFlow(fiiFlow, diiFlow);
     const aiInsightText = generateAiInsightFIIDIIFlowCard(fiiFlow, diiFlow, netFlow);
 
-        return (
+    return (
         <IndicatorCard
             cardId={cardId}
             config={{
@@ -42,11 +42,15 @@ export default function FIIDIIFlowCard({ cardId, data = null, manualOverride, la
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Net Flow', value: netFlow !== null && !isNaN(netFlow) ? formatCompactCurrency(netFlow * 10000000) : '--' },
+                currentValueObj: { 
+                    label: 'Net Flow', 
+                    value: netFlow !== null && !isNaN(netFlow) ? formatCompactCurrency(netFlow * 10000000) : '--',
+                    isManual: !isLive
+                },
                 details: [
-                    fiiFlow !== null && !isNaN(fiiFlow) && { label: 'FII Flow', value: formatCompactCurrency(fiiFlow * 10000000), isManual: !isLive },
-                    diiFlow !== null && !isNaN(diiFlow) && { label: 'DII Flow', value: formatCompactCurrency(diiFlow * 10000000), isManual: !isLive }
-                ].filter(Boolean),
+                    { label: 'FII Flow', value: fiiFlow !== null && !isNaN(fiiFlow) ? formatCompactCurrency(fiiFlow * 10000000) : '--', isManual: !isLive },
+                    { label: 'DII Flow', value: diiFlow !== null && !isNaN(diiFlow) ? formatCompactCurrency(diiFlow * 10000000) : '--', isManual: !isLive }
+                ],
                 score: score ?? null,
                 bias: bias || 'Neutral',
                 confidence: confidence || '85%',
@@ -55,7 +59,7 @@ export default function FIIDIIFlowCard({ cardId, data = null, manualOverride, la
             chartData={{
                 points: [],
                 valueKey: 'value',
-                valueName: 'Flow (₹ Cr)'
+                valueName: 'Flow (? Cr)'
             }}
             insights={{
                 aiInsight: aiInsightText || 'No insights available.',
@@ -68,3 +72,4 @@ export default function FIIDIIFlowCard({ cardId, data = null, manualOverride, la
         />
     );
 }
+

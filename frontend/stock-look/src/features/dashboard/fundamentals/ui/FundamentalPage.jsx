@@ -30,6 +30,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedOverrideInput";
 import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
 import { useSnapshots } from "@/shared/hooks/useSnapshots";
+import { useAiSync } from "@/shared/hooks/useAiSync";
 import { useDataFreshness } from '@/shared/hooks/useDataFreshness';
 
 
@@ -517,6 +518,16 @@ export default function FundamentalPage() {
       });
 
   const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
+
+  // Silently Stream the Snapshot to SQLite backend
+  useAiSync(
+      selectedInstrument, 
+      "Fundamentals", 
+      {
+          ...compositeData,
+          cards: cardsForHeader
+      }
+  );
 
   return (
     <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen">

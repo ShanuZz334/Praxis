@@ -17,7 +17,7 @@ export function useAiSync(instrumentKey, pageName, snapshot) {
         
         // Prevent spamming the backend with the exact same payload repeatedly
         // We only want to sync when the actual underlying composite score or data changes
-        const hashStr = `${instrumentKey}-${snapshot.compositeScore}-${snapshot.regime || ''}`;
+        const hashStr = `${instrumentKey}-${snapshot.compositeScore}-${JSON.stringify(snapshot.regime || {})}`;
         
         if (lastSyncedRef.current === hashStr) {
             return; // Already synced this exact snapshot

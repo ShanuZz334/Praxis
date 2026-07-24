@@ -7,10 +7,16 @@ export default function CorporateActionsCard({ cardId, data, lastUpdated }) {
     const actions = Array.isArray(data?.corporate_actions) ? data.corporate_actions : [];
     
     // Sort descending by date if available
-    // Assuming action shape: { date: '2023-10-15', purpose: 'Dividend - Rs 5', type: 'dividend' }
     const sortedActions = [...actions].slice(0, 3); // Take top 3 most recent
 
     const isLiveData = sortedActions.length > 0;
+
+    const formatAction = (a) => {
+        let val = a.name || a.purpose || a.type || 'Action';
+        if (a.amount) val += ` - ₹${a.amount}`;
+        else if (a.ratio) val += ` (${a.ratio})`;
+        return val;
+    };
     
     const configData = getIndicatorConfig(CARD_REGISTRY.corporate_actions.id) || { creditScore: 4, impactWeight: 2.0, aiModel: 'Engine v2' };
 
@@ -29,11 +35,11 @@ export default function CorporateActionsCard({ cardId, data, lastUpdated }) {
             data={{
                 currentValueObj: { 
                     label: 'Latest Action', 
-                    value: isLiveData ? sortedActions[0].purpose || sortedActions[0].type : '--' 
+                    value: isLiveData ? formatAction(sortedActions[0]) : '--' 
                 },
                 details: isLiveData ? sortedActions.slice(1).map((a, i) => ({
-                    label: a.date || `Action ${i+2}`,
-                    value: a.purpose || a.type,
+                    label: a.expiry_date || a.date || `Action ${i+2}`,
+                    value: formatAction(a),
                     isManual: false
                 })) : [],
                 score: isLiveData ? 50 : null, // Neutral score since this is mostly informational

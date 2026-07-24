@@ -105,12 +105,6 @@ export default function TechnicalPage() {
     // Engine: Process the data via ai-snapshot events
     const compositeData = useTechnicalComposite(isIndex);
 
-    // Silently Stream the Snapshot to SQLite backend
-    useAiSync(
-        selectedInstrument, 
-        "Technical", 
-        compositeData
-    );
 
     const { 
         compositeScore,
@@ -158,6 +152,16 @@ export default function TechnicalPage() {
                 score,
             };
         });
+
+    // Silently Stream the Snapshot to SQLite backend
+    useAiSync(
+        selectedInstrument, 
+        "Technical", 
+        {
+            ...compositeData,
+            cards: cardsForHeader
+        }
+    );
 
     const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
 
@@ -209,10 +213,11 @@ export default function TechnicalPage() {
                 )}
  
                 {/* Volatility & Custom */}
-                {(!hasData('kc') || (!isIndex && !hasData('cmf'))) && (
+                {(!hasData('kc') || !hasData('beta_correlation') || (!isIndex && !hasData('cmf'))) && (
                     <div className="space-y-2">
                         <div className="text-xs font-bold text-purple-500 mb-2">Volatility & Advanced</div>
                         {!hasData('kc') && <DebouncedOverrideInput label="Keltner Channels" overrideKey="kc" value={manualOverrides.kc} onChange={handleOverrideChange} />}
+                        {!hasData('beta_correlation') && <DebouncedOverrideInput label="Beta (vs Nifty)" overrideKey="beta_correlation" value={manualOverrides.beta_correlation} onChange={handleOverrideChange} />}
                         {!isIndex && !hasData('cmf') && <DebouncedOverrideInput label="CMF" overrideKey="cmf" value={manualOverrides.cmf} onChange={handleOverrideChange} />}
                     </div>
                 )}

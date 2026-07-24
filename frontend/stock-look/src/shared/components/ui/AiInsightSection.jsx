@@ -16,6 +16,16 @@ import { Sparkles, RefreshCw } from "lucide-react";
 import { useCardInsight } from "@/shared/hooks/useCardInsight";
 import { useDataRegistry } from "@/shared/context/DataRegistryContext";
 import PortalTooltip from "@/shared/components/ui/PortalTooltip";
+import AiInsightModal from "@/shared/components/ui/AiInsightModal";
+import { FO_EQUITIES, FO_INDICES } from "@/shared/utils/foInstruments";
+
+function resolveReadableSymbol(instrumentKey) {
+    if (!instrumentKey) return null;
+    const match = FO_EQUITIES.find(e => e.value === instrumentKey) || FO_INDICES.find(i => i.value === instrumentKey);
+    if (match) return match.label;
+    const parts = instrumentKey.split('|');
+    return parts.length > 1 ? parts[1] : instrumentKey;
+}
 
 // ─── Resolve targetId from URL path + instrument mode ─────────────────────────
 function resolveTargetId(path, isIndex) {
@@ -77,7 +87,7 @@ export default function AiInsightSection({
 
         const isForce = forceOrEvent === true || (forceOrEvent && forceOrEvent.type === 'click');
         const currentScore = typeof score === 'number' ? score : parseFloat(score) || 0;
-        const currentSymbol = stockSymbol || "Market";
+        const currentSymbol = resolveReadableSymbol(stockSymbol) || "Market";
         
         const lastScore = lastStateRef.current.score;
         const lastSymbol = lastStateRef.current.symbol;
@@ -121,10 +131,10 @@ export default function AiInsightSection({
         const structuredData = getPageStructuredData(resolvedPageId);
         const hasStructuredData = structuredData.sections?.some(s => s.cards?.length > 0);
 
-        const pageData = masterPayload
-            ? masterPayload
-            : hasStructuredData
-                ? structuredData  // full { pageId, compositeScore, sections: [{name, cards: [{id, displayName, value, score, signal}]}] }
+        const pageData = hasStructuredData
+            ? structuredData  // full { pageId, compositeScore, sections: [{name, cards: [{id, displayName, value, score, signal}]}] }
+            : masterPayload
+                ? masterPayload
                 : {
                     sections: sections.map(s => ({ name: s.label, score: s.score })),
                     cards: cards.map(c => ({ id: c.id, name: c.title || c.id, score: c.normalized, signal: c.state?.label, weight: c.credit }))
@@ -150,13 +160,16 @@ export default function AiInsightSection({
     }, [score, stockSymbol, triggerGenerate, coveragePercent]);
 
     const [displayedText, setDisplayedText] = useState("");
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
     const intervalRef = useRef(null);
     const prevInsightRef = useRef(null);
 
-    // Extract summary and body
-    const sentences = insight ? insight.match(/[^.!?]+[.!?]+/g) || [insight] : [];
-    const aiSummary = sentences.length > 0 ? sentences[0].trim() : "";
-    const aiBody = sentences.length > 1 ? sentences.slice(1).join(' ').trim() : "";
+    // Extract insight, stripping out markdown formatting like ### and **
+    const cleanInsight = insight ? insight.replace(/[#*]/g, '').trim() : "";
+    // We no longer split into a 'summary' and 'body'. The entire text is the body.
+    const aiSummary = "";
+    const aiBody = cleanInsight;
 
     useEffect(() => {
         if (!insight || insight === prevInsightRef.current) return;
@@ -189,7 +202,12 @@ export default function AiInsightSection({
     const showSkeleton = isLoading && !insight;
 
     return (
-        <div className="absolute inset-0 p-6 flex flex-col justify-center group overflow-hidden bg-background-card">
+        <>
+        <div 
+            className="absolute inset-0 p-6 flex flex-col justify-center group overflow-hidden bg-background-card cursor-pointer"
+            onDoubleClick={() => setIsModalOpen(true)}
+            title="Double click to open interactive chat"
+        >
             {/* Background Ambient Glow */}
             <motion.div
                 className="absolute inset-0 opacity-10 dark:opacity-20 transition-opacity duration-1000 group-hover:opacity-20 dark:group-hover:opacity-40"
@@ -335,5 +353,12 @@ export default function AiInsightSection({
                 />
             </div>
         </div>
+        
+        <AiInsightModal 
+            open={isModalOpen} 
+            onClose={handleCloseModal} 
+            targetId={targetId} 
+        />
+        </>
     );
 }

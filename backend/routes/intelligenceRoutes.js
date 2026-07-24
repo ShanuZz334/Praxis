@@ -1,5 +1,5 @@
 import express from "express";
-import { getLatestAiPageSnapshot, getAiPageHistory, upsertAiCardStore } from "../config/localDb.js";
+import { getLatestAiPageSnapshot, getAiPageHistory, upsertAiCardStore, insertCardScoreHistory } from "../config/localDb.js";
 import InstrumentOverride from "../models/InstrumentOverride.js";
 import { protect } from "../middleware/authMiddleware.js";
 import aiGateway from "../ai-gateway/index.js";
@@ -19,9 +19,9 @@ router.get("/history", protect, async (req, res) => {
             return res.status(400).json({ error: "instrument_key is required" });
         }
 
-        const page_name = type === "fundamental" ? "Fundamental" : 
+        const page_name = (type === "fundamental" || type === "fundamentals") ? "Fundamentals" : 
                           type === "technical" ? "Technical" : 
-                          type === "options" ? "Options" : "Fundamental";
+                          type === "options" ? "Options" : "Fundamentals";
 
         const history = getAiPageHistory(instrument_key, page_name, parseInt(limit));
 
@@ -47,9 +47,9 @@ router.get("/latest", protect, async (req, res) => {
         const { instrument_key, type = "fundamental" } = req.query;
         if (!instrument_key) return res.status(400).json({ error: "instrument_key is required" });
 
-        const page_name = type === "fundamental" ? "Fundamental" : 
+        const page_name = (type === "fundamental" || type === "fundamentals") ? "Fundamentals" : 
                           type === "technical" ? "Technical" : 
-                          type === "options" ? "Options" : "Fundamental";
+                          type === "options" ? "Options" : "Fundamentals";
 
         const snapshot = getLatestAiPageSnapshot(instrument_key, page_name);
 
@@ -118,6 +118,22 @@ router.post("/sync", protect, async (req, res) => {
                     nowIso,
                     card
                 );
+
+                // Insert into gauge score history (append-only)
+                const signal = typeof card.normalized === 'number' ? card.normalized : null;
+                const gauge_score = typeof card.score === 'number' ? card.score : null;
+                
+                if (gauge_score !== null) {
+                    insertCardScoreHistory(
+                        instrument_key,
+                        page_name,
+                        "Cards",
+                        card.id,
+                        nowIso,
+                        signal,
+                        gauge_score
+                    );
+                }
             }
         }
 

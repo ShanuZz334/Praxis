@@ -90,7 +90,7 @@ export default function InterestCoverageCard({ cardId, data, manualOverride, las
                     { label: 'Safety Zone', value: safetyZone, isManual: false },
                     sectorCoverage !== null && !isNaN(sectorCoverage) && { label: 'Sector Avg', value: `${sectorCoverage.toFixed(2)}x`, isManual: false },
                 ].filter(Boolean),
-                score: score ?? 0,
+                score: score,
                 bias: bias ?? 'Neutral',
                 confidence: `${confidence}%`,
                 impactWeight: configData?.impactWeight ?? 7.0

@@ -12,7 +12,7 @@ import paiLogoLightCenter from '@/assets/images/icon 2-Photoroom.png';
 import paiLogoDarkCenter from '@/assets/images/icon 4-Photoroom.png';
 import axiosInstance from '@/shared/utils/axiosInstance';
 
-export default function PaiChatArea({ activeChatId, chatTitle, chatType, refreshTrigger }) {
+export default function PaiChatArea({ activeChatId, chatTitle, chatType, refreshTrigger, isPopup = false }) {
     const navigate = useNavigate();
     const { theme, toggleTheme } = useTheme();
     const [messages, setMessages] = useState([]);
@@ -225,20 +225,24 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                 </div>
 
                 <div className="flex justify-end items-center gap-1">
-                    <button
-                        onClick={toggleTheme}
-                        className="p-2 text-text-tertiary hover:text-text-primary transition-colors rounded-lg hover:bg-background-elevated"
-                        title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-                    >
-                        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                    </button>
-                    <button
-                        onClick={() => navigate('/dashboard/pai/settings')}
-                        className="p-2 text-text-tertiary hover:text-text-primary transition-colors rounded-lg hover:bg-background-elevated"
-                        title="PAI Settings"
-                    >
-                        <Settings size={18} />
-                    </button>
+                    {!isPopup && (
+                        <>
+                            <button
+                                onClick={toggleTheme}
+                                className="p-2 text-text-tertiary hover:text-text-primary transition-colors rounded-lg hover:bg-background-elevated"
+                                title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+                            >
+                                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                            </button>
+                            <button
+                                onClick={() => navigate('/dashboard/pai/settings')}
+                                className="p-2 text-text-tertiary hover:text-text-primary transition-colors rounded-lg hover:bg-background-elevated"
+                                title="PAI Settings"
+                            >
+                                <Settings size={18} />
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -312,7 +316,7 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
 
                     {/* Input Area */}
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background-app via-background-app to-transparent pt-10 pb-6 px-4 md:px-8">
-                        <div className="max-w-4xl mx-auto pr-16 md:pr-32">
+                        <div className={`max-w-4xl mx-auto ${!isPopup ? 'pr-16 md:pr-32' : ''}`}>
                             {/* @mention dropdown — rendered above the form */}
                             <div className="relative">
                                 {mentions.isOpen && (
@@ -367,18 +371,20 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                         </div>
 
                         {/* Model Selector Dropdown (Absolute Bottom Right) */}
-                        <div className="absolute bottom-6 right-4 md:right-8">
-                            <UiverseDropdown
-                                options={modelOptions}
-                                value={selectedModel}
-                                onChange={(val) => setSelectedModel(val)}
-                                className="w-auto min-w-[160px] md:min-w-[200px] max-w-[220px] md:max-w-[280px]"
-                                dropup={true}
-                                hideSearch={true}
-                                alignRight={true}
-                                matchWidth={true}
-                            />
-                        </div>
+                        {!isPopup && (
+                            <div className="absolute bottom-6 right-4 md:right-8">
+                                <UiverseDropdown
+                                    options={modelOptions}
+                                    value={selectedModel}
+                                    onChange={(val) => setSelectedModel(val)}
+                                    className="w-auto min-w-[160px] md:min-w-[200px] max-w-[220px] md:max-w-[280px]"
+                                    dropup={true}
+                                    hideSearch={true}
+                                    alignRight={true}
+                                    matchWidth={true}
+                                />
+                            </div>
+                        )}
                     </div>
                 </>
             )}

@@ -238,7 +238,7 @@ export default function TechnicalGrid({
                                         <SMA200Card cardId={CARD_REGISTRY.sma_200.id} data={data} manualOverride={manualOverrides?.sma_200} lastUpdated={resolveTime(!!data?.sma_200, CARD_REGISTRY.sma_200.id)} />
                                         <ADXCard cardId={CARD_REGISTRY.adx.id} data={data} manualOverride={manualOverrides?.adx} lastUpdated={resolveTime(!!data?.adx, CARD_REGISTRY.adx.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
                                         <SupertrendCard cardId={CARD_REGISTRY.supertrend.id} data={data} manualOverride={manualOverrides?.supertrend} lastUpdated={resolveTime(!!data?.supertrend, CARD_REGISTRY.supertrend.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <BetaCorrelationCard cardId={CARD_REGISTRY.beta_correlation.id} data={data} lastUpdated={resolveTime(!!data?.beta, CARD_REGISTRY.beta_correlation.id)} />
+                                        <BetaCorrelationCard cardId={CARD_REGISTRY.beta_correlation.id} data={data} manualOverride={manualOverrides?.beta_correlation} lastUpdated={resolveTime(!!data?.beta, CARD_REGISTRY.beta_correlation.id)} />
                                     </>)}
                                     {section === 'Momentum' && (<>
                                         <RSICard cardId={CARD_REGISTRY.rsi.id} data={data} manualOverride={manualOverrides?.rsi} lastUpdated={resolveTime(!!data?.rsi, CARD_REGISTRY.rsi.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />

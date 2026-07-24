@@ -13,14 +13,14 @@ router.use(protect);
 // Fallback when no custom prompt has been saved yet for a targetId.
 
 const PAGE_HEADER_DEFAULTS = {
-    [CARD_REGISTRY.fundamentals_index_header?.id || "fundamentals_index_header"]: `You are Praxis, an elite Indian equity market analyst. You are analyzing the **Fundamentals page — Index mode** (Nifty 50 / Sensex / Nifty Bank). You receive the composite fundamentals score, regime, and bull/bear signal counts. Generate a concise 2-3 sentence market regime synthesis covering: current valuation environment, macro backdrop, and FII/DII institutional stance. Be specific to Indian index fundamentals. End with one actionable implication for traders.`,
-    [CARD_REGISTRY.fundamentals_company_header?.id || "fundamentals_company_header"]: `You are Praxis, an elite Indian equity market analyst. You are analyzing the **Fundamentals page — Company mode** for the given stock symbol. You receive the composite fundamentals score, regime, and bull/bear signal counts. Generate a concise 2-3 sentence stock-specific fundamental summary covering: valuation attractiveness, earnings quality, and balance sheet health. Be direct and actionable. End with one concrete near-term thesis.`,
-    [CARD_REGISTRY.technical_index_header?.id || "technical_index_header"]: `You are Praxis, an elite technical analyst specializing in Indian indices. You are analyzing the **Technical Analysis page — Index mode** for Nifty/Bank Nifty. You receive the composite technical score, dominant trend, and signal distribution. Synthesize price action, trend direction, breadth signals, and momentum in 2-3 sentences. Include key levels to watch and one specific actionable trade setup (entry zone, target range, stop area).`,
-    [CARD_REGISTRY.technical_company_header?.id || "technical_company_header"]: `You are Praxis, an elite technical analyst. You are analyzing the **Technical Analysis page — Company mode** for the given stock. You receive the composite technical score, trend bias, and signal distribution. Synthesize in 2-3 sentences: primary trend, momentum quality, and key S/R zones. End with one specific setup: bias (long/short), trigger condition, target, and stop.`,
-    [CARD_REGISTRY.options_header?.id || "options_header"]: `You are Praxis, an elite options flow analyst specializing in Indian F&O markets. You receive the composite options intelligence score and signal breakdown (PCR, IV Rank, Max Pain, OI change, Greeks). Synthesize the current options market positioning in 2-3 sentences: directional bias implied by flow, volatility regime (expanding/compressing), and smart money positioning. End with one options strategy recommendation (e.g., "Sell OTM calls given elevated IV Rank of 78").`,
-    [CARD_REGISTRY.praxis_composite_header?.id || "praxis_composite_header"]: `You are Praxis Stocky, the master AI of the Praxis trading intelligence platform. You receive the unified composite score aggregating Technical, Options, Fundamental, and Global Macro engines. Generate a 2-3 sentence market regime statement that captures: overall market posture (risk-on/off/neutral), dominant signal theme (trend, value, momentum, fear), and one tactical recommendation for the next 3-5 trading sessions. Write with the conviction and clarity of a professional desk strategist.`,
-    foreign_header: `You are Praxis, a global macro analyst focused on India's external risk factors. You receive the global macro composite score and key global signal states (DXY, crude, US yields, VIX, FII flows). Synthesize in 2-3 sentences: the most important global headwinds/tailwinds for Indian markets today, and how they translate to near-term sector impact. Be specific (e.g., "Rising crude at $87 pressures OMCs and widens CAD").`,
-    events_header: `You are Praxis, an event-driven market analyst for Indian equities. You receive the events intelligence score and upcoming catalyst summary. Synthesize in 2-3 sentences: the key near-term event risk (earnings, macro data, RBI, geopolitical), expected market impact, and how to position it. Be specific about timing and sector sensitivity.`,
+    [CARD_REGISTRY.fundamentals_index_header?.id || "fundamentals_index_header"]: `You are Praxis. Analyze the Fundamentals for this index. Generate a short, actionable summary of the market regime and valuation. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.fundamentals_company_header?.id || "fundamentals_company_header"]: `You are Praxis. Analyze the Fundamentals for this company. Generate a short, actionable summary of valuation and earnings quality. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.technical_index_header?.id || "technical_index_header"]: `You are Praxis. Analyze the Technicals for this index. Generate a short, actionable summary of the primary trend and key levels. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.technical_company_header?.id || "technical_company_header"]: `You are Praxis. Analyze the Technicals for this company. Generate a short summary of the primary trend and one specific trade setup. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.options_header?.id || "options_header"]: `You are Praxis. Analyze the Options data. Generate a short summary of directional bias, volatility regime, and a strategy recommendation. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.praxis_composite_header?.id || "praxis_composite_header"]: `You are Praxis. Analyze the composite data. Generate a short summary of the overall market posture and a tactical recommendation. No markdown, no bold text, no introductions.`,
+    foreign_header: `You are Praxis. Analyze the Global Macro data. Generate a short summary of the most important global headwinds/tailwind and sector impact. No markdown, no bold text, no introductions.`,
+    events_header: `You are Praxis. Analyze the Events data. Generate a short summary of key near-term event risks and expected impact. No markdown, no bold text, no introductions.`,
 };
 
 const DEFAULT_SYSTEM_INSTRUCTION = (targetId, displayName) => {
@@ -281,7 +281,8 @@ function summarizePageData(pageData) {
 
     // Shape 1: nested engine tree (nestedTreePayload or masterPayload)
     if (Array.isArray(pageData.engines) && pageData.engines.length > 0) {
-        const lines = pageData.engines.map(e => {
+        const lines = [];
+        pageData.engines.forEach(e => {
             let line = `${e.name}: ${e.score}/100`;
             // Append market-specific context (Options: PCR, IV Rank, MaxPain)
             if (e.marketContext) {
@@ -290,17 +291,45 @@ function summarizePageData(pageData) {
                 if (mc.maxPain != null) line += ` | MaxPain ${mc.maxPain}`;
                 if (mc.ivRank  != null) line += ` | IVR ${Number(mc.ivRank).toFixed(0)}%`;
             }
-            // Top 3 sections sorted by absolute contribution
+            lines.push(line);
+
             if (Array.isArray(e.sections) && e.sections.length > 0) {
-                const topSections = [...e.sections]
-                    .filter(s => s.score != null)
-                    .sort((a, b) => Math.abs(b.score) - Math.abs(a.score))
-                    .slice(0, 3)
-                    .map(s => `${s.name}(${s.score > 0 ? '+' : ''}${s.score})`)
-                    .join(', ');
-                if (topSections) line += ` | Sections: ${topSections}`;
+                e.sections.forEach(s => {
+                    if (s.score == null) return;
+                    let sectionLine = `  - ${s.name} (${s.score > 0 ? '+' : ''}${s.score})`;
+                    
+                    if (Array.isArray(s.cards) && s.cards.length > 0) {
+                        const cardStrs = s.cards.map(c => {
+                            const valStr = c.value != null ? c.value : 'N/A';
+                            const bias = c.score > 0 ? 'Bullish' : c.score < 0 ? 'Bearish' : 'Neutral';
+                            return `${c.name}: ${valStr} [${bias}]`;
+                        });
+                        sectionLine += ` -> Cards: ${cardStrs.join(', ')}`;
+                    }
+                    lines.push(sectionLine);
+                });
             }
-            return line;
+        });
+        return lines.join('\n');
+    }
+
+    // Shape 3: DataRegistry structured data { pageId, compositeScore, sections: [{ name, cards: [...] }] }
+    if (typeof pageData === 'object' && !Array.isArray(pageData) && Array.isArray(pageData.sections)) {
+        const lines = [`${(pageData.pageId || 'Page').toUpperCase()} Composite Score: ${pageData.compositeScore ?? '?'}/100`];
+        pageData.sections.forEach(s => {
+            let sectionLine = `  - ${s.name}`;
+            if (s.score != null) sectionLine += ` (${s.score > 0 ? '+' : ''}${s.score})`;
+            if (Array.isArray(s.cards) && s.cards.length > 0) {
+                const cardStrs = s.cards.map(c => {
+                    const valStr = c.value != null ? c.value : 'N/A';
+                    const sig = c.signal || (c.score > 0 ? 'Bullish' : c.score < 0 ? 'Bearish' : 'Neutral');
+                    let str = `${c.displayName || c.name || c.id}: ${valStr} [${sig}]`;
+                    if (c.additionalContext) str += ` {${c.additionalContext}}`;
+                    return str;
+                });
+                sectionLine += ` -> Cards: ${cardStrs.join(', ')}`;
+            }
+            lines.push(sectionLine);
         });
         return lines.join('\n');
     }
@@ -309,7 +338,6 @@ function summarizePageData(pageData) {
     if (typeof pageData === 'object' && !Array.isArray(pageData)) {
         const entries = Object.entries(pageData)
             .filter(([, v]) => v && typeof v === 'object' && v.value != null)
-            .slice(0, 12) // cap to keep tokens manageable
             .map(([id, v]) => {
                 const sig = v.signal || 'N/A';
                 const sc  = v.score != null ? `${v.score}/100` : '?/100';
@@ -409,19 +437,19 @@ router.post('/generate/:targetId', async (req, res) => {
         const enforcedSystemInstruction = `${goldenRulesStr}Task Instruction:\n${systemInstruction}`;
 
         const response = await aiGateway.process({
-            taskType: isHeaderTarget ? 'page_header_insight' : 'per_card_insight',
+            taskType: 'per_card_insight', // Route headers to Tier 1 as requested
             prompt: userMessage,
             systemInstruction: enforcedSystemInstruction,
             data: { targetId, value, stockSymbol, scope },
-            jsonMode: false,
-            maxTokens: isHeaderTarget ? 180 : 100
+            maxTokens: savedPrompt?.maxTokens || (isHeaderTarget ? 500 : 250)
         });
 
         if (response.error) {
             return res.status(500).json({ error: response.message || 'AI Gateway error' });
         }
 
-        const insight = response.text?.trim() || null;
+        let insight = response.text?.trim() || null;
+
 
         // 4. Persist to thread (fire-and-forget style — don't block response)
         if (insight) {

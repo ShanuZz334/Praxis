@@ -8,6 +8,7 @@ import { useCardInsight } from "@/shared/hooks/useCardInsight";
 import { useDataRegistry } from "@/shared/context/DataRegistryContext";
 import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { CARD_REGISTRY } from "@/shared/config/cardRegistry";
+import { FO_EQUITIES, FO_INDICES } from "@/shared/utils/foInstruments";
 import "@/features/dashboard/pai/ui/PaiLoader.css";
 import {
   ResponsiveContainer,
@@ -25,8 +26,7 @@ import { cn, cleanNum } from "@/lib/utils";
 // Helper: Score Bar
 // =============================
 function ScoreRangeBar({ score, currentValue }) {
-  const isMissing = score === null || score === undefined || isNaN(parseFloat(score)) || currentValue === '--' || currentValue == null;
-  if (isMissing) return null;
+  const isMissing = score === null || score === undefined || isNaN(parseFloat(score)) || currentValue === '--';
 
   const safeScore = Math.min(Math.max(parseFloat(score), 0), 100);
 
@@ -278,6 +278,14 @@ function ValueChart({ data, valueKey, valueName }) {
 
 import { motion, AnimatePresence } from "framer-motion";
 
+function resolveReadableSymbol(instrumentKey) {
+  if (!instrumentKey) return null;
+  const match = FO_EQUITIES.find(e => e.value === instrumentKey) || FO_INDICES.find(i => i.value === instrumentKey);
+  if (match) return match.label;
+  const parts = instrumentKey.split('|');
+  return parts.length > 1 ? parts[1] : instrumentKey;
+}
+
 // =============================
 // Main Component
 // =============================
@@ -334,8 +342,8 @@ export function IndicatorCard({
   const { register } = useDataRegistry();
 
   useEffect(() => {
-    const rawVal = data?.currentValueObj?.value;
-    const isMissing = rawVal === undefined || rawVal === null || rawVal === '--' || rawVal === '';
+    const rawVal = data?.currentValueObj?.value ?? data?.score;
+    const isMissing = data?.score === null || data?.score === undefined || isNaN(parseFloat(data?.score));
     if (isMissing) return;
 
     // Build contextLines (same format used for generate() below — no duplication)
@@ -391,10 +399,8 @@ export function IndicatorCard({
   // Trigger insight generation when card expands and has a real value
   useEffect(() => {
     if (!isExpanded) return;
-    const rawVal = data?.currentValueObj?.value;
-    const parsedValue = cleanNum(rawVal);
-    const isMissing = data?.score === null || data?.score === undefined ||
-                      isNaN(parseFloat(data?.score)) || parsedValue === null;
+    const rawVal = data?.currentValueObj?.value ?? data?.score;
+    const isMissing = data?.score === null || data?.score === undefined || isNaN(parseFloat(data?.score));
     if (isMissing) return;
 
     // Build rich context from all available card fields
@@ -420,7 +426,7 @@ export function IndicatorCard({
     generate({
       value: rawVal,
       displayName: config.title,
-      stockSymbol: context?.instrumentKey || context?.selectedInstrument?.symbol || globalSelectedInstrument?.split('|')[1] || 'Unknown',
+      stockSymbol: resolveReadableSymbol(context?.instrumentKey) || context?.selectedInstrument?.symbol || resolveReadableSymbol(globalSelectedInstrument) || 'Unknown',
       scope: 'card',
       additionalContext: contextLines.length ? contextLines.join(' | ') : null
     });
@@ -481,11 +487,9 @@ export function IndicatorCard({
           />
         </div>
 
-        {!(data.score === null || data.score === undefined || isNaN(parseFloat(data.score)) || data?.currentValueObj?.value === '--' || data?.currentValueObj?.value == null) && (
-          <div className="mt-auto pt-4 mb-0 shrink-0">
-            <ScoreRangeBar score={data.score} currentValue={data?.currentValueObj?.value} />
-          </div>
-        )}
+        <div className="mt-auto pt-4 mb-0 shrink-0">
+          <ScoreRangeBar score={data.score} currentValue={data?.currentValueObj?.value} />
+        </div>
       </div>
 
       {/* Expandable Section */}
@@ -511,7 +515,7 @@ export function IndicatorCard({
                 </div>
 
                 {/* AI Insight */}
-                {!(data.score === null || data.score === undefined || isNaN(parseFloat(data.score)) || data?.currentValueObj?.value === '--' || data?.currentValueObj?.value == null) && (
+                {!(data.score === null || data.score === undefined || isNaN(parseFloat(data.score)) || data?.currentValueObj?.value === '--') && (
                   <>
                     <div className="mt-4">
                       <div className="flex items-center gap-1.5 mb-2">

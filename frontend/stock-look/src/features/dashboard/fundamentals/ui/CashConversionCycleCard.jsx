@@ -37,7 +37,10 @@ export default function CashConversionCycleCard({ cardId, data, manualOverrides 
         else { score = 20; bias = 'Bearish'; }
     }
 
-    const configData = getIndicatorConfig(CARD_REGISTRY.cash_conversion.id) || { creditScore: 6, impactWeight: 5.0, aiModel: 'Engine v2' };
+    const baseConfig = getIndicatorConfig(CARD_REGISTRY.cash_conversion.id);
+    const configData = (baseConfig && baseConfig.impactWeight !== "0.0%") 
+        ? baseConfig 
+        : { creditScore: 6, impactWeight: "5.0%", aiModel: 'Engine v2' };
 
     return (
         <IndicatorCard
@@ -52,12 +55,12 @@ export default function CashConversionCycleCard({ cardId, data, manualOverrides 
                 aiModel: configData.aiModel
             }}
             data={{
-                currentValueObj: { label: 'CCC (Days)', value: ccc !== null ? Math.round(ccc).toString() : '--' },
+                currentValueObj: { label: 'CCC (Days)', value: ccc !== null ? Math.round(ccc).toString() : '--', isManual: !isLiveData },
                 details: [
-                    invDays !== null && { label: 'Inventory', value: `${Math.round(invDays)}d`, isManual: false },
-                    recDays !== null && { label: 'Receivables', value: `${Math.round(recDays)}d`, isManual: false },
-                    payDays !== null && { label: 'Payables', value: `${Math.round(payDays)}d`, isManual: false },
-                ].filter(Boolean),
+                    { label: 'Inventory', value: invDays !== null && !isNaN(invDays) ? `${Math.round(invDays)}d` : '--', isManual: !isLiveData },
+                    { label: 'Receivables', value: recDays !== null && !isNaN(recDays) ? `${Math.round(recDays)}d` : '--', isManual: !isLiveData },
+                    { label: 'Payables', value: payDays !== null && !isNaN(payDays) ? `${Math.round(payDays)}d` : '--', isManual: !isLiveData },
+                ],
                 score: score,
                 bias: bias,
                 confidence: '70%',
