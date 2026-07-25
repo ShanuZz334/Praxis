@@ -136,6 +136,7 @@ export default function MentionSuggestionDropdown({
 
                                 {/* Card name */}
                                 <span className="flex-1 min-w-0 text-[13px] text-slate-700 dark:text-white/80 truncate">
+                                    <span className="text-blue-500 font-mono mr-0.5">@</span>
                                     {highlightMatch(candidate.displayName, query)}
                                 </span>
 

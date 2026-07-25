@@ -4,6 +4,7 @@ import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreDIIFlow, generateAiInsightDIIFlow } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function DIICard({ cardId, data, manualOverride, lastUpdated }) {
@@ -20,7 +21,15 @@ export default function DIICard({ cardId, data, manualOverride, lastUpdated }) {
 
     // 3. Praxis Engine
     const scoreObj = scoreDIIFlow(currentValue);
-    const { score, bias, confidence, trendDesc } = scoreObj;
+    const { score, bias, trendDesc } = scoreObj;
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: !isManual,
+        isManual: !!manualOverride && isManual,
+        sourcePipeline: isManual ? 'manual' : 'upstox',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--')
+    }, 'fundamentals');
+    
     const aiInsightText = generateAiInsightDIIFlow(scoreObj, currentValue);
 
     return (
@@ -40,7 +49,7 @@ export default function DIICard({ cardId, data, manualOverride, lastUpdated }) {
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: `${confidence}%`,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

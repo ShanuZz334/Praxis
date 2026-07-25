@@ -2,6 +2,7 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreSmartMoneyFlow, generateAiInsightSmartMoneyCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function SmartMoneyFlowCard({ cardId, data = null, lastUpdated }) {
@@ -35,7 +36,15 @@ export default function SmartMoneyFlowCard({ cardId, data = null, lastUpdated })
         : [];
 
     const configData = getIndicatorConfig(CARD_REGISTRY.smart_money_flow.id) || { creditScore: 7, impactWeight: 6.0, aiModel: 'Engine v3' };
-    const { score, bias, confidence, flowZone, trend } = scoreSmartMoneyFlow(latestInstitutional, prevInstitutional);
+    const { score, bias, flowZone, trend } = scoreSmartMoneyFlow(latestInstitutional, prevInstitutional);
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: isLiveData,
+        isManual: false, // Since this doesn't have manual fallback
+        sourcePipeline: isLiveData ? 'upstox' : 'none',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--')
+    }, 'fundamentals');
+    
     const aiInsightText = generateAiInsightSmartMoneyCard(latestInstitutional, prevInstitutional, flowZone, trend);
 
     return (
@@ -61,7 +70,7 @@ export default function SmartMoneyFlowCard({ cardId, data = null, lastUpdated })
                 ].filter(Boolean),
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: `${confidence}%`,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 6.0
             }}
             chartData={{

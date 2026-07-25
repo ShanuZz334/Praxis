@@ -2,6 +2,7 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 
 export default function AnalystConsensusCard({ cardId, manualOverrides = {}, lastUpdated }) {
     // Analyst Consensus is manual-only for now
@@ -26,6 +27,13 @@ export default function AnalystConsensusCard({ cardId, manualOverrides = {}, las
         ? baseConfig 
         : { creditScore: 6, impactWeight: "4.0%", aiModel: 'Engine v2' };
 
+    const cCard = computeCardConfidence({
+        hasLiveData: false,
+        isManual: !!rating,
+        sourcePipeline: 'Manual',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(false) : (lastUpdated || '--:--')
+    }, 'fundamentals');
+
     return (
         <IndicatorCard
             cardId={cardId}
@@ -47,7 +55,7 @@ export default function AnalystConsensusCard({ cardId, manualOverrides = {}, las
                 ],
                 score: score,
                 bias: bias,
-                confidence: '60%',
+                confidence: `${cCard}%`,
                 impactWeight: configData.impactWeight
             }}
             chartData={{ points: [], valueKey: 'value', valueName: 'Consensus' }}

@@ -4,6 +4,7 @@ import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreNiftyDividendYield, generateAiInsightNiftyDividendYield } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function IndexDividendYieldCard({ cardId, data, manualOverride, lastUpdated }) {
@@ -21,7 +22,15 @@ export default function IndexDividendYieldCard({ cardId, data, manualOverride, l
     // 3. Praxis Engine
     // Note: Most macro indicators just take a single value for scoring
     const scoreObj = scoreNiftyDividendYield(currentValue);
-    const { score, bias, confidence, trendDesc } = scoreObj;
+    const { score, bias, trendDesc } = scoreObj;
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: !isManual,
+        isManual: !!manualOverride && isManual,
+        sourcePipeline: isManual ? 'manual' : 'upstox',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--')
+    }, 'fundamentals');
+    
     const aiInsightText = generateAiInsightNiftyDividendYield(scoreObj, currentValue);
 
     return (
@@ -41,7 +50,7 @@ export default function IndexDividendYieldCard({ cardId, data, manualOverride, l
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: `${confidence}%`,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

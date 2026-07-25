@@ -4,6 +4,7 @@ import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreFiscalDeficit, generateAiInsightFiscalDeficit } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function FiscalDeficitCard({ cardId, data, manualOverride, lastUpdated }) {
@@ -21,7 +22,15 @@ export default function FiscalDeficitCard({ cardId, data, manualOverride, lastUp
     // 3. Praxis Engine
     // Note: Most macro indicators just take a single value for scoring
     const scoreObj = scoreFiscalDeficit(currentValue);
-    const { score, bias, confidence, trendDesc } = scoreObj;
+    const { score, bias, trendDesc } = scoreObj;
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: !isManual,
+        isManual: !!manualOverride && isManual,
+        sourcePipeline: isManual ? 'manual' : 'upstox',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--')
+    }, 'fundamentals');
+    
     const aiInsightText = generateAiInsightFiscalDeficit(scoreObj, currentValue);
 
     return (
@@ -41,7 +50,7 @@ export default function FiscalDeficitCard({ cardId, data, manualOverride, lastUp
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: `${confidence}%`,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

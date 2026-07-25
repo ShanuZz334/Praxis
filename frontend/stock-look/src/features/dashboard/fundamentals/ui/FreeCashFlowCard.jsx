@@ -21,6 +21,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreFreeCashFlow, generateAiInsightFreeCashFlowCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 // ─── Main Component ─────────────────────────────────────────────────────────
@@ -68,7 +69,15 @@ export default function FreeCashFlowCard({ cardId, data, manualOverride, lastUpd
         : extractedFCF;
 
     const configData = getIndicatorConfig(CARD_REGISTRY.free_cash_flow.id);
-    const { score, bias, confidence, fcfCategory, fcfYield } = scoreFreeCashFlow(currentFCF, revenue);
+    const { score, bias, fcfCategory, fcfYield } = scoreFreeCashFlow(currentFCF, revenue);
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: !isManual,
+        isManual: !!manualOverride && isManual,
+        sourcePipeline: sourceLabel === 'Upstox Ratios' || sourceLabel === 'Upstox Cash Flow (Calc)' ? 'upstox' : 'manual',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--')
+    }, 'fundamentals');
+    
     const aiInsightText = generateAiInsightFreeCashFlowCard(currentFCF, fcfYield, fcfCategory);
 
     return (
@@ -94,7 +103,7 @@ export default function FreeCashFlowCard({ cardId, data, manualOverride, lastUpd
                 ].filter(Boolean),
                 score: score ?? 0,
                 bias: bias ?? 'Neutral',
-                confidence: `${confidence}%`,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight ?? 7.0
             }}
             chartData={{ points: [], valueKey: 'value', valueName: 'FCF (₹ Cr)' }}

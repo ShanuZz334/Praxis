@@ -441,7 +441,7 @@ router.post('/generate/:targetId', async (req, res) => {
             prompt: userMessage,
             systemInstruction: enforcedSystemInstruction,
             data: { targetId, value, stockSymbol, scope },
-            maxTokens: savedPrompt?.maxTokens || (isHeaderTarget ? 500 : 250)
+            maxTokens: savedPrompt?.maxTokens || (isHeaderTarget ? 2000 : 800)
         });
 
         if (response.error) {
@@ -553,12 +553,20 @@ router.post('/chat/:targetId', async (req, res) => {
             systemInstruction += `\n\n(NOTE: You are currently in an interactive chat session with the user. Respond directly to their latest message in a conversational manner, using the rules above as your persona. Do not blindly generate an insight if they are just saying hello.)`;
         }
 
+        // Extremely strict guardrail to prevent the AI from appending "Verdict:" or robotic summaries 
+        // to natural conversational responses
+        systemInstruction += `\n\nCRITICAL RULE: DO NOT append "Verdict: Bullish/Bearish" or any structured JSON/formatting to your response unless the user EXPLICITLY asks for a verdict in their latest message. Act completely natural and conversational.`;
+
+        // Golden Rule: Personalization
+        systemInstruction += `\n\nGOLDEN RULE: The user you are talking to is named Shanif, and his nickname is Shanu. Acknowledge this identity and refer to him by his name or nickname when appropriate.`;
+
         // 2. Fetch thread history
         const thread = await AiChatThread.findOne({ targetId, scope, userId }).lean();
         // Take last 10 messages for context window size limits
         const history = thread?.entries?.slice(-10) || [];
 
         // 3. Call AI Gateway
+        const isHeaderTarget = targetId.endsWith('_header') || targetId.startsWith('qchat_') || targetId.includes('manual');
         const response = await aiGateway.process({
             taskType: 'chat_conversation',
             prompt: cardContextPrefix + message,  // #mention card data prepended
@@ -566,7 +574,7 @@ router.post('/chat/:targetId', async (req, res) => {
             history,
             data: Object.keys(contextData).length > 0 ? contextData : null,
             jsonMode: false,
-            maxTokens: 300,
+            maxTokens: savedPrompt?.maxTokens || (isHeaderTarget ? 2000 : 800),
             explicitProvider,
             explicitModel
         });

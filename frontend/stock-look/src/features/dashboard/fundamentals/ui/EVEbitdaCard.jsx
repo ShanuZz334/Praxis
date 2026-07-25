@@ -4,6 +4,7 @@ import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { generateAiInsightEVEbitdaCard, scoreEVEbitda } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function EVEbitdaCard({ cardId, data = null, manualOverride, lastUpdated }) {
@@ -22,7 +23,13 @@ export default function EVEbitdaCard({ cardId, data = null, manualOverride, last
     const sectorEV = upstoxEVObj?.sector_value ? cleanNum(upstoxEVObj.sector_value) : null;
 
     // 3. Calculation Engine
-    const { score, bias, confidence, valuationZone } = scoreEVEbitda(currentEV, sectorEV);
+    const { score, bias, valuationZone } = scoreEVEbitda(currentEV, sectorEV);
+    const cCard = computeCardConfidence({
+        hasLiveData: isLiveData,
+        isManual: !!manualOverride && !isLiveData,
+        sourcePipeline: isLiveData ? 'Upstox API' : 'Manual',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--')
+    }, 'fundamentals');
     const aiInsightText = generateAiInsightEVEbitdaCard(currentEV, sectorEV, valuationZone);
 
     // 4. Configuration
@@ -54,7 +61,7 @@ export default function EVEbitdaCard({ cardId, data = null, manualOverride, last
                 ].filter(Boolean),
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: `${confidence}%`,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

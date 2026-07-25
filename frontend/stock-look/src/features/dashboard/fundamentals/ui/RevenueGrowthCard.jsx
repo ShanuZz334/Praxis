@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreRevenueGrowth, generateAiInsightRevenueGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function RevenueGrowthCard({ cardId, data = null, manualOverride, lastUpdated }) {
@@ -29,7 +30,13 @@ export default function RevenueGrowthCard({ cardId, data = null, manualOverride,
     const configData = getIndicatorConfig(CARD_REGISTRY.revenue_growth.id);
 
     // 3. Praxis Engine
-    const { score, bias, confidence, calculatedCAGR, latestRevenue, previousRevenue, trendDesc } = scoreRevenueGrowth(revenueHistory, manualCAGR);
+    const { score, bias, calculatedCAGR, latestRevenue, previousRevenue, trendDesc } = scoreRevenueGrowth(revenueHistory, manualCAGR);
+    const cCard = computeCardConfidence({
+        hasLiveData: !isManual,
+        isManual: !!manualOverride && isManual,
+        sourcePipeline: isManual ? 'Manual' : 'Upstox Income Stmt',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--')
+    }, 'fundamentals');
     const aiInsightText = generateAiInsightRevenueGrowthCard(revenueHistory, calculatedCAGR, trendDesc);
 
         return (
@@ -52,7 +59,7 @@ export default function RevenueGrowthCard({ cardId, data = null, manualOverride,
                 ],
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: confidence || '85%',
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

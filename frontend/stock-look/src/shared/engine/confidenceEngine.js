@@ -36,7 +36,10 @@ export function computeCardConfidence(cardMeta, module) {
     if (dc === 0.0) return 0;
 
     // 2. Freshness (FR)
-    const ageSeconds = cardMeta.lastUpdated ? (Date.now() - cardMeta.lastUpdated) / 1000 : 0;
+    let ageSeconds = 0;
+    if (typeof cardMeta.lastUpdated === 'number' && !isNaN(cardMeta.lastUpdated)) {
+        ageSeconds = (Date.now() - cardMeta.lastUpdated) / 1000;
+    }
     const fr = Math.max(0, Math.exp(-config.lambda * Math.max(0, ageSeconds)));
 
     // 3. Source Reliability (SR)

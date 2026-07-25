@@ -2,6 +2,7 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreEarningsQuality, generateAiInsightEarningsQualityCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function EarningsQualityCard({ cardId, data = null, lastUpdated }) {
@@ -34,7 +35,15 @@ export default function EarningsQualityCard({ cardId, data = null, lastUpdated }
     }
 
     const configData = getIndicatorConfig(CARD_REGISTRY.earnings_quality.id) || { creditScore: 8, impactWeight: 7.0, aiModel: 'Engine v3' };
-    const { score, bias, confidence, qualityLabel } = scoreEarningsQuality(cfoToNetProfit);
+    const { score, bias, qualityLabel } = scoreEarningsQuality(cfoToNetProfit);
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: isLiveData,
+        isManual: false, // Since this doesn't have manual fallback
+        sourcePipeline: isLiveData ? 'upstox' : 'none',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--')
+    }, 'fundamentals');
+    
     const aiInsightText = generateAiInsightEarningsQualityCard(cfoToNetProfit, qualityLabel);
 
     return (
@@ -58,7 +67,7 @@ export default function EarningsQualityCard({ cardId, data = null, lastUpdated }
                 ].filter(Boolean),
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: `${confidence}%`,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 7.0
             }}
             chartData={{ points: [], valueKey: 'value', valueName: 'CFO/PAT Ratio' }}

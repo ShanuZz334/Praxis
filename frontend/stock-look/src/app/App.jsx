@@ -26,6 +26,7 @@ import UserProvider from "@/shared/context/UserContext";
 import { VerificationProvider } from "@/shared/context/VerificationContext";
 import { ThemeProvider } from "@/shared/context/ThemeContext";
 import { DataRegistryProvider } from "@/shared/context/DataRegistryContext";
+import { VoiceProvider } from "@/shared/context/VoiceContext";
 import AppRoutes from "./routes";
 import AppShell from "./AppShell";
 import { Toaster } from "@/components/ui/sonner";
@@ -39,10 +40,12 @@ const App = () => {
       <UserProvider>
         <VerificationProvider>
           <ThemeProvider>
-            <AppShell>
-              <AppRoutes />
-              <Toaster />
-            </AppShell>
+            <VoiceProvider>
+              <AppShell>
+                <AppRoutes />
+                <Toaster />
+              </AppShell>
+            </VoiceProvider>
           </ThemeProvider>
         </VerificationProvider>
       </UserProvider>

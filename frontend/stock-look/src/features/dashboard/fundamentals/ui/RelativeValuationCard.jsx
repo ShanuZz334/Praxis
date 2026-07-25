@@ -15,6 +15,7 @@ import { cleanNum } from '@/lib/utils';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 
 function extractRatio(ratios, names) {
     const item = ratios.find(r => names.some(n => r.name?.toLowerCase() === n.toLowerCase()));
@@ -76,7 +77,12 @@ export default function RelativeValuationCard({ cardId, data = null, lastUpdated
         }
     }
 
-    const confidence = hasSectorComparison ? (weights >= 0.75 ? 92 : 78) : 0;
+    const cCard = computeCardConfidence({
+        hasLiveData: hasData,
+        isManual: false,
+        sourcePipeline: hasData ? 'Upstox API' : 'Manual',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(hasData) : (lastUpdated || '--:--')
+    }, 'fundamentals');
 
     const configData = getIndicatorConfig(CARD_REGISTRY.relative_valuation.id) || { creditScore: 8, impactWeight: 7.0, aiModel: 'Engine v3' };
 
@@ -107,7 +113,7 @@ export default function RelativeValuationCard({ cardId, data = null, lastUpdated
                 ].filter(Boolean),
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: `${confidence}%`,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 7.0
             }}
             chartData={{ points: [], valueKey: 'value', valueName: 'Premium/Discount %' }}

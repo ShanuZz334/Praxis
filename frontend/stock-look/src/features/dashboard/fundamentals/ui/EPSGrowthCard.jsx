@@ -26,6 +26,7 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { formatPercentage } from '@/shared/utils/formatters';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreEPSGrowth, generateAiInsightEPSGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 // ─── Main Component ─────────────────────────────────────────────────────────
@@ -101,7 +102,14 @@ export default function EPSGrowthCard({ cardId, data = null, manualOverride, las
     }
 
     const configData = getIndicatorConfig(CARD_REGISTRY.eps_growth.id);
-    const { score, bias, confidence, growthTier, momentumLabel } = scoreEPSGrowth(cagr, latestYoY, positiveYears, totalPeriods);
+    const { score, bias, growthTier, momentumLabel } = scoreEPSGrowth(cagr, latestYoY, positiveYears, totalPeriods);
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: !isManual,
+        isManual: !!manualOverride && isManual,
+        sourcePipeline: sourceLabel === 'Upstox Ratios' || sourceLabel === 'Upstox Income Stmt (Calc)' ? 'upstox' : 'manual',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--')
+    }, 'fundamentals');
     const aiInsightText = generateAiInsightEPSGrowthCard(cagr, latestYoY, growthTier, momentumLabel, totalPeriods);
 
     return (
@@ -137,7 +145,7 @@ export default function EPSGrowthCard({ cardId, data = null, manualOverride, las
                 ].filter(Boolean),
                 score: score ?? 0,
                 bias: bias ?? 'Neutral',
-                confidence: `${confidence}%`,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight ?? 8.0
             }}
             chartData={{

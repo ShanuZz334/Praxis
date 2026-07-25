@@ -138,12 +138,12 @@ const Login = () => {
       </p>
 
       {fingerprintFailCount < 4 ? (
-        <div className="flex flex-col items-center justify-center space-y-8 py-8 animate-in fade-in zoom-in-95 duration-500">
+        <div className="flex flex-col items-center justify-center py-12 animate-in fade-in zoom-in-95 duration-500 min-h-[300px]">
           <button
             type="button"
             onClick={handleBiometricLogin}
             disabled={isLoading}
-            className="group relative w-32 h-32 rounded-full bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/20 hover:border-blue-500/50 flex flex-col items-center justify-center text-blue-400 hover:text-blue-300 transition-all shadow-[0_0_30px_-10px_rgba(59,130,246,0.2)] hover:shadow-[0_0_50px_-10px_rgba(59,130,246,0.4)] hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+            className="group relative flex flex-col items-center justify-center text-blue-400 hover:text-blue-300 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
           >
             {isLoading ? (
               <Loader size="sm" color="blue" />
@@ -152,20 +152,21 @@ const Login = () => {
             )}
           </button>
           
-          <div className="text-center space-y-2">
-            <h3 className="text-lg font-medium text-white/90">Biometric Sign In</h3>
-            <p className="text-xs text-white/50">Tap the icon to unlock with Fingerprint or FaceID</p>
+          <div className="flex flex-col items-center mt-auto space-y-3 pt-12">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-white/90">Biometric Sign In</h3>
+            </div>
+            
+            {error && <p className="text-red-400/90 text-sm text-center max-w-[250px]">{error}</p>}
+            
+            <button
+              type="button"
+              onClick={() => setFingerprintFailCount(4)}
+              className="text-xs text-white/30 hover:text-white/70 transition-colors underline pt-2"
+            >
+              Use Email & Password instead
+            </button>
           </div>
-          
-          {error && <p className="text-red-400/90 text-sm text-center max-w-[250px]">{error}</p>}
-          
-          <button
-            type="button"
-            onClick={() => setFingerprintFailCount(4)}
-            className="text-xs text-white/30 hover:text-white/70 transition-colors underline pt-4"
-          >
-            Use Email & Password instead
-          </button>
         </div>
       ) : (
         <form onSubmit={handleLogin} className="space-y-3 md:space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -218,16 +219,15 @@ const Login = () => {
           )}
         </button>
 
-        <p className="hidden md:block text-center text-white/60 text-sm pt-2">
-          Don't have an account?{" "}
+        <div className="text-center pt-2">
           <button
             type="button"
-            className="text-blue-400/80 font-bold hover:underline"
-            onClick={() => navigate("/signup")}
+            className="text-xs text-white/30 hover:text-white/70 transition-colors underline"
+            onClick={() => setFingerprintFailCount(0)}
           >
-            Sign Up
+            Use Biometric Sign In
           </button>
-        </p>
+        </div>
       </form>
       )}
     </div>

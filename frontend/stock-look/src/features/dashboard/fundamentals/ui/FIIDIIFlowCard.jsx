@@ -4,6 +4,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { formatCompactCurrency } from '@/shared/utils/formatters';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreInstitutionalFlow, generateAiInsightFIIDIIFlowCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function FIIDIIFlowCard({ cardId, data = null, manualOverrides = {}, lastUpdated }) {
@@ -26,7 +27,15 @@ export default function FIIDIIFlowCard({ cardId, data = null, manualOverrides = 
     const configData = getIndicatorConfig(CARD_REGISTRY.fii_dii_flow.id);
 
     // --- Scoring Engine ---
-    const { score, bias, confidence, netFlow } = scoreInstitutionalFlow(fiiFlow, diiFlow);
+    const { score, bias, netFlow } = scoreInstitutionalFlow(fiiFlow, diiFlow);
+    const isManual = !isLive && (manualOverrides.fii || manualOverrides.dii);
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: isLive,
+        isManual: !!isManual,
+        sourcePipeline: isLive ? 'Upstox API' : 'Manual Override',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(isLive) : (lastUpdated || '--:--')
+    }, 'fundamentals');
     const aiInsightText = generateAiInsightFIIDIIFlowCard(fiiFlow, diiFlow, netFlow);
 
     return (
@@ -53,7 +62,7 @@ export default function FIIDIIFlowCard({ cardId, data = null, manualOverrides = 
                 ],
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: confidence || '85%',
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

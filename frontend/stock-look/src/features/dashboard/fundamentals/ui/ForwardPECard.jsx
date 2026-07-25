@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { generateAiInsightForwardPECard, scoreForwardPE } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function ForwardPECard({ cardId, data = null, manualOverride, lastUpdated }) {
@@ -67,7 +68,13 @@ export default function ForwardPECard({ cardId, data = null, manualOverride, las
     // Removed Projected EPS to comply with Zero Clutter Rule
 
     // ── Step 4: Run Engine ────────────────────────────────────────────────────
-    const { score, bias, confidence } = scoreForwardPE(currentFwdPE, currentPE);
+    const { score, bias } = scoreForwardPE(currentFwdPE, currentPE);
+    const cCard = computeCardConfidence({
+        hasLiveData: isLiveData,
+        isManual: !!manualOverride && !isLiveData,
+        sourcePipeline: isLiveData ? (parsedFwdPE !== null ? 'Upstox API' : 'Upstox (Calc)') : 'Manual',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--')
+    }, 'fundamentals');
 
     // ── Step 5: Dynamic AI Insight ────────────────────────────────────────────
     const aiInsight = generateAiInsightForwardPECard(currentFwdPE, currentPE, bias);
@@ -103,7 +110,7 @@ export default function ForwardPECard({ cardId, data = null, manualOverride, las
                 ].filter(Boolean),
                 score,
                 bias,
-                confidence: `${confidence}%`,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight ?? 5.0
             }}
             chartData={{

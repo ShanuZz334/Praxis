@@ -3,11 +3,11 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { ID_TO_TITLE_GLOBAL } from '../engine/useGlobalComposite';
 
-export default function GenericGlobalCard({ id, label, cardData, resolveTime, isLive }) {
+export default function GenericGlobalCard({ id, label, engineData, resolveTime, isLive }) {
     const configData = getIndicatorConfig(id) || {};
     const title = label || ID_TO_TITLE_GLOBAL[id] || id;
 
-    const rawValue = cardData?.value;
+    const rawValue = engineData?.value;
     const hasValue = rawValue !== null && rawValue !== undefined && rawValue !== '';
     let displayValue = '--';
     if (hasValue) {
@@ -24,6 +24,18 @@ export default function GenericGlobalCard({ id, label, cardData, resolveTime, is
             displayValue = parseFloat(rawValue).toFixed(2);
         }
     }
+
+    // Standardize fallbacks
+    let score = null;
+    let bias = "Neutral";
+    let confidence = "0%";
+    let aiInsightText = "Waiting for manual input...";
+    
+    // Override with engineData
+    score = engineData?.score ?? score;
+    bias = engineData?.bias ?? bias;
+    confidence = engineData?.confidence !== undefined ? `${engineData.confidence}%` : confidence;
+    aiInsightText = engineData?.insight ?? aiInsightText;
 
     return (
         <IndicatorCard
@@ -43,13 +55,13 @@ export default function GenericGlobalCard({ id, label, cardData, resolveTime, is
                     label: "Current Value", 
                     value: displayValue
                 },
-                score: cardData?.score ?? null,
-                bias: cardData?.bias ?? "Neutral",
-                confidence: cardData?.confidence ? `${cardData.confidence}%` : "0%",
-                impactWeight: cardData?.impact ?? (configData.impactWeight || "Moderate")
+                score,
+                bias,
+                confidence,
+                impactWeight: engineData?.impact ?? (configData.impactWeight || "Moderate")
             }}
             insights={{
-                aiInsight: cardData?.insight ?? "Waiting for manual input...",
+                aiInsight: aiInsightText,
                 whyItMatters: [
                     "Monitors structural shifts in global macroeconomics.",
                     "Influences systemic risk and cross-asset correlations.",

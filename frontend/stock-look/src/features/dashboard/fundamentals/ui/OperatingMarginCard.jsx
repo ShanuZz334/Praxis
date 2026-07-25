@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreOperatingMargin, generateAiInsightOperatingMarginCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function OperatingMarginCard({ cardId, data, manualOverride, lastUpdated }) {
@@ -53,7 +54,14 @@ export default function OperatingMarginCard({ cardId, data, manualOverride, last
     const configData = getIndicatorConfig(CARD_REGISTRY.operating_margin.id);
 
     // 3. Praxis Engine
-    const { score, bias, confidence, trendDesc } = scoreOperatingMargin(currentMargin, sectorMargin);
+    const { score, bias, trendDesc } = scoreOperatingMargin(currentMargin, sectorMargin);
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: !isManual,
+        isManual: !!manualOverride && isManual,
+        sourcePipeline: isManual ? 'manual' : (extractedSector ? 'upstox' : 'upstox'),
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--')
+    }, 'fundamentals');
     const aiInsightText = generateAiInsightOperatingMarginCard(currentMargin, trendDesc);
 
         return (
@@ -75,7 +83,7 @@ export default function OperatingMarginCard({ cardId, data, manualOverride, last
                 ].filter(Boolean),
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: confidence,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

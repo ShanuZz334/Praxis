@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { generateAiInsightPBRatioCard, scorePBRatio } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 export default function PBRatioCard({ cardId, data = null, manualOverride, lastUpdated }) {
     // 1. Live Data Extraction (Upstox)
@@ -17,7 +18,13 @@ export default function PBRatioCard({ cardId, data = null, manualOverride, lastU
     const sectorPB = upstoxPBObj?.sector_value ? cleanNum(upstoxPBObj.sector_value) : null;
 
     // 3. Calculation Engine
-    const { score, bias, confidence } = scorePBRatio(currentPB, historicalPB, sectorPB);
+    const { score, bias } = scorePBRatio(currentPB, historicalPB, sectorPB);
+    const cCard = computeCardConfidence({
+        hasLiveData: isLiveData,
+        isManual: !!manualOverride && !isLiveData,
+        sourcePipeline: isLiveData ? 'Upstox API' : 'Manual Override',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--')
+    }, 'fundamentals');
     const aiInsightText = generateAiInsightPBRatioCard(currentPB, historicalPB, sectorPB);
 
     // 4. Configuration
@@ -49,7 +56,7 @@ export default function PBRatioCard({ cardId, data = null, manualOverride, lastU
                 ].filter(Boolean),
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: confidence || '0%',
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

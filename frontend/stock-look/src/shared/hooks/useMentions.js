@@ -16,6 +16,16 @@ import { useDataRegistry } from '../context/DataRegistryContext';
 import { CARD_REGISTRY } from '../config/cardRegistry';
 import { useDashboardContext } from '../context/DashboardContext';
 
+import { FO_EQUITIES, FO_INDICES } from '../utils/foInstruments';
+
+function resolveReadableSymbol(instrumentKey) {
+  if (!instrumentKey) return null;
+  const match = FO_EQUITIES.find(e => e.value === instrumentKey) || FO_INDICES.find(i => i.value === instrumentKey);
+  if (match) return match.label;
+  const parts = instrumentKey.split('|');
+  return parts.length > 1 ? parts[1] : instrumentKey;
+}
+
 /**
  * inferPageFromChatId — resolves a chatId to a pageId via CARD_REGISTRY.
  * Registry-driven: zero hardcoded string prefixes.
@@ -54,6 +64,7 @@ export function useMentions(scopePageId = null) {
             {
                 id: 'banknifty',
                 displayName: 'NIFTY BANK',
+                aliases: ['bank nifty', 'banknifty'],
                 page: 'global',
                 section: 'Markets',
                 hasLiveData: true,
@@ -61,7 +72,7 @@ export function useMentions(scopePageId = null) {
             },
             {
                 id: 'instrument',
-                displayName: selectedInstrument?.split('|')?.[1] || 'Selected Instrument',
+                displayName: resolveReadableSymbol(selectedInstrument) || selectedInstrument?.split('|')?.[1] || 'Selected Instrument',
                 page: 'global',
                 section: 'Markets',
                 hasLiveData: true,
@@ -104,12 +115,12 @@ export function useMentions(scopePageId = null) {
                 additionalContext: formatContext(data)
             };
         }
-        const selName = (selectedInstrument?.split('|')?.[1] || '').toLowerCase();
+        const selName = (resolveReadableSymbol(selectedInstrument) || selectedInstrument?.split('|')?.[1] || '').toLowerCase();
         if (q === 'instrument' || (selName && q === selName)) {
             const data = livePrices?.[selectedInstrument];
             return {
                 cardId: 'instrument',
-                displayName: selectedInstrument?.split('|')?.[1] || 'Selected Instrument',
+                displayName: resolveReadableSymbol(selectedInstrument) || selectedInstrument?.split('|')?.[1] || 'Selected Instrument',
                 value: data?.ltp || 'N/A',
                 score: null, signal: null, confidence: null,
                 additionalContext: formatContext(data)
@@ -271,7 +282,6 @@ export function useMentions(scopePageId = null) {
             const resolved = resolveAtMention(rawMention);
 
             if (!resolved) {
-                // Fix E: log unresolved mentions — these are typos or stale tags
                 console.warn(`[@ mention] Could not resolve mention "@${rawMention}" — no matching card in registry. Check cardRegistry.js displayName/id.`);
                 continue;
             }
@@ -279,7 +289,6 @@ export function useMentions(scopePageId = null) {
             if (!seenIds.has(resolved.cardId)) {
                 seenIds.add(resolved.cardId);
 
-                // Fix D + E: detect and log cards that resolved but have no live data
                 const hasLiveData = resolved.value !== null && resolved.value !== undefined;
                 if (!hasLiveData) {
                     console.warn(
@@ -290,27 +299,91 @@ export function useMentions(scopePageId = null) {
                 }
 
                 cardSnapshots.push({
-                    cardId: resolved.cardId,
-                    displayName: resolved.displayName,
-                    value: resolved.value,
-                    score: resolved.score,
-                    signal: resolved.signal,
-                    confidence: resolved.confidence,
-                    additionalContext: resolved.additionalContext,
-                    hasLiveData, // Fix D: badge UI uses this to show warning state
+                    ...resolved,
+                    hasLiveData
                 });
-                resolvedMentions.push({ full: match[0], display: resolved.displayName });
+                resolvedMentions.push({ raw: rawMention, resolved });
             }
         }
 
-        // Clean the text: replace @DisplayName with just the name (no @ prefix)
-        let cleanText = text;
-        resolvedMentions.forEach(({ full, display }) => {
-            cleanText = cleanText.replace(full, display);
+        // Clean explicit @mentions from the text
+        let finalCleanText = text;
+        resolvedMentions.forEach(({ raw, resolved }) => {
+            const regex = new RegExp(`@${raw}(?=\\s|$)`, 'g');
+            finalCleanText = finalCleanText.replace(regex, resolved.displayName);
         });
 
-        return { cleanText: cleanText.trim(), cardSnapshots };
-    }, [resolveAtMention]);
+        // 2. NLP Auto-Extraction for implicitly mentioned cards (especially useful for Voice Mode)
+        const allCandidates = getAtMentionCandidates(scopePageId, '');
+        // Sort by length descending to match longest phrases first (e.g. "Reliance Industries" before "Reliance")
+        allCandidates.sort((a, b) => b.displayName.length - a.displayName.length);
+
+        const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        let trackingText = finalCleanText.toLowerCase();
+
+        // Pass 1: EXACT MATCHES (Highest Priority)
+        allCandidates.forEach(candidate => {
+            if (seenIds.has(candidate.id)) return;
+            
+            const nameRegex = new RegExp(`\\b${escapeRegExp(candidate.displayName)}\\b`, 'i');
+            const idRegex = new RegExp(`\\b${escapeRegExp(candidate.id)}\\b`, 'i');
+            
+            let matched = false;
+            let matchRegex = null;
+
+            if (nameRegex.test(trackingText)) {
+                matched = true; matchRegex = nameRegex;
+            } else if (idRegex.test(trackingText)) {
+                matched = true; matchRegex = idRegex;
+            } else if (candidate.aliases) {
+                for (const alias of candidate.aliases) {
+                    const aliasRegex = new RegExp(`\\b${escapeRegExp(alias)}\\b`, 'i');
+                    if (aliasRegex.test(trackingText)) {
+                        matched = true; matchRegex = aliasRegex;
+                        break;
+                    }
+                }
+            }
+
+            if (matched) {
+                trackingText = trackingText.replace(matchRegex, ' '.repeat(10)); // Consume text
+                const resolved = resolveAtMention(candidate.displayName);
+                if (resolved && !seenIds.has(resolved.cardId)) {
+                    seenIds.add(resolved.cardId);
+                    cardSnapshots.push({
+                        ...resolved,
+                        hasLiveData: resolved.value !== null && resolved.value !== undefined
+                    });
+                }
+            }
+        });
+
+        // Pass 2: PARTIAL MATCHES (First-word fuzzy matching)
+        // e.g. User says "HDFC" instead of "HDFC Bank"
+        allCandidates.forEach(candidate => {
+            if (seenIds.has(candidate.id)) return;
+            
+            const firstWord = candidate.displayName.split(/\s+/)[0];
+            // Only fuzzy match if the word is substantial (>= 4 chars) to avoid matching "The" or "A"
+            if (!firstWord || firstWord.length < 4) return;
+
+            const firstWordRegex = new RegExp(`\\b${escapeRegExp(firstWord)}\\b`, 'i');
+            
+            if (firstWordRegex.test(trackingText)) {
+                trackingText = trackingText.replace(firstWordRegex, ' '.repeat(10)); // Consume text
+                const resolved = resolveAtMention(candidate.displayName);
+                if (resolved && !seenIds.has(resolved.cardId)) {
+                    seenIds.add(resolved.cardId);
+                    cardSnapshots.push({
+                        ...resolved,
+                        hasLiveData: resolved.value !== null && resolved.value !== undefined
+                    });
+                }
+            }
+        });
+
+        return { cleanText: finalCleanText, cardSnapshots };
+    }, [resolveAtMention, getAtMentionCandidates, scopePageId]);
 
     return {
         // State

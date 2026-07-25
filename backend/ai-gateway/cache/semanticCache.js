@@ -27,7 +27,8 @@ export const semanticCache = {
                 body: JSON.stringify({
                     model: AI_CONFIG.MODELS.OLLAMA.EMBEDDING,
                     prompt: text
-                })
+                }),
+                signal: AbortSignal.timeout(10000) // 10s max for embeddings
             });
             if (!response.ok) return null;
             const data = await response.json();

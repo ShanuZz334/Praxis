@@ -75,15 +75,14 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 items-start">
                                 {sortedSectionCards.map((card) => {
                                     if (card.id?.startsWith('dummy_')) return null;
-                                    const isLiveVal = isConnecting || (liveData[card.id] !== null && liveData[card.id] !== undefined);
                                     return (
-                                        <GenericGlobalCard
-                                            key={card.id}
-                                            id={card.id}
-                                            label={card.label}
-                                            cardData={cardData[card.id]}
-                                            resolveTime={resolveTime}
-                                            isLive={isLiveVal}
+                                        <GenericGlobalCard 
+                                            key={card.id} 
+                                            id={card.id} 
+                                            label={card.label} 
+                                            engineData={cardData[card.id]} 
+                                            isLive={liveData[card.id] !== undefined && liveData[card.id] !== null}
+                                            resolveTime={(isLive) => resolveTime(isLive, isLive ? null : card.id)}
                                         />
                                     );
                                 })}
@@ -107,8 +106,8 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
                 key={card.id}
                 id={card.id}
                 label={card.label}
-                cardData={cardData[card.id]}
-                resolveTime={resolveTime}
+                engineData={cardData[card.id]}
+                resolveTime={(isLive) => resolveTime(isLive, isLive ? null : card.id)}
                 isLive={isLiveVal}
             />
         };

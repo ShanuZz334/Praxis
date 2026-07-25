@@ -4,6 +4,7 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { formatPercentage } from '@/shared/utils/formatters';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreGDPGrowth, generateAiInsightGDPGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function GDPGrowthCard({ cardId, data = null, manualOverride, lastUpdated }) {
@@ -17,7 +18,14 @@ export default function GDPGrowthCard({ cardId, data = null, manualOverride, las
     const configData = getIndicatorConfig(CARD_REGISTRY.gdp_growth.id);
 
     // 3. Praxis Engine
-    const { score, bias, confidence, trendDesc } = scoreGDPGrowth(currentGrowth);
+    const { score, bias, trendDesc } = scoreGDPGrowth(currentGrowth);
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: false,
+        isManual: !!manualOverride && isManual,
+        sourcePipeline: 'manual',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(false) : (lastUpdated || '--:--')
+    }, 'fundamentals');
     const aiInsightText = generateAiInsightGDPGrowthCard(currentGrowth, trendDesc);
 
         return (
@@ -39,7 +47,7 @@ export default function GDPGrowthCard({ cardId, data = null, manualOverride, las
                 ].filter(Boolean),
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: confidence,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

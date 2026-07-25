@@ -6,14 +6,12 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode }
 
     const url = p.baseUrl || 'http://localhost:11434';
     
-    let prompt = "";
-    for (const msg of messages) {
-        prompt += `${msg.role.toUpperCase()}:\n${msg.content}\n\n`;
-    }
-
     const payload = {
         model,
-        prompt: prompt.trim(),
+        messages: messages.map(m => ({
+            role: m.role.toLowerCase(),
+            content: m.content
+        })),
         stream: false,
         keep_alive: model.includes('3b') ? -1 : undefined,
         options: {
@@ -25,10 +23,11 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode }
     if (jsonMode) payload.format = "json";
 
     const startTime = Date.now();
-    const response = await fetch(`${url}/api/generate`, {
+    const response = await fetch(`${url}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(60000)
     });
 
     if (!response.ok) {
@@ -37,7 +36,7 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode }
 
     const data = await response.json();
     return {
-        text: data.response,
+        text: data.message?.content || data.response || "",
         tokensIn: data.prompt_eval_count || 0,
         tokensOut: data.eval_count || 0,
         latencyMs: Date.now() - startTime

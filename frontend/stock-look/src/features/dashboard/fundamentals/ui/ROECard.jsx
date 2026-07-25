@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreROE, generateAiInsightROECard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function ROECard({ cardId, data, manualOverride, lastUpdated }) {
@@ -37,7 +38,14 @@ export default function ROECard({ cardId, data, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.roe.id);
 
     // 3. Praxis Engine
-    const { score, bias, confidence, trendDesc } = scoreROE(currentROE, sectorROE);
+    const { score, bias, trendDesc } = scoreROE(currentROE, sectorROE);
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: !isManual,
+        isManual: !!manualOverride && isManual,
+        sourcePipeline: isManual ? 'manual' : 'upstox',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--')
+    }, 'fundamentals');
     const aiInsightText = generateAiInsightROECard(currentROE, sectorROE, trendDesc);
 
         return (
@@ -59,7 +67,7 @@ export default function ROECard({ cardId, data, manualOverride, lastUpdated }) {
                 ].filter(Boolean),
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: `${confidence}%`,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

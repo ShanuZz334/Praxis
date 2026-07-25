@@ -2,6 +2,7 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 
 export default function CorporateActionsCard({ cardId, data, lastUpdated }) {
     const actions = Array.isArray(data?.corporate_actions) ? data.corporate_actions : [];
@@ -19,6 +20,13 @@ export default function CorporateActionsCard({ cardId, data, lastUpdated }) {
     };
     
     const configData = getIndicatorConfig(CARD_REGISTRY.corporate_actions.id) || { creditScore: 4, impactWeight: 2.0, aiModel: 'Engine v2' };
+
+    const cCard = computeCardConfidence({
+        hasLiveData: isLiveData,
+        isManual: false, // Since this doesn't have manual fallback
+        sourcePipeline: isLiveData ? 'upstox' : 'none',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--')
+    }, 'fundamentals');
 
     return (
         <IndicatorCard
@@ -44,7 +52,7 @@ export default function CorporateActionsCard({ cardId, data, lastUpdated }) {
                 })) : [],
                 score: isLiveData ? 50 : null, // Neutral score since this is mostly informational
                 bias: 'Neutral',
-                confidence: '90%',
+                confidence: `${cCard}%`,
                 impactWeight: configData.impactWeight
             }}
             chartData={{ points: [], valueKey: 'value', valueName: 'Action' }}

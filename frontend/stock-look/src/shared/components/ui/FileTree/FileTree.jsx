@@ -30,15 +30,15 @@ export const FileTree = ({ item, level, onFileClick, activeId, renderActions }) 
     return (
       <div
         onClick={() => onFileClick && onFileClick(item)}
-        className={`text-muted-foreground flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-[13px] outline-none cursor-pointer transition-colors group ${
+        className={`text-muted-foreground flex items-center justify-between gap-1.5 rounded-md px-1.5 py-1 text-[12px] outline-none cursor-pointer transition-colors group ${
           isActive 
-            ? 'bg-muted/60 text-foreground font-medium' 
+            ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 font-semibold' 
             : 'hover:bg-muted/40 hover:text-foreground'
         }`}
-        style={{ paddingLeft: `${level === 0 ? 0.75 : level * 1.5 + 0.75}rem` }}
+        style={{ paddingLeft: `${level === 0 ? 0.5 : level * 1.0 + 0.5}rem` }}
       >
-        <div className="flex items-center gap-2 overflow-hidden">
-          <Icon className="size-4 shrink-0" />
+        <div className="flex items-center gap-1.5 overflow-hidden">
+          <Icon className="size-3.5 shrink-0" />
           <span className="truncate">{item.name}</span>
         </div>
         {renderActions && (
@@ -54,7 +54,26 @@ export const FileTree = ({ item, level, onFileClick, activeId, renderActions }) 
 };
 
 const FolderTree = ({ item, level, onFileClick, activeId, renderActions }) => {
-  const [open, setOpen] = useState(false); // Default folders to closed
+  const isChildActive = React.useMemo(() => {
+    if (!activeId) return false;
+    const checkActive = (node) => {
+      if (node.id === activeId) return true;
+      if (node.children) {
+        return node.children.some(checkActive);
+      }
+      return false;
+    };
+    return item.children?.some(checkActive) || false;
+  }, [item, activeId]);
+
+  const [open, setOpen] = useState(isChildActive);
+
+  React.useEffect(() => {
+    if (isChildActive) {
+      setOpen(true);
+    }
+  }, [isChildActive]);
+
   const CustomIcon = item.icon;
 
   return (
@@ -64,20 +83,20 @@ const FolderTree = ({ item, level, onFileClick, activeId, renderActions }) => {
       className="flex flex-col gap-0.5"
     >
       <CollapsibleTrigger 
-        className="text-muted-foreground hover:bg-muted/40 hover:text-foreground flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] outline-none cursor-pointer transition-colors"
-        style={{ paddingLeft: `${level === 0 ? 0 : level * 1.5}rem` }}
+        className={`text-muted-foreground hover:bg-muted/40 hover:text-foreground flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[12px] outline-none cursor-pointer transition-colors ${isChildActive ? 'font-medium text-foreground' : ''}`}
+        style={{ paddingLeft: `${level === 0 ? 0 : level * 1.0}rem` }}
       >
         <ChevronRight
-          className={`size-3.5 shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}
+          className={`size-3 shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}
         />
         {CustomIcon ? (
-          <CustomIcon className="size-4 shrink-0" />
+          <CustomIcon className="size-3.5 shrink-0" />
         ) : open ? (
-          <FolderOpenIcon className="size-4 shrink-0" />
+          <FolderOpenIcon className="size-3.5 shrink-0" />
         ) : (
-          <FolderIcon className="size-4 shrink-0" />
+          <FolderIcon className="size-3.5 shrink-0" />
         )}
-        <span className="font-medium truncate">{item.name}</span>
+        <span className="truncate">{item.name}</span>
       </CollapsibleTrigger>
       
       <CollapsibleContent className="flex flex-col gap-0.5 mt-0.5">

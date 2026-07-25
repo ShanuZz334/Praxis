@@ -16,6 +16,7 @@ import { getCompositeState } from '@/shared/global/logic/signals';
 import { getIndicatorConfig, INDICATOR_CONFIG } from '@/shared/config/indicatorConfig';
 import { validateRegistry } from '@/shared/utils/RegistryValidator';
 import { toast } from 'sonner';
+import { useManualOverrides } from '@/shared/hooks/useManualOverrides';
 
 const formatTitle = (str) => {
     if (!str) return '';
@@ -64,6 +65,21 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             } catch(e) {}
         }
     }, []);
+
+    const { overrides: techOverrides } = useManualOverrides('technical', selectedInstrument || 'NIFTY', {});
+    const { overrides: fundOverrides } = useManualOverrides('fundamental', selectedInstrument || 'NIFTY', {});
+
+    useEffect(() => {
+        if (techEngineRef.current) {
+            techEngineRef.current.setOverrides(techOverrides);
+        }
+    }, [techOverrides]);
+
+    useEffect(() => {
+        if (fundEngineRef.current) {
+            fundEngineRef.current.setOverrides(fundOverrides);
+        }
+    }, [fundOverrides]);
 
     // Fetch all real-time data + fallback
     useEffect(() => {
@@ -172,12 +188,14 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
 
         fEngine.start(selectedInstrument, {
             registerBulk,
+            initialOverrides: fundOverrides,
             onUpdate: (state) => setFundState({ ...state })
         });
 
         tEngine.start(selectedInstrument, {
             registerBulk,
             getLtp: () => baseSpotPriceRef.current,
+            initialOverrides: techOverrides,
             onUpdate: (state) => setTechState({ ...state })
         });
 
@@ -187,8 +205,14 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
         };
     }, [selectedInstrument, registerBulk]);
 
-    const fundEngine = fundState ? { cardScores: fundState.scores } : null;
-    const techEngine = techState ? { cardScores: techState.scores } : null;
+    const fundEngine = fundState ? { 
+        cardScores: fundState.scores,
+        ...(isIndex ? computeIndexComposite(fundState.scores) : computeCompanyComposite(fundState.scores))
+    } : null;
+    const techEngine = techState ? { 
+        cardScores: techState.scores,
+        ...computeTechnicalComposite(techState.scores, isIndex)
+    } : null;
     const headlessFundCards = fundState?.cards || [];
     const headlessTechCards = techState?.cards || [];
 

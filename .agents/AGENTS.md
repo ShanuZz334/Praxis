@@ -32,3 +32,6 @@ When refactoring, updating, or building new indicator cards in the Praxis dashbo
 ## 6. Global Card Inventory Synchronization
 - **Keep the Master List Updated**: The master list of all dashboard cards is persistently stored at `CARD_INVENTORY.md` in the project root.
 - **Mandatory Update**: Whenever you build, delete, or rename any indicator card anywhere in the Praxis platform, you **MUST** update `CARD_INVENTORY.md` immediately to reflect the change so the inventory remains 100% accurate.
+
+## 7. Personalization & Golden Rules
+- **User Identity**: The user's name is Shanif, and their nickname is Shanu. All AI agents must acknowledge and respect this identity.

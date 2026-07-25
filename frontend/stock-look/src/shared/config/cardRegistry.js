@@ -33,6 +33,7 @@ export const CARD_REGISTRY = {
         id: 'market_heatmap',
         type: 'widget',
         displayName: 'Market Heatmap',
+        aliases: ['heat map', 'heatmap', 'market heat map'],
         page: 'Master',
         section: 'Widgets',
         appliesTo: 'n/a', // Passive widget
@@ -42,6 +43,7 @@ export const CARD_REGISTRY = {
         id: 'fii_dii_flow_master',
         type: 'widget',
         displayName: 'Institutional Flow',
+        aliases: ['fii dii', 'fii/dii', 'institutional'],
         page: 'Master',
         section: 'Widgets',
         appliesTo: 'n/a', // Passive widget
@@ -95,8 +97,26 @@ export const CARD_REGISTRY = {
     qchat_fundamentals: { id: 'qchat_fundamentals', type: 'widget', displayName: 'Fundamental QChat', page: 'Fundamentals', section: 'General', appliesTo: 'both', legacyIds: [] },
 
     // Valuation
-    pe_ratio: { id: 'pe_ratio', type: 'card', displayName: 'P/E Ratio', page: 'Fundamentals', section: 'Valuation', appliesTo: 'company', legacyIds: [] },
-    forward_pe: { id: 'forward_pe', type: 'card', displayName: 'Forward P/E', page: 'Fundamentals', section: 'Valuation', appliesTo: 'company', legacyIds: [] },
+    pe_ratio: {
+        id: 'pe_ratio',
+        type: 'card',
+        displayName: 'Trailing P/E Ratio',
+        aliases: ['pe ratio', 'p/e ratio', 'p/e'],
+        page: 'Fundamentals',
+        section: 'Valuation',
+        appliesTo: 'equity',
+        legacyIds: ['pe']
+    },
+    forward_pe: {
+        id: 'forward_pe',
+        type: 'card',
+        displayName: 'Forward P/E',
+        aliases: ['forward pe', 'forward p/e'],
+        page: 'Fundamentals',
+        section: 'Valuation',
+        appliesTo: 'company',
+        legacyIds: []
+    },
     pb_ratio: { id: 'pb_ratio', type: 'card', displayName: 'P/B Ratio', page: 'Fundamentals', section: 'Valuation', appliesTo: 'company', legacyIds: [] },
     ev_ebitda: { id: 'ev_ebitda', type: 'card', displayName: 'EV/EBITDA', page: 'Fundamentals', section: 'Valuation', appliesTo: 'company', legacyIds: [] },
     earnings_yield: { id: 'earnings_yield', type: 'card', displayName: 'Earnings Yield', page: 'Fundamentals', section: 'Valuation', appliesTo: 'company', legacyIds: [] },

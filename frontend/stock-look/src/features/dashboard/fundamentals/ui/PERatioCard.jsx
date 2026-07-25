@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { generateAiInsightPERatioCard, scorePERatio } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function PERatioCard({ cardId, data = null, manualOverride, lastUpdated }) {
@@ -26,7 +27,13 @@ export default function PERatioCard({ cardId, data = null, manualOverride, lastU
     const historicalPE = null; // Removed to strictly comply with Zero Clutter Rule (NO Fallbacks/Historical inputs)
 
     // ── Step 3: Run Engine ────────────────────────────────────────────────
-    const { score, bias, confidence } = scorePERatio(currentPE, historicalPE, sectorPE);
+    const { score, bias } = scorePERatio(currentPE, historicalPE, sectorPE);
+    const cCard = computeCardConfidence({
+        hasLiveData: isLiveData,
+        isManual: !!manualOverride && !isLiveData,
+        sourcePipeline: isLiveData ? 'Upstox' : 'Manual',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--')
+    }, 'fundamentals');
 
     // ── Step 4: Dynamic AI Insight ────────────────────────────────────────
     const aiInsight = generateAiInsightPERatioCard(currentPE, historicalPE, sectorPE, bias);
@@ -62,7 +69,7 @@ export default function PERatioCard({ cardId, data = null, manualOverride, lastU
                 ].filter(Boolean),
                 score,
                 bias,
-                confidence: `${confidence}%`,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight ?? 5.0,
             }}
             chartData={{

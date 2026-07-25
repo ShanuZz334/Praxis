@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Sparkles, Settings, Sun, Moon, Square, AtSign } from 'lucide-react';
+import { Send, Sparkles, Settings, Sun, Moon, Square, AtSign, Zap, Mic, MicOff, Loader2, Volume2, Brain, Headset } from 'lucide-react';
 import PaiMessageBubble from './PaiMessageBubble';
 import { useTheme } from '@/shared/context/ThemeContext';
 import UiverseDropdown from '@/shared/components/ui/UiverseDropdown';
@@ -11,6 +11,7 @@ import { useMentions, inferPageFromChatId } from '@/shared/hooks/useMentions';
 import paiLogoLightCenter from '@/assets/images/icon 2-Photoroom.png';
 import paiLogoDarkCenter from '@/assets/images/icon 4-Photoroom.png';
 import axiosInstance from '@/shared/utils/axiosInstance';
+import { useVoice } from '@/shared/context/VoiceContext';
 
 export default function PaiChatArea({ activeChatId, chatTitle, chatType, refreshTrigger, isPopup = false }) {
     const navigate = useNavigate();
@@ -33,6 +34,17 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
 
     // @mention hook
     const mentions = useMentions(scopePageId);
+
+    const { isVoiceMode, toggleVoiceMode, isStandbyMode, toggleStandby, status: voiceStatus, synthesize, stopTts, skipTts, registerListener, unregisterListener } = useVoice();
+
+    // Register this chat area as the active voice listener when mounted
+    useEffect(() => {
+        const handleVoiceText = (text) => {
+            sendMessage(text);
+        };
+        registerListener(handleVoiceText);
+        return () => unregisterListener(handleVoiceText);
+    }, [registerListener, unregisterListener, activeChatId]);
 
     // Fetch messages when chat changes (or refresh is triggered)
     useEffect(() => {
@@ -114,22 +126,21 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
     const handleStop = () => {
         if (generationTimeoutRef.current) clearTimeout(generationTimeoutRef.current);
         setIsGenerating(false);
+        stopTts();
     };
 
-    const handleSend = async (e) => {
-        e?.preventDefault();
-
+    const sendMessage = async (textToSubmit) => {
         if (isGenerating) { handleStop(); return; }
-        if (!input.trim() || !activeChatId) return;
+        if (!textToSubmit.trim() || !activeChatId) return;
 
         // Parse and resolve all @mentions from the final message text
-        const { cleanText, cardSnapshots } = mentions.parseAndResolveAll(input);
+        const { cleanText, cardSnapshots } = mentions.parseAndResolveAll(textToSubmit);
         mentions.closeMentions();
 
         const newMsg = {
             id: Date.now(),
             role: 'user',
-            content: input, // show original text with @mentions to user
+            content: textToSubmit, // show original text with @mentions to user
             cardSnapshots: cardSnapshots.length > 0 ? cardSnapshots : undefined,
         };
         setMessages(prev => [...prev, newMsg]);
@@ -166,6 +177,9 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                     model: res.data.model,
                     latencyMs: res.data.latencyMs
                 }]);
+                if (isVoiceMode) {
+                    synthesize(res.data.message);
+                }
             }
         } catch (err) {
             console.error("Failed to send message:", err);
@@ -174,9 +188,17 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                 role: 'ai',
                 content: "Sorry, I encountered an error connecting to the AI Gateway."
             }]);
+            if (isVoiceMode) {
+                synthesize("Sorry, I encountered an error.");
+            }
         } finally {
             setIsGenerating(false);
         }
+    };
+
+    const handleSend = (e) => {
+        e?.preventDefault();
+        sendMessage(input);
     };
 
     const handleInputChange = (e) => {
@@ -233,6 +255,13 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                                 title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
                             >
                                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                            </button>
+                            <button
+                                onClick={() => toggleStandby(!isStandbyMode)}
+                                className={`p-2 transition-colors rounded-lg hover:bg-background-elevated ${isStandbyMode ? 'text-orange-500' : 'text-text-tertiary hover:text-text-primary'}`}
+                                title="Hey Pai Standby Mode"
+                            >
+                                <Headset size={18} className={isStandbyMode ? 'animate-pulse' : ''} />
                             </button>
                             <button
                                 onClick={() => navigate('/dashboard/pai/settings')}
@@ -333,6 +362,8 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                                         onClose={mentions.closeMentions}
                                     />
                                 )}
+                                {/* Removed Voice Status Badge and Standby Badge as requested */}
+                                
                                 <form
                                     onSubmit={handleSend}
                                     className="relative flex items-end bg-background-tooltip border border-border-default rounded-xl shadow-lg focus-within:ring-1 focus-within:ring-blue-500/50 transition-shadow overflow-hidden"
@@ -347,12 +378,53 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                                         className="w-full bg-transparent text-text-primary text-[13px] placeholder-slate-400 dark:placeholder-slate-400 px-3.5 py-3 max-h-[150px] min-h-[44px] resize-none outline-none custom-scrollbar disabled:opacity-50"
                                         rows={1}
                                     />
-                                    <div className="p-1.5 shrink-0 h-[44px] flex items-center">
+                                    <div className="p-1.5 shrink-0 h-[44px] flex items-center gap-1.5">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                if (isVoiceMode && voiceStatus === 'speaking') {
+                                                    skipTts();
+                                                } else {
+                                                    toggleVoiceMode();
+                                                }
+                                            }}
+                                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors shadow-sm relative overflow-hidden
+                                                ${voiceStatus === 'processing'
+                                                    ? 'bg-blue-500/20 text-blue-400'
+                                                    : isStandbyMode && !isVoiceMode
+                                                        ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
+                                                        : isVoiceMode
+                                                            ? voiceStatus === 'speaking'
+                                                                ? 'bg-orange-500 hover:bg-orange-600 text-white' 
+                                                                : 'bg-blue-600 hover:bg-blue-500 text-white'
+                                                            : 'bg-background-elevated hover:bg-border-default text-text-tertiary hover:text-text-primary'
+                                                }
+                                            `}
+                                            title={isStandbyMode && !isVoiceMode ? "Waiting for 'Hey Pai'..." : isVoiceMode && voiceStatus === 'speaking' ? "Click to skip AI response" : "Voice Mode"}
+                                        >
+                                            {voiceStatus === 'processing' ? (
+                                                <>
+                                                    <Sparkles size={15} className="z-10 animate-pulse" />
+                                                    <div className="absolute inset-0 bg-blue-500/20 animate-pulse"></div>
+                                                </>
+                                            ) : isVoiceMode && voiceStatus === 'speaking' ? (
+                                                <>
+                                                    <Volume2 size={15} className="z-10" />
+                                                    <div className="absolute inset-0 bg-orange-600/50 animate-pulse"></div>
+                                                </>
+                                            ) : isVoiceMode ? (
+                                                <Mic size={15} className={voiceStatus === 'listening' ? 'animate-pulse' : ''} />
+                                            ) : isStandbyMode ? (
+                                                <Mic size={15} className="opacity-70 animate-pulse" />
+                                            ) : (
+                                                <MicOff size={15} />
+                                            )}
+                                        </button>
                                         <button
                                             type="button"
                                             onClick={handleSend}
                                             disabled={!input.trim() && !isGenerating}
-                                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors shadow-md disabled:shadow-none disabled:bg-background-elevated disabled:text-text-tertiary text-white
+                                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors shadow-sm disabled:shadow-none disabled:bg-background-elevated disabled:text-text-tertiary text-white
                                                 ${isGenerating
                                                     ? 'bg-red-500 hover:bg-red-600 animate-pulse'
                                                     : 'bg-blue-600 hover:bg-blue-500'
@@ -384,10 +456,11 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                                     matchWidth={true}
                                 />
                             </div>
-                        )}
-                    </div>
+                )}
+            </div>
                 </>
             )}
+
         </div>
     );
 }

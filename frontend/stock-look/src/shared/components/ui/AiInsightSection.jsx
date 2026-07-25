@@ -12,12 +12,14 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, RefreshCw } from "lucide-react";
+import { Sparkles, RefreshCw, Volume2 } from "lucide-react";
 import { useCardInsight } from "@/shared/hooks/useCardInsight";
 import { useDataRegistry } from "@/shared/context/DataRegistryContext";
+import { useVoice } from "@/shared/context/VoiceContext";
 import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 import AiInsightModal from "@/shared/components/ui/AiInsightModal";
 import { FO_EQUITIES, FO_INDICES } from "@/shared/utils/foInstruments";
+import { getCompositeColor } from "@/shared/config/scoreColors";
 
 function resolveReadableSymbol(instrumentKey) {
     if (!instrumentKey) return null;
@@ -48,7 +50,16 @@ function resolvePageId(path) {
     return 'master';
 }
 
-import { getCompositeColor } from "@/shared/config/scoreColors";
+// Global cache to prevent re-generating insights across tab switches unless score moves by >= 5 points
+let globalInsightCache = {};
+try {
+    const stored = localStorage.getItem('praxis_ai_insight_cache');
+    if (stored) {
+        globalInsightCache = JSON.parse(stored);
+    }
+} catch (e) {
+    console.warn("Failed to load insight cache", e);
+}
 
 export default function AiInsightSection({
     actionType = "Neutral",
@@ -73,13 +84,38 @@ export default function AiInsightSection({
 
     // ── Registry (provides richer card-level pageData grouped by section) ────
     const { getPageStructuredData } = useDataRegistry();
+    const { synthesize, skipTts, status } = useVoice();
+    const isSpeaking = status === 'speaking';
 
     // ── AI Hook ──────────────────────────────────────────────────────────────
     const { insight, isLoading, error, generate, meta } = useCardInsight(targetId);
 
     // Track last generated state to avoid redundant re-calls on minor fluctuations
-    const lastStateRef = useRef({ score: null, symbol: null });
+    const lastStateRef = useRef({ score: null, symbol: null, regime: null });
     const hasGeneratedRef = useRef(false);
+    const [displayedText, setDisplayedText] = useState("");
+    const [isRestoredFromCache, setIsRestoredFromCache] = useState(false);
+
+    // ── Restore from Global Cache on Mount ──
+    const currentSymbol = resolveReadableSymbol(stockSymbol) || "Market";
+    const cacheKey = `${targetId}_${currentSymbol}`;
+
+    useEffect(() => {
+        const cached = globalInsightCache[cacheKey];
+        if (cached) {
+            // Restore state to prevent auto-trigger when switching tabs
+            hasGeneratedRef.current = true;
+            lastStateRef.current = { score: cached.score, symbol: cached.symbol, regime: cached.regime };
+            setDisplayedText(cached.insightText);
+            setIsRestoredFromCache(true);
+        } else {
+            // Reset state for new cache key so it can correctly generate
+            hasGeneratedRef.current = false;
+            lastStateRef.current = { score: null, symbol: null, regime: null };
+            setDisplayedText("");
+            setIsRestoredFromCache(false);
+        }
+    }, [cacheKey]);
 
     const triggerGenerate = useCallback((forceOrEvent) => {
         if (score === null || score === undefined) return;
@@ -87,21 +123,23 @@ export default function AiInsightSection({
 
         const isForce = forceOrEvent === true || (forceOrEvent && forceOrEvent.type === 'click');
         const currentScore = typeof score === 'number' ? score : parseFloat(score) || 0;
-        const currentSymbol = resolveReadableSymbol(stockSymbol) || "Market";
         
-        const lastScore = lastStateRef.current.score;
-        const lastSymbol = lastStateRef.current.symbol;
+        const { score: lastScore, symbol: lastSymbol, regime: lastRegime } = lastStateRef.current;
 
-        // Only regenerate if user manually clicked, symbol changed, OR score moved by >= 5 points
-        const isSignificantChange = lastScore === null || Math.abs(currentScore - lastScore) >= 5;
+        // Only regenerate if user manually clicked, symbol changed, OR score moved by >= 5 points, OR regime changed
+        const isSignificantScoreChange = lastScore === null || Math.abs(currentScore - lastScore) >= 5;
         const isSymbolChange = currentSymbol !== lastSymbol;
+        const isRegimeChange = actionType !== lastRegime;
+        
+        // Ignore drops to exactly 0 unless forced, as they are usually websocket data-loading blips
+        if (currentScore === 0 && !isForce) return;
 
-        if (!isForce && hasGeneratedRef.current && !isSignificantChange && !isSymbolChange) {
+        if (!isForce && hasGeneratedRef.current && !isSignificantScoreChange && !isSymbolChange && !isRegimeChange) {
             return; // Cache hit: change is too minor to warrant a new AI insight
         }
 
-        // Update tracking state
-        lastStateRef.current = { score: currentScore, symbol: currentSymbol };
+        // Update tracking state *before* generating so repeated triggers are blocked
+        lastStateRef.current = { score: currentScore, symbol: currentSymbol, regime: actionType };
         hasGeneratedRef.current = true;
 
         // ── Extract sub-engine scores from masterPayload.engines (for Master header)
@@ -120,11 +158,11 @@ export default function AiInsightSection({
         const contextLines = [
             `Regime: ${actionType}`,
             confidence != null ? `Confidence: ${confidence}%` : null,
-            `Score: ${currentScore.toFixed(0)}`,          // was "Composite Score: X/100" — broke {score}
-            bulls    != null ? `Bulls: ${bulls}`    : null, // was "Bullish Signals: X"  — broke {bulls}
-            bears    != null ? `Bears: ${bears}`    : null, // was "Bearish Signals: X"  — broke {bears}
-            neutrals != null ? `Neutrals: ${neutrals}` : null, // was "Neutral Signals: X" — broke {neutrals}
-            ...engineScoreLines,                          // TechScore/FundScore/etc. for Master header
+            `Score: ${currentScore.toFixed(0)}`,
+            bulls    != null ? `Bulls: ${bulls}`    : null,
+            bears    != null ? `Bears: ${bears}`    : null,
+            neutrals != null ? `Neutrals: ${neutrals}` : null,
+            ...engineScoreLines,
         ].filter(Boolean).join(" | ");
 
         // ── Build pageData from DataRegistry — hierarchical sections/cards ─────────
@@ -132,7 +170,7 @@ export default function AiInsightSection({
         const hasStructuredData = structuredData.sections?.some(s => s.cards?.length > 0);
 
         const pageData = hasStructuredData
-            ? structuredData  // full { pageId, compositeScore, sections: [{name, cards: [{id, displayName, value, score, signal}]}] }
+            ? structuredData
             : masterPayload
                 ? masterPayload
                 : {
@@ -149,17 +187,29 @@ export default function AiInsightSection({
             pageData: pageData
         });
     }, [targetId, score, actionType, confidence, bulls, bears, neutrals, stockSymbol, generate,
-        coveragePercent, cards, sections, masterPayload, getPageStructuredData, resolvedPageId]);
+        coveragePercent, cards, sections, masterPayload, getPageStructuredData, resolvedPageId, currentSymbol]);
+
+    const [isReadyToGenerate, setIsReadyToGenerate] = useState(false);
+
+    useEffect(() => {
+        // Wait for websocket data to fully populate before allowing generation
+        const timer = setTimeout(() => setIsReadyToGenerate(true), 1500);
+        return () => clearTimeout(timer);
+    }, []);
 
     // Auto-trigger when score becomes available
     // Re-run on score or coverage changes
     useEffect(() => {
-        if (coveragePercent >= 75) {
-            triggerGenerate();
+        if (isReadyToGenerate && coveragePercent >= 75) {
+            // Debounce generation by 1.5s so we don't double-fire while
+            // complex multi-part websockets (like the Master Dashboard) are still loading in.
+            const timer = setTimeout(() => {
+                triggerGenerate();
+            }, 1500);
+            return () => clearTimeout(timer);
         }
-    }, [score, stockSymbol, triggerGenerate, coveragePercent]);
+    }, [score, stockSymbol, actionType, triggerGenerate, coveragePercent, isReadyToGenerate]);
 
-    const [displayedText, setDisplayedText] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
     const intervalRef = useRef(null);
@@ -167,39 +217,54 @@ export default function AiInsightSection({
 
     // Extract insight, stripping out markdown formatting like ### and **
     const cleanInsight = insight ? insight.replace(/[#*]/g, '').trim() : "";
-    // We no longer split into a 'summary' and 'body'. The entire text is the body.
     const aiSummary = "";
     const aiBody = cleanInsight;
 
     useEffect(() => {
         if (!insight || insight === prevInsightRef.current) return;
         prevInsightRef.current = insight;
+        
+        // Save to global cache so tab switching doesn't wipe it
+        const currentScore = typeof score === 'number' ? score : parseFloat(score) || 0;
+        globalInsightCache[cacheKey] = {
+            score: currentScore,
+            symbol: currentSymbol,
+            regime: actionType,
+            insightText: cleanInsight
+        };
+        try {
+            localStorage.setItem('praxis_ai_insight_cache', JSON.stringify(globalInsightCache));
+        } catch (e) {
+            console.warn("Failed to save insight cache", e);
+        }
 
         // Clear previous interval
         if (intervalRef.current) clearInterval(intervalRef.current);
         
-        // If loaded from cache, skip the typewriter effect
-        if (meta?.cached) {
-            setDisplayedText(aiBody);
-            return;
-        }
-
-        setDisplayedText("");
+        setDisplayedText(""); // Reset text for typing effect
+        setIsRestoredFromCache(false); // We just generated a new one, so type it out!
+        
         let i = 0;
         intervalRef.current = setInterval(() => {
-            i++;
-            if (i <= aiBody.length) {
-                setDisplayedText(aiBody.substring(0, i));
+            if (i < cleanInsight.length) {
+                setDisplayedText(cleanInsight.substring(0, i + 1));
+                i++;
             } else {
                 clearInterval(intervalRef.current);
             }
         }, 8);
 
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-    }, [insight, aiBody, meta]);
+    }, [insight, aiBody, meta, score, currentSymbol, actionType, cacheKey, cleanInsight]);
+
+    // Safety measure: if the currently displayed insight was generated for a wildly different score 
+    // (e.g. before the rest of the Master Dashboard finished loading), instantly hide the outdated text 
+    // so the user doesn't see a blatant contradiction while waiting for the new insight to generate.
+    const currentScore = typeof score === 'number' ? score : parseFloat(score) || 0;
+    const isOutdated = lastStateRef.current.score !== null && Math.abs(currentScore - lastStateRef.current.score) >= 5;
 
     const isTyping = insight && displayedText.length < aiBody.length;
-    const showSkeleton = isLoading && !insight;
+    const showSkeleton = (isLoading && !insight) || isOutdated;
 
     return (
         <>
@@ -225,6 +290,24 @@ export default function AiInsightSection({
                         <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-text-tertiary">
                             AI Insight
                         </span>
+                        {!isLoading && displayedText && (
+                            <PortalTooltip content={<div className="text-xs text-text-secondary">Read Aloud</div>}>
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isSpeaking) {
+                                            skipTts();
+                                        } else {
+                                            const text = cleanInsight || displayedText;
+                                            if (text) synthesize(text.replace(/[#*]/g, '').trim());
+                                        }
+                                    }}
+                                    className={`p-1.5 hover:bg-background-surface rounded-md transition-colors ${isSpeaking ? 'text-purple-400' : 'text-text-tertiary hover:text-text-primary'}`}
+                                >
+                                    <Volume2 className="w-3.5 h-3.5" />
+                                </button>
+                            </PortalTooltip>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         {confidence && (

@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreNetMargin, generateAiInsightNetMarginCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function NetMarginCard({ cardId, data, manualOverride, lastUpdated }) {
@@ -60,7 +61,14 @@ export default function NetMarginCard({ cardId, data, manualOverride, lastUpdate
     const configData = getIndicatorConfig(CARD_REGISTRY.net_margin.id);
 
     // 3. Praxis Engine
-    const { score, bias, confidence, trendDesc } = scoreNetMargin(currentMargin, sectorMargin);
+    const { score, bias, trendDesc } = scoreNetMargin(currentMargin, sectorMargin);
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: !isManual,
+        isManual: !!manualOverride && isManual,
+        sourcePipeline: isManual ? 'manual' : (extractedSector ? 'upstox' : 'upstox'),
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--')
+    }, 'fundamentals');
     const aiInsightText = generateAiInsightNetMarginCard(currentMargin, trendDesc);
 
         return (
@@ -82,7 +90,7 @@ export default function NetMarginCard({ cardId, data, manualOverride, lastUpdate
                 ].filter(Boolean),
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: confidence,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

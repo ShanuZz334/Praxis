@@ -4,6 +4,7 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { formatPercentage } from '@/shared/utils/formatters';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreDividendYield, generateAiInsightDividendYieldCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function DividendYieldCard({ cardId, data = null, manualOverride, lastUpdated }) {
@@ -55,7 +56,15 @@ export default function DividendYieldCard({ cardId, data = null, manualOverride,
     const configData = getIndicatorConfig(CARD_REGISTRY.dividend_yield.id);
 
     // 3. Praxis Engine Variables
-    const { score, bias, confidence } = scoreDividendYield(currentYield, bondYield);
+    const { score, bias } = scoreDividendYield(currentYield, bondYield);
+    const isManual = !isLiveData && (manualOverride !== undefined && manualOverride !== null && manualOverride !== '');
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: isLiveData,
+        isManual: !!isManual,
+        sourcePipeline: sourceStr === 'Upstox API' || sourceStr === 'Upstox (Calc)' ? 'upstox' : 'manual',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--')
+    }, 'fundamentals');
     const aiInsightText = generateAiInsightDividendYieldCard(currentYield, bondYield);
 
         return (
@@ -77,7 +86,7 @@ export default function DividendYieldCard({ cardId, data = null, manualOverride,
                 ].filter(Boolean),
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: confidence || '85%',
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

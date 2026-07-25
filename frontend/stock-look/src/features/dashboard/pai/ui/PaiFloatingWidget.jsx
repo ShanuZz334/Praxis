@@ -6,10 +6,11 @@ import paiIcon from "@/assets/icons/pai-round-bgless.png";
 import paiLabelImg from "@/assets/icons/pai-label-bgless.png";
 import PaiLoader from './PaiLoader';
 import Loader from '@/shared/components/ui/Loader';
-import { X, Send, Sparkles, Globe, AtSign, Brain } from 'lucide-react';
+import { X, Send, Sparkles, Globe, AtSign, Brain, Mic, MicOff, Loader2, Volume2 } from 'lucide-react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { useMentions, inferPageFromChatId } from '@/shared/hooks/useMentions';
 import MentionSuggestionDropdown from '@/shared/components/ui/MentionSuggestionDropdown';
+import { useVoice } from '@/shared/context/VoiceContext';
 
 export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage = false }) {
     const { 
@@ -60,6 +61,38 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     const generationTimeoutRef = useRef(null);
     const [isFetchingHistory, setIsFetchingHistory] = useState(true);
     const [isPanelExpanded, setIsPanelExpanded] = useState(false);
+
+    const { isVoiceMode, toggleVoiceMode, status: voiceStatus, synthesize, skipTts, registerListener, unregisterListener } = useVoice();
+
+    // Register listener when chat panel is open
+    useEffect(() => {
+        if (!isChatOpen || isDocked) return;
+        
+        const handleVoiceText = (text) => {
+            // Need to set message and send it
+            const pseudoEvent = { preventDefault: () => {} };
+            // A bit hacky to use state directly without dependency array updates but we can synthesize the send logic
+            handleSendDirect(text);
+        };
+        registerListener(handleVoiceText);
+        return () => unregisterListener(handleVoiceText);
+    }, [isChatOpen, isDocked, registerListener, unregisterListener]);
+
+    // Global listener for auto-undock when standby wake word fires globally
+    useEffect(() => {
+        const handleGlobalWakeWord = (e) => {
+            // Auto undock and open!
+            setIsDocked(false);
+            setIsChatOpen(true);
+            
+            // We should also automatically send the message if there's text
+            if (e.detail && e.detail.trim().length > 0) {
+                setTimeout(() => handleSendDirect(e.detail), 1000); // Wait for open animation
+            }
+        };
+        window.addEventListener('paiGlobalWakeWord', handleGlobalWakeWord);
+        return () => window.removeEventListener('paiGlobalWakeWord', handleGlobalWakeWord);
+    }, [isDocked, setIsDocked, setIsChatOpen]);
 
     const [tempModel, setTempModel] = useState(null);
     const [showModelSelector, setShowModelSelector] = useState(false);
@@ -120,6 +153,8 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
 
     const activeContext = getContextName(location.pathname, chatMode);    // Initial greeting and auto-reset when context changes
     useEffect(() => {
+        if (!isChatOpen) return; // Only fetch history when the widget is actually opened!
+
         let isMounted = true;
         
         const fetchHistory = async () => {
@@ -150,7 +185,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
         fetchHistory();
 
         return () => { isMounted = false; };
-    }, [activeContext, activeTargetId]);
+    }, [activeContext, activeTargetId, isChatOpen]);
 
     // Auto-scroll to the last user message so the question stays in view
     useEffect(() => {
@@ -190,17 +225,21 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     }, []);
 
     const handleSend = async (e) => {
-        e.preventDefault();
-        if (!message.trim() || isGenerating) return;
+        e?.preventDefault();
+        handleSendDirect(message);
+    };
+
+    const handleSendDirect = async (textToSubmit) => {
+        if (!textToSubmit.trim() || isGenerating) return;
 
         // Parse and resolve all @mentions from the message
-        const { cleanText, cardSnapshots } = mentions.parseAndResolveAll(message);
+        const { cleanText, cardSnapshots } = mentions.parseAndResolveAll(textToSubmit);
         mentions.closeMentions();
 
         const newMsg = {
             id: Date.now(),
             role: 'user',
-            content: message, // show original @mention text to user
+            content: textToSubmit, // show original @mention text to user
             cardSnapshots: cardSnapshots.length > 0 ? cardSnapshots : undefined,
         };
         setMessages(prev => [...prev, newMsg]);
@@ -221,6 +260,9 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                     role: 'ai',
                     content: res.data.message
                 }]);
+                if (isVoiceMode) {
+                    synthesize(res.data.message);
+                }
             }
         } catch (err) {
             console.error("Failed to send message:", err);
@@ -229,6 +271,9 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                 role: 'ai',
                 content: "Sorry, I encountered an error connecting to the AI Gateway."
             }]);
+            if (isVoiceMode) {
+                synthesize("Sorry, I encountered an error.");
+            }
         } finally {
             setIsGenerating(false);
         }
@@ -245,24 +290,24 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
             setIsSnappingState(false);
         }
 
-        if (!isDocked && isChatOpen && !hasDragged) {
-            // Wait 50ms for Framer Motion to fully bind the drag constraints to the DOM node
-            // Without this, the drag initialization will silently cancel the controls.start() call on the second mount!
-            slideTimer = setTimeout(() => {
-                controls.start({ x: 230, y: 0, transition: { type: "spring", stiffness: 150, damping: 20 } });
-            }, 50);
+        if (!isDocked && isChatOpen) {
+            if (!hasDragged) {
+                // Wait 50ms for Framer Motion to fully bind the drag constraints to the DOM node
+                slideTimer = setTimeout(() => {
+                    controls.start({ x: 230, y: 0, transition: { type: "spring", stiffness: 150, damping: 20 } });
+                }, 50);
+            }
             
-            // Open the panel after the slide animation naturally finishes (~400ms)
+            // Always ensure the panel opens, regardless of whether it animated or not
             panelTimer = setTimeout(() => {
                 setShowPanel(true);
-            }, 450);
+            }, hasDragged ? 10 : 450);
+            
         } else if (!isChatOpen) {
             setShowPanel(false);
             setIsPanelExpanded(false); // Reset when closing
             setTempModel(null);        // Reset temp model to original setting when closed
             setShowModelSelector(false);
-        } else {
-            setShowPanel(true);
         }
 
         return () => {
@@ -639,11 +684,50 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                             if (consumed) e.preventDefault();
                                         }}
                                         placeholder={`Ask PAI… @ to attach card data`}
-                                        className="w-full bg-background-app border border-border-default rounded-xl pl-4 pr-10 py-2.5 text-[12px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-blue-500/50 transition-colors"
+                                        className="w-full bg-background-app border border-border-default rounded-xl pl-4 pr-16 py-2.5 text-[12px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-blue-500/50 transition-colors"
                                     />
-                                    <button type="submit" disabled={isGenerating || !message.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white rounded-lg transition-colors">
-                                        <Send className="w-3.5 h-3.5" />
-                                    </button>
+                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                        <button 
+                                            type="button" 
+                                            onClick={(e) => {
+                                                if (isVoiceMode && voiceStatus === 'speaking') {
+                                                    skipTts();
+                                                } else {
+                                                    toggleVoiceMode(!isVoiceMode);
+                                                }
+                                            }}
+                                            className={`p-1.5 rounded-lg transition-colors relative overflow-hidden ${
+                                                isVoiceMode 
+                                                    ? voiceStatus === 'speaking'
+                                                        ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                                                        : 'bg-blue-500/20 text-blue-500 hover:bg-blue-500/30' 
+                                                    : 'text-text-tertiary hover:bg-background-elevated hover:text-text-primary'
+                                            }`}
+                                            title={isVoiceMode && voiceStatus === 'speaking' ? 'Click to skip AI response' : isVoiceMode ? 'Disable Voice Mode' : 'Enable Voice Mode'}
+                                        >
+                                            {isVoiceMode ? (
+                                                voiceStatus === 'listening' ? <Mic className="w-3.5 h-3.5 animate-pulse" /> :
+                                                voiceStatus === 'processing' ? (
+                                                    <>
+                                                        <Sparkles className="w-3.5 h-3.5 z-10 relative animate-pulse" />
+                                                        <div className="absolute inset-0 bg-blue-500/20 animate-pulse"></div>
+                                                    </>
+                                                ) :
+                                                voiceStatus === 'speaking' ? (
+                                                    <>
+                                                        <Volume2 className="w-3.5 h-3.5 z-10 relative" />
+                                                        <div className="absolute inset-0 bg-orange-600/50 animate-pulse"></div>
+                                                    </>
+                                                ) :
+                                                <Mic className="w-3.5 h-3.5" />
+                                            ) : (
+                                                <MicOff className="w-3.5 h-3.5" />
+                                            )}
+                                        </button>
+                                        <button type="submit" disabled={isGenerating || !message.trim()} className="p-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white rounded-lg transition-colors">
+                                            <Send className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
                                 </div>
                                 {/* Attached card badges */}
                             </form>

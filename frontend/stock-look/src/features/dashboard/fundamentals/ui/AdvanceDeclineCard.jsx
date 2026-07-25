@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { generateAiInsightAdvanceDeclineCard, scoreADRatio } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function AdvanceDeclineCard({ cardId, data, manualOverride, lastUpdated }) {
@@ -11,7 +12,14 @@ export default function AdvanceDeclineCard({ cardId, data, manualOverride, lastU
         : null;
 
     const configData = getIndicatorConfig(CARD_REGISTRY.advance_decline.id);
-    const { score, bias, confidence, breadthZone, signalType } = scoreADRatio(adRatio);
+    const { score, bias, breadthZone, signalType } = scoreADRatio(adRatio);
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: false,
+        isManual: !!manualOverride,
+        sourcePipeline: 'manual',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(false) : (lastUpdated || '--:--')
+    }, 'fundamentals');
     const aiInsight = generateAiInsightAdvanceDeclineCard(adRatio, bias, breadthZone, signalType);
 
     return (
@@ -45,7 +53,7 @@ export default function AdvanceDeclineCard({ cardId, data, manualOverride, lastU
                 ].filter(Boolean),
                 score: score ?? 0,
                 bias: bias ?? 'Neutral',
-                confidence: `${confidence}%`,
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight ?? 7.0
             }}
             chartData={{ valueName: 'A/D Ratio' }}

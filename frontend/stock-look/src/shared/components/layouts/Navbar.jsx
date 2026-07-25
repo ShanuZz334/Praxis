@@ -29,12 +29,14 @@ import logo2Bgless from "@/assets/icons/praxis logo 2 bgless.png"; // dark mode 
 import praxisBgless1 from "@/assets/icons/praxis bgless 1.png"; // light mode Praxis text (black)
 import praxisBgless2 from "@/assets/icons/praxis bgless 2.png"; // dark mode Praxis text (blue)
 import ThemeToggle from "@/shared/components/ui/ThemeToggle";
-import { Database, AlertTriangle } from 'lucide-react';
+import { Database, AlertTriangle, Headset } from 'lucide-react';
 import { upstoxService } from "@/shared/services/upstoxService";
+import { useVoice } from "@/shared/context/VoiceContext";
 
 const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { isStandbyMode, toggleStandby } = useVoice();
   const [isWidgetOpen, setIsWidgetOpen] = useState(false);
   const [upstoxConnected, setUpstoxConnected] = useState(true);
 
@@ -178,7 +180,7 @@ const Navbar = ({ onToggleSidebar }) => {
         />
         {!upstoxConnected && (
             <button 
-                onClick={() => navigate('/admin')}
+                onClick={() => navigate('/dashboard/admin')}
                 className="absolute -right-10 text-rose-500 hover:text-rose-400 transition-colors flex items-center cursor-pointer"
                 title="Upstox API Disconnected. Go to Data Center to re-authenticate."
             >
@@ -222,6 +224,15 @@ const Navbar = ({ onToggleSidebar }) => {
         {/* Animated Theme Toggle */}
         <ThemeToggle />
 
+        {/* Global Standby Mode Toggle */}
+        <button
+          onClick={() => toggleStandby(!isStandbyMode)}
+          className={`transition-colors rounded-full hover:bg-background-elevated ${isStandbyMode ? 'text-orange-500 shadow-[0_0_15px_rgba(234,88,12,0.3)]' : 'text-text-tertiary hover:text-text-primary'}`}
+          title="Global 'Hey Pai' Standby Mode"
+        >
+          <Headset size={18} className={`text-lg transition-transform hover:scale-110 ${isStandbyMode ? 'animate-pulse' : ''}`} />
+        </button>
+
         {/* Global Controls Widget Toggle */}
         <button
           onClick={() => setIsWidgetOpen(!isWidgetOpen)}
@@ -232,7 +243,7 @@ const Navbar = ({ onToggleSidebar }) => {
           `}
           title="Global Controls"
         >
-          <FiCrosshair className="text-xl transition-transform hover:scale-110" />
+          <FiCrosshair className="text-lg transition-transform hover:scale-110" />
         </button>
 
         {/* Notifications */}
@@ -244,7 +255,7 @@ const Navbar = ({ onToggleSidebar }) => {
             hover:text-accent-primary
           "
         >
-          <FiBell className="text-xl transition-transform hover:scale-110" />
+          <FiBell className="text-lg transition-transform hover:scale-110" />
         </button>
 
         {/* Settings */}
@@ -256,7 +267,7 @@ const Navbar = ({ onToggleSidebar }) => {
             hover:text-accent-primary
           "
         >
-          <FiSettings className="text-xl transition-transform hover:scale-110" />
+          <FiSettings className="text-lg transition-transform hover:scale-110" />
         </button>
 
       </div>

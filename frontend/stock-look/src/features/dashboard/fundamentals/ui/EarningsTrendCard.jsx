@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreEarningsTrend, generateAiInsightEarningsTrendCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function EarningsTrendCard({ cardId, data = null, manualOverride, lastUpdated }) {
@@ -26,7 +27,14 @@ export default function EarningsTrendCard({ cardId, data = null, manualOverride,
     const configData = getIndicatorConfig(CARD_REGISTRY.earnings_trend.id);
 
     // --- Scoring Engine ---
-    const { score, bias, confidence, trendLabel, cagr } = scoreEarningsTrend(epsHistory, manualCAGR);
+    const { score, bias, trendLabel, cagr } = scoreEarningsTrend(epsHistory, manualCAGR);
+    
+    const cCard = computeCardConfidence({
+        hasLiveData: !isManual,
+        isManual: !!manualOverride && isManual,
+        sourcePipeline: isManual ? 'Manual' : 'Upstox Income Stmt',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--')
+    }, 'fundamentals');
     const aiInsightText = generateAiInsightEarningsTrendCard(epsHistory, cagr, trendLabel);
 
         return (
@@ -49,7 +57,7 @@ export default function EarningsTrendCard({ cardId, data = null, manualOverride,
                 ].filter(Boolean),
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: confidence || '85%',
+                confidence: `${cCard}%`,
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

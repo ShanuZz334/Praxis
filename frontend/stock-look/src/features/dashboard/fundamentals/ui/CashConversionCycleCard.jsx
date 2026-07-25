@@ -3,6 +3,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { cleanNum } from '@/lib/utils';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 
 export default function CashConversionCycleCard({ cardId, data, manualOverrides = {}, lastUpdated }) {
     const ratiosArray = Array.isArray(data?.ratios) ? data.ratios : [];
@@ -13,18 +14,38 @@ export default function CashConversionCycleCard({ cardId, data, manualOverrides 
         return item?.company_value ? cleanNum(item.company_value) : null;
     };
 
-    const liveInvDays = getRatio(['inventory days', 'inventory turnover days']);
-    const liveRecDays = getRatio(['receivable days', 'debtor days']);
-    const livePayDays = getRatio(['payable days', 'creditor days']);
+    // First try direct days
+    let liveInvDays = getRatio(['inventory days', 'inventory turnover days']);
+    let liveRecDays = getRatio(['receivable days', 'debtor days']);
+    let livePayDays = getRatio(['payable days', 'creditor days']);
+
+    // If direct days not found, try turnover ratios (Days = 365 / Turnover)
+    if (liveInvDays === null) {
+        const invTurnover = getRatio(['inventory turnover']);
+        if (invTurnover && invTurnover > 0) liveInvDays = 365 / invTurnover;
+    }
+    if (liveRecDays === null) {
+        const recTurnover = getRatio(['debtors turnover', 'receivables turnover', 'debtor turnover']);
+        if (recTurnover && recTurnover > 0) liveRecDays = 365 / recTurnover;
+    }
+    if (livePayDays === null) {
+        const payTurnover = getRatio(['creditors turnover', 'payables turnover', 'creditor turnover']);
+        if (payTurnover && payTurnover > 0) livePayDays = 365 / payTurnover;
+    }
+    
+    // Check if Upstox provides CCC directly
+    const liveCCC = getRatio(['cash conversion cycle']);
 
     const invDays = liveInvDays ?? (manualOverrides.inventory_days ? cleanNum(manualOverrides.inventory_days) : null);
     const recDays = liveRecDays ?? (manualOverrides.receivable_days ? cleanNum(manualOverrides.receivable_days) : null);
     const payDays = livePayDays ?? (manualOverrides.payable_days ? cleanNum(manualOverrides.payable_days) : null);
 
-    const isLiveData = liveInvDays !== null || liveRecDays !== null || livePayDays !== null;
+    const isLiveData = liveInvDays !== null || liveRecDays !== null || livePayDays !== null || liveCCC !== null;
 
     let ccc = null;
-    if (invDays !== null && recDays !== null && payDays !== null) {
+    if (liveCCC !== null) {
+        ccc = liveCCC;
+    } else if (invDays !== null && recDays !== null && payDays !== null) {
         ccc = invDays + recDays - payDays;
     }
 
@@ -41,6 +62,13 @@ export default function CashConversionCycleCard({ cardId, data, manualOverrides 
     const configData = (baseConfig && baseConfig.impactWeight !== "0.0%") 
         ? baseConfig 
         : { creditScore: 6, impactWeight: "5.0%", aiModel: 'Engine v2' };
+
+    const cCard = computeCardConfidence({
+        hasLiveData: isLiveData,
+        isManual: !!(!isLiveData && (manualOverrides.inventory_days || manualOverrides.receivable_days || manualOverrides.payable_days)),
+        sourcePipeline: isLiveData ? 'upstox' : 'manual',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--')
+    }, 'fundamentals');
 
     return (
         <IndicatorCard
@@ -63,7 +91,7 @@ export default function CashConversionCycleCard({ cardId, data, manualOverrides 
                 ],
                 score: score,
                 bias: bias,
-                confidence: '70%',
+                confidence: `${cCard}%`,
                 impactWeight: configData.impactWeight
             }}
             chartData={{ points: [], valueKey: 'value', valueName: 'CCC' }}

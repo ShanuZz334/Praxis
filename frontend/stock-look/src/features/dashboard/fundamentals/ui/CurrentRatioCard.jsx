@@ -3,6 +3,7 @@ import React from 'react';
 import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 
 export default function CurrentRatioCard({ cardId, data, manualOverride, lastUpdated }) {
     let isManual = true;
@@ -78,9 +79,14 @@ export default function CurrentRatioCard({ cardId, data, manualOverride, lastUpd
         } else {
             aiInsightText = 'The company may face difficulty meeting short-term obligations without additional financing.';
         }
-        confidence = sectorRatio !== null && !isNaN(sectorRatio)
-            ? '90%'
-            : (currentRatio > 2.5 || currentRatio < 0.8 ? '82%' : '72%');
+        
+        const cCard = computeCardConfidence({
+            hasLiveData: !isManual,
+            isManual: !!manualOverride && isManual,
+            sourcePipeline: isManual ? 'manual' : (extractedSector ? 'upstox' : 'upstox'),
+            lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--')
+        }, 'fundamentals');
+        confidence = `${cCard}%`;
     }
 
     const updateTime = lastUpdated || '--:--';
@@ -104,7 +110,7 @@ export default function CurrentRatioCard({ cardId, data, manualOverride, lastUpd
                 ].filter(Boolean),
                 score: score ?? null,
                 bias: bias || 'Neutral',
-                confidence: confidence || '85%',
+                confidence: '90%',
                 impactWeight: configData?.impactWeight || 5.0
             }}
             chartData={{

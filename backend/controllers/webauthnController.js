@@ -159,7 +159,7 @@ export const verifyAuthentication = async (req, res) => {
                 expectedRPID: rpID,
                 credential: {
                     id: passkey.credentialID,
-                    publicKey: passkey.credentialPublicKey,
+                    publicKey: new Uint8Array(passkey.credentialPublicKey),
                     counter: passkey.counter,
                     transports: passkey.transports,
                 },

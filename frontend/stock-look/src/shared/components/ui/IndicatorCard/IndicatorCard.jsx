@@ -2,11 +2,12 @@ import React, { useState, useEffect, useContext, useMemo } from "react";
 import Card from "@/shared/components/common/Card";
 import { FundamentalContext } from "@/features/dashboard/fundamentals/ui/FundamentalContext";
 import { FlipContainer, FlipTrigger } from "@/shared/components/common/FlipContainer";
-import { Star, Lightbulb, Plus, BarChart2, Edit2, Check, Settings } from "lucide-react";
+import { Star, Lightbulb, Plus, BarChart2, Edit2, Check, Settings, Volume2 } from "lucide-react";
 import axiosInstance from "@/shared/utils/axiosInstance";
 import { useCardInsight } from "@/shared/hooks/useCardInsight";
 import { useDataRegistry } from "@/shared/context/DataRegistryContext";
 import { useDashboardContext } from "@/shared/context/DashboardContext";
+import { useVoice } from "@/shared/context/VoiceContext";
 import { CARD_REGISTRY } from "@/shared/config/cardRegistry";
 import { FO_EQUITIES, FO_INDICES } from "@/shared/utils/foInstruments";
 import "@/features/dashboard/pai/ui/PaiLoader.css";
@@ -301,6 +302,8 @@ export function IndicatorCard({
   className
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { synthesize, skipTts, status } = useVoice();
+  const isSpeaking = status === 'speaking';
 
   const context = useContext(FundamentalContext);
   
@@ -419,7 +422,7 @@ export function IndicatorCard({
 
     const liveData = livePrices?.[globalSelectedInstrument];
     if (liveData) {
-      const pct = liveData.pctChange ? liveData.pctChange.toFixed(2) : 0;
+      const pct = liveData.ltp ? ((liveData.netChange / (liveData.ltp - liveData.netChange)) * 100).toFixed(2) : 0;
       contextLines.push(`Live Ticker: ₹${liveData.ltp || 'N/A'} (${liveData.netChange || 0}, ${pct}%)`);
     }
 
@@ -521,12 +524,30 @@ export function IndicatorCard({
                       <div className="flex items-center gap-1.5 mb-2">
                         <Star className="w-4 h-4 text-purple-400" />
                         <span className="text-[12px] font-bold text-purple-400">AI Insight</span>
-                        {insightData.isLoading && (
+                        {insightData.isLoading ? (
                             <div className="three-body scale-[0.35] ml-1" style={{ '--uib-color': '#c084fc' }}>
                                 <div className="three-body__dot"></div>
                                 <div className="three-body__dot"></div>
                                 <div className="three-body__dot"></div>
                             </div>
+                        ) : (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isSpeaking) {
+                                        skipTts();
+                                    } else {
+                                        const textToRead = insightData.text || insights?.aiInsight;
+                                        if (textToRead) {
+                                            synthesize(textToRead.replace(/[#*]/g, '').trim());
+                                        }
+                                    }
+                                }}
+                                className={`ml-auto p-1 transition-colors rounded-md hover:bg-background-elevated ${isSpeaking ? 'text-purple-400' : 'text-text-tertiary hover:text-purple-400'}`}
+                                title="Read insight aloud"
+                            >
+                                <Volume2 className="w-3.5 h-3.5" />
+                            </button>
                         )}
                       </div>
                       
