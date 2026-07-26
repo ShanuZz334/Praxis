@@ -196,18 +196,18 @@ export const CARD_REGISTRY = {
     qchat_technical:         { id: 'qchat_technical',         type: 'widget', displayName: 'Technical QChat',       page: 'Technical', section: 'General', appliesTo: 'both', legacyIds: ['qchat_technicals'] },
 
     // Trend
-    ema_20: { id: 'ema_20', type: 'card', displayName: 'EMA 20', page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
-    ema_50: { id: 'ema_50', type: 'card', displayName: 'EMA 50', page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
-    ema_200: { id: 'ema_200', type: 'card', displayName: 'EMA 200', page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
-    sma_50: { id: 'sma_50', type: 'card', displayName: 'SMA 50', page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
-    sma_200: { id: 'sma_200', type: 'card', displayName: 'SMA 200', page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
-    adx: { id: 'adx', type: 'card', displayName: 'ADX (14)', page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
+    ema_20: { id: 'ema_20', type: 'card', displayName: 'EMA 20', aliases: ['ema 20', 'exponential moving average 20', '20 ema', '20 day ema', 'emma 20', 'year may 20', 'year may 220', 'year me 20'], page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
+    ema_50: { id: 'ema_50', type: 'card', displayName: 'EMA 50', aliases: ['ema 50', 'exponential moving average 50', '50 ema', '50 day ema', 'emma 50', 'year may 50', 'year me 50'], page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
+    ema_200: { id: 'ema_200', type: 'card', displayName: 'EMA 200', aliases: ['ema 200', 'exponential moving average 200', '200 ema', '200 day ema', 'emma 200', 'year may 200', 'year me 200'], page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
+    sma_50: { id: 'sma_50', type: 'card', displayName: 'SMA 50', aliases: ['sma 50', 'simple moving average 50', '50 sma', '50 day sma'], page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
+    sma_200: { id: 'sma_200', type: 'card', displayName: 'SMA 200', aliases: ['sma 200', 'simple moving average 200', '200 sma', '200 day sma'], page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
+    adx: { id: 'adx', type: 'card', displayName: 'ADX (14)', aliases: ['adx', 'average directional index'], page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
     supertrend: { id: 'supertrend', type: 'card', displayName: 'Supertrend', page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
     beta_correlation: { id: 'beta_correlation', type: 'card', displayName: 'Beta Correlation', page: 'Technical', section: 'Trend', appliesTo: 'both', legacyIds: [] },
 
     // Momentum
-    rsi: { id: 'rsi', type: 'card', displayName: 'RSI (14)', page: 'Technical', section: 'Momentum', appliesTo: 'both', legacyIds: [] },
-    macd: { id: 'macd', type: 'card', displayName: 'MACD', page: 'Technical', section: 'Momentum', appliesTo: 'both', legacyIds: [] },
+    rsi: { id: 'rsi', type: 'card', displayName: 'RSI (14)', aliases: ['rsi', 'relative strength index'], page: 'Technical', section: 'Momentum', appliesTo: 'both', legacyIds: [] },
+    macd: { id: 'macd', type: 'card', displayName: 'MACD', aliases: ['macd', 'moving average convergence divergence', 'mac d', 'macdi'], page: 'Technical', section: 'Momentum', appliesTo: 'both', legacyIds: [] },
     stoch_rsi: { id: 'stoch_rsi', type: 'card', displayName: 'Stoch RSI', page: 'Technical', section: 'Momentum', appliesTo: 'both', legacyIds: [] },
     williams_r: { id: 'williams_r', type: 'card', displayName: 'Williams %R', page: 'Technical', section: 'Momentum', appliesTo: 'both', legacyIds: [] },
 
@@ -217,10 +217,10 @@ export const CARD_REGISTRY = {
     kc: { id: 'kc', type: 'card', displayName: 'Keltner Channels', page: 'Technical', section: 'Volatility', appliesTo: 'both', legacyIds: [] },
 
     // Volume
-    volume_sma: { id: 'volume_sma', type: 'card', displayName: 'Volume SMA', page: 'Technical', section: 'Volume', appliesTo: 'both', legacyIds: [] },
+    volume_sma: { id: 'volume_sma', type: 'card', displayName: 'Volume SMA', aliases: ['volume sma', 'volume moving average'], page: 'Technical', section: 'Volume', appliesTo: 'both', legacyIds: [] },
     obv: { id: 'obv', type: 'card', displayName: 'OBV', page: 'Technical', section: 'Volume', appliesTo: 'both', legacyIds: [] },
     cmf: { id: 'cmf', type: 'card', displayName: 'CMF', page: 'Technical', section: 'Volume', appliesTo: 'both', legacyIds: [] },
-    vwap: { id: 'vwap', type: 'card', displayName: 'VWAP', page: 'Technical', section: 'Volume', appliesTo: 'both', legacyIds: [] },
+    vwap: { id: 'vwap', type: 'card', displayName: 'VWAP', aliases: ['vwap', 'v wap', 'volume weighted average price'], page: 'Technical', section: 'Volume', appliesTo: 'both', legacyIds: [] },
 
     // Structure
     support: { id: 'support', type: 'card', displayName: 'Support', page: 'Technical', section: 'Structure', appliesTo: 'both', legacyIds: [] },

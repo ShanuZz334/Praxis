@@ -64,15 +64,16 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
 
     const { isVoiceMode, toggleVoiceMode, status: voiceStatus, synthesize, skipTts, registerListener, unregisterListener } = useVoice();
 
+    // Ref to hold the freshest handleSendDirect without causing dependency cycles
+    const handleSendDirectRef = useRef(null);
+    
     // Register listener when chat panel is open
     useEffect(() => {
         if (!isChatOpen || isDocked) return;
         
         const handleVoiceText = (text) => {
-            // Need to set message and send it
             const pseudoEvent = { preventDefault: () => {} };
-            // A bit hacky to use state directly without dependency array updates but we can synthesize the send logic
-            handleSendDirect(text);
+            if (handleSendDirectRef.current) handleSendDirectRef.current(text);
         };
         registerListener(handleVoiceText);
         return () => unregisterListener(handleVoiceText);
@@ -87,7 +88,9 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
             
             // We should also automatically send the message if there's text
             if (e.detail && e.detail.trim().length > 0) {
-                setTimeout(() => handleSendDirect(e.detail), 1000); // Wait for open animation
+                setTimeout(() => {
+                    if (handleSendDirectRef.current) handleSendDirectRef.current(e.detail);
+                }, 1000); // Wait for open animation
             }
         };
         window.addEventListener('paiGlobalWakeWord', handleGlobalWakeWord);
@@ -161,18 +164,31 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
             try {
                 const res = await axiosInstance.get(`/api/v1/ai-prompts/thread/${activeTargetId}`, { params: { scope: 'page' } });
                 if (isMounted && res.data?.entries && res.data.entries.length > 0) {
-                    setMessages(res.data.entries.map((m, i) => ({
+                    const fetchedHistory = res.data.entries.map((m, i) => ({
                         id: i,
                         role: m.role === 'assistant' ? 'ai' : m.role,
                         content: m.content
-                    })));
+                    }));
+                    setMessages(prev => {
+                        // Preserve any messages the user sent while we were fetching (e.g. via voice)
+                        const userMsgsDuringFetch = prev.filter(m => m.id > 1000000000);
+                        return [...fetchedHistory, ...userMsgsDuringFetch];
+                    });
                 } else if (isMounted) {
-                    setMessages([{ id: 1, role: 'ai', content: `Hello! I'm PAI. What would you like to analyze regarding ${activeContext}?` }]);
+                    const fallbackMsg = { id: 1, role: 'ai', content: `Hello! I'm PAI. What would you like to analyze regarding ${activeContext}?` };
+                    setMessages(prev => {
+                        const userMsgsDuringFetch = prev.filter(m => m.id > 1000000000);
+                        return [fallbackMsg, ...userMsgsDuringFetch];
+                    });
                 }
             } catch (err) {
                 console.error("Failed to fetch chat history:", err);
                 if (isMounted) {
-                    setMessages([{ id: 1, role: 'ai', content: `Hello! I'm PAI. What would you like to analyze regarding ${activeContext}?` }]);
+                    const fallbackMsg = { id: 1, role: 'ai', content: `Hello! I'm PAI. What would you like to analyze regarding ${activeContext}?` };
+                    setMessages(prev => {
+                        const userMsgsDuringFetch = prev.filter(m => m.id > 1000000000);
+                        return [fallbackMsg, ...userMsgsDuringFetch];
+                    });
                 }
             } finally {
                 if (isMounted) setIsFetchingHistory(false);
@@ -278,6 +294,11 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
             setIsGenerating(false);
         }
     };
+
+    // Update the ref to always point to the latest handleSendDirect (which has the latest closures)
+    useEffect(() => {
+        handleSendDirectRef.current = handleSendDirect;
+    });
 
     // Trigger initial slide out if opened from sidebar
     useEffect(() => {
