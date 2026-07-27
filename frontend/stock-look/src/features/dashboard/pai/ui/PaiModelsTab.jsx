@@ -59,7 +59,10 @@ export default function PaiModelsTab() {
     const fetchRouting = async () => {
         try {
             const res = await axiosInstance.get('/api/v1/ai-settings/routing');
-            if (res.data) setRouting(res.data);
+            if (res.data) {
+                setRouting(res.data);
+                if (res.data.temperature !== undefined) setTemperature(res.data.temperature);
+            }
         } catch (e) {
             console.error(e);
         }
@@ -74,8 +77,11 @@ export default function PaiModelsTab() {
         }
     };
 
-    const handleRoutingChange = async (taskType, providerId, modelId) => {
-        const newRouting = { ...routing, [taskType]: { providerId, modelId } };
+    const handleRoutingChange = async (taskType, updates) => {
+        const newRouting = { 
+            ...routing, 
+            [taskType]: { ...routing[taskType], ...updates } 
+        };
         setRouting(newRouting);
         try {
             await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
@@ -403,10 +409,10 @@ export default function PaiModelsTab() {
                                     value={currentValue}
                                     onChange={(val) => {
                                         if (!val) {
-                                            handleRoutingChange(task.key, null, null);
+                                            handleRoutingChange(task.key, { providerId: null, modelId: null });
                                         } else {
                                             const [provId, modId] = val.split('::');
-                                            handleRoutingChange(task.key, provId, modId);
+                                            handleRoutingChange(task.key, { providerId: provId, modelId: modId });
                                         }
                                     }}
                                     placeholder="Default (Tier Fallback)"
@@ -434,8 +440,62 @@ export default function PaiModelsTab() {
                         <input 
                             type="range" min="0" max="1" step="0.1" value={temperature}
                             onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                            onMouseUp={async (e) => {
+                                const val = parseFloat(e.target.value);
+                                const newRouting = { ...routing, temperature: val };
+                                setRouting(newRouting);
+                                try {
+                                    await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
+                                    showToast('Temperature saved');
+                                } catch (e) {
+                                    showToast('Failed to save temperature', 'error');
+                                }
+                            }}
                             className="w-full accent-blue-500 h-1.5 bg-background-surface rounded-lg appearance-none cursor-pointer"
                         />
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-background-card border border-border-default/40 rounded-2xl p-6 shadow-sm mt-6">
+                <div className="flex items-center gap-2 mb-4">
+                    <SlidersHorizontal size={18} className="text-orange-500" />
+                    <h3 className="text-[15px] font-semibold text-text-primary">Response Verbosity</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-[13px] font-medium text-text-primary mb-2">Header Insight Length</label>
+                        <UiverseDropdown
+                            options={[
+                                { value: 'short', label: 'Short (1-2 sentences)' },
+                                { value: 'medium', label: 'Medium (1 paragraph)' },
+                                { value: 'detailed', label: 'Detailed (Multi-paragraph)' }
+                            ]}
+                            value={routing['headerInsight']?.verbosity || 'detailed'}
+                            onChange={(val) => handleRoutingChange('headerInsight', { verbosity: val })}
+                            placeholder="Select length..."
+                            className="w-full text-[13px]"
+                            matchWidth={true}
+                            hideSearch={true}
+                        />
+                        <p className="text-[11px] text-text-tertiary mt-2">Controls the length of page-level AI summaries at the top.</p>
+                    </div>
+                    <div>
+                        <label className="block text-[13px] font-medium text-text-primary mb-2">Card Insight Length</label>
+                        <UiverseDropdown
+                            options={[
+                                { value: 'short', label: 'Short (1-2 sentences)' },
+                                { value: 'medium', label: 'Medium (1 paragraph)' },
+                                { value: 'detailed', label: 'Detailed (Multi-paragraph)' }
+                            ]}
+                            value={routing['cardInsight']?.verbosity || 'medium'}
+                            onChange={(val) => handleRoutingChange('cardInsight', { verbosity: val })}
+                            placeholder="Select length..."
+                            className="w-full text-[13px]"
+                            matchWidth={true}
+                            hideSearch={true}
+                        />
+                        <p className="text-[11px] text-text-tertiary mt-2">Controls the length of analysis inside individual indicator cards.</p>
                     </div>
                 </div>
             </div>

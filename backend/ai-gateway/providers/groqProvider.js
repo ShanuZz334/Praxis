@@ -31,3 +31,36 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode }
         latencyMs: Date.now() - startTime
     };
 }
+
+export async function transcribeAudio(fileBuffer, originalName, mimeType) {
+    const p = await providerCache.getProvider('groq');
+    if (!p || !p.apiKey) throw new Error('Groq provider is not configured.');
+
+    const url = 'https://api.groq.com/openai/v1/audio/transcriptions';
+    
+    // We use standard FormData since Node 18+ has native fetch/FormData
+    const formData = new FormData();
+    const blob = new Blob([fileBuffer], { type: mimeType });
+    
+    formData.append('file', blob, originalName || 'audio.webm');
+    formData.append('model', 'whisper-large-v3-turbo');
+    formData.append('response_format', 'json');
+    formData.append('language', 'en');
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${p.apiKey}`
+            // DO NOT set Content-Type header. fetch will automatically set it to multipart/form-data with the correct boundary
+        },
+        body: formData
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`[${response.status}] Groq Transcription Error: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.text;
+}

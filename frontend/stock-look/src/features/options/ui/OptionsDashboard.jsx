@@ -71,7 +71,7 @@ const OptionsDashboard = () => {
   }, [selectedInstrument, selectedExpiry]);
 
   return (
-    <div className="p-4 sm:p-6 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto h-full space-y-4 md:space-y-6">
+    <div className="p-4 sm:p-6 pb-32 animate-in fade-in duration-500 w-full mx-auto h-full space-y-4 md:space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-center bg-surface-primary p-4 rounded-lg shadow-sm border border-border-light gap-4">
         <h2 className="text-xl font-bold text-text-primary tracking-wide">Options Module</h2>
         

@@ -4,13 +4,19 @@ import { usePaiWidget } from '@/shared/context/PaiWidgetContext';
 import { useLocation } from 'react-router-dom';
 import paiIcon from "@/assets/icons/pai-round-bgless.png";
 import paiLabelImg from "@/assets/icons/pai-label-bgless.png";
+import GhostLogo from "@/shared/components/ui/GhostLogo";
 import PaiLoader from './PaiLoader';
+import PaiAudioWaves from './PaiAudioWaves';
 import Loader from '@/shared/components/ui/Loader';
 import { X, Send, Sparkles, Globe, AtSign, Brain, Mic, MicOff, Loader2, Volume2 } from 'lucide-react';
 import axiosInstance from '@/shared/utils/axiosInstance';
-import { useMentions, inferPageFromChatId } from '@/shared/hooks/useMentions';
+import { useMentions, inferPageFromChatId, resolveReadableSymbol } from '@/shared/hooks/useMentions';
 import MentionSuggestionDropdown from '@/shared/components/ui/MentionSuggestionDropdown';
 import { useVoice } from '@/shared/context/VoiceContext';
+import { useDataRegistry } from '@/shared/context/DataRegistryContext';
+import { useDashboardContext } from '@/shared/context/DashboardContext';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage = false }) {
     const { 
@@ -39,6 +45,9 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     const mentions = useMentions(mentionScopePageId);
     const inputRef = useRef(null);
     
+    // Hooks for auto context injection
+    const { getPageSnapshot, getMasterSnapshot } = useDataRegistry();
+    const { selectedInstrument, livePrices } = useDashboardContext();
     const [isDragging, setIsDragging] = useState(false);
     const [hasDragged, setHasDragged] = useState(false);
     const [message, setMessage] = useState("");
@@ -67,17 +76,54 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     // Ref to hold the freshest handleSendDirect without causing dependency cycles
     const handleSendDirectRef = useRef(null);
     
-    // Register listener when chat panel is open
+    // Register listener for voice input globally for the widget
     useEffect(() => {
-        if (!isChatOpen || isDocked) return;
+        // Listen even when the chat is closed, as long as it's not docked (docked is handled by PaiChatArea)
+        if (isDocked) return;
         
         const handleVoiceText = (text) => {
-            const pseudoEvent = { preventDefault: () => {} };
+            if (!text) return;
+            const lowerText = text.toLowerCase().trim();
+            const cleanText = lowerText.replace(/[.,!?]/g, '');
+
+            // Voice Command Interception for UI Control
+            if (
+                cleanText === 'pai close the chat window' || 
+                cleanText === 'close the chat window' || 
+                cleanText === 'close chat window'
+            ) {
+                setIsChatOpen(false);
+                return; // Stop propagation
+            }
+            
+            if (
+                cleanText === 'pai open the chat window' || 
+                cleanText === 'open the chat window' || 
+                cleanText === 'open chat window'
+            ) {
+                setIsChatOpen(true);
+                return; // Stop propagation
+            }
+
+            if (
+                cleanText === 'hey pai dock' ||
+                cleanText === 'hey pai dock it' ||
+                cleanText === 'pai dock' ||
+                cleanText === 'dock it' ||
+                cleanText === 'go away' ||
+                cleanText === 'pai go away'
+            ) {
+                setIsDocked(true);
+                return; // Stop propagation
+            }
+
+            // Normal Message Handling (processes headlessly if panel is closed)
             if (handleSendDirectRef.current) handleSendDirectRef.current(text);
         };
+        
         registerListener(handleVoiceText);
         return () => unregisterListener(handleVoiceText);
-    }, [isChatOpen, isDocked, registerListener, unregisterListener]);
+    }, [isDocked, registerListener, unregisterListener, setIsChatOpen]);
 
     // Global listener for auto-undock when standby wake word fires globally
     useEffect(() => {
@@ -93,8 +139,22 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                 }, 1000); // Wait for open animation
             }
         };
+        const handleGlobalClose = () => {
+            setIsChatOpen(false);
+        };
+        const handleGlobalDock = () => {
+            setIsDocked(true);
+        };
+        
         window.addEventListener('paiGlobalWakeWord', handleGlobalWakeWord);
-        return () => window.removeEventListener('paiGlobalWakeWord', handleGlobalWakeWord);
+        window.addEventListener('paiGlobalClose', handleGlobalClose);
+        window.addEventListener('paiGlobalDock', handleGlobalDock);
+        
+        return () => {
+            window.removeEventListener('paiGlobalWakeWord', handleGlobalWakeWord);
+            window.removeEventListener('paiGlobalClose', handleGlobalClose);
+            window.removeEventListener('paiGlobalDock', handleGlobalDock);
+        };
     }, [isDocked, setIsDocked, setIsChatOpen]);
 
     const [tempModel, setTempModel] = useState(null);
@@ -155,6 +215,12 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     };
 
     const activeContext = getContextName(location.pathname, chatMode);    // Initial greeting and auto-reset when context changes
+    
+    const currentTargetIdRef = useRef(activeTargetId);
+    useEffect(() => {
+        currentTargetIdRef.current = activeTargetId;
+    }, [activeTargetId]);
+
     useEffect(() => {
         if (!isChatOpen) return; // Only fetch history when the widget is actually opened!
 
@@ -196,7 +262,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
         };
 
         setIsFetchingHistory(true);
-        setIsPanelExpanded(false); // Reset expansion state
+        setIsGenerating(false); // Stop any ongoing generation UI when changing pages
         setMessages([]); // Clear before fetching
         fetchHistory();
 
@@ -248,6 +314,8 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     const handleSendDirect = async (textToSubmit) => {
         if (!textToSubmit.trim() || isGenerating) return;
 
+        const reqTargetId = activeTargetId;
+
         // Parse and resolve all @mentions from the message
         const { cleanText, cardSnapshots } = mentions.parseAndResolveAll(textToSubmit);
         mentions.closeMentions();
@@ -262,13 +330,29 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
         setMessage('');
         setIsGenerating(true);
 
+        // Extract full page context so the AI knows EVERYTHING on the screen without needing perfect @mentions
+        const useLegacyMentions = localStorage.getItem('paiLegacyVoiceContext') === 'true';
+        const autoContextData = useLegacyMentions ? {} : {
+            companyName: selectedInstrument ? resolveReadableSymbol(selectedInstrument) : null,
+            selectedInstrument: selectedInstrument || null,
+            selectedInstrumentPrice: livePrices?.[selectedInstrument]?.ltp || null,
+            nifty50: livePrices?.['NSE_INDEX|Nifty 50']?.ltp || null,
+            bankNifty: livePrices?.['NSE_INDEX|Nifty Bank']?.ltp || null,
+            pageSnapshot: mentionScopePageId ? getPageSnapshot(mentionScopePageId) : getMasterSnapshot()
+        };
+
         try {
-            const res = await axiosInstance.post(`/api/v1/ai-prompts/chat/${activeTargetId}`, {
+            const res = await axiosInstance.post(`/api/v1/ai-prompts/chat/${reqTargetId}`, {
                 message: cleanText,
                 scope: 'page',
                 cardSnapshots: cardSnapshots.length > 0 ? cardSnapshots : undefined,
+                contextData: autoContextData,
                 explicitModel: tempModel,
+            }, {
+                timeout: 25000 // 25 second timeout to prevent infinite UI hanging
             });
+            
+            if (currentTargetIdRef.current !== reqTargetId) return;
             
             if (res.data?.message) {
                 setMessages(prev => [...prev, {
@@ -281,6 +365,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                 }
             }
         } catch (err) {
+            if (currentTargetIdRef.current !== reqTargetId) return;
             console.error("Failed to send message:", err);
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
@@ -291,7 +376,9 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                 synthesize("Sorry, I encountered an error.");
             }
         } finally {
-            setIsGenerating(false);
+            if (currentTargetIdRef.current === reqTargetId) {
+                setIsGenerating(false);
+            }
         }
     };
 
@@ -466,6 +553,29 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     const liveSidebarEl = document.getElementById('pai-sidebar-dock-slot');
     const liveSidebarRect = liveSidebarEl ? liveSidebarEl.getBoundingClientRect() : null;
 
+    // Clean, Minimalist Apple-like Container Glow
+    const getGlowAnimation = () => {
+        if (voiceStatus === 'listening') {
+            return {
+                scale: [1, 1.05, 1],
+                transition: { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
+            };
+        } else if (voiceStatus === 'speaking' || voiceStatus === 'processing' || isGenerating) {
+            return {
+                scale: [1, 1.08, 1],
+                transition: { duration: 1.2, repeat: Infinity, ease: "easeInOut" }
+            };
+        } else if (isChatOpen) {
+            return { scale: 1.02, transition: { duration: 0.3 } };
+        } else {
+            return { scale: 1, transition: { duration: 0.3 } };
+        }
+    };
+
+    // Derived state for the gradient ring
+    const isActiveVoice = voiceStatus === 'listening' || voiceStatus === 'speaking' || voiceStatus === 'processing' || isGenerating;
+    const isListening = voiceStatus === 'listening';
+
     return (
         <div 
             className="fixed inset-0 pointer-events-none z-[100]"
@@ -502,18 +612,34 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                     onClick={handleIconClick}
                     whileHover={!isDragging ? { scale: 1.05 } : {}}
                     whileDrag={{ scale: 1.1, cursor: 'grabbing' }}
-                    style={{
-                        scale: isChatOpen ? 1.08 : 1,
-                        boxShadow: isChatOpen ? "0 0 20px rgba(59,130,246,0.5)" : "0 4px 15px rgba(0,0,0,0.3)", // Use box-shadow instead of expensive drop-shadow
-                    }}
-                    className="w-[48px] h-[48px] rounded-full flex-shrink-0 cursor-pointer pointer-events-auto relative z-20 bg-background-surface"
+                    animate={getGlowAnimation()}
+                    className="w-[48px] h-[48px] rounded-full flex-shrink-0 cursor-pointer pointer-events-auto relative z-20 bg-background-surface flex items-center justify-center"
                 >
-                    <img
-                        src={paiIcon}
-                        alt="PAI"
-                        className="w-full h-full object-contain pointer-events-none" // Removed drop-shadow-xl for performance
-                        draggable={false}
-                    />
+                    {/* Freq Based Wave Ring (Canvas) */}
+                    <AnimatePresence>
+                        {isActiveVoice && (
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
+                            >
+                                <PaiAudioWaves 
+                                    isActive={isActiveVoice} 
+                                    isListening={isListening} 
+                                    isSpeaking={voiceStatus === 'speaking' || voiceStatus === 'processing' || isGenerating} 
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                    
+                    {/* Inner core to mask the gradient center so it only looks like a ring */}
+                    <div className="absolute inset-[3px] rounded-full bg-background-surface z-10" />
+
+                    <div className="w-[85%] h-[85%] flex items-center justify-center pointer-events-none relative z-20">
+                        <GhostLogo style={{ transform: 'scale(0.29)' }} />
+                    </div>
+
                 </motion.div>
 
                 {/* The Quick Chat Panel */}
@@ -655,8 +781,19 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                                             />
                                                         </div>
                                                     )}
-                                                    <div className={`text-[12px] leading-relaxed px-3.5 py-2.5 rounded-2xl shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm max-w-[85%]' : 'bg-background-tooltip border border-border-default/50 text-text-primary rounded-tl-sm max-w-[85%]'}`}>
-                                                        {msg.content}
+                                                    <div className={`text-[12px] leading-relaxed px-3.5 py-2.5 rounded-2xl shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm max-w-[85%] whitespace-pre-wrap' : 'bg-background-tooltip border border-border-default/50 text-text-primary rounded-tl-sm max-w-[85%] prose prose-sm dark:prose-invert prose-p:my-1 prose-pre:my-2 prose-strong:text-blue-600 dark:prose-strong:text-blue-400'}`}>
+                                                        {msg.role === 'user' ? (
+                                                            msg.content
+                                                        ) : (
+                                                            <ReactMarkdown 
+                                                                remarkPlugins={[remarkGfm]}
+                                                                components={{
+                                                                    strong: ({node, children}) => <strong className="text-blue-600 dark:text-blue-400 font-bold">{children}</strong>
+                                                                }}
+                                                            >
+                                                                {msg.content?.replace(/<think>[\s\S]*?(<\/think>|$)/gi, '').trim()}
+                                                            </ReactMarkdown>
+                                                        )}
                                                     </div>
                                                 </motion.div>
                                                 );

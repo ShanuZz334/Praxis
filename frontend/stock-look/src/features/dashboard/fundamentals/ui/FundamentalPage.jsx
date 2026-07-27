@@ -170,7 +170,7 @@ export default function FundamentalPage() {
 
   // Context manages auto-updating instrument when category changes
 
-  const { data: rawFundamentalsData, loading, error, lastUpdated } = useFundamentalsData(selectedInstrument);
+  const { data: rawFundamentalsData, snapshot, loading, error, lastUpdated } = useFundamentalsData(selectedInstrument);
 
   const [liveInstFlow, setLiveInstFlow] = useState(null);
 
@@ -191,6 +191,20 @@ export default function FundamentalPage() {
   // Inject real-time India VIX from WebSocket and live Inst Flow if backend DB missed it
   const fundamentalsData = useMemo(() => {
       let data = { ...(rawFundamentalsData || {}) };
+      
+      // Inject AI Store snapshot data for external macros (e.g. GDP, Fwd PE) fetched by the cron engine
+      if (snapshot && Array.isArray(snapshot.cards)) {
+          const gdpCard = snapshot.cards.find(c => c.id === 'gdp_growth');
+          if (gdpCard && gdpCard.rawInput?.gdpGrowth !== undefined && gdpCard.rawInput?.gdpGrowth !== null) {
+              data.gdp_growth = gdpCard.rawInput.gdpGrowth;
+          }
+          
+          const fwdPeCard = snapshot.cards.find(c => c.id === 'forward_pe');
+          if (fwdPeCard && fwdPeCard.rawInput?.forwardPE !== undefined && fwdPeCard.rawInput?.forwardPE !== null) {
+              data.forward_pe = fwdPeCard.rawInput.forwardPE;
+          }
+      }
+
       const vixLtp = livePrices?.["NSE_INDEX|India VIX"]?.ltp;
       if (vixLtp) {
           data.india_vix = vixLtp;
@@ -199,7 +213,7 @@ export default function FundamentalPage() {
           data.fii_dii_flow = liveInstFlow;
       }
       return data;
-  }, [rawFundamentalsData, livePrices, liveInstFlow]);
+  }, [rawFundamentalsData, livePrices, liveInstFlow, snapshot]);
 
   // Fundamental Composite Engine integration
   const compositeData = useFundamentalComposite(selectedCategory, selectedInstrument);
@@ -539,7 +553,7 @@ export default function FundamentalPage() {
   );
 
   return (
-    <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen">
+    <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 w-full mx-auto min-h-screen">
 
       {/* HEADER SECTION */}
       <div className="relative z-50 isolate mb-6 mt-0">

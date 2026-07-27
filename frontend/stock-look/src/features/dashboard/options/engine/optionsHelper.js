@@ -104,7 +104,7 @@ export function calculatePositioningScore(metrics, mode = TRADING_MODES.BALANCED
             gammaFlip: metrics.maxPain + 50, // Mock
             putWall: metrics.maxPain - 100,
             callWall: metrics.maxPain + 200,
-            ivRank: 34, // Mock
+            ivRank: null,
             breakdown: [
                 { label: "Net Delta", val: normDelta > 50 ? "Bullish" : "Bearish", color: normDelta > 50 ? "text-green-400" : "text-red-400" },
                 { label: "Gamma", val: "Neutral", color: "text-blue-400" },

@@ -96,8 +96,8 @@ export function useFundamentalsData(instrumentKey) {
 
             try {
                 // 1. Fetch Both Data Sources Concurrently
-                const upstoxPromise = axiosInstance.get(API_PATHS.FUNDAMENTALS.GET(instrumentKey));
-                const snapshotPromise = axiosInstance.get(`/api/v1/intelligence/latest?instrument_key=${encodeURIComponent(instrumentKey)}`);
+                const upstoxPromise = axiosInstance.get(API_PATHS.FUNDAMENTALS.GET(instrumentKey)).catch(e => { console.error("Upstox fetch failed", e); return { data: { data: {} } }; });
+                const snapshotPromise = axiosInstance.get(`/api/v1/intelligence/latest?instrument_key=${encodeURIComponent(instrumentKey)}`).catch(e => { console.error("Snapshot fetch failed", e); return { data: { data: null } }; });
 
                 const [upstoxRes, snapshotRes] = await Promise.all([upstoxPromise, snapshotPromise]);
 

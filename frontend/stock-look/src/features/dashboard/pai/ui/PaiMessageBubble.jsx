@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Copy, RotateCcw, ThumbsUp, ThumbsDown, Check, Cpu } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-export default function PaiMessageBubble({ role, content, onRegenerate, provider, model, latencyMs }) {
+const PaiMessageBubble = memo(function PaiMessageBubble({ role, content, onRegenerate, provider, model, latencyMs }) {
     const isUser = role === 'user';
     const [copied, setCopied] = useState(false);
 
@@ -55,12 +55,17 @@ export default function PaiMessageBubble({ role, content, onRegenerate, provider
                                 )}
                             </div>
                         )}
-                        <div className={`text-[14px] leading-relaxed break-words ${isUser ? 'whitespace-pre-wrap' : 'prose prose-sm dark:prose-invert prose-p:my-1 prose-pre:my-2 max-w-none'}`}>
+                        <div className={`text-[14px] leading-relaxed break-words ${isUser ? 'whitespace-pre-wrap' : 'prose prose-sm dark:prose-invert prose-p:my-1 prose-pre:my-2 prose-strong:text-blue-600 dark:prose-strong:text-blue-400 max-w-none'}`}>
                             {isUser ? (
                                 content
                             ) : (
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                    {content}
+                                <ReactMarkdown 
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                        strong: ({node, children}) => <strong className="text-blue-600 dark:text-blue-400 font-bold">{children}</strong>
+                                    }}
+                                >
+                                    {content?.replace(/<think>[\s\S]*?(<\/think>|$)/gi, '').trim()}
                                 </ReactMarkdown>
                             )}
                         </div>
@@ -99,4 +104,6 @@ export default function PaiMessageBubble({ role, content, onRegenerate, provider
             </div>
         </div>
     );
-}
+});
+
+export default PaiMessageBubble;

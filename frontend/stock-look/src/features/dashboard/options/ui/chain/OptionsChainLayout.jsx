@@ -25,12 +25,23 @@ import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 import OptionsChainTable from './OptionsChainTable';
 import GreeksReferenceGuide from './GreeksReferenceGuide';
 import { formatIndianNumber } from '@/shared/utils/formatters';
+import { useDashboardContext } from "@/shared/context/DashboardContext";
+import { FO_INDICES, FO_EQUITIES } from "@/shared/utils/foInstruments";
 
 // =============================
 // Main Component
 // =============================
-export default function OptionsChainLayout({ chain, picks, spotPrice, baseSpotPrice, metrics, goldenZone, manualIvRank, setManualIvRank }) {
+export default function OptionsChainLayout({ chain, picks, spotPrice, baseSpotPrice, metrics, goldenZone, onAddChart }) {
     const [selectedOptionState, setSelectedOption] = React.useState(null);
+    const { selectedInstrument, selectedExpiry } = useDashboardContext();
+
+    // Format expiry helper
+    const getFormattedExpiry = (dateStr) => {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).toUpperCase().replace(/,/g, '');
+    };
 
     // Dynamically lookup the live data from the chain so the panel updates in real-time
     const liveSelectedRow = selectedOptionState ? chain.find(r => r.strike === selectedOptionState.strike) : null;
@@ -41,6 +52,13 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, baseSpotPr
         ...selectedOptionState,
         data: liveSelectedData
     } : selectedOptionState;
+
+    const getReadableName = (val) => {
+        if (!val) return '';
+        const all = [...(FO_INDICES || []), ...(FO_EQUITIES || [])];
+        const found = all.find(i => i.value === val);
+        return found ? found.label : val.split('|').pop();
+    };
 
     return (
         <div className="w-full flex flex-col lg:flex-row gap-3 mt-4 mb-6">
@@ -245,18 +263,17 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, baseSpotPr
                                     </div>
                                     <div>
                                         <div className={`flex items-baseline gap-0.5 mb-2`}>
-                                            <input 
-                                                type="number"
-                                                value={manualIvRank || 34}
-                                                onChange={(e) => setManualIvRank(Number(e.target.value))}
-                                                className={`bg-transparent border-none outline-none w-10 text-xl font-mono font-black leading-none tracking-tight ${(manualIvRank || 34) > 60 ? 'text-red-500' : (manualIvRank || 34) < 30 ? 'text-emerald-500' : 'text-amber-500'}`}
-                                            />
+                                            <span 
+                                                className={`bg-transparent border-none outline-none text-xl font-mono font-black leading-none tracking-tight ${metrics.ivRank > 60 ? 'text-red-500' : metrics.ivRank < 30 ? 'text-emerald-500' : 'text-amber-500'}`}
+                                            >
+                                                {metrics.ivRank}
+                                            </span>
                                             <span className="text-xs text-text-tertiary font-bold align-top">%</span>
                                         </div>
                                         <div className="w-full bg-background-surface h-1 rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full transition-all duration-700 ease-out ${(manualIvRank || 34) > 60 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : (manualIvRank || 34) < 30 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'}`}
-                                                style={{ width: `${Math.min(manualIvRank || 34, 100)}%` }}
+                                                className={`h-full transition-all duration-700 ease-out ${metrics.ivRank > 60 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : metrics.ivRank < 30 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'}`}
+                                                style={{ width: `${Math.min(metrics.ivRank, 100)}%` }}
                                             />
                                         </div>
                                     </div>
@@ -286,6 +303,14 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, baseSpotPr
                     baseSpotPrice={baseSpotPrice}
                     goldenZone={goldenZone}
                     onOptionSelect={(data, type, strike) => setSelectedOption({ data, type, strike })}
+                    onOptionDoubleClick={(data, type, strike) => {
+                        if (data?.instrument_key && onAddChart) {
+                            const instName = getReadableName(selectedInstrument) || selectedInstrument.split('|').pop();
+                            const expiry = getFormattedExpiry(selectedExpiry);
+                            const label = `${instName} ${strike} ${type === 'call' ? 'CE' : 'PE'} ${expiry}`;
+                            onAddChart(data.instrument_key, label.trim());
+                        }
+                    }}
                 />
             </div>
 
@@ -307,6 +332,14 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, baseSpotPr
                                     <div className={`text-[10px] ${labelColorClass} font-bold uppercase`}>{title}</div>
                                     <div className={`group p-3 ${bgClass} border ${borderClass} hover:opacity-80 rounded-lg transition-colors cursor-pointer`}
                                         onClick={() => setSelectedOption({ data: pick, type: pick.type, strike: pick.strike })}
+                                        onDoubleClick={() => {
+                                            if (pick?.instrument_key && onAddChart) {
+                                                const instName = getReadableName(selectedInstrument) || selectedInstrument.split('|').pop();
+                                                const expiry = getFormattedExpiry(selectedExpiry);
+                                                const label = `${instName} ${pick.strike} ${pick.type === 'call' ? 'CE' : 'PE'} ${expiry}`;
+                                                onAddChart(pick.instrument_key, label);
+                                            }
+                                        }}
                                     >
                                         <div className="flex justify-between items-center mb-1">
                                             <div className="flex items-center gap-2">

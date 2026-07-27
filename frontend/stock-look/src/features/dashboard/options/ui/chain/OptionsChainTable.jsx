@@ -24,7 +24,7 @@ import { formatIndianNumber } from '@/shared/utils/formatters';
 // =============================
 // Main Component
 // =============================
-export default function OptionsChainTable({ chain, spotPrice, onOptionSelect, goldenZone }) {
+export default function OptionsChainTable({ chain, spotPrice, onOptionSelect, onOptionDoubleClick, goldenZone }) {
     const scrollContainerRef = useRef(null);
     const atmRowRef = useRef(null);
 
@@ -51,10 +51,15 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect, go
 
 
 
-    // 2. Interaction Handlers
     const handleClick = (data, type, strike) => {
         if (onOptionSelect) {
             onOptionSelect(data, type, strike);
+        }
+    };
+
+    const handleDoubleClick = (data, type, strike) => {
+        if (onOptionDoubleClick) {
+            onOptionDoubleClick(data, type, strike);
         }
     };
 
@@ -160,6 +165,7 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect, go
                                     <div
                                         className={`w-full grid grid-cols-[1.5fr_1fr_1.2fr_1.2fr_1fr_1fr] lg:grid-cols-[1.5fr_1fr_1.2fr_1.2fr_1.2fr_1fr_1fr] px-2 py-1.5 text-right gap-2 items-center cursor-pointer hover:bg-emerald-500/15 transition-colors ${callGoldenClasses}`}
                                         onClick={() => handleClick(row.call, 'call', row.strike)}
+                                        onDoubleClick={() => handleDoubleClick(row.call, 'call', row.strike)}
                                     >
                                         <span className={`${callLtpColor} font-mono font-bold text-[10px]`}>{Number(row.call.ltp).toFixed(2)}</span>
                                         <span className={`text-[9px] ${row.call.oiChgPct >= 0 ? 'text-emerald-600' : 'text-red-600'} font-bold`}>
@@ -181,6 +187,7 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect, go
                                     <div
                                         className={`w-full grid grid-cols-[1fr_1fr_1.2fr_1.2fr_1fr_1.5fr] lg:grid-cols-[1fr_1fr_1.2fr_1.2fr_1.2fr_1fr_1.5fr] px-2 py-1.5 text-left gap-2 items-center cursor-pointer hover:bg-red-500/15 transition-colors ${putGoldenClasses}`}
                                         onClick={() => handleClick(row.put, 'put', row.strike)}
+                                        onDoubleClick={() => handleDoubleClick(row.put, 'put', row.strike)}
                                     >
                                         <span className="text-text-tertiary text-[9px]">{row.put.delta !== null ? row.put.delta?.toFixed(2) : ''}</span>
                                         <span className="text-orange-600 font-mono font-bold text-[9px]">{row.iv ? `${Number(row.iv).toFixed(2)}%` : ''}</span>

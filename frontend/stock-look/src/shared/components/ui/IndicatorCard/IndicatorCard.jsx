@@ -346,7 +346,10 @@ export function IndicatorCard({
 
   useEffect(() => {
     const rawVal = data?.currentValueObj?.value ?? data?.score;
-    const isMissing = data?.score === null || data?.score === undefined || isNaN(parseFloat(data?.score));
+    const hasValidValue = rawVal !== null && rawVal !== undefined && rawVal !== '--';
+    const hasValidScore = data?.score !== null && data?.score !== undefined && !isNaN(parseFloat(data?.score));
+    const isMissing = !hasValidValue && !hasValidScore;
+    
     if (isMissing) return;
 
     // Build contextLines (same format used for generate() below — no duplication)

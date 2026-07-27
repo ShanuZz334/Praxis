@@ -32,7 +32,7 @@ export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType 
     
     // Macro / Manual Cards
     const adResult = scorers.scoreADRatio(null);
-    const vixResult = scorers.scoreVIX(null);
+    const vixResult = scorers.scoreVIX(ext.indiaVix);
     const gdpResult = scorers.scoreGDPGrowth(ext.gdpGrowth);
     const fiiResult = scorers.scoreInstitutionalFlow(ext.fiiFlow, ext.diiFlow);
 
@@ -112,7 +112,45 @@ export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType 
         { id: 'gdp_growth', score: gdpResult.score, bias: gdpResult.bias, rawInput: { gdpGrowth: ext.gdpGrowth } },
         { id: 'fii_dii_flow', score: fiiResult.score, bias: fiiResult.bias, rawInput: { fiiFlow: ext.fiiFlow, diiFlow: ext.diiFlow } },
         { id: 'advance_decline', score: adResult.score, bias: adResult.bias, rawInput: {} },
-        { id: 'india_vix', score: vixResult.score, bias: vixResult.bias, rawInput: {} }
+        { id: 'india_vix', score: vixResult.score, bias: vixResult.bias, rawInput: {} },
+        
+        // --- CALCULATED FIELDS ---
+        { 
+            id: 'inventory_days', 
+            score: ext.inventoryTurnover ? (ext.inventoryTurnover > 6 ? 80 : 40) : 50, 
+            bias: ext.inventoryTurnover ? (ext.inventoryTurnover > 6 ? 'Bullish' : 'Bearish') : 'Neutral',
+            rawInput: { days: ext.inventoryTurnover ? Math.round(365 / ext.inventoryTurnover) : null }
+        },
+        { 
+            id: 'receivable_days', 
+            score: ext.receivablesTurnover ? (ext.receivablesTurnover > 6 ? 80 : 40) : 50, 
+            bias: ext.receivablesTurnover ? (ext.receivablesTurnover > 6 ? 'Bullish' : 'Bearish') : 'Neutral',
+            rawInput: { days: ext.receivablesTurnover ? Math.round(365 / ext.receivablesTurnover) : null }
+        },
+        { 
+            id: 'payable_days', 
+            score: ext.payablesTurnover ? (ext.payablesTurnover > 4 ? 60 : 40) : 50, 
+            bias: ext.payablesTurnover ? (ext.payablesTurnover > 4 ? 'Bullish' : 'Bearish') : 'Neutral',
+            rawInput: { days: ext.payablesTurnover ? Math.round(365 / ext.payablesTurnover) : null }
+        },
+        { 
+            id: 'mcap_to_gdp', 
+            score: ext.marketCapGDP ? (ext.marketCapGDP > 120 ? 30 : 70) : 50, 
+            bias: ext.marketCapGDP ? (ext.marketCapGDP > 120 ? 'Bearish' : 'Bullish') : 'Neutral',
+            rawInput: { ratio: ext.marketCapGDP }
+        },
+        { 
+            id: 'sector_concentration', 
+            score: 50, 
+            bias: 'Neutral', 
+            rawInput: { computed: true } 
+        },
+        { 
+            id: 'cyclical_vs_defensive', 
+            score: 50, 
+            bias: 'Neutral', 
+            rawInput: { computed: true } 
+        }
     ];
 
     // 4. Compute Composite (Simplified version matching frontend)

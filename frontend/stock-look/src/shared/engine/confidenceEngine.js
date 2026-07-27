@@ -48,6 +48,7 @@ export function computeCardConfidence(cardMeta, module) {
         case 'upstox': sr = 1.0; break;
         case 'headless': sr = 0.9; break;
         case 'fallback': sr = 0.8; break;
+        case 'unofficial_scrape': sr = 0.7; break;
         case 'manual': sr = 0.5; break;
         default: sr = cardMeta.isManual ? 0.5 : 0.9; 
     }

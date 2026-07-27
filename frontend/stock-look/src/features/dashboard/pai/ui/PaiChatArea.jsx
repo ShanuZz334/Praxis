@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Send, Sparkles, Settings, Sun, Moon, Square, AtSign, Zap, Mic, MicOff, Loader2, Volume2, Brain, Headset } from 'lucide-react';
 import PaiMessageBubble from './PaiMessageBubble';
@@ -6,12 +6,14 @@ import { useTheme } from '@/shared/context/ThemeContext';
 import UiverseDropdown from '@/shared/components/ui/UiverseDropdown';
 import PaiLoader from './PaiLoader';
 import MentionSuggestionDropdown from '@/shared/components/ui/MentionSuggestionDropdown';
-import { useMentions, inferPageFromChatId } from '@/shared/hooks/useMentions';
+import { useMentions, inferPageFromChatId, resolveReadableSymbol } from '@/shared/hooks/useMentions';
 
 import paiLogoLightCenter from '@/assets/images/icon 2-Photoroom.png';
 import paiLogoDarkCenter from '@/assets/images/icon 4-Photoroom.png';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { useVoice } from '@/shared/context/VoiceContext';
+import { useDataRegistry } from '@/shared/context/DataRegistryContext';
+import { useDashboardContext } from '@/shared/context/DashboardContext';
 
 export default function PaiChatArea({ activeChatId, chatTitle, chatType, refreshTrigger, isPopup = false }) {
     const navigate = useNavigate();
@@ -21,6 +23,8 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
     const [selectedModel, setSelectedModel] = useState('llama3');
     const [isGenerating, setIsGenerating] = useState(false);
     const bottomRef = useRef(null);
+    const scrollContainerRef = useRef(null);
+    const isUserScrolledUp = useRef(false);
     const generationTimeoutRef = useRef(null);
     const textareaRef = useRef(null);
     const [modelOptions, setModelOptions] = useState([
@@ -34,6 +38,10 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
 
     // @mention hook
     const mentions = useMentions(scopePageId);
+    
+    // Auto context data hooks
+    const { getPageSnapshot, getMasterSnapshot } = useDataRegistry();
+    const { selectedInstrument, livePrices } = useDashboardContext();
 
     const { isVoiceMode, toggleVoiceMode, isStandbyMode, toggleStandby, status: voiceStatus, synthesize, stopTts, skipTts, registerListener, unregisterListener } = useVoice();
 
@@ -116,10 +124,18 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
         return () => { isMounted = false; };
     }, []);
 
+    // Scroll handler to detect if user has scrolled up — useCallback prevents
+    // re-attaching the event listener on every render (which caused scroll jank)
+    const handleScroll = useCallback((e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.target;
+        // If they are more than 100px from the bottom, they have scrolled up
+        isUserScrolledUp.current = (scrollHeight - scrollTop - clientHeight) > 100;
+    }, []);
+
     // Auto-scroll to bottom
     useEffect(() => {
-        if (bottomRef.current) {
-            bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+        if (bottomRef.current && !isUserScrolledUp.current) {
+            bottomRef.current.scrollIntoView({ behavior: 'auto' });
         }
     }, [messages, isGenerating]);
 
@@ -147,6 +163,17 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
         setInput('');
         setIsGenerating(true);
 
+        // Extract full page context so the AI knows EVERYTHING on the screen without needing perfect @mentions
+        const useLegacyMentions = localStorage.getItem('paiLegacyVoiceContext') === 'true';
+        const autoContextData = useLegacyMentions ? {} : {
+            companyName: selectedInstrument ? resolveReadableSymbol(selectedInstrument) : null,
+            selectedInstrument: selectedInstrument || null,
+            selectedInstrumentPrice: livePrices?.[selectedInstrument]?.ltp || null,
+            nifty50: livePrices?.['NSE_INDEX|Nifty 50']?.ltp || null,
+            bankNifty: livePrices?.['NSE_INDEX|Nifty Bank']?.ltp || null,
+            pageSnapshot: scopePageId ? getPageSnapshot(scopePageId) : getMasterSnapshot()
+        };
+
         try {
             const scope = chatType === 'header' ? 'page' : 'card';
             
@@ -164,8 +191,11 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                 scope,
                 // Pass card snapshots so backend prepends [Live Card Data from Dashboard] block
                 cardSnapshots: cardSnapshots.length > 0 ? cardSnapshots : undefined,
+                contextData: autoContextData,
                 explicitProvider,
                 explicitModel
+            }, {
+                timeout: 25000
             });
 
             if (res.data?.message) {
@@ -289,7 +319,7 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
             ) : (
                 <>
                     {/* Messages Area */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar pt-6 pb-32">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar pt-6 pb-32" ref={scrollContainerRef} onScroll={handleScroll}>
                         {messages.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-text-tertiary">
                                 No messages yet. Type <span className="mx-1 font-mono text-blue-400">@</span> to attach live card data.

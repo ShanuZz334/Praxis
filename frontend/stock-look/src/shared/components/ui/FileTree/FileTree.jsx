@@ -6,12 +6,6 @@ import {
   FolderOpen as FolderOpenIcon,
 } from 'lucide-react';
 
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-
 /**
  * Recursive FileTree Component
  *
@@ -66,7 +60,8 @@ const FolderTree = ({ item, level, onFileClick, activeId, renderActions }) => {
     return item.children?.some(checkActive) || false;
   }, [item, activeId]);
 
-  const [open, setOpen] = useState(isChildActive);
+  // Top-level sections default open, sub-folders default closed
+  const [open, setOpen] = useState(level === 0 ? true : isChildActive);
 
   React.useEffect(() => {
     if (isChildActive) {
@@ -77,17 +72,16 @@ const FolderTree = ({ item, level, onFileClick, activeId, renderActions }) => {
   const CustomIcon = item.icon;
 
   return (
-    <Collapsible
-      open={open}
-      onOpenChange={setOpen}
-      className="flex flex-col gap-0.5"
-    >
-      <CollapsibleTrigger 
+    <div className="flex flex-col gap-0.5">
+      {/* Trigger row */}
+      <div
+        onClick={() => setOpen(o => !o)}
         className={`text-muted-foreground hover:bg-muted/40 hover:text-foreground flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[12px] outline-none cursor-pointer transition-colors ${isChildActive ? 'font-medium text-foreground' : ''}`}
         style={{ paddingLeft: `${level === 0 ? 0 : level * 1.0}rem` }}
       >
         <ChevronRight
-          className={`size-3 shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}
+          className="size-3 shrink-0 transition-transform duration-150"
+          style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}
         />
         {CustomIcon ? (
           <CustomIcon className="size-3.5 shrink-0" />
@@ -97,21 +91,32 @@ const FolderTree = ({ item, level, onFileClick, activeId, renderActions }) => {
           <FolderIcon className="size-3.5 shrink-0" />
         )}
         <span className="truncate">{item.name}</span>
-      </CollapsibleTrigger>
-      
-      <CollapsibleContent className="flex flex-col gap-0.5 mt-0.5">
-        {item.children?.map((child, idx) => (
-          <FileTree
-            key={`${child.id || child.name}-${idx}`}
-            item={child}
-            level={level + 1}
-            onFileClick={onFileClick}
-            activeId={activeId}
-            renderActions={renderActions}
-          />
-        ))}
-      </CollapsibleContent>
-    </Collapsible>
+      </div>
+
+      {/* Content — pure CSS max-height transition, zero JS overhead */}
+      <div
+        style={{
+          maxHeight: open ? '9999px' : '0px',
+          overflow: 'hidden',
+          transition: open
+            ? 'max-height 0.25s ease-in'
+            : 'max-height 0.18s ease-out',
+        }}
+      >
+        <div className="flex flex-col gap-0.5 mt-0.5">
+          {item.children?.map((child, idx) => (
+            <FileTree
+              key={`${child.id || child.name}-${idx}`}
+              item={child}
+              level={level + 1}
+              onFileClick={onFileClick}
+              activeId={activeId}
+              renderActions={renderActions}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 };
 

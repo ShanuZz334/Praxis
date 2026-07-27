@@ -143,15 +143,15 @@ export default function AiInsightSection({
         hasGeneratedRef.current = true;
 
         // ── Extract sub-engine scores from masterPayload.engines (for Master header)
-        const engineScoreLines = (masterPayload?.engines || []).flatMap(eng => {
-            const n = (eng.name || '').toLowerCase();
-            if (n.includes('fundamental')) return [`FundScore: ${eng.score}`];
-            if (n.includes('technical'))   return [`TechScore: ${eng.score}`];
-            if (n.includes('option'))      return [`OptsScore: ${eng.score}`];
-            if (n.includes('global') || n.includes('foreign') || n.includes('macro'))
+        const engineScoreLines = (sections || []).flatMap(eng => {
+            const n = (eng.name || eng.module || eng.id || '').toLowerCase();
+            if (n.includes('fund')) return [`FundScore: ${eng.score}`];
+            if (n.includes('tech'))   return [`TechScore: ${eng.score}`];
+            if (n.includes('opt'))      return [`OptsScore: ${eng.score}`];
+            if (n.includes('glob') || n.includes('foreign') || n.includes('macro'))
                                            return [`GlobScore: ${eng.score}`];
-            if (n.includes('event'))       return [`EvtScore: ${eng.score}`];
-            return [];
+            if (n.includes('evt') || n.includes('event'))       return [`EvtScore: ${eng.score}`];
+            return [`${eng.name || eng.module || eng.id || 'Score'}: ${eng.score}`];
         });
 
         // ── Fix: use exact key names that parseAdditionalContext() expects ────────
@@ -174,8 +174,8 @@ export default function AiInsightSection({
             : masterPayload
                 ? masterPayload
                 : {
-                    sections: sections.map(s => ({ name: s.label, score: s.score })),
-                    cards: cards.map(c => ({ id: c.id, name: c.title || c.id, score: c.normalized, signal: c.state?.label, weight: c.credit }))
+                    sections: (sections || []).map(s => ({ name: s.name || s.label || s.module || s.id || 'Module', score: s.score })),
+                    cards: (cards || []).map(c => ({ id: c.id, name: c.title || c.module || c.id || 'Card', score: c.normalized, signal: c.state?.label || 'N/A', weight: c.credit }))
                 };
 
         generate({
@@ -192,10 +192,17 @@ export default function AiInsightSection({
     const [isReadyToGenerate, setIsReadyToGenerate] = useState(false);
 
     useEffect(() => {
-        // Wait for websocket data to fully populate before allowing generation
-        const timer = setTimeout(() => setIsReadyToGenerate(true), 1500);
+        // Wait 12 seconds for websocket data to fully populate and settle
+        // before allowing generation. This prevents rapid generating on partial data.
+        const timer = setTimeout(() => setIsReadyToGenerate(true), 12000);
         return () => clearTimeout(timer);
     }, []);
+
+    // Use a ref for triggerGenerate so its changing dependencies don't endlessly reset the debounce timer
+    const triggerGenerateRef = useRef(triggerGenerate);
+    useEffect(() => {
+        triggerGenerateRef.current = triggerGenerate;
+    }, [triggerGenerate]);
 
     // Auto-trigger when score becomes available
     // Re-run on score or coverage changes
@@ -204,11 +211,13 @@ export default function AiInsightSection({
             // Debounce generation by 1.5s so we don't double-fire while
             // complex multi-part websockets (like the Master Dashboard) are still loading in.
             const timer = setTimeout(() => {
-                triggerGenerate();
+                if (triggerGenerateRef.current) {
+                    triggerGenerateRef.current();
+                }
             }, 1500);
             return () => clearTimeout(timer);
         }
-    }, [score, stockSymbol, actionType, triggerGenerate, coveragePercent, isReadyToGenerate]);
+    }, [score, stockSymbol, actionType, coveragePercent, isReadyToGenerate]);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const handleCloseModal = useCallback(() => setIsModalOpen(false), []);

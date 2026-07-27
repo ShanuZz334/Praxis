@@ -285,6 +285,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
 
         const sectionsForHeader = scores.map(s => ({
             id: s.id,
+            name: s.label, // Added name so AiInsightSection can resolve it
             module: s.label,
             shortLabel: s.label,
             normalized: s.rawScore ? getNormalized(s.rawScore) : 0,
@@ -447,10 +448,17 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
         const rankedSections = [];
 
         // 1. Gather all macro sections from the live engines
+        const extractSections = (engineType, fallbackTree) => {
+            if (fallbackTree && Array.isArray(fallbackTree.engines) && fallbackTree.engines.length > 0) {
+                return fallbackTree.engines[0].sections || [];
+            }
+            return [];
+        };
+
         const engineSections = [
-            { engine: 'FUND', sections: fundEngine?.sections || [] },
-            { engine: 'TECH', sections: techEngine?.sections || [] },
-            { engine: 'OPT',  sections: optionsEngine?.sections || [] }
+            { engine: 'FUND', sections: fundEngine?.sections || extractSections('FUND', dbFallbackData?.fundamental?.tree_payload) },
+            { engine: 'TECH', sections: techEngine?.sections || extractSections('TECH', dbFallbackData?.technical?.tree_payload) },
+            { engine: 'OPT',  sections: optionsEngine?.sections || extractSections('OPT', dbFallbackData?.options?.tree_payload) }
         ];
 
         engineSections.forEach(({ engine, sections }) => {
@@ -541,6 +549,25 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             risks: allRisks,
             totalCredits,
             aggregatedCards,
+            nestedTreePayload: {
+                engines: validScores.map(vs => {
+                    const engineData = engineSections.find(es => {
+                        if (vs.id === 'fundamental') return es.engine === 'FUND';
+                        if (vs.id === 'technical') return es.engine === 'TECH';
+                        if (vs.id === 'options') return es.engine === 'OPT';
+                        return false;
+                    });
+                    return {
+                        name: formatTitle(vs.id),
+                        score: vs.rawScore,
+                        sections: engineData ? engineData.sections.map(s => ({
+                            name: s.name || s.label || s.shortLabel || formatTitle(s.id),
+                            score: s.score,
+                            cards: [] // We don't have individual cards at the master level nested tree to save space, backend can summarize sections
+                        })) : []
+                    };
+                })
+            },
             regime: {
                 label: systemRegime.label,
                 description: `Aggregated from ${validScores.length} active Praxis modules.`,

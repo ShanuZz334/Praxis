@@ -66,7 +66,7 @@ export default function TechnicalModal({ open, onClose, children, card }) {
             />
 
             {/* MODAL LAYOUT (Exact match to FundamentalModal) */}
-            <div className="relative flex items-start justify-center gap-6 max-w-[1600px] w-full max-h-[95vh] pointer-events-none">
+            <div className="relative flex items-start justify-center gap-6 w-full w-full max-h-[95vh] pointer-events-none">
 
                 {/* ⬅ LEFT FLOAT: INTERPRETATION DESK */}
                 <div className="hidden lg:block w-[300px] pointer-events-auto">

@@ -27,6 +27,7 @@ export default function ForwardPECard({ cardId, data = null, manualOverride, las
         r.name?.toLowerCase().includes("fwd pe")
     );
     const parsedFwdPE = upstoxFwdPEObj?.company_value ? cleanNum(upstoxFwdPEObj.company_value) : null;
+    const backendFwdPE = data?.forward_pe !== undefined && data?.forward_pe !== null ? cleanNum(data.forward_pe) : null;
     
     let calculatedFwdPE = null;
     if (parsedFwdPE === null && currentPE !== null) {
@@ -60,10 +61,12 @@ export default function ForwardPECard({ cardId, data = null, manualOverride, las
         }
     }
 
-    const isLiveData = (parsedFwdPE !== null && !isNaN(parsedFwdPE) && parsedFwdPE > 0) || (calculatedFwdPE !== null && !isNaN(calculatedFwdPE) && calculatedFwdPE > 0);
-    const currentFwdPE = (parsedFwdPE !== null && parsedFwdPE > 0) 
-        ? parsedFwdPE 
-        : ((calculatedFwdPE !== null && calculatedFwdPE > 0) ? calculatedFwdPE : (manualOverride ?? null));
+    const isLiveData = (backendFwdPE !== null && !isNaN(backendFwdPE) && backendFwdPE > 0) || (parsedFwdPE !== null && !isNaN(parsedFwdPE) && parsedFwdPE > 0) || (calculatedFwdPE !== null && !isNaN(calculatedFwdPE) && calculatedFwdPE > 0);
+    const currentFwdPE = (backendFwdPE !== null && backendFwdPE > 0) 
+        ? backendFwdPE
+        : (parsedFwdPE !== null && parsedFwdPE > 0) 
+            ? parsedFwdPE 
+            : ((calculatedFwdPE !== null && calculatedFwdPE > 0) ? calculatedFwdPE : (manualOverride ?? null));
 
     // Removed Projected EPS to comply with Zero Clutter Rule
 
@@ -72,7 +75,7 @@ export default function ForwardPECard({ cardId, data = null, manualOverride, las
     const cCard = computeCardConfidence({
         hasLiveData: isLiveData,
         isManual: !!manualOverride && !isLiveData,
-        sourcePipeline: isLiveData ? (parsedFwdPE !== null ? 'Upstox API' : 'Upstox (Calc)') : 'Manual',
+        sourcePipeline: isLiveData ? (backendFwdPE !== null ? 'Yahoo Finance API' : (parsedFwdPE !== null ? 'Upstox API' : 'Upstox (Calc)')) : 'Manual',
         lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--')
     }, 'fundamentals');
 
@@ -93,7 +96,7 @@ export default function ForwardPECard({ cardId, data = null, manualOverride, las
                 mode: isLiveData ? 'AUTO' : 'MANUAL',
                 creditScore: configData?.creditScore ?? 5,
                 updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'),
-                source: isLiveData ? (parsedFwdPE !== null ? 'Upstox API' : 'Upstox (Calc)') : 'Manual',
+                source: isLiveData ? (backendFwdPE !== null ? 'Yahoo Finance API' : (parsedFwdPE !== null ? 'Upstox API' : 'Upstox (Calc)')) : 'Manual',
                 aiModel: configData?.aiModel ?? 'Engine v2'
             }}
             data={{

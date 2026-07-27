@@ -176,7 +176,8 @@ const Navbar = ({ onToggleSidebar }) => {
         <img
           src={theme === 'light' ? praxisBgless1 : praxisBgless2}
           alt="Praxis"
-          className="h-16 object-contain scale-[1.3]"
+          className="h-16 object-contain scale-[1.3] cursor-pointer"
+          onClick={() => navigate('/dashboard/home')}
         />
         {!upstoxConnected && (
             <button 

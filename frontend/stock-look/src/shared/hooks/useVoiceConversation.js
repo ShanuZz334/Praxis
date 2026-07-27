@@ -66,16 +66,31 @@ export const useVoiceConversation = (initialCallbacks = {}) => {
     }
   }, []);
 
-  const synthesize = useCallback((text) => {
+  const synthesize = useCallback((rawText) => {
+    if (!rawText) return;
+    
+    // Strip markdown formatting characters so TTS reads it naturally
+    let text = rawText.replace(/[#*_`~]/g, '').trim();
+    
+    // Convert decimal points between numbers to the word 'point' so the TTS engine 
+    // doesn't treat the decimal as a sentence-ending period and pause awkwardly.
+    text = text.replace(/(\d)\.(\d)/g, '$1 point $2');
+    
     if (!text) return;
+
     isInterruptedRef.current = false;
     if (!window.speechSynthesis) return;
 
     // Immediately lock status and kill mic BEFORE TTS even queues to absolutely prevent echoing
     updateStatus('speaking');
     if (recognitionRef.current) {
+        recognitionRef.current.onresult = null; // Detach handler to prevent delayed transcription packets
         try { recognitionRef.current.stop(); } catch(e) {}
     }
+    
+    // Flush any pending text that might have been picked up right before TTS started
+    if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
+    finalTranscriptBuffer.current = "";
 
     if (window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel(); // stop any ongoing speech
@@ -94,7 +109,7 @@ export const useVoiceConversation = (initialCallbacks = {}) => {
                     setTimeout(() => {
                         // Ignore lint warnings about missing dependency; using a ref or stale closure is safer here than a circular dependency
                         startListening();
-                    }, 100);
+                    }, 800); // 800ms delay to prevent audio hardware buffer echoing
                 }
             }
             window.utteranceRef = null;
@@ -204,9 +219,12 @@ export const useVoiceConversation = (initialCallbacks = {}) => {
         // If the AI is currently speaking, aggressively ignore all mic input to prevent echoing
         if (statusRef.current === 'speaking' || isInterruptedRef.current) return;
         
-        const lastResult = event.results[event.results.length - 1];
-        const text = lastResult[0].transcript.trim();
-        const isFinal = lastResult.isFinal;
+        let fullTranscript = "";
+        for (let i = 0; i < event.results.length; i++) {
+            fullTranscript += event.results[i][0].transcript;
+        }
+        const text = fullTranscript.trim();
+        const isFinal = event.results[event.results.length - 1].isFinal;
         
         if (standbyRef.current) {
           const cleanText = text.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
@@ -238,9 +256,7 @@ export const useVoiceConversation = (initialCallbacks = {}) => {
             window.dispatchEvent(new CustomEvent('paiGlobalWakeWord', { detail: "" }));
             
             updateStatus('listening');
-            
-            const payloadText = text.replace(/\b(hey|hi|hello|ok|okay)?\s*(pai|pie|pi|bye|pay|pa|p i|api|bhai)[,\.]?\s*/i, '').trim();
-            
+            const payloadText = text.replace(/\b(hey|hi|hello|ok|okay)?\s*(pai|pie|pi|bye|pay|pa|p i|api|bhai|hepa|hepai)[,.]?\s*/i, '').trim();
             if (payloadText === "") {
               const greetings = ["Hey Shanif.", "Hey Shanu.", "Yes?", "I'm listening.", "How can I help?"];
               const greeting = greetings[Math.floor(Math.random() * greetings.length)];
@@ -254,13 +270,39 @@ export const useVoiceConversation = (initialCallbacks = {}) => {
         } else {
           // Active mode
           // Strip stray wake words so they aren't sent as standalone chat messages
-          const cleanedText = text.replace(/\b(hey|hi|hello|ok|okay)?\s*(pai|pie|pi|bye|pay|pa|p i|api|bhai)\b[,\.]?\s*/gi, '').trim();
+          const cleanedText = text.replace(/\b(hey|hi|hello|ok|okay)?\s*(pai|pie|pi|bye|pay|pa|p i|api|bhai|hepa|hepai)\b[,.]?\s*/gi, '').trim();
+          
+          const rawCleaned = text.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+          
+          // Voice Command Interception
+          if (rawCleaned === 'pai close the chat window' || rawCleaned === 'close the chat window' || rawCleaned === 'close chat window') {
+              window.dispatchEvent(new CustomEvent('paiGlobalClose', { detail: "" }));
+              finalTranscriptBuffer.current = ""; // discard
+              updateStatus('idle');
+              try { if (recognitionRef.current) recognitionRef.current.stop(); } catch(err) { /* ignore */ }
+              return;
+          }
+          
+          if (rawCleaned === 'pai open the chat window' || rawCleaned === 'open the chat window' || rawCleaned === 'open chat window') {
+              window.dispatchEvent(new CustomEvent('paiGlobalWakeWord', { detail: "" }));
+              finalTranscriptBuffer.current = ""; // discard
+              updateStatus('idle');
+              try { if (recognitionRef.current) recognitionRef.current.stop(); } catch(err) { /* ignore */ }
+              return;
+          }
+          
+          if (rawCleaned === 'hey pai dock' || rawCleaned === 'hey pai dock it' || rawCleaned === 'pai dock' || rawCleaned === 'dock it' || rawCleaned === 'go away' || rawCleaned === 'pai go away' || rawCleaned === 'use go way' || rawCleaned === 'use go away') {
+              window.dispatchEvent(new CustomEvent('paiGlobalDock', { detail: "" }));
+              finalTranscriptBuffer.current = ""; // discard
+              updateStatus('idle');
+              try { if (recognitionRef.current) recognitionRef.current.stop(); } catch(err) { /* ignore */ }
+              return;
+          }
           
           if (cleanedText) {
             updateStatus(isFinal ? 'idle' : 'processing');
             
-            // Overwrite buffer with the latest interim or final result.
-            // Web Speech API usually accumulates the sentence in the interim result.
+            // Overwrite buffer with the FULL concatenated string of the entire spoken sentence
             finalTranscriptBuffer.current = cleanedText;
             
             // Debounce the send to prevent cutting off the user mid-sentence,
@@ -274,6 +316,10 @@ export const useVoiceConversation = (initialCallbacks = {}) => {
               }
               finalTranscriptBuffer.current = ""; // Reset buffer
               updateStatus('idle');
+              // Stop recognition so it auto-restarts with a fresh event.results array
+              try {
+                  if (recognitionRef.current) recognitionRef.current.stop();
+              } catch(e) {}
             }, 1800); // Wait 1.8 seconds of silence before assuming they are done speaking
           }
         }

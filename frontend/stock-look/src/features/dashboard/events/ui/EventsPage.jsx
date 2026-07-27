@@ -21,7 +21,7 @@ export default function EventsPage() {
     const newsItems = [];
 
     return (
-        <div className="px-4 md:px-6 pt-2 space-y-6 md:space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
+        <div className="px-4 md:px-6 pt-2 space-y-6 md:space-y-8 animate-in fade-in duration-500 w-full mx-auto">
 
             <GlobalHeader
                 title="Events Sentiment"

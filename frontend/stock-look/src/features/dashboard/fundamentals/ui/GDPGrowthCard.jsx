@@ -8,11 +8,16 @@ import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreGDPGrowth, generateAiInsightGDPGrowthCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function GDPGrowthCard({ cardId, data = null, manualOverride, lastUpdated }) {
-    // 1. Core State (100% Manual Macro Indicator)
-    const isManual = true;
-    const currentGrowth = manualOverride !== undefined && manualOverride !== null && manualOverride !== '' 
-        ? cleanNum(manualOverride) 
-        : null;
+    // 1. Core State
+    const liveGrowthData = data?.gdp_growth;
+    const isLive = liveGrowthData !== undefined && liveGrowthData !== null;
+    const isManual = !isLive && manualOverride !== undefined && manualOverride !== null && manualOverride !== '';
+
+    const currentGrowth = isLive 
+        ? cleanNum(liveGrowthData)
+        : isManual 
+            ? cleanNum(manualOverride) 
+            : null;
 
     // 2. Load Central Config
     const configData = getIndicatorConfig(CARD_REGISTRY.gdp_growth.id);
@@ -21,10 +26,10 @@ export default function GDPGrowthCard({ cardId, data = null, manualOverride, las
     const { score, bias, trendDesc } = scoreGDPGrowth(currentGrowth);
     
     const cCard = computeCardConfidence({
-        hasLiveData: false,
-        isManual: !!manualOverride && isManual,
-        sourcePipeline: 'manual',
-        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(false) : (lastUpdated || '--:--')
+        hasLiveData: isLive,
+        isManual: isManual,
+        sourcePipeline: isLive ? 'FRED API' : 'Manual',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(isLive) : (lastUpdated || '--:--')
     }, 'fundamentals');
     const aiInsightText = generateAiInsightGDPGrowthCard(currentGrowth, trendDesc);
 
@@ -34,10 +39,10 @@ export default function GDPGrowthCard({ cardId, data = null, manualOverride, las
             config={{
                 title: 'GDP Growth',
                 category: 'Growth',
-                mode: 'MANUAL',
+                mode: isLive ? 'AUTO' : 'MANUAL',
                 creditScore: configData?.creditScore || 5,
-                updateTime: lastUpdated || '--:--',
-                source: 'Manual (Macro)',
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLive) : (lastUpdated || '--:--'),
+                source: isLive ? 'FRED API' : 'Manual',
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{

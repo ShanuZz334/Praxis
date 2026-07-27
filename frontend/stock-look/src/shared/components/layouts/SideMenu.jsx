@@ -31,6 +31,8 @@ import { usePaiWidget } from "../../context/PaiWidgetContext";
 import { logoutUser } from "../../../services/userService";
 import paiIcon from "@/assets/icons/pai-round-bgless.png";
 import paiLabelImg from "@/assets/icons/pai-label-bgless.png";
+import GhostLogo from "../ui/GhostLogo";
+
 
 // =============================
 // Component
@@ -116,12 +118,10 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
                              onClick={() => handleClick(item.path, item.key)}
                              className="absolute inset-0 flex items-center justify-center group pointer-events-auto"
                          >
-                             <img
-                               src={paiIcon}
-                               alt="PAI"
-                               draggable={false}
-                               className={`w-[48px] h-[48px] flex-shrink-0 object-contain transition-all duration-300 ease-out transform ${isActive ? "scale-110 opacity-100" : "opacity-70 group-hover:opacity-100 group-hover:scale-110"}`}
-                             />
+                             <div className={`transition-all duration-300 ease-out transform ${isActive ? "scale-110 opacity-100" : "opacity-70 group-hover:opacity-100 group-hover:scale-110"}`}>
+                              <GhostLogo style={{ transform: 'scale(0.34)' }} />
+                            </div>
+
                          </motion.button>
                      ) : (
                          <div className="w-[48px] h-[48px] opacity-10" />
@@ -148,14 +148,9 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
               {item.customIcon === 'pai' ? (
                   // Expanded: fix icon to 20px slot (same as other icons)
                   <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', flexShrink: 0 }}>
-                    <img
-                      src={paiIcon}
-                      alt="PAI"
-                      style={{ width: '32px', height: '32px', minWidth: '32px' }}
-                      className={`flex-shrink-0 object-contain transition-all duration-300 ease-out transform
-                        ${isActive ? "scale-110 opacity-100" : "opacity-70 group-hover:opacity-100 group-hover:scale-110"}
-                      `}
-                    />
+                    <div className={`transition-all duration-300 ease-out transform ${isActive ? "scale-110 opacity-100" : "opacity-70 group-hover:opacity-100 group-hover:scale-110"}`}>
+                      <GhostLogo style={{ transform: 'scale(0.23)' }} />
+                    </div>
                   </div>
               ) : (
                 <item.icon

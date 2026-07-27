@@ -84,7 +84,7 @@ export default function MasterDashboard() {
                     });
 
                     const formatted = sorted.map(c => ({
-                        label: c.trading_symbol || c.name || c.instrument_key,
+                        label: c.name || c.trading_symbol || c.instrument_key,
                         value: c.instrument_key,
                         badge: 'NFO'
                     }));
@@ -105,7 +105,8 @@ export default function MasterDashboard() {
         return { symbol, pctChange: tick?.pctChange || 0 };
     });
 
-    const { praxisComposite, modifierImpact, sectionsForHeader, tailwinds, risks, regime, loading, integrity, totalCredits, aggregatedCards, nestedTreePayload } = useMasterComposite(selectedInstrument, isIndex, selectedExpiry, livePrices, {
+    const instKeyForEngine = selectedInstrument?.value || selectedInstrument || null;
+    const { praxisComposite, modifierImpact, sectionsForHeader, tailwinds, risks, regime, loading, integrity, totalCredits, aggregatedCards, nestedTreePayload } = useMasterComposite(instKeyForEngine, isIndex, selectedExpiry, livePrices, {
         sectors,
         activeOpts,
         fiiDiiFlow
@@ -241,7 +242,7 @@ export default function MasterDashboard() {
                             )}
                         </div>
                         <div className="flex bg-transparent rounded-lg p-[2px] mr-12 border border-border-subtle shadow-sm pointer-events-auto">
-                            {['1minute', '5minute', '15minute', '1hour', 'day', 'week'].map((tf) => (
+                            {['1minute', '5minute', '15minute', '30minute', '1hour', 'day', 'week'].map((tf) => (
                                 <button
                                     key={tf}
                                     onPointerDown={(e) => e.stopPropagation()} 
@@ -285,7 +286,7 @@ export default function MasterDashboard() {
     );
 
     return (
-        <div className="block px-4 sm:px-6 pt-2 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto h-full space-y-4 md:space-y-6">
+        <div className="block px-4 sm:px-6 pt-2 pb-32 animate-in fade-in duration-500 w-full mx-auto h-full space-y-4 md:space-y-6">
             
             <GlobalHeader
                 title="Praxis Composite"

@@ -2,8 +2,14 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware.js';
 import AiCardPrompt from '../models/AiCardPrompt.js';
 import AiChatThread from '../models/AiChatThread.js';
+import AiRouting from '../models/AiRouting.js';
 import aiGateway from '../ai-gateway/index.js';
+import { transcribeAudio } from '../ai-gateway/providers/groqProvider.js';
 import { CARD_REGISTRY } from '../../frontend/stock-look/src/shared/config/cardRegistry.js';
+import multer from 'multer';
+
+// Set up multer to store uploaded files in memory
+const upload = multer({ storage: multer.memoryStorage() });
 import { GOLDEN_RULES } from '../config/goldenRules.js';
 
 const router = express.Router();
@@ -13,14 +19,14 @@ router.use(protect);
 // Fallback when no custom prompt has been saved yet for a targetId.
 
 const PAGE_HEADER_DEFAULTS = {
-    [CARD_REGISTRY.fundamentals_index_header?.id || "fundamentals_index_header"]: `You are Praxis. Analyze the Fundamentals for this index. Generate a short, actionable summary of the market regime and valuation. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.fundamentals_company_header?.id || "fundamentals_company_header"]: `You are Praxis. Analyze the Fundamentals for this company. Generate a short, actionable summary of valuation and earnings quality. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.technical_index_header?.id || "technical_index_header"]: `You are Praxis. Analyze the Technicals for this index. Generate a short, actionable summary of the primary trend and key levels. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.technical_company_header?.id || "technical_company_header"]: `You are Praxis. Analyze the Technicals for this company. Generate a short summary of the primary trend and one specific trade setup. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.options_header?.id || "options_header"]: `You are Praxis. Analyze the Options data. Generate a short summary of directional bias, volatility regime, and a strategy recommendation. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.praxis_composite_header?.id || "praxis_composite_header"]: `You are Praxis. Analyze the composite data. Generate a short summary of the overall market posture and a tactical recommendation. No markdown, no bold text, no introductions.`,
-    foreign_header: `You are Praxis. Analyze the Global Macro data. Generate a short summary of the most important global headwinds/tailwind and sector impact. No markdown, no bold text, no introductions.`,
-    events_header: `You are Praxis. Analyze the Events data. Generate a short summary of key near-term event risks and expected impact. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.fundamentals_index_header?.id || "fundamentals_index_header"]: `You are Praxis. Analyze the Fundamentals for {{symbol}}. Generate a short, actionable summary of the market regime and valuation. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.fundamentals_company_header?.id || "fundamentals_company_header"]: `You are Praxis. Analyze the Fundamentals for {{symbol}}. Generate a short, actionable summary of valuation and earnings quality. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.technical_index_header?.id || "technical_index_header"]: `You are Praxis. Analyze the Technicals for {{symbol}}. Generate a short, actionable summary of the primary trend and key levels. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.technical_company_header?.id || "technical_company_header"]: `You are Praxis. Analyze the Technicals for {{symbol}}. Generate a short summary of the primary trend and one specific trade setup. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.options_header?.id || "options_header"]: `You are Praxis. Analyze the Options data for {{symbol}}. Generate a short summary of directional bias, volatility regime, and a strategy recommendation. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.praxis_composite_header?.id || "praxis_composite_header"]: `You are Praxis. Analyze the composite data for {{symbol}}. Generate a short summary of the overall market posture and a tactical recommendation. No markdown, no bold text, no introductions.`,
+    foreign_header: `You are Praxis. Analyze the Global Macro data for {{symbol}}. Generate a short summary of the most important global headwinds/tailwind and sector impact. No markdown, no bold text, no introductions.`,
+    events_header: `You are Praxis. Analyze the Events data for {{symbol}}. Generate a short summary of key near-term event risks and expected impact. No markdown, no bold text, no introductions.`,
 };
 
 const DEFAULT_SYSTEM_INSTRUCTION = (targetId, displayName) => {
@@ -296,13 +302,13 @@ function summarizePageData(pageData) {
             if (Array.isArray(e.sections) && e.sections.length > 0) {
                 e.sections.forEach(s => {
                     if (s.score == null) return;
-                    let sectionLine = `  - ${s.name} (${s.score > 0 ? '+' : ''}${s.score})`;
+                    let sectionLine = `  - ${s.name || s.label || s.id || 'Module'} (${s.score > 0 ? '+' : ''}${s.score})`;
                     
                     if (Array.isArray(s.cards) && s.cards.length > 0) {
                         const cardStrs = s.cards.map(c => {
                             const valStr = c.value != null ? c.value : 'N/A';
                             const bias = c.score > 0 ? 'Bullish' : c.score < 0 ? 'Bearish' : 'Neutral';
-                            return `${c.name}: ${valStr} [${bias}]`;
+                            return `${c.name || c.label || c.title || c.id || 'Card'}: ${valStr} [${bias}]`;
                         });
                         sectionLine += ` -> Cards: ${cardStrs.join(', ')}`;
                     }
@@ -310,6 +316,24 @@ function summarizePageData(pageData) {
                 });
             }
         });
+
+        if (pageData.master_widgets) {
+            const w = pageData.master_widgets;
+            lines.push('\n--- MASTER DASHBOARD WIDGETS ---');
+            if (w.market_heatmap && Array.isArray(w.market_heatmap)) {
+                lines.push(`Market Heatmap (Top 15): ${w.market_heatmap.slice(0, 15).map(m => `${m.symbol}(${m.pctChange}%)`).join(', ')}`);
+            }
+            if (w.fii_dii_flow_master) {
+                lines.push(`Institutional Flow (FII/DII): ${JSON.stringify(w.fii_dii_flow_master)}`);
+            }
+            if (w.sector_rotation && Array.isArray(w.sector_rotation)) {
+                lines.push(`Sector Rotation: ${w.sector_rotation.slice(0, 10).map(s => `${s.symbol || s.name || s.trading_symbol}(${(s.change_pct ?? s.percentage_change ?? s.pctChange ?? 0).toFixed(2)}%)`).join(', ')}`);
+            }
+            if (w.options_pulse && Array.isArray(w.options_pulse)) {
+                lines.push(`Options Pulse (Active): ${w.options_pulse.slice(0, 10).map(o => `${o.symbol || o.name || o.trading_symbol}(${(o.change_pct ?? o.percentage_change ?? o.pctChange ?? 0).toFixed(2)}%)`).join(', ')}`);
+            }
+        }
+
         return lines.join('\n');
     }
 
@@ -415,7 +439,12 @@ router.post('/generate/:targetId', async (req, res) => {
         });
 
         // 2. Build the user message with real card data
-        const pageDataSummary = summarizePageData(pageData);
+        let pageDataSummary = summarizePageData(pageData);
+        if (pageDataSummary && pageDataSummary.length > 15000) {
+            console.warn(`Truncating pageDataSummary from ${pageDataSummary.length} to 15000 chars to avoid token overflow causing cutoff.`);
+            pageDataSummary = pageDataSummary.substring(0, 15000) + '\n...[TRUNCATED TO PREVENT TOKEN OVERFLOW]';
+        }
+        
         const userMessage = [
             `Stock/Index: ${stockSymbol || 'Unknown'}`,
             `Indicator: ${displayName || targetId}`,
@@ -434,14 +463,31 @@ router.post('/generate/:targetId', async (req, res) => {
         } else {
             goldenRulesStr = `System Guardrails:\n${GOLDEN_RULES.map((r, i) => `${i+1}. ${r}`).join('\n')}\n\n`;
         }
-        const enforcedSystemInstruction = `${goldenRulesStr}Task Instruction:\n${systemInstruction}`;
+        
+        // 3b. Enforce Verbosity Settings
+        const routing = await AiRouting.findOne({ isSingleton: true }).lean();
+        let verbosityInstruction = "";
+        if (routing) {
+            const verbosityLevel = isHeaderTarget ? routing.headerInsight?.verbosity : routing.cardInsight?.verbosity;
+            if (verbosityLevel === 'short') {
+                verbosityInstruction = "\n\n[CRITICAL REQUIREMENT: Generate exactly 1 to 2 short sentences total. NO MORE.]";
+            } else if (verbosityLevel === 'detailed') {
+                verbosityInstruction = "\n\n[CRITICAL REQUIREMENT: Provide a highly detailed, comprehensive analysis spanning multiple paragraphs. Break down the reasoning deeply.]";
+            } else {
+                // Default / medium
+                verbosityInstruction = "\n\n[CRITICAL REQUIREMENT: You MUST generate EXACTLY ONE SINGLE PARAGRAPH. Do NOT use any line breaks, bullet points, or multiple paragraphs. The entire response must be a single block of text.]";
+            }
+        }
+        
+        const enforcedSystemInstruction = `${goldenRulesStr}Task Instruction:\n${systemInstruction}${verbosityInstruction}`;
 
         const response = await aiGateway.process({
             taskType: 'per_card_insight', // Route headers to Tier 1 as requested
             prompt: userMessage,
             systemInstruction: enforcedSystemInstruction,
             data: { targetId, value, stockSymbol, scope },
-            maxTokens: savedPrompt?.maxTokens || (isHeaderTarget ? 2000 : 800)
+            maxTokens: savedPrompt?.maxTokens || 2000,
+            temperature: routing?.temperature !== undefined ? routing.temperature : 0.7
         });
 
         if (response.error) {
@@ -557,13 +603,16 @@ router.post('/chat/:targetId', async (req, res) => {
         // to natural conversational responses
         systemInstruction += `\n\nCRITICAL RULE: DO NOT append "Verdict: Bullish/Bearish" or any structured JSON/formatting to your response unless the user EXPLICITLY asks for a verdict in their latest message. Act completely natural and conversational.`;
 
+        // Golden Rule: Anti-Hallucination
+        systemInstruction += `\n\nGOLDEN RULE (ANTI-HALLUCINATION): You must NEVER invent, guess, or hallucinate financial data (prices, scores, ratios, etc.). If you do not have the specific data points in your provided context to answer the user's question, you must explicitly state that you don't have that data. Do not make up numbers.`;
+
         // Golden Rule: Personalization
         systemInstruction += `\n\nGOLDEN RULE: The user you are talking to is named Shanif, and his nickname is Shanu. Acknowledge this identity and refer to him by his name or nickname when appropriate.`;
 
         // 2. Fetch thread history
         const thread = await AiChatThread.findOne({ targetId, scope, userId }).lean();
-        // Take last 10 messages for context window size limits
-        const history = thread?.entries?.slice(-10) || [];
+        // Take last 6 messages to strictly conserve context window size limits
+        const history = thread?.entries?.slice(-6) || [];
 
         // 3. Call AI Gateway
         const isHeaderTarget = targetId.endsWith('_header') || targetId.startsWith('qchat_') || targetId.includes('manual');
@@ -624,6 +673,32 @@ router.post('/chat/:targetId', async (req, res) => {
     } catch (err) {
         console.error('POST /ai-prompts/chat/:targetId error:', err.message);
         res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+/**
+ * POST /api/v1/ai-prompts/transcribe
+ * Endpoint to receive audio files and transcribe them using Groq Whisper.
+ */
+router.post('/transcribe', upload.single('audio'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: true, message: 'No audio file provided' });
+        }
+
+        const audioBuffer = req.file.buffer;
+        const originalName = req.file.originalname;
+        const mimeType = req.file.mimetype;
+
+        console.log(`[STT] Received audio for transcription: ${originalName} (${mimeType}), ${audioBuffer.length} bytes`);
+
+        const transcribedText = await transcribeAudio(audioBuffer, originalName, mimeType);
+        console.log(`[STT] Transcription successful: "${transcribedText}"`);
+
+        res.json({ success: true, text: transcribedText });
+    } catch (error) {
+        console.error('[STT] Transcription error:', error);
+        res.status(500).json({ error: true, message: 'Transcription failed', details: error.message });
     }
 });
 

@@ -1,22 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { useTheme } from '@/shared/context/ThemeContext';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { 
     MessageSquare, 
-    ChevronDown, 
-    ChevronRight, 
     LayoutDashboard,
     TrendingUp,
     LineChart,
     CandlestickChart,
     Calendar,
     Globe,
-    X,
-    LayoutTemplate,
-    Layers,
-    MessageCircle,
     Plus,
     Trash2
 } from 'lucide-react';
@@ -464,24 +458,8 @@ export default function PaiSidebar({ activeChatId, onSelectChat, onChatCleared }
     const { theme } = useTheme();
     const [sections, setSections] = useState(INITIAL_SECTIONS);
     const [chatToDelete, setChatToDelete] = useState(null); // { sectionId, subSectionId, chat }
-    
-    // Default open pages
-    const [openSections, setOpenSections] = useState(
-        INITIAL_SECTIONS.reduce((acc, section) => ({ ...acc, [section.id]: true }), {})
-    );
 
-    // Default closed subSections
-    const [openSubSections, setOpenSubSections] = useState({});
-
-    const toggleSection = (id) => {
-        setOpenSections(prev => ({ ...prev, [id]: !prev[id] }));
-    };
-
-    const toggleSubSection = (id) => {
-        setOpenSubSections(prev => ({ ...prev, [id]: !prev[id] }));
-    };
-
-    const handleAddSubChat = (sectionId, subSectionId, baseChat) => {
+    const handleAddSubChat = useCallback((sectionId, subSectionId, baseChat) => {
         setSections(prev => prev.map(section => {
             if (section.id !== sectionId) return section;
             
@@ -511,9 +489,12 @@ export default function PaiSidebar({ activeChatId, onSelectChat, onChatCleared }
 
             return { ...section, subSections: newSubSections };
         }));
-    };
+    }, []);
 
-    const treeData = sections.map(section => ({
+    // Memoize treeData so Radix Collapsible components don't re-mount on every render.
+    // Without this, every render rebuilds treeData as new objects, causing Collapsible to
+    // destroy/recreate animation state — which is the root cause of folder open/close lag.
+    const treeData = useMemo(() => sections.map(section => ({
         name: section.label,
         type: 'folder',
         icon: section.icon,
@@ -531,9 +512,9 @@ export default function PaiSidebar({ activeChatId, onSelectChat, onChatCleared }
                 subSectionId: subSection.id
             }))
         }))
-    }));
+    })), [sections]);
 
-    const renderChatActions = (item) => {
+    const renderChatActions = useCallback((item) => {
         if (item.type !== 'file' || !item.chatData) return null;
         
         return (
@@ -560,7 +541,7 @@ export default function PaiSidebar({ activeChatId, onSelectChat, onChatCleared }
                 </button>
             </>
         );
-    };
+    }, [handleAddSubChat]);
 
     return (
         <div className="w-56 h-full bg-background-card border-r border-border-default/40 flex flex-col shrink-0">

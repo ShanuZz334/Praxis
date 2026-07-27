@@ -12,6 +12,7 @@ import socket from '@/shared/utils/socket';
 import { calculateGreeks, resolveGreeks, timeToExpiry } from '../engine/blackScholesEngine';
 import { calculatePCR, calculateMaxPain } from '../engine/optionsMath';
 import OptionsStrategyDesk from "./OptionsStrategyDesk";
+import { toast } from 'sonner';
 import OptionsGrid from './OptionsGrid';
 import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { useAiSync } from "@/shared/hooks/useAiSync";
@@ -39,7 +40,9 @@ export default function OptionsPage() {
         selectedInstrument,
         selectedExpiry, setSelectedExpiry,
         expiries,
-        livePrices
+        livePrices,
+        additionalCharts,
+        setAdditionalCharts
     } = useDashboardContext();
 
     // Data state
@@ -48,7 +51,6 @@ export default function OptionsPage() {
     const spotPrice = livePrices?.[selectedInstrument]?.ltp || baseSpotPrice;
     
     const [loading, setLoading] = useState(false);
-    const [manualIvRank, setManualIvRank] = useState(34);
 
     const [idealPremium, setIdealPremium] = useState(45);
 
@@ -60,14 +62,31 @@ export default function OptionsPage() {
 
 
     // Live computed metrics from chain
+    const handleAddChart = (instrumentKey, label) => {
+        if (!instrumentKey) return;
+        if (additionalCharts.length >= 3) {
+            toast.error("Multi-graph limit reached. You can only track up to 3 additional charts.", { id: 'max-charts-error' });
+            return;
+        }
+        
+        if (!additionalCharts.find(c => c === instrumentKey || (c.value && c.value === instrumentKey))) {
+            const chartObj = { value: instrumentKey, label: label || instrumentKey.split('|').pop() };
+            setAdditionalCharts(prev => [...prev, chartObj]);
+            toast.success(`${label || 'Contract'} added to Master Dashboard graphs!`, { id: 'chart-added' });
+        } else {
+            toast.info(`${label || 'Contract'} is already in the Master Dashboard graphs.`, { id: 'chart-exists' });
+        }
+    };
+
     const metrics = useMemo(() => {
-        if (!chainData || chainData.length === 0) return { pcr: 1.0, maxPain: spotPrice, ivRank: manualIvRank };
+        const ivRank = manualOverrides?.iv_rank !== undefined && manualOverrides?.iv_rank !== null && manualOverrides?.iv_rank !== '' ? Number(manualOverrides.iv_rank) : null;
+        if (!chainData || chainData.length === 0) return { pcr: 1.0, maxPain: spotPrice, ivRank: ivRank };
         
         const pcr = calculatePCR(chainData);
         const maxPain = calculateMaxPain(chainData);
         
-        return { pcr, maxPain, ivRank: manualIvRank };
-    }, [chainData, spotPrice, manualIvRank]);
+        return { pcr, maxPain, ivRank: ivRank };
+    }, [chainData, spotPrice, manualOverrides]);
 
     // 4. WebSocket Listener for Live Greeks
     useEffect(() => {
@@ -285,6 +304,7 @@ export default function OptionsPage() {
         }
     }, [selectedInstrument, selectedExpiry]);
 
+
     // 3. Generate Pro Desk picks using the engine
     const proDeskData = useMemo(() => {
         if (!chainData || chainData.length === 0) return { goldenStrikes: [], categories: {} };
@@ -312,12 +332,42 @@ export default function OptionsPage() {
             additionalContext: `Spot: ${spotPrice} | PCR: ${pcr?.toFixed(2) ?? 'N/A'} | Max Pain: ${maxPain ?? 'N/A'}`,
         });
 
+        let proDeskPicksStr = '';
+        if (proDeskData?.categories) {
+            const formatPick = (pick, typeStr) => {
+                if (!pick) return '';
+                let str = `${pick.strike} ${typeStr} (₹${pick.ltp || 'N/A'})`;
+                const stats = [];
+                if (pick.oi) stats.push(`OI: ${pick.oi}`);
+                if (pick.iv) stats.push(`IV: ${pick.iv.toFixed(1)}%`);
+                if (pick.delta !== undefined) stats.push(`Delta: ${pick.delta.toFixed(2)}`);
+                if (pick.score) stats.push(`Score: ${Math.round(pick.score)}`);
+                
+                if (stats.length > 0) {
+                    str += ` [${stats.join(', ')}]`;
+                }
+                return str;
+            };
+
+            const picks = [];
+            const cat = proDeskData.categories;
+            if (cat.bullish) picks.push(`Bullish: ${formatPick(cat.bullish, 'CE')}`);
+            if (cat.bearish) picks.push(`Bearish: ${formatPick(cat.bearish, 'PE')}`);
+            if (cat.atm) picks.push(`ATM: ${formatPick(cat.atm, cat.atm.type === 'call' ? 'CE' : 'PE')}`);
+            if (cat.momentum) picks.push(`Momentum: ${formatPick(cat.momentum, cat.momentum.type === 'call' ? 'CE' : 'PE')}`);
+            if (cat.liquidity) picks.push(`Liquidity: ${formatPick(cat.liquidity, cat.liquidity.type === 'call' ? 'CE' : 'PE')}`);
+            
+            proDeskPicksStr = picks.length > 0 ? ` | Picks => ${picks.join(' | ')}` : ' | No Picks';
+        }
+        
+        const goldenCount = (proDeskData?.goldenStrikes?.calls?.length || 0) + (proDeskData?.goldenStrikes?.puts?.length || 0);
+
         register('options', CARD_REGISTRY.options_prodesk.id, {
             displayName: 'ProDesk Action Signal',
-            value: `${proDeskData?.goldenStrikes?.length ?? 0} golden strikes`,
+            value: `${goldenCount} golden strikes`,
             score: null,
             signal: 'neutral',
-            additionalContext: `Instrument: ${instrLabel} | Expiry: ${selectedExpiry || 'N/A'}`,
+            additionalContext: `Instrument: ${instrLabel} | Expiry: ${selectedExpiry || 'N/A'}${proDeskPicksStr}`,
         });
 
         register('options', CARD_REGISTRY.options_history_chart.id, {
@@ -517,7 +567,7 @@ export default function OptionsPage() {
     );
 
     return (
-        <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">
+        <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 w-full mx-auto min-h-screen space-y-4 md:space-y-6">
 
             {/* Global Header - Wrapped in z-50 so dropdowns float above the table */}
             <div className="relative z-50">
@@ -582,8 +632,7 @@ export default function OptionsPage() {
                     baseSpotPrice={baseSpotPrice} 
                     metrics={metrics} 
                     goldenZone={proDeskData.goldenStrikes}
-                    manualIvRank={manualIvRank}
-                    setManualIvRank={setManualIvRank}
+                    onAddChart={handleAddChart}
                 />
             ) : (
                 <div className="flex items-center justify-center p-12 text-text-tertiary">

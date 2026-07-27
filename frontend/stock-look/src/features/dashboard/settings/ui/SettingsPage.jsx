@@ -132,6 +132,7 @@ const SettingsPage = () => {
 
     const [initialFormData, setInitialFormData] = useState({});
     const [initialSettings, setInitialSettings] = useState({});
+    const [legacyVoiceContext, setLegacyVoiceContext] = useState(() => localStorage.getItem('paiLegacyVoiceContext') === 'true');
 
     // Initialize Data from Context & API
     useEffect(() => {
@@ -1051,6 +1052,31 @@ const SettingsPage = () => {
                                                     }`}
                                             >
                                                 <FiMoon /> Dark
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Legacy PAI Context Toggle */}
+                                    <div className="space-y-3 mt-3">
+                                        <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div>
+                                                <p className="font-medium text-text-primary">Legacy NLP Mention Method (PAI Voice)</p>
+                                                <p className="text-xs text-text-secondary mt-0.5">Use explicit @mentions (regex matching) instead of the Auto-Context engine</p>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    const newValue = !legacyVoiceContext;
+                                                    setLegacyVoiceContext(newValue);
+                                                    localStorage.setItem('paiLegacyVoiceContext', newValue ? 'true' : 'false');
+                                                    toast.success(newValue ? 'Legacy Mention Method Enabled' : 'Auto-Context Engine Enabled');
+                                                }}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${legacyVoiceContext ? 'bg-blue-600' : 'bg-slate-700'
+                                                    }`}
+                                            >
+                                                <span
+                                                    className={`${legacyVoiceContext ? 'translate-x-6' : 'translate-x-1'
+                                                        } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
+                                                />
                                             </button>
                                         </div>
                                     </div>

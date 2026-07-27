@@ -265,7 +265,7 @@ export default function TechnicalPage() {
     );
  
     return (
-        <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">
+        <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 w-full mx-auto min-h-screen space-y-4 md:space-y-6">
  
             {/* GLOBAL HEADER */}
             <GlobalHeader
@@ -308,11 +308,11 @@ export default function TechnicalPage() {
                                 options={[
                                     { value: "1minute", label: "1m" },
                                     { value: "5minute", label: "5m" },
-                                    { value: "10minute", label: "10m" },
                                     { value: "15minute", label: "15m" },
                                     { value: "30minute", label: "30m" },
                                     { value: "1hour", label: "1h" },
                                     { value: "day", label: "Daily" },
+                                    { value: "week", label: "1W" }
                                 ]}
                             />
                         </div>

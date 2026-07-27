@@ -227,7 +227,7 @@ export default function ForeignPage() {
     );
 
     return (
-        <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-screen space-y-4 md:space-y-6">
+        <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 w-full mx-auto min-h-screen space-y-4 md:space-y-6">
 
             <div className="relative z-50 isolate mb-6 mt-0">
                 <GlobalHeader

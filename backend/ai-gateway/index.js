@@ -60,7 +60,12 @@ export const aiGateway = {
 
         // 2. Structured data context
         if (data) {
-            messages.push({ role: 'system', content: `Context/Data:\n${JSON.stringify(data)}` });
+            let dataString = JSON.stringify(data);
+            if (dataString.length > 12000) {
+                console.warn(`[AI Gateway] Truncating large context data (${dataString.length} chars) to prevent token overflow`);
+                dataString = dataString.substring(0, 12000) + '... [TRUNCATED - EXCEEDS CONTEXT LIMIT]';
+            }
+            messages.push({ role: 'system', content: `Context/Data:\n${dataString}` });
         }
         if (schema && jsonMode) {
             messages.push({ role: 'system', content: `Output strictly as JSON matching this schema:\n${JSON.stringify(schema)}` });

@@ -69,12 +69,12 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
     const currentROCE = roceObj?.company_value ? parseFloat(roceObj.company_value) : null;
     const sectorROCE = roceObj?.sector_value ? parseFloat(roceObj.sector_value) : null;
 
-    // 8. FII/DII (Manual from DB or placeholder)
-    const fiiFlow = null; 
-    const diiFlow = null;
+    // 8. FII/DII
+    const fiiFlow = rawData?.externalData?.fiiFlow ?? null; 
+    const diiFlow = rawData?.externalData?.diiFlow ?? null;
 
-    // 9. GDP Growth (Manual macro)
-    const gdpGrowth = 7.0; 
+    // 9. GDP Growth
+    const gdpGrowth = rawData?.externalData?.gdpGrowth ?? 7.0; 
 
     // 10. Market Cap to GDP (Buffett Indicator)
     const marketCapGDP = 110; 
@@ -101,9 +101,12 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
     const interestCoverage = icObj?.company_value ? parseFloat(icObj.company_value) : null;
     const sectorCoverage = icObj?.sector_value ? parseFloat(icObj.sector_value) : null;
 
-    // Forward PE (usually manual or null if not in ratios)
+    // Forward PE
     const fpeObj = findRatio(['forward p/e', 'forward pe']);
-    const forwardPE = fpeObj?.company_value ? parseFloat(fpeObj.company_value) : null;
+    const forwardPE = rawData?.externalData?.forwardPE ?? (fpeObj?.company_value ? parseFloat(fpeObj.company_value) : null);
+    
+    // VIX
+    const indiaVix = rawData?.externalData?.vix ?? null;
 
     // Earnings Yield (EPS / Price - computed later or from ratio)
     const eyObj = findRatio(['earnings yield']);
@@ -157,6 +160,16 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
         }
     }
 
+    // --- Working Capital Turnover Ratios ---
+    const invTOObj = findRatio(['inventory turnover']);
+    const inventoryTurnover = invTOObj?.company_value ? parseFloat(invTOObj.company_value) : null;
+    
+    const recTOObj = findRatio(['receivables turnover', 'debtors turnover']);
+    const receivablesTurnover = recTOObj?.company_value ? parseFloat(recTOObj.company_value) : null;
+    
+    const payTOObj = findRatio(['payables turnover', 'creditors turnover']);
+    const payablesTurnover = payTOObj?.company_value ? parseFloat(payTOObj.company_value) : null;
+
     // Return structured extracted variables
     return {
         currentPE, sectorPE,
@@ -175,6 +188,8 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
         forwardPE, currentEarningsYield,
         currentFCF, currentRevenue,
         revCAGR, revYoY, revPos, revTot,
-        patCAGR, patYoY, patPos, patTot
+        patCAGR, patYoY, patPos, patTot,
+        inventoryTurnover, receivablesTurnover, payablesTurnover,
+        indiaVix
     };
 }

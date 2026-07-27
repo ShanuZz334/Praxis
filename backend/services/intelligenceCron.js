@@ -4,6 +4,10 @@ import Instrument from "../models/Instrument.js";
 import UpstoxAuth from "../models/UpstoxAuth.js";
 import { computeFundamentalsForAI } from "../engine/fundamentalsEngine.js";
 import { upsertAiCardStore, getAiCardStoreHistory } from "../config/localDb.js";
+import { fetchWithFallback } from "../utils/fetchWithFallback.js";
+import { yahooFinanceService } from "../services/yahooFinanceService.js";
+import { fredApiService } from "../services/fredApiService.js";
+import { nseDataService } from "../services/nseDataService.js";
 
 const UPSTOX_FUNDAMENTALS_URL = "https://api.upstox.com/v2/fundamentals";
 
@@ -59,7 +63,33 @@ export const runFundamentalIntelligence = async () => {
             // 2. Fetch raw data from Upstox
             const rawData = await fetchRawFundamentals(instrument.isin, auth.accessToken);
 
-            // 3. Run the Institutional Math Engine on the Backend
+            // 3. Fetch External Data with Fallbacks
+            const symbol = instrument.tradingSymbol;
+            const ik = instrument.instrumentKey;
+            
+            const [
+                fwdPeRes,
+                vixRes,
+                gdpRes,
+                fiiRes,
+                diiRes
+            ] = await Promise.all([
+                fetchWithFallback(ik, 'forward_pe', () => yahooFinanceService.getForwardPE(symbol)),
+                fetchWithFallback(ik, 'india_vix', () => yahooFinanceService.getVix()),
+                fetchWithFallback(ik, 'gdp_growth', () => fredApiService.getGDPGrowth()),
+                fetchWithFallback(ik, 'fii_flow', () => nseDataService.getFIIDIIFlows().then(d => d ? d.fiiFlow : null)),
+                fetchWithFallback(ik, 'dii_flow', () => nseDataService.getFIIDIIFlows().then(d => d ? d.diiFlow : null))
+            ]);
+
+            rawData.externalData = {
+                forwardPE: fwdPeRes.value,
+                vix: vixRes.value,
+                gdpGrowth: gdpRes.value,
+                fiiFlow: fiiRes.value,
+                diiFlow: diiRes.value
+            };
+
+            // 4. Run the Institutional Math Engine on the Backend
             const computedSnapshot = computeFundamentalsForAI(rawData, instrument.instrumentKey);
 
             // Regime Shift Detection (Delta vs Previous 12hr)

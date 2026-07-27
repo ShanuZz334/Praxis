@@ -3,6 +3,7 @@ import { getLatestAiPageSnapshot, getAiPageHistory, upsertAiCardStore, insertCar
 import InstrumentOverride from "../models/InstrumentOverride.js";
 import { protect } from "../middleware/authMiddleware.js";
 import aiGateway from "../ai-gateway/index.js";
+import AiRouting from "../models/AiRouting.js";
 
 const router = express.Router();
 
@@ -202,16 +203,34 @@ router.post("/card-insight", protect, async (req, res) => {
             return res.json({ insight: null, reason: "insufficient_data", cached: false });
         }
 
-        // @TODO (Phase 0): Use metricId to lookup custom prompt from aiCardPrompts registry
-        // For now, fallback to generic template using the human-readable metric name
-        const prompt = `Generate a 1-sentence insight about ${metric} for ${stockSymbol}. Current value: ${value}. ${sectorAvg ? `Sector Average: ${sectorAvg}. ` : ""}${historicalContext ? `Historical Trend: ${historicalContext.trend}. ` : ""} Keep it extremely concise and actionable.`;
+        const routing = await AiRouting.findOne({ isSingleton: true }).lean();
+        
+        let verbosityInstruction = "";
+        let finalMaxTokens = 80;
+        
+        if (routing && routing.cardInsight) {
+            const verbLevel = routing.cardInsight.verbosity;
+            if (verbLevel === 'short') {
+                verbosityInstruction = " Generate exactly 1 to 2 short sentences total. NO MORE.";
+                finalMaxTokens = 60;
+            } else if (verbLevel === 'detailed') {
+                verbosityInstruction = " Provide a highly detailed, comprehensive analysis spanning multiple sentences. Break down the reasoning deeply.";
+                finalMaxTokens = 300;
+            } else {
+                verbosityInstruction = " Generate EXACTLY ONE SINGLE PARAGRAPH. Keep it concise but actionable.";
+                finalMaxTokens = 120;
+            }
+        }
+
+        const prompt = `Generate an insight about ${metric} for ${stockSymbol}. Current value: ${value}. ${sectorAvg ? `Sector Average: ${sectorAvg}. ` : ""}${historicalContext ? `Historical Trend: ${historicalContext.trend}. ` : ""}${verbosityInstruction}`;
 
         const response = await aiGateway.process({
             taskType: 'per_card_insight',
             prompt,
             data: { metric, metricId, value, sectorAvg, historicalContext, stockSymbol, module },
             jsonMode: false,
-            maxTokens: 80
+            maxTokens: finalMaxTokens,
+            temperature: routing?.temperature !== undefined ? routing.temperature : 0.7
         });
 
         if (response.error) {

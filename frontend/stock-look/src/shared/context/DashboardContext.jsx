@@ -31,7 +31,14 @@ export const DashboardProvider = ({ children }) => {
     const [additionalCharts, setAdditionalCharts] = useState(() => {
         try {
             const saved = localStorage.getItem('praxis_master_charts');
-            return saved ? JSON.parse(saved) : [];
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Sanitize: Convert old raw strings into objects or filter them out
+                return Array.isArray(parsed) 
+                    ? parsed.map(c => typeof c === 'string' ? { value: c, label: c.split('|').pop() } : c).filter(c => c && c.value)
+                    : [];
+            }
+            return [];
         } catch {
             return [];
         }

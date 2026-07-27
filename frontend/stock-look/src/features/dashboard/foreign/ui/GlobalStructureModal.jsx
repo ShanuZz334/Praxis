@@ -57,7 +57,7 @@ export default function GlobalStructureModal({ open, onClose, card }) {
             />
 
             {/* Modal Layout */}
-            <div className="relative flex items-start justify-center gap-6 max-w-[1600px] w-full max-h-[95vh] pointer-events-none">
+            <div className="relative flex items-start justify-center gap-6 w-full w-full max-h-[95vh] pointer-events-none">
 
                 {/* ⬅ LEFT: Interpretation Desk */}
                 <div className="hidden lg:block w-[300px] pointer-events-auto">

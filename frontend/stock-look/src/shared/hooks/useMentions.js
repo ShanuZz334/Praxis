@@ -18,7 +18,7 @@ import { useDashboardContext } from '../context/DashboardContext';
 
 import { FO_EQUITIES, FO_INDICES } from '../utils/foInstruments';
 
-function resolveReadableSymbol(instrumentKey) {
+export function resolveReadableSymbol(instrumentKey) {
   if (!instrumentKey) return null;
   const match = FO_EQUITIES.find(e => e.value === instrumentKey) || FO_INDICES.find(i => i.value === instrumentKey);
   if (match) return match.label;
