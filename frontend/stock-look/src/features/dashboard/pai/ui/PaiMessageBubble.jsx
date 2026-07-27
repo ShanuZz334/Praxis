@@ -3,13 +3,18 @@ import { Copy, RotateCcw, ThumbsUp, ThumbsDown, Check, Cpu } from 'lucide-react'
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-const PaiMessageBubble = memo(function PaiMessageBubble({ role, content, onRegenerate, provider, model, latencyMs }) {
+const PaiMessageBubble = memo(function PaiMessageBubble({ role, content, onRegenerate, provider, model, latencyMs, timestamp }) {
     const isUser = role === 'user';
     const [copied, setCopied] = useState(false);
 
     let displayModel = model;
     if (displayModel && displayModel.includes('/')) {
         displayModel = displayModel.split('/').pop();
+    }
+    
+    let timeString = null;
+    if (timestamp) {
+        timeString = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
     const handleCopy = () => {
@@ -72,33 +77,40 @@ const PaiMessageBubble = memo(function PaiMessageBubble({ role, content, onRegen
                     </div>
 
                     {/* AI Action Toolbar (Hidden by default, shown on group hover) */}
-                    {!isUser && (
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 px-1">
-                            <button 
-                                onClick={handleCopy}
-                                className="p-1.5 text-text-tertiary hover:text-text-primary hover:bg-background-surface rounded-md transition-colors"
-                                title="Copy"
-                            >
-                                {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                            </button>
-                            {onRegenerate && (
+                    <div className={`flex items-center w-full mt-1 ${isUser ? 'justify-end' : 'justify-between'} opacity-0 group-hover:opacity-100 transition-opacity duration-200 px-1`}>
+                        {!isUser && (
+                            <div className="flex items-center gap-1">
                                 <button 
-                                    onClick={onRegenerate}
-                                    className="p-1.5 text-text-tertiary hover:text-text-primary hover:bg-background-surface rounded-md transition-colors"
-                                    title="Regenerate"
+                                    onClick={handleCopy}
+                                    className="p-1 text-text-tertiary hover:text-text-primary hover:bg-background-surface rounded-md transition-colors"
+                                    title="Copy"
                                 >
-                                    <RotateCcw size={14} />
+                                    {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
                                 </button>
-                            )}
-                            <div className="w-px h-3 bg-border-default/50 mx-1" />
-                            <button className="p-1.5 text-text-tertiary hover:text-green-500 hover:bg-green-500/10 rounded-md transition-colors" title="Good Response">
-                                <ThumbsUp size={14} />
-                            </button>
-                            <button className="p-1.5 text-text-tertiary hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors" title="Bad Response">
-                                <ThumbsDown size={14} />
-                            </button>
-                        </div>
-                    )}
+                                {onRegenerate && (
+                                    <button 
+                                        onClick={onRegenerate}
+                                        className="p-1 text-text-tertiary hover:text-text-primary hover:bg-background-surface rounded-md transition-colors"
+                                        title="Regenerate"
+                                    >
+                                        <RotateCcw size={14} />
+                                    </button>
+                                )}
+                                <div className="w-px h-3 bg-border-default/50 mx-1" />
+                                <button className="p-1 text-text-tertiary hover:text-green-500 hover:bg-green-500/10 rounded-md transition-colors" title="Good Response">
+                                    <ThumbsUp size={14} />
+                                </button>
+                                <button className="p-1 text-text-tertiary hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors" title="Bad Response">
+                                    <ThumbsDown size={14} />
+                                </button>
+                            </div>
+                        )}
+                        {timeString && (
+                            <div className="text-[10px] text-text-tertiary/60 font-medium font-mono pl-2">
+                                {timeString}
+                            </div>
+                        )}
+                    </div>
                 </div>
                 
             </div>

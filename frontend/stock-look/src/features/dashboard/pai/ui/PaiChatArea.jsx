@@ -45,10 +45,15 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
 
     const { isVoiceMode, toggleVoiceMode, isStandbyMode, toggleStandby, status: voiceStatus, synthesize, stopTts, skipTts, registerListener, unregisterListener } = useVoice();
 
+    // Ref to hold the latest sendMessage function to prevent stale closures in the voice listener
+    const sendMessageRef = useRef(null);
+
     // Register this chat area as the active voice listener when mounted
     useEffect(() => {
         const handleVoiceText = (text) => {
-            sendMessage(text);
+            if (sendMessageRef.current) {
+                sendMessageRef.current(text, true);
+            }
         };
         registerListener(handleVoiceText);
         return () => unregisterListener(handleVoiceText);
@@ -69,7 +74,8 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                             content: m.content,
                             provider: m.provider,
                             model: m.model,
-                            latencyMs: m.latencyMs
+                            latencyMs: m.latencyMs,
+                            timestamp: m.timestamp || m.createdAt || null
                         })));
                     }
                 } catch (err) {
@@ -145,7 +151,7 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
         stopTts();
     };
 
-    const sendMessage = async (textToSubmit) => {
+    const sendMessage = async (textToSubmit, fromVoice = false) => {
         if (isGenerating) { handleStop(); return; }
         if (!textToSubmit.trim() || !activeChatId) return;
 
@@ -158,6 +164,7 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
             role: 'user',
             content: textToSubmit, // show original text with @mentions to user
             cardSnapshots: cardSnapshots.length > 0 ? cardSnapshots : undefined,
+            timestamp: new Date().toISOString()
         };
         setMessages(prev => [...prev, newMsg]);
         setInput('');
@@ -195,19 +202,20 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                 explicitProvider,
                 explicitModel
             }, {
-                timeout: 25000
+                timeout: 120000
             });
 
             if (res.data?.message) {
-                setMessages(prev => [...prev, {
-                    id: Date.now() + 1,
-                    role: 'ai',
+                // Overwrite the optimistic message with the final response
+                setMessages(prev => prev.map(m => m.id === tempId ? {
+                    ...m,
                     content: res.data.message,
                     provider: res.data.provider,
                     model: res.data.model,
-                    latencyMs: res.data.latencyMs
-                }]);
-                if (isVoiceMode) {
+                    latencyMs: res.data.latencyMs,
+                    timestamp: new Date().toISOString()
+                } : m));
+                if (isVoiceMode || fromVoice) {
                     synthesize(res.data.message);
                 }
             }
@@ -216,15 +224,20 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 role: 'ai',
-                content: "Sorry, I encountered an error connecting to the AI Gateway."
+                content: "Sorry, I encountered an error connecting to the AI Gateway.",
+                timestamp: new Date().toISOString()
             }]);
-            if (isVoiceMode) {
+            if (isVoiceMode || fromVoice) {
                 synthesize("Sorry, I encountered an error.");
             }
         } finally {
             setIsGenerating(false);
         }
     };
+
+    useEffect(() => {
+        sendMessageRef.current = sendMessage;
+    });
 
     const handleSend = (e) => {
         e?.preventDefault();

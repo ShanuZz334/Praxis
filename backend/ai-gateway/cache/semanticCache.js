@@ -25,7 +25,7 @@ export const semanticCache = {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: AI_CONFIG.MODELS.OLLAMA.EMBEDDING,
+                    model: AI_CONFIG.EMBEDDING_MODEL || 'nomic-embed-text',
                     prompt: text
                 }),
                 signal: AbortSignal.timeout(10000) // 10s max for embeddings
@@ -40,7 +40,7 @@ export const semanticCache = {
     },
 
     async check(request, threshold = 0.92) {
-        if (request.taskType !== 'chart_qa' && request.taskType !== 'chat_conversation') return null;
+        if (request.taskType !== 'chart_qa') return null;
 
         const embedding = await this.getEmbedding(request.prompt);
         if (!embedding) return null;
@@ -71,7 +71,7 @@ export const semanticCache = {
     },
 
     async set(request, response) {
-        if (request.taskType !== 'chart_qa' && request.taskType !== 'chat_conversation') return;
+        if (request.taskType !== 'chart_qa') return;
 
         const embedding = await this.getEmbedding(request.prompt);
         if (!embedding) return;

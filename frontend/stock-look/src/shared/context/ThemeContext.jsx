@@ -81,6 +81,24 @@ export function ThemeProvider({ children }) {
         return false;
     });
 
+    const [paiMascotColor, setPaiMascotColor] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('pai-mascot-color');
+            if (saved) return saved;
+            return '#FF0000'; // Default orange/red
+        }
+        return '#FF0000';
+    });
+
+    const [paiAccessory, setPaiAccessory] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('pai-mascot-accessory');
+            if (saved) return saved;
+            return 'none'; // Default accessory
+        }
+        return 'none';
+    });
+
     // --- Effects: Persistence & DOM Updates ---
 
     useEffect(() => {
@@ -106,6 +124,15 @@ export function ThemeProvider({ children }) {
     useEffect(() => {
         localStorage.setItem('stocky-trading-mode-vfx', tradingModeVfx);
     }, [tradingModeVfx]);
+
+    useEffect(() => {
+        localStorage.setItem('pai-mascot-color', paiMascotColor);
+        window.document.documentElement.style.setProperty('--pai-mascot-color', paiMascotColor);
+    }, [paiMascotColor]);
+
+    useEffect(() => {
+        localStorage.setItem('pai-mascot-accessory', paiAccessory);
+    }, [paiAccessory]);
 
     // NEW: Sync Trading Mode Visuals
     useEffect(() => {
@@ -150,8 +177,12 @@ export function ThemeProvider({ children }) {
         tradingMode,
         setTradingMode,
         tradingModeVfx,
-        setTradingModeVfx
-    }), [theme, vfxPreset, gradientBorder, tradingMode, tradingModeVfx]);
+        setTradingModeVfx,
+        paiMascotColor,
+        setPaiMascotColor,
+        paiAccessory,
+        setPaiAccessory
+    }), [theme, vfxPreset, gradientBorder, tradingMode, tradingModeVfx, paiMascotColor, paiAccessory]);
 
     return (
         <ThemeContext.Provider value={contextValue}>

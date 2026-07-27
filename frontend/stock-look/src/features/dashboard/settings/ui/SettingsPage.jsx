@@ -62,6 +62,20 @@ import { startRegistration } from "@simplewebauthn/browser";
 import Loader from "../../../../shared/components/ui/Loader";
 
 import { useTheme } from "../../../../shared/context/ThemeContext";
+import GhostLogo from "../../../../shared/components/ui/GhostLogo";
+
+const PAI_ACCESSORIES = [
+    { id: 'none', label: 'None' },
+    { id: 'helmet', label: 'Helmet' },
+    { id: 'chain', label: 'Ghost Chain' },
+    { id: 'tie', label: 'Business Tie' },
+    { id: 'hair', label: 'Punk Hair' },
+    { id: 'crown', label: 'Royal Crown' },
+    { id: 'glasses', label: 'Sunglasses' },
+    { id: 'bowtie', label: 'Bowtie' },
+    { id: 'headband', label: 'Ninja Headband' },
+    { id: 'headphones', label: 'DJ Headphones' }
+];
 
 const SettingsPage = () => {
     // Context
@@ -77,7 +91,11 @@ const SettingsPage = () => {
         tradingMode,
         setTradingMode,
         tradingModeVfx,
-        setTradingModeVfx
+        setTradingModeVfx,
+        paiMascotColor,
+        setPaiMascotColor,
+        paiAccessory,
+        setPaiAccessory
     } = useTheme();
 
     // UI State
@@ -1053,6 +1071,64 @@ const SettingsPage = () => {
                                             >
                                                 <FiMoon /> Dark
                                             </button>
+                                        </div>
+                                    </div>
+
+                                    {/* PAI Mascot Color Picker */}
+                                    <div className="space-y-3 mt-3">
+                                        <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div>
+                                                <p className="font-medium text-text-primary">Mascot Color</p>
+                                                <p className="text-xs text-text-secondary mt-0.5">Customize the color of your floating PAI ghost</p>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-border-subtle shadow-sm flex-shrink-0 group">
+                                                    <div 
+                                                        className="absolute inset-0 pointer-events-none transition-colors" 
+                                                        style={{ backgroundColor: paiMascotColor || '#FF0000' }} 
+                                                    />
+                                                    <input 
+                                                        type="color" 
+                                                        value={paiMascotColor || '#FF0000'}
+                                                        onChange={(e) => setPaiMascotColor(e.target.value)}
+                                                        className="absolute inset-[-10px] w-[60px] h-[60px] opacity-0 cursor-pointer"
+                                                        title="Choose Mascot Color"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* PAI Mascot Accessory Picker */}
+                                    <div className="space-y-3 mt-3">
+                                        <div className="flex flex-col gap-3 rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div>
+                                                <p className="font-medium text-text-primary">Mascot Accessory</p>
+                                                <p className="text-xs text-text-secondary mt-0.5">Choose a cute accessory for your PAI ghost (Scroll for more)</p>
+                                            </div>
+                                            <div className="flex items-center gap-3 overflow-x-auto pb-2 snap-x hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                                {PAI_ACCESSORIES.map(acc => (
+                                                    <div 
+                                                        key={acc.id}
+                                                        onClick={() => setPaiAccessory(acc.id)}
+                                                        className={`relative flex flex-col items-center justify-center flex-shrink-0 w-28 h-32 rounded-xl cursor-pointer border-2 transition-all snap-start ${
+                                                            paiAccessory === acc.id 
+                                                                ? 'border-blue-500 bg-blue-500/10' 
+                                                                : 'border-border-subtle bg-background-surface hover:border-border-default hover:bg-background-elevated'
+                                                        }`}
+                                                    >
+                                                        <div className="h-16 flex items-center justify-center scale-[0.35] pointer-events-none">
+                                                            <GhostLogo status="idle" accessory={acc.id} />
+                                                        </div>
+                                                        <span className="text-xs font-medium text-text-primary mt-4">{acc.label}</span>
+                                                        {paiAccessory === acc.id && (
+                                                            <div className="absolute top-2 right-2 text-blue-500">
+                                                                <FiCheck size={14} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
 

@@ -8,7 +8,7 @@ import GhostLogo from "@/shared/components/ui/GhostLogo";
 import PaiLoader from './PaiLoader';
 import PaiAudioWaves from './PaiAudioWaves';
 import Loader from '@/shared/components/ui/Loader';
-import { X, Send, Sparkles, Globe, AtSign, Brain, Mic, MicOff, Loader2, Volume2 } from 'lucide-react';
+import { X, Send, Sparkles, Globe, AtSign, Brain, Mic, MicOff, Loader2, Volume2, Square } from 'lucide-react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { useMentions, inferPageFromChatId, resolveReadableSymbol } from '@/shared/hooks/useMentions';
 import MentionSuggestionDropdown from '@/shared/components/ui/MentionSuggestionDropdown';
@@ -17,6 +17,20 @@ import { useDataRegistry } from '@/shared/context/DataRegistryContext';
 import { useDashboardContext } from '@/shared/context/DashboardContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+const getPowerScore = (modelId) => {
+    const id = modelId.toLowerCase();
+    if (id.includes('1b') || id.includes('3b') || id.includes('mini')) return 1;
+    if (id.includes('7b') || id.includes('8b') || id.includes('flash-lite')) return 2;
+    if (id.includes('11b') || id.includes('14b') || id.includes('32b')) return 3;
+    if (id.includes('70b') || id.includes('72b')) return 4;
+    if (id.includes('flash')) return 5;
+    if (id.includes('90b') || id.includes('104b')) return 6;
+    if (id.includes('haiku')) return 7;
+    if (id.includes('405b') || id.includes('sonnet')) return 8;
+    if (id.includes('gpt-4o') || id.includes('claude-3-opus')) return 9;
+    return 0;
+};
 
 export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage = false }) {
     const { 
@@ -71,10 +85,10 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     const [isFetchingHistory, setIsFetchingHistory] = useState(true);
     const [isPanelExpanded, setIsPanelExpanded] = useState(false);
 
-    const { isVoiceMode, toggleVoiceMode, status: voiceStatus, synthesize, skipTts, registerListener, unregisterListener } = useVoice();
+    const { isVoiceMode, toggleVoiceMode, status: voiceStatus, synthesize, skipTts, registerListener, unregisterListener, isHearingSpeech } = useVoice();
 
-    // Ref to hold the freshest handleSendDirect without causing dependency cycles
     const handleSendDirectRef = useRef(null);
+    const abortControllerRef = useRef(null);
     
     // Register listener for voice input globally for the widget
     useEffect(() => {
@@ -116,9 +130,24 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                 setIsDocked(true);
                 return; // Stop propagation
             }
+            
+            // Voice Command Interception for AI Level selection
+            const levelMatch = cleanText.match(/(?:choose|select|set|use)\s*(?:level|lvl)\s*(\d+)/i);
+            if (levelMatch && availableModelsRef.current) {
+                const targetLevel = parseInt(levelMatch[1]);
+                const modelToSelect = availableModelsRef.current.find(m => m.level === targetLevel);
+                if (modelToSelect) {
+                    setTempModel(modelToSelect.modelId);
+                    synthesize(`Upgrading cognitive engine to Level ${targetLevel}.`);
+                    return; // Stop propagation, do not send chat
+                } else {
+                    synthesize(`I do not have a Level ${targetLevel} model available.`);
+                    return;
+                }
+            }
 
             // Normal Message Handling (processes headlessly if panel is closed)
-            if (handleSendDirectRef.current) handleSendDirectRef.current(text);
+            if (handleSendDirectRef.current) handleSendDirectRef.current(text, true);
         };
         
         registerListener(handleVoiceText);
@@ -135,7 +164,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
             // We should also automatically send the message if there's text
             if (e.detail && e.detail.trim().length > 0) {
                 setTimeout(() => {
-                    if (handleSendDirectRef.current) handleSendDirectRef.current(e.detail);
+                    if (handleSendDirectRef.current) handleSendDirectRef.current(e.detail, true);
                 }, 1000); // Wait for open animation
             }
         };
@@ -160,6 +189,12 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     const [tempModel, setTempModel] = useState(null);
     const [showModelSelector, setShowModelSelector] = useState(false);
     const [availableModels, setAvailableModels] = useState([]);
+    
+    // Stable ref for voice command to access available models
+    const availableModelsRef = useRef([]);
+    useEffect(() => {
+        availableModelsRef.current = availableModels;
+    }, [availableModels]);
 
     useEffect(() => {
         let isMounted = true;
@@ -184,16 +219,36 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                             if (modelStr && !cloudModelsSet.has(modelStr)) {
                                 cloudModelsSet.add(modelStr);
                                 cloudModels.push({
-                                    modelId: modelStr,
+                                    modelId: `${p.providerId}|${modelStr}`,
+                                    rawModelStr: modelStr,
                                     displayName: `${p.displayName}: ${modelStr}`
                                 });
                             }
                         });
                     }
                 });
+                
+                // Format local models
+                const formattedLocalModels = localModels
+                    .filter(m => !m.modelId.toLowerCase().includes('embed')) // Skip embedding models
+                    .map(m => ({
+                        modelId: `ollama|${m.modelId}`,
+                        rawModelStr: m.modelId,
+                        displayName: `Local: ${m.displayName}`
+                    }));
+                
+                // Combine ALL models
+                const allModels = [...cloudModels, ...formattedLocalModels];
+                
+                // Sort by Power Score and assign levels
+                allModels.sort((a, b) => getPowerScore(a.rawModelStr) - getPowerScore(b.rawModelStr));
+                allModels.forEach((m, idx) => {
+                    m.level = idx + 1;
+                    m.displayName = `Lvl ${m.level} - ${m.displayName}`;
+                });
 
                 if (isMounted) {
-                    setAvailableModels([...cloudModels, ...localModels]);
+                    setAvailableModels(allModels);
                 }
             } catch (e) {
                 console.error(e);
@@ -233,7 +288,11 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                     const fetchedHistory = res.data.entries.map((m, i) => ({
                         id: i,
                         role: m.role === 'assistant' ? 'ai' : m.role,
-                        content: m.content
+                        content: m.content,
+                        provider: m.provider,
+                        model: m.model,
+                        latencyMs: m.latencyMs,
+                        timestamp: m.timestamp || m.createdAt || null
                     }));
                     setMessages(prev => {
                         // Preserve any messages the user sent while we were fetching (e.g. via voice)
@@ -311,7 +370,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
         handleSendDirect(message);
     };
 
-    const handleSendDirect = async (textToSubmit) => {
+    const handleSendDirect = async (textToSubmit, fromVoice = false) => {
         if (!textToSubmit.trim() || isGenerating) return;
 
         const reqTargetId = activeTargetId;
@@ -325,6 +384,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
             role: 'user',
             content: textToSubmit, // show original @mention text to user
             cardSnapshots: cardSnapshots.length > 0 ? cardSnapshots : undefined,
+            timestamp: new Date().toISOString()
         };
         setMessages(prev => [...prev, newMsg]);
         setMessage('');
@@ -338,18 +398,36 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
             selectedInstrumentPrice: livePrices?.[selectedInstrument]?.ltp || null,
             nifty50: livePrices?.['NSE_INDEX|Nifty 50']?.ltp || null,
             bankNifty: livePrices?.['NSE_INDEX|Nifty Bank']?.ltp || null,
-            pageSnapshot: mentionScopePageId ? getPageSnapshot(mentionScopePageId) : getMasterSnapshot()
+            pageSnapshot: mentionScopePageId ? getPageSnapshot(mentionScopePageId) : getMasterSnapshot(),
+            maxAiLevel: availableModelsRef.current.filter(m => m.level).length || 1
         };
 
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+
         try {
+            // Extract explicit provider/model if possible
+            let explicitProvider = null;
+            let explicitModel = null;
+            const modelToUse = tempModel;
+            if (modelToUse && modelToUse.includes('|')) {
+                const parts = modelToUse.split('|');
+                explicitProvider = parts[0];
+                explicitModel = parts[1];
+            }
+
             const res = await axiosInstance.post(`/api/v1/ai-prompts/chat/${reqTargetId}`, {
                 message: cleanText,
                 scope: 'page',
                 cardSnapshots: cardSnapshots.length > 0 ? cardSnapshots : undefined,
                 contextData: autoContextData,
-                explicitModel: tempModel,
+                explicitProvider,
+                explicitModel,
             }, {
-                timeout: 25000 // 25 second timeout to prevent infinite UI hanging
+                timeout: 120000, // 120 second timeout for complex AI responses
+                signal: abortControllerRef.current.signal
             });
             
             if (currentTargetIdRef.current !== reqTargetId) return;
@@ -358,19 +436,28 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                 setMessages(prev => [...prev, {
                     id: Date.now() + 1,
                     role: 'ai',
-                    content: res.data.message
+                    content: res.data.message,
+                    provider: res.data.provider,
+                    model: res.data.model,
+                    latencyMs: res.data.latencyMs,
+                    timestamp: new Date().toISOString()
                 }]);
-                if (isVoiceMode) {
+                if (isVoiceMode || fromVoice) {
                     synthesize(res.data.message);
                 }
             }
         } catch (err) {
+            if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+                console.log('AI generation stopped by user');
+                return;
+            }
             if (currentTargetIdRef.current !== reqTargetId) return;
             console.error("Failed to send message:", err);
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 role: 'ai',
-                content: "Sorry, I encountered an error connecting to the AI Gateway."
+                content: "Sorry, I encountered an error connecting to the cognitive engine.",
+                timestamp: new Date().toISOString()
             }]);
             if (isVoiceMode) {
                 synthesize("Sorry, I encountered an error.");
@@ -627,7 +714,9 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                 <PaiAudioWaves 
                                     isActive={isActiveVoice} 
                                     isListening={isListening} 
-                                    isSpeaking={voiceStatus === 'speaking' || voiceStatus === 'processing' || isGenerating} 
+                                    isHearingSpeech={isHearingSpeech}
+                                    isSpeaking={voiceStatus === 'speaking'} 
+                                    isProcessing={isGenerating || voiceStatus === 'processing'}
                                 />
                             </motion.div>
                         )}
@@ -637,7 +726,14 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                     <div className="absolute inset-[3px] rounded-full bg-background-surface z-10" />
 
                     <div className="w-[85%] h-[85%] flex items-center justify-center pointer-events-none relative z-20">
-                        <GhostLogo style={{ transform: 'scale(0.29)' }} />
+                        <GhostLogo 
+                            status={
+                                voiceStatus === 'listening' 
+                                    ? 'listening' 
+                                    : (voiceStatus === 'speaking' ? 'speaking' : (isGenerating || voiceStatus === 'processing' ? 'processing' : 'idle'))
+                            }
+                            style={{ transform: 'scale(0.29)' }} 
+                        />
                     </div>
 
                 </motion.div>
@@ -670,10 +766,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                     className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors shrink-0 group relative ${showModelSelector ? 'bg-blue-500/10' : 'hover:bg-black/5 dark:hover:bg-white/10'}`}
                                     title="Temporary Model Override"
                                 >
-                                    <Brain className={`w-4 h-4 transition-colors ${showModelSelector || tempModel ? 'text-blue-500' : 'text-text-tertiary group-hover:text-blue-500'}`} />
-                                    {tempModel && !showModelSelector && (
-                                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
-                                    )}
+                                    <Brain className={`w-4 h-4 transition-colors ${tempModel ? 'text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]' : (showModelSelector ? 'text-blue-500' : 'text-text-tertiary group-hover:text-blue-500')}`} />
                                 </button>
                                 <div 
                                     className="flex justify-center items-center cursor-pointer relative group"
@@ -848,6 +941,14 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                         <button 
                                             type="button" 
                                             onClick={(e) => {
+                                                if (isGenerating) {
+                                                    if (abortControllerRef.current) {
+                                                        abortControllerRef.current.abort();
+                                                        abortControllerRef.current = null;
+                                                    }
+                                                    setIsGenerating(false);
+                                                    return;
+                                                }
                                                 if (isVoiceMode && voiceStatus === 'speaking') {
                                                     skipTts();
                                                 } else {
@@ -855,15 +956,18 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                                 }
                                             }}
                                             className={`p-1.5 rounded-lg transition-colors relative overflow-hidden ${
+                                                isGenerating ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20' :
                                                 isVoiceMode 
                                                     ? voiceStatus === 'speaking'
                                                         ? 'bg-orange-500 hover:bg-orange-600 text-white'
                                                         : 'bg-blue-500/20 text-blue-500 hover:bg-blue-500/30' 
                                                     : 'text-text-tertiary hover:bg-background-elevated hover:text-text-primary'
                                             }`}
-                                            title={isVoiceMode && voiceStatus === 'speaking' ? 'Click to skip AI response' : isVoiceMode ? 'Disable Voice Mode' : 'Enable Voice Mode'}
+                                            title={isGenerating ? 'Stop AI Generation' : isVoiceMode && voiceStatus === 'speaking' ? 'Click to skip AI response' : isVoiceMode ? 'Disable Voice Mode' : 'Enable Voice Mode'}
                                         >
-                                            {isVoiceMode ? (
+                                            {isGenerating ? (
+                                                <Square className="w-3.5 h-3.5 fill-current" />
+                                            ) : isVoiceMode ? (
                                                 voiceStatus === 'listening' ? <Mic className="w-3.5 h-3.5 animate-pulse" /> :
                                                 voiceStatus === 'processing' ? (
                                                     <>

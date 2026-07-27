@@ -19,10 +19,23 @@ export const useVoiceConversation = (initialCallbacks = {}) => {
   const isInterruptedRef = useRef(false);
   const finalTranscriptBuffer = useRef("");
   const speechTimeoutRef = useRef(null);
+  
+  const [isHearingSpeech, setIsHearingSpeech] = useState(false);
+  const hearingTimeoutRef = useRef(null);
 
   const updateStatus = useCallback((newStatus) => {
     setStatus(newStatus);
     statusRef.current = newStatus;
+  }, []);
+
+  // Preload voices to bypass the Chrome asynchronous getVoices() bug
+  useEffect(() => {
+    if (window.speechSynthesis) {
+        window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = () => {
+            window.speechSynthesis.getVoices();
+        };
+    }
   }, []);
 
   const setCallbacks = useCallback((callbacks) => {
@@ -96,52 +109,73 @@ export const useVoiceConversation = (initialCallbacks = {}) => {
         window.speechSynthesis.cancel(); // stop any ongoing speech
     }
 
-    const sentences = text.match(/[^.!?]+[.!?]*/g) || [text];
+    const utterance = new SpeechSynthesisUtterance(text);
     
-    const speakNext = (index) => {
-        if (index >= sentences.length || isInterruptedRef.current) {
-            if (!isInterruptedRef.current) {
-                updateStatus('idle');
-                if (callbacksRef.current.onTtsEnd) callbacksRef.current.onTtsEnd();
-                
-                // Resume microphone after speaking if we are still in voice mode or standby
-                if (voiceModeRef.current || standbyRef.current) {
-                    setTimeout(() => {
-                        // Ignore lint warnings about missing dependency; using a ref or stale closure is safer here than a circular dependency
-                        startListening();
-                    }, 800); // 800ms delay to prevent audio hardware buffer echoing
-                }
-            }
-            window.utteranceRef = null;
-            return;
+    // Select a premium, smooth neural voice profile
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+        const premiumVoice = voices.find(v => v.name.includes('Google UK English Female')) ||
+                             voices.find(v => v.name.includes('Google US English')) ||
+                             voices.find(v => v.name.includes('Samantha')) ||
+                             voices.find(v => v.name.includes('Microsoft Zira'));
+                             
+        if (premiumVoice) {
+            utterance.voice = premiumVoice;
+        } else {
+            // Fallback to any english female voice
+            const fallbackVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female'));
+            if (fallbackVoice) utterance.voice = fallbackVoice;
         }
+    }
 
-        const chunk = sentences[index].trim();
-        if (!chunk) {
-            speakNext(index + 1);
-            return;
+    // Normal, smooth natural human cadence
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    window.utteranceRef = utterance; // Save to global to prevent GC bug
+
+    // In Chrome, long utterances can still pause if we don't keep the engine alive.
+    // A harmless resume() every 10 seconds fixes the long-text GC bug without chunking.
+    const keepAliveTimer = setInterval(() => {
+        if (!window.speechSynthesis.speaking) {
+            clearInterval(keepAliveTimer);
+        } else {
+            window.speechSynthesis.resume();
         }
+    }, 10000);
 
-        const utterance = new SpeechSynthesisUtterance(chunk);
-        window.utteranceRef = utterance; // Save to global to prevent GC bug
-
-        if (index === 0) {
-            utterance.onstart = () => {
-                if (!isInterruptedRef.current) {
-                    if (callbacksRef.current.onTtsStart) callbacksRef.current.onTtsStart();
-                }
-            };
+    utterance.onstart = () => {
+        if (!isInterruptedRef.current) {
+            if (callbacksRef.current.onTtsStart) callbacksRef.current.onTtsStart();
         }
-
-        utterance.onend = () => {
-            speakNext(index + 1);
-        };
-
-        // Must be called synchronously to avoid losing user gesture token in Chrome/Safari
-        window.speechSynthesis.speak(utterance);
     };
 
-    speakNext(0);
+    utterance.onend = () => {
+        clearInterval(keepAliveTimer);
+        if (!isInterruptedRef.current) {
+            updateStatus('idle');
+            if (callbacksRef.current.onTtsEnd) callbacksRef.current.onTtsEnd();
+            
+            // Resume microphone after speaking if we are still in voice mode or standby
+            if (voiceModeRef.current || standbyRef.current) {
+                setTimeout(() => {
+                    // Ignore lint warnings about missing dependency; using a ref or stale closure is safer here than a circular dependency
+                    startListening();
+                }, 800); // 800ms delay to prevent audio hardware buffer echoing
+            }
+        }
+        window.utteranceRef = null;
+    };
+
+    utterance.onerror = (e) => {
+        clearInterval(keepAliveTimer);
+        // Ignore expected interruption errors when skipping TTS or starting new utterances
+        if (e.error === 'interrupted' || e.error === 'canceled') return; 
+        console.warn("TTS Error:", e);
+    };
+
+    // Must be called synchronously to avoid losing user gesture token in Chrome/Safari
+    window.speechSynthesis.speak(utterance);
   }, [updateStatus]);
 
   const toggleStandby = useCallback((val) => {
@@ -209,7 +243,7 @@ export const useVoiceConversation = (initialCallbacks = {}) => {
       const recognition = new SpeechRecognition();
       recognition.continuous = true; 
       recognition.interimResults = true; // Use interim results for instant wake word detection
-      recognition.lang = 'en-IN'; // Changed to Indian English for better dialect recognition
+      recognition.lang = 'en-US'; // Use en-US for better global tech/finance terminology (e.g. PE ratio instead of Pee ratio) and less regional overfitting
 
       recognition.onstart = () => {
         updateStatus('listening');
@@ -225,6 +259,14 @@ export const useVoiceConversation = (initialCallbacks = {}) => {
         }
         const text = fullTranscript.trim();
         const isFinal = event.results[event.results.length - 1].isFinal;
+        
+        if (text.length > 0) {
+            setIsHearingSpeech(true);
+            if (hearingTimeoutRef.current) clearTimeout(hearingTimeoutRef.current);
+            hearingTimeoutRef.current = setTimeout(() => {
+                setIsHearingSpeech(false);
+            }, 1000);
+        }
         
         if (standbyRef.current) {
           const cleanText = text.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
@@ -300,7 +342,7 @@ export const useVoiceConversation = (initialCallbacks = {}) => {
           }
           
           if (cleanedText) {
-            updateStatus(isFinal ? 'idle' : 'processing');
+            updateStatus('listening');
             
             // Overwrite buffer with the FULL concatenated string of the entire spoken sentence
             finalTranscriptBuffer.current = cleanedText;
@@ -391,6 +433,7 @@ export const useVoiceConversation = (initialCallbacks = {}) => {
     synthesize,
     stopTts,
     skipTts,
-    setCallbacks
+    setCallbacks,
+    isHearingSpeech
   };
 };

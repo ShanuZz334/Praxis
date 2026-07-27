@@ -505,14 +505,15 @@ router.post('/generate/:targetId', async (req, res) => {
                     $push: {
                         entries: {
                             $each: [
-                                { role: 'user', content: userMessage, cardValue: value },
+                                { role: 'user', content: userMessage, cardValue: value, timestamp: new Date() },
                                 {
                                     role: 'assistant',
                                     content: insight,
                                     model: response.model,
                                     provider: response.provider,
                                     latencyMs: response.latencyMs,
-                                    cardValue: value
+                                    cardValue: value,
+                                    timestamp: new Date()
                                 }
                             ],
                             $slice: -100
@@ -547,7 +548,15 @@ router.post('/generate/:targetId', async (req, res) => {
 router.post('/chat/:targetId', async (req, res) => {
     try {
         const { targetId } = req.params;
-        const { message, scope = 'card', contextData = {}, cardSnapshots = [], explicitProvider, explicitModel } = req.body;
+        let { message, scope = 'card', contextData, cardSnapshots = [], explicitProvider, explicitModel } = req.body;
+        
+        // DEBUG LOGGING START
+        import('fs').then(fs => {
+            fs.appendFileSync('chat_debug.log', JSON.stringify({ time: new Date().toISOString(), targetId, body: req.body }) + '\\n');
+        }).catch(e => {});
+        // DEBUG LOGGING END
+        
+        contextData = contextData || {};
         const userId = req.user._id;
 
         if (!message) return res.status(400).json({ error: 'Message is required' });
@@ -609,6 +618,11 @@ router.post('/chat/:targetId', async (req, res) => {
         // Golden Rule: Personalization
         systemInstruction += `\n\nGOLDEN RULE: The user you are talking to is named Shanif, and his nickname is Shanu. Acknowledge this identity and refer to him by his name or nickname when appropriate.`;
 
+        // Engine Power Levels
+        if (contextData?.maxAiLevel) {
+            systemInstruction += `\n\nINTELLIGENCE LEVEL: You are part of a multi-model cognitive engine. The models are ranked by power from Level 1 up to Level ${contextData.maxAiLevel} (Max Level). If the user asks what the max level is, tell them it is Level ${contextData.maxAiLevel}. The user can change levels by saying 'choose level X for this conversation'.`;
+        }
+
         // 2. Fetch thread history
         const thread = await AiChatThread.findOne({ targetId, scope, userId }).lean();
         // Take last 6 messages to strictly conserve context window size limits
@@ -642,14 +656,15 @@ router.post('/chat/:targetId', async (req, res) => {
                     $push: {
                         entries: {
                             $each: [
-                                { role: 'user', content: message, cardValue: contextData?.score },
+                                { role: 'user', content: message, cardValue: contextData?.score, timestamp: new Date() },
                                 {
                                     role: 'assistant',
                                     content: insight,
                                     model: response.model,
                                     provider: response.provider,
                                     latencyMs: response.latencyMs,
-                                    cardValue: contextData?.score
+                                    cardValue: contextData?.score,
+                                    timestamp: new Date()
                                 }
                             ],
                             $slice: -100
@@ -672,6 +687,7 @@ router.post('/chat/:targetId', async (req, res) => {
 
     } catch (err) {
         console.error('POST /ai-prompts/chat/:targetId error:', err.message);
+        import('fs').then(fs => fs.appendFileSync('chat_debug.log', 'ERROR: ' + err.stack + '\\n')).catch(e=>{});
         res.status(500).json({ error: 'Internal server error' });
     }
 });

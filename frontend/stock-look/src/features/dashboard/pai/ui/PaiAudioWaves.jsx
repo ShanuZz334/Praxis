@@ -1,6 +1,9 @@
 import React, { useEffect, useRef } from 'react';
+import { useTheme } from '../../../../shared/context/ThemeContext';
+import { motion } from 'framer-motion';
 
-export default function PaiAudioWaves({ isListening, isSpeaking, isActive }) {
+export default function PaiAudioWaves({ isListening, isSpeaking, isProcessing, isActive, isHearingSpeech }) {
+    const { theme, paiMascotColor } = useTheme();
     const canvasRef = useRef(null);
     
     // Web Audio API refs for highly precise real microphone data
@@ -41,14 +44,20 @@ export default function PaiAudioWaves({ isListening, isSpeaking, isActive }) {
                 mediaStreamRef.current = null;
             }
             if (audioCtxRef.current) {
-                audioCtxRef.current.close();
+                if (audioCtxRef.current.state !== 'closed') {
+                    audioCtxRef.current.close().catch(e => console.warn("AudioCtx close error:", e));
+                }
                 audioCtxRef.current = null;
             }
         }
         
         return () => {
-            if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach(track => track.stop());
-            if (audioCtxRef.current) audioCtxRef.current.close();
+            if (mediaStreamRef.current) {
+                mediaStreamRef.current.getTracks().forEach(track => track.stop());
+            }
+            if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+                audioCtxRef.current.close().catch(e => console.warn("AudioCtx close error:", e));
+            }
         };
     }, [isListening]);
 
@@ -80,16 +89,12 @@ export default function PaiAudioWaves({ isListening, isSpeaking, isActive }) {
             
             const isTalking = isListening || isSpeaking;
 
-            ctx.globalCompositeOperation = 'screen';
+            // Use standard rendering for a flat, solid 8-bit aesthetic
+            ctx.globalCompositeOperation = 'source-over';
             
-            ctx.beginPath();
-            ctx.lineWidth = 2.5; // Slightly thinner, elegant line
-            // Listening = Purple, Speaking = Blue
-            const color = isListening ? '#A855F7' : (isSpeaking ? '#3B82F6' : '#60A5FA');
-            ctx.strokeStyle = color;
-            ctx.shadowColor = color;
-            ctx.shadowBlur = isTalking ? 8 : 2;
 
+
+            let currentMicVol = 0;
             // 1. Calculate the target amplitude
             if (isListening && analyserRef.current && dataArrayRef.current) {
                 // Get volume (frequency data) rather than raw time-domain which vibrates too much
@@ -99,6 +104,7 @@ export default function PaiAudioWaves({ isListening, isSpeaking, isActive }) {
                     sum += dataArrayRef.current[i];
                 }
                 const micVolume = (sum / dataArrayRef.current.length) / 255.0; // 0.0 to 1.0
+                currentMicVol = micVolume;
                 
                 if (micVolume > 0.02) {
                     targetAmp = micVolume * (height * 0.8); // Scale to canvas height
@@ -122,36 +128,70 @@ export default function PaiAudioWaves({ isListening, isSpeaking, isActive }) {
                 currentAmp += (targetAmp - currentAmp) * 0.15;
             }
 
-            // 3. Draw the smooth mathematical wave
-            const numPoints = 60;
-            const sliceWidth = width / numPoints;
-            let x = 0;
+            // 3. Draw the pixelated 8-bit wave
             
+            // Determine colors based on actual volume (currentAmp) instead of just state
+            let color = 'transparent';
+            const hearingColor = paiMascotColor || '#FF0000';
+            
+            if (currentAmp > 0.02) {
+                // Hybrid Noise Gate: Turn red if AI recognizes words, OR if the raw audio volume spikes past typical background noise (> 0.08)
+                if (isListening && (isHearingSpeech || currentMicVol > 0.08)) {
+                    color = hearingColor;
+                } else if (isSpeaking) {
+                    color = theme === 'dark' ? '#3B82F6' : '#2563EB'; // Blue
+                }
+            } else if (isSpeaking) {
+                // When speaking, we might have low amplitude moments between words, keep it blue
+                color = theme === 'dark' ? '#3B82F6' : '#2563EB';
+            }
+
+            if (color !== 'transparent') {
+                ctx.strokeStyle = color;
+                ctx.shadowBlur = 0;
+            }
+
+            const numPoints = 40; // Fewer points for chunkier blocks
+            const sliceWidth = width / numPoints;
+            const pixelSize = 4; // Size of the 8-bit pixels
+            
+            ctx.beginPath();
+            ctx.lineWidth = pixelSize;
+            
+            // Turn off anti-aliasing for a sharp retro look
+            ctx.imageSmoothingEnabled = false;
+
+            let prevY = height / 2;
+
             for (let i = 0; i <= numPoints; i++) {
-                let y = height / 2; // Flat center line by default
+                let y = height / 2;
                 
                 if (currentAmp > 0.1) {
-                    // Generate an organic, fluid waveform
-                    // Combine two sine waves for a natural look
-                    const wave = (Math.sin(time + i * 0.2) * 0.6) + (Math.cos(time * 1.5 - i * 0.3) * 0.4);
-                    
-                    // Multiply by a bell curve so the edges taper off to zero smoothly
+                    const wave = (Math.sin(time + i * 0.25) * 0.6) + (Math.cos(time * 1.5 - i * 0.3) * 0.4);
                     const normalizedX = (i / numPoints) * 2 - 1; // -1 to 1
                     const taper = Math.max(0, 1 - (normalizedX * normalizedX)); 
                     
                     y += wave * currentAmp * taper;
                 }
                 
-                // Use quadratic curves for an absolutely buttery smooth line
+                // Snap mathematically to a coarse pixel grid
+                let px = Math.floor((i * sliceWidth) / pixelSize) * pixelSize;
+                let py = Math.floor(y / pixelSize) * pixelSize;
+                
                 if (i === 0) {
-                    ctx.moveTo(x, y);
+                    ctx.moveTo(px, py);
                 } else {
-                    ctx.lineTo(x, y);
+                    // Draw step-line (horizontal then vertical) for that jagged retro look!
+                    ctx.lineTo(px, prevY);
+                    ctx.lineTo(px, py);
                 }
-                x += sliceWidth;
+                
+                prevY = py;
             }
             
-            ctx.stroke();
+            if (color !== 'transparent') {
+                ctx.stroke();
+            }
 
             animationFrameId = requestAnimationFrame(render);
         };
@@ -161,6 +201,28 @@ export default function PaiAudioWaves({ isListening, isSpeaking, isActive }) {
     }, [isActive, isListening, isSpeaking]);
 
     if (!isActive) return null;
+
+    if (isProcessing) {
+        return (
+            <motion.svg 
+                className="absolute z-10 w-[135%] h-[135%] -left-[17.5%] -top-[17.5%] pointer-events-none" 
+                viewBox="0 0 48 48"
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+            >
+                <circle 
+                    cx="24" 
+                    cy="24" 
+                    r="22" 
+                    fill="none" 
+                    stroke={paiMascotColor || '#FF0000'} 
+                    strokeWidth="2.5" 
+                    strokeDasharray="40 100"
+                    strokeLinecap="round"
+                />
+            </motion.svg>
+        );
+    }
 
     return (
         <canvas 

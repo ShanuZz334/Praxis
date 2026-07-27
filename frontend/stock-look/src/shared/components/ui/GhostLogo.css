@@ -60,9 +60,20 @@
 #st2,
 #st3,
 #st4,
-#st5 {
-  background-color: red;
+#st5,
+#h1, #h2, #h3, #h4, #h5, #h6, #h7, #h8,
+#hand-l, #hand-r {
+  background-color: var(--pai-mascot-color, #FF0000);
 }
+
+#h1 { grid-area: a2; }
+#h2 { grid-area: a3; }
+#h3 { grid-area: b2; }
+#h4 { grid-area: b3; }
+#h5 { grid-area: a12; }
+#h6 { grid-area: a13; }
+#h7 { grid-area: b12; }
+#h8 { grid-area: b13; }
 
 #top0 {
   grid-area: top0;
@@ -191,7 +202,7 @@
 @keyframes flicker0 {
   0%,
   49% {
-    background-color: red;
+    background-color: var(--pai-mascot-color, #FF0000);
   }
   50%,
   100% {
@@ -206,7 +217,7 @@
   }
   50%,
   100% {
-    background-color: red;
+    background-color: var(--pai-mascot-color, #FF0000);
   }
 }
 
@@ -302,6 +313,80 @@
   }
 }
 
+#mouth {
+  position: absolute;
+  top: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: black;
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+}
+
+#mouth.idle {
+  width: 20px;
+  height: 6px;
+  animation: idleMouth 5s infinite ease-in-out;
+}
+
+#mouth.listening {
+  width: 24px;
+  height: 8px;
+  border-radius: 10px;
+  background-color: black;
+  animation: pulseMouth 1s infinite alternate;
+}
+
+#mouth.processing {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: black;
+  animation: thinkMouth 2s infinite linear;
+}
+
+#mouth.speaking {
+  width: 20px;
+  height: 12px;
+  border-radius: 10px;
+  background-color: black;
+  animation: speakMouth 0.2s infinite alternate;
+}
+
+@keyframes idleMouth {
+  0%, 85%, 100% { 
+    width: 20px; 
+    height: 6px; 
+    border-radius: 10px; 
+    transform: translateX(-50%) translateY(0);
+  }
+  92% { 
+    width: 10px; 
+    height: 10px; 
+    border-radius: 50%; 
+    transform: translateX(-50%) translateY(2px);
+  }
+}
+
+@keyframes pulseMouth {
+  0% { transform: translateX(-50%) scale(0.95); }
+  100% { transform: translateX(-50%) scale(1.05); }
+}
+
+@keyframes thinkMouth {
+  0% { transform: translate(-20px, 0px) scale(0.9); }
+  25% { transform: translate(-10px, -2px) scale(1.1); }
+  50% { transform: translate(0px, 0px) scale(0.9); }
+  75% { transform: translate(-10px, 2px) scale(1.1); }
+  100% { transform: translate(-20px, 0px) scale(0.9); }
+}
+
+@keyframes speakMouth {
+  0% { height: 4px; width: 22px; border-radius: 10px; }
+  100% { height: 14px; width: 14px; border-radius: 50%; }
+}
+
 #shadow {
   background-color: black;
   width: 140px;
@@ -323,4 +408,34 @@
   100% {
     opacity: 0.2;
   }
+}
+
+#hand-l, #hand-r {
+  position: absolute;
+  width: 16px;
+  height: 14px;
+  top: 75px;
+}
+
+#hand-l {
+  left: -12px;
+  border-radius: 12px 0 0 12px;
+  animation: handBopL infinite 1s ease-in-out;
+}
+
+#hand-r {
+  right: -12px;
+  border-radius: 0 12px 12px 0;
+  animation: handBopR infinite 1s ease-in-out;
+  animation-delay: 0.5s;
+}
+
+@keyframes handBopL {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px) rotate(-10deg); }
+}
+
+@keyframes handBopR {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px) rotate(10deg); }
 }
