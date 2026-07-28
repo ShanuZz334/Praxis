@@ -2796,3 +2796,27 @@ export function scoreCurrentRatio(currentRatio) {
     }
     return { score, bias, confidence: 72 };
 }
+
+export function scoreAnalystConsensus(consensusObj) {
+    if (!consensusObj || !consensusObj.consensus) {
+        return { score: null, bias: 'Neutral', confidence: 0 };
+    }
+
+    const rec = consensusObj.consensus.toLowerCase().replace('_', '');
+    let score = 50;
+    let bias = 'Neutral';
+
+    if (rec.includes('strongbuy')) {
+        score = 90; bias = 'Strong Bullish';
+    } else if (rec.includes('buy')) {
+        score = 75; bias = 'Bullish';
+    } else if (rec.includes('hold')) {
+        score = 50; bias = 'Neutral';
+    } else if (rec.includes('underperform')) {
+        score = 30; bias = 'Bearish';
+    } else if (rec.includes('sell')) {
+        score = 15; bias = 'Strong Bearish';
+    }
+
+    return { score, bias, confidence: consensusObj.analysts ? Math.min(100, consensusObj.analysts * 5) : 50 };
+}

@@ -72,13 +72,15 @@ export const runFundamentalIntelligence = async () => {
                 vixRes,
                 gdpRes,
                 fiiRes,
-                diiRes
+                diiRes,
+                analystConsensusRes
             ] = await Promise.all([
                 fetchWithFallback(ik, 'forward_pe', () => yahooFinanceService.getForwardPE(symbol)),
                 fetchWithFallback(ik, 'india_vix', () => yahooFinanceService.getVix()),
                 fetchWithFallback(ik, 'gdp_growth', () => fredApiService.getGDPGrowth()),
                 fetchWithFallback(ik, 'fii_flow', () => nseDataService.getFIIDIIFlows().then(d => d ? d.fiiFlow : null)),
-                fetchWithFallback(ik, 'dii_flow', () => nseDataService.getFIIDIIFlows().then(d => d ? d.diiFlow : null))
+                fetchWithFallback(ik, 'dii_flow', () => nseDataService.getFIIDIIFlows().then(d => d ? d.diiFlow : null)),
+                fetchWithFallback(ik, 'analyst_consensus', () => yahooFinanceService.getAnalystConsensus(symbol))
             ]);
 
             rawData.externalData = {
@@ -86,7 +88,8 @@ export const runFundamentalIntelligence = async () => {
                 vix: vixRes.value,
                 gdpGrowth: gdpRes.value,
                 fiiFlow: fiiRes.value,
-                diiFlow: diiRes.value
+                diiFlow: diiRes.value,
+                analystConsensus: analystConsensusRes.value
             };
 
             // 4. Run the Institutional Math Engine on the Backend

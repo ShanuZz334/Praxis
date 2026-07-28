@@ -46,7 +46,7 @@ export default function DetachableInstrumentSelector({ isOpen, onClose }) {
                 exit={{ opacity: 0, scale: 0.8, y: -20, x: 20 }}
                 transition={springTransition}
                 className={`fixed z-[9999] top-[80px] right-[80px] cursor-grab active:cursor-grabbing
-                    bg-background-card/90 backdrop-blur-xl border border-border-default 
+                    bg-[#0B0E14] border border-border-default 
                     rounded-2xl shadow-2xl min-w-[320px] max-w-[90vw]
                     transition-shadow duration-300
                     ${isDragging ? 'shadow-blue-500/20 shadow-2xl border-blue-500/30' : ''}
@@ -54,7 +54,7 @@ export default function DetachableInstrumentSelector({ isOpen, onClose }) {
                 style={{ touchAction: "none" }} // Prevent browser scrolling while dragging on touch
             >
                 {/* Drag Handle & Header */}
-                <div className="flex items-center justify-between px-4 py-2.5 bg-background-surface/80 rounded-t-2xl border-b border-border-subtle select-none">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-transparent rounded-t-2xl border-b border-border-subtle select-none">
                     <div className="flex items-center gap-2 text-text-tertiary">
                         <FiMove className={`text-sm transition-colors ${isDragging ? 'text-blue-400' : ''}`} />
                         <span className="text-[10px] font-bold uppercase tracking-widest">Market Target</span>

@@ -118,7 +118,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
                              onClick={() => handleClick(item.path, item.key)}
                              className="absolute inset-0 flex items-center justify-center group pointer-events-auto"
                          >
-                             <div className={`transition-all duration-300 ease-out transform ${isActive ? "scale-110 opacity-100" : "opacity-70 group-hover:opacity-100 group-hover:scale-110"}`}>
+                             <div className={`pointer-events-none transition-all duration-300 ease-out transform ${isActive ? "scale-110 opacity-100" : "opacity-70 group-hover:opacity-100 group-hover:scale-110"}`}>
                               <GhostLogo style={{ transform: 'scale(0.34)' }} />
                             </div>
 
@@ -148,7 +148,7 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
               {item.customIcon === 'pai' ? (
                   // Expanded: fix icon to 20px slot (same as other icons)
                   <div style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', flexShrink: 0 }}>
-                    <div className={`transition-all duration-300 ease-out transform ${isActive ? "scale-110 opacity-100" : "opacity-70 group-hover:opacity-100 group-hover:scale-110"}`}>
+                    <div className={`pointer-events-none transition-all duration-300 ease-out transform ${isActive ? "scale-110 opacity-100" : "opacity-70 group-hover:opacity-100 group-hover:scale-110"}`}>
                       <GhostLogo style={{ transform: 'scale(0.23)' }} />
                     </div>
                   </div>

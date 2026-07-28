@@ -5,7 +5,7 @@ import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 
 export default function CreditRatingCard({ cardId, manualOverrides = {}, lastUpdated }) {
-    // Credit Rating is manual-only for now
+    // Credit Rating is manual-only for now (Anti-Hallucination strict enforcement)
     const rating = manualOverrides.credit_rating_value || null;
     const agency = manualOverrides.credit_rating_agency || null;
     const outlook = manualOverrides.credit_rating_outlook || null;

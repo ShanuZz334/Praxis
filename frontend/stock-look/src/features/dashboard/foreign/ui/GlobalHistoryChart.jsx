@@ -43,55 +43,15 @@ export default function GlobalHistoryChart({ card, id }) {
 
                 if (res.data && res.data.length > 0) {
                     setData(res.data);
-                    setLoading(false);
-                    return;
+                } else {
+                    setData([]);
                 }
             } catch (err) {
-                console.warn("Failed to fetch chart data, falling back to simulation", err);
+                console.warn("Failed to fetch chart data", err);
+                setData([]);
+            } finally {
+                setLoading(false);
             }
-
-            // --- Fallback Simulation (Original Logic) ---
-            const result = [];
-            const today = new Date();
-            const startVal = parseFloat(card.raw?.toString().replace(/[^0-9.-]/g, '')) || 100;
-            const days = 30;
-
-            // Volatility Profiles (Original)
-            let volatility = 0.02;
-            let drift = 0;
-            const category = card.category?.toLowerCase() || '';
-            const norm = card.normalized || 0;
-            if (category.includes('currency')) {
-                volatility = 0.015;
-                drift = norm > 0.3 ? 0.003 : norm < -0.3 ? -0.003 : 0;
-            } else if (category.includes('indices')) {
-                volatility = 0.025;
-                drift = norm > 0.2 ? 0.005 : norm < -0.2 ? -0.005 : 0;
-            } else if (category.includes('commodities')) {
-                volatility = 0.035;
-                drift = norm > 0.2 ? 0.004 : norm < -0.2 ? -0.004 : 0;
-            } else if (category.includes('rates') || category.includes('volatility')) {
-                volatility = 0.04;
-                drift = norm > 0.3 ? 0.006 : norm < -0.3 ? -0.006 : 0;
-            }
-
-            let series = [];
-            let val = startVal;
-            for (let i = 0; i < days; i++) {
-                val = val / (1 + drift);
-                val = val + (Math.random() - 0.5) * volatility * val;
-                series.unshift(val);
-            }
-            for (let i = 0; i < days; i++) {
-                const date = new Date(today);
-                date.setDate(date.getDate() - (days - 1 - i));
-                result.push({
-                    date: date.toLocaleDateString('en-US', { disable_month: 'short', day: 'numeric' }),
-                    value: parseFloat(series[i].toFixed(3))
-                });
-            }
-            setData(result);
-            setLoading(false);
         };
 
         fetchData();
@@ -111,6 +71,25 @@ export default function GlobalHistoryChart({ card, id }) {
     }
 
     // 3. Render
+    if (loading) {
+        return (
+            <div className="h-full w-full flex items-center justify-center bg-background-surface/30 rounded-xl border border-border-subtle">
+                <div className="animate-pulse flex flex-col items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-accent-primary/50" />
+                    <span className="text-[10px] text-text-muted font-bold tracking-widest uppercase">Loading History...</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (!data || data.length === 0) {
+        return (
+            <div className="h-full w-full flex items-center justify-center bg-background-surface/30 rounded-xl border border-border-subtle border-dashed">
+                <span className="text-xs text-text-muted font-medium">No historical data available</span>
+            </div>
+        );
+    }
+
     return (
         <div className="w-full h-full min-h-[300px] flex flex-col">
             <div className="flex justify-between items-center mb-4 px-2">

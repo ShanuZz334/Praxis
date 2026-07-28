@@ -54,7 +54,7 @@ export const API_PATHS = {
   },
 
   FUNDAMENTALS: {
-    GET: (instrumentKey) => `/api/v1/upstox/fundamentals?instrument_key=${encodeURIComponent(instrumentKey)}`,
+    GET: (instrumentKey) => `/api/v1/upstox/fundamentals?instrument_key=${encodeURIComponent(instrumentKey)}&_t=${Date.now()}`,
   },
 
   JOURNAL: {

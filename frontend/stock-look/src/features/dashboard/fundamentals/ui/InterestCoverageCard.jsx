@@ -46,7 +46,7 @@ export default function InterestCoverageCard({ cardId, data, manualOverride, las
     const ratioObj = (Array.isArray(data?.ratios) ? data.ratios : []).find(r =>
         r.name?.toLowerCase().includes('interest coverage')
     );
-    if (ratioObj?.company_value) {
+    if (ratioObj?.company_value !== undefined && ratioObj?.company_value !== null) {
         const parsed = cleanNum(ratioObj.company_value);
         if (!isNaN(parsed)) {
             extractedValue = parsed;

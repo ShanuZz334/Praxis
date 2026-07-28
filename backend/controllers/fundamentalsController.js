@@ -2,6 +2,8 @@ import axios from "axios";
 import UpstoxAuth from "../models/UpstoxAuth.js";
 import localDb from "../config/localDb.js";
 import { getCache, setCache } from "../services/cacheService.js";
+import { yahooFinanceService } from "../services/yahooFinanceService.js";
+import { fredApiService } from "../services/fredApiService.js";
 
 const UPSTOX_FUNDAMENTALS_URL = "https://api.upstox.com/v2/fundamentals";
 
@@ -15,14 +17,15 @@ export const getFundamentals = async (req, res) => {
         const instrumentKey = req.query.instrument_key;
         if (!instrumentKey) return res.status(400).json({ error: "instrument_key is required" });
 
-        const cacheKey = `fundamentals_${instrumentKey}`;
+        const cacheKey = `fundamentals_v8_${instrumentKey}`;
         let payload = getCache(cacheKey);
 
         if (!payload) {
-            // Lookup ISIN from local DB
-            const row = localDb.prepare("SELECT isin FROM instruments WHERE instrument_key = ?").get(instrumentKey);
+            // Lookup ISIN and trading symbol from local DB
+            const row = localDb.prepare("SELECT isin, trading_symbol FROM instruments WHERE instrument_key = ?").get(instrumentKey);
             
             let isin = row ? row.isin : null;
+            let tradingSymbol = row ? row.trading_symbol : null;
 
             if (!isin) {
                 // Indices don't have an ISIN or fundamental data via this Upstox API
@@ -61,6 +64,66 @@ export const getFundamentals = async (req, res) => {
                     company_profile: profileRes.data?.data || {},   // full object: sector, sector_market_cap_inr, etc.
                     calculated_at: Date.now()
                 };
+            }
+
+            // --- FETCH YAHOO EXTERNAL METRICS LIVE ---
+            if (!tradingSymbol && isin) {
+                try {
+                    tradingSymbol = await yahooFinanceService.searchByIsin(isin);
+                } catch (e) {
+                    console.error("Live Yahoo ISIN search failed:", e.message);
+                }
+            }
+
+            if (tradingSymbol) {
+                let analystConsensus = null;
+                try {
+                    analystConsensus = await yahooFinanceService.getAnalystConsensus(tradingSymbol);
+                } catch (e) {
+                    console.error("Failed to fetch Analyst Consensus:", e.message);
+                }
+
+                let gdpGrowth = null;
+                try {
+                    gdpGrowth = await fredApiService.getGDPGrowth();
+                } catch (e) {
+                    console.error("Failed to fetch GDP Growth live:", e.message);
+                }
+
+                let dividendYield = null;
+                try {
+                    dividendYield = await yahooFinanceService.getDividendYield(tradingSymbol);
+                } catch (e) {
+                    console.error("Failed to fetch Dividend Yield live:", e.message);
+                }
+                
+                let marketCap = null;
+                try {
+                    marketCap = await yahooFinanceService.getMarketCap(tradingSymbol);
+                } catch (e) {
+                    console.error("Failed to fetch Market Cap live:", e.message);
+                }
+
+                let ccc = null;
+                try {
+                    ccc = await yahooFinanceService.getCashConversionCycle(tradingSymbol);
+                } catch (e) {
+                    console.error("Failed to fetch CCC live:", e.message);
+                }
+
+                let interestCoverage = null;
+                try {
+                    interestCoverage = await yahooFinanceService.getInterestCoverage(tradingSymbol);
+                } catch (e) {
+                    console.error("Failed to fetch Interest Coverage live:", e.message);
+                }
+
+                payload.analystConsensus = analystConsensus;
+                payload.gdpGrowth = gdpGrowth;
+                payload.dividendYield = dividendYield;
+                payload.marketCap = marketCap;
+                payload.cashConversionCycle = ccc;
+                payload.interestCoverage = interestCoverage;
             }
 
             setCache(cacheKey, payload, 86400); // 24 hours TTL

@@ -4,8 +4,18 @@ import InstrumentOverride from "../models/InstrumentOverride.js";
 import { protect } from "../middleware/authMiddleware.js";
 import aiGateway from "../ai-gateway/index.js";
 import AiRouting from "../models/AiRouting.js";
+import { runFundamentalIntelligence } from "../services/intelligenceCron.js";
 
 const router = express.Router();
+
+router.get("/force-cron", async (req, res) => {
+    try {
+        await runFundamentalIntelligence();
+        res.json({ status: "success", message: "Intelligence Cron forced successfully." });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
 
 /**
  * @route   GET /api/v1/intelligence/history

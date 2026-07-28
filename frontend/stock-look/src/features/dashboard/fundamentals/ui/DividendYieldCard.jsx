@@ -22,6 +22,12 @@ export default function DividendYieldCard({ cardId, data = null, manualOverride,
         }
     }
 
+    // Attempt 1.5: Extracted directly from live payload injected into data.dividend_yield
+    if (upstoxYield === null && data?.dividend_yield !== undefined && data?.dividend_yield !== null) {
+        upstoxYield = cleanNum(data.dividend_yield);
+        sourceStr = 'Yahoo Finance (Live)';
+    }
+
     // Attempt 2: Calculate from corporate actions and live price
     if (upstoxYield === null && Array.isArray(data?.corporate_actions) && data?.quote?.last_price) {
         const lastPrice = cleanNum(data.quote.last_price);
@@ -62,7 +68,7 @@ export default function DividendYieldCard({ cardId, data = null, manualOverride,
     const cCard = computeCardConfidence({
         hasLiveData: isLiveData,
         isManual: !!isManual,
-        sourcePipeline: sourceStr === 'Upstox API' || sourceStr === 'Upstox (Calc)' ? 'upstox' : 'manual',
+        sourcePipeline: sourceStr === 'Upstox API' || sourceStr === 'Upstox (Calc)' ? 'upstox' : sourceStr === 'Yahoo Finance (Live)' ? 'yahoo' : 'manual',
         lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--')
     }, 'fundamentals');
     const aiInsightText = generateAiInsightDividendYieldCard(currentYield, bondYield);

@@ -84,7 +84,7 @@ export default function MasterDashboard() {
                     });
 
                     const formatted = sorted.map(c => ({
-                        label: c.name || c.trading_symbol || c.instrument_key,
+                        label: c.trading_symbol || c.name || c.instrument_key,
                         value: c.instrument_key,
                         badge: 'NFO'
                     }));

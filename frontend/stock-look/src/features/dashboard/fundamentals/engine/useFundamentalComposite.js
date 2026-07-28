@@ -29,28 +29,33 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
     const scoresRef = useRef({});
     const prevInstrumentRef = useRef(instrumentKey);
 
+    const debounceTimerRef = useRef(null);
+
     useEffect(() => {
         // Compute function wraps the correct mode
-        const recompute = () => {
-            const isIndex = instrumentType === 'Indices';
-            const newRes = isIndex 
-                ? computeIndexComposite(scoresRef.current)
-                : computeCompanyComposite(scoresRef.current);
-            setResult({ ...newRes, rawScores: { ...scoresRef.current } });
+        const scheduleRecompute = () => {
+            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+            debounceTimerRef.current = setTimeout(() => {
+                const isIndex = instrumentType === 'Indices';
+                const newRes = isIndex 
+                    ? computeIndexComposite(scoresRef.current)
+                    : computeCompanyComposite(scoresRef.current);
+                setResult({ ...newRes, rawScores: { ...scoresRef.current } });
 
-            // Persist header calculation to Backend (Fire & Forget)
-            if (instrumentKey) {
-                axiosInstance.post('/api/v1/snapshots/header', {
-                    instrument_key: instrumentKey,
-                    category: 'fundamental',
-                    composite_score: newRes.compositeScore,
-                    regime_json: newRes.regime,
-                    tailwinds_json: newRes.tailwinds,
-                    risks_json: newRes.risks,
-                    counts_json: newRes.cardScores,
-                    breakdown: newRes.sections
-                }).catch(err => console.error("Failed to sync header:", err));
-            }
+                // Persist header calculation to Backend (Fire & Forget)
+                if (instrumentKey) {
+                    axiosInstance.post('/api/v1/snapshots/header', {
+                        instrument_key: instrumentKey,
+                        category: 'fundamental',
+                        composite_score: newRes.compositeScore,
+                        regime_json: newRes.regime,
+                        tailwinds_json: newRes.tailwinds,
+                        risks_json: newRes.risks,
+                        counts_json: newRes.cardScores,
+                        breakdown: newRes.sections
+                    }).catch(err => console.error("Failed to sync header:", err));
+                }
+            }, 50);
         };
 
         const handleSnapshot = (e) => {
@@ -65,13 +70,13 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
                     // Remove from composite engine if value was deleted
                     if (scoresRef.current[metricId] !== undefined) {
                         delete scoresRef.current[metricId];
-                        recompute();
+                        scheduleRecompute();
                     }
                 } else {
                     // Update score map and trigger recomputation
                     if (scoresRef.current[metricId] !== score) {
                         scoresRef.current[metricId] = score;
-                        recompute();
+                        scheduleRecompute();
                     }
                 }
             }
@@ -80,10 +85,10 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
         window.addEventListener('ai-snapshot', handleSnapshot);
         
         // Recompute on mount / category change to clear or refresh
-        recompute();
+        scheduleRecompute();
 
         return () => window.removeEventListener('ai-snapshot', handleSnapshot);
-    }, [instrumentType]);
+    }, [instrumentType, instrumentKey]);
 
     // Automatically clear scores when instrument changes to avoid stale composite
     useEffect(() => {

@@ -145,10 +145,10 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
         case CARD_REGISTRY.smart_money_flow.id: return <SmartMoneyFlowCard key={cardId} cardId={cardId} data={data} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
         case CARD_REGISTRY.earnings_quality.id: return <EarningsQualityCard key={cardId} cardId={cardId} data={data} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
         case CARD_REGISTRY.relative_valuation.id: return <RelativeValuationCard key={cardId} cardId={cardId} data={data} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
-        case CARD_REGISTRY.analyst_consensus.id: return <AnalystConsensusCard key={cardId} cardId={cardId} manualOverrides={manualOverrides} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
+        case CARD_REGISTRY.analyst_consensus.id: return <AnalystConsensusCard key={cardId} cardId={cardId} data={data} manualOverrides={manualOverrides} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
         case CARD_REGISTRY.corporate_actions.id: return <CorporateActionsCard key={cardId} cardId={cardId} data={data} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
         case CARD_REGISTRY.cash_conversion.id: return <CashConversionCycleCard key={cardId} cardId={cardId} data={data} manualOverrides={manualOverrides} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
-        case CARD_REGISTRY.credit_rating.id: return <CreditRatingCard key={cardId} cardId={cardId} manualOverrides={manualOverrides} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
+        case CARD_REGISTRY.credit_rating.id: return <CreditRatingCard key={cardId} cardId={cardId} data={data} manualOverrides={manualOverrides} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
         case CARD_REGISTRY.nifty_pe.id: return <NiftyPECard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.nifty_pe} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.nifty_pe.id)} />;
         case CARD_REGISTRY.nifty_pb.id: return <NiftyPBCard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.nifty_pb} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.nifty_pb.id)} />;
         case CARD_REGISTRY.mcap_gdp.id: return <IndexMCapGDPCard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.mcap_gdp} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.mcap_gdp.id)} />;

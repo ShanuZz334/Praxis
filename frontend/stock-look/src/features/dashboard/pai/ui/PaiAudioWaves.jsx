@@ -202,39 +202,32 @@ export default function PaiAudioWaves({ isListening, isSpeaking, isProcessing, i
 
     if (!isActive) return null;
 
-    if (isProcessing) {
-        return (
-            <motion.svg 
-                className="absolute z-10 w-[135%] h-[135%] -left-[17.5%] -top-[17.5%] pointer-events-none" 
-                viewBox="0 0 48 48"
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
-            >
-                <circle 
-                    cx="24" 
-                    cy="24" 
-                    r="22" 
-                    fill="none" 
-                    stroke={paiMascotColor || '#FF0000'} 
-                    strokeWidth="2.5" 
-                    strokeDasharray="40 100"
-                    strokeLinecap="round"
-                />
-            </motion.svg>
-        );
-    }
-
     return (
-        <canvas 
-            ref={canvasRef} 
-            className="absolute z-10 pointer-events-none" 
-            style={{
-                // Position completely underneath the mascot, centered horizontally
-                bottom: '-20px',
-                left: '-10%',
-                width: '120%', // Shorter line length
-                height: '30px'
-            }}
-        />
+        <>
+            <div 
+                className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center"
+                style={{ 
+                    opacity: isProcessing ? 1 : 0, 
+                    transition: isProcessing ? 'opacity 0.3s ease-in-out 0.6s' : 'opacity 0.2s ease-in-out 0s'
+                }}
+            >
+                <div className="spinner scale-[1.2]">
+                    <div className="spinnerin"></div>
+                </div>
+            </div>
+            <canvas 
+                ref={canvasRef} 
+                className="absolute z-10 pointer-events-none" 
+                style={{
+                    // Position completely underneath the mascot, centered horizontally
+                    bottom: '-20px',
+                    left: '-10%',
+                    width: '120%', // Shorter line length
+                    height: '30px',
+                    opacity: isProcessing ? 0 : 1,
+                    transition: isProcessing ? 'opacity 0.3s ease-in-out 0.6s' : 'opacity 0.2s ease-in-out 0s'
+                }}
+            />
+        </>
     );
 }

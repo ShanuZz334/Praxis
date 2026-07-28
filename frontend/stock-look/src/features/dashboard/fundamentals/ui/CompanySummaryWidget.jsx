@@ -30,7 +30,7 @@ export default function CompanySummaryWidget({ data, manualOverrides, selectedIn
     const metrics = [
         {
             label: "Market Cap",
-            value: extractProfile('market_cap') ?? extractRatio(['market_cap']) ?? manualOverrides?.market_cap,
+            value: data?.marketCap ?? extractProfile('market_cap') ?? extractRatio(['market_cap']) ?? manualOverrides?.market_cap,
             suffix: " Cr.",
             prefix: "₹",
             overrideKey: 'market_cap'
@@ -67,7 +67,7 @@ export default function CompanySummaryWidget({ data, manualOverrides, selectedIn
         },
         {
             label: "Dividend Yield",
-            value: extractRatio(['dividend yield', 'div yield']) ?? manualOverrides?.dividend_yield,
+            value: data?.dividendYield ?? extractRatio(['dividend yield', 'div yield']) ?? manualOverrides?.dividend_yield,
             suffix: "%",
             overrideKey: 'dividend_yield'
         },
@@ -104,7 +104,7 @@ export default function CompanySummaryWidget({ data, manualOverrides, selectedIn
                 </span>
                 <div className="flex flex-col items-end">
                     <div className="flex items-center gap-2">
-                        {isManual && displayVal !== '--' && (
+                        {isManual && (
                             <span className="text-text-tertiary">
                                 <Edit2 className="w-3 h-3" />
                             </span>
@@ -126,12 +126,11 @@ export default function CompanySummaryWidget({ data, manualOverrides, selectedIn
         );
     };
 
-    const visibleMetrics = metrics.filter(m => {
-        const isNull = m.value === null || m.value === undefined || m.value === '';
-        return !isNull;
-    });
-
-    const missingManualCount = metrics.length - visibleMetrics.length;
+    // 4. Calculate missing manual count (how many are null)
+    const missingManualCount = metrics.filter(m => m.value === null || m.value === undefined || m.value === '').length;
+  
+    // 5. Columns layout (always show all metrics now)
+    const visibleMetrics = metrics;
 
     const col1 = visibleMetrics.filter((_, i) => i % 3 === 0);
     const col2 = visibleMetrics.filter((_, i) => i % 3 === 1);
@@ -200,7 +199,6 @@ export default function CompanySummaryWidget({ data, manualOverrides, selectedIn
                 </div>
             </div>
 
-            {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 md:gap-y-4 md:divide-x divide-border-subtle">
                 <div className="flex flex-col">
                     {col1.map(renderMetric)}

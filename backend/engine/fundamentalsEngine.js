@@ -35,6 +35,7 @@ export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType 
     const vixResult = scorers.scoreVIX(ext.indiaVix);
     const gdpResult = scorers.scoreGDPGrowth(ext.gdpGrowth);
     const fiiResult = scorers.scoreInstitutionalFlow(ext.fiiFlow, ext.diiFlow);
+    const analystResult = scorers.scoreAnalystConsensus(ext.analystConsensus);
 
     // 3. Build Cards Array
     const cards = [
@@ -64,6 +65,24 @@ export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType 
             creditAllocation: 6,
             normalized: divResult.score > 70 ? 1 : (divResult.score < 30 ? -1 : 0),
             rawInput: { currentDivYield: ext.currentDivYield, bondYield: ext.bondYield }
+        },
+        {
+            id: 'dii_flow',
+            module: 'DII Flow',
+            score: fiiResult.score,
+            bias: fiiResult.bias,
+            creditAllocation: 5,
+            normalized: fiiResult.score > 70 ? 1 : (fiiResult.score < 30 ? -1 : 0),
+            rawInput: { diiFlow: ext.diiFlow }
+        },
+        {
+            id: 'analyst_consensus',
+            module: 'Analyst Consensus',
+            score: analystResult.score,
+            bias: analystResult.bias,
+            creditAllocation: 7,
+            normalized: analystResult.score > 70 ? 1 : (analystResult.score < 30 ? -1 : 0),
+            rawInput: { analystConsensus: ext.analystConsensus }
         },
         {
             id: 'eps_growth',

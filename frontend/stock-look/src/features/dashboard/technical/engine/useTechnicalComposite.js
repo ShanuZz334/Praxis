@@ -17,9 +17,14 @@ export function useTechnicalComposite(isIndex = false) {
         cardScores: {}
     });
 
-    const recompute = () => {
-        const engineResult = computeTechnicalComposite(scoresRef.current, isIndex);
-        setCompositeData(engineResult);
+    const debounceTimerRef = useRef(null);
+
+    const scheduleRecompute = () => {
+        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = setTimeout(() => {
+            const engineResult = computeTechnicalComposite(scoresRef.current, isIndex);
+            setCompositeData(engineResult);
+        }, 50);
     };
 
     useEffect(() => {
@@ -33,12 +38,12 @@ export function useTechnicalComposite(isIndex = false) {
                 if (score === undefined || score === null || score === '--' || score === '') {
                     if (scoresRef.current[metricId] !== undefined) {
                         delete scoresRef.current[metricId];
-                        recompute();
+                        scheduleRecompute();
                     }
                 } else {
                     if (scoresRef.current[metricId] !== score) {
                         scoresRef.current[metricId] = score;
-                        recompute();
+                        scheduleRecompute();
                     }
                 }
             }

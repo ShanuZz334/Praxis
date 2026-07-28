@@ -34,6 +34,8 @@ import flowRoutes from "./routes/flowRoutes.js";
 import catalystRoutes from "./routes/catalystRoutes.js";
 import aiSettingsRoutes from "./routes/aiSettingsRoutes.js";
 import aiPromptsRoutes from "./routes/aiPromptsRoutes.js";
+import healthRoutes from "./routes/healthRoutes.js";
+import dataRoutes from "./routes/dataRoutes.js";
 
 // =============================
 // Express App Setup
@@ -91,6 +93,8 @@ app.use("/api/v1/intelligence", intelligenceRoutes);
 app.use("/api/v1/catalysts", catalystRoutes);
 app.use("/api/v1/ai-settings", aiSettingsRoutes);
 app.use("/api/v1/ai-prompts", aiPromptsRoutes);
+app.use("/api/v1/health", healthRoutes);
+app.use("/api/v1/data", dataRoutes);
 
 app.use("/api/flow", flowRoutes);
 

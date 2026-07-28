@@ -70,8 +70,10 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
     const sectorROCE = roceObj?.sector_value ? parseFloat(roceObj.sector_value) : null;
 
     // 8. FII/DII
-    const fiiFlow = rawData?.externalData?.fiiFlow ?? null; 
-    const diiFlow = rawData?.externalData?.diiFlow ?? null;
+    const extData = rawData?.externalData || {};
+    const fiiFlow = extData?.fiiFlow ?? null; 
+    const diiFlow = extData?.diiFlow ?? null;
+    const analystConsensus = extData?.analystConsensus ?? null;
 
     // 9. GDP Growth
     const gdpGrowth = rawData?.externalData?.gdpGrowth ?? 7.0; 
@@ -190,6 +192,6 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
         revCAGR, revYoY, revPos, revTot,
         patCAGR, patYoY, patPos, patTot,
         inventoryTurnover, receivablesTurnover, payablesTurnover,
-        indiaVix
+        indiaVix, analystConsensus
     };
 }

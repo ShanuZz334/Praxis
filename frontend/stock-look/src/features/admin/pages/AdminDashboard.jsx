@@ -20,18 +20,69 @@ const PROVIDER_META = {
         name: "Upstox API",
         desc: "Real-time Market Data Feed V3 & OAuth Integration",
         icon: Activity
+    },
+    alphaVantage: {
+        name: "Alpha Vantage",
+        desc: "Global Equities, FX, and Crypto Intraday Feeds",
+        icon: Globe
+    },
+    fred: {
+        name: "FRED API",
+        desc: "Federal Reserve Economic Data (Macro Indicators)",
+        icon: TrendingUp
+    },
+    yahoo: {
+        name: "Yahoo Finance",
+        desc: "Global Markets & Options Fallback Data",
+        icon: BarChart3
+    },
+    rbi: {
+        name: "RBI DataFeed",
+        desc: "Reserve Bank of India Policy Rates & Forex",
+        icon: ShieldCheck
+    },
+    coinGecko: {
+        name: "CoinGecko",
+        desc: "Cryptocurrency Prices & Market Capitalizations",
+        icon: Database
+    },
+    frankfurter: {
+        name: "Frankfurter API",
+        desc: "ECB Currency Exchange Rates",
+        icon: ArrowRightLeft
+    },
+    amfi: {
+        name: "AMFI API",
+        desc: "Indian Mutual Fund NAVs and Schemes",
+        icon: Layers
     }
 };
 
 // ============================================
 // SCRAPER METADATA (Web Scrapers)
 // ============================================
-const SCRAPER_META = {};
+const SCRAPER_META = {
+    nse: {
+        name: "NSE India Scraper",
+        desc: "Bhavcopy, FII/DII Activity, and Options Chain",
+        icon: Pickaxe
+    },
+    moneycontrol: {
+        name: "Moneycontrol Scraper",
+        desc: "Financial News, Sentiments, and Block Deals",
+        icon: Newspaper
+    },
+    screener: {
+        name: "Screener.in Engine",
+        desc: "Balance Sheets, P&L, and Cash Flow Statements",
+        icon: Search
+    }
+};
 
 const AdminDashboard = () => {
     const [providers, setProviders] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [checking, setChecking] = useState(false);
+    const [checkingProvider, setCheckingProvider] = useState(null);
     const [activeTab, setActiveTab] = useState("api"); // 'api' or 'scraper'
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedProvider, setSelectedProvider] = useState(null);
@@ -45,25 +96,47 @@ const AdminDashboard = () => {
             const liveProviders = [];
             
             if (upstoxStatus.connected) {
-                liveProviders.push({
-                    provider: "upstox",
-                    status: "UP",
-                    configured: true,
-                    latency: 45 // mock latency for now
-                });
+                liveProviders.push({ provider: "upstox", status: "UP", configured: true, latency: 45 });
             } else {
-                liveProviders.push({
-                    provider: "upstox",
-                    status: "OFFLINE",
-                    configured: false,
-                    latency: 0
-                });
+                liveProviders.push({ provider: "upstox", status: "OFFLINE", configured: false, latency: 0 });
             }
+
+            // Mock Health for other APIs
+            liveProviders.push({ provider: "alphaVantage", status: "UP", configured: true, latency: 120 });
+            liveProviders.push({ provider: "fred", status: "UP", configured: true, latency: 85 });
+            liveProviders.push({ provider: "yahoo", status: "UP", configured: true, latency: 210 });
+            liveProviders.push({ provider: "rbi", status: "UP", configured: true, latency: 60 });
+            liveProviders.push({ provider: "coinGecko", status: "UP", configured: true, latency: 95 });
+            liveProviders.push({ provider: "frankfurter", status: "UP", configured: true, latency: 55 });
+            liveProviders.push({ provider: "amfi", status: "UP", configured: true, latency: 110 });
+
+            // Mock Health for Scrapers
+            liveProviders.push({ provider: "nse", status: "UP", configured: true, latency: 320 });
+            liveProviders.push({ provider: "moneycontrol", status: "UP", configured: true, latency: 450 });
+            liveProviders.push({ provider: "screener", status: "UP", configured: true, latency: 280 });
 
             setProviders(liveProviders);
         } catch (err) {
             console.error("Failed to fetch provider health:", err);
-            setProviders([{ provider: "upstox", status: "OFFLINE", configured: false, latency: 0 }]); 
+            
+            const fallbackProviders = [];
+            fallbackProviders.push({ provider: "upstox", status: "OFFLINE", configured: false, latency: 0 });
+
+            // Mock Health for other APIs
+            fallbackProviders.push({ provider: "alphaVantage", status: "UP", configured: true, latency: 120 });
+            fallbackProviders.push({ provider: "fred", status: "UP", configured: true, latency: 85 });
+            fallbackProviders.push({ provider: "yahoo", status: "UP", configured: true, latency: 210 });
+            fallbackProviders.push({ provider: "rbi", status: "UP", configured: true, latency: 60 });
+            fallbackProviders.push({ provider: "coinGecko", status: "UP", configured: true, latency: 95 });
+            fallbackProviders.push({ provider: "frankfurter", status: "UP", configured: true, latency: 55 });
+            fallbackProviders.push({ provider: "amfi", status: "UP", configured: true, latency: 110 });
+
+            // Mock Health for Scrapers
+            fallbackProviders.push({ provider: "nse", status: "UP", configured: true, latency: 320 });
+            fallbackProviders.push({ provider: "moneycontrol", status: "UP", configured: true, latency: 450 });
+            fallbackProviders.push({ provider: "screener", status: "UP", configured: true, latency: 280 });
+
+            setProviders(fallbackProviders);
         } finally {
             setLoading(false);
         }
@@ -73,11 +146,38 @@ const AdminDashboard = () => {
         fetchProviderHealth();
     }, []);
 
-    const handleCheckConnection = async () => {
-        setChecking(true);
-        await fetchProviderHealth();
-        // Simulate a tiny delay for visual feedback if response is too fast
-        setTimeout(() => setChecking(false), 600);
+    const handleCheckConnection = async (providerKey) => {
+        setCheckingProvider(providerKey);
+        
+        if (providerKey === "upstox") {
+            // For Upstox, do a full health check
+            await fetchProviderHealth();
+            setTimeout(() => setCheckingProvider(null), 300);
+        } else {
+            // Real network ping via backend proxy
+            try {
+                const response = await axiosInstance.get(`/api/v1/health/ping/${providerKey}`);
+                const { latency, status, sampleData } = response.data;
+                
+                setProviders(prev => prev.map(p => {
+                    if (p.provider === providerKey) {
+                        return { ...p, latency, status, sampleData, configured: true };
+                    }
+                    return p;
+                }));
+            } catch (err) {
+                console.error(`Failed to ping ${providerKey}:`, err);
+                // Mark as offline if backend ping fails entirely
+                setProviders(prev => prev.map(p => {
+                    if (p.provider === providerKey) {
+                        return { ...p, status: "OFFLINE", configured: false };
+                    }
+                    return p;
+                }));
+            } finally {
+                setCheckingProvider(null);
+            }
+        }
     };
 
     // Calculate stats based on active tab
@@ -220,8 +320,8 @@ const AdminDashboard = () => {
                                     providerKey={key}
                                     meta={meta}
                                     healthData={healthData}
-                                    onCheckConnection={handleCheckConnection}
-                                    checking={checking}
+                                    onCheckConnection={() => handleCheckConnection(key)}
+                                    checking={checkingProvider === key}
                                     onConfigure={() => {
                                         if (key === "upstox") {
                                             upstoxService.login();

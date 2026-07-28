@@ -716,7 +716,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                     isListening={isListening} 
                                     isHearingSpeech={isHearingSpeech}
                                     isSpeaking={voiceStatus === 'speaking'} 
-                                    isProcessing={isGenerating || voiceStatus === 'processing'}
+                                    isProcessing={(isGenerating || voiceStatus === 'processing') && voiceStatus !== 'speaking'}
                                 />
                             </motion.div>
                         )}

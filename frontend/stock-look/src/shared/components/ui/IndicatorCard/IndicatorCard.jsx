@@ -302,6 +302,7 @@ export function IndicatorCard({
   className
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const lastDispatchedScoreRef = React.useRef(null);
   const { synthesize, skipTts, status } = useVoice();
   const isSpeaking = status === 'speaking';
 
@@ -379,13 +380,14 @@ export function IndicatorCard({
     });
 
     // ── Dispatch ai-snapshot for Composite Engine ─────────────────────────────
-    if (data?.score !== undefined && data?.score !== null) {
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('ai-snapshot', {
-          detail: { card_id: baseCardId, score: data.score }
-        }));
-      }, 0);
-    }
+    if (data?.score !== undefined && data?.score !== null && data.score !== lastDispatchedScoreRef.current) {
+        lastDispatchedScoreRef.current = data.score;
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('ai-snapshot', {
+            detail: { card_id: baseCardId, score: data.score }
+          }));
+        }, 0);
+      }
   }, [resolvedPage, baseCardId, data?.currentValueObj?.value, data?.score, data?.bias,
       data?.confidence, data?.impactWeight, config.title, config.creditScore, config.mode, register]);
 

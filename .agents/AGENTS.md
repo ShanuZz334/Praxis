@@ -8,10 +8,10 @@ When refactoring, updating, or building new indicator cards in the Praxis dashbo
 - **Fail-safes**: If Upstox live data is missing, the component must seamlessly fallback to manual overrides without breaking the app.
 
 ## 2. Manual Overrides Placement
-- **Zero Clutter Rule**: ONLY expose an input box on the backside if the core metric is completely missing from Upstox (e.g. Forward P/E). 
-- **NO Fallbacks & NO Comparisons**: NEVER create manual input boxes for "Fallbacks" or "Historical/Sector Averages" if the primary metric is already fetched from Upstox. The user trusts the Upstox data and strictly wants zero unnecessary inputs.
+- **UNIVERSAL ZERO CLUTTER LAW**: Across all modules (Fundamentals, Technicals, Options, Events, etc.), you must dynamically hide input boxes on the backside if the core metric has been successfully fetched from the API. Manual inputs should ONLY render conditionally (e.g. `!hasData && <Input />`) when the live pipeline fails or data is missing.
+- **NO Fallbacks & NO Comparisons**: NEVER create manual input boxes for "Fallbacks" or "Historical/Sector Averages" if the primary metric is already fetched from Upstox/Yahoo. The user trusts the data and strictly wants zero unnecessary inputs.
 - **NEVER** place input boxes or manual form components directly inline on the individual indicator cards.
-- **ONLY** place manual input fields on the "Backside" of the `GlobalHeader` via the `fundamentalManualForm` in `FundamentalPage.jsx`.
+- **ONLY** place manual input fields on the "Backside" of the `GlobalHeader` of that specific page module (e.g. `fundamentalManualForm`).
 - **Keep it Clean**: Only expose the inputs in the GlobalHeader that actively correspond to cards we have built or explicitly mapped. Do not clutter the UI with inputs for metrics that aren't fully wired up yet.
 - **Focus Bug Prevention**: Ensure the `OverrideInput` component (or any input wrapper) is defined **outside** the main page render function so React doesn't destroy and recreate it on every keystroke, preventing focus loss.
 

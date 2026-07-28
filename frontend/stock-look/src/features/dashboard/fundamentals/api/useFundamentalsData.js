@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { API_PATHS } from '@/shared/utils/apiPaths';
 // ─── Intelligent Caching Engine ─────────────────────────────────────────────
-const CACHE_KEYS = {
-    FUNDAMENTALS: 'praxis_fundamentals_cache_v2',
+export const CACHE_KEYS = {
+    FUNDAMENTALS: 'praxis_fundamentals_cache_v6',
     QUOTES: 'praxis_quotes_cache'
 };
 

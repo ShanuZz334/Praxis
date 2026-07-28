@@ -81,6 +81,7 @@ export default React.memo(function AdvancedCandlestickChart({
     const autoFibLinesRef = useRef([]);
     const rsiRef = useRef(null);
     const lastDataTimeRef = useRef(null);
+    const hiddenFutureSeriesRef = useRef(null);
     
     const [showSupertrend, setShowSupertrend] = useState(false);
     const [showVWAP, setShowVWAP] = useState(false);
@@ -251,9 +252,11 @@ export default React.memo(function AdvancedCandlestickChart({
         donchianMiddleRef.current = chart.addSeries(LineSeries, { color: '#9ca3af', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
         donchianLowerRef.current = chart.addSeries(LineSeries, { color: '#9ca3af', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
 
-        psarRef.current = chart.addSeries(LineSeries, { color: '#34d399', lineWidth: 2, lineStyle: 3, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        psarRef.current = chart.addSeries(LineSeries, { color: '#06b6d4', lineWidth: 2, lineStyle: 3, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
         
-        ichimokuTenkanRef.current = chart.addSeries(LineSeries, { color: '#06b6d4', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        hiddenFutureSeriesRef.current = chart.addSeries(LineSeries, { color: 'transparent', priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+
+        ichimokuTenkanRef.current = chart.addSeries(LineSeries, { color: '#0ea5e9', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
         ichimokuKijunRef.current = chart.addSeries(LineSeries, { color: '#ef4444', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
         ichimokuSpanARef.current = chart.addSeries(LineSeries, { color: '#22c55e', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
         ichimokuSpanBRef.current = chart.addSeries(LineSeries, { color: '#ef4444', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
@@ -371,7 +374,11 @@ export default React.memo(function AdvancedCandlestickChart({
             }
         }
         
-        candleSeriesRef.current.setData([...data, ...futureData]);
+        candleSeriesRef.current.setData(data);
+        if (hiddenFutureSeriesRef.current) {
+            // Map futureData to have a dummy value just to extend the time scale
+            hiddenFutureSeriesRef.current.setData([...data.map(d => ({time: d.time, value: d.close})), ...futureData.map(d => ({time: d.time, value: data[data.length-1].close}))]);
+        }
         const volumeData = data.map(item => ({
             time: item.time, value: item.volume || 0,
             color: item.close >= item.open ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)'

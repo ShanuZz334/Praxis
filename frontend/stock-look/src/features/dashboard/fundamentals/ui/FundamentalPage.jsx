@@ -188,7 +188,7 @@ export default function FundamentalPage() {
       fetchInstFlow();
   }, []);
 
-  // Inject real-time India VIX from WebSocket and live Inst Flow if backend DB missed it
+  // Inject real-time India VIX from WebSocket and live Inst Flow
   const fundamentalsData = useMemo(() => {
       let data = { ...(rawFundamentalsData || {}) };
       
@@ -212,8 +212,39 @@ export default function FundamentalPage() {
       if (liveInstFlow) {
           data.fii_dii_flow = liveInstFlow;
       }
+
+      // --- ON-DEMAND LIVE MACROS OVERRIDE ---
+      if (rawFundamentalsData?.analystConsensus) {
+          data.analyst_consensus = rawFundamentalsData.analystConsensus;
+      }
+      if (rawFundamentalsData?.gdpGrowth !== undefined && rawFundamentalsData?.gdpGrowth !== null) {
+          data.gdp_growth = rawFundamentalsData.gdpGrowth;
+      }
+      if (rawFundamentalsData?.dividendYield !== undefined && rawFundamentalsData?.dividendYield !== null) {
+          data.dividend_yield = rawFundamentalsData.dividendYield;
+      }
+
+      if (rawFundamentalsData?.cashConversionCycle) {
+          if (!Array.isArray(data.ratios)) data.ratios = [];
+          const ccc = rawFundamentalsData.cashConversionCycle;
+          if (ccc.inventoryDays !== null) data.ratios.push({ name: 'inventory days', company_value: ccc.inventoryDays });
+          if (ccc.receivableDays !== null) data.ratios.push({ name: 'receivable days', company_value: ccc.receivableDays });
+          if (ccc.payableDays !== null) data.ratios.push({ name: 'payable days', company_value: ccc.payableDays });
+      }
+
+      if (rawFundamentalsData?.interestCoverage !== undefined && rawFundamentalsData?.interestCoverage !== null) {
+          if (!Array.isArray(data.ratios)) data.ratios = [];
+          data.ratios.push({ name: 'interest coverage', company_value: rawFundamentalsData.interestCoverage });
+      }
+
+      // Inject Live Price for the selected instrument so cards like Dividend Yield can calculate dynamically
+      if (livePrices && livePrices[selectedInstrument] && livePrices[selectedInstrument].ltp) {
+          if (!data.quote) data.quote = {};
+          data.quote.last_price = livePrices[selectedInstrument].ltp;
+      }
+
       return data;
-  }, [rawFundamentalsData, livePrices, liveInstFlow, snapshot]);
+  }, [rawFundamentalsData, livePrices, liveInstFlow, snapshot, selectedInstrument]);
 
   // Fundamental Composite Engine integration
   const compositeData = useFundamentalComposite(selectedCategory, selectedInstrument);
@@ -263,7 +294,7 @@ export default function FundamentalPage() {
           setPrevCompositeScore(null); // No historical snapshots for this instrument yet
       }
 
-      // 3. Format the snapshot dates for the UI readout
+      // 4. Transform to Array structure for Gridates for the UI readout
       if (dates.size > 0) {
           const sorted = Array.from(dates).sort();
           const formatDateStr = (d) => {
@@ -318,9 +349,16 @@ export default function FundamentalPage() {
       return obj?.company_value !== undefined && obj?.company_value !== null && obj?.company_value !== '';
   };
   
-  const hasMarketCap = extractRatioExists(['market_cap']);
+  const hasMarketCap = extractRatioExists(['market_cap', 'mcap', 'marketcap']) || 
+      (rawFundamentalsData?.company_profile?.market_cap !== undefined && rawFundamentalsData?.company_profile?.market_cap !== null) || 
+      (rawFundamentalsData?.company_profile?.mcap !== undefined && rawFundamentalsData?.company_profile?.mcap !== null) ||
+      (rawFundamentalsData?.company_profile?.marketcap !== undefined && rawFundamentalsData?.company_profile?.marketcap !== null) ||
+      (rawFundamentalsData?.marketCap !== undefined && rawFundamentalsData?.marketCap !== null);
+  
   const hasPeRatio = extractRatioExists(['p/e', 'pe', 'pe ratio']);
-  const hasDividendYield = extractRatioExists(['dividend yield', 'div yield']);
+  const hasDividendYield = extractRatioExists(['dividend yield', 'div yield', 'dividend_yield', 'div_yield']) || 
+      (rawFundamentalsData?.company_profile?.dividend_yield !== undefined && rawFundamentalsData?.company_profile?.dividend_yield !== null) ||
+      (rawFundamentalsData?.dividendYield !== undefined && rawFundamentalsData?.dividendYield !== null);
   
   const incomeStmtArray = fundamentalsData?.income?.income_statement || [];
   const incomeFull = fundamentalsData?.income?.full_statement || [];
@@ -347,6 +385,25 @@ export default function FundamentalPage() {
   const cashFlowStmtArray = fundamentalsData?.cashFlow?.cash_flow || [];
   const hasFreeCashFlow = extractRatioExists(['free cash flow', 'fcf']) || cashFlowStmtArray.some(p => p.category === 'operating' || p.category === 'investing');
   const hasInterestCoverage = extractRatioExists(['interest coverage']);
+  
+  // Dynamic variables for everything else to prevent UI clutter if API data exists
+  const hasForwardPe = extractRatioExists(['forward pe', 'forward p/e', 'fwd pe']) || rawFundamentalsData?.forward_pe !== undefined || (hasPeRatio && hasEpsGrowth);
+  const hasRelativeValuation = hasPeRatio || hasEvEbitda || extractRatioExists(['p/b', 'pb', 'price to book']);
+  const hasGdpGrowth = rawFundamentalsData?.gdpGrowth !== undefined && rawFundamentalsData?.gdpGrowth !== null;
+  const hasConsensusRating = rawFundamentalsData?.analystConsensus?.consensus !== undefined && rawFundamentalsData?.analystConsensus?.consensus !== null;
+  const hasTargetPrice = rawFundamentalsData?.analystConsensus?.targetPrice !== undefined && rawFundamentalsData?.analystConsensus?.targetPrice !== null;
+  const hasAnalystCount = rawFundamentalsData?.analystConsensus?.analysts !== undefined && rawFundamentalsData?.analystConsensus?.analysts !== null;
+  
+  const hasSmartMoneyFlow = Array.isArray(fundamentalsData?.holdings) && fundamentalsData?.holdings.some(h => h.category === 'fii' || h.category === 'other_dii');
+  const hasPromoterHolding = Array.isArray(fundamentalsData?.holdings) && fundamentalsData?.holdings.some(h => h.category === 'promoter');
+  
+  const hasInventoryDays = extractRatioExists(['inventory days']);
+  const hasReceivableDays = extractRatioExists(['receivable days']);
+  const hasPayableDays = extractRatioExists(['payable days']);
+  
+  const hasCreditRating = extractRatioExists(['credit rating', 'credit_rating']);
+  const hasCreditRatingAgency = extractRatioExists(['rating agency', 'credit_rating_agency']);
+  const hasCreditRatingOutlook = extractRatioExists(['rating outlook', 'credit_rating_outlook']);
   // ------------------------------------------
 
   const fundamentalManualForm = (
@@ -439,57 +496,69 @@ export default function FundamentalPage() {
           ) : (
               <div className="columns-2 md:columns-4 gap-4 space-y-6 md:space-y-0">
                   {/* Valuation & Macro */}
-                  <div className="space-y-3 break-inside-avoid mb-6">
-                      <div className="text-[10px] font-bold text-blue-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Valuation & Macro</div>
-                      {!hasPeRatio && <DebouncedOverrideInput label="P/E Ratio (x)" overrideKey="pe_ratio" value={manualOverrides.pe_ratio} onChange={handleOverrideChange} />}
-                      <DebouncedOverrideInput label="Forward P/E (x)" overrideKey="forward_pe" value={manualOverrides.forward_pe} onChange={handleOverrideChange} />
-                      {!hasEvEbitda && <DebouncedOverrideInput label="EV/EBITDA (x)" overrideKey="ev_ebitda" value={manualOverrides.ev_ebitda} onChange={handleOverrideChange} />}
-                      <DebouncedOverrideInput label="Rel. Valuation (x)" overrideKey="relative_valuation" value={manualOverrides.relative_valuation} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="GDP Growth (%)" overrideKey="gdp_growth" value={manualOverrides.gdp_growth} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Consensus Rating" overrideKey="analyst_consensus_rating" value={manualOverrides.analyst_consensus_rating} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Target Price" overrideKey="analyst_target_price" value={manualOverrides.analyst_target_price} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Analyst Count" overrideKey="analyst_count" value={manualOverrides.analyst_count} onChange={handleOverrideChange} />
-                  </div>
+                  {(!hasMarketCap || !hasDividendYield || !hasPeRatio || !hasForwardPe || !hasEvEbitda || !hasRelativeValuation || !hasGdpGrowth || !hasConsensusRating || !hasTargetPrice || !hasAnalystCount) && (
+                      <div className="space-y-3 break-inside-avoid mb-6">
+                          <div className="text-[10px] font-bold text-blue-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Valuation & Macro</div>
+                          {!hasMarketCap && <DebouncedOverrideInput label="Market Cap (Cr)" overrideKey="market_cap" value={manualOverrides.market_cap} onChange={handleOverrideChange} />}
+                          {!hasDividendYield && <DebouncedOverrideInput label="Dividend Yield (%)" overrideKey="dividend_yield" value={manualOverrides.dividend_yield} onChange={handleOverrideChange} />}
+                          
+                          {!hasPeRatio && <DebouncedOverrideInput label="P/E Ratio (x)" overrideKey="pe_ratio" value={manualOverrides.pe_ratio} onChange={handleOverrideChange} />}
+                          {!hasForwardPe && <DebouncedOverrideInput label="Forward P/E (x)" overrideKey="forward_pe" value={manualOverrides.forward_pe} onChange={handleOverrideChange} />}
+                          {!hasEvEbitda && <DebouncedOverrideInput label="EV/EBITDA (x)" overrideKey="ev_ebitda" value={manualOverrides.ev_ebitda} onChange={handleOverrideChange} />}
+                          {!hasRelativeValuation && <DebouncedOverrideInput label="Rel. Valuation (x)" overrideKey="relative_valuation" value={manualOverrides.relative_valuation} onChange={handleOverrideChange} />}
+                          {!hasGdpGrowth && <DebouncedOverrideInput label="GDP Growth (%)" overrideKey="gdp_growth" value={manualOverrides.gdp_growth} onChange={handleOverrideChange} />}
+                          {!hasConsensusRating && <DebouncedOverrideInput label="Consensus Rating" overrideKey="analyst_consensus_rating" value={manualOverrides.analyst_consensus_rating} onChange={handleOverrideChange} />}
+                          {!hasTargetPrice && <DebouncedOverrideInput label="Target Price" overrideKey="analyst_target_price" value={manualOverrides.analyst_target_price} onChange={handleOverrideChange} />}
+                          {!hasAnalystCount && <DebouncedOverrideInput label="Analyst Count" overrideKey="analyst_count" value={manualOverrides.analyst_count} onChange={handleOverrideChange} />}
+                      </div>
+                  )}
 
                   {/* Earnings & Flows */}
-                  <div className="space-y-3 break-inside-avoid mb-6">
-                      <div className="text-[10px] font-bold text-orange-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Earnings & Flows</div>
-                      {!hasEpsGrowth && <DebouncedOverrideInput label="EPS Growth (%)" overrideKey="eps_growth" value={manualOverrides.eps_growth} onChange={handleOverrideChange} />}
-                      {!hasRevenueGrowth && <DebouncedOverrideInput label="Revenue Growth (%)" overrideKey="revenue_growth" value={manualOverrides.revenue_growth} onChange={handleOverrideChange} />}
-                      {!hasProfitGrowth && <DebouncedOverrideInput label="Profit Growth (%)" overrideKey="profit_growth" value={manualOverrides.profit_growth} onChange={handleOverrideChange} />}
-                      <DebouncedOverrideInput label="Smart Money Flow" overrideKey="smart_money_flow" value={manualOverrides.smart_money_flow} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Promoter Holding" overrideKey="promoter_holding" value={manualOverrides.promoter_holding} onChange={handleOverrideChange} />
-                  </div>
+                  {(!hasEpsGrowth || !hasRevenueGrowth || !hasProfitGrowth || !hasSmartMoneyFlow) && (
+                      <div className="space-y-3 break-inside-avoid mb-6">
+                          <div className="text-[10px] font-bold text-orange-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Earnings & Flows</div>
+                          {!hasEpsGrowth && <DebouncedOverrideInput label="EPS Growth (%)" overrideKey="eps_growth" value={manualOverrides.eps_growth} onChange={handleOverrideChange} />}
+                          {!hasRevenueGrowth && <DebouncedOverrideInput label="Revenue Growth (%)" overrideKey="revenue_growth" value={manualOverrides.revenue_growth} onChange={handleOverrideChange} />}
+                          {!hasProfitGrowth && <DebouncedOverrideInput label="Profit Growth (%)" overrideKey="profit_growth" value={manualOverrides.profit_growth} onChange={handleOverrideChange} />}
+                          {!hasSmartMoneyFlow && <DebouncedOverrideInput label="Smart Money Flow" overrideKey="smart_money_flow" value={manualOverrides.smart_money_flow} onChange={handleOverrideChange} />}
+                      </div>
+                  )}
 
                   {/* Profitability & CCC */}
-                  <div className="space-y-3 break-inside-avoid mb-6">
-                      <div className="text-[10px] font-bold text-green-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Profitability</div>
-                      {!hasRoe && <DebouncedOverrideInput label="ROE (%)" overrideKey="roe" value={manualOverrides.roe} onChange={handleOverrideChange} />}
-                      {!hasRoce && <DebouncedOverrideInput label="ROCE (%)" overrideKey="roce" value={manualOverrides.roce} onChange={handleOverrideChange} />}
-                      {!hasRoa && <DebouncedOverrideInput label="ROA (%)" overrideKey="roa" value={manualOverrides.roa} onChange={handleOverrideChange} />}
-                      {!hasNetMargin && <DebouncedOverrideInput label="Net Margin (%)" overrideKey="net_margin" value={manualOverrides.net_margin} onChange={handleOverrideChange} />}
-                      {!hasOperatingMargin && <DebouncedOverrideInput label="Op. Margin (%)" overrideKey="operating_margin" value={manualOverrides.operating_margin} onChange={handleOverrideChange} />}
-                      <DebouncedOverrideInput label="Inventory Days" overrideKey="inventory_days" value={manualOverrides.inventory_days} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Receivable Days" overrideKey="receivable_days" value={manualOverrides.receivable_days} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Payable Days" overrideKey="payable_days" value={manualOverrides.payable_days} onChange={handleOverrideChange} />
-                  </div>
+                  {(!hasRoe || !hasRoce || !hasRoa || !hasNetMargin || !hasOperatingMargin || !hasInventoryDays || !hasReceivableDays || !hasPayableDays) && (
+                      <div className="space-y-3 break-inside-avoid mb-6">
+                          <div className="text-[10px] font-bold text-green-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Profitability</div>
+                          {!hasRoe && <DebouncedOverrideInput label="ROE (%)" overrideKey="roe" value={manualOverrides.roe} onChange={handleOverrideChange} />}
+                          {!hasRoce && <DebouncedOverrideInput label="ROCE (%)" overrideKey="roce" value={manualOverrides.roce} onChange={handleOverrideChange} />}
+                          {!hasRoa && <DebouncedOverrideInput label="ROA (%)" overrideKey="roa" value={manualOverrides.roa} onChange={handleOverrideChange} />}
+                          {!hasNetMargin && <DebouncedOverrideInput label="Net Margin (%)" overrideKey="net_margin" value={manualOverrides.net_margin} onChange={handleOverrideChange} />}
+                          {!hasOperatingMargin && <DebouncedOverrideInput label="Op. Margin (%)" overrideKey="operating_margin" value={manualOverrides.operating_margin} onChange={handleOverrideChange} />}
+                          {!hasInventoryDays && <DebouncedOverrideInput label="Inventory Days" overrideKey="inventory_days" value={manualOverrides.inventory_days} onChange={handleOverrideChange} />}
+                          {!hasReceivableDays && <DebouncedOverrideInput label="Receivable Days" overrideKey="receivable_days" value={manualOverrides.receivable_days} onChange={handleOverrideChange} />}
+                          {!hasPayableDays && <DebouncedOverrideInput label="Payable Days" overrideKey="payable_days" value={manualOverrides.payable_days} onChange={handleOverrideChange} />}
+                      </div>
+                  )}
 
                   {/* Financial Health */}
-                  <div className="space-y-3 break-inside-avoid mb-6">
-                      <div className="text-[10px] font-bold text-purple-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Financial Health</div>
-                      {!hasDebtToEquity && <DebouncedOverrideInput label="Debt to Equity" overrideKey="debt_to_equity" value={manualOverrides.debt_to_equity} onChange={handleOverrideChange} />}
-                      {!hasInterestCoverage && <DebouncedOverrideInput label="Interest Coverage" overrideKey="interest_coverage" value={manualOverrides.interest_coverage} onChange={handleOverrideChange} />}
-                      {!hasFreeCashFlow && <DebouncedOverrideInput label="Free Cash Flow (Cr)" overrideKey="free_cash_flow" value={manualOverrides.free_cash_flow} onChange={handleOverrideChange} />}
-                      {!hasCurrentRatio && <DebouncedOverrideInput label="Current Ratio" overrideKey="current_ratio" value={manualOverrides.current_ratio} onChange={handleOverrideChange} />}
-                  </div>
+                  {(!hasDebtToEquity || !hasInterestCoverage || !hasFreeCashFlow || !hasCurrentRatio) && (
+                      <div className="space-y-3 break-inside-avoid mb-6">
+                          <div className="text-[10px] font-bold text-purple-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Financial Health</div>
+                          {!hasDebtToEquity && <DebouncedOverrideInput label="Debt to Equity" overrideKey="debt_to_equity" value={manualOverrides.debt_to_equity} onChange={handleOverrideChange} />}
+                          {!hasInterestCoverage && <DebouncedOverrideInput label="Interest Coverage" overrideKey="interest_coverage" value={manualOverrides.interest_coverage} onChange={handleOverrideChange} />}
+                          {!hasFreeCashFlow && <DebouncedOverrideInput label="Free Cash Flow (Cr)" overrideKey="free_cash_flow" value={manualOverrides.free_cash_flow} onChange={handleOverrideChange} />}
+                          {!hasCurrentRatio && <DebouncedOverrideInput label="Current Ratio" overrideKey="current_ratio" value={manualOverrides.current_ratio} onChange={handleOverrideChange} />}
+                      </div>
+                  )}
 
                   {/* Risk */}
-                  <div className="space-y-3 break-inside-avoid mb-6">
-                      <div className="text-[10px] font-bold text-red-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Risk</div>
-                      <DebouncedOverrideInput label="Credit Rating" overrideKey="credit_rating_value" value={manualOverrides.credit_rating_value} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Rating Agency" overrideKey="credit_rating_agency" value={manualOverrides.credit_rating_agency} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Rating Outlook" overrideKey="credit_rating_outlook" value={manualOverrides.credit_rating_outlook} onChange={handleOverrideChange} />
-                  </div>
+                  {(!hasCreditRating || !hasCreditRatingAgency || !hasCreditRatingOutlook) && (
+                      <div className="space-y-3 break-inside-avoid mb-6">
+                          <div className="text-[10px] font-bold text-red-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Risk</div>
+                          {!hasCreditRating && <DebouncedOverrideInput label="Credit Rating" overrideKey="credit_rating_value" value={manualOverrides.credit_rating_value} onChange={handleOverrideChange} />}
+                          {!hasCreditRatingAgency && <DebouncedOverrideInput label="Rating Agency" overrideKey="credit_rating_agency" value={manualOverrides.credit_rating_agency} onChange={handleOverrideChange} />}
+                          {!hasCreditRatingOutlook && <DebouncedOverrideInput label="Rating Outlook" overrideKey="credit_rating_outlook" value={manualOverrides.credit_rating_outlook} onChange={handleOverrideChange} />}
+                      </div>
+                  )}
               </div>
           )}
       </div>

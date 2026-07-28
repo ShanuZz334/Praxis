@@ -198,6 +198,13 @@ export const DashboardProvider = ({ children }) => {
         const handleSectors = (data) => setSectors(data);
         const handleNews = (data) => setMarketNews(data);
 
+        const handleConnect = () => {
+            // Resubscribe automatically if socket reconnects (e.g. after server restart)
+            socket.emit("subscribe:instruments", { keys: keysToFetch, mode: "full" });
+            socket.emit("request:hydration");
+        };
+
+        socket.on("connect", handleConnect);
         socket.on("market:update", handleMarketUpdate);
         socket.on("market:fiidii", handleFiiDii);
         socket.on("market:smartlists", handleSmartlists);
@@ -205,6 +212,7 @@ export const DashboardProvider = ({ children }) => {
         socket.on("market:news", handleNews);
 
         return () => {
+            socket.off("connect", handleConnect);
             socket.off("market:update", handleMarketUpdate);
             socket.off("market:fiidii", handleFiiDii);
             socket.off("market:smartlists", handleSmartlists);

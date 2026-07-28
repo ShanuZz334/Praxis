@@ -11,7 +11,7 @@ export default function CashConversionCycleCard({ cardId, data, manualOverrides 
     // Attempt to extract live data if Upstox provides them
     const getRatio = (keywords) => {
         const item = ratiosArray.find(r => keywords.some(kw => r.name?.toLowerCase().includes(kw)));
-        return item?.company_value ? cleanNum(item.company_value) : null;
+        return (item?.company_value !== undefined && item?.company_value !== null) ? cleanNum(item.company_value) : null;
     };
 
     // First try direct days

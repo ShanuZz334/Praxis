@@ -21,7 +21,7 @@ const CredentialCard = ({ providerKey, meta, healthData, onCheckConnection, chec
 
     return (
         <div className={`
-            relative p-6 rounded-2xl border flex flex-col justify-between h-[280px] transition-all duration-300
+            relative p-6 rounded-2xl border flex flex-col justify-between min-h-[280px] transition-all duration-300
             ${isConnected
                 ? "bg-background-surface/80 border-accent-primary/30 shadow-lg shadow-accent-primary/5"
                 : "bg-background-surface/40 border-border-subtle hover:border-border-hover"}
@@ -51,6 +51,12 @@ const CredentialCard = ({ providerKey, meta, healthData, onCheckConnection, chec
                 <p className="text-xs text-text-muted leading-relaxed">
                     {meta.desc}
                 </p>
+                
+                {healthData?.sampleData && (
+                    <div className="mt-3 p-2 rounded bg-background-floor border border-border-subtle flex items-center gap-2 text-[11px] font-mono text-emerald-400 shadow-inner">
+                        <span className="truncate">{healthData.sampleData}</span>
+                    </div>
+                )}
             </div>
 
             {/* Latency Section (Only when connected) */}

@@ -1,4 +1,7 @@
 import axios from 'axios';
+import YahooFinance from 'yahoo-finance2';
+
+const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
 /**
  * Service for fetching data from the unofficial Yahoo Finance API.
@@ -46,42 +49,176 @@ async function fetchQuoteSummary(symbol, modules) {
 }
 
 export const yahooFinanceService = {
+    /**
+     * Resolves an ISIN to a Yahoo Finance Symbol
+     */
+    async searchByIsin(isin) {
+        try {
+            if (!isin) return null;
+            const result = await yahooFinance.search(isin);
+            if (result && result.quotes && result.quotes.length > 0) {
+                return result.quotes[0].symbol;
+            }
+            return null;
+        } catch (error) {
+            console.error(`Yahoo Finance Error searching by ISIN ${isin}:`, error.message);
+            return null;
+        }
+    },
+
+    // --- MARKET DATA ---
+    
     // --- FUNDAMENTALS ---
     
     async getForwardPE(symbol) {
-        // Indian stocks need .NS suffix for Yahoo
-        const formattedSymbol = symbol.endsWith('.NS') ? symbol : `${symbol}.NS`;
-        const summary = await fetchQuoteSummary(formattedSymbol, 'defaultKeyStatistics');
-        return summary?.defaultKeyStatistics?.forwardPE?.raw || null;
+        try {
+            let cleanSymbol = symbol.split('-')[0];
+            if (cleanSymbol === 'HDFC') cleanSymbol = 'HDFCBANK';
+            const formattedSymbol = cleanSymbol.endsWith('.NS') ? cleanSymbol : `${cleanSymbol}.NS`;
+            const summary = await yahooFinance.quoteSummary(formattedSymbol, { modules: ['defaultKeyStatistics'] });
+            return summary?.defaultKeyStatistics?.forwardPE || null;
+        } catch (error) {
+            console.error(`Yahoo Finance Error fetching Forward PE for ${symbol}:`, error.message);
+            return null;
+        }
     },
 
     async getInterestCoverage(symbol) {
-        const formattedSymbol = symbol.endsWith('.NS') ? symbol : `${symbol}.NS`;
-        const summary = await fetchQuoteSummary(formattedSymbol, 'financialData');
-        const operatingIncome = summary?.financialData?.operatingMargins?.raw; // Not perfect for IC, usually EBIT / Interest
-        
-        // Proper way: fetch incomeStatementHistory
-        const incSummary = await fetchQuoteSummary(formattedSymbol, 'incomeStatementHistory');
-        const latest = incSummary?.incomeStatementHistory?.incomeStatementHistory?.[0];
-        if (latest && latest.ebit?.raw && latest.interestExpense?.raw) {
-            // Some companies have negative interest expense in yahoo
-            const interest = Math.abs(latest.interestExpense.raw);
-            if (interest === 0) return null; // Avoid div by zero
-            return latest.ebit.raw / interest;
-        }
+        // Simplified fallback as yahoo-finance2 incomeStatementHistory differs slightly
         return null;
     },
 
     async getBeta(symbol) {
-        const formattedSymbol = symbol.endsWith('.NS') ? symbol : `${symbol}.NS`;
-        const summary = await fetchQuoteSummary(formattedSymbol, 'defaultKeyStatistics');
-        return summary?.defaultKeyStatistics?.beta?.raw || null;
+        try {
+            let cleanSymbol = symbol.split('-')[0];
+            if (cleanSymbol === 'HDFC') cleanSymbol = 'HDFCBANK';
+            const formattedSymbol = cleanSymbol.endsWith('.NS') ? cleanSymbol : `${cleanSymbol}.NS`;
+            const summary = await yahooFinance.quoteSummary(formattedSymbol, { modules: ['defaultKeyStatistics'] });
+            return summary?.defaultKeyStatistics?.beta || null;
+        } catch (error) {
+            console.error(`Yahoo Finance Error fetching Beta for ${symbol}:`, error.message);
+            return null;
+        }
+    },
+
+    async getAnalystConsensus(symbol) {
+        try {
+            let cleanSymbol = symbol.split('-')[0];
+            if (cleanSymbol === 'HDFC') cleanSymbol = 'HDFCBANK';
+            const formattedSymbol = cleanSymbol.endsWith('.NS') ? cleanSymbol : `${cleanSymbol}.NS`;
+            const result = await yahooFinance.quoteSummary(formattedSymbol, { modules: ['financialData'] });
+            
+            if (result?.financialData) {
+                return {
+                    consensus: result.financialData.recommendationKey || null,
+                    targetPrice: result.financialData.targetMeanPrice || null,
+                    analysts: result.financialData.numberOfAnalystOpinions || null
+                };
+            }
+        } catch (error) {
+            console.error(`yahoo-finance2 Error fetching analyst consensus for ${symbol}:`, error.message);
+        }
+        return null;
+    },
+
+    async getDividendYield(symbol) {
+        try {
+            if (!symbol) return null;
+            const yfSymbol = symbol.endsWith('.NS') || symbol.endsWith('.BO') ? symbol : `${symbol}.NS`;
+            const result = await yahooFinance.quoteSummary(yfSymbol, { modules: ['summaryDetail'] });
+            if (result && result.summaryDetail) {
+                if (result.summaryDetail.dividendYield !== undefined) {
+                    return result.summaryDetail.dividendYield * 100;
+                } else {
+                    // Company doesn't pay dividends, yield is exactly 0%
+                    return 0;
+                }
+            }
+            return null;
+        } catch (error) {
+            console.error(`Yahoo getDividendYield failed for ${symbol}:`, error.message);
+            return null;
+        }
+    },
+
+    async getMarketCap(symbol) {
+        try {
+            if (!symbol) return null;
+            const yfSymbol = symbol.endsWith('.NS') || symbol.endsWith('.BO') ? symbol : `${symbol}.NS`;
+            const result = await yahooFinance.quoteSummary(yfSymbol, { modules: ['summaryDetail'] });
+            if (result && result.summaryDetail && result.summaryDetail.marketCap !== undefined) {
+                return result.summaryDetail.marketCap / 10000000; // Convert to Crores
+            }
+            return null;
+        } catch (error) {
+            console.error(`Yahoo getMarketCap failed for ${symbol}:`, error.message);
+            return null;
+        }
+    },
+
+    async getCashConversionCycle(symbol) {
+        try {
+            if (!symbol) return null;
+            const yfSymbol = symbol.endsWith('.NS') || symbol.endsWith('.BO') ? symbol : `${symbol}.NS`;
+            const result = await yahooFinance.fundamentalsTimeSeries(yfSymbol, { period1: '2023-01-01', module: 'all', type: 'annual' });
+            if (result && result.length > 0) {
+                const latest = result[result.length - 1];
+                
+                let inventoryDays = null;
+                let receivableDays = null;
+                let payableDays = null;
+
+                const cogs = latest.costOfRevenue;
+                const revenue = latest.totalRevenue;
+
+                if (cogs && cogs > 0 && latest.inventory !== undefined) {
+                    inventoryDays = (latest.inventory / cogs) * 365;
+                }
+                if (revenue && revenue > 0 && latest.accountsReceivable !== undefined) {
+                    receivableDays = (latest.accountsReceivable / revenue) * 365;
+                }
+                if (cogs && cogs > 0 && latest.accountsPayable !== undefined) {
+                    payableDays = (latest.accountsPayable / cogs) * 365;
+                }
+
+                if (inventoryDays !== null || receivableDays !== null || payableDays !== null) {
+                    return { inventoryDays, receivableDays, payableDays };
+                }
+            }
+            return null;
+        } catch (error) {
+            console.error(`Yahoo getCashConversionCycle failed for ${symbol}:`, error.message);
+            return null;
+        }
+    },
+
+    async getInterestCoverage(symbol) {
+        try {
+            if (!symbol) return null;
+            const yfSymbol = symbol.endsWith('.NS') || symbol.endsWith('.BO') ? symbol : `${symbol}.NS`;
+            const result = await yahooFinance.fundamentalsTimeSeries(yfSymbol, { period1: '2023-01-01', module: 'all', type: 'annual' });
+            if (result && result.length > 0) {
+                const latest = result[result.length - 1];
+                
+                const ebit = latest.EBIT || latest.operatingIncome;
+                const interestExpense = latest.interestExpense;
+
+                if (ebit !== undefined && interestExpense !== undefined && interestExpense > 0) {
+                    return ebit / interestExpense;
+                }
+            }
+            return null;
+        } catch (error) {
+            console.error(`Yahoo getInterestCoverage failed for ${symbol}:`, error.message);
+            return null;
+        }
     },
 
     // --- GLOBAL INDICES & COMMODITIES ---
     
     async getVix() {
-        return fetchChartLtp('^VIX');
+        // India VIX ticker on Yahoo
+        return fetchChartLtp('^INDIAVIX');
     },
     
     async getAluminum() {

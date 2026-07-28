@@ -347,9 +347,12 @@ export const useVoiceConversation = (initialCallbacks = {}) => {
             // Overwrite buffer with the FULL concatenated string of the entire spoken sentence
             finalTranscriptBuffer.current = cleanedText;
             
-            // Debounce the send to prevent cutting off the user mid-sentence,
-            // and act as a fallback in case isFinal never fires.
+            // Debounce the send to prevent cutting off the user mid-sentence.
+            // If the browser engine detects a completed sentence (isFinal), we use a fast conversational pause (1.2s).
+            // If it's an interim result (pausing mid-sentence to think/read), we give them a much longer window (3.5s).
             if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
+            
+            const silenceDelay = isFinal ? 1200 : 3500;
             
             speechTimeoutRef.current = setTimeout(() => {
               const finalTextToSend = finalTranscriptBuffer.current.trim();
@@ -362,7 +365,7 @@ export const useVoiceConversation = (initialCallbacks = {}) => {
               try {
                   if (recognitionRef.current) recognitionRef.current.stop();
               } catch(e) {}
-            }, 1800); // Wait 1.8 seconds of silence before assuming they are done speaking
+            }, silenceDelay);
           }
         }
       };

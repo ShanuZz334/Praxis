@@ -23,6 +23,7 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { useDataFreshness } from '@/shared/hooks/useDataFreshness';
 import { useAiSync } from "@/shared/hooks/useAiSync";
 import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/confidenceEngine";
+import { useGlobalApiData } from "../data/useGlobalApiData";
 
 const DEFAULT_OVERRIDES = {
     dxy: null,
@@ -78,7 +79,17 @@ export default function ForeignPage() {
         };
     }, [livePrices]);
 
-    const compositeData = useGlobalComposite(manualOverrides, liveData);
+    const liveApiData = useGlobalApiData();
+
+    // Merge Upstox and Yahoo/CoinGecko live data
+    const mergedLiveData = useMemo(() => {
+        return {
+            ...liveApiData,
+            ...liveData
+        };
+    }, [liveApiData, liveData]);
+
+    const compositeData = useGlobalComposite(manualOverrides, mergedLiveData);
 
     const getISTDateTime = () => {
         const date = new Date();
