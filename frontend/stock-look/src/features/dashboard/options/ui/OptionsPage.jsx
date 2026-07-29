@@ -23,6 +23,7 @@ import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
 import { useSnapshots } from '@/shared/hooks/useSnapshots';
 import { useDataFreshness } from "@/shared/hooks/useDataFreshness";
 import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedOverrideInput";
+import Loader from "@/shared/components/ui/Loader";
 import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/confidenceEngine";
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
@@ -565,6 +566,17 @@ export default function OptionsPage() {
             </div>
         </div>
     );
+
+    if (loading) {
+        return (
+            <div className="w-full min-h-[80vh] flex flex-col items-center justify-center bg-background-base animate-in fade-in duration-500">
+                <Loader size="lg" color="indigo" />
+                <p className="text-text-secondary mt-8 font-mono text-[11px] tracking-[0.2em] animate-pulse uppercase">
+                    Synchronizing {category} Pipeline...
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 w-full mx-auto min-h-screen space-y-4 md:space-y-6">

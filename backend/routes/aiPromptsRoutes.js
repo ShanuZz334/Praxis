@@ -19,14 +19,14 @@ router.use(protect);
 // Fallback when no custom prompt has been saved yet for a targetId.
 
 const PAGE_HEADER_DEFAULTS = {
-    [CARD_REGISTRY.fundamentals_index_header?.id || "fundamentals_index_header"]: `You are Praxis. Analyze the Fundamentals for {{symbol}}. Generate a short, actionable summary of the market regime and valuation. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.fundamentals_company_header?.id || "fundamentals_company_header"]: `You are Praxis. Analyze the Fundamentals for {{symbol}}. Generate a short, actionable summary of valuation and earnings quality. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.technical_index_header?.id || "technical_index_header"]: `You are Praxis. Analyze the Technicals for {{symbol}}. Generate a short, actionable summary of the primary trend and key levels. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.technical_company_header?.id || "technical_company_header"]: `You are Praxis. Analyze the Technicals for {{symbol}}. Generate a short summary of the primary trend and one specific trade setup. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.options_header?.id || "options_header"]: `You are Praxis. Analyze the Options data for {{symbol}}. Generate a short summary of directional bias, volatility regime, and a strategy recommendation. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.praxis_composite_header?.id || "praxis_composite_header"]: `You are Praxis. Analyze the composite data for {{symbol}}. Generate a short summary of the overall market posture and a tactical recommendation. No markdown, no bold text, no introductions.`,
-    foreign_header: `You are Praxis. Analyze the Global Macro data for {{symbol}}. Generate a short summary of the most important global headwinds/tailwind and sector impact. No markdown, no bold text, no introductions.`,
-    events_header: `You are Praxis. Analyze the Events data for {{symbol}}. Generate a short summary of key near-term event risks and expected impact. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.fundamentals_index_header?.id || "fundamentals_index_header"]: `You are Praxis. Analyze the Fundamentals for {stockSymbol}. Generate a short, actionable summary of the market regime and valuation. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.fundamentals_company_header?.id || "fundamentals_company_header"]: `You are Praxis. Analyze the Fundamentals for {stockSymbol}. Generate a short, actionable summary of valuation and earnings quality. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.technical_index_header?.id || "technical_index_header"]: `You are Praxis. Analyze the Technicals for {stockSymbol}. Generate a short, actionable summary of the primary trend and key levels. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.technical_company_header?.id || "technical_company_header"]: `You are Praxis. Analyze the Technicals for {stockSymbol}. Generate a short summary of the primary trend and one specific trade setup. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.options_header?.id || "options_header"]: `You are Praxis. Analyze the Options data for {stockSymbol}. Generate a short summary of directional bias, volatility regime, and a strategy recommendation. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.praxis_composite_header?.id || "praxis_composite_header"]: `You are Praxis. Analyze the composite data for {stockSymbol}. Generate a short summary of the overall market posture and a tactical recommendation. No markdown, no bold text, no introductions.`,
+    foreign_header: `You are Praxis. Analyze the Global Macro data for {stockSymbol}. Generate a short summary of the most important global headwinds/tailwind and sector impact. No markdown, no bold text, no introductions.`,
+    events_header: `You are Praxis. Analyze the Events data for {stockSymbol}. Generate a short summary of key near-term event risks and expected impact. No markdown, no bold text, no introductions.`,
 };
 
 const DEFAULT_SYSTEM_INSTRUCTION = (targetId, displayName) => {

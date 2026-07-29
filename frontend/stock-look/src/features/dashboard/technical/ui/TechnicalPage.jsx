@@ -10,6 +10,7 @@ import { technicalSections } from "../engine/technicalHelper";
 import CardSegmented from "@/shared/components/controls/CardSegmented";
 import IndicatorSettingsModal from "@/shared/components/ui/IndicatorCard/IndicatorSettingsModal";
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import Loader from "@/shared/components/ui/Loader";
 
 import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
@@ -104,7 +105,7 @@ export default function TechnicalPage() {
     }, [rawTechnicalsData, livePrices]);
 
     // Engine: Process the data via ai-snapshot events
-    const compositeData = useTechnicalComposite(isIndex);
+    const compositeData = useTechnicalComposite(isIndex, selectedInstrument);
 
 
     const { 
@@ -203,6 +204,17 @@ export default function TechnicalPage() {
             cards: cardsForHeader
         }
     );
+
+    if (isLoading) {
+        return (
+            <div className="w-full min-h-[80vh] flex flex-col items-center justify-center bg-background-base animate-in fade-in duration-500">
+                <Loader size="lg" color="indigo" />
+                <p className="text-text-secondary mt-8 font-mono text-[11px] tracking-[0.2em] animate-pulse uppercase">
+                    Synchronizing {selectedCategory} Pipeline...
+                </p>
+            </div>
+        );
+    }
 
     // Silently Stream the Snapshot to SQLite backend
     const maxCards = cards.length;

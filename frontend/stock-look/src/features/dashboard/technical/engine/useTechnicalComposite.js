@@ -7,7 +7,7 @@ import {
 } from './TechnicalCompositeEngine';
 import { getIndicatorColor } from '@/shared/config/scoreColors';
 
-export function useTechnicalComposite(isIndex = false) {
+export function useTechnicalComposite(isIndex = false, instrumentKey = null) {
     const scoresRef = useRef({});
     const [compositeData, setCompositeData] = useState({
         compositeScore: 50,
@@ -55,7 +55,7 @@ export function useTechnicalComposite(isIndex = false) {
 
         window.addEventListener('ai-snapshot', handleSnapshot);
         return () => window.removeEventListener('ai-snapshot', handleSnapshot);
-    }, [isIndex]);
+    }, [isIndex, instrumentKey]);
 
     return useMemo(() => {
         const engineResult = compositeData;

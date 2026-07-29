@@ -26,8 +26,8 @@ import { useFundamentalComposite } from '../engine/useFundamentalComposite';
 import { computeCompanyComposite, computeIndexComposite, TITLE_TO_ID } from '../engine/FundamentalCompositeEngine';
 import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
-
 import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedOverrideInput";
+import Loader from "@/shared/components/ui/Loader";
 import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
 import { useSnapshots } from "@/shared/hooks/useSnapshots";
 
@@ -367,7 +367,9 @@ export default function FundamentalPage() {
   const extractRatioExists = (names) => {
       const ratiosArray = Array.isArray(fundamentalsData?.ratios) ? fundamentalsData.ratios : [];
       const obj = ratiosArray.find(r => names.some(n => r.name?.toLowerCase() === n.toLowerCase()));
-      return obj?.company_value !== undefined && obj?.company_value !== null && obj?.company_value !== '';
+      if (!obj || obj.company_value === undefined || obj.company_value === null || obj.company_value === '') return false;
+      const parsed = parseFloat(String(obj.company_value).replace(/,/g, ''));
+      return !isNaN(parsed);
   };
   
   const hasMarketCap = extractRatioExists(['market_cap', 'mcap', 'marketcap']) || 
@@ -402,15 +404,25 @@ export default function FundamentalPage() {
   const hasRoa = extractRatioExists(['return on asset', 'roa']);
   
   // We can compute net margin if we have Profit After Tax and Total Revenue
-  const hasNetMargin = extractRatioExists(['net profit margin', 'net margin']) || (incomeFull.some(p => p.particular === 'Profit After Tax') && incomeFull.some(p => p.particular === 'Total Revenue'));
-  const hasOperatingMargin = extractRatioExists(['operating margin', 'opm']) || incomeStmtArray.some(p => p.category === 'operating_profit');
+  const hasNetMargin = extractRatioExists(['net profit margin', 'net margin', 'pat margin']) || 
+      (incomeFull.some(p => (p.particular === 'Profit After Tax' || p.particular === 'Profit Before Tax') && p.history?.length >= 1) && 
+       incomeFull.some(p => (p.particular === 'Total Revenue' || p.particular === 'Revenue') && p.history?.length >= 1 && parseFloat(p.history[0].value) > 0));
+  const hasOperatingMargin = extractRatioExists(['operating margin', 'opm', 'operating profit margin', 'ebit margin']) || 
+      (incomeStmtArray.some(p => p.category === 'operating_profit' && p.history?.length >= 1) && 
+       incomeStmtArray.some(p => p.category === 'revenue' && p.history?.length >= 1 && parseFloat(p.history[0].value) > 0));
   
   const balanceSheet = fundamentalsData?.balanceSheet?.full_statement || [];
-  const hasDebtToEquity = extractRatioExists(['debt to equity', 'd/e']) || (balanceSheet.some(p => p.particular === 'Equity Capital') && balanceSheet.some(p => p.particular === 'Non-Current Liabilities' || p.particular === 'Current Liabilities'));
-  const hasCurrentRatio = extractRatioExists(['current ratio']) || (balanceSheet.some(p => p.particular === 'Current Assets') && balanceSheet.some(p => p.particular === 'Current Liabilities'));
+  const hasDebtToEquity = extractRatioExists(['debt to equity', 'd/e']) || 
+      (balanceSheet.some(p => p.particular === 'Equity Capital' && p.history?.length > 0) && 
+       balanceSheet.some(p => (p.particular === 'Non-Current Liabilities' || p.particular === 'Current Liabilities')));
+  const hasCurrentRatio = extractRatioExists(['current ratio']) || 
+      (balanceSheet.some(p => p.particular?.toLowerCase() === 'current assets' && p.history?.length > 0) && 
+       balanceSheet.some(p => p.particular?.toLowerCase() === 'current liabilities' && p.history?.length > 0));
   
   const cashFlowStmtArray = fundamentalsData?.cashFlow?.cash_flow || [];
-  const hasFreeCashFlow = extractRatioExists(['free cash flow', 'fcf']) || cashFlowStmtArray.some(p => p.category === 'operating' || p.category === 'investing');
+  const hasFreeCashFlow = extractRatioExists(['free cash flow', 'fcf']) || 
+      (cashFlowStmtArray.some(p => p.category === 'operating' && p.history?.length > 0) && 
+       cashFlowStmtArray.some(p => p.category === 'investing' && p.history?.length > 0));
           const hasInterestCoverage = extractRatioExists(['interest coverage']);
   
   // Dynamic variables for everything else to prevent UI clutter if API data exists
@@ -667,6 +679,19 @@ export default function FundamentalPage() {
       }
   );
 
+  const contextValue = React.useMemo(() => ({ instrumentKey: selectedInstrument, snapshots: historicalSnapshots }), [selectedInstrument, historicalSnapshots]);
+
+  if (loading) {
+      return (
+          <div className="w-full min-h-[80vh] flex flex-col items-center justify-center bg-background-base animate-in fade-in duration-500">
+              <Loader size="lg" color="blue" />
+              <p className="text-text-secondary mt-8 font-mono text-[11px] tracking-[0.2em] animate-pulse uppercase">
+                  Synchronizing {selectedCategory} Pipeline...
+              </p>
+          </div>
+      );
+  }
+
   return (
     <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 w-full mx-auto min-h-screen">
 
@@ -732,10 +757,7 @@ export default function FundamentalPage() {
 
       {/* DATA GRID — empty until real data is wired */}
       <div className="mt-8">
-        {(() => {
-          const contextValue = React.useMemo(() => ({ instrumentKey: selectedInstrument, snapshots: historicalSnapshots }), [selectedInstrument, historicalSnapshots]);
-          return (
-            <FundamentalContext.Provider value={contextValue}>
+        <FundamentalContext.Provider value={contextValue}>
             <FundamentalGrid
               cards={cards.map(c => {
                   const dataCard = cardsForHeader.find(hc => hc.id === c.id);
@@ -758,8 +780,6 @@ export default function FundamentalPage() {
               resolveTime={resolveTime}
             />
         </FundamentalContext.Provider>
-          );
-        })()}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { API_PATHS } from '@/shared/utils/apiPaths';
 
 export function useGlobalApiData() {
     const [liveApiData, setLiveApiData] = useState({});
+    const [loading, setLoading] = useState(true);
     
     useEffect(() => {
         let mounted = true;
@@ -15,6 +16,8 @@ export function useGlobalApiData() {
                 }
             } catch(e) {
                 console.error("Failed to fetch global live data", e);
+            } finally {
+                if (mounted) setLoading(false);
             }
         };
         
@@ -27,5 +30,5 @@ export function useGlobalApiData() {
         };
     }, []);
 
-    return liveApiData;
+    return { data: liveApiData, loading };
 }

@@ -418,11 +418,7 @@ export default function AiInsightSection({
                                 animate={{ opacity: 1, y: 0 }}
                                 className="text-[13px] text-text-secondary leading-relaxed font-medium whitespace-pre-wrap overflow-y-auto h-full max-h-[175px] pr-2 custom-scrollbar"
                             >
-                                {displayedText || (
-                                    <span className="text-text-tertiary italic text-xs">
-                                        {score != null ? "Generating insight..." : "Waiting for data..."}
-                                    </span>
-                                )}
+                                {displayedText}
                                 {isTyping && (
                                     <span 
                                         className="inline-block w-1.5 h-3.5 ml-1 animate-pulse align-middle" 

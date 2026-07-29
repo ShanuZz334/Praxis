@@ -19,11 +19,11 @@ import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
 import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedOverrideInput";
 import { useGlobalComposite, ID_TO_TITLE_GLOBAL } from "../engine/useGlobalComposite";
-import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { useDataFreshness } from '@/shared/hooks/useDataFreshness';
 import { useAiSync } from "@/shared/hooks/useAiSync";
 import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/confidenceEngine";
 import { useGlobalApiData } from "../data/useGlobalApiData";
+import Loader from "@/shared/components/ui/Loader";
 
 const DEFAULT_OVERRIDES = {
     dxy: null,
@@ -79,7 +79,7 @@ export default function ForeignPage() {
         };
     }, [livePrices]);
 
-    const liveApiData = useGlobalApiData();
+    const { data: liveApiData, loading } = useGlobalApiData();
 
     // Merge Upstox and Yahoo/CoinGecko live data
     const mergedLiveData = useMemo(() => {
@@ -227,15 +227,21 @@ export default function ForeignPage() {
         "GLOBAL_MACRO", // Generic key for global
         "Global", 
         {
-            compositeScore: compositeData.compositeScore,
-            regime: compositeData.regime,
-            sections: compositeData.sections,
-            tailwinds: compositeData.tailwinds,
-            risks: compositeData.risks,
-            aiInsight: compositeData.aiInsight,
+            ...compositeData,
             cards: cardsForHeader
         }
     );
+
+    if (loading) {
+        return (
+            <div className="w-full min-h-[80vh] flex flex-col items-center justify-center bg-background-base animate-in fade-in duration-500">
+                <Loader size="lg" color="indigo" />
+                <p className="text-text-secondary mt-8 font-mono text-[11px] tracking-[0.2em] animate-pulse uppercase">
+                    Synchronizing Global Pipeline...
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="px-4 md:px-6 pt-2 pb-32 animate-in fade-in duration-500 w-full mx-auto min-h-screen space-y-4 md:space-y-6">
