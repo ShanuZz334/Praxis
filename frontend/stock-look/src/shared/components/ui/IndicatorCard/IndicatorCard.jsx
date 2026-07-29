@@ -303,6 +303,7 @@ export function IndicatorCard({
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const lastDispatchedScoreRef = React.useRef(null);
+  const lastDispatchedInstrumentRef = React.useRef(null);
   const { synthesize, skipTts, status } = useVoice();
   const isSpeaking = status === 'speaking';
 
@@ -378,18 +379,26 @@ export function IndicatorCard({
       details:     data?.details?.slice(0, 4) ?? [],
       isLive:      config.mode?.toUpperCase() === 'AUTO',
     });
-
-    // ── Dispatch ai-snapshot for Composite Engine ─────────────────────────────
-    if (data?.score !== undefined && data?.score !== null && data.score !== lastDispatchedScoreRef.current) {
-        lastDispatchedScoreRef.current = data.score;
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('ai-snapshot', {
-            detail: { card_id: baseCardId, score: data.score }
-          }));
-        }, 0);
-      }
   }, [resolvedPage, baseCardId, data?.currentValueObj?.value, data?.score, data?.bias,
       data?.confidence, data?.impactWeight, config.title, config.creditScore, config.mode, register]);
+
+    const dashboardContext = useDashboardContext() || {};
+    const globalSelectedInstrument = dashboardContext.selectedInstrument;
+    const livePrices = dashboardContext.livePrices;
+
+    useEffect(() => {
+        const currentScore = data?.score !== undefined ? data.score : null;
+        if (currentScore !== lastDispatchedScoreRef.current || globalSelectedInstrument !== lastDispatchedInstrumentRef.current) {
+            lastDispatchedScoreRef.current = currentScore;
+            lastDispatchedInstrumentRef.current = globalSelectedInstrument;
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('ai-snapshot', {
+                detail: { card_id: baseCardId, score: currentScore, instrumentKey: globalSelectedInstrument }
+              }));
+            }, 0);
+          }
+      }, [resolvedPage, baseCardId, data?.currentValueObj?.value, data?.score, data?.bias,
+          data?.confidence, data?.impactWeight, config.title, config.creditScore, config.mode, register, globalSelectedInstrument]);
 
   // ── useCardInsight: the single hook powering all AI calls ──────────────────
   const {
@@ -399,10 +408,6 @@ export function IndicatorCard({
     meta: hookMeta,
     generate
   } = useCardInsight(resolvedCardId);
-
-  const dashboardContext = useDashboardContext() || {};
-  const livePrices = dashboardContext.livePrices;
-  const globalSelectedInstrument = dashboardContext.selectedInstrument;
 
   // Trigger insight generation when card expands and has a real value
   useEffect(() => {

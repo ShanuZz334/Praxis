@@ -30,6 +30,17 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedOverrideInput";
 import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
 import { useSnapshots } from "@/shared/hooks/useSnapshots";
+
+// Wrapper to automatically inject timer configs
+const TimerOverrideInput = ({ overrideKey, manualLastUpdated, expiryConfigs, info, ...props }) => (
+    <DebouncedOverrideInput
+        {...props}
+        overrideKey={overrideKey}
+        lastUpdatedTimestamp={manualLastUpdated?.[overrideKey]}
+        expiryDuration={expiryConfigs?.[overrideKey] || expiryConfigs?.global_default}
+        info={info}
+    />
+);
 import { useAiSync } from "@/shared/hooks/useAiSync";
 import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/confidenceEngine";
 import { useDataFreshness } from '@/shared/hooks/useDataFreshness';
@@ -44,6 +55,7 @@ const DEFAULT_OVERRIDES = {
     // ─── COMPANY OVERRIDES ───
     // Valuation
     pe_ratio: null, forward_pe: null, ev_ebitda: null, pb_ratio: null, earnings_yield: null, relative_valuation: null,
+    face_value: null,
     analyst_consensus_rating: null, analyst_target_price: null, analyst_count: null,
     // Earnings
     eps_growth: null, revenue_growth: null, profit_growth: null,
@@ -56,8 +68,6 @@ const DEFAULT_OVERRIDES = {
     inventory_days: null, receivable_days: null, payable_days: null,
     // Balance Sheet (Global)
     debt_to_equity: null, interest_coverage: null, free_cash_flow: null, current_ratio: null,
-    // Risk
-    credit_rating_value: null, credit_rating_agency: null, credit_rating_outlook: null,
 
     // ─── INDEX OVERRIDES ───
     // Valuation
@@ -74,7 +84,6 @@ const DEFAULT_OVERRIDES = {
     credit_growth: null, corp_debt: null, policy_tailwinds: null,
     // Global/Risk
     india_vix: null, crude: null, global_liq: null,
-    sovereign_risk: null, npa: null, reform_momentum: null,
 };
 
 export default function FundamentalPage() {
@@ -119,10 +128,6 @@ export default function FundamentalPage() {
     { id: "india_vix", category: "Global" },
     { id: "crude", category: "Global" },
     { id: "global_liq", category: "Global" },
-    // Risk
-    { id: "sovereign_risk", category: "Risk" },
-    { id: "npa", category: "Risk" },
-    { id: "reform_momentum", category: "Risk" },
   ] : [
     // Valuation
     { id: "pe_ratio", category: "Valuation" },
@@ -142,6 +147,9 @@ export default function FundamentalPage() {
     { id: "eps_growth", category: "Earnings" },
     { id: "revenue_growth", category: "Earnings" },
     { id: "profit_growth", category: "Earnings" },
+    { id: "eps_yoy", category: "Earnings" },
+    { id: "forward_eps", category: "Earnings" },
+    { id: "profit_margin", category: "Earnings" },
     // Macro
     { id: "gdp_growth", category: "Macro" },
     // Corporate
@@ -161,12 +169,10 @@ export default function FundamentalPage() {
     { id: "smart_money_flow", category: "Ownership" },
     { id: "earnings_quality", category: "Ownership" },
     { id: "corporate_actions", category: "Ownership" },
-    // Risk
-    { id: "credit_rating", category: "Risk" },
   ];
 
   // Standardized Manual Overrides Hook
-  const { overrides: manualOverrides, lastUpdated: manualLastUpdated, handleChange: handleOverrideChange, handleClearAll } = useManualOverrides('v2', selectedInstrument, DEFAULT_OVERRIDES);
+  const { overrides: manualOverrides, lastUpdated: manualLastUpdated, expiryConfigs, handleChange: handleOverrideChange, handleClearAll } = useManualOverrides('v2', selectedInstrument, DEFAULT_OVERRIDES);
 
   // Context manages auto-updating instrument when category changes
 
@@ -205,11 +211,21 @@ export default function FundamentalPage() {
           }
       }
 
-      const vixLtp = livePrices?.["NSE_INDEX|India VIX"]?.ltp;
-      if (vixLtp) {
-          data.india_vix = vixLtp;
-      }
-      if (liveInstFlow) {
+        const vixLtp = livePrices?.["NSE_INDEX|India VIX"]?.ltp;
+        if (vixLtp) {
+            data.india_vix = vixLtp;
+        }
+        
+        const crudeLtp = livePrices?.["GLOBAL_INDICATOR|BZUSD"]?.ltp;
+        if (crudeLtp) {
+            data.crude = crudeLtp;
+        }
+
+        if (rawFundamentalsData?.global_liq !== undefined && rawFundamentalsData?.global_liq !== null) {
+            data.global_liq = rawFundamentalsData.global_liq;
+        }
+
+        if (liveInstFlow) {
           data.fii_dii_flow = liveInstFlow;
       }
 
@@ -235,6 +251,11 @@ export default function FundamentalPage() {
       if (rawFundamentalsData?.interestCoverage !== undefined && rawFundamentalsData?.interestCoverage !== null) {
           if (!Array.isArray(data.ratios)) data.ratios = [];
           data.ratios.push({ name: 'interest coverage', company_value: rawFundamentalsData.interestCoverage });
+      }
+
+      if (rawFundamentalsData?.bookValue !== undefined && rawFundamentalsData?.bookValue !== null) {
+          if (!Array.isArray(data.ratios)) data.ratios = [];
+          data.ratios.push({ name: 'book value', company_value: rawFundamentalsData.bookValue });
       }
 
       // Inject Live Price for the selected instrument so cards like Dividend Yield can calculate dynamically
@@ -356,6 +377,8 @@ export default function FundamentalPage() {
       (rawFundamentalsData?.marketCap !== undefined && rawFundamentalsData?.marketCap !== null);
   
   const hasPeRatio = extractRatioExists(['p/e', 'pe', 'pe ratio']);
+  const hasPbRatio = extractRatioExists(['p/b', 'pb', 'price to book']);
+  const hasEarningsYield = extractRatioExists(['earnings yield']);
   const hasDividendYield = extractRatioExists(['dividend yield', 'div yield', 'dividend_yield', 'div_yield']) || 
       (rawFundamentalsData?.company_profile?.dividend_yield !== undefined && rawFundamentalsData?.company_profile?.dividend_yield !== null) ||
       (rawFundamentalsData?.dividendYield !== undefined && rawFundamentalsData?.dividendYield !== null);
@@ -368,6 +391,10 @@ export default function FundamentalPage() {
   
   const hasRevenueGrowth = extractRatioExists(['revenue growth']) || incomeStmtArray.some(p => p.category === 'revenue' && p.history?.length >= 2);
   const hasProfitGrowth = extractRatioExists(['profit growth']) || incomeStmtArray.some(p => p.category === 'net_profit' && p.history?.length >= 2);
+
+  const hasEpsYoy = hasEarningsTrend;
+  const hasForwardEps = hasEarningsTrend;
+  const hasProfitMargin = (incomeStmtArray.some(p => p.category === 'net_profit' && p.history?.length >= 1) && incomeStmtArray.some(p => p.category === 'revenue' && p.history?.length >= 1));
   
   const hasEvEbitda = extractRatioExists(['ev/ebitda', 'ev / ebitda']);
   const hasRoe = extractRatioExists(['return on equity', 'roe']);
@@ -384,15 +411,33 @@ export default function FundamentalPage() {
   
   const cashFlowStmtArray = fundamentalsData?.cashFlow?.cash_flow || [];
   const hasFreeCashFlow = extractRatioExists(['free cash flow', 'fcf']) || cashFlowStmtArray.some(p => p.category === 'operating' || p.category === 'investing');
-  const hasInterestCoverage = extractRatioExists(['interest coverage']);
+          const hasInterestCoverage = extractRatioExists(['interest coverage']);
   
   // Dynamic variables for everything else to prevent UI clutter if API data exists
   const hasForwardPe = extractRatioExists(['forward pe', 'forward p/e', 'fwd pe']) || rawFundamentalsData?.forward_pe !== undefined || (hasPeRatio && hasEpsGrowth);
   const hasRelativeValuation = hasPeRatio || hasEvEbitda || extractRatioExists(['p/b', 'pb', 'price to book']);
   const hasGdpGrowth = rawFundamentalsData?.gdpGrowth !== undefined && rawFundamentalsData?.gdpGrowth !== null;
+  const hasCrude = fundamentalsData?.crude !== undefined && fundamentalsData?.crude !== null;
+  const hasGlobalLiq = fundamentalsData?.global_liq !== undefined && fundamentalsData?.global_liq !== null;
+  const hasCreditGrowth = fundamentalsData?.credit_growth !== undefined && fundamentalsData?.credit_growth !== null;
+  const hasCorpDebt = fundamentalsData?.corporate_debt !== undefined && fundamentalsData?.corporate_debt !== null;
+  const hasFaceValue = extractRatioExists(['face value', 'face_value']) || (rawFundamentalsData?.company_profile?.face_value !== undefined && rawFundamentalsData?.company_profile?.face_value !== null);
   const hasConsensusRating = rawFundamentalsData?.analystConsensus?.consensus !== undefined && rawFundamentalsData?.analystConsensus?.consensus !== null;
   const hasTargetPrice = rawFundamentalsData?.analystConsensus?.targetPrice !== undefined && rawFundamentalsData?.analystConsensus?.targetPrice !== null;
   const hasAnalystCount = rawFundamentalsData?.analystConsensus?.analysts !== undefined && rawFundamentalsData?.analystConsensus?.analysts !== null;
+  
+  const hasFiiFlow = fundamentalsData?.liquidity?.fii_net !== undefined;
+  const hasDiiFlow = fundamentalsData?.liquidity?.dii_net !== undefined;
+  const hasAdvanceDecline = fundamentalsData?.advance_decline?.advances !== undefined;
+  const hasMcapGdp = false; // Always manual for now
+  
+  const hasCpi = rawFundamentalsData?.cpiInflation !== undefined && rawFundamentalsData?.cpiInflation !== null;
+  const hasRepo = rawFundamentalsData?.repoRate !== undefined && rawFundamentalsData?.repoRate !== null;
+  const hasFiscalDeficit = rawFundamentalsData?.fiscalDeficit !== undefined && rawFundamentalsData?.fiscalDeficit !== null;
+  const hasPolicyTailwinds = fundamentalsData?.policy_tailwinds !== undefined && fundamentalsData?.policy_tailwinds !== null;
+  const hasFiiTrend = fundamentalsData?.fiiTrend !== undefined && fundamentalsData?.fiiTrend !== null;
+  const hasMfFlows = fundamentalsData?.mf_flows !== undefined && fundamentalsData?.mf_flows !== null;
+  const hasSystemLiquidity = false; // Always manual for now
   
   const hasSmartMoneyFlow = Array.isArray(fundamentalsData?.holdings) && fundamentalsData?.holdings.some(h => h.category === 'fii' || h.category === 'other_dii');
   const hasPromoterHolding = Array.isArray(fundamentalsData?.holdings) && fundamentalsData?.holdings.some(h => h.category === 'promoter');
@@ -401,9 +446,7 @@ export default function FundamentalPage() {
   const hasReceivableDays = extractRatioExists(['receivable days']);
   const hasPayableDays = extractRatioExists(['payable days']);
   
-  const hasCreditRating = extractRatioExists(['credit rating', 'credit_rating']);
-  const hasCreditRatingAgency = extractRatioExists(['rating agency', 'credit_rating_agency']);
-  const hasCreditRatingOutlook = extractRatioExists(['rating outlook', 'credit_rating_outlook']);
+
   // ------------------------------------------
 
   const fundamentalManualForm = (
@@ -434,93 +477,104 @@ export default function FundamentalPage() {
           </p>
           
           {selectedCategory === "Indices" ? (
-              <div className="columns-2 md:columns-4 gap-4 space-y-6 md:space-y-0">
-                  <div className="space-y-3 break-inside-avoid mb-6">
-                      <div className="text-[10px] font-bold text-emerald-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Valuation</div>
-                      <DebouncedOverrideInput label="Nifty P/E" overrideKey="nifty_pe" value={manualOverrides.nifty_pe} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Nifty P/B" overrideKey="nifty_pb" value={manualOverrides.nifty_pb} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="M-Cap/GDP (%)" overrideKey="mcap_gdp" value={manualOverrides.mcap_gdp} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Earnings Yield (%)" overrideKey="earnings_yield" value={manualOverrides.earnings_yield} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Dividend Yield (%)" overrideKey="dividend_yield" value={manualOverrides.dividend_yield} onChange={handleOverrideChange} />
-                  </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6 items-start">
+                  {(!hasPeRatio || !hasPbRatio || !hasMcapGdp || !hasEarningsYield || !hasDividendYield) && (
+                      <div className="space-y-3 break-inside-avoid mb-6">
+                          <div className="text-[10px] font-bold text-emerald-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Valuation</div>
+                          {!hasPeRatio && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Nifty P/E" overrideKey="nifty_pe" value={manualOverrides.nifty_pe} onChange={handleOverrideChange} />}
+                          {!hasPbRatio && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Nifty P/B" overrideKey="nifty_pb" value={manualOverrides.nifty_pb} onChange={handleOverrideChange} />}
+                          {!hasMcapGdp && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="M-Cap/GDP (%)" overrideKey="mcap_gdp" value={manualOverrides.mcap_gdp} onChange={handleOverrideChange} info="Market Cap to GDP ratio. Enter as a percentage (e.g., 95.5 for 95.5%). Realistic range for India: 60% to 130%." />}
+                          {!hasEarningsYield && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Earnings Yield (%)" overrideKey="earnings_yield" value={manualOverrides.earnings_yield} onChange={handleOverrideChange} />}
+                          {!hasDividendYield && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Dividend Yield (%)" overrideKey="dividend_yield" value={manualOverrides.dividend_yield} onChange={handleOverrideChange} />}
+                      </div>
+                  )}
                   
-                  <div className="space-y-3 break-inside-avoid mb-6">
-                      <div className="text-[10px] font-bold text-orange-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Earnings</div>
-                      <DebouncedOverrideInput label="EPS YoY (%)" overrideKey="eps_yoy" value={manualOverrides.eps_yoy} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Forward EPS (%)" overrideKey="forward_eps" value={manualOverrides.forward_eps} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Sector Earnings" overrideKey="sector_earnings" value={manualOverrides.sector_earnings} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Profit Margin (%)" overrideKey="profit_margin" value={manualOverrides.profit_margin} onChange={handleOverrideChange} />
-                  </div>
+                  {(!hasEpsYoy || !hasForwardEps || !hasProfitMargin) && (
+                      <div className="space-y-3 break-inside-avoid mb-6">
+                          <div className="text-[10px] font-bold text-orange-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Earnings</div>
+                          {!hasEpsYoy && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="EPS YoY (%)" overrideKey="eps_yoy" value={manualOverrides.eps_yoy} onChange={handleOverrideChange} info="Earnings Per Share Year-over-Year Growth. Enter as a percentage (e.g., 15.2). Realistic range: -20% to +40%." />}
+                          {!hasForwardEps && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Forward EPS (%)" overrideKey="forward_eps" value={manualOverrides.forward_eps} onChange={handleOverrideChange} info="Forward EPS Growth Estimate. Enter as a percentage (e.g., 12.5). Realistic range: -10% to +35%." />}
+                          {!hasProfitMargin && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Profit Margin (%)" overrideKey="profit_margin" value={manualOverrides.profit_margin} onChange={handleOverrideChange} info="Net Profit Margin. Enter as a percentage (e.g., 8.5). Realistic range: 2% to 25%." />}
+                      </div>
+                  )}
                   
-                  <div className="space-y-3 break-inside-avoid mb-6">
-                      <div className="text-[10px] font-bold text-blue-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Macro Economy</div>
-                      <DebouncedOverrideInput label="GDP Growth (%)" overrideKey="gdp" value={manualOverrides.gdp} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="CPI Inflation (%)" overrideKey="cpi" value={manualOverrides.cpi} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Repo Rate (%)" overrideKey="repo" value={manualOverrides.repo} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Fiscal Deficit (%)" overrideKey="fiscal_deficit" value={manualOverrides.fiscal_deficit} onChange={handleOverrideChange} />
-                  </div>
+                  {(!hasGdpGrowth || !hasCpi || !hasRepo || !hasFiscalDeficit) && (
+                      <div className="space-y-3 break-inside-avoid mb-6">
+                          <div className="text-[10px] font-bold text-blue-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Macro Economy</div>
+                          {!hasGdpGrowth && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="GDP Growth (%)" overrideKey="gdp" value={manualOverrides.gdp} onChange={handleOverrideChange} />}
+                          {!hasCpi && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="CPI Inflation (%)" overrideKey="cpi" value={manualOverrides.cpi} onChange={handleOverrideChange} />}
+                          {!hasRepo && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Repo Rate (%)" overrideKey="repo" value={manualOverrides.repo} onChange={handleOverrideChange} />}
+                          {!hasFiscalDeficit && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Fiscal Deficit (%)" overrideKey="fiscal_deficit" value={manualOverrides.fiscal_deficit} onChange={handleOverrideChange} />}
+                      </div>
+                  )}
                   
-                  <div className="space-y-3 break-inside-avoid mb-6">
-                      <div className="text-[10px] font-bold text-indigo-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Corporate</div>
-                      <DebouncedOverrideInput label="Credit Growth (%)" overrideKey="credit_growth" value={manualOverrides.credit_growth} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Corp Debt/Eq" overrideKey="corp_debt" value={manualOverrides.corp_debt} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Policy Tailwinds" overrideKey="policy_tailwinds" value={manualOverrides.policy_tailwinds} onChange={handleOverrideChange} />
-                  </div>
+                  {(!hasCreditGrowth || !hasCorpDebt || !hasPolicyTailwinds) && (
+                      <div className="space-y-3 break-inside-avoid mb-6">
+                          <div className="text-[10px] font-bold text-indigo-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Corporate</div>
+                          {!hasCreditGrowth && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Credit Growth (%)" overrideKey="credit_growth" value={manualOverrides.credit_growth} onChange={handleOverrideChange} />}
+                          {!hasCorpDebt && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Corp Debt/Eq" overrideKey="corp_debt" value={manualOverrides.corp_debt} onChange={handleOverrideChange} />}
+                          {!hasPolicyTailwinds && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Policy Tailwinds" overrideKey="policy_tailwinds" value={manualOverrides.policy_tailwinds} onChange={handleOverrideChange} info="Score out of 100 representing favorable government policies or reforms. Realistic range: 0 to 100." />}
+                      </div>
+                  )}
 
-                  <div className="space-y-3 break-inside-avoid mb-6">
-                      <div className="text-[10px] font-bold text-purple-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Liquidity & Flow</div>
-                      <DebouncedOverrideInput label="FII Flow (Cr)" overrideKey="fii" value={manualOverrides.fii} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="DII Flow (Cr)" overrideKey="dii" value={manualOverrides.dii} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="FII Trend (Days)" overrideKey="fii_trend" value={manualOverrides.fii_trend} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="MF Flows (Cr)" overrideKey="mf_flows" value={manualOverrides.mf_flows} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Sys Liquidity (LCr)" overrideKey="system_liquidity" value={manualOverrides.system_liquidity} onChange={handleOverrideChange} />
-                  </div>
+                  {(!hasFiiFlow || !hasDiiFlow || !hasFiiTrend || !hasMfFlows || !hasSystemLiquidity) && (
+                      <div className="space-y-3 break-inside-avoid mb-6">
+                          <div className="text-[10px] font-bold text-purple-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Liquidity & Flow</div>
+                          {!hasFiiFlow && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="FII Flow (Cr)" overrideKey="fii" value={manualOverrides.fii} onChange={handleOverrideChange} info="FII Net Flow in Crores (INR). Enter absolute value (e.g., 2500). Realistic range: -15000 to +15000." />}
+                          {!hasDiiFlow && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="DII Flow (Cr)" overrideKey="dii" value={manualOverrides.dii} onChange={handleOverrideChange} info="DII Net Flow in Crores (INR). Enter absolute value (e.g., 1200). Realistic range: -10000 to +15000." />}
+                          {!hasFiiTrend && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="FII Trend (Days)" overrideKey="fii_trend" value={manualOverrides.fii_trend} onChange={handleOverrideChange} info="FII Trend Persistence in Days. Positive for consecutive buying, negative for selling (e.g., 3 or -2). Realistic range: -15 to +15." />}
+                          {!hasMfFlows && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="MF Flows (Cr)" overrideKey="mf_flows" value={manualOverrides.mf_flows} onChange={handleOverrideChange} info="Mutual Fund Flows in Crores (INR). Enter absolute value (e.g., 2500 for ₹2,500 Cr). Realistic range: -10000 to +30000." />}
+                          {!hasSystemLiquidity && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="System Liquidity" overrideKey="system_liquidity" value={manualOverrides.system_liquidity} onChange={handleOverrideChange} info="System Liquidity surplus/deficit in Crores (INR). Enter absolute value (e.g., -50000). Realistic range: -300000 to +300000." />}
+                      </div>
+                  )}
                   
-                  <div className="space-y-3 break-inside-avoid mb-6">
-                      <div className="text-[10px] font-bold text-cyan-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Sector Data</div>
-                      <DebouncedOverrideInput label="Advance/Decline" overrideKey="advance_decline" value={manualOverrides.advance_decline} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Sector Valuation" overrideKey="sector_valuation" value={manualOverrides.sector_valuation} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Sector Growth" overrideKey="sector_growth" value={manualOverrides.sector_growth} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Sector Concen." overrideKey="sector_concentration" value={manualOverrides.sector_concentration} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Cyc vs Def" overrideKey="cyc_def" value={manualOverrides.cyc_def} onChange={handleOverrideChange} />
-                  </div>
+                  {(!hasAdvanceDecline) && (
+                      <div className="space-y-3 break-inside-avoid mb-6">
+                          <div className="text-[10px] font-bold text-cyan-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Sector Data</div>
+                          {!hasAdvanceDecline && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Advance/Decline" overrideKey="advance_decline" value={manualOverrides.advance_decline} onChange={handleOverrideChange} info="Advance/Decline Ratio (ADR). Enter absolute value (e.g., 1.2). Realistic range: 0.1 to 5.0." />}
+                      </div>
+                  )}
 
-                  <div className="space-y-3 break-inside-avoid mb-6">
-                      <div className="text-[10px] font-bold text-red-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Global & Risk</div>
-                      <DebouncedOverrideInput label="Global Liquidity" overrideKey="global_liq" value={manualOverrides.global_liq} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Sovereign CDS" overrideKey="sovereign_risk" value={manualOverrides.sovereign_risk} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="NPA Ratio (%)" overrideKey="npa" value={manualOverrides.npa} onChange={handleOverrideChange} />
-                      <DebouncedOverrideInput label="Reform Momentum" overrideKey="reform_momentum" value={manualOverrides.reform_momentum} onChange={handleOverrideChange} />
-                  </div>
+                  {(!hasCrude || !hasGlobalLiq) && (
+                        <div className="space-y-3 break-inside-avoid mb-6">
+                            <div className="text-[10px] font-bold text-red-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Global Data</div>
+                            {!hasCrude && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Crude Oil ($/bbl)" overrideKey="crude" value={manualOverrides.crude} onChange={handleOverrideChange} info="Brent Crude price in USD per barrel ($/bbl). Enter absolute value (e.g., 75.50). Realistic range: 50 to 130." />}
+                            {!hasGlobalLiq && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Global Liquidity" overrideKey="global_liq" value={manualOverrides.global_liq} onChange={handleOverrideChange} info="Global Liquidity Index/Trillions. Enter absolute value (e.g., 85.5)." />}
+                        </div>
+                    )}
               </div>
           ) : (
-              <div className="columns-2 md:columns-4 gap-4 space-y-6 md:space-y-0">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6 items-start">
                   {/* Valuation & Macro */}
-                  {(!hasMarketCap || !hasDividendYield || !hasPeRatio || !hasForwardPe || !hasEvEbitda || !hasRelativeValuation || !hasGdpGrowth || !hasConsensusRating || !hasTargetPrice || !hasAnalystCount) && (
+                  {(!hasMarketCap || !hasDividendYield || !hasPeRatio || !hasForwardPe || !hasEvEbitda || !hasRelativeValuation || !hasFaceValue || !hasGdpGrowth || !hasConsensusRating || !hasTargetPrice || !hasAnalystCount) && (
                       <div className="space-y-3 break-inside-avoid mb-6">
                           <div className="text-[10px] font-bold text-blue-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Valuation & Macro</div>
-                          {!hasMarketCap && <DebouncedOverrideInput label="Market Cap (Cr)" overrideKey="market_cap" value={manualOverrides.market_cap} onChange={handleOverrideChange} />}
-                          {!hasDividendYield && <DebouncedOverrideInput label="Dividend Yield (%)" overrideKey="dividend_yield" value={manualOverrides.dividend_yield} onChange={handleOverrideChange} />}
+                          {!hasMarketCap && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Market Cap (Cr)" overrideKey="market_cap" value={manualOverrides.market_cap} onChange={handleOverrideChange} info="Market Capitalization in Crores (INR). Enter absolute value (e.g., 50000). Realistic range: 100 to 2000000." />}
+                          {!hasDividendYield && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Dividend Yield (%)" overrideKey="dividend_yield" value={manualOverrides.dividend_yield} onChange={handleOverrideChange} info="Dividend Yield in percent (%). Enter absolute value (e.g., 1.5). Realistic range: 0 to 10." />}
                           
-                          {!hasPeRatio && <DebouncedOverrideInput label="P/E Ratio (x)" overrideKey="pe_ratio" value={manualOverrides.pe_ratio} onChange={handleOverrideChange} />}
-                          {!hasForwardPe && <DebouncedOverrideInput label="Forward P/E (x)" overrideKey="forward_pe" value={manualOverrides.forward_pe} onChange={handleOverrideChange} />}
-                          {!hasEvEbitda && <DebouncedOverrideInput label="EV/EBITDA (x)" overrideKey="ev_ebitda" value={manualOverrides.ev_ebitda} onChange={handleOverrideChange} />}
-                          {!hasRelativeValuation && <DebouncedOverrideInput label="Rel. Valuation (x)" overrideKey="relative_valuation" value={manualOverrides.relative_valuation} onChange={handleOverrideChange} />}
-                          {!hasGdpGrowth && <DebouncedOverrideInput label="GDP Growth (%)" overrideKey="gdp_growth" value={manualOverrides.gdp_growth} onChange={handleOverrideChange} />}
-                          {!hasConsensusRating && <DebouncedOverrideInput label="Consensus Rating" overrideKey="analyst_consensus_rating" value={manualOverrides.analyst_consensus_rating} onChange={handleOverrideChange} />}
-                          {!hasTargetPrice && <DebouncedOverrideInput label="Target Price" overrideKey="analyst_target_price" value={manualOverrides.analyst_target_price} onChange={handleOverrideChange} />}
-                          {!hasAnalystCount && <DebouncedOverrideInput label="Analyst Count" overrideKey="analyst_count" value={manualOverrides.analyst_count} onChange={handleOverrideChange} />}
+                          {!hasPeRatio && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="P/E Ratio (x)" overrideKey="pe_ratio" value={manualOverrides.pe_ratio} onChange={handleOverrideChange} info="Price to Earnings Ratio. Enter absolute value (e.g., 25.5). Realistic range: 5 to 100." />}
+                          {!hasForwardPe && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Forward P/E (x)" overrideKey="forward_pe" value={manualOverrides.forward_pe} onChange={handleOverrideChange} info="Forward P/E Ratio. Enter absolute value (e.g., 22.0). Realistic range: 5 to 100." />}
+                          {!hasEvEbitda && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="EV/EBITDA (x)" overrideKey="ev_ebitda" value={manualOverrides.ev_ebitda} onChange={handleOverrideChange} info="Enterprise Value to EBITDA Ratio. Enter absolute value (e.g., 12.5). Realistic range: 2 to 50." />}
+                          {!hasRelativeValuation && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Rel. Valuation (x)" overrideKey="relative_valuation" value={manualOverrides.relative_valuation} onChange={handleOverrideChange} info="Relative Valuation premium/discount in percent (%). Enter negative for discount (e.g., -15). Realistic range: -50 to +100." />}
+                          {!hasFaceValue && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Face Value (₹)" overrideKey="face_value" value={manualOverrides.face_value} onChange={handleOverrideChange} info="Face Value of the stock in INR. Usually ₹1, ₹2, ₹5, or ₹10. Enter absolute value (e.g., 10)." />}
+                          {!hasGdpGrowth && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="GDP Growth (%)" overrideKey="gdp_growth" value={manualOverrides.gdp_growth} onChange={handleOverrideChange} info="GDP Growth in percent (%). Enter absolute value (e.g., 7.2). Realistic range: -5 to +12." />}
+                          {!hasConsensusRating && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Consensus Rating" overrideKey="analyst_consensus_rating" value={manualOverrides.analyst_consensus_rating} onChange={handleOverrideChange} info="Consensus Rating. Enter 1 (Strong Buy), 2 (Buy), 3 (Hold), 4 (Sell), or 5 (Strong Sell)." />}
+                          {!hasTargetPrice && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Target Price" overrideKey="analyst_target_price" value={manualOverrides.analyst_target_price} onChange={handleOverrideChange} info="Analyst Target Price in INR. Enter absolute value (e.g., 1500)." />}
+                          {!hasAnalystCount && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Analyst Count" overrideKey="analyst_count" value={manualOverrides.analyst_count} onChange={handleOverrideChange} info="Number of analysts covering the stock. Enter absolute integer (e.g., 12)." />}
                       </div>
                   )}
 
                   {/* Earnings & Flows */}
-                  {(!hasEpsGrowth || !hasRevenueGrowth || !hasProfitGrowth || !hasSmartMoneyFlow) && (
+                  {(!hasEpsGrowth || !hasRevenueGrowth || !hasProfitGrowth || !hasEpsYoy || !hasForwardEps || !hasProfitMargin || !hasSmartMoneyFlow) && (
                       <div className="space-y-3 break-inside-avoid mb-6">
                           <div className="text-[10px] font-bold text-orange-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Earnings & Flows</div>
-                          {!hasEpsGrowth && <DebouncedOverrideInput label="EPS Growth (%)" overrideKey="eps_growth" value={manualOverrides.eps_growth} onChange={handleOverrideChange} />}
-                          {!hasRevenueGrowth && <DebouncedOverrideInput label="Revenue Growth (%)" overrideKey="revenue_growth" value={manualOverrides.revenue_growth} onChange={handleOverrideChange} />}
-                          {!hasProfitGrowth && <DebouncedOverrideInput label="Profit Growth (%)" overrideKey="profit_growth" value={manualOverrides.profit_growth} onChange={handleOverrideChange} />}
-                          {!hasSmartMoneyFlow && <DebouncedOverrideInput label="Smart Money Flow" overrideKey="smart_money_flow" value={manualOverrides.smart_money_flow} onChange={handleOverrideChange} />}
+                          {!hasEpsGrowth && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="EPS Growth (%)" overrideKey="eps_growth" value={manualOverrides.eps_growth} onChange={handleOverrideChange} info="EPS Growth in percent (%). Enter absolute value (e.g., 15.5). Realistic range: -50 to +100." />}
+                          {!hasRevenueGrowth && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Revenue Growth (%)" overrideKey="revenue_growth" value={manualOverrides.revenue_growth} onChange={handleOverrideChange} info="Revenue Growth in percent (%). Enter absolute value (e.g., 12.0). Realistic range: -20 to +100." />}
+                          {!hasProfitGrowth && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Profit Growth (%)" overrideKey="profit_growth" value={manualOverrides.profit_growth} onChange={handleOverrideChange} info="Profit Growth in percent (%). Enter absolute value (e.g., 18.5). Realistic range: -50 to +200." />}
+                          {!hasEpsYoy && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="EPS YoY (%)" overrideKey="eps_yoy" value={manualOverrides.eps_yoy} onChange={handleOverrideChange} info="EPS Year-over-Year Growth in percent (%). Enter absolute value (e.g., 14.0). Realistic range: -50 to +100." />}
+                          {!hasForwardEps && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Forward EPS" overrideKey="forward_eps" value={manualOverrides.forward_eps} onChange={handleOverrideChange} info="Forward EPS (Earnings Per Share) in INR. Enter absolute value (e.g., 45.50)." />}
+                          {!hasProfitMargin && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Profit Margin (%)" overrideKey="profit_margin" value={manualOverrides.profit_margin} onChange={handleOverrideChange} info="Profit Margin in percent (%). Enter absolute value (e.g., 12.5). Realistic range: -20 to +50." />}
+                          {!hasSmartMoneyFlow && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Smart Money Flow" overrideKey="smart_money_flow" value={manualOverrides.smart_money_flow} onChange={handleOverrideChange} info="Smart Money Flow index/percent. Enter absolute value (e.g., 65). Realistic range: 0 to 100." />}
                       </div>
                   )}
 
@@ -528,14 +582,14 @@ export default function FundamentalPage() {
                   {(!hasRoe || !hasRoce || !hasRoa || !hasNetMargin || !hasOperatingMargin || !hasInventoryDays || !hasReceivableDays || !hasPayableDays) && (
                       <div className="space-y-3 break-inside-avoid mb-6">
                           <div className="text-[10px] font-bold text-green-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Profitability</div>
-                          {!hasRoe && <DebouncedOverrideInput label="ROE (%)" overrideKey="roe" value={manualOverrides.roe} onChange={handleOverrideChange} />}
-                          {!hasRoce && <DebouncedOverrideInput label="ROCE (%)" overrideKey="roce" value={manualOverrides.roce} onChange={handleOverrideChange} />}
-                          {!hasRoa && <DebouncedOverrideInput label="ROA (%)" overrideKey="roa" value={manualOverrides.roa} onChange={handleOverrideChange} />}
-                          {!hasNetMargin && <DebouncedOverrideInput label="Net Margin (%)" overrideKey="net_margin" value={manualOverrides.net_margin} onChange={handleOverrideChange} />}
-                          {!hasOperatingMargin && <DebouncedOverrideInput label="Op. Margin (%)" overrideKey="operating_margin" value={manualOverrides.operating_margin} onChange={handleOverrideChange} />}
-                          {!hasInventoryDays && <DebouncedOverrideInput label="Inventory Days" overrideKey="inventory_days" value={manualOverrides.inventory_days} onChange={handleOverrideChange} />}
-                          {!hasReceivableDays && <DebouncedOverrideInput label="Receivable Days" overrideKey="receivable_days" value={manualOverrides.receivable_days} onChange={handleOverrideChange} />}
-                          {!hasPayableDays && <DebouncedOverrideInput label="Payable Days" overrideKey="payable_days" value={manualOverrides.payable_days} onChange={handleOverrideChange} />}
+                          {!hasRoe && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="ROE (%)" overrideKey="roe" value={manualOverrides.roe} onChange={handleOverrideChange} info="Return on Equity (ROE) in percent (%). Enter absolute value (e.g., 18.5). Realistic range: -20 to +50." />}
+                          {!hasRoce && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="ROCE (%)" overrideKey="roce" value={manualOverrides.roce} onChange={handleOverrideChange} info="Return on Capital Employed (ROCE) in percent (%). Enter absolute value (e.g., 20.0). Realistic range: -10 to +60." />}
+                          {!hasRoa && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="ROA (%)" overrideKey="roa" value={manualOverrides.roa} onChange={handleOverrideChange} info="Return on Assets (ROA) in percent (%). Enter absolute value (e.g., 8.5). Realistic range: -10 to +30." />}
+                          {!hasNetMargin && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Net Margin (%)" overrideKey="net_margin" value={manualOverrides.net_margin} onChange={handleOverrideChange} info="Net Profit Margin in percent (%). Enter absolute value (e.g., 10.5). Realistic range: -20 to +50." />}
+                          {!hasOperatingMargin && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Op. Margin (%)" overrideKey="operating_margin" value={manualOverrides.operating_margin} onChange={handleOverrideChange} info="Operating Margin in percent (%). Enter absolute value (e.g., 15.0). Realistic range: -20 to +60." />}
+                          {!hasInventoryDays && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Inventory Days" overrideKey="inventory_days" value={manualOverrides.inventory_days} onChange={handleOverrideChange} info="Inventory Days (Days Sales of Inventory). Enter absolute value (e.g., 45). Realistic range: 5 to 300." />}
+                          {!hasReceivableDays && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Receivable Days" overrideKey="receivable_days" value={manualOverrides.receivable_days} onChange={handleOverrideChange} info="Receivable Days (Days Sales Outstanding). Enter absolute value (e.g., 30). Realistic range: 5 to 150." />}
+                          {!hasPayableDays && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Payable Days" overrideKey="payable_days" value={manualOverrides.payable_days} onChange={handleOverrideChange} info="Payable Days (Days Payable Outstanding). Enter absolute value (e.g., 60). Realistic range: 10 to 200." />}
                       </div>
                   )}
 
@@ -543,22 +597,14 @@ export default function FundamentalPage() {
                   {(!hasDebtToEquity || !hasInterestCoverage || !hasFreeCashFlow || !hasCurrentRatio) && (
                       <div className="space-y-3 break-inside-avoid mb-6">
                           <div className="text-[10px] font-bold text-purple-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Financial Health</div>
-                          {!hasDebtToEquity && <DebouncedOverrideInput label="Debt to Equity" overrideKey="debt_to_equity" value={manualOverrides.debt_to_equity} onChange={handleOverrideChange} />}
-                          {!hasInterestCoverage && <DebouncedOverrideInput label="Interest Coverage" overrideKey="interest_coverage" value={manualOverrides.interest_coverage} onChange={handleOverrideChange} />}
-                          {!hasFreeCashFlow && <DebouncedOverrideInput label="Free Cash Flow (Cr)" overrideKey="free_cash_flow" value={manualOverrides.free_cash_flow} onChange={handleOverrideChange} />}
-                          {!hasCurrentRatio && <DebouncedOverrideInput label="Current Ratio" overrideKey="current_ratio" value={manualOverrides.current_ratio} onChange={handleOverrideChange} />}
+                          {!hasDebtToEquity && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Debt to Equity" overrideKey="debt_to_equity" value={manualOverrides.debt_to_equity} onChange={handleOverrideChange} info="Debt to Equity Ratio. Enter absolute value (e.g., 0.5). Realistic range: 0 to 5." />}
+                          {!hasInterestCoverage && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Interest Coverage" overrideKey="interest_coverage" value={manualOverrides.interest_coverage} onChange={handleOverrideChange} info="Interest Coverage Ratio. Enter absolute value (e.g., 6.5). Realistic range: -5 to 50." />}
+                          {!hasFreeCashFlow && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Free Cash Flow (Cr)" overrideKey="free_cash_flow" value={manualOverrides.free_cash_flow} onChange={handleOverrideChange} info="Free Cash Flow in Crores (INR). Enter absolute value (e.g., 1500)." />}
+                          {!hasCurrentRatio && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Current Ratio" overrideKey="current_ratio" value={manualOverrides.current_ratio} onChange={handleOverrideChange} info="Current Ratio. Enter absolute value (e.g., 1.5). Realistic range: 0.2 to 5.0." />}
                       </div>
                   )}
 
-                  {/* Risk */}
-                  {(!hasCreditRating || !hasCreditRatingAgency || !hasCreditRatingOutlook) && (
-                      <div className="space-y-3 break-inside-avoid mb-6">
-                          <div className="text-[10px] font-bold text-red-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Risk</div>
-                          {!hasCreditRating && <DebouncedOverrideInput label="Credit Rating" overrideKey="credit_rating_value" value={manualOverrides.credit_rating_value} onChange={handleOverrideChange} />}
-                          {!hasCreditRatingAgency && <DebouncedOverrideInput label="Rating Agency" overrideKey="credit_rating_agency" value={manualOverrides.credit_rating_agency} onChange={handleOverrideChange} />}
-                          {!hasCreditRatingOutlook && <DebouncedOverrideInput label="Rating Outlook" overrideKey="credit_rating_outlook" value={manualOverrides.credit_rating_outlook} onChange={handleOverrideChange} />}
-                      </div>
-                  )}
+                  {/* Removed Risk Section */}
               </div>
           )}
       </div>
@@ -631,9 +677,10 @@ export default function FundamentalPage() {
               score={compositeData.compositeScore}
               prevScore={prevCompositeScore} // Calculated from historical snapshots
               regime={{ ...compositeData.regime, confidence: headerConfidence }}
+              isIndex={isIndex}
               sections={compositeData.sections}
               tailwinds={compositeData.tailwinds}
-              risks={compositeData.risks}
+              headwinds={compositeData.headwinds}
               integrity={{ 
                   coverageText: `${activeCardsCount}/${maxCards}`, 
                   coveragePercent: coveragePercent, 
@@ -717,3 +764,4 @@ export default function FundamentalPage() {
     </div>
   );
 }
+

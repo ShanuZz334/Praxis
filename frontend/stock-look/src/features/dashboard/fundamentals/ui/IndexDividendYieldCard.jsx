@@ -8,11 +8,11 @@ import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreNiftyDividendYield, generateAiInsightNiftyDividendYield } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function IndexDividendYieldCard({ cardId, data, manualOverride, lastUpdated }) {
-    // 1. Core State & Extraction
-    let isManual = true;
-    let extractedValue = null;
+    // 1. Live Data Extraction (Upstox / NSE)
+    const dyObj = (Array.isArray(data?.ratios) ? data.ratios : []).find(r => ['dividend yield', 'div yield', 'dividend_yield', 'div_yield'].includes(r.name?.toLowerCase()));
+    let extractedValue = dyObj?.company_value ? cleanNum(dyObj.company_value) : null;
 
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
+    let isManual = extractedValue === null || isNaN(extractedValue);
     
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
@@ -46,7 +46,7 @@ export default function IndexDividendYieldCard({ cardId, data, manualOverride, l
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Yield (%)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
+                currentValueObj: { label: 'Yield', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) + '%' : currentValue + '%') : '--' },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',

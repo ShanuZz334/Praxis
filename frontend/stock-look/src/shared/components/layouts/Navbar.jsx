@@ -21,6 +21,8 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/shared/context/ThemeContext";
 import { useDashboardContext } from "@/shared/context/DashboardContext";
 import DetachableInstrumentSelector from "@/shared/components/controls/DetachableInstrumentSelector";
+import CalculatorWidget from "@/shared/components/controls/CalculatorWidget";
+import { Calculator } from "lucide-react";
 
 import nseLogo from "@/assets/images/nse.png";
 import upstoxLogo from "@/assets/images/Upstox.png";
@@ -35,9 +37,10 @@ import { useVoice } from "@/shared/context/VoiceContext";
 
 const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const { theme, useOrbNav } = useTheme();
   const { isStandbyMode, toggleStandby } = useVoice();
   const [isWidgetOpen, setIsWidgetOpen] = useState(false);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [upstoxConnected, setUpstoxConnected] = useState(true);
 
   useEffect(() => {
@@ -88,23 +91,25 @@ const Navbar = ({ onToggleSidebar }) => {
     >
       {/* LEFT COLUMN — SIDEBAR TOGGLE */}
       <div className="w-16 h-full flex items-center justify-center">
-        <button
-          onClick={onToggleSidebar}
-          aria-label="Toggle sidebar"
-          className="
-            w-14 h-14
-            flex items-center justify-center
-            rounded-xl
-            transition-all
-            hover:opacity-80 active:scale-95
-          "
-        >
-          <img
-            src={theme === 'light' ? logo1Bgless : logo2Bgless}
-            alt="Menu"
-            className="w-[50px] h-[50px] transition-transform hover:scale-110"
-          />
-        </button>
+        {!useOrbNav && (
+          <button
+            onClick={onToggleSidebar}
+            aria-label="Toggle sidebar"
+            className="
+              w-14 h-14
+              flex items-center justify-center
+              rounded-xl
+              transition-all
+              hover:opacity-80 active:scale-95
+            "
+          >
+            <img
+              src={theme === 'light' ? logo1Bgless : logo2Bgless}
+              alt="Menu"
+              className="w-[50px] h-[50px] transition-transform hover:scale-110"
+            />
+          </button>
+        )}
       </div>
 
       {/* LEFT CONTENT — MARKET DATA */}
@@ -259,6 +264,7 @@ const Navbar = ({ onToggleSidebar }) => {
           <FiBell className="text-lg transition-transform hover:scale-110" />
         </button>
 
+
         {/* Settings */}
         <button
           onClick={() => navigate("/dashboard/settings")}
@@ -273,8 +279,26 @@ const Navbar = ({ onToggleSidebar }) => {
 
       </div>
 
+      {/* Floating Utilities Column (Below Settings) */}
+      <div className="fixed top-[85px] right-[20px] flex flex-col items-center justify-center gap-4 z-40">
+        <button
+          onClick={() => setIsCalculatorOpen(true)}
+          className="
+            text-text-tertiary
+            transition-colors
+            hover:text-accent-primary
+          "
+          title="Calculator"
+        >
+          <Calculator className="w-[18px] h-[18px] transition-transform hover:scale-110" />
+        </button>
+      </div>
+
       {/* Detachable Magnetic Instrument Selector (Floating Widget) */}
       <DetachableInstrumentSelector isOpen={isWidgetOpen} onClose={() => setIsWidgetOpen(false)} />
+      
+      {/* Calculator Widget */}
+      <CalculatorWidget isOpen={isCalculatorOpen} onClose={() => setIsCalculatorOpen(false)} />
     </header>
   );
 };

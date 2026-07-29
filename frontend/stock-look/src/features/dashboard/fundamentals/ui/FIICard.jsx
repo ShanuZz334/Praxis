@@ -12,8 +12,11 @@ export default function FIICard({ cardId, data, manualOverride, lastUpdated }) {
     let isManual = true;
     let extractedValue = null;
 
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
-    
+    // 1. Live Data Extraction (NSE)
+    if (data?.liquidity?.fii_net !== undefined && data?.liquidity?.fii_net !== null) {
+        extractedValue = data.liquidity.fii_net;
+        isManual = false;
+    }
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
     // 2. Load Central Config
@@ -45,7 +48,7 @@ export default function FIICard({ cardId, data, manualOverride, lastUpdated }) {
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Flow (Cr)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
+                currentValueObj: { label: 'Flow', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) + ' Cr' : currentValue + ' Cr') : '--' },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',

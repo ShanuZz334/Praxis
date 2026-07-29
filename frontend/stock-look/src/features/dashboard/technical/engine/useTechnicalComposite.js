@@ -30,8 +30,12 @@ export function useTechnicalComposite(isIndex = false) {
     useEffect(() => {
         const handleSnapshot = (e) => {
             if (!e.detail) return;
-            const { card_id, score } = e.detail;
+            const { card_id, score, instrumentKey: snapInstrument } = e.detail;
             
+            if (snapInstrument && snapInstrument !== instrumentKey) {
+                return;
+            }
+
             const metricId = card_id;
             
             if (metricId) {

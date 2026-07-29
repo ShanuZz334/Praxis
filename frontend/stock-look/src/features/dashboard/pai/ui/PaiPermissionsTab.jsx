@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldAlert, Database, Globe, Briefcase, Key } from 'lucide-react';
+import { UniversalToggle } from '@/components/ui/universal-toggle';
 
 export default function PaiPermissionsTab() {
     const [permissions, setPermissions] = useState({
@@ -26,12 +27,10 @@ export default function PaiPermissionsTab() {
                     <p className="text-[12px] text-text-tertiary mt-0.5">{desc}</p>
                 </div>
             </div>
-            <button 
-                onClick={() => togglePermission(stateKey)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${permissions[stateKey] ? 'bg-blue-600' : 'bg-background-elevated border border-border-default'}`}
-            >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${permissions[stateKey] ? 'translate-x-6' : 'translate-x-1'}`} />
-            </button>
+            <UniversalToggle 
+                checked={permissions[stateKey]} 
+                onChange={() => togglePermission(stateKey)} 
+            />
         </div>
     );
 

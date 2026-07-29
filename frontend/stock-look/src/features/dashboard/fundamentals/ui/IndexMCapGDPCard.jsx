@@ -46,7 +46,7 @@ export default function IndexMCapGDPCard({ cardId, data, manualOverride, lastUpd
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'M-Cap/GDP (%)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
+                currentValueObj: { label: 'M-Cap/GDP', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) + '%' : currentValue + '%') : '--' },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',

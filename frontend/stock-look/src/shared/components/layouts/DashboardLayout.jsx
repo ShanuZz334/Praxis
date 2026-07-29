@@ -31,6 +31,8 @@ import { useTheme } from "@/shared/context/ThemeContext";
 import { DashboardProvider } from "@/shared/context/DashboardContext";
 import { PaiWidgetProvider } from "@/shared/context/PaiWidgetContext";
 import PaiFloatingWidget from "@/features/dashboard/pai/ui/PaiFloatingWidget";
+import OrbNavigation from "@/shared/components/layouts/OrbNavigation";
+import "@/shared/components/backgrounds/Meteors.css";
 
 // =============================
 // Constants
@@ -49,7 +51,7 @@ const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(true);
   const [activeMenu, setActiveMenu] = useState("DASHBOARD");
   const { user } = useContext(UserContext);
-  const { theme, vfxPreset } = useTheme();
+  const { theme, vfxPreset, useOrbNav } = useTheme();
   const location = useLocation();
 
   // VFX Presets Configuration
@@ -96,7 +98,7 @@ const DashboardLayout = () => {
   }, [location.pathname]);
 
   const isPaiPage = location.pathname.includes('/pai');
-  const activeSidebarWidth = isPaiPage ? 0 : (collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH);
+  const activeSidebarWidth = isPaiPage ? 0 : (collapsed ? (useOrbNav ? 0 : COLLAPSED_WIDTH) : EXPANDED_WIDTH);
 
   return (
     <PaiWidgetProvider>
@@ -114,8 +116,22 @@ const DashboardLayout = () => {
         </div>
       )}
 
+      {/* COSMOS STARS VFX (DARK MODE ONLY) */}
+      {theme === "dark" && vfxPreset === "cosmos" && (
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden stars-vfx-container">
+          <div id="stars"></div>
+          <div id="stars2"></div>
+          <div id="stars3"></div>
+        </div>
+      )}
+
+      {/* METEORS VFX (DARK MODE ONLY) */}
+      {theme === "dark" && vfxPreset === "meteors" && (
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden meteors-container"></div>
+      )}
+
       {/* PREMIUM ANIMATED BACKGROUND VFX - VIBRANT (DARK MODE ONLY) */}
-      {theme === "dark" && (
+      {theme === "dark" && vfxPreset !== "cosmos" && vfxPreset !== "meteors" && (
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
           {/* Layer 1: Primary Vibrant Orbs - Slow Float */}
           <div className="absolute inset-0">
@@ -149,6 +165,11 @@ const DashboardLayout = () => {
 
       {/* --- DESKTOP LAYOUT COMPONENTS --- */}
 
+      {/* DESKTOP ORB NAV */}
+      {useOrbNav && !isPaiPage && (
+        <OrbNavigation onToggleSidebar={() => setCollapsed((p) => !p)} />
+      )}
+
       {/* DESKTOP NAVBAR */}
       {!isPaiPage && (
         <div>
@@ -157,7 +178,7 @@ const DashboardLayout = () => {
       )}
 
       {/* DESKTOP SIDEMENU */}
-      {!isPaiPage && (
+      {!isPaiPage && (!useOrbNav || !collapsed) && (
         <div>
           <SideMenu
             collapsed={collapsed}

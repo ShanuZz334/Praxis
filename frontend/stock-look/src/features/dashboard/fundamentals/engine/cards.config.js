@@ -330,37 +330,6 @@ const _baseCards = [
     creditScore: 0.95,
     creditAllocation: 9,
   },
-
-  /* -----------------------------------------------------
-     SECTION 8: RISK & STRESS
-  ----------------------------------------------------- */
-  {
-    id: CARD_REGISTRY.sovereign_risk?.id || "sovereign_risk",
-    label: "Sovereign Risk Proxy",
-    unit: "",
-    category: "Risk",
-    description: "Country risk & CDS proxy",
-    creditScore: 0.85,
-    creditAllocation: 7,
-  },
-  {
-    id: CARD_REGISTRY.npa?.id || "npa",
-    label: "NPA / Credit Stress",
-    unit: "%",
-    category: "Risk",
-    description: "Banking system asset quality",
-    creditScore: 0.95,
-    creditAllocation: 8,
-  },
-  {
-    id: CARD_REGISTRY.reform_momentum?.id || "reform_momentum",
-    label: "Structural Reform Momentum",
-    unit: "",
-    category: "Risk",
-    description: "Long-term reform trajectory",
-    creditScore: 0.75,
-    creditAllocation: 6,
-  },
 ];
 
 // Dynamic Export with Tiered Credits derived from centralized Reliability source

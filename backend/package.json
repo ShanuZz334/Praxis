@@ -16,6 +16,7 @@
     "axios": "^1.18.1",
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^12.11.1",
+    "cheerio": "^1.2.0",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -32,6 +33,7 @@
     "protobufjs": "^8.7.0",
     "resend": "^6.18.0",
     "socket.io": "^4.8.3",
+    "stock-nse-india": "^1.4.0",
     "technicalindicators": "^3.1.0",
     "ws": "^8.21.0",
     "yahoo-finance2": "^4.0.0"

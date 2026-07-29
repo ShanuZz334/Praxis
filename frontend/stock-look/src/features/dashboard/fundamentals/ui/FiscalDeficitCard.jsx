@@ -12,8 +12,11 @@ export default function FiscalDeficitCard({ cardId, data, manualOverride, lastUp
     let isManual = true;
     let extractedValue = null;
 
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
-    
+    // 1. Live Data Extraction (FRED)
+    if (data?.fiscalDeficit !== undefined && data?.fiscalDeficit !== null) {
+        extractedValue = data.fiscalDeficit;
+        isManual = false;
+    }
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
     // 2. Load Central Config
@@ -46,7 +49,7 @@ export default function FiscalDeficitCard({ cardId, data, manualOverride, lastUp
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Deficit (%)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
+                currentValueObj: { label: 'Deficit', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) + '%' : currentValue + '%') : '--' },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',

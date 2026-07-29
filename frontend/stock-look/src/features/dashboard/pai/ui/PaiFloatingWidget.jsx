@@ -2,13 +2,14 @@ import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, useDragControls, useMotionValue, useAnimation } from 'framer-motion';
 import { usePaiWidget } from '@/shared/context/PaiWidgetContext';
 import { useLocation } from 'react-router-dom';
+import { useTheme } from '@/shared/context/ThemeContext';
 import paiIcon from "@/assets/icons/pai-round-bgless.png";
 import paiLabelImg from "@/assets/icons/pai-label-bgless.png";
 import GhostLogo from "@/shared/components/ui/GhostLogo";
 import PaiLoader from './PaiLoader';
 import PaiAudioWaves from './PaiAudioWaves';
 import Loader from '@/shared/components/ui/Loader';
-import { X, Send, Sparkles, Globe, AtSign, Brain, Mic, MicOff, Loader2, Volume2, Square } from 'lucide-react';
+import { X, Send, Sparkles, Globe, AtSign, Brain, Mic, MicOff, Loader2, Volume2, Square, Minimize2 } from 'lucide-react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { useMentions, inferPageFromChatId, resolveReadableSymbol } from '@/shared/hooks/useMentions';
 import MentionSuggestionDropdown from '@/shared/components/ui/MentionSuggestionDropdown';
@@ -39,6 +40,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
         sidebarRect
     } = usePaiWidget();
     
+    const { useOrbNav } = useTheme();
     const location = useLocation();
     const [chatMode, setChatMode] = useState('contextual'); // 'contextual' or 'global'
 
@@ -566,6 +568,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     };
 
     const handleDrag = async (e, info) => {
+        if (useOrbNav) return; // Disable snapping in orb mode
         if (isSnapping.current) return;
         const currentRect = getLatestSidebarRect();
         if (!currentRect) return;
@@ -606,6 +609,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
         setIsDragging(false);
         // The pointerup listener handles restoring userSelect now
         
+        if (useOrbNav) return; // Disable snapping in orb mode
         if (isSnapping.current) return;
         const currentRect = getLatestSidebarRect();
         if (!currentRect) return;
@@ -663,13 +667,21 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     const isActiveVoice = voiceStatus === 'listening' || voiceStatus === 'speaking' || voiceStatus === 'processing' || isGenerating;
     const isListening = voiceStatus === 'listening';
 
+    // Anchor the container's 0,0 strictly to the LIVE sidebar placeholder, UNLESS in Orb Mode
+    let anchorX = liveSidebarRect ? liveSidebarRect.x : (sidebarRect?.x || 0);
+    let anchorY = liveSidebarRect ? liveSidebarRect.y : (sidebarRect?.y || 0);
+    
+    if (useOrbNav) {
+        anchorX = window.innerWidth / 2 - 24; // Center horizontally (offset by half the 48px icon width)
+        anchorY = window.innerHeight / 2 - 24; // Center vertically
+    }
+
     return (
         <div 
             className="fixed inset-0 pointer-events-none z-[100]"
             style={{
-                // Anchor the container's 0,0 strictly to the LIVE sidebar placeholder!
-                left: liveSidebarRect ? liveSidebarRect.x : (sidebarRect?.x || 0),
-                top: liveSidebarRect ? liveSidebarRect.y : (sidebarRect?.y || 0)
+                left: anchorX,
+                top: anchorY
             }}
         >
             {/* The draggable wrapper holds BOTH the icon and the panel */}
@@ -682,12 +694,12 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                 dragListener={false} // Prevents dragging via the chat panel
                 dragMomentum={false}
                 dragElastic={0.1} // tight drag
-                // Constrain to screen so it never gets lost
+                // Constrain to screen so it never gets lost. Uses anchor positions to accurately bound regardless of mode.
                 dragConstraints={{ 
-                    left: -(sidebarRect?.x || 0), 
-                    top: -(sidebarRect?.y || 0), 
-                    right: window.innerWidth - (sidebarRect?.x || 0) - 48, 
-                    bottom: window.innerHeight - (sidebarRect?.y || 0) - 48 
+                    left: -anchorX, 
+                    top: -anchorY, 
+                    right: window.innerWidth - anchorX - 48, 
+                    bottom: window.innerHeight - anchorY - 48 
                 }}
                 onDragStart={handleDragStart}
                 onDrag={handleDrag}
@@ -780,9 +792,25 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                         </div>
                                     )}
                                 </div>
-                                <button onClick={() => setIsChatOpen(false)} className="w-6 h-6 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-colors shrink-0">
-                                    <X className="w-4 h-4 text-text-tertiary" />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                    <button 
+                                        onClick={() => {
+                                            setIsChatOpen(false);
+                                            setIsDocked(true);
+                                        }} 
+                                        className="w-6 h-6 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-colors shrink-0 group" 
+                                        title={useOrbNav ? "Hide PAI Widget" : "Dock to Sidebar"}
+                                    >
+                                        <Minimize2 className="w-4 h-4 text-text-tertiary group-hover:text-text-primary transition-colors" />
+                                    </button>
+                                    <button 
+                                        onClick={() => setIsChatOpen(false)} 
+                                        className="w-6 h-6 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-colors shrink-0 group" 
+                                        title="Close Panel"
+                                    >
+                                        <X className="w-4 h-4 text-text-tertiary group-hover:text-text-primary transition-colors" />
+                                    </button>
+                                </div>
                             </div>
                             <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto no-scrollbar min-w-0 relative">
                                 <AnimatePresence mode="wait">

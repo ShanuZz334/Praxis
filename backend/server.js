@@ -153,8 +153,10 @@ io.on("connection", (socket) => {
             // 2. Add them to the upstream subscription
             subscribeToInstruments(keys, mode || "full");
 
-            // 3. For any keys that don't have a valid close price (cp) yet, fetch them via REST API
-            const keysToFetch = keys.filter(k => !validKeys.has(k));
+            // 3. For any keys that don't have a valid close price (cp) yet (or are critical indices), fetch them via REST API
+            const ALWAYS_FETCH_KEYS = ["NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank", "NSE_INDEX|India VIX"];
+            const keysToFetch = keys.filter(k => !validKeys.has(k) || ALWAYS_FETCH_KEYS.includes(k));
+            
             if (keysToFetch.length > 0) {
                 const { fetchQuotes } = await import("./services/upstoxQuote.js");
                 fetchQuotes(keysToFetch).then(async quotesData => {

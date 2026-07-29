@@ -83,7 +83,7 @@ export default function CashConversionCycleCard({ cardId, data, manualOverrides 
                 aiModel: configData.aiModel
             }}
             data={{
-                currentValueObj: { label: 'CCC (Days)', value: ccc !== null ? Math.round(ccc).toString() : '--', isManual: !isLiveData },
+                currentValueObj: { label: 'CCC', value: ccc !== null ? Math.round(ccc).toString() + ' Days' : '--', isManual: !isLiveData },
                 details: [
                     { label: 'Inventory', value: invDays !== null && !isNaN(invDays) ? `${Math.round(invDays)}d` : '--', isManual: !isLiveData },
                     { label: 'Receivables', value: recDays !== null && !isNaN(recDays) ? `${Math.round(recDays)}d` : '--', isManual: !isLiveData },

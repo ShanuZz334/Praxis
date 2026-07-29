@@ -7,18 +7,29 @@ import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { generateAiInsightAdvanceDeclineCard, scoreADRatio } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function AdvanceDeclineCard({ cardId, data, manualOverride, lastUpdated }) {
-    const adRatio = (manualOverride !== undefined && manualOverride !== null && manualOverride !== '')
-        ? cleanNum(manualOverride)
-        : null;
+    const liveData = data?.advance_decline;
+    const hasLiveData = !!(liveData && liveData.advances && liveData.declines);
+    
+    let adRatio = null;
+    let advances = null;
+    let declines = null;
+
+    if (hasLiveData) {
+        advances = liveData.advances;
+        declines = liveData.declines;
+        adRatio = declines === 0 ? advances : (advances / declines);
+    } else if (manualOverride !== undefined && manualOverride !== null && manualOverride !== '') {
+        adRatio = cleanNum(manualOverride);
+    }
 
     const configData = getIndicatorConfig(CARD_REGISTRY.advance_decline.id);
     const { score, bias, breadthZone, signalType } = scoreADRatio(adRatio);
     
     const cCard = computeCardConfidence({
-        hasLiveData: false,
-        isManual: !!manualOverride,
-        sourcePipeline: 'manual',
-        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(false) : (lastUpdated || '--:--')
+        hasLiveData: hasLiveData,
+        isManual: !hasLiveData && !!manualOverride,
+        sourcePipeline: hasLiveData ? 'upstox' : 'manual',
+        lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(hasLiveData) : (lastUpdated || '--:--')
     }, 'fundamentals');
     const aiInsight = generateAiInsightAdvanceDeclineCard(adRatio, bias, breadthZone, signalType);
 
@@ -28,10 +39,10 @@ export default function AdvanceDeclineCard({ cardId, data, manualOverride, lastU
             config={{
                 title: 'Advance / Decline',
                 category: 'Market Health',
-                mode: 'MANUAL',
+                mode: hasLiveData ? 'AUTO' : 'MANUAL',
                 creditScore: configData?.creditScore ?? 8,
-                updateTime: typeof lastUpdated === 'function' ? lastUpdated(false) : (lastUpdated || '--:--'),
-                source: 'Manual',
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(hasLiveData) : (lastUpdated || '--:--'),
+                source: hasLiveData ? 'NSE' : 'Manual',
                 aiModel: configData?.aiModel ?? 'Engine v3'
             }}
             data={{
@@ -40,15 +51,23 @@ export default function AdvanceDeclineCard({ cardId, data, manualOverride, lastU
                     value: adRatio !== null ? adRatio.toFixed(2) : '--'
                 },
                 details: [
+                    hasLiveData && {
+                        label: 'Advances',
+                        value: advances
+                    },
+                    hasLiveData && {
+                        label: 'Declines',
+                        value: declines
+                    },
                     adRatio !== null && {
                         label: 'Breadth Zone',
                         value: breadthZone,
-                        isManual: true
+                        isManual: !hasLiveData
                     },
                     adRatio !== null && {
                         label: 'Signal Type',
                         value: signalType,
-                        isManual: true
+                        isManual: !hasLiveData
                     }
                 ].filter(Boolean),
                 score: score ?? 0,

@@ -3,7 +3,7 @@ import { useTheme } from '../../../../shared/context/ThemeContext';
 import { motion } from 'framer-motion';
 
 export default function PaiAudioWaves({ isListening, isSpeaking, isProcessing, isActive, isHearingSpeech }) {
-    const { theme, paiMascotColor } = useTheme();
+    const { theme, paiMascotColor, paiAudioStyle } = useTheme();
     const canvasRef = useRef(null);
     
     // Web Audio API refs for highly precise real microphone data
@@ -146,51 +146,82 @@ export default function PaiAudioWaves({ isListening, isSpeaking, isProcessing, i
                 color = theme === 'dark' ? '#3B82F6' : '#2563EB';
             }
 
-            if (color !== 'transparent') {
-                ctx.strokeStyle = color;
-                ctx.shadowBlur = 0;
-            }
-
-            const numPoints = 40; // Fewer points for chunkier blocks
-            const sliceWidth = width / numPoints;
-            const pixelSize = 4; // Size of the 8-bit pixels
-            
-            ctx.beginPath();
-            ctx.lineWidth = pixelSize;
-            
-            // Turn off anti-aliasing for a sharp retro look
-            ctx.imageSmoothingEnabled = false;
-
-            let prevY = height / 2;
-
-            for (let i = 0; i <= numPoints; i++) {
-                let y = height / 2;
-                
-                if (currentAmp > 0.1) {
-                    const wave = (Math.sin(time + i * 0.25) * 0.6) + (Math.cos(time * 1.5 - i * 0.3) * 0.4);
-                    const normalizedX = (i / numPoints) * 2 - 1; // -1 to 1
-                    const taper = Math.max(0, 1 - (normalizedX * normalizedX)); 
+            if (paiAudioStyle === 'bar') {
+                if (color !== 'transparent') {
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
                     
-                    y += wave * currentAmp * taper;
+                    const numBars = 9;
+                    const barWidth = 4;
+                    const barGap = 6;
+                    const totalWidth = numBars * barWidth + (numBars - 1) * barGap;
+                    const startX = (width - totalWidth) / 2;
+                    
+                    for (let i = 0; i < numBars; i++) {
+                        const distance = Math.abs(i - 4) / 4;
+                        const taper = 1 - Math.pow(distance, 1.5);
+                        
+                        // Use a bit of a wave phase offset so it ripples slightly
+                        const wavePhase = Math.sin(time * 2 - i * 0.5) * 0.3 + 0.7; // 0.4 to 1.0
+                        
+                        let h = 4 + (currentAmp * 1.5 * taper * wavePhase);
+                        h = Math.min(h, height); // clamp to max height
+                        
+                        let x = startX + i * (barWidth + barGap);
+                        let y = (height - h) / 2;
+                        
+                        if (ctx.roundRect) {
+                            ctx.roundRect(x, y, barWidth, h, 4);
+                        } else {
+                            ctx.rect(x, y, barWidth, h);
+                        }
+                    }
+                    ctx.fill();
+                }
+            } else {
+                // Pixel wave style
+                if (color !== 'transparent') {
+                    ctx.strokeStyle = color;
+                    ctx.shadowBlur = 0;
+                }
+
+                const numPoints = 40; 
+                const sliceWidth = width / numPoints;
+                const pixelSize = 4; 
+                
+                ctx.beginPath();
+                ctx.lineWidth = pixelSize;
+                ctx.imageSmoothingEnabled = false;
+
+                let prevY = height / 2;
+
+                for (let i = 0; i <= numPoints; i++) {
+                    let y = height / 2;
+                    
+                    if (currentAmp > 0.1) {
+                        const wave = (Math.sin(time + i * 0.25) * 0.6) + (Math.cos(time * 1.5 - i * 0.3) * 0.4);
+                        const normalizedX = (i / numPoints) * 2 - 1; 
+                        const taper = Math.max(0, 1 - (normalizedX * normalizedX)); 
+                        
+                        y += wave * currentAmp * taper;
+                    }
+                    
+                    let px = Math.floor((i * sliceWidth) / pixelSize) * pixelSize;
+                    let py = Math.floor(y / pixelSize) * pixelSize;
+                    
+                    if (i === 0) {
+                        ctx.moveTo(px, py);
+                    } else {
+                        ctx.lineTo(px, prevY);
+                        ctx.lineTo(px, py);
+                    }
+                    
+                    prevY = py;
                 }
                 
-                // Snap mathematically to a coarse pixel grid
-                let px = Math.floor((i * sliceWidth) / pixelSize) * pixelSize;
-                let py = Math.floor(y / pixelSize) * pixelSize;
-                
-                if (i === 0) {
-                    ctx.moveTo(px, py);
-                } else {
-                    // Draw step-line (horizontal then vertical) for that jagged retro look!
-                    ctx.lineTo(px, prevY);
-                    ctx.lineTo(px, py);
+                if (color !== 'transparent') {
+                    ctx.stroke();
                 }
-                
-                prevY = py;
-            }
-            
-            if (color !== 'transparent') {
-                ctx.stroke();
             }
 
             animationFrameId = requestAnimationFrame(render);

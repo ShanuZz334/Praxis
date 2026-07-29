@@ -30,10 +30,25 @@ async function fetchFredSeries(seriesId) {
 
 export const fredApiService = {
     async getGDPGrowth() {
-        // A939RX0Q048SBEA is Real Gross Domestic Product, Percent Change from Preceding Period
-        // For India, we might need a different series or RBI
-        // A939RX0Q048SBEA = US GDP. Assuming the user meant US GDP or will override for India.
-        return fetchFredSeries('A939RX0Q048SBEA');
+        // INDNGDPRPCPPPT = National Accounts: Real Gross Domestic Product for India (Percent Change)
+        return fetchFredSeries('INDNGDPRPCPPPT');
+    },
+
+    async getCPIInflation() {
+        // FPCPITOTLZGIND = Inflation, consumer prices for India
+        return fetchFredSeries('FPCPITOTLZGIND');
+    },
+
+    async getRepoRate() {
+        // IRSTCB01INM156N = Interest Rates: Immediate Rates (< 24 Hours): Central Bank Rates: Total for India
+        return fetchFredSeries('IRSTCB01INM156N');
+    },
+
+    async getFiscalDeficit() {
+        // INDGGXCNLG01GDPPT = Fiscal Situation of General Government: Net Lending/borrowing for India (Percent of Fiscal Year GDP)
+        // FRED returns this as a negative number (e.g., -6.55), but the UI expects a positive deficit.
+        const val = await fetchFredSeries('INDGGXCNLG01GDPPT');
+        return val !== null ? Math.abs(val) : null;
     },
 
     async getUS10YYield() {

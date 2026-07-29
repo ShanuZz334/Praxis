@@ -9,10 +9,10 @@ import { scoreBankCreditGrowth, generateAiInsightBankCreditGrowth } from '@/feat
 
 export default function CreditGrowthCard({ cardId, data, manualOverride, lastUpdated }) {
     // 1. Core State & Extraction
-    let isManual = true;
-    let extractedValue = null;
-
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
+    const liveData = data?.credit_growth;
+    const hasLiveData = liveData !== undefined && liveData !== null;
+    let isManual = !hasLiveData;
+    let extractedValue = hasLiveData ? liveData : null;
     
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
@@ -42,11 +42,11 @@ export default function CreditGrowthCard({ cardId, data, manualOverride, lastUpd
                 mode: isManual ? 'MANUAL' : 'AUTO',
                 creditScore: configData?.creditScore || 5,
                 updateTime: lastUpdated || '--:--',
-                source: isManual ? 'Manual' : 'Upstox',
+                source: isManual ? 'Manual' : 'RBI Scraper',
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Growth (%)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
+                currentValueObj: { label: 'Growth', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) + '%' : currentValue + '%') : '--' },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',

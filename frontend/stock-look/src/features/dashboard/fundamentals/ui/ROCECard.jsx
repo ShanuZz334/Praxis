@@ -61,7 +61,7 @@ export default function ROCECard({ cardId, data, manualOverride, lastUpdated }) 
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'ROCE (%)', value: currentROCE !== null ? currentROCE.toFixed(2) + '%' : '--' },
+                currentValueObj: { label: 'ROCE', value: currentROCE !== null ? currentROCE.toFixed(2) + '%' : '--' },
                 details: [
                     sectorROCE !== null && !isNaN(sectorROCE) && { label: 'Sector ROCE', value: sectorROCE.toFixed(2) + '%', isManual: false }
                 ].filter(Boolean),

@@ -31,9 +31,6 @@ const CARDS = [
   { file: 'VolatilityCard.jsx',       cardId: 'india_vix' },
   { file: 'CrudeCard.jsx',            cardId: 'crude' },
   { file: 'GlobalLiqCard.jsx',        cardId: 'global_liq' },
-  { file: 'SovereignRiskCard.jsx',    cardId: 'sovereign_risk' },
-  { file: 'NPACard.jsx',              cardId: 'npa' },
-  { file: 'ReformMomentumCard.jsx',   cardId: 'reform_momentum' },
   { file: 'IndexDividendYieldCard.jsx', cardId: 'dividend_yield' },
 
   // Phase 1 — Both (3)
@@ -61,7 +58,6 @@ const CARDS = [
   { file: 'AnalystConsensusCard.jsx', cardId: 'analyst_consensus' },
   { file: 'CashConversionCycleCard.jsx', cardId: 'cash_conversion' },
   { file: 'CorporateActionsCard.jsx', cardId: 'corporate_actions' },
-  { file: 'CreditRatingCard.jsx',     cardId: 'credit_rating' },
   { file: 'CurrentRatioCard.jsx',     cardId: 'current_ratio' },
   { file: 'EarningsQualityCard.jsx',  cardId: 'earnings_quality' },
   { file: 'InterestCoverageCard.jsx', cardId: 'interest_coverage' },

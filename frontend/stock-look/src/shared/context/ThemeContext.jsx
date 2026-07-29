@@ -99,6 +99,19 @@ export function ThemeProvider({ children }) {
         return 'none';
     });
 
+    const [paiAudioStyle, setPaiAudioStyle] = useState(() => {
+        return localStorage.getItem('pai-audio-style') || 'pixel';
+    });
+
+    const [useOrbNav, setUseOrbNav] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('stocky-orb-nav');
+            if (saved) return saved === 'true';
+            return false;
+        }
+        return false;
+    });
+
     // --- Effects: Persistence & DOM Updates ---
 
     useEffect(() => {
@@ -133,6 +146,14 @@ export function ThemeProvider({ children }) {
     useEffect(() => {
         localStorage.setItem('pai-mascot-accessory', paiAccessory);
     }, [paiAccessory]);
+
+    useEffect(() => {
+        localStorage.setItem('pai-audio-style', paiAudioStyle);
+    }, [paiAudioStyle]);
+
+    useEffect(() => {
+        localStorage.setItem('stocky-orb-nav', useOrbNav);
+    }, [useOrbNav]);
 
     // NEW: Sync Trading Mode Visuals
     useEffect(() => {
@@ -181,8 +202,12 @@ export function ThemeProvider({ children }) {
         paiMascotColor,
         setPaiMascotColor,
         paiAccessory,
-        setPaiAccessory
-    }), [theme, vfxPreset, gradientBorder, tradingMode, tradingModeVfx, paiMascotColor, paiAccessory]);
+        setPaiAccessory,
+        paiAudioStyle,
+        setPaiAudioStyle,
+        useOrbNav,
+        setUseOrbNav
+    }), [theme, vfxPreset, gradientBorder, tradingMode, tradingModeVfx, paiMascotColor, paiAccessory, paiAudioStyle, useOrbNav]);
 
     return (
         <ThemeContext.Provider value={contextValue}>

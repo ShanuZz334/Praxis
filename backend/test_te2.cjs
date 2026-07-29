@@ -1,0 +1,1 @@
+const axios = require('axios'); const cheerio = require('cheerio'); axios.get('https://tradingeconomics.com/india/corporate-debt', {headers: {'User-Agent': 'Mozilla/5.0'}}).then(res => { const $ = cheerio.load(res.data); const rows = $('table.table').first().find('tr'); rows.each((i, row) => { console.log($(row).text().trim().replace(/\s+/g, ' ')); }); }).catch(console.error)

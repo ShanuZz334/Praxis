@@ -9,12 +9,11 @@ import { scoreGlobalLiquidity, generateAiInsightGlobalLiquidity } from '@/featur
 
 export default function GlobalLiqCard({ cardId, data, manualOverride, lastUpdated }) {
     // 1. Core State & Extraction
-    let isManual = true;
-    let extractedValue = null;
-
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
+    const hasLiveData = data?.global_liq !== undefined && data?.global_liq !== null;
+    let isManual = !hasLiveData;
+    let extractedValue = hasLiveData ? cleanNum(data.global_liq) : null;
     
-    const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? manualOverride : null) : extractedValue;
+    const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
     // 2. Load Central Config
     const configData = getIndicatorConfig(CARD_REGISTRY.global_liq.id);

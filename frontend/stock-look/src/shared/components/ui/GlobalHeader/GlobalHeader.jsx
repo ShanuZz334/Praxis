@@ -63,7 +63,7 @@ export default function GlobalHeader({
     // Components
     sections = [], // [{ id, label, score, contribution, w }]
     tailwinds = [],
-    risks = [],
+    headwinds = [],
 
     // Info / Manual
     infoContent = (
@@ -106,7 +106,10 @@ export default function GlobalHeader({
     masterPayload = null,
     
     // Custom Backside
-    customBackContent = null
+    customBackContent = null,
+
+    // Index Flag (Overrides syncId inference)
+    isIndex = undefined
 }) {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState("");
@@ -291,7 +294,7 @@ export default function GlobalHeader({
                             bears={signalCounts.bears}
                             neutrals={signalCounts.neutrals}
                             stockSymbol={syncId?.instrumentKey || null}
-                            isIndex={syncId?.category === 'Indices' || false}
+                            isIndex={isIndex !== undefined ? isIndex : (syncId?.category === 'Indices' || false)}
                             coveragePercent={integrity?.coveragePercent ?? 100}
                             cards={cards}
                             sections={sections}
@@ -374,10 +377,10 @@ export default function GlobalHeader({
 
                 </div>
 
-                {/* MIDDLE ROW: TAILWINDS & RISKS */}
+                {/* MIDDLE ROW: TAILWINDS & HEADWINDS */}
                 <div className={`hidden md:grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x ${STYLES.DIVIDE}`}>
                     <ImpactList title="Top Tailwinds" items={tailwinds} type="bull" />
-                    <ImpactList title="Key Risks" items={risks} type="bear" />
+                    <ImpactList title="Top Headwinds" items={headwinds} type="bear" />
                 </div>
 
                 {/* BOTTOM ROW: CONTROLS (Integrated) */}

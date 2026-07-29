@@ -46,7 +46,7 @@ export default function MFFlowsCard({ cardId, data, manualOverride, lastUpdated 
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Flows (Cr)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
+                currentValueObj: { label: 'Flows', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) + ' Cr' : currentValue + ' Cr') : '--' },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',

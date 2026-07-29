@@ -9,10 +9,10 @@ import { scoreAggregateCorporateDebt, generateAiInsightAggregateCorporateDebt } 
 
 export default function CorpDebtCard({ cardId, data, manualOverride, lastUpdated }) {
     // 1. Core State & Extraction
-    let isManual = true;
-    let extractedValue = null;
-
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
+    const liveData = data?.corporate_debt;
+    const hasLiveData = liveData !== undefined && liveData !== null;
+    let isManual = !hasLiveData;
+    let extractedValue = hasLiveData ? liveData : null;
     
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
@@ -42,7 +42,7 @@ export default function CorpDebtCard({ cardId, data, manualOverride, lastUpdated
                 mode: isManual ? 'MANUAL' : 'AUTO',
                 creditScore: configData?.creditScore || 5,
                 updateTime: lastUpdated || '--:--',
-                source: isManual ? 'Manual' : 'Upstox',
+                source: isManual ? 'Manual' : 'RBI Scraper',
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{

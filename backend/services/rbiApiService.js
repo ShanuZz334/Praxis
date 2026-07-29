@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as cheerio from 'cheerio';
 
 /**
  * Service for fetching macroeconomic data from RBI DBIE (Database on Indian Economy) or alternative sources.
@@ -23,8 +24,25 @@ export const rbiApiService = {
     },
 
     async getCreditGrowth() {
-        // Scheduled Commercial Banks - Non-food credit growth
-        throw new Error('Credit Growth fetch from RBI not fully implemented - engaging fallback.');
+        // Fetch Bank Credit to Private Non-Financial Sector (QINPBM770A) from FRED and compute YoY
+        try {
+            const apiKey = process.env.FRED_API_KEY;
+            if (apiKey) {
+                const url = `https://api.stlouisfed.org/fred/series/observations?series_id=QINPBM770A&api_key=${apiKey}&file_type=json&sort_order=desc&limit=5`;
+                const response = await axios.get(url, { timeout: 5000 });
+                if (response.data && response.data.observations && response.data.observations.length >= 5) {
+                    const current = parseFloat(response.data.observations[0].value);
+                    const lastYear = parseFloat(response.data.observations[4].value);
+                    if (!isNaN(current) && !isNaN(lastYear) && lastYear !== 0) {
+                        const yoy = ((current - lastYear) / lastYear) * 100;
+                        return parseFloat(yoy.toFixed(2));
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Credit Growth fetch failed:', e.message);
+        }
+        throw new Error('Credit Growth fetch failed - engaging fallback.');
     },
 
     async getSystemLiquidity() {
@@ -35,5 +53,26 @@ export const rbiApiService = {
     async getNPARatio() {
         // Gross NPA ratio of SCBs
         throw new Error('NPA Ratio fetch from RBI not fully implemented - engaging fallback.');
-    }
+    },
+
+    async getCorporateDebt() {
+        // Fetch India Corporate Debt to GDP from FRED API (QINNAM770A)
+        try {
+            const apiKey = process.env.FRED_API_KEY;
+            if (apiKey) {
+                // QINNAM770A = Total Credit to Non-Financial Corporations, Adjusted for Breaks, for India (% of GDP)
+                const url = `https://api.stlouisfed.org/fred/series/observations?series_id=QINNAM770A&api_key=${apiKey}&file_type=json&sort_order=desc&limit=1`;
+                const response = await axios.get(url, { timeout: 5000 });
+                if (response.data && response.data.observations && response.data.observations.length > 0) {
+                    const value = parseFloat(response.data.observations[0].value);
+                    if (!isNaN(value)) {
+                        return value; 
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Corporate Debt fetch failed:', e.message);
+        }
+        throw new Error('Corporate Debt fetch failed - engaging fallback.');
+    },
 };

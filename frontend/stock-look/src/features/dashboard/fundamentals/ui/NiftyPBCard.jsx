@@ -8,11 +8,11 @@ import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreNiftyPB, generateAiInsightNiftyPB } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function NiftyPBCard({ cardId, data, manualOverride, lastUpdated }) {
-    // 1. Core State & Extraction
-    let isManual = true;
-    let extractedValue = null;
+    // 1. Live Data Extraction (Upstox / NSE)
+    const pbObj = (Array.isArray(data?.ratios) ? data.ratios : []).find(r => ['p/b', 'pb', 'price to book'].includes(r.name?.toLowerCase()));
+    let extractedValue = pbObj?.company_value ? cleanNum(pbObj.company_value) : null;
 
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
+    let isManual = extractedValue === null || isNaN(extractedValue);
     
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
@@ -46,7 +46,7 @@ export default function NiftyPBCard({ cardId, data, manualOverride, lastUpdated 
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Nifty P/B (x)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
+                currentValueObj: { label: 'Nifty P/B', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) + 'x' : currentValue + 'x') : '--' },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',

@@ -132,9 +132,9 @@ export const CARD_REGISTRY = {
     profit_growth: { id: 'profit_growth', type: 'card', displayName: 'Profit Growth', page: 'Fundamentals', section: 'Earnings', appliesTo: 'company', legacyIds: [] },
     earnings_trend: { id: 'earnings_trend', type: 'card', displayName: 'Earnings Trend', page: 'Fundamentals', section: 'Earnings', appliesTo: 'company', legacyIds: [] },
     earnings_quality: { id: 'earnings_quality', type: 'card', displayName: 'Earnings Quality', page: 'Fundamentals', section: 'Earnings', appliesTo: 'company', legacyIds: [] },
-    eps_yoy: { id: 'eps_yoy', type: 'card', displayName: 'Index EPS YoY', page: 'Fundamentals', section: 'Earnings', appliesTo: 'indices', legacyIds: [] },
-    forward_eps: { id: 'forward_eps', type: 'card', displayName: 'Index Fwd EPS', page: 'Fundamentals', section: 'Earnings', appliesTo: 'indices', legacyIds: [] },
-    profit_margin: { id: 'profit_margin', type: 'card', displayName: 'Index Profit Margin', page: 'Fundamentals', section: 'Earnings', appliesTo: 'indices', legacyIds: [] },
+    eps_yoy: { id: 'eps_yoy', type: 'card', displayName: 'EPS YoY', page: 'Fundamentals', section: 'Earnings', appliesTo: 'both', legacyIds: [] },
+    forward_eps: { id: 'forward_eps', type: 'card', displayName: 'Forward EPS', page: 'Fundamentals', section: 'Earnings', appliesTo: 'both', legacyIds: [] },
+    profit_margin: { id: 'profit_margin', type: 'card', displayName: 'Profit Margin', page: 'Fundamentals', section: 'Earnings', appliesTo: 'both', legacyIds: [] },
 
     // Corporate / Financials
     roe: { id: 'roe', type: 'card', displayName: 'ROE', page: 'Fundamentals', section: 'Corporate', appliesTo: 'company', legacyIds: [] },
@@ -171,9 +171,6 @@ export const CARD_REGISTRY = {
 
     // Risk
     policy_tailwinds: { id: 'policy_tailwinds', type: 'card', displayName: 'Policy Tailwinds', page: 'Fundamentals', section: 'Risk', appliesTo: 'indices', legacyIds: [] },
-    sovereign_risk: { id: 'sovereign_risk', type: 'card', displayName: 'Sovereign Risk', page: 'Fundamentals', section: 'Risk', appliesTo: 'indices', legacyIds: [] },
-    npa: { id: 'npa', type: 'card', displayName: 'NPA', page: 'Fundamentals', section: 'Risk', appliesTo: 'indices', legacyIds: [] },
-    reform_momentum: { id: 'reform_momentum', type: 'card', displayName: 'Reform Momentum', page: 'Fundamentals', section: 'Risk', appliesTo: 'indices', legacyIds: [] },
     india_vix: { id: 'india_vix', type: 'card', displayName: 'India VIX', page: 'Fundamentals', section: 'Risk', appliesTo: 'indices', legacyIds: [] },
 
     // Global
@@ -184,7 +181,6 @@ export const CARD_REGISTRY = {
     analyst_consensus: { id: 'analyst_consensus', type: 'card', displayName: 'Analyst Consensus', page: 'Fundamentals', section: 'General', appliesTo: 'company', legacyIds: [] },
     corporate_actions: { id: 'corporate_actions', type: 'card', displayName: 'Corporate Actions', page: 'Fundamentals', section: 'General', appliesTo: 'company', legacyIds: [] },
     cash_conversion: { id: 'cash_conversion', type: 'card', displayName: 'Cash Conversion', page: 'Fundamentals', section: 'General', appliesTo: 'company', legacyIds: [] },
-    credit_rating: { id: 'credit_rating', type: 'card', displayName: 'Credit Rating', page: 'Fundamentals', section: 'General', appliesTo: 'company', legacyIds: [] },
     sector_dashboard: { id: 'sector_dashboard', type: 'card', displayName: 'Sector Dashboard', page: 'Fundamentals', section: 'General', appliesTo: 'both', legacyIds: [] },
 
     // ══════════════════════════════════════════════════════════════════════════

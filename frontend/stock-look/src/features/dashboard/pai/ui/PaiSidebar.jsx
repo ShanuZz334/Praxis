@@ -172,9 +172,6 @@ const INITIAL_SECTIONS = [
                 label: 'Risk',
                 chats: [
                     { id: CARD_REGISTRY.policy_tailwinds.id, title: 'Policy Tailwinds', type: 'card' },
-                    { id: CARD_REGISTRY.sovereign_risk.id, title: 'Sovereign Risk', type: 'card' },
-                    { id: CARD_REGISTRY.npa.id, title: 'NPA', type: 'card' },
-                    { id: CARD_REGISTRY.reform_momentum.id, title: 'Reform Momentum', type: 'card' },
                     { id: CARD_REGISTRY.india_vix.id, title: 'India VIX', type: 'card' }
                 ]
             },
@@ -193,8 +190,7 @@ const INITIAL_SECTIONS = [
                     { id: CARD_REGISTRY.peer_comparison.id, title: 'Peer Comparison', type: 'card' },
                     { id: CARD_REGISTRY.analyst_consensus.id, title: 'Analyst Consensus', type: 'card' },
                     { id: CARD_REGISTRY.corporate_actions.id, title: 'Corporate Actions', type: 'card' },
-                    { id: CARD_REGISTRY.cash_conversion.id, title: 'Cash Conversion Cycle', type: 'card' },
-                    { id: CARD_REGISTRY.credit_rating.id, title: 'Credit Rating', type: 'card' },
+                    { id: CARD_REGISTRY.cash_conversion.id, title: 'Cash Conversion', type: 'card' },
                     { id: CARD_REGISTRY.sector_dashboard.id, title: 'Sector Dashboard', type: 'card' }
                 ]
             }

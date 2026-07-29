@@ -1,0 +1,123 @@
+.calculator-widget-container {
+  --calc-scale: 6px; /* Base unit for physical size */
+  background-color: #2b2b2b;
+  border-radius: 12px;
+  padding: calc(2 * var(--calc-scale));
+  box-shadow: 0 15px 35px rgba(0,0,0,0.6), inset 0 2px 5px rgba(255,255,255,0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  row-gap: calc(1.5 * var(--calc-scale));
+  user-select: none;
+  cursor: grab;
+}
+
+.calculator-widget-container:active {
+  cursor: grabbing;
+}
+
+.calculator-display {
+  width: 100%;
+  height: calc(7 * var(--calc-scale));
+  background-color: #cfd8dc;
+  border-radius: 10px;
+  box-shadow: inset 2px 2px 8px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  padding: calc(0.5 * var(--calc-scale)) calc(1.5 * var(--calc-scale));
+  font-family: 'Space Mono', monospace;
+  color: #263238;
+}
+
+.calculator-history {
+  font-size: 12px;
+  opacity: 0.7;
+  min-height: 14px;
+}
+
+.calculator-input {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.calculator-buttons {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: calc(1.5 * var(--calc-scale));
+}
+
+/* Base button properties from user */
+.te-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(6.5 * var(--calc-scale));
+  height: calc(6.5 * var(--calc-scale));
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  font-family: Montserrat, sans-serif;
+  font-weight: 900;
+  font-size: 16px; /* Slightly smaller to fit scientific text */
+  transition: 0.1s ease-in-out;
+  color: white;
+}
+
+/* Dark Blue (Scientific Functions) */
+.te-btn-sci {
+  background-color: #1a237e;
+  box-shadow: rgba(0, 0, 0, 0.377) 10px 10px 8px,
+    #5c6bc0 1.5px 1.5px 1px 0px inset, #1a237e -3.2px -3.2px 8px 0px inset;
+  font-size: 13px;
+}
+.te-btn-sci:active {
+  box-shadow: rgba(0, 0, 0, 0.377) 0px 0px 0px, inset 0.5px 0.5px 4px #000000,
+    #1a237e -3.2px -3.2px 8px 0px inset;
+  transform: translateY(2px) translateX(2px);
+}
+
+/* Light Grey (Operators) */
+.te-btn-op {
+  background-color: #c7c3c0;
+  color: #333;
+  box-shadow: rgba(0, 0, 0, 0.377) 10px 10px 8px,
+    #ffffff 1.5px 1.5px 2px 0px inset, #c7c3c0 -3.2px -3.2px 8px 0px inset;
+}
+.te-btn-op:active {
+  box-shadow: rgba(0, 0, 0, 0.377) 0px 0px 0px, inset 0.5px 0.5px 4px #000000,
+    #c7c3c0 -3.2px -3.2px 8px 0px inset;
+  transform: translateY(2px) translateX(2px);
+}
+
+/* Red (Clear/Equals) */
+.te-btn-red {
+  background-color: #d42a02;
+  box-shadow: rgba(0, 0, 0, 0.377) 10px 10px 8px, #fb702c 2px 2px 10px 0px inset,
+    #d42a02 -4px -4px 1px 0px inset;
+}
+.te-btn-red:active {
+  box-shadow: rgba(0, 0, 0, 0.377) 0px 0px 0px, inset 0.5px 0.5px 4px #000000,
+    #d42a02 -3.2px -3.2px 8px 0px inset;
+  transform: translateY(2px) translateX(2px);
+}
+
+/* Dark Grey (Numbers) */
+.te-btn-num {
+  background-color: #545251;
+  box-shadow: rgba(0, 0, 0, 0.377) 10px 10px 8px,
+    #a8a6a4 1.5px 1.5px 1px 0px inset, #545251 -3.2px -3.2px 8px 0px inset;
+}
+.te-btn-num:active {
+  box-shadow: rgba(0, 0, 0, 0.377) 0px 0px 0px, inset 0.5px 0.5px 4px #000000,
+    #545251 -3.2px -3.2px 8px 0px inset;
+  transform: translateY(2px) translateX(2px);
+}
+
+.te-btn-wide {
+  grid-column: span 2;
+  width: 100%; /* Instead of 5.7em */
+}

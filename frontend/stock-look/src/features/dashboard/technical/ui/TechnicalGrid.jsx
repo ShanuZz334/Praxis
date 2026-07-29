@@ -4,6 +4,7 @@
  */
 
 import React from "react";
+import { useTheme } from '@/shared/context/ThemeContext';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import TechnicalCard from "./TechnicalCard";
 import { technicalSections } from "@/features/dashboard/technical/engine/technicalHelper";
@@ -51,6 +52,9 @@ export default function TechnicalGrid({
     viewMode = "sectioned", sortMode = "score_desc",
     searchQuery = "", controls, data, indicatorParams, onOpenSettings, isIndex = false
 }) {
+    const { useOrbNav } = useTheme();
+    const gridClass = `grid grid-cols-1 md:grid-cols-2 ${useOrbNav ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-2.5 md:gap-4 items-start`;
+
     const sortCards = (list, mode) => {
         const arr = [...list];
         const hasScore = (c) => c.score !== undefined && c.score !== null && !isNaN(c.score);
@@ -176,7 +180,7 @@ export default function TechnicalGrid({
                 const filteredFlatWithData = flatWithData.filter(item => cards.some(c => c.id === item.id));
                 const sortedFlat = sortCards(filteredFlatWithData, sortMode);
                 return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start">
+                    <div className={gridClass}>
                         {sortedFlat.map(item => <React.Fragment key={item.id}>{item.node}</React.Fragment>)}
                         {cards.length === 0 && searchQuery && (
                             <div className="col-span-4 p-12 text-center text-text-tertiary italic">No technicals found for "{searchQuery}"</div>
@@ -212,7 +216,7 @@ export default function TechnicalGrid({
                                         </span>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start">
+                                <div className={gridClass}>
                                     {section === 'Trend' && (<>
                                         <EMA20Card cardId={CARD_REGISTRY.ema_20.id} data={data} manualOverride={manualOverrides?.ema_20} lastUpdated={resolveTime(!!data?.ema_20, CARD_REGISTRY.ema_20.id)} />
                                         <EMA50Card cardId={CARD_REGISTRY.ema_50.id} data={data} manualOverride={manualOverrides?.ema_50} lastUpdated={resolveTime(!!data?.ema_50, CARD_REGISTRY.ema_50.id)} />

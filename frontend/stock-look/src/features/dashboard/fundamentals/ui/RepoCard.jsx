@@ -12,8 +12,11 @@ export default function RepoCard({ cardId, data, manualOverride, lastUpdated }) 
     let isManual = true;
     let extractedValue = null;
 
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
-    
+    // 1. Live Data Extraction (FRED)
+    if (data?.repoRate !== undefined && data?.repoRate !== null) {
+        extractedValue = data.repoRate;
+        isManual = false;
+    }
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
     // 2. Load Central Config
@@ -46,7 +49,7 @@ export default function RepoCard({ cardId, data, manualOverride, lastUpdated }) 
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Rate (%)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
+                currentValueObj: { label: 'Rate', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) + '%' : currentValue + '%') : '--' },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',

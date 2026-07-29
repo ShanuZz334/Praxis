@@ -21,10 +21,8 @@
 | 17 | FII Flow | Fundamentals | Manual | Index Only |
 | 18 | DII Flow | Fundamentals | Manual | Index Only |
 | 19 | FII Trend | Fundamentals | Manual | Index Only |
-| 20 | System Liquidity | Fundamentals | Manual | Index Only |
-| 21 | MF Flows | Fundamentals | Manual | Index Only |
-| 22 | Advance / Decline | Fundamentals | Manual | Index Only |
-| 23 | Sector Valuation | Fundamentals | Manual | Index Only |
+| 20 | Advance / Decline | Fundamentals | Manual | Index Only |
+| 21 | Sector Valuation | Fundamentals | Manual | Index Only |
 | 24 | Sector Growth | Fundamentals | Manual | Index Only |
 | 25 | Sector Concentration | Fundamentals | Manual | Index Only |
 | 26 | Cyclical / Defensive | Fundamentals | Manual | Index Only |
@@ -36,9 +34,7 @@
 | 32 | India VIX | Fundamentals | Auto | Index Only |
 | 33 | Crude Oil | Fundamentals | Manual | Index Only |
 | 34 | Global Liquidity | Fundamentals | Manual | Index Only |
-| 35 | Sovereign Risk | Fundamentals | Manual | Index Only |
-| 36 | NPA Ratio | Fundamentals | Manual | Index Only |
-| 37 | Reform Momentum | Fundamentals | Manual | Index Only |
+
 | 38 | EMA 20 | Technical Analysis | Auto | Both |
 | 39 | EMA 50 | Technical Analysis | Auto | Both |
 | 40 | EMA 200 | Technical Analysis | Auto | Both |

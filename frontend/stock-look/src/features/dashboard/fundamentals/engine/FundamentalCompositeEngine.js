@@ -49,7 +49,6 @@ export const INDEX_CARD_TO_SECTION_MAP = {
     [CARD_REGISTRY.advance_decline.id]: 'Sector', [CARD_REGISTRY.sector_dashboard.id]: 'Sector',
     [CARD_REGISTRY.credit_growth.id]: 'Corporate', [CARD_REGISTRY.corp_debt.id]: 'Corporate', [CARD_REGISTRY.policy_tailwinds.id]: 'Corporate',
     [CARD_REGISTRY.india_vix.id]: 'Global', [CARD_REGISTRY.crude.id]: 'Global', [CARD_REGISTRY.global_liq.id]: 'Global',
-    [CARD_REGISTRY.sovereign_risk.id]: 'Risk', [CARD_REGISTRY.npa.id]: 'Risk', [CARD_REGISTRY.reform_momentum.id]: 'Risk',
 };
 
 export const COMPANY_CARD_TO_SECTION_MAP = {
@@ -59,7 +58,7 @@ export const COMPANY_CARD_TO_SECTION_MAP = {
     [CARD_REGISTRY.fii_dii_flow.id]: 'Liquidity', [CARD_REGISTRY.dividend_yield.id]: 'Liquidity', [CARD_REGISTRY.earnings_trend.id]: 'Sector',
     [CARD_REGISTRY.promoter_holding.id]: 'Ownership', [CARD_REGISTRY.smart_money_flow.id]: 'Ownership', [CARD_REGISTRY.earnings_quality.id]: 'Ownership', [CARD_REGISTRY.corporate_actions.id]: 'Ownership',
     [CARD_REGISTRY.roe.id]: 'Profitability', [CARD_REGISTRY.roce.id]: 'Profitability', [CARD_REGISTRY.roa.id]: 'Profitability', [CARD_REGISTRY.net_margin.id]: 'Profitability', [CARD_REGISTRY.operating_margin.id]: 'Profitability', [CARD_REGISTRY.cash_conversion.id]: 'Profitability',
-    [CARD_REGISTRY.debt_to_equity.id]: 'Financial Health', [CARD_REGISTRY.interest_coverage.id]: 'Financial Health', [CARD_REGISTRY.free_cash_flow.id]: 'Financial Health', [CARD_REGISTRY.current_ratio.id]: 'Financial Health', [CARD_REGISTRY.credit_rating.id]: 'Financial Health'
+    [CARD_REGISTRY.debt_to_equity.id]: 'Financial Health', [CARD_REGISTRY.interest_coverage.id]: 'Financial Health', [CARD_REGISTRY.free_cash_flow.id]: 'Financial Health', [CARD_REGISTRY.current_ratio.id]: 'Financial Health'
 };
 
 // ─── Aggregation Utilities ────────────────────────────────────────────────────
@@ -191,7 +190,6 @@ function computeCompanySections(scores) {
         { score: icS,  weight: 0.25 },
         { score: fcfS, weight: 0.20 },
         { score: crS,  weight: 0.10 },
-        { score: g(CARD_REGISTRY.credit_rating.id), weight: 0.20 },
     ].filter(x => x.score !== null);
     
     let global = null; 
@@ -258,13 +256,7 @@ function computeIndexSections(scores) {
         { score: g(CARD_REGISTRY.global_liq.id), weight: 0.25 },
     ]);
 
-    const risk = weightedHarmonicMean([
-        { score: g(CARD_REGISTRY.sovereign_risk.id),  weight: 0.40 },
-        { score: g(CARD_REGISTRY.npa.id),             weight: 0.40 },
-        { score: g(CARD_REGISTRY.reform_momentum.id), weight: 0.20 },
-    ]);
-
-    return { valuation, earnings, macro, liquidity, sector, corporate, global, risk };
+    return { valuation, earnings, macro, liquidity, sector, corporate, global };
 }
 
 // ─── Composite Score ──────────────────────────────────────────────────────────
@@ -327,18 +319,19 @@ function buildResult(sections, compositeScore, rawScores) {
             sub: `${Math.round(s.weight * 100)}% weight · ${getIndicatorColor(s.score).label}`,
         }));
 
-    // Risk: Score <= 40 (Bearish threshold). 
+    // Headwinds: Score <= 40 (Bearish threshold). 
     // Impact = (Deviation from 50) * Configured Impact Weight
-    const riskImpact = (s) => (50 - s.score) * s.weight;
-    const risks = validSections
+    const headwindImpact = (s) => (50 - s.score) * s.weight;
+    const headwinds = validSections
         .filter(s => s.score <= 40)
-        .sort((a, b) => riskImpact(b) - riskImpact(a))
+        .sort((a, b) => headwindImpact(b) - headwindImpact(a))
         .slice(0, 3)
         .map(s => ({
             id: s.id,
             label: s.label,
-            value: Math.round(s.score),
-            sub: `${Math.round(s.weight * 100)}% weight · ${getIndicatorColor(s.score).label}`,
+            shortLabel: s.shortLabel,
+            score: s.score,
+            sub: `${Math.round(s.weight * 100)}% weight • ${getIndicatorColor(s.score).label}`,
         }));
 
     return {
@@ -346,7 +339,7 @@ function buildResult(sections, compositeScore, rawScores) {
         compositeScore: roundedScore,
         regime,
         tailwinds,
-        risks,
+        headwinds,
         rawScores,
     };
 }
@@ -406,14 +399,14 @@ export function computeCompanyComposite(scores) {
     const raw = computeCompanySections(scores);
 
     const sections = [
-        { id: 'valuation', label: 'Valuation', shortLabel: 'VAL', score: raw.valuation !== null ? clamp(Math.round(raw.valuation)) : null, weight: 0.20 },
-        { id: 'earnings',  label: 'Earnings',  shortLabel: 'EAR', score: raw.earnings  !== null ? clamp(Math.round(raw.earnings))  : null, weight: 0.22 },
-        { id: 'macro',     label: 'Macro',     shortLabel: 'MAC', score: raw.macro     !== null ? clamp(Math.round(raw.macro))     : null, weight: 0.05 },
-        { id: 'liquidity', label: 'Liquidity', shortLabel: 'LIQ', score: raw.liquidity !== null ? clamp(Math.round(raw.liquidity)) : null, weight: 0.07 },
-        { id: 'ownership', label: 'Ownership', shortLabel: 'OWN', score: raw.ownership !== null ? clamp(Math.round(raw.ownership)) : null, weight: 0.10 },
-        { id: 'sector',    label: 'Sector',    shortLabel: 'SEC', score: raw.sector    !== null ? clamp(Math.round(raw.sector))    : null, weight: 0.08 },
-        { id: 'corporate', label: 'Corporate', shortLabel: 'COR', score: raw.corporate !== null ? clamp(Math.round(raw.corporate)) : null, weight: 0.18 },
-        { id: 'global',    label: 'Balance Sheet', shortLabel: 'BAL', score: raw.global!== null ? clamp(Math.round(raw.global))    : null, weight: 0.10 },
+        { id: 'valuation', label: 'Valuation', shortLabel: 'VAL', score: (raw.valuation !== undefined && raw.valuation !== null) ? clamp(Math.round(raw.valuation)) : null, weight: 0.20 },
+        { id: 'earnings',  label: 'Earnings',  shortLabel: 'EAR', score: (raw.earnings !== undefined && raw.earnings !== null)  ? clamp(Math.round(raw.earnings))  : null, weight: 0.22 },
+        { id: 'macro',     label: 'Macro',     shortLabel: 'MAC', score: (raw.macro !== undefined && raw.macro !== null)     ? clamp(Math.round(raw.macro))     : null, weight: 0.05 },
+        { id: 'liquidity', label: 'Liquidity', shortLabel: 'LIQ', score: (raw.liquidity !== undefined && raw.liquidity !== null) ? clamp(Math.round(raw.liquidity)) : null, weight: 0.07 },
+        { id: 'ownership', label: 'Ownership', shortLabel: 'OWN', score: (raw.ownership !== undefined && raw.ownership !== null) ? clamp(Math.round(raw.ownership)) : null, weight: 0.10 },
+        { id: 'sector',    label: 'Sector',    shortLabel: 'SEC', score: (raw.sector !== undefined && raw.sector !== null)    ? clamp(Math.round(raw.sector))    : null, weight: 0.08 },
+        { id: 'corporate', label: 'Corporate', shortLabel: 'COR', score: (raw.corporate !== undefined && raw.corporate !== null) ? clamp(Math.round(raw.corporate)) : null, weight: 0.18 },
+        { id: 'global',    label: 'Balance Sheet', shortLabel: 'BAL', score: (raw.global !== undefined && raw.global !== null)    ? clamp(Math.round(raw.global))    : null, weight: 0.10 },
     ];
 
     const composite = computeComposite(sections, false);
@@ -426,14 +419,13 @@ export function computeIndexComposite(scores) {
     const raw = computeIndexSections(scores);
 
     const sections = [
-        { id: 'valuation', label: 'Valuation', shortLabel: 'VAL', score: raw.valuation !== null ? clamp(Math.round(raw.valuation)) : null, weight: 0.15 },
-        { id: 'earnings',  label: 'Earnings',  shortLabel: 'EAR', score: raw.earnings  !== null ? clamp(Math.round(raw.earnings))  : null, weight: 0.20 },
-        { id: 'macro',     label: 'Macro',     shortLabel: 'MAC', score: raw.macro     !== null ? clamp(Math.round(raw.macro))     : null, weight: 0.20 },
-        { id: 'liquidity', label: 'Liquidity', shortLabel: 'LIQ', score: raw.liquidity !== null ? clamp(Math.round(raw.liquidity)) : null, weight: 0.20 },
-        { id: 'sector',    label: 'Sector',    shortLabel: 'SEC', score: raw.sector    !== null ? clamp(Math.round(raw.sector))    : null, weight: 0.10 },
-        { id: 'corporate', label: 'Corporate', shortLabel: 'COR', score: raw.corporate !== null ? clamp(Math.round(raw.corporate)) : null, weight: 0.05 },
-        { id: 'global',    label: 'Global',    shortLabel: 'GLO', score: raw.global    !== null ? clamp(Math.round(raw.global))    : null, weight: 0.05 },
-        { id: 'risk',      label: 'Risk',      shortLabel: 'RSK', score: raw.risk      !== null ? clamp(Math.round(raw.risk))      : null, weight: 0.05 },
+        { id: 'valuation', label: 'Valuation', shortLabel: 'VAL', score: (raw.valuation !== undefined && raw.valuation !== null) ? clamp(Math.round(raw.valuation)) : null, weight: 0.20 },
+        { id: 'earnings',  label: 'Earnings',  shortLabel: 'ERN', score: (raw.earnings !== undefined && raw.earnings !== null)  ? clamp(Math.round(raw.earnings))  : null, weight: 0.20 },
+        { id: 'macro',     label: 'Macro',     shortLabel: 'MAC', score: (raw.macro !== undefined && raw.macro !== null)     ? clamp(Math.round(raw.macro))     : null, weight: 0.15 },
+        { id: 'liquidity', label: 'Liquidity', shortLabel: 'LIQ', score: (raw.liquidity !== undefined && raw.liquidity !== null) ? clamp(Math.round(raw.liquidity)) : null, weight: 0.20 },
+        { id: 'sector',    label: 'Sector',    shortLabel: 'SEC', score: (raw.sector !== undefined && raw.sector !== null)    ? clamp(Math.round(raw.sector))    : null, weight: 0.10 },
+        { id: 'corporate', label: 'Corporate', shortLabel: 'COR', score: (raw.corporate !== undefined && raw.corporate !== null) ? clamp(Math.round(raw.corporate)) : null, weight: 0.05 },
+        { id: 'global',    label: 'Global',    shortLabel: 'GLO', score: (raw.global !== undefined && raw.global !== null)    ? clamp(Math.round(raw.global))    : null, weight: 0.05 }
     ];
 
     const composite = computeComposite(sections, true);

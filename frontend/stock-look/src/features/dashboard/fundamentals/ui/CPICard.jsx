@@ -12,8 +12,11 @@ export default function CPICard({ cardId, data, manualOverride, lastUpdated }) {
     let isManual = true;
     let extractedValue = null;
 
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
-    
+    // 1. Live Data Extraction (FRED)
+    if (data?.cpiInflation !== undefined && data?.cpiInflation !== null) {
+        extractedValue = data.cpiInflation;
+        isManual = false;
+    }
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
     // 2. Load Central Config
@@ -46,7 +49,7 @@ export default function CPICard({ cardId, data, manualOverride, lastUpdated }) {
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Inflation (%)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
+                currentValueObj: { label: 'Inflation', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) + '%' : currentValue + '%') : '--' },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',

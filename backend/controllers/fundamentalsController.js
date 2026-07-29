@@ -1,9 +1,11 @@
 import axios from "axios";
+import { NseIndia } from 'stock-nse-india';
 import UpstoxAuth from "../models/UpstoxAuth.js";
 import localDb from "../config/localDb.js";
 import { getCache, setCache } from "../services/cacheService.js";
 import { yahooFinanceService } from "../services/yahooFinanceService.js";
 import { fredApiService } from "../services/fredApiService.js";
+import { rbiApiService } from "../services/rbiApiService.js";
 
 const UPSTOX_FUNDAMENTALS_URL = "https://api.upstox.com/v2/fundamentals";
 
@@ -30,6 +32,31 @@ export const getFundamentals = async (req, res) => {
             if (!isin) {
                 // Indices don't have an ISIN or fundamental data via this Upstox API
                 payload = { ratios: [], income: [], balanceSheet: [], cashFlow: [], holdings: [], calculated_at: Date.now() };
+                
+                // Attempt to fetch index fundamentals via stock-nse-india
+                try {
+                    const nse = new NseIndia();
+                    const allIndices = await nse.getAllIndices();
+                    
+                    let lookupName = instrumentKey.split('|')[1]?.toUpperCase();
+                    if (lookupName === "NIFTY 50") lookupName = "NIFTY 50";
+                    // Fallbacks for other names if necessary, e.g. "NIFTY BANK"
+                    
+                    const indexData = allIndices.data.find(d => d.indexSymbol === lookupName || d.index === lookupName);
+                    
+                    if (indexData) {
+                        const pe = parseFloat(indexData.pe);
+                        const pb = parseFloat(indexData.pb);
+                        const dy = parseFloat(indexData.dy);
+                        
+                        if (!isNaN(pe)) payload.ratios.push({ name: 'p/e', company_value: pe });
+                        if (!isNaN(pb)) payload.ratios.push({ name: 'p/b', company_value: pb });
+                        if (!isNaN(dy)) payload.ratios.push({ name: 'dividend yield', company_value: dy });
+                        if (!isNaN(pe) && pe > 0) payload.ratios.push({ name: 'earnings yield', company_value: parseFloat(((1 / pe) * 100).toFixed(2)) });
+                    }
+                } catch (nseErr) {
+                    console.log('Failed to fetch NSE index fundamentals:', nseErr.message);
+                }
             } else {
                 const headers = {
                     "Accept": "application/json",
@@ -83,12 +110,6 @@ export const getFundamentals = async (req, res) => {
                     console.error("Failed to fetch Analyst Consensus:", e.message);
                 }
 
-                let gdpGrowth = null;
-                try {
-                    gdpGrowth = await fredApiService.getGDPGrowth();
-                } catch (e) {
-                    console.error("Failed to fetch GDP Growth live:", e.message);
-                }
 
                 let dividendYield = null;
                 try {
@@ -102,6 +123,13 @@ export const getFundamentals = async (req, res) => {
                     marketCap = await yahooFinanceService.getMarketCap(tradingSymbol);
                 } catch (e) {
                     console.error("Failed to fetch Market Cap live:", e.message);
+                }
+
+                let bookValue = null;
+                try {
+                    bookValue = await yahooFinanceService.getBookValue(tradingSymbol);
+                } catch (e) {
+                    console.error("Failed to fetch Book Value live:", e.message);
                 }
 
                 let ccc = null;
@@ -119,12 +147,75 @@ export const getFundamentals = async (req, res) => {
                 }
 
                 payload.analystConsensus = analystConsensus;
-                payload.gdpGrowth = gdpGrowth;
                 payload.dividendYield = dividendYield;
                 payload.marketCap = marketCap;
+                payload.bookValue = bookValue;
                 payload.cashConversionCycle = ccc;
                 payload.interestCoverage = interestCoverage;
             }
+
+            // --- FETCH MACRO EXTERNAL METRICS LIVE ---
+            let gdpGrowth = null, cpiInflation = null, repoRate = null, fiscalDeficit = null;
+            let systemLiquidity = null, mfFlows = null, fiiTrend = null;
+            try {
+                gdpGrowth = await fredApiService.getGDPGrowth();
+            } catch (e) { console.error("Failed to fetch GDP:", e.message); }
+            try {
+                cpiInflation = await fredApiService.getCPIInflation();
+            } catch (e) { console.error("Failed to fetch CPI:", e.message); }
+            try {
+                repoRate = await fredApiService.getRepoRate();
+            } catch (e) { console.error("Failed to fetch Repo Rate:", e.message); }
+            try {
+                fiscalDeficit = await fredApiService.getFiscalDeficit();
+            } catch (e) { console.error("Failed to fetch Fiscal Deficit:", e.message); }
+
+            try {
+                const fiiRows = localDb.prepare(`
+                    SELECT data_payload, timestamp FROM ai_card_store
+                    WHERE instrument_key = 'GLOBAL' 
+                    AND page_name = 'Dashboard' 
+                    AND section_name = 'InstitutionalFlow' 
+                    AND card_name = 'FiiDiiSegmented'
+                    ORDER BY timestamp DESC
+                    LIMIT 30
+                `).all();
+
+                if (fiiRows && fiiRows.length > 0) {
+                    let persistence = 0;
+                    let trendDirection = 0;
+                    
+                    for (const row of fiiRows) {
+                        const payloadData = JSON.parse(row.data_payload);
+                        const netCashFii = payloadData?.fii?.['NSE_EQ|CASH']?.net || 0;
+                        
+                        if (trendDirection === 0) {
+                            if (netCashFii === 0) break;
+                            trendDirection = netCashFii > 0 ? 1 : -1;
+                            persistence = trendDirection;
+                        } else {
+                            if ((netCashFii > 0 && trendDirection === 1) || (netCashFii < 0 && trendDirection === -1)) {
+                                persistence += trendDirection;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    fiiTrend = persistence;
+                }
+            } catch (e) { console.error("Failed to calculate FII Trend:", e.message); }
+            try {
+                systemLiquidity = await fredApiService.getGlobalLiquidity();
+            } catch (e) { console.error("Failed to fetch Global Liquidity:", e.message); }
+
+            payload.gdpGrowth = gdpGrowth;
+            payload.cpiInflation = cpiInflation;
+            payload.repoRate = repoRate;
+            payload.fiscalDeficit = fiscalDeficit;
+            payload.global_liq = systemLiquidity;
+            payload.systemLiquidity = systemLiquidity; // for backwards compatibility
+            payload.mfFlows = mfFlows;
+            payload.fiiTrend = fiiTrend;
 
             setCache(cacheKey, payload, 86400); // 24 hours TTL
 
@@ -147,6 +238,65 @@ export const getFundamentals = async (req, res) => {
         if (vixQuote && vixQuote.ltp) {
             payload.india_vix = vixQuote.ltp;
             if (vixQuote.updated_at) payload.vix_updated_at = vixQuote.updated_at;
+        }
+
+        // Live FII/DII, Advance/Decline, and Sector Dashboard Injection
+        try {
+            const nse = new NseIndia();
+            
+            // FII/DII
+            const fiiData = await nse.getDataByEndpoint('/api/fiidiiTradeReact');
+            if (Array.isArray(fiiData) && fiiData.length > 0) {
+                let fii_net = null;
+                let dii_net = null;
+                for (const item of fiiData) {
+                    if (item.category === 'FII/FPI') fii_net = parseFloat(item.netValue);
+                    if (item.category === 'DII') dii_net = parseFloat(item.netValue);
+                }
+                payload.liquidity = { fii_net, dii_net, updated_at: fiiData[0].date };
+            }
+
+            // Advance / Decline & Sector Dashboard
+            const indicesData = await nse.getAllIndices();
+            if (indicesData && indicesData.data) {
+                const nifty50 = indicesData.data.find(x => x.indexSymbol === 'NIFTY 50');
+                if (nifty50) {
+                    payload.advance_decline = {
+                        advances: parseInt(nifty50.advances),
+                        declines: parseInt(nifty50.declines),
+                        updated_at: new Date().toISOString()
+                    };
+                }
+
+                // Sector Dashboard
+                const sectors = ['NIFTY BANK', 'NIFTY IT', 'NIFTY AUTO', 'NIFTY FMCG', 'NIFTY METAL', 'NIFTY PHARMA'];
+                const sectorData = {};
+                for (const sector of sectors) {
+                    const sec = indicesData.data.find(x => x.indexSymbol === sector);
+                    if (sec) {
+                        sectorData[sector] = parseFloat(sec.percentChange);
+                    }
+                }
+                payload.sector_dashboard = sectorData;
+            }
+
+        } catch (e) {
+            console.error("Failed to fetch NSE live data:", e.message);
+        }
+
+        // Live RBI Scraper Attempt
+        try {
+            const creditGrowth = await rbiApiService.getCreditGrowth();
+            if (creditGrowth !== null) payload.credit_growth = creditGrowth;
+        } catch (e) {
+            console.error("RBI Scraper (Credit Growth) Failed, fallback engaged:", e.message);
+        }
+
+        try {
+            const corpDebt = await rbiApiService.getCorporateDebt();
+            if (corpDebt !== null) payload.corporate_debt = corpDebt;
+        } catch (e) {
+            console.error("RBI Scraper (Corp Debt) Failed, fallback engaged:", e.message);
         }
 
         return res.json({ status: "success", data: payload, cached: !!getCache(cacheKey) });

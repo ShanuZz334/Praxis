@@ -9,10 +9,9 @@ import { scoreCrudeOil, generateAiInsightCrudeOil } from '@/features/dashboard/f
 
 export default function CrudeCard({ cardId, data, manualOverride, lastUpdated }) {
     // 1. Core State & Extraction
-    let isManual = true;
-    let extractedValue = null;
-
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
+    const hasLiveData = data?.crude !== undefined && data?.crude !== null;
+    let isManual = !hasLiveData;
+    let extractedValue = hasLiveData ? cleanNum(data.crude) : null;
     
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
@@ -46,7 +45,7 @@ export default function CrudeCard({ cardId, data, manualOverride, lastUpdated })
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Price ($)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
+                currentValueObj: { label: 'Price', value: currentValue !== null ? (typeof currentValue === 'number' ? '$' + currentValue.toFixed(2) : '$' + currentValue) : '--' },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',
@@ -65,3 +64,4 @@ export default function CrudeCard({ cardId, data, manualOverride, lastUpdated })
         />
     );
 }
+

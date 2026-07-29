@@ -34,6 +34,7 @@
 
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./stars.css";
 
 @theme {
   --color-border-subtle: var(--border-subtle);
@@ -392,3 +393,185 @@ body {
 /* Hide TradingView Watermark Logo */
 #tv-attr-logo { display: none !important; opacity: 0 !important; pointer-events: none !important; z-index: -1 !important; }
 a[href*='tradingview'] { display: none !important; }
+
+/* =============================
+   Universal Checkbox
+   ============================= */
+.praxis-checkbox-wrapper {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+  font-size: 25px; /* Base size */
+  user-select: none;
+  line-height: 1;
+}
+
+.praxis-checkbox-wrapper input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.praxis-checkmark {
+  position: relative;
+  top: 0;
+  left: 0;
+  height: 1.3em;
+  width: 1.3em;
+  border-radius: 50px;
+  transition: all 0.7s;
+  --spread: 20px;
+  display: inline-block;
+}
+
+/* Dark mode default */
+:root .praxis-checkmark,
+.dark .praxis-checkmark,
+[data-theme="dark"] .praxis-checkmark {
+  background: black;
+}
+
+:root .praxis-checkbox-wrapper input:checked ~ .praxis-checkmark,
+.dark .praxis-checkbox-wrapper input:checked ~ .praxis-checkmark,
+[data-theme="dark"] .praxis-checkbox-wrapper input:checked ~ .praxis-checkmark {
+  background: black;
+}
+
+:root .praxis-checkbox-wrapper .praxis-checkmark:after,
+.dark .praxis-checkbox-wrapper .praxis-checkmark:after,
+[data-theme="dark"] .praxis-checkbox-wrapper .praxis-checkmark:after {
+  border-color: #f0f0f0;
+}
+
+/* Light mode overrides */
+.light .praxis-checkmark,
+[data-theme="light"] .praxis-checkmark {
+  background: white;
+  border: 1px solid var(--border-default);
+}
+
+.light .praxis-checkbox-wrapper input:checked ~ .praxis-checkmark,
+[data-theme="light"] .praxis-checkbox-wrapper input:checked ~ .praxis-checkmark {
+  background: white;
+  border-color: transparent;
+}
+
+.light .praxis-checkbox-wrapper .praxis-checkmark:after,
+[data-theme="light"] .praxis-checkbox-wrapper .praxis-checkmark:after {
+  border-color: #0F172A;
+}
+
+/* Universal checked state shadow */
+.praxis-checkbox-wrapper input:checked ~ .praxis-checkmark {
+  box-shadow: -10px -10px var(--spread) 0px #5B51D8, 
+              0 -10px var(--spread) 0px #833AB4, 
+              10px -10px var(--spread) 0px #E1306C, 
+              10px 0 var(--spread) 0px #FD1D1D, 
+              10px 10px var(--spread) 0px #F77737, 
+              0 10px var(--spread) 0px #FCAF45, 
+              -10px 10px var(--spread) 0px #FFDC80;
+}
+
+/* The checkmark/indicator */
+.praxis-checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.praxis-checkbox-wrapper input:checked ~ .praxis-checkmark:after {
+  display: block;
+}
+
+.praxis-checkbox-wrapper .praxis-checkmark:after {
+  left: 0.45em;
+  top: 0.25em;
+  width: 0.25em;
+  height: 0.5em;
+  border-style: solid;
+  border-width: 0 0.15em 0.15em 0;
+  transform: rotate(45deg);
+}
+
+/* =============================
+   Universal Toggle Switch
+   ============================= */
+.praxis-switch {
+  --input-focus: var(--color-praxis-blue);
+  --font-color: #323232;
+  --font-color-sub: #666;
+  --bg-color: #fff;
+  --bg-color-alt: #666;
+  --main-color: #323232;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  width: 40px;
+  height: 16px;
+}
+
+/* Dark mode overrides */
+.dark .praxis-switch,
+[data-theme="dark"] .praxis-switch {
+  --input-focus: var(--color-praxis-blue); 
+  --font-color: #f1f5f9;
+  --font-color-sub: #94a3b8;
+  --bg-color: #0b1220; 
+  --bg-color-alt: #94a3b8;
+  --main-color: #64748B;
+}
+
+.dark .praxis-slider, [data-theme="dark"] .praxis-slider,
+.dark .praxis-slider:before, [data-theme="dark"] .praxis-slider:before {
+  box-shadow: none;
+}
+
+.praxis-toggle {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.praxis-slider {
+  box-sizing: border-box;
+  border-radius: 5px;
+  border: 2px solid var(--main-color);
+  box-shadow: 4px 4px var(--main-color);
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-color);
+  transition: 0.3s;
+}
+
+.praxis-slider:before {
+  box-sizing: border-box;
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  border: 2px solid var(--main-color);
+  border-radius: 5px;
+  left: -2px;
+  bottom: -2px;
+  background-color: var(--bg-color);
+  box-shadow: 0 3px 0 var(--main-color);
+  transition: 0.3s;
+}
+
+.praxis-toggle:checked + .praxis-slider {
+  background-color: var(--input-focus);
+}
+
+.praxis-toggle:checked + .praxis-slider:before {
+  transform: translateX(24px);
+}

@@ -34,8 +34,29 @@ export function useManualOverrides(moduleKey, instrument, defaultOverrides) {
         return {};
     };
 
+    const getExpiryConfigs = () => {
+        const defaults = { 
+            face_value: 30 * 24 * 60 * 60 * 1000, 
+            global_default: 2 * 60 * 60 * 1000,
+            mcap_gdp: 30 * 24 * 60 * 60 * 1000,
+            eps_yoy: 30 * 24 * 60 * 60 * 1000,
+            forward_eps: 7 * 24 * 60 * 60 * 1000,
+            profit_margin: 30 * 24 * 60 * 60 * 1000,
+            policy_tailwinds: 30 * 24 * 60 * 60 * 1000,
+            fii_trend: 24 * 60 * 60 * 1000,
+            mf_flows: 30 * 24 * 60 * 60 * 1000,
+            system_liquidity: 24 * 60 * 60 * 1000
+        };
+        try {
+            const stored = localStorage.getItem('praxis_manual_expiry_config');
+            if (stored) return { ...defaults, ...JSON.parse(stored) };
+        } catch (e) { }
+        return defaults;
+    };
+
     const [overrides, setOverrides] = useState(getInitialOverrides);
     const [lastUpdated, setLastUpdated] = useState(getInitialLastUpdated);
+    const [expiryConfigs, setExpiryConfigs] = useState(getExpiryConfigs);
 
     // Re-initialize state when instrument changes
     useEffect(() => {
@@ -100,6 +121,7 @@ export function useManualOverrides(moduleKey, instrument, defaultOverrides) {
     return {
         overrides,
         lastUpdated,
+        expiryConfigs,
         handleChange,
         handleClearAll
     };

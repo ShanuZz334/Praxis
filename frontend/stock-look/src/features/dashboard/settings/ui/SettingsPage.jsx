@@ -63,6 +63,8 @@ import Loader from "../../../../shared/components/ui/Loader";
 
 import { useTheme } from "../../../../shared/context/ThemeContext";
 import GhostLogo from "../../../../shared/components/ui/GhostLogo";
+import UiverseDropdown from "../../../../shared/components/ui/UiverseDropdown";
+import { UniversalToggle } from "@/components/ui/universal-toggle";
 
 const PAI_ACCESSORIES = [
     { id: 'none', label: 'None' },
@@ -95,14 +97,42 @@ const SettingsPage = () => {
         paiMascotColor,
         setPaiMascotColor,
         paiAccessory,
-        setPaiAccessory
+        setPaiAccessory,
+        paiAudioStyle,
+        setPaiAudioStyle,
+        useOrbNav,
+        setUseOrbNav
     } = useTheme();
 
     // UI State
     const [activeTab, setActiveTab] = useState("account");
     const [loading, setLoading] = useState(true);
-    const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'success', 'error'
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+    // Calculator Keybindings State
+    const defaultCalcBindings = {
+        sin: 's',
+        cos: 'c',
+        tan: 't',
+        log: 'l',
+        sqrt: 'r',
+        pi: 'p',
+        fraction: 'f'
+    };
+    const [calcBindings, setCalcBindings] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('calcKeybindings')) || defaultCalcBindings;
+        } catch {
+            return defaultCalcBindings;
+        }
+    });
+
+    const updateCalcBinding = (key, value) => {
+        // Prevent uppercase or multi-character binds to keep it simple, but we can allow single characters.
+        const newBinds = { ...calcBindings, [key]: value.toLowerCase().slice(0, 1) };
+        setCalcBindings(newBinds);
+        localStorage.setItem('calcKeybindings', JSON.stringify(newBinds));
+    };
 
     // Feature State
     const [showAggressiveWarning, setShowAggressiveWarning] = useState(false);
@@ -151,6 +181,36 @@ const SettingsPage = () => {
     const [initialFormData, setInitialFormData] = useState({});
     const [initialSettings, setInitialSettings] = useState({});
     const [legacyVoiceContext, setLegacyVoiceContext] = useState(() => localStorage.getItem('paiLegacyVoiceContext') === 'true');
+
+    // Manual Timers State
+    const [manualExpiryConfigs, setManualExpiryConfigs] = useState(() => {
+        const defaults = { 
+            face_value: 30 * 24 * 60 * 60 * 1000, 
+            global_default: 2 * 60 * 60 * 1000,
+            mcap_gdp: 30 * 24 * 60 * 60 * 1000,
+            eps_yoy: 30 * 24 * 60 * 60 * 1000,
+            forward_eps: 7 * 24 * 60 * 60 * 1000,
+            profit_margin: 30 * 24 * 60 * 60 * 1000,
+            policy_tailwinds: 30 * 24 * 60 * 60 * 1000,
+            fii_trend: 24 * 60 * 60 * 1000,
+            mf_flows: 30 * 24 * 60 * 60 * 1000,
+            system_liquidity: 24 * 60 * 60 * 1000
+        };
+        try {
+            const stored = localStorage.getItem('praxis_manual_expiry_config');
+            if (stored) return { ...defaults, ...JSON.parse(stored) };
+        } catch (e) { }
+        return defaults;
+    });
+
+    const handleManualExpiryChange = (key, valMs) => {
+        setManualExpiryConfigs(prev => {
+            const next = { ...prev, [key]: valMs };
+            localStorage.setItem('praxis_manual_expiry_config', JSON.stringify(next));
+            return next;
+        });
+        toast.success("Timer settings updated locally.");
+    };
 
     // Initialize Data from Context & API
     useEffect(() => {
@@ -623,6 +683,7 @@ const SettingsPage = () => {
         { id: "notifications", label: "Notifications", icon: FiBell },
         { id: "security", label: "Security", icon: FiLock },
         { id: "preferences", label: "Customisation", icon: FiSettings },
+        { id: "manual_data", label: "Manual Data", icon: FiDatabase },
         { id: "about", label: "About", icon: FiInfo },
     ];
 
@@ -716,7 +777,7 @@ const SettingsPage = () => {
                     </nav>
 
                     {/* Main Content Area */}
-                    <div className="rounded-2xl border border-border-default bg-transparent p-3.5 sm:p-5 lg:p-8 shadow-xl shadow-black/5 backdrop-blur-sm">
+                    <div className="rounded-2xl border border-border-default bg-transparent p-3.5 sm:p-5 lg:p-8 shadow-xl shadow-black/5 backdrop-blur-sm min-w-0">
 
                         {/* --- ACCOUNT TAB --- */}
                         {activeTab === "account" && (
@@ -885,12 +946,10 @@ const SettingsPage = () => {
                                                 <p className="font-medium">{item.label}</p>
                                                 <p className="text-sm text-text-secondary">{item.desc}</p>
                                             </div>
-                                            <button
-                                                onClick={() => handleSettingToggle(item.id)}
-                                                className={`relative h-6 w-11 rounded-full transition-colors ${settings[item.id] ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-700"}`}
-                                            >
-                                                <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white transition-transform ${settings[item.id] ? "translate-x-5" : ""}`} />
-                                            </button>
+                                            <UniversalToggle 
+                                                checked={settings[item.id]} 
+                                                onChange={() => handleSettingToggle(item.id)} 
+                                            />
                                         </div>
                                     ))}
                                 </div>
@@ -906,12 +965,10 @@ const SettingsPage = () => {
                                                 <item.icon className="text-text-secondary" />
                                                 <span className="font-medium">{item.label}</span>
                                             </div>
-                                            <button
-                                                onClick={() => handleSettingToggle(item.id)}
-                                                className={`relative h-6 w-11 rounded-full transition-colors ${settings[item.id] ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-700"}`}
-                                            >
-                                                <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white transition-transform ${settings[item.id] ? "translate-x-5" : ""}`} />
-                                            </button>
+                                            <UniversalToggle 
+                                                checked={settings[item.id]} 
+                                                onChange={() => handleSettingToggle(item.id)} 
+                                            />
                                         </div>
                                     ))}
                                 </div>
@@ -1074,6 +1131,20 @@ const SettingsPage = () => {
                                         </div>
                                     </div>
 
+                                    {/* Orb Navigation Toggle */}
+                                    <div className="space-y-3 mt-3">
+                                        <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div>
+                                                <p className="font-medium text-text-primary">Orb Navigation Layout</p>
+                                                <p className="text-xs text-text-secondary mt-0.5">Replace standard sidebar with a dynamic radial floating menu</p>
+                                            </div>
+                                            <UniversalToggle 
+                                                checked={useOrbNav} 
+                                                onChange={() => setUseOrbNav(!useOrbNav)} 
+                                            />
+                                        </div>
+                                    </div>
+
                                     {/* PAI Mascot Color Picker */}
                                     <div className="space-y-3 mt-3">
                                         <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -1132,6 +1203,59 @@ const SettingsPage = () => {
                                         </div>
                                     </div>
 
+                                    {/* PAI Voice Visualizer Toggle */}
+                                    <div className="space-y-3 mt-3">
+                                        <div className="flex flex-col gap-4 rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div>
+                                                <p className="font-medium text-text-primary">PAI Voice Visualizer</p>
+                                                <p className="text-xs text-text-secondary mt-0.5">Select your preferred audio visualization style</p>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {/* 8-Bit Pixel Art Demo Card */}
+                                                <button 
+                                                    onClick={() => setPaiAudioStyle('pixel')}
+                                                    className={`relative overflow-hidden rounded-xl border p-4 flex flex-col items-center justify-center gap-3 transition-all duration-300 ${paiAudioStyle === 'pixel' ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'border-border-default bg-background-surface hover:border-border-hover'}`}
+                                                >
+                                                    <div className="h-12 w-full flex items-center justify-center gap-1">
+                                                        {[3, 6, 4, 8, 5, 7, 4, 2].map((h, i) => (
+                                                            <div key={i} className={`w-3 bg-blue-400 animate-pulse`} style={{ height: `${h * 4}px`, animationDelay: `${i * 0.15}s`, borderRadius: '0px' }} />
+                                                        ))}
+                                                    </div>
+                                                    <div className="text-center mt-2">
+                                                        <p className={`text-sm font-semibold ${paiAudioStyle === 'pixel' ? 'text-blue-400' : 'text-text-primary'}`}>8-Bit Pixel Art</p>
+                                                        <p className="text-[10px] text-text-tertiary mt-1">Retro blocky style</p>
+                                                    </div>
+                                                    {paiAudioStyle === 'pixel' && (
+                                                        <div className="absolute top-2 right-2 text-blue-500">
+                                                            <FiCheck size={14} />
+                                                        </div>
+                                                    )}
+                                                </button>
+                                                
+                                                {/* Smooth Wave Demo Card */}
+                                                <button 
+                                                    onClick={() => setPaiAudioStyle('bar')}
+                                                    className={`relative overflow-hidden rounded-xl border p-4 flex flex-col items-center justify-center gap-3 transition-all duration-300 ${paiAudioStyle === 'bar' ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'border-border-default bg-background-surface hover:border-border-hover'}`}
+                                                >
+                                                    <div className="h-12 w-full flex items-center justify-center gap-1.5">
+                                                        {[4, 8, 5, 10, 6, 9, 5, 3].map((h, i) => (
+                                                            <div key={i} className={`w-2.5 bg-blue-400 rounded-full animate-pulse`} style={{ height: `${h * 4}px`, animationDelay: `${i * 0.1}s` }} />
+                                                        ))}
+                                                    </div>
+                                                    <div className="text-center mt-2">
+                                                        <p className={`text-sm font-semibold ${paiAudioStyle === 'bar' ? 'text-blue-400' : 'text-text-primary'}`}>Smooth Wave</p>
+                                                        <p className="text-[10px] text-text-tertiary mt-1">Modern rounded bars</p>
+                                                    </div>
+                                                    {paiAudioStyle === 'bar' && (
+                                                        <div className="absolute top-2 right-2 text-blue-500">
+                                                            <FiCheck size={14} />
+                                                        </div>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {/* Legacy PAI Context Toggle */}
                                     <div className="space-y-3 mt-3">
                                         <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -1139,21 +1263,15 @@ const SettingsPage = () => {
                                                 <p className="font-medium text-text-primary">Legacy NLP Mention Method (PAI Voice)</p>
                                                 <p className="text-xs text-text-secondary mt-0.5">Use explicit @mentions (regex matching) instead of the Auto-Context engine</p>
                                             </div>
-                                            <button
-                                                onClick={() => {
+                                            <UniversalToggle 
+                                                checked={legacyVoiceContext} 
+                                                onChange={() => {
                                                     const newValue = !legacyVoiceContext;
                                                     setLegacyVoiceContext(newValue);
                                                     localStorage.setItem('paiLegacyVoiceContext', newValue ? 'true' : 'false');
                                                     toast.success(newValue ? 'Legacy Mention Method Enabled' : 'Auto-Context Engine Enabled');
-                                                }}
-                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${legacyVoiceContext ? 'bg-blue-600' : 'bg-slate-700'
-                                                    }`}
-                                            >
-                                                <span
-                                                    className={`${legacyVoiceContext ? 'translate-x-6' : 'translate-x-1'
-                                                        } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
-                                                />
-                                            </button>
+                                                }} 
+                                            />
                                         </div>
                                     </div>
 
@@ -1162,73 +1280,207 @@ const SettingsPage = () => {
                                         <div className="space-y-3 mt-3">
                                             <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
                                                 <div>
-                                                    <p className="font-medium text-text-primary">Gradient Borders</p>
+                                                <p className="font-medium text-text-primary">Gradient Borders</p>
                                                     <p className="text-xs text-text-secondary mt-0.5">Enable premium blue-violet borders around cards</p>
                                                 </div>
-                                                <button
-                                                    onClick={() => setGradientBorder(!gradientBorder)}
-                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${gradientBorder ? 'bg-blue-600' : 'bg-slate-700'
-                                                        }`}
-                                                >
-                                                    <span
-                                                        className={`${gradientBorder ? 'translate-x-6' : 'translate-x-1'
-                                                            } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
-                                                    />
-                                                </button>
+                                                <UniversalToggle 
+                                                    checked={gradientBorder} 
+                                                    onChange={() => setGradientBorder(!gradientBorder)} 
+                                                />
                                             </div>
 
                                             {/* Mode-Synced Aesthetics Toggle */}
                                             <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
                                                 <div>
-                                                    <p className="font-medium text-text-primary">Mode-Synced Aesthetics</p>
+                                                <p className="font-medium text-text-primary">Mode-Synced Aesthetics</p>
                                                     <p className="text-xs text-text-secondary mt-0.5">Adapt gradient border colors to your Trading Mode</p>
                                                 </div>
-                                                <button
-                                                    onClick={() => setTradingModeVfx(!tradingModeVfx)}
-                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${tradingModeVfx ? 'bg-indigo-600' : 'bg-slate-700'
-                                                        }`}
-                                                >
-                                                    <span
-                                                        className={`${tradingModeVfx ? 'translate-x-6' : 'translate-x-1'
-                                                            } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
-                                                    />
-                                                </button>
+                                                <UniversalToggle 
+                                                    checked={tradingModeVfx} 
+                                                    onChange={() => setTradingModeVfx(!tradingModeVfx)} 
+                                                />
                                             </div>
                                         </div>
                                     )}
-                                </div>
 
-                                {/* VFX Customization (Dark Mode Only) */}
-                                {theme === 'dark' && (
-                                    <div className="pt-4 animate-in fade-in duration-500 hidden md:block">
-                                        <h3 className="mb-4 text-sm font-medium text-text-secondary">VFX Presets (Dark Mode Only)</h3>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                                            {[
-                                                { id: 'midnight', label: 'Midnight', colors: 'from-blue-600 via-indigo-600 to-cyan-500', desc: 'Default Balance' },
-                                                { id: 'solar', label: 'Solar Flare', colors: 'from-orange-500 via-amber-500 to-rose-500', desc: 'Warm Energy' },
-                                                { id: 'forest', label: 'Neon Forest', colors: 'from-emerald-500 via-teal-500 to-lime-500', desc: 'Calm Growth' },
-                                                { id: 'ocean', label: 'Deep Ocean', colors: 'from-blue-800 via-blue-600 to-cyan-600', desc: 'Icy Focus' },
-                                                { id: 'royal', label: 'Royal Nebula', colors: 'from-indigo-600 via-violet-600 to-blue-500', desc: 'Premium Depth' }
-                                            ].map((preset) => (
-                                                <button
-                                                    key={preset.id}
-                                                    onClick={() => setVfxPreset(preset.id)}
-                                                    className={`group relative p-3 rounded-xl border transition-all duration-300 flex flex-col items-center gap-2 text-center
-                                                        ${vfxPreset === preset.id
-                                                            ? "border-blue-500/50 bg-blue-500/5 shadow-lg shadow-blue-500/10"
-                                                            : "border-border-subtle bg-transparent hover:border-border-default"}
-                                                    `}
-                                                >
-                                                    <div className={`w-full h-12 rounded-lg bg-gradient-to-br ${preset.colors} opacity-80 group-hover:opacity-100 transition-opacity`} />
-                                                    <div>
-                                                        <p className={`text-xs font-bold ${vfxPreset === preset.id ? 'text-blue-400' : 'text-text-primary'}`}>{preset.label}</p>
-                                                        <p className="text-[10px] text-text-tertiary mt-0.5 whitespace-nowrap">{preset.desc}</p>
+                        {/* VFX Customization (Dark Mode Only) */}
+                        {theme === 'dark' && (
+                            <div className="pt-4 animate-in fade-in duration-500 hidden md:block">
+                                <h3 className="mb-4 text-sm font-medium text-text-secondary">VFX Presets (Dark Mode Only)</h3>
+                                {/* ... omitted for brevity but I need to keep the exact content ... */}
+                                <div className="flex overflow-x-auto pb-4 gap-3 custom-scrollbar">
+                                    {[
+                                        { id: 'midnight', label: 'Midnight', colors: 'from-blue-600 via-indigo-600 to-cyan-500', desc: 'Default Balance' },
+                                        { id: 'solar', label: 'Solar Flare', colors: 'from-orange-500 via-amber-500 to-rose-500', desc: 'Warm Energy' },
+                                        { id: 'forest', label: 'Neon Forest', colors: 'from-emerald-500 via-teal-500 to-lime-500', desc: 'Calm Growth' },
+                                        { id: 'ocean', label: 'Deep Ocean', colors: 'from-blue-800 via-blue-600 to-cyan-600', desc: 'Icy Focus' },
+                                        { id: 'royal', label: 'Royal Nebula', colors: 'from-indigo-600 via-violet-600 to-blue-500', desc: 'Premium Depth' },
+                                        { id: 'cosmos', label: 'Cosmos', colors: '', desc: 'Starry Night' },
+                                        { id: 'meteors', label: 'Meteor Shower', colors: '', desc: 'Falling Stars' }
+                                    ].map((preset) => (
+                                        <button
+                                            key={preset.id}
+                                            onClick={() => setVfxPreset(preset.id)}
+                                            className={`min-w-[140px] flex-shrink-0 group relative p-3 rounded-xl border transition-all duration-300 flex flex-col items-center gap-2 text-center
+                                                ${vfxPreset === preset.id
+                                                    ? "border-blue-500/50 bg-blue-500/5 shadow-lg shadow-blue-500/10"
+                                                    : "border-border-subtle bg-transparent hover:border-border-default"}
+                                            `}
+                                        >
+                                            <div className={`w-full h-12 rounded-lg relative overflow-hidden bg-[#02050e] opacity-80 group-hover:opacity-100 transition-opacity`}>
+                                                {preset.id === 'cosmos' ? (
+                                                    <div className="absolute inset-0">
+                                                        <div id="stars"></div>
+                                                        <div id="stars2"></div>
+                                                        <div id="stars3"></div>
                                                     </div>
-                                                </button>
-                                            ))}
+                                                ) : preset.id === 'meteors' ? (
+                                                    <div className="meteors-container absolute inset-0"></div>
+                                                ) : (
+                                                    <div className={`absolute inset-0 bg-gradient-to-br ${preset.colors}`} />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <p className={`text-xs font-bold ${vfxPreset === preset.id ? 'text-blue-400' : 'text-text-primary'}`}>{preset.label}</p>
+                                                <p className="text-[10px] text-text-tertiary mt-0.5 whitespace-nowrap">{preset.desc}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Calculator Keybindings Customization */}
+                    <div className="pt-6 border-t border-border-subtle animate-in fade-in duration-500">
+                            <div>
+                                <h3 className="text-sm font-medium text-text-primary">Calculator Keybindings</h3>
+                                <p className="text-xs text-text-secondary mt-1">Map your physical keyboard keys to the scientific functions.</p>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
+                                {Object.entries(calcBindings).map(([funcKey, mappedChar]) => (
+                                    <div key={funcKey} className="flex flex-col gap-1">
+                                        <label className="text-xs text-text-tertiary capitalize">{funcKey === 'fraction' ? 'a/b (Fraction)' : funcKey}</label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                maxLength={1}
+                                                value={mappedChar}
+                                                onChange={(e) => updateCalcBinding(funcKey, e.target.value)}
+                                                className="w-full bg-background-elevated border border-border-default rounded-md px-3 py-2 text-sm text-center uppercase focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all"
+                                                placeholder="Key"
+                                            />
                                         </div>
                                     </div>
-                                )}
+                                ))}
+                            </div>
+                        </div>
+
+                    </div>
+                )}
+
+                {/* --- MANUAL DATA TAB --- */}
+                        {activeTab === "manual_data" && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div>
+                                    <h2 className="text-xl font-semibold">Manual Data Settings</h2>
+                                    <p className="text-sm text-text-secondary">Configure expiration timers for your manual data overrides.</p>
+                                </div>
+                                <div className="space-y-8">
+                                    {/* GLOBAL SETTINGS */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-xs font-bold tracking-wider text-emerald-500 uppercase border-b border-border-default pb-2">Global Settings</h3>
+                                        <div className="rounded-xl border border-border-default bg-background-surface/30 p-5 space-y-5">
+                                            <div className="flex items-start gap-3">
+                                                <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                                                    <FiDatabase size={16} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h3 className="text-sm font-medium text-text-primary">Global Default Timer</h3>
+                                                    <p className="text-xs text-text-tertiary mb-3 mt-1">Expiration time for any manual input without a specific timer.</p>
+                                                    <UiverseDropdown
+                                                        options={[
+                                                            { value: 2 * 60 * 60 * 1000, label: "2 Hours" },
+                                                            { value: 24 * 60 * 60 * 1000, label: "24 Hours" },
+                                                            { value: 7 * 24 * 60 * 60 * 1000, label: "7 Days" },
+                                                            { value: 30 * 24 * 60 * 60 * 1000, label: "30 Days" }
+                                                        ]}
+                                                        value={manualExpiryConfigs.global_default}
+                                                        onChange={(val) => handleManualExpiryChange("global_default", Number(val))}
+                                                        className="w-full max-w-xs"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* COMPANY DASHBOARD */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-xs font-bold tracking-wider text-blue-500 uppercase border-b border-border-default pb-2">Company Dashboard</h3>
+                                        <div className="rounded-xl border border-border-default bg-background-surface/30 p-5 space-y-5">
+                                            <div className="flex items-start gap-3">
+                                                <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                                                    <FiDatabase size={16} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h3 className="text-sm font-medium text-text-primary">Face Value Timer</h3>
+                                                    <p className="text-xs text-text-tertiary mb-3 mt-1">Specific expiration time for Face Value (rarely changes).</p>
+                                                    <UiverseDropdown
+                                                        options={[
+                                                            { value: 24 * 60 * 60 * 1000, label: "24 Hours" },
+                                                            { value: 7 * 24 * 60 * 60 * 1000, label: "7 Days" },
+                                                            { value: 30 * 24 * 60 * 60 * 1000, label: "30 Days" },
+                                                            { value: 365 * 24 * 60 * 60 * 1000, label: "1 Year" }
+                                                        ]}
+                                                        value={manualExpiryConfigs.face_value}
+                                                        onChange={(val) => handleManualExpiryChange("face_value", Number(val))}
+                                                        className="w-full max-w-xs"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* INDICES DASHBOARD */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-xs font-bold tracking-wider text-indigo-500 uppercase border-b border-border-default pb-2">Indices Dashboard</h3>
+                                        {[
+                                            { key: "mcap_gdp", label: "M-Cap/GDP Timer", desc: "Specific expiration time for M-Cap to GDP ratio." },
+                                            { key: "eps_yoy", label: "EPS YoY Timer", desc: "Specific expiration time for EPS YoY." },
+                                            { key: "forward_eps", label: "Forward EPS Timer", desc: "Specific expiration time for Forward EPS." },
+                                            { key: "profit_margin", label: "Profit Margin Timer", desc: "Specific expiration time for Profit Margin." },
+                                            { key: "policy_tailwinds", label: "Policy Tailwinds Timer", desc: "Specific expiration time for Policy Tailwinds." },
+                                            { key: "fii_trend", label: "FII Trend Timer", desc: "Specific expiration time for FII Trend." },
+                                            { key: "mf_flows", label: "MF Flows Timer", desc: "Specific expiration time for MF Flows." },
+                                            { key: "system_liquidity", label: "Sys Liquidity Timer", desc: "Specific expiration time for System Liquidity." }
+                                        ].map((metric) => (
+                                            <div key={metric.key} className="rounded-xl border border-border-default bg-background-surface/30 p-5 space-y-5">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500">
+                                                        <FiDatabase size={16} />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <h3 className="text-sm font-medium text-text-primary">{metric.label}</h3>
+                                                        <p className="text-xs text-text-tertiary mb-3 mt-1">{metric.desc}</p>
+                                                        <UiverseDropdown
+                                                            options={[
+                                                                { value: 2 * 60 * 60 * 1000, label: "2 Hours" },
+                                                                { value: 24 * 60 * 60 * 1000, label: "24 Hours" },
+                                                                { value: 7 * 24 * 60 * 60 * 1000, label: "7 Days" },
+                                                                { value: 30 * 24 * 60 * 60 * 1000, label: "30 Days" },
+                                                                { value: 365 * 24 * 60 * 60 * 1000, label: "1 Year" }
+                                                            ]}
+                                                            value={manualExpiryConfigs[metric.key]}
+                                                            onChange={(val) => handleManualExpiryChange(metric.key, Number(val))}
+                                                            className="w-full max-w-xs"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         )}
 

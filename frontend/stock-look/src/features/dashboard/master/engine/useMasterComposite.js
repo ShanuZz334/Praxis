@@ -416,7 +416,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                 
                 // Index-specific exclusions for Fundamentals
                 const fundIndexOnly = ['advance_decline', 'sector_dashboard', 'india_vix', 'mcap_gdp', 'nifty_pe', 'nifty_pb'];
-                const fundStockOnly = ['forward_pe', 'ev_ebitda', 'earnings_yield', 'relative_valuation', 'earnings_trend', 'revenue_growth', 'profit_growth', 'roe', 'roce', 'roa', 'net_margin', 'operating_margin', 'debt_to_equity', 'interest_coverage', 'free_cash_flow', 'current_ratio', 'promoter_holding', 'smart_money_flow', 'earnings_quality', 'peer_comparison', 'analyst_consensus', 'corporate_actions', 'cash_conversion', 'credit_rating'];
+                const fundStockOnly = ['forward_pe', 'ev_ebitda', 'earnings_yield', 'relative_valuation', 'earnings_trend', 'revenue_growth', 'profit_growth', 'roe', 'roce', 'roa', 'net_margin', 'operating_margin', 'debt_to_equity', 'interest_coverage', 'free_cash_flow', 'current_ratio', 'promoter_holding', 'smart_money_flow', 'earnings_quality', 'peer_comparison', 'analyst_consensus', 'corporate_actions', 'cash_conversion'];
                 
                 if (isIndex && fundStockOnly.includes(id)) skip = true;
                 if (!isIndex && fundIndexOnly.includes(id)) skip = true;

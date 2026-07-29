@@ -12,7 +12,11 @@ export default function FIITrendCard({ cardId, data, manualOverride, lastUpdated
     let isManual = true;
     let extractedValue = null;
 
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
+    // Attempt to extract live data
+    if (data?.fiiTrend !== undefined && data?.fiiTrend !== null) {
+        extractedValue = data.fiiTrend;
+        isManual = false;
+    }
     
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 

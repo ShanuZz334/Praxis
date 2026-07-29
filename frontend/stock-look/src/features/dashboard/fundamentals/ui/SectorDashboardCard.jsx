@@ -6,18 +6,40 @@ import { cleanNum } from '@/lib/utils';
 import { generateAiInsightSectorDashboard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function SectorDashboardCard({ cardId, data, manualOverrides = {}, lastUpdated }) {
+    const liveData = data?.sector_dashboard;
+    const hasLiveData = !!(liveData && Object.keys(liveData).length > 0);
+
     // 1. Data extraction & fallback to manual overrides
     const getVal = (key) => manualOverrides[key] !== undefined && manualOverrides[key] !== null && manualOverrides[key] !== '' 
         ? cleanNum(manualOverrides[key]) 
         : null;
 
-    const advanceDecline = getVal('advance_decline');
-    const sectorValuation = getVal('sector_valuation');
-    const sectorGrowth = getVal('sector_growth');
-    const sectorConcentration = getVal('sector_concentration');
-    const cycDef = getVal('cyc_def');
+    let advanceDecline = null;
+    let sectorValuation = null;
+    let sectorGrowth = null;
+    let cycDef = null;
+    let liveDetails = [];
 
-    const isManual = true; // Mostly manual for now, assuming index metrics aren't fully live
+    if (hasLiveData) {
+        // Calculate a simple composite score based on average sector performance
+        const values = Object.values(liveData);
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+        // Map average return to a 0-100 score (e.g. -2% -> 0, 0% -> 50, +2% -> 100)
+        advanceDecline = Math.min(100, Math.max(0, 50 + (avg * 25))); 
+        
+        liveDetails = Object.entries(liveData).map(([name, val]) => ({
+            label: name.replace('NIFTY ', ''),
+            value: `${val > 0 ? '+' : ''}${val.toFixed(2)}%`,
+            isManual: false
+        }));
+    } else {
+        advanceDecline = getVal('advance_decline');
+        sectorValuation = getVal('sector_valuation');
+        sectorGrowth = getVal('sector_growth');
+        cycDef = getVal('cyc_def');
+    }
+
+    const isManual = !hasLiveData;
 
     const configData = getIndicatorConfig(CARD_REGISTRY.sector_dashboard.id) || { creditScore: 6, impactWeight: 5.0, aiModel: 'Engine v3' };
 
@@ -55,13 +77,13 @@ export default function SectorDashboardCard({ cardId, data, manualOverrides = {}
                     label: 'Sector Health', 
                     value: compositeScore !== null ? compositeScore.toFixed(1) : '--' 
                 },
-                details: [
-                    advanceDecline !== null && { label: 'Adv/Dec', value: advanceDecline.toString(), isManual: false },
-                    sectorValuation !== null && { label: 'Valuation', value: sectorValuation.toString(), isManual: false },
-                    sectorGrowth !== null && { label: 'Growth', value: sectorGrowth.toString(), isManual: false },
-                    cycDef !== null && { label: 'Cyc/Def', value: cycDef.toString(), isManual: false },
+                details: hasLiveData ? liveDetails : [
+                    advanceDecline !== null && { label: 'Adv/Dec', value: advanceDecline.toString(), isManual: true },
+                    sectorValuation !== null && { label: 'Valuation', value: sectorValuation.toString(), isManual: true },
+                    sectorGrowth !== null && { label: 'Growth', value: sectorGrowth.toString(), isManual: true },
+                    cycDef !== null && { label: 'Cyc/Def', value: cycDef.toString(), isManual: true },
                 ].filter(Boolean),
-                score: compositeScore,
+                score: compositeScore ?? 0,
                 bias: bias,
                 confidence: `${validCount > 0 ? 80 : 0}%`,
                 impactWeight: configData.impactWeight

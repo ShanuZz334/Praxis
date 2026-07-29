@@ -84,7 +84,7 @@ export default function NetMarginCard({ cardId, data, manualOverride, lastUpdate
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Net Margin (%)', value: currentMargin !== null ? currentMargin.toFixed(2) + '%' : '--' },
+                currentValueObj: { label: 'Net Margin', value: currentMargin !== null ? currentMargin.toFixed(2) + '%' : '--' },
                 details: [
                     sectorMargin !== null && { label: 'Sector Margin', value: sectorMargin.toFixed(2) + '%', isManual: false }
                 ].filter(Boolean),

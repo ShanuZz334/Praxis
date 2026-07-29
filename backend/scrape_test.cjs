@@ -1,0 +1,1 @@
+const fs = require('fs'); const cheerio = require('cheerio'); const html = fs.readFileSync('te_loan.html', 'utf8'); const $ = cheerio.load(html); const table = $('table.table').first(); const rows = table.find('tr'); rows.each((i, row) => { console.log($(row).text().trim().replace(/\s+/g, ' ')); });

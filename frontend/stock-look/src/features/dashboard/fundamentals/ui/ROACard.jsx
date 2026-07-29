@@ -49,7 +49,7 @@ export default function ROACard({ cardId, data = null, manualOverride, lastUpdat
             }}
             data={{
                 currentValueObj: { 
-                    label: 'ROA (%)', 
+                    label: 'ROA', 
                     value: currentROA !== null ? `${cleanNum(currentROA).toFixed(2)}%` : '--' 
                 },
                 details: [

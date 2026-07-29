@@ -60,8 +60,13 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
 
         const handleSnapshot = (e) => {
             if (!e.detail) return;
-            const { card_id, score } = e.detail;
+            const { card_id, score, instrumentKey: snapInstrument } = e.detail;
             
+            // Prevent cross-contamination from stale cards unmounting after an instrument change
+            if (snapInstrument && snapInstrument !== instrumentKey) {
+                return;
+            }
+
             // card_id is now exactly the metric ID (e.g., 'crude', 'nifty_pe') because IndicatorCard sends resolvedCardId
             const metricId = card_id;
             

@@ -12,17 +12,19 @@ export default function ForwardEPSCard({ cardId, data, manualOverride, lastUpdat
     let isManual = true;
     let extractedValue = null;
 
-    // Attempt to extract live data
-    const fwdEpsItem = (Array.isArray(data?.ratios) ? data.ratios : []).find(item => 
-        item.name?.toLowerCase().includes('forward eps') || 
-        item.name?.toLowerCase().includes('fwd eps')
-    );
-    
-    if (fwdEpsItem && fwdEpsItem.company_value) {
-        const parsed = cleanNum(fwdEpsItem.company_value);
-        if (!isNaN(parsed)) {
-            extractedValue = parsed;
-            isManual = false;
+    // Attempt to extract live data from Upstox
+    if (data?.income?.full_statement) {
+        const fullStatement = data.income.full_statement;
+        const epsObj = fullStatement.find(s => s.particular === 'EPS - Basic' || s.particular === 'EPS - Diluted');
+        
+        if (epsObj && epsObj.history?.length >= 2) {
+            const currentEps = epsObj.history[0].value;
+            const previousEps = epsObj.history[1].value;
+            if (previousEps !== 0) {
+                const epsYoY = (currentEps - previousEps) / Math.abs(previousEps);
+                extractedValue = currentEps * (1 + epsYoY); // Extrapolate Forward EPS
+                isManual = false;
+            }
         }
     }
     
@@ -58,7 +60,7 @@ export default function ForwardEPSCard({ cardId, data, manualOverride, lastUpdat
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Growth (%)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
+                currentValueObj: { label: 'EPS', value: currentValue !== null ? (typeof currentValue === 'number' ? '₹' + currentValue.toFixed(2) : '₹' + currentValue) : '--' },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',

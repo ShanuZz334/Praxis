@@ -9,12 +9,10 @@ import { scorePolicyTailwinds, generateAiInsightPolicyTailwinds } from '@/featur
 
 export default function PolicyTailwindsCard({ cardId, data, manualOverride, lastUpdated }) {
     // 1. Core State & Extraction
-    let isManual = true;
-    let extractedValue = null;
-
-    // TODO: Extract live data from 'data' object if Upstox ever supports these metrics.
+    // Policy Tailwinds is a purely qualitative metric. It will permanently remain in manual override mode.
+    const isManual = true;
     
-    const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
+    const currentValue = manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null;
 
     // 2. Load Central Config
     const configData = getIndicatorConfig(CARD_REGISTRY.policy_tailwinds.id);
@@ -39,10 +37,10 @@ export default function PolicyTailwindsCard({ cardId, data, manualOverride, last
             config={{
                 title: 'Policy Tailwinds',
                 category: 'Corporate',
-                mode: isManual ? 'MANUAL' : 'AUTO',
+                mode: 'MANUAL',
                 creditScore: configData?.creditScore || 5,
                 updateTime: lastUpdated || '--:--',
-                source: isManual ? 'Manual' : 'Upstox',
+                source: 'Manual',
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{

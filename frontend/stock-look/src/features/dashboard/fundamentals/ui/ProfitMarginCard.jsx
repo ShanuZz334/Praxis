@@ -12,17 +12,19 @@ export default function ProfitMarginCard({ cardId, data, manualOverride, lastUpd
     let isManual = true;
     let extractedValue = null;
 
-    // Attempt to extract live data
-    const marginItem = (Array.isArray(data?.ratios) ? data.ratios : []).find(item => 
-        item.name?.toLowerCase().includes('profit margin') || 
-        item.name?.toLowerCase().includes('net profit margin')
-    );
-    
-    if (marginItem && marginItem.company_value) {
-        const parsed = cleanNum(marginItem.company_value);
-        if (!isNaN(parsed)) {
-            extractedValue = parsed;
-            isManual = false;
+    // Attempt to extract live data from Upstox
+    if (data?.income?.income_statement) {
+        const statements = data.income.income_statement;
+        const netProfitObj = statements.find(s => s.category === 'net_profit');
+        const revenueObj = statements.find(s => s.category === 'revenue');
+        
+        if (netProfitObj && revenueObj && netProfitObj.history?.[0] && revenueObj.history?.[0]) {
+            const netProfit = netProfitObj.history[0].value;
+            const revenue = revenueObj.history[0].value;
+            if (revenue !== 0) {
+                extractedValue = (netProfit / revenue) * 100;
+                isManual = false;
+            }
         }
     }
     
@@ -58,7 +60,7 @@ export default function ProfitMarginCard({ cardId, data, manualOverride, lastUpd
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Margin (%)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
+                currentValueObj: { label: 'Margin', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) + '%' : currentValue + '%') : '--' },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',

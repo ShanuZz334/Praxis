@@ -94,7 +94,7 @@ export default function FreeCashFlowCard({ cardId, data, manualOverride, lastUpd
             }}
             data={{
                 currentValueObj: {
-                    label: 'FCF (₹ Cr)',
+                    label: 'FCF',
                     value: currentFCF !== null ? (currentFCF >= 0 ? `+₹${currentFCF.toFixed(0)} Cr` : `-₹${Math.abs(currentFCF).toFixed(0)} Cr`) : '--'
                 },
                 details: [

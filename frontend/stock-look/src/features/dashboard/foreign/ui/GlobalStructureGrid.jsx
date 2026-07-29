@@ -21,6 +21,7 @@
 // =============================
 import React from "react";
 import { useDashboardContext } from "@/shared/context/DashboardContext";
+import { useTheme } from '@/shared/context/ThemeContext';
 import GenericGlobalCard from "./GenericGlobalCard";
 import { TOTAL_GLOBAL_CREDITS, GLOBAL_STRUCTURE_CARDS } from "../data/globalData";
 
@@ -30,6 +31,9 @@ import { TOTAL_GLOBAL_CREDITS, GLOBAL_STRUCTURE_CARDS } from "../data/globalData
 export default function GlobalStructureGrid({ cards, viewMode, sortMode, sections, onCardClick, cardData = {}, resolveTime, liveData = {}, controls }) {
     const { livePrices } = useDashboardContext();
     const isConnecting = !livePrices || Object.keys(livePrices).length === 0;
+
+    const { useOrbNav } = useTheme();
+    const gridClass = `grid grid-cols-1 md:grid-cols-2 ${useOrbNav ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-3 md:gap-4 items-start`;
 
     // Helper: Sort Logic
     const sortCards = (list, mode) => {
@@ -72,7 +76,7 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
                                 </div>
                             </div>
                             {/* Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 items-start">
+                            <div className={gridClass}>
                                 {sortedSectionCards.map((card) => {
                                     if (card.id?.startsWith('dummy_')) return null;
                                     return (
@@ -122,7 +126,7 @@ export default function GlobalStructureGrid({ cards, viewMode, sortMode, section
     const sortedFlat = sortCards(filteredFlatWithData, sortMode);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 items-start">
+        <div className={gridClass}>
             {sortedFlat.map(item => (
                 <React.Fragment key={item.id}>{item.node}</React.Fragment>
             ))}

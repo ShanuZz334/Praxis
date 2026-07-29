@@ -141,6 +141,34 @@ export const yahooFinanceService = {
         }
     },
 
+    async getEarningsMetrics(symbol) {
+        try {
+            if (!symbol) return null;
+            const yfSymbol = symbol.endsWith('.NS') || symbol.endsWith('.BO') ? symbol : `${symbol}.NS`;
+            const result = await yahooFinance.quoteSummary(yfSymbol, { modules: ['defaultKeyStatistics', 'financialData'] });
+            
+            const metrics = {
+                trailingEps: null,
+                forwardEps: null,
+                profitMargin: null,
+            };
+
+            if (result && result.defaultKeyStatistics) {
+                metrics.trailingEps = result.defaultKeyStatistics.trailingEps;
+                metrics.forwardEps = result.defaultKeyStatistics.forwardEps;
+            }
+            if (result && result.financialData) {
+                if (result.financialData.profitMargins !== undefined) {
+                    metrics.profitMargin = result.financialData.profitMargins * 100;
+                }
+            }
+            return metrics;
+        } catch (error) {
+            console.error(`Yahoo getEarningsMetrics failed for ${symbol}:`, error.message);
+            return null;
+        }
+    },
+
     async getMarketCap(symbol) {
         try {
             if (!symbol) return null;
@@ -152,6 +180,21 @@ export const yahooFinanceService = {
             return null;
         } catch (error) {
             console.error(`Yahoo getMarketCap failed for ${symbol}:`, error.message);
+            return null;
+        }
+    },
+
+    async getBookValue(symbol) {
+        try {
+            if (!symbol) return null;
+            const yfSymbol = symbol.endsWith('.NS') || symbol.endsWith('.BO') ? symbol : `${symbol}.NS`;
+            const result = await yahooFinance.quoteSummary(yfSymbol, { modules: ['defaultKeyStatistics'] });
+            if (result && result.defaultKeyStatistics && result.defaultKeyStatistics.bookValue !== undefined) {
+                return result.defaultKeyStatistics.bookValue;
+            }
+            return null;
+        } catch (error) {
+            console.error(`Yahoo getBookValue failed for ${symbol}:`, error.message);
             return null;
         }
     },

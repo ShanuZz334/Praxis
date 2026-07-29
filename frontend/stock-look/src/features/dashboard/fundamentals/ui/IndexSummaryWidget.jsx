@@ -10,6 +10,12 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
     const instrumentLabel = FO_INDICES.find(e => e.value === selectedInstrument)?.label || selectedInstrument || "INDEX DATA";
 
     // 1. Data Extraction Helper
+    const extractRatio = (names) => {
+        const ratiosArray = Array.isArray(data?.ratios) ? data.ratios : [];
+        const obj = ratiosArray.find(r => names.some(n => r.name?.toLowerCase() === n.toLowerCase()));
+        return obj?.company_value ? parseFloat(obj.company_value) : null;
+    };
+
     const extractQuote = (key) => {
         return data?.quote?.[key] ?? null;
     };
@@ -37,23 +43,23 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
         },
         {
             label: "Index P/E",
-            value: manualOverrides?.index_pe,
+            value: extractRatio(['p/e', 'pe', 'pe ratio']) ?? manualOverrides?.nifty_pe,
             suffix: "x",
-            overrideKey: 'index_pe',
+            overrideKey: 'nifty_pe',
             isString: false
         },
         {
             label: "Index P/B",
-            value: manualOverrides?.index_pb,
+            value: extractRatio(['p/b', 'pb', 'price to book']) ?? manualOverrides?.nifty_pb,
             suffix: "x",
-            overrideKey: 'index_pb',
+            overrideKey: 'nifty_pb',
             isString: false
         },
         {
             label: "Dividend Yield",
-            value: manualOverrides?.index_div_yield,
+            value: extractRatio(['dividend yield', 'div yield', 'dividend_yield', 'div_yield']) ?? manualOverrides?.dividend_yield,
             suffix: "%",
-            overrideKey: 'index_div_yield',
+            overrideKey: 'dividend_yield',
             isString: false
         }
     ];
@@ -66,11 +72,15 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
             displayVal = (m.prefix || '') + (m.isString ? m.value : parseFloat(m.value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + (m.suffix || '');
         }
         
-        // For Index P/E, P/B, DivYield, they are ALWAYs manual since Upstox doesn't provide them.
+        // For Index P/E, P/B, DivYield, they are ALWAYS manual since Upstox doesn't provide them.
         // For Current Level & High/Low, they are manual if quote is missing.
-        let isManual = isNull || false;
-        if (m.overrideKey === 'index_pe' || m.overrideKey === 'index_pb' || m.overrideKey === 'index_div_yield') {
-             isManual = !isNull; // Always manual if present
+        let isManual = false;
+        if (m.overrideKey === 'nifty_pe') {
+             isManual = extractRatio(['p/e', 'pe', 'pe ratio']) == null && m.value !== null;
+        } else if (m.overrideKey === 'nifty_pb') {
+             isManual = extractRatio(['p/b', 'pb', 'price to book']) == null && m.value !== null;
+        } else if (m.overrideKey === 'dividend_yield') {
+             isManual = extractRatio(['dividend yield', 'div yield', 'dividend_yield', 'div_yield']) == null && m.value !== null;
         } else {
              isManual = !isNull && m.value === manualOverrides?.[m.overrideKey];
         }
@@ -82,7 +92,7 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
                 </span>
                 <div className="flex flex-col items-end">
                     <div className="flex items-center gap-2">
-                        {isManual && displayVal !== '--' && (
+                        {isManual && (
                             <span className="text-text-tertiary">
                                 <Edit2 className="w-3 h-3" />
                             </span>
@@ -104,12 +114,12 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
         );
     };
 
-    const visibleMetrics = metrics.filter(m => {
-        const isNull = m.value === null || m.value === undefined || m.value === '';
-        return !isNull;
-    });
+    const visibleMetrics = metrics;
 
-    const missingManualCount = metrics.length - visibleMetrics.length;
+    const missingManualCount = metrics.filter(m => {
+        const isNull = m.value === null || m.value === undefined || m.value === '';
+        return isNull && (m.overrideKey === 'nifty_pe' || m.overrideKey === 'nifty_pb' || m.overrideKey === 'dividend_yield' || m.overrideKey === 'current_price' || m.overrideKey === 'high_low');
+    }).length;
 
     const col1 = visibleMetrics.filter((_, i) => i % 3 === 0);
     const col2 = visibleMetrics.filter((_, i) => i % 3 === 1);
@@ -118,8 +128,8 @@ export default function IndexSummaryWidget({ data, manualOverrides, selectedInst
     const syncTimes = visibleMetrics.map(m => {
         if (!resolveTime) return null;
         let isManual = (m.value === null || m.value === undefined || m.value === '') || false;
-        if (m.overrideKey === 'index_pe' || m.overrideKey === 'index_pb' || m.overrideKey === 'index_div_yield') {
-             isManual = true; // Always manual if present
+        if (m.overrideKey === 'nifty_pe' || m.overrideKey === 'nifty_pb' || m.overrideKey === 'dividend_yield') {
+             isManual = true; // Always manual
         } else {
              isManual = m.value === manualOverrides?.[m.overrideKey];
         }

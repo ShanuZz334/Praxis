@@ -7,6 +7,7 @@ import React, { useMemo } from 'react';
 import { cleanNum } from '@/lib/utils';
 import FundamentalCard from './FundamentalCard';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { useTheme } from '@/shared/context/ThemeContext';
 
 // Company Cards
 import PERatioCard from './PERatioCard';
@@ -57,21 +58,17 @@ import DIICard from './DIICard';
 import FIITrendCard from './FIITrendCard';
 import SystemLiquidityCard from './SystemLiquidityCard';
 import MFFlowsCard from './MFFlowsCard';
+import SectorDashboardCard from './SectorDashboardCard';
 import CreditGrowthCard from './CreditGrowthCard';
 import CorpDebtCard from './CorpDebtCard';
 import PolicyTailwindsCard from './PolicyTailwindsCard';
 import CrudeCard from './CrudeCard';
 import GlobalLiqCard from './GlobalLiqCard';
-import SovereignRiskCard from './SovereignRiskCard';
-import NPACard from './NPACard';
-import ReformMomentumCard from './ReformMomentumCard';
 
 // New Institutional Cards
 import AnalystConsensusCard from './AnalystConsensusCard';
 import CorporateActionsCard from './CorporateActionsCard';
 import CashConversionCycleCard from './CashConversionCycleCard';
-import CreditRatingCard from './CreditRatingCard';
-import SectorDashboardCard from './SectorDashboardCard';
 
 import { FUNDAMENTAL_SECTIONS } from '../data/fundamentalData';
 
@@ -85,14 +82,16 @@ const HARDCODED_IDS = new Set([
   CARD_REGISTRY.debt_to_equity.id, CARD_REGISTRY.interest_coverage.id, CARD_REGISTRY.free_cash_flow.id, CARD_REGISTRY.current_ratio.id,
   CARD_REGISTRY.promoter_holding.id, CARD_REGISTRY.smart_money_flow.id, CARD_REGISTRY.earnings_quality.id,
   CARD_REGISTRY.relative_valuation.id, CARD_REGISTRY.eps_yoy.id, CARD_REGISTRY.forward_eps.id, CARD_REGISTRY.profit_margin.id,
-  CARD_REGISTRY.analyst_consensus.id, CARD_REGISTRY.corporate_actions.id, CARD_REGISTRY.cash_conversion.id, CARD_REGISTRY.credit_rating.id,
+  CARD_REGISTRY.analyst_consensus.id, CARD_REGISTRY.corporate_actions.id, CARD_REGISTRY.cash_conversion.id,
   // Index legacy
   CARD_REGISTRY.advance_decline.id, CARD_REGISTRY.india_vix.id,
   // New Index Cards & Macro
-  CARD_REGISTRY.nifty_pe.id, CARD_REGISTRY.nifty_pb.id, CARD_REGISTRY.mcap_gdp.id, CARD_REGISTRY.gdp.id, CARD_REGISTRY.cpi.id, CARD_REGISTRY.repo.id, CARD_REGISTRY.fiscal_deficit.id, CARD_REGISTRY.fii.id, CARD_REGISTRY.dii.id, CARD_REGISTRY.fii_trend.id, CARD_REGISTRY.system_liquidity.id, CARD_REGISTRY.mf_flows.id, CARD_REGISTRY.sector_dashboard.id, CARD_REGISTRY.credit_growth.id, CARD_REGISTRY.corp_debt.id, CARD_REGISTRY.policy_tailwinds.id, CARD_REGISTRY.crude.id, CARD_REGISTRY.global_liq.id, CARD_REGISTRY.sovereign_risk.id, CARD_REGISTRY.npa.id, CARD_REGISTRY.reform_momentum.id
+  CARD_REGISTRY.nifty_pe.id, CARD_REGISTRY.nifty_pb.id, CARD_REGISTRY.mcap_gdp.id, CARD_REGISTRY.gdp.id, CARD_REGISTRY.cpi.id, CARD_REGISTRY.repo.id, CARD_REGISTRY.fiscal_deficit.id, CARD_REGISTRY.fii.id, CARD_REGISTRY.dii.id, CARD_REGISTRY.fii_trend.id, CARD_REGISTRY.system_liquidity.id, CARD_REGISTRY.mf_flows.id, CARD_REGISTRY.sector_dashboard.id, CARD_REGISTRY.credit_growth.id, CARD_REGISTRY.corp_debt.id, CARD_REGISTRY.policy_tailwinds.id,  CARD_REGISTRY.crude.id, CARD_REGISTRY.global_liq.id
 ]);
 
 export default function FundamentalGrid({ cards, viewMode, sortMode = "score_desc", onCardClick, data, selectedCategory, manualOverrides, resolveTime, rawScores }) {
+  const { useOrbNav } = useTheme();
+  const gridClass = `grid grid-cols-1 md:grid-cols-2 ${useOrbNav ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-2.5 md:gap-4 items-start`;
 
   const sortCards = (list) => {
     const arr = [...list];
@@ -148,7 +147,6 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
         case CARD_REGISTRY.analyst_consensus.id: return <AnalystConsensusCard key={cardId} cardId={cardId} data={data} manualOverrides={manualOverrides} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
         case CARD_REGISTRY.corporate_actions.id: return <CorporateActionsCard key={cardId} cardId={cardId} data={data} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
         case CARD_REGISTRY.cash_conversion.id: return <CashConversionCycleCard key={cardId} cardId={cardId} data={data} manualOverrides={manualOverrides} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
-        case CARD_REGISTRY.credit_rating.id: return <CreditRatingCard key={cardId} cardId={cardId} data={data} manualOverrides={manualOverrides} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
         case CARD_REGISTRY.nifty_pe.id: return <NiftyPECard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.nifty_pe} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.nifty_pe.id)} />;
         case CARD_REGISTRY.nifty_pb.id: return <NiftyPBCard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.nifty_pb} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.nifty_pb.id)} />;
         case CARD_REGISTRY.mcap_gdp.id: return <IndexMCapGDPCard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.mcap_gdp} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.mcap_gdp.id)} />;
@@ -173,9 +171,6 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
         case CARD_REGISTRY.policy_tailwinds.id: return <PolicyTailwindsCard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.policy_tailwinds} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.policy_tailwinds.id)} />;
         case CARD_REGISTRY.crude.id: return <CrudeCard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.crude} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.crude.id)} />;
         case CARD_REGISTRY.global_liq.id: return <GlobalLiqCard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.global_liq} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.global_liq.id)} />;
-        case CARD_REGISTRY.sovereign_risk.id: return <SovereignRiskCard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.sovereign_risk} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.sovereign_risk.id)} />;
-        case CARD_REGISTRY.npa.id: return <NPACard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.npa} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.npa.id)} />;
-        case CARD_REGISTRY.reform_momentum.id: return <ReformMomentumCard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.reform_momentum} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.reform_momentum.id)} />;
         default: return null;
     }
 
@@ -184,7 +179,7 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
   if (viewMode === 'flat') {
     const sortedFlat = sortCards(cards);
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start">
+      <div className={gridClass}>
         {sortedFlat.map(card => (
           <React.Fragment key={card.id}>
             {HARDCODED_IDS.has(card.id) ? getHardcodedNode(card.id) : <FundamentalCard card={card} onClick={() => onCardClick(card)} />}
@@ -237,7 +232,7 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 items-start">
+              <div className={gridClass}>
                 {sectionCards.map(card => (
                   <React.Fragment key={card.id}>
                     {HARDCODED_IDS.has(card.id) ? getHardcodedNode(card.id) : <FundamentalCard card={card} onClick={() => onCardClick(card)} />}

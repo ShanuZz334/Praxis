@@ -46,7 +46,7 @@ export default function SystemLiquidityCard({ cardId, data, manualOverride, last
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Surplus (LCr)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
+                currentValueObj: { label: 'Surplus', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) + ' LCr' : currentValue + ' LCr') : '--' },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',

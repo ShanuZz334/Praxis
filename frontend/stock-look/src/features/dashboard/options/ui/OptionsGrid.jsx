@@ -20,6 +20,7 @@
 // Imports
 // =============================
 import React, { useMemo } from "react";
+import { useTheme } from '@/shared/context/ThemeContext';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import OptionsCard from "./OptionsCard";
@@ -53,6 +54,8 @@ export default function OptionsGrid({
     manualOverrides,
     resolveTime
 }) {
+    const { useOrbNav } = useTheme();
+    const gridClass = `grid grid-cols-1 md:grid-cols-2 ${useOrbNav ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-3 md:gap-4 items-start`;
 
     // =============================
     // Helper Logic
@@ -189,7 +192,7 @@ export default function OptionsGrid({
         const sortedFlat = sortCards(filteredFlatWithData, sortMode);
 
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 items-start animate-in fade-in duration-500">
+            <div className={`${gridClass} animate-in fade-in duration-500`}>
                 {sortedFlat.map(item => (
                     <React.Fragment key={item.id}>{item.node}</React.Fragment>
                 ))}
@@ -248,7 +251,7 @@ export default function OptionsGrid({
                         </div>
 
                         {/* Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 items-start">
+                        <div className={gridClass}>
                             {section.id === 'Open Interest' && (
                                 <>
                                     <TotalCallOpenInterestCard cardId={CARD_REGISTRY.total_call_oi.id} liveData={compositeData?.totalCallOI} manualOverride={manualOverrides?.total_call_oi} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.total_call_oi.id) : null} />

@@ -12,20 +12,21 @@ export default function EPSYoYCard({ cardId, data, manualOverride, lastUpdated }
     let isManual = true;
     let extractedValue = null;
 
-    // Attempt to extract live data
-    const epsGrowthItem = (Array.isArray(data?.ratios) ? data.ratios : []).find(item => 
-        item.name?.toLowerCase().includes('eps growth') || 
-        item.name?.toLowerCase().includes('eps yoy')
-    );
-    
-    if (epsGrowthItem && epsGrowthItem.company_value) {
-        const parsed = cleanNum(epsGrowthItem.company_value);
-        if (!isNaN(parsed)) {
-            extractedValue = parsed;
-            isManual = false;
+    // Attempt to extract live data from Upstox
+    if (data?.income?.full_statement) {
+        const fullStatement = data.income.full_statement;
+        const epsObj = fullStatement.find(s => s.particular === 'EPS - Basic' || s.particular === 'EPS - Diluted');
+        
+        if (epsObj && epsObj.history?.length >= 2) {
+            const currentEps = epsObj.history[0].value;
+            const previousEps = epsObj.history[1].value;
+            if (previousEps !== 0) {
+                extractedValue = ((currentEps - previousEps) / Math.abs(previousEps)) * 100;
+                isManual = false;
+            }
         }
     }
-    
+
     const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
 
     // 2. Load Central Config
@@ -58,7 +59,7 @@ export default function EPSYoYCard({ cardId, data, manualOverride, lastUpdated }
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Growth (%)', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) : currentValue) : '--' },
+                currentValueObj: { label: 'Growth', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) + '%' : currentValue + '%') : '--' },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',
