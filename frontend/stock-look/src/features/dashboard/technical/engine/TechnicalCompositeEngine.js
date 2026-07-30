@@ -45,7 +45,7 @@ export const TITLE_TO_ID = {
 };
 
 export const TECHNICAL_CARD_MAP = {
-    [CARD_REGISTRY.ema_20.id]: 'Trend', [CARD_REGISTRY.ema_50.id]: 'Trend', [CARD_REGISTRY.ema_200.id]: 'Trend', [CARD_REGISTRY.sma_50.id]: 'Trend', [CARD_REGISTRY.sma_200.id]: 'Trend', [CARD_REGISTRY.supertrend.id]: 'Trend', [CARD_REGISTRY.adx.id]: 'Trend',
+    [CARD_REGISTRY.ema_20.id]: 'Trend', [CARD_REGISTRY.ema_50.id]: 'Trend', [CARD_REGISTRY.ema_200.id]: 'Trend', [CARD_REGISTRY.sma_50.id]: 'Trend', [CARD_REGISTRY.sma_200.id]: 'Trend', [CARD_REGISTRY.supertrend.id]: 'Trend', [CARD_REGISTRY.adx.id]: 'Trend', [CARD_REGISTRY.beta_correlation.id]: 'Trend',
     [CARD_REGISTRY.rsi.id]: 'Momentum', [CARD_REGISTRY.macd.id]: 'Momentum', [CARD_REGISTRY.stoch_rsi.id]: 'Momentum', [CARD_REGISTRY.williams_r.id]: 'Momentum',
     [CARD_REGISTRY.bb_20_2.id]: 'Volatility', [CARD_REGISTRY.kc.id]: 'Volatility', [CARD_REGISTRY.atr.id]: 'Volatility',
     [CARD_REGISTRY.volume_sma.id]: 'Volume', [CARD_REGISTRY.obv.id]: 'Volume', [CARD_REGISTRY.cmf.id]: 'Volume', [CARD_REGISTRY.vwap.id]: 'Volume',
@@ -769,7 +769,48 @@ export function scoreSupportCard(val, currentPrice) {
 }
 
 export function scoreTrendlineCard(val, currentPrice) {
-    if (val === null || val === undefined || isNaN(val) || !currentPrice) return defaultReturn;
+    if (val === null || val === undefined) return defaultReturn;
+    
+    // If it's the calculated Linear Regression object
+    if (typeof val === 'object' && val.slopePct !== undefined) {
+        const { slopePct, r2 } = val;
+        let score = 50, bias = "Neutral", insight = "Trendline is perfectly flat.";
+        let r2Insight = "";
+        
+        if (r2 !== undefined) {
+            if (r2 < 0.2) r2Insight = ` However, low R-Squared (${r2.toFixed(2)}) indicates the price is chopping violently and ignoring the trendline.`;
+            else if (r2 > 0.7) r2Insight = ` High R-Squared (${r2.toFixed(2)}) confirms strong structural adherence to this channel.`;
+        }
+
+        if (slopePct > 0.5) { 
+            score = 85; bias = "Strong Uptrend"; 
+            insight = `Linear regression confirms a steep positive slope (+${slopePct.toFixed(2)}%). Buyers dominate.${r2Insight}`; 
+        } else if (slopePct > 0.1) { 
+            score = 65; bias = "Uptrend"; 
+            insight = `Linear regression shows a positive slope (+${slopePct.toFixed(2)}%). Steady bullish momentum.${r2Insight}`; 
+        } else if (slopePct < -0.5) { 
+            score = 15; bias = "Strong Downtrend"; 
+            insight = `Linear regression confirms a steep negative slope (${slopePct.toFixed(2)}%). Sellers dominate.${r2Insight}`; 
+        } else if (slopePct < -0.1) { 
+            score = 35; bias = "Downtrend"; 
+            insight = `Linear regression shows a negative slope (${slopePct.toFixed(2)}%). Steady bearish momentum.${r2Insight}`; 
+        } else { 
+            score = 50; bias = "Flat Trend"; 
+            insight = `Linear regression slope is near zero (${slopePct.toFixed(2)}%). Market is moving sideways.${r2Insight}`; 
+        }
+
+        // Penalize the score heavily if it's choppy (R2 < 0.3)
+        if (r2 !== undefined && r2 < 0.3) {
+            score = 50 + (score - 50) * 0.3; // Pull the score strongly back to neutral 50
+            bias = "Choppy / Invalid Trend";
+        }
+
+        return { score, bias, confidence: r2 !== undefined ? `${Math.round(r2 * 100)}%` : "85%", aiInsight: insight };
+    }
+
+    // Fallback for manual overrides
+    val = Number(val);
+    if (isNaN(val) || !currentPrice) return defaultReturn;
     const dist = ((currentPrice - val) / currentPrice) * 100;
 
     let score = 50, bias = "Neutral", insight = "Tracking trendline.";
@@ -841,6 +882,27 @@ export function scoreWilliamsRCard(val) {
     }
     
     return { score, bias, confidence: "80%", aiInsight: insight };
+}
+
+export function scoreBetaCorrelationCard(val) {
+    if (val === null || val === undefined || isNaN(Number(val))) return defaultReturn;
+    val = Number(val);
+    
+    let score = 50, bias = "Neutral", insight = "Beta is exactly 1.0 (moves in perfect tandem with Nifty).";
+    if (val > 1.5) {
+        score = 85; bias = "High Beta"; insight = `Beta is very high (${val.toFixed(2)}). Stock is highly sensitive to Nifty movements and acts as a strong multiplier in bull markets.`;
+    } else if (val > 1.1) {
+        score = 65; bias = "Slightly High Beta"; insight = `Beta is moderately high (${val.toFixed(2)}). Stock slightly amplifies Nifty trends.`;
+    } else if (val < 0.5) {
+        score = 20; bias = "Low Beta / Defensive"; insight = `Beta is very low (${val.toFixed(2)}). Stock is highly defensive and largely ignores broader market movements.`;
+    } else if (val < 0.9) {
+        score = 40; bias = "Slightly Low Beta"; insight = `Beta is moderately low (${val.toFixed(2)}). Stock is less volatile than the broader market.`;
+    } else {
+        score = 50; bias = "Market Beta"; insight = `Beta is near market average (${val.toFixed(2)}). Stock tracks Nifty closely.`;
+    }
+    
+    // Beta isn't necessarily Bullish/Bearish intrinsically, but higher beta in an uptrend gives it a higher 'trend amplification' score.
+    return { score, bias, confidence: "90%", aiInsight: insight };
 }
 
 // Force Vite HMR reload

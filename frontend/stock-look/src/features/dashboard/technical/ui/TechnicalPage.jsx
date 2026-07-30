@@ -36,6 +36,7 @@ export default function TechnicalPage() {
         { id: "sma_200", category: "Trend" },
         { id: "adx", category: "Trend" },
         { id: "supertrend", category: "Trend" },
+        ...(!isIndex ? [{ id: "beta_correlation", category: "Trend" }] : []),
         // Momentum
         { id: "rsi", category: "Momentum" },
         { id: "macd", category: "Momentum" },

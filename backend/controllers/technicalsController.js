@@ -8,6 +8,7 @@ const technicalsCache = new Map();
 const CACHE_TTL_MS = 2000;
 
 export const getTechnicalIndicators = async (req, res) => {
+    console.log("[Technicals] HIT /api/technicals", req.query.instrument);
     try {
         const { 
             instrument, timeframe = 'day', ltp,
@@ -98,6 +99,36 @@ export const getTechnicalIndicators = async (req, res) => {
         if (vixQuote && vixQuote.ltp) {
             technicals.india_vix = vixQuote.ltp;
         }
+
+        let beta = null;
+        try {
+            const { yahooFinanceService } = await import('../services/yahooFinanceService.js');
+            const row = db.prepare("SELECT trading_symbol, isin FROM instruments WHERE instrument_key = ?").get(instrument);
+            let symbolForYahoo = row?.trading_symbol;
+            if (!symbolForYahoo && row?.isin) {
+                 symbolForYahoo = await yahooFinanceService.searchByIsin(row.isin);
+            }
+            if (symbolForYahoo) {
+                 beta = await yahooFinanceService.getBeta(symbolForYahoo);
+            }
+        } catch (e) {
+            console.error("Failed to fetch Beta from Yahoo:", e.message);
+        }
+
+        // Fallback: Calculate Beta Natively if Yahoo doesn't have it
+        if (beta === null || beta === undefined) {
+            try {
+                const { calculateNativeBeta, getHistoricalCandles } = await import('../services/technicalCalculationService.js');
+                // Use 1Y (252 trading days) of Daily candles
+                const stockCandles = getHistoricalCandles(instrument, 252, 'day');
+                const niftyCandles = getHistoricalCandles('NSE_INDEX|Nifty 50', 252, 'day');
+                beta = calculateNativeBeta(stockCandles, niftyCandles);
+            } catch (e) {
+                console.error("Failed to calculate native Beta:", e.message);
+            }
+        }
+
+        technicals.beta = beta;
 
         const fallbackTime = technicals.last_candle_timestamp ? new Date(technicals.last_candle_timestamp).getTime() : Date.now();
         const finalData = {

@@ -90,16 +90,21 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
         return () => { isMounted = false; };
     }, [activeChatId, refreshTrigger, chatType]);
 
-    // Fetch available AI models
+    // Fetch available AI models and smart routing defaults
     useEffect(() => {
         let isMounted = true;
         const fetchModels = async () => {
             try {
-                const res = await axiosInstance.get('/api/v1/ai-settings/providers');
-                if (isMounted && res.data) {
+                // Fetch both providers and routing config in parallel
+                const [providersRes, routingRes] = await Promise.all([
+                    axiosInstance.get('/api/v1/ai-settings/providers'),
+                    axiosInstance.get('/api/v1/ai-settings/routing')
+                ]);
+
+                if (isMounted && providersRes.data) {
                     const options = [];
                     const seen = new Set();
-                    res.data.forEach(p => {
+                    providersRes.data.forEach(p => {
                         if (!p.isActive) return;
                         Object.values(p.models || {}).forEach(modelId => {
                             if (modelId) {
@@ -115,15 +120,41 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                             }
                         });
                     });
+                    
                     if (options.length > 0) {
                         setModelOptions(options);
-                        if (!options.some(o => o.value === selectedModel)) {
+
+                        // Smartly determine default model based on chatType
+                        let defaultVal = null;
+                        if (routingRes.data) {
+                            const routing = routingRes.data;
+                            let pref = null;
+                            if (chatType === 'card' && routing.cardInsight?.modelId) {
+                                pref = routing.cardInsight;
+                            } else if ((chatType === 'header' || chatType === 'page') && routing.headerInsight?.modelId) {
+                                pref = routing.headerInsight;
+                            } else if (routing.manualChat?.modelId) {
+                                pref = routing.manualChat;
+                            }
+
+                            if (pref && pref.providerId && pref.modelId) {
+                                const targetVal = `${pref.providerId}|${pref.modelId}`;
+                                if (options.some(o => o.value === targetVal)) {
+                                    defaultVal = targetVal;
+                                }
+                            }
+                        }
+
+                        // If smart match fails, fallback to current or first
+                        if (defaultVal) {
+                            setSelectedModel(defaultVal);
+                        } else if (!options.some(o => o.value === selectedModel)) {
                             setSelectedModel(options[0].value);
                         }
                     }
                 }
             } catch (err) {
-                console.error("Failed to fetch AI models:", err);
+                console.error("Failed to fetch AI models/routing:", err);
             }
         };
         fetchModels();
@@ -274,7 +305,7 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
     return (
         <div className="flex-1 flex flex-col bg-background-app h-full relative">
             {/* Header Sticky */}
-            <div className="sticky top-0 z-10 bg-background-app/80 backdrop-blur-md border-b border-border-default/40 h-[72px] px-6 grid grid-cols-3 items-center shrink-0">
+            <div className="sticky top-0 z-10 h-[72px] px-6 grid grid-cols-3 items-center shrink-0">
                 <div className="flex justify-start">
                     <h3 className="font-bold text-text-primary tracking-wide truncate">
                         {chatTitle || 'Unknown Chat'}
@@ -338,14 +369,53 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                                 No messages yet. Type <span className="mx-1 font-mono text-blue-400">@</span> to attach live card data.
                             </div>
                         ) : (
-                            messages.map(msg => (
-                                <div key={msg.id}>
+                            messages.map((msg, index) => {
+                                let showSeparator = false;
+                                let separatorText = '';
+                                
+                                if (msg.timestamp || msg.id) {
+                                    // Use ID as fallback if timestamp missing, assuming ID is Date.now() for optimistic messages
+                                    const msgDate = new Date(msg.timestamp || (msg.id > 1000000000000 ? msg.id : Date.now()));
+                                    const dateString = msgDate.toDateString();
+                                    
+                                    const prevMsg = index > 0 ? messages[index - 1] : null;
+                                    const prevDateString = prevMsg ? new Date(prevMsg.timestamp || (prevMsg.id > 1000000000000 ? prevMsg.id : Date.now())).toDateString() : null;
+                                    
+                                    if (dateString !== prevDateString) {
+                                        showSeparator = true;
+                                        const today = new Date();
+                                        const yesterday = new Date();
+                                        yesterday.setDate(today.getDate() - 1);
+                                        
+                                        if (dateString === today.toDateString()) {
+                                            separatorText = 'Today';
+                                        } else if (dateString === yesterday.toDateString()) {
+                                            separatorText = 'Yesterday';
+                                        } else {
+                                            separatorText = msgDate.toLocaleDateString([], { month: 'long', day: 'numeric', year: msgDate.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
+                                        }
+                                    }
+                                }
+
+                                return (
+                                    <React.Fragment key={msg.id}>
+                                        {showSeparator && (
+                                            <div className="flex items-center justify-center my-6 px-4 md:px-12 w-full">
+                                                <div className="h-px bg-gradient-to-r from-transparent to-gray-400/40 dark:to-gray-600/60 flex-1 max-w-[350px]"></div>
+                                                <span className="mx-4 text-[10px] font-medium text-text-tertiary bg-background-elevated px-3 py-1 rounded-full shadow-sm border border-border-default tracking-wide uppercase shrink-0">
+                                                    {separatorText}
+                                                </span>
+                                                <div className="h-px bg-gradient-to-l from-transparent to-gray-400/40 dark:to-gray-600/60 flex-1 max-w-[350px]"></div>
+                                            </div>
+                                        )}
+                                        <div>
                                     <PaiMessageBubble
                                         role={msg.role}
                                         content={msg.content}
                                         provider={msg.provider}
                                         model={msg.model}
                                         latencyMs={msg.latencyMs}
+                                        timestamp={msg.timestamp}
                                         onRegenerate={msg.role === 'ai' ? () => console.log('Regenerating...', msg.id) : undefined}
                                     />
                                     {/* Show attached card badges under user messages */}
@@ -380,7 +450,9 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                                         </div>
                                     )}
                                 </div>
-                            ))
+                                </React.Fragment>
+                            );
+                        })
                         )}
                         {isGenerating && <PaiLoader />}
                         <div ref={bottomRef} />

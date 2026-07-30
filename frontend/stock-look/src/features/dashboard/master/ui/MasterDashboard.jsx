@@ -158,6 +158,17 @@ export default function MasterDashboard() {
         }
     );
 
+    if (loading) {
+        return (
+            <div className="w-full min-h-[80vh] flex flex-col items-center justify-center bg-background-base animate-in fade-in duration-500">
+                <Loader size="lg" color="blue" />
+                <p className="text-text-secondary mt-8 font-mono text-[11px] tracking-[0.2em] animate-pulse uppercase">
+                    Synchronizing Master Pipeline...
+                </p>
+            </div>
+        );
+    }
+
     const getReadableName = (val) => {
         if (!val) return 'NO INSTRUMENT';
         const strVal = typeof val === 'string' ? val : val.value;

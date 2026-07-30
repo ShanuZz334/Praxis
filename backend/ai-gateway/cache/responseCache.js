@@ -7,7 +7,9 @@ function generateHash(request) {
     const hashData = JSON.stringify({
         taskType: request.taskType,
         prompt: request.prompt,
-        data: request.data
+        data: request.data,
+        targetModel: request.targetModel,
+        temperature: request.temperature
     });
     return crypto.createHash('sha256').update(hashData).digest('hex');
 }

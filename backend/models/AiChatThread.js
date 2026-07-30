@@ -35,6 +35,11 @@ const threadEntrySchema = new mongoose.Schema({
     cardValue: {
         type: mongoose.Schema.Types.Mixed,
         default: null
+    },
+    // Explicit timestamp to avoid Mongoose stripping it on $push when _id: false
+    timestamp: {
+        type: Date,
+        default: Date.now
     }
 }, { _id: false, timestamps: true });
 

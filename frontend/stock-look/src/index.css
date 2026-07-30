@@ -575,3 +575,66 @@ a[href*='tradingview'] { display: none !important; }
 .praxis-toggle:checked + .praxis-slider:before {
   transform: translateX(24px);
 }
+
+/* =============================
+   Universal Range Slider
+   ============================= */
+.praxis-slider-container {
+  --slider-track-bg: #e2e8f0;
+  --slider-thumb-border: #ffffff;
+}
+
+.dark .praxis-slider-container, [data-theme="dark"] .praxis-slider-container {
+  --slider-track-bg: #334155;
+  --slider-thumb-border: #0f172a;
+}
+
+.praxis-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 6px;
+  outline: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  
+  background: transparent;
+}
+
+.praxis-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-praxis-blue, #3b82f6);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.praxis-range::-webkit-slider-thumb:hover {
+  background: #2563eb; /* darker blue on hover */
+}
+
+.praxis-range::-webkit-slider-thumb:active {
+  background: #1d4ed8;
+}
+
+.praxis-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-praxis-blue, #3b82f6);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.praxis-range::-moz-range-thumb:hover {
+  background: #2563eb;
+}
+
+.praxis-range::-moz-range-thumb:active {
+  background: #1d4ed8;
+}

@@ -14,7 +14,25 @@ const PaiMessageBubble = memo(function PaiMessageBubble({ role, content, onRegen
     
     let timeString = null;
     if (timestamp) {
-        timeString = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const msgDate = new Date(timestamp);
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
+
+        const isToday = msgDate.toDateString() === today.toDateString();
+        const isYesterday = msgDate.toDateString() === yesterday.toDateString();
+
+        const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: true };
+        const timePart = msgDate.toLocaleTimeString([], timeOpts);
+
+        if (isToday) {
+            timeString = timePart;
+        } else if (isYesterday) {
+            timeString = `Yesterday ${timePart}`;
+        } else {
+            const datePart = msgDate.toLocaleDateString([], { month: 'short', day: 'numeric', year: msgDate.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
+            timeString = `${datePart} ${timePart}`;
+        }
     }
 
     const handleCopy = () => {

@@ -90,6 +90,7 @@ export default function GlobalHeader({
     enableBreakdown = false, // Toggle to show hover details (Dashboard only)
     enableActionPulse = false, // If true, shows the Trading Action Pulse indicator (Dashboard only)
     syncId = null, // { instrumentKey, category } for DB auto-sync
+    customStats = null, // Array of custom stats to replace Bulls/Bears/Neutral: [{ label, value, color, breakdown }]
 
     // Controls
     controls = {
@@ -172,13 +173,17 @@ export default function GlobalHeader({
         return counts;
     }, [cards]);
 
-    // DB Sync for Counts (used by MasterDashboard aggregator)
+    // DB Sync for Counts & Scores (used by MasterDashboard aggregator)
     useEffect(() => {
         if (syncId?.instrumentKey && syncId?.category && typeof window !== 'undefined') {
             import('@/shared/utils/axiosInstance').then(({ default: axiosInstance }) => {
                 axiosInstance.post('/api/v1/snapshots/header', {
                     instrument_key: syncId.instrumentKey,
                     category: syncId.category,
+                    composite_score: score,
+                    regime_json: regime,
+                    tailwinds_json: tailwinds,
+                    risks_json: headwinds,
                     counts_json: {
                         totalCredits,
                         bulls: signalCounts.bulls,
@@ -187,10 +192,10 @@ export default function GlobalHeader({
                         breakdown: signalCounts.breakdown
                     },
                     ...(masterPayload ? { tree_payload_json: masterPayload } : {})
-                }).catch(err => console.error(`Failed to sync ${syncId.category} counts:`, err));
+                }).catch(err => console.error(`Failed to sync ${syncId.category} data:`, err));
             });
         }
-    }, [syncId?.instrumentKey, syncId?.category, totalCredits, signalCounts]);
+    }, [syncId?.instrumentKey, syncId?.category, totalCredits, signalCounts, score, regime, tailwinds, headwinds]);
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
@@ -200,7 +205,7 @@ export default function GlobalHeader({
                 front={
                     <div className="relative md:rounded-2xl md:border md:border-[var(--border-default)] md:dark:border-[var(--border-default)] md:shadow-[0_8px_24px_rgba(0,0,0,0.45)] md:overflow-visible md:bg-background-card flex flex-col md:block">
                         {/* FLIP BUTTON FRONT */}
-                        <div className="absolute top-3 right-1 md:top-3 md:right-1 z-20">
+                        <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20">
                             <FlipTrigger 
                                 onClick={() => setIsFlipped(true)} 
                             />
@@ -338,32 +343,49 @@ export default function GlobalHeader({
                         </div>
 
                         {/* BOTTOM SECTION: Credit Distribution (Larger Values) */}
-                        <div className={`grid ${integrity?.missingCards > 0 ? 'grid-cols-5' : 'grid-cols-4'} gap-2 md:gap-3 pt-3 md:pt-4 border-t ${STYLES.BORDER_DIVIDER}`}>
+                        <div 
+                            className={`grid gap-2 md:gap-3 pt-3 md:pt-4 border-t ${STYLES.BORDER_DIVIDER}`}
+                            style={{ gridTemplateColumns: `repeat(${customStats ? customStats.length + 1 : (integrity?.missingCards > 0 ? 5 : 4)}, minmax(0, 1fr))` }}
+                        >
                             <StatBlock
                                 label={creditLabel}
                                 value={totalCredits}
                                 color="text-text-primary"
                                 breakdown={enableBreakdown ? creditBreakdown : null}
                             />
-                            <StatBlock
-                                label="Bulls"
-                                value={signalCounts.bulls}
-                                color="text-emerald-600 dark:text-emerald-400"
-                                breakdown={enableBreakdown ? signalCounts.breakdown.bulls : null}
-                            />
-                            <StatBlock
-                                label="Bears"
-                                value={signalCounts.bears}
-                                color="text-red-600 dark:text-red-400"
-                                breakdown={enableBreakdown ? signalCounts.breakdown.bears : null}
-                            />
-                            <StatBlock
-                                label="Neutral"
-                                value={signalCounts.neutrals}
-                                color="text-amber-500 dark:text-amber-400"
-                                breakdown={enableBreakdown ? signalCounts.breakdown.neutrals : null}
-                            />
-                            {integrity?.missingCards > 0 && (
+                            {customStats ? (
+                                customStats.map((stat, idx) => (
+                                    <StatBlock
+                                        key={idx}
+                                        label={stat.label}
+                                        value={stat.value}
+                                        color={stat.color}
+                                        breakdown={stat.breakdown}
+                                    />
+                                ))
+                            ) : (
+                                <>
+                                    <StatBlock
+                                        label="Bulls"
+                                        value={signalCounts.bulls}
+                                        color="text-emerald-600 dark:text-emerald-400"
+                                        breakdown={enableBreakdown ? signalCounts.breakdown.bulls : null}
+                                    />
+                                    <StatBlock
+                                        label="Bears"
+                                        value={signalCounts.bears}
+                                        color="text-red-600 dark:text-red-400"
+                                        breakdown={enableBreakdown ? signalCounts.breakdown.bears : null}
+                                    />
+                                    <StatBlock
+                                        label="Neutral"
+                                        value={signalCounts.neutrals}
+                                        color="text-amber-500 dark:text-amber-400"
+                                        breakdown={enableBreakdown ? signalCounts.breakdown.neutrals : null}
+                                    />
+                                </>
+                            )}
+                            {integrity?.missingCards > 0 && !customStats && (
                                 <StatBlock
                                     label="Pending"
                                     value={integrity.missingCards}
@@ -379,8 +401,8 @@ export default function GlobalHeader({
 
                 {/* MIDDLE ROW: TAILWINDS & HEADWINDS */}
                 <div className={`hidden md:grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x ${STYLES.DIVIDE}`}>
-                    <ImpactList title="Top Tailwinds" items={tailwinds} type="bull" />
-                    <ImpactList title="Top Headwinds" items={headwinds} type="bear" />
+                    <ImpactList title="Top Tailwinds" items={tailwinds} type="bull" isScrollable={syncId?.category === 'events'} />
+                    <ImpactList title="Top Headwinds" items={headwinds} type="bear" isScrollable={syncId?.category === 'events'} />
                 </div>
 
                 {/* BOTTOM ROW: CONTROLS (Integrated) */}
@@ -600,7 +622,7 @@ function FundamentalGaugePanel({ score, regime, sections, scoreModifier }) {
     );
 }
 
-function ImpactList({ title, items, type }) {
+function ImpactList({ title, items, type, isScrollable = false }) {
     const isBull = type === 'bull';
     const colorClass = isBull ? "text-emerald-700 dark:text-emerald-500" : "text-red-700 dark:text-red-500";
     const bgClass = "bg-transparent";
@@ -615,7 +637,7 @@ function ImpactList({ title, items, type }) {
                     <span className={`text-[9px] md:text-[10px] text-text-tertiary px-1 border ${STYLES.BORDER_INNER} rounded`}>{badgeText}</span>
                 </div>
             </div>
-            <div className="space-y-2">
+            <div className={`space-y-2 ${isScrollable ? 'flex-1 overflow-y-auto custom-scrollbar-thin pr-2 min-h-0' : ''}`}>
                 {items.length > 0 ? items.map((item, i) => (
                     <div key={item.id || i} className={`flex items-center justify-between p-2 rounded hover:bg-background-surface transition-colors border border-transparent hover:${STYLES.BORDER_INNER}`}>
                         <div>
@@ -623,7 +645,7 @@ function ImpactList({ title, items, type }) {
                             <div className="text-[10px] text-text-tertiary">{item.sub || "High Impact"}</div>
                         </div>
                         <div className={`text-xs font-bold ${valColor} font-mono`}>
-                            {type === 'bull' ? '+' : ''}{item.value}%
+                            {item.val || `${type === 'bull' ? '+' : ''}${item.value}%`}
                         </div>
                     </div>
                 )) : (

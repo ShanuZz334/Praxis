@@ -27,7 +27,9 @@ import {
     scoreADLineCard,
     scoreMcClellanCard,
     scoreNhnlCard,
-    scoreTrinCard
+    scoreTrinCard,
+    scoreTrendlineCard,
+    scoreBetaCorrelationCard
 } from './TechnicalCompositeEngine';
 
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
@@ -148,6 +150,14 @@ function parseHeadlessTechnicals(rawTechnicals, currentPrice, manualOverrides = 
                 break;
             case 'trin':
                 if (useOverride) return { success: true, valueObj: overrideVal, score: scoreTrinCard(overrideVal).score };
+                break;
+            case 'trendline':
+                if (useOverride) return { success: true, valueObj: overrideVal, score: scoreTrendlineCard(overrideVal).score };
+                if (t.trendline) return { success: true, valueObj: t.trendline, score: scoreTrendlineCard(t.trendline).score };
+                break;
+            case 'beta_correlation':
+                if (useOverride) return { success: true, valueObj: overrideVal, score: scoreBetaCorrelationCard(overrideVal).score };
+                if (t.beta !== undefined && t.beta !== null) return { success: true, valueObj: t.beta, score: scoreBetaCorrelationCard(t.beta).score };
                 break;
             default:
                 return { success: false, reason: "Algorithm unavailable or data missing" };

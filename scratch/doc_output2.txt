@@ -1,0 +1,650 @@
+
+--- c:\project\ALLBACKUP\Praxis\Praxis documents\colors and sections.docx ---
+ Status Colors
+Score
+Label
+Color
+0–14
+Extreme Risk
+#D92D20
+15–29
+High Risk
+#F04438
+30–44
+Weak
+#F79009
+45–59
+Balanced
+#FACC15
+60–74
+Constructive
+#22C55E
+75–89
+Strong
+#16A34A
+90–100
+Exceptional
+#2E5BFF
+Praxis Indicator Status Palette (5 Levels)
+Score
+Status
+Color
+Hex
+0–20
+Poor
+🔴 Deep Red
+#E5484D
+21–40
+Weak
+🟠 Amber Orange
+#F59E0B
+41–60
+Balanced
+⚪ Slate Gray
+#94A3B8
+61–80
+Strong
+🟢 Emerald Green
+#22C55E
+81–100
+Exceptional
+🔵 Praxis Blue
+#2E5BFF
+Praxis Chart Palette v1
+Line
+Color Name
+Hex
+Usage
+Line 1
+Praxis Blue
+#2E5BFF
+Primary metric
+Line 2
+Emerald Green
+#22C55E
+Engine / Benchmark
+Line 3
+Amber Gold
+#F59E0B
+Secondary metric
+Line 4
+Violet
+#A855F7
+Oscillator / Derived metric
+Line 5
+Cyan
+#06B6D4
+Forecast / Prediction / Extra metric
+Events Colors
+1. Sentiment
+Sentiment
+Color Name
+Hex
+Very Bullish
+Emerald Green
+#16A34A
+Bullish
+Green
+#22C55E
+Neutral
+Slate Gray
+#94A3B8
+Bearish
+Orange Red
+#F97316
+Very Bearish
+Crimson Red
+#DC2626
+2. Importance
+Importance
+Color Name
+Hex
+Low
+Slate Gray
+#94A3B8
+Medium
+Praxis Blue
+#2E5BFF
+High
+Amber
+#F59E0B
+Critical
+Crimson Red
+#DC2626
+3. Severity
+Severity
+Color Name
+Hex
+Normal
+Slate Gray
+#94A3B8
+Important
+Amber Orange
+#F59E0B
+Major
+Deep Orange
+#EA580C
+Systemic
+Crimson Red
+#DC2626
+Black Swan
+Purple
+#7C3AED
+4. Override Mode
+Override
+Color Name
+Hex
+None
+Slate Gray
+#94A3B8
+Watch
+Amber
+#FACC15
+Override
+Purple
+#8B5CF6
+Force Override
+Praxis Blue
+#2E5BFF
+5. Event Horizon
+Horizon
+Color Name
+Hex
+Intraday
+Praxis Blue
+#2E5BFF
+Swing
+Emerald Green
+#22C55E
+Positional
+Cyan
+#06B6D4
+Structural
+Violet
+#8B5CF6
+Long Term
+Indigo
+#4F46E5
+6. Confidence
+Confidence
+Color Name
+Hex
+0–50%
+Red
+#E5484D
+51–70%
+Amber
+#F59E0B
+71–85%
+Green
+#22C55E
+86–100%
+Praxis Blue
+#2E5BFF
+7. Event Score
+Score
+Label
+Color Name
+Hex
+-10 to -6
+Extremely Negative
+Crimson Red
+#DC2626
+-5 to -2
+Negative
+Orange Red
+#F97316
+-1.9 to +1.9
+Neutral
+Slate Gray
+#94A3B8
++2 to +5
+Positive
+Emerald Green
+#22C55E
++6 to +10
+Extremely Positive
+Praxis Blue
+#2E5BFF
+8. Event Source
+These shouldn't all be white. Give trusted sources their own identity.
+Source
+Color
+RBI
+#2563EB
+SEBI
+#16A34A
+NSE
+#2E5BFF
+BSE
+#0F766E
+Bloomberg
+#F59E0B
+Reuters
+#DC2626
+CNBC
+#06B6D4
+Exchange Filing
+#8B5CF6
+Government
+#6366F1
+Company PR
+#94A3B8
+9. Event Categories
+Category
+Color Name
+Hex
+Macro
+Praxis Blue
+#2E5BFF
+Earnings
+Emerald Green
+#22C55E
+Policy
+Indigo
+#4F46E5
+Corporate
+Violet
+#8B5CF6
+Geopolitical
+Crimson Red
+#DC2626
+Commodities
+Amber
+#F59E0B
+Currency
+Cyan
+#06B6D4
+Bonds
+Slate Gray
+#64748B
+Global
+Teal
+#0F766E
+Economy
+Sky Blue
+#0284C7
+10. Affected Asset Tags
+These chips should also be standardized.
+Asset
+Color
+NIFTY
+#2E5BFF
+BANKNIFTY
+#16A34A
+FINNIFTY
+#06B6D4
+MIDCAP
+#8B5CF6
+AUTO
+#EA580C
+IT
+#2563EB
+FMCG
+#059669
+PHARMA
+#0EA5E9
+METAL
+#64748B
+ENERGY
+#F59E0B
+PSU
+#4F46E5
+REALTY
+#7C3AED
+11. AI Classification (Optional)
+If PAI classifies events, you can add another standardized layer.
+Classification
+Color
+Hex
+Opportunity
+Emerald Green
+#22C55E
+Risk
+Crimson Red
+#DC2626
+Watchlist
+Amber
+#F59E0B
+Informational
+Praxis Blue
+#2E5BFF
+Ignorable
+Slate Gray
+#94A3B8
+Accent
+Color Name
+Hex
+Suggested Usage
+🔵
+Praxis Blue
+#2E5BFF
+Trend / General Indicators
+🟣
+Electric Violet
+#8B5CF6
+Momentum Indicators
+🟢
+Emerald Green
+#22C55E
+Volume / Breadth
+🟠
+Amber Orange
+#F59E0B
+Volatility / Risk
+🔷
+Cyan
+#06B6D4
+Market Structure / Support & Resistance
+
+--- c:\project\ALLBACKUP\Praxis\Praxis documents\Indicators\Events secion.docx ---
+Events secion
+Segments
+📈 Economic Events
+RBI Monetary Policy 
+CPI Inflation 
+WPI Inflation 
+GDP Growth 
+Industrial Production (IIP) 
+PMI Manufacturing 
+PMI Services 
+Trade Balance 
+Fiscal Deficit 
+Forex Reserves 
+🏢 Corporate Events
+Quarterly Earnings 
+Annual Results 
+Dividend Announcements 
+Stock Split 
+Bonus Issue 
+Buyback 
+Rights Issue 
+AGM / EGM 
+IPO Listing 
+OFS 
+Management Change 
+Credit Rating Changes 
+🌍 Global Events
+FOMC Meeting 
+US CPI 
+US PPI 
+Non-Farm Payrolls 
+ECB Meeting 
+BOJ Meeting 
+BOE Meeting 
+China GDP 
+China PMI 
+OPEC Meeting 
+Crude Oil Inventory 
+US Treasury Yield 
+Dollar Index (DXY) Events 
+🏛 Government & Regulatory
+Union Budget 
+GST Council 
+RBI Circular 
+SEBI Circular 
+Finance Ministry Announcement 
+New Tax Rules 
+Import/Export Policy 
+PSU Disinvestment 
+New Regulations 
+🌐 Geopolitical
+Elections 
+Wars 
+Sanctions 
+Trade Restrictions 
+Border Tensions 
+Terror Incidents 
+Natural Disasters 
+Cyber Attacks 
+Pandemic Alerts 
+💹 Market News
+Nifty News 
+Bank Nifty News 
+Sector News 
+Company News 
+FIIs News 
+DIIs News 
+Commodity News 
+Currency News 
+📅 Earnings Calendar
+Today 
+Tomorrow 
+This Week 
+Upcoming Major Earnings 
+🚀 IPO Events
+Upcoming IPOs 
+Open IPOs 
+IPO Listing 
+GMP Updates 
+Subscription Status 
+🎉 Holidays & Trading Sessions
+NSE Holidays 
+MCX Holidays 
+Bank Holidays 
+Muhurat Trading 
+Special Trading Session
+Event Intelligence Specification 
+1. Overview
+Name:
+Short Name:
+Module:
+Category:
+Sub Category:
+Purpose:
+Event Type:
+Scheduled | Breaking | Ongoing | Recurring
+Generated By:
+AI
+Importance:
+★★★★★
+Auto / Manual:
+Auto
+Update Frequency:
+Realtime
+2. Input Data
+This is what you provide to the AI.
+Headline
+Article Content
+Source
+Published Time
+Author (Optional)
+URL (Optional)
+Language
+Country
+Attachments (Optional)
+Example
+Headline
+RBI unexpectedly raises CRR by 50 bps to drain excess liquidity
+Content
+The Reserve Bank of India today announced...
+3. AI Extraction
+The LLM must extract structured information.
+Headline
+Summary
+Category
+Sub Category
+Source
+Published Time
+Country
+Region
+Companies Mentioned
+Sectors Mentioned
+Indices Mentioned
+Currencies
+Commodities
+Government Agencies
+Central Banks
+Keywords
+Tags
+Example
+Category
+Monetary Policy
+Sub Category
+Liquidity
+Companies
+SBIN
+ICICIBANK
+HDFCBANK
+Indices
+BANKNIFTY
+NIFTY
+Keywords
+CRR
+Liquidity
+RBI
+4. Event Classification
+Sentiment
+Bullish
+Bearish
+Neutral
+Mixed
+Importance
+Low
+Medium
+High
+Critical
+Severity
+Normal
+Important
+Major
+Systemic
+Black Swan
+Override
+None
+Watch
+Override
+Horizon
+Intraday
+Swing
+Positional
+Structural
+Long Term
+Confidence
+0-100%
+5. Market Impact Analysis
+The AI determines exactly what is affected.
+Affected Assets
+NIFTY
+BANKNIFTY
+FINNIFTY
+USDINR
+Gold
+Crude
+Stocks
+Sectors
+Options
+Volatility
+Example
+Affected Assets
+BANKNIFTY
+HDFCBANK
+ICICIBANK
+SBIN
+6. Event Score
+Instead of a fixed score.
+Range
+-10
+↓
+0
+↓
++10
+Interpretation
++10
+Extremely Bullish
++7
+Strong Bullish
++4
+Bullish
+0
+Neutral
+-4
+Bearish
+-7
+Strong Bearish
+-10
+Extremely Bearish
+7. AI Reasoning
+This never appears on the card.
+Stored internally.
+Reasoning
+Why is this event bullish?
+Why is it bearish?
+Which sectors benefit?
+Which sectors lose?
+Expected duration
+Historical similarity
+Probability
+Confidence explanation
+8. Card Fields
+These are the only fields shown in the UI.
+Headline
+Summary
+Source
+Published Time
+Category
+Sentiment
+Importance
+Severity
+Override
+Confidence
+Horizon
+Affected Assets
+Event Score
+Exactly like your mockup.
+9. Card Layout
+┌────────────────────────────────────────────────────────────────────────────┐
+│ SOURCE • CATEGORY • 12m ago                           EVENT SCORE  -9.7    │
+│                                                                            │
+│ RBI unexpectedly raises CRR by 50bps                                      │
+│                                                                            │
+│ Tightening liquidity signals hawkish stance...                             │
+│                                                                            │
+│ Affected Assets                                                            │
+│ [BANKNIFTY] [SBIN] [HDFCBANK] [+3]                                         │
+│────────────────────────────────────────────────────────────────────────────│
+│ Bearish      Major        Watch        94%        Intraday                 │
+└────────────────────────────────────────────────────────────────────────────┘
+10. Event Engine Integration
+This is where it becomes part of Praxis.
+Praxis Event Score
+-10
+↓
++10
+↓
+Events Engine
+↓
+Decision Engine
+↓
+Final Praxis Score
+11. AI Prompt
+The LLM should always follow the same extraction rules.
+Read the supplied financial news article.
+Extract all structured information.
+Generate:
+Headline
+Summary
+Category
+Sub Category
+Source
+Published Time
+Sentiment
+Importance
+Severity
+Override
+Confidence
+Affected Assets
+Event Score (-10 to +10)
+Horizon
+Reasoning
+Return valid JSON only.
+Use institutional market reasoning.
+Score the event based on expected impact on Indian equities.
+Use Override only when the event has the potential to significantly alter the overall market outlook beyond normal weighting.
+Reserve Black Swan classification only for exceptionally rare systemic events.
+12. Developer Notes
+Every event card follows one schema, regardless of whether it's macro, corporate, geopolitical, or commodities. 
+The UI is completely driven by the extracted JSON—no custom logic per category. 
+Keep Reasoning, Keywords, Historical Similarity, and any future AI fields in the database, but hide them from the card. They power search, filtering, the decision engine, and future features without cluttering the interface. 
+If extraction confidence is low, flag the event for review or reduce its influence on the Event Score. 
+This blueprint gives you the same level of consistency that you've established for your indicator specifications: every event becomes a standardized, machine-readable object that can be displayed, scored, filtered, and integrated into the overall Praxis Decision Engine.

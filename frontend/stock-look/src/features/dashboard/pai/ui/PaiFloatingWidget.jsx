@@ -16,6 +16,7 @@ import MentionSuggestionDropdown from '@/shared/components/ui/MentionSuggestionD
 import { useVoice } from '@/shared/context/VoiceContext';
 import { useDataRegistry } from '@/shared/context/DataRegistryContext';
 import { useDashboardContext } from '@/shared/context/DashboardContext';
+import { useProfile } from '@/shared/hooks/useProfile';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -41,6 +42,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     } = usePaiWidget();
     
     const { useOrbNav } = useTheme();
+    const { setProfile } = useProfile();
     const location = useLocation();
     const [chatMode, setChatMode] = useState('contextual'); // 'contextual' or 'global'
 
@@ -146,6 +148,15 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                     synthesize(`I do not have a Level ${targetLevel} model available.`);
                     return;
                 }
+            }
+
+            // Voice Command Interception for Trading Horizon / Mode selection
+            const modeMatch = cleanText.match(/(?:change|set|switch)\s*(?:the\s*)?(?:trade\s*mode|trading\s*horizon|trading\s*mode|mode|horizon|profile)\s*(?:to\s*)?(intraday|swing|positional)/i);
+            if (modeMatch) {
+                const targetMode = modeMatch[1].toLowerCase();
+                setProfile(targetMode);
+                synthesize(`Trading horizon changed to ${targetMode}. Presets synchronized.`);
+                return; // Stop propagation
             }
 
             // Normal Message Handling (processes headlessly if panel is closed)

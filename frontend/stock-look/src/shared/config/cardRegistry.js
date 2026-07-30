@@ -315,7 +315,13 @@ export const CARD_REGISTRY = {
     // ══════════════════════════════════════════════════════════════════════════
     // EVENTS DASHBOARD (Stubs for future expansion)
     // ══════════════════════════════════════════════════════════════════════════
-    events_header:    { id: 'events_header',    type: 'widget', displayName: 'Events Header Insight', page: 'Events', section: 'General', appliesTo: 'both', legacyIds: [] },
-    qchat_events:     { id: 'qchat_events',     type: 'widget', displayName: 'Events QChat',          page: 'Events', section: 'General', appliesTo: 'both', legacyIds: [] },
+    events_header:       { id: 'events_header',       type: 'widget', displayName: 'Events Header Insight', page: 'Events', section: 'General', appliesTo: 'both', legacyIds: [] },
+    events_macro:        { id: 'events_macro',        type: 'widget', displayName: 'Macro Events Insight', page: 'Events', section: 'General', appliesTo: 'both', legacyIds: [] },
+    events_earnings:     { id: 'events_earnings',     type: 'widget', displayName: 'Earnings Events Insight', page: 'Events', section: 'General', appliesTo: 'both', legacyIds: [] },
+    events_policy:       { id: 'events_policy',       type: 'widget', displayName: 'Policy Events Insight', page: 'Events', section: 'General', appliesTo: 'both', legacyIds: [] },
+    events_corporate:    { id: 'events_corporate',    type: 'widget', displayName: 'Corporate Events Insight', page: 'Events', section: 'General', appliesTo: 'both', legacyIds: [] },
+    events_geopolitical: { id: 'events_geopolitical', type: 'widget', displayName: 'Geopolitical Events Insight', page: 'Events', section: 'General', appliesTo: 'both', legacyIds: [] },
+    events_commodities:  { id: 'events_commodities',  type: 'widget', displayName: 'Commodities Events Insight', page: 'Events', section: 'General', appliesTo: 'both', legacyIds: [] },
+    qchat_events:        { id: 'qchat_events',        type: 'widget', displayName: 'Events QChat',          page: 'Events', section: 'General', appliesTo: 'both', legacyIds: [] },
 };
 

@@ -12,7 +12,7 @@ export function validateInput(request) {
         throw new Error(`Input too large for Tier ${tier} task.`);
     }
 
-    const needsGrounding = request.taskType !== 'chat_conversation' && request.taskType !== 'chart_qa';
+    const needsGrounding = !['chat_conversation', 'chart_qa', 'MARKET_EVENT_EXTRACTION'].includes(request.taskType);
     if (needsGrounding && (!request.data || Object.keys(request.data).length === 0)) {
         throw new Error(`Task type '${request.taskType}' requires grounding data (request.data) to prevent hallucination.`);
     }

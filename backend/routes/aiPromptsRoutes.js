@@ -10,7 +10,7 @@ import multer from 'multer';
 
 // Set up multer to store uploaded files in memory
 const upload = multer({ storage: multer.memoryStorage() });
-import { GOLDEN_RULES } from '../config/goldenRules.js';
+import { getGoldenRules } from '../config/goldenRules.js';
 
 const router = express.Router();
 router.use(protect);
@@ -27,6 +27,12 @@ const PAGE_HEADER_DEFAULTS = {
     [CARD_REGISTRY.praxis_composite_header?.id || "praxis_composite_header"]: `You are Praxis. Analyze the composite data for {stockSymbol}. Generate a short summary of the overall market posture and a tactical recommendation. No markdown, no bold text, no introductions.`,
     foreign_header: `You are Praxis. Analyze the Global Macro data for {stockSymbol}. Generate a short summary of the most important global headwinds/tailwind and sector impact. No markdown, no bold text, no introductions.`,
     events_header: `You are Praxis. Analyze the Events data for {stockSymbol}. Generate a short summary of key near-term event risks and expected impact. No markdown, no bold text, no introductions.`,
+    events_macro: `You are Praxis. Analyze the Macro Events data for {stockSymbol}. Generate a short summary of the primary macroeconomic drivers affecting this asset. No markdown, no bold text, no introductions.`,
+    events_earnings: `You are Praxis. Analyze the Earnings Events data for {stockSymbol}. Generate a short summary of recent earnings sentiment and expected impacts. No markdown, no bold text, no introductions.`,
+    events_policy: `You are Praxis. Analyze the Policy Events data for {stockSymbol}. Generate a short summary of how regulatory or central bank policies are driving momentum. No markdown, no bold text, no introductions.`,
+    events_corporate: `You are Praxis. Analyze the Corporate Events data for {stockSymbol}. Generate a short summary of corporate actions (M&A, management changes, dividends) impacting the stock. No markdown, no bold text, no introductions.`,
+    events_geopolitical: `You are Praxis. Analyze the Geopolitical Events data for {stockSymbol}. Generate a short summary of global geopolitical risks impacting this asset. No markdown, no bold text, no introductions.`,
+    events_commodities: `You are Praxis. Analyze the Commodities Events data for {stockSymbol}. Generate a short summary of how raw material or energy price shocks are impacting momentum. No markdown, no bold text, no introductions.`,
 };
 
 const DEFAULT_SYSTEM_INSTRUCTION = (targetId, displayName) => {
@@ -105,7 +111,7 @@ function resolveTemplateVars(template, data) {
 // ─── GOLDEN RULES ENDPOINT ───────────────────────────────────────────────────
 
 router.get('/golden-rules', (req, res) => {
-    res.json(GOLDEN_RULES);
+    res.json(getGoldenRules(req.query.targetId));
 });
 
 // ─── DB & PRESET ROUTES ─────────────────────────────────────────────────────────
@@ -285,6 +291,46 @@ router.delete('/thread/:targetId', async (req, res) => {
 function summarizePageData(pageData) {
     if (!pageData) return null;
 
+    // Shape 4: Events Page Payload (activeEvents array)
+    if (Array.isArray(pageData.activeEvents)) {
+        const lines = ['--- EVENTS DASHBOARD CONTEXT ---'];
+        
+        if (pageData.metrics) {
+            lines.push(`Total Weight: ${pageData.metrics.totalWeight ?? 'N/A'} | Net Momentum: ${pageData.metrics.netMomentum ?? 'N/A'}`);
+        }
+
+        if (Array.isArray(pageData.topTailwinds) && pageData.topTailwinds.length > 0) {
+            lines.push('\nTOP TAILWINDS (BULLISH DRIVERS):');
+            pageData.topTailwinds.forEach(t => lines.push(`- ${t.label || t.id} (Impact: ${t.val || t.value || t.strength})`));
+        }
+
+        if (Array.isArray(pageData.topHeadwinds) && pageData.topHeadwinds.length > 0) {
+            lines.push('\nTOP HEADWINDS (BEARISH DRIVERS):');
+            pageData.topHeadwinds.forEach(h => lines.push(`- ${h.label || h.id} (Impact: ${h.val || h.value || h.strength})`));
+        }
+
+        if (pageData.activeEvents.length > 0) {
+            lines.push('\nACTIVE MARKET EVENTS:');
+            pageData.activeEvents.forEach(e => {
+                let evtStr = `- [${e.severity?.toUpperCase() || 'NORMAL'}] ${e.headline}`;
+                evtStr += ` | Sentiment: ${e.sentiment || 'Neutral'}`;
+                evtStr += ` | Score: ${e.score || 0}`;
+                if (e.horizon) evtStr += ` | Horizon: ${e.horizon}`;
+                if (e.affectedAssets && e.affectedAssets.length > 0) {
+                    evtStr += ` | Assets: ${e.affectedAssets.join(', ')}`;
+                }
+                if (e.keyDataPoints && e.keyDataPoints.length > 0) {
+                    evtStr += ` | Key Data: ${e.keyDataPoints.join('; ')}`;
+                }
+                lines.push(evtStr);
+            });
+        } else {
+            lines.push('\nNo active market events reported.');
+        }
+
+        return lines.join('\n');
+    }
+
     // Shape 1: nested engine tree (nestedTreePayload or masterPayload)
     if (Array.isArray(pageData.engines) && pageData.engines.length > 0) {
         const lines = [];
@@ -461,32 +507,38 @@ router.post('/generate/:targetId', async (req, res) => {
         if (savedPrompt && savedPrompt.goldenRules) {
             goldenRulesStr = `System Guardrails:\n${savedPrompt.goldenRules}\n\n`;
         } else {
-            goldenRulesStr = `System Guardrails:\n${GOLDEN_RULES.map((r, i) => `${i+1}. ${r}`).join('\n')}\n\n`;
+            goldenRulesStr = `System Guardrails:\n${getGoldenRules(targetId).map((r, i) => `${i+1}. ${r}`).join('\n')}\n\n`;
         }
         
         // 3b. Enforce Verbosity Settings
         const routing = await AiRouting.findOne({ isSingleton: true }).lean();
         let verbosityInstruction = "";
+        let dynamicMaxTokens = savedPrompt?.maxTokens || 2000;
+        
         if (routing) {
-            const verbosityLevel = isHeaderTarget ? routing.headerInsight?.verbosity : routing.cardInsight?.verbosity;
+            const isMasterDashboard = targetId === 'praxis_composite_header';
+            const verbosityLevel = isMasterDashboard ? routing.pageInsight?.verbosity : (isHeaderTarget ? routing.headerInsight?.verbosity : routing.cardInsight?.verbosity);
             if (verbosityLevel === 'short') {
-                verbosityInstruction = "\n\n[CRITICAL REQUIREMENT: Generate exactly 1 to 2 short sentences total. NO MORE.]";
+                verbosityInstruction = "\n\n[CRITICAL REQUIREMENT: Generate EXACTLY 1 to 2 short sentences total. NO MORE. Be extremely concise and ensure you finish your thought completely without cutting off.]";
+                dynamicMaxTokens = routing.maxTokensShort || Math.max(dynamicMaxTokens, 500);
             } else if (verbosityLevel === 'detailed') {
-                verbosityInstruction = "\n\n[CRITICAL REQUIREMENT: Provide a highly detailed, comprehensive analysis spanning multiple paragraphs. Break down the reasoning deeply.]";
+                verbosityInstruction = "\n\n[CRITICAL REQUIREMENT: Provide a highly detailed, comprehensive analysis spanning multiple paragraphs. Break down the reasoning deeply. Do not stop midway, complete all thoughts.]";
+                dynamicMaxTokens = routing.maxTokensDetailed || Math.max(dynamicMaxTokens, 3000);
             } else {
                 // Default / medium
-                verbosityInstruction = "\n\n[CRITICAL REQUIREMENT: You MUST generate EXACTLY ONE SINGLE PARAGRAPH. Do NOT use any line breaks, bullet points, or multiple paragraphs. The entire response must be a single block of text.]";
+                verbosityInstruction = "\n\n[CRITICAL REQUIREMENT: You MUST generate EXACTLY ONE SINGLE PARAGRAPH. Do NOT use any line breaks, bullet points, or multiple paragraphs. The entire response must be a single block of text and must be a complete thought.]";
+                dynamicMaxTokens = routing.maxTokensMedium || Math.max(dynamicMaxTokens, 1000);
             }
         }
         
         const enforcedSystemInstruction = `${goldenRulesStr}Task Instruction:\n${systemInstruction}${verbosityInstruction}`;
 
         const response = await aiGateway.process({
-            taskType: 'per_card_insight', // Route headers to Tier 1 as requested
+            taskType: isHeaderTarget ? 'page_header_insight' : 'per_card_insight', // Dynamically route headers vs cards
             prompt: userMessage,
             systemInstruction: enforcedSystemInstruction,
             data: { targetId, value, stockSymbol, scope },
-            maxTokens: savedPrompt?.maxTokens || 2000,
+            maxTokens: dynamicMaxTokens,
             temperature: routing?.temperature !== undefined ? routing.temperature : 0.7
         });
 
@@ -628,6 +680,9 @@ router.post('/chat/:targetId', async (req, res) => {
         // Take last 6 messages to strictly conserve context window size limits
         const history = thread?.entries?.slice(-6) || [];
 
+        // Fetch routing settings
+        const routing = await AiRouting.findOne({ isSingleton: true }).lean();
+
         // 3. Call AI Gateway
         const isHeaderTarget = targetId.endsWith('_header') || targetId.startsWith('qchat_') || targetId.includes('manual');
         const response = await aiGateway.process({
@@ -637,7 +692,8 @@ router.post('/chat/:targetId', async (req, res) => {
             history,
             data: Object.keys(contextData).length > 0 ? contextData : null,
             jsonMode: false,
-            maxTokens: savedPrompt?.maxTokens || (isHeaderTarget ? 2000 : 800),
+            maxTokens: routing?.maxTokens || savedPrompt?.maxTokens || (isHeaderTarget ? 2000 : 800),
+            temperature: routing?.temperature !== undefined ? routing.temperature : 0.7,
             explicitProvider,
             explicitModel
         });

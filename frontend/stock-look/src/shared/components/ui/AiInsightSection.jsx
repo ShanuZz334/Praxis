@@ -126,8 +126,26 @@ export default function AiInsightSection({
         
         const { score: lastScore, symbol: lastSymbol, regime: lastRegime } = lastStateRef.current;
 
-        // Only regenerate if user manually clicked, symbol changed, OR score moved by >= 5 points, OR regime changed
-        const isSignificantScoreChange = lastScore === null || Math.abs(currentScore - lastScore) >= 5;
+        // Determine threshold dynamically based on target ID (Technical vs others)
+        let sensitivityThreshold = 5;
+        if (targetId.includes('technical')) {
+            try {
+                const stored = localStorage.getItem('praxis_ai_sensitivity_technical');
+                if (stored !== null && !isNaN(parseInt(stored, 10))) {
+                    sensitivityThreshold = parseInt(stored, 10);
+                }
+            } catch (e) {}
+        } else {
+            try {
+                const stored = localStorage.getItem('praxis_ai_sensitivity_global');
+                if (stored !== null && !isNaN(parseInt(stored, 10))) {
+                    sensitivityThreshold = parseInt(stored, 10);
+                }
+            } catch (e) {}
+        }
+
+        // Only regenerate if user manually clicked, symbol changed, OR score moved by >= threshold, OR regime changed
+        const isSignificantScoreChange = lastScore === null || Math.abs(currentScore - lastScore) >= sensitivityThreshold;
         const isSymbolChange = currentSymbol !== lastSymbol;
         const isRegimeChange = actionType !== lastRegime;
         
@@ -154,14 +172,24 @@ export default function AiInsightSection({
             return [`${eng.name || eng.module || eng.id || 'Score'}: ${eng.score}`];
         });
 
+        const isEventsPage = resolvedPageId === 'events';
+        const breadthBlock = isEventsPage && masterPayload?.metrics
+            ? [
+                `Net Momentum: ${masterPayload.metrics.netMomentum}`,
+                `Total Events: ${masterPayload.metrics.eventCount}`
+            ]
+            : [
+                bulls    != null ? `Bulls: ${bulls}`    : null,
+                bears    != null ? `Bears: ${bears}`    : null,
+                neutrals != null ? `Neutrals: ${neutrals}` : null,
+            ];
+
         // ── Fix: use exact key names that parseAdditionalContext() expects ────────
         const contextLines = [
             `Regime: ${actionType}`,
             confidence != null ? `Confidence: ${confidence}%` : null,
             `Score: ${currentScore.toFixed(0)}`,
-            bulls    != null ? `Bulls: ${bulls}`    : null,
-            bears    != null ? `Bears: ${bears}`    : null,
-            neutrals != null ? `Neutrals: ${neutrals}` : null,
+            ...breadthBlock,
             ...engineScoreLines,
         ].filter(Boolean).join(" | ");
 
@@ -270,10 +298,35 @@ export default function AiInsightSection({
     // (e.g. before the rest of the Master Dashboard finished loading), instantly hide the outdated text 
     // so the user doesn't see a blatant contradiction while waiting for the new insight to generate.
     const currentScore = typeof score === 'number' ? score : parseFloat(score) || 0;
-    const isOutdated = lastStateRef.current.score !== null && Math.abs(currentScore - lastStateRef.current.score) >= 5;
+    
+    // Determine threshold dynamically based on target ID (Technical vs others)
+    let displaySensitivityThreshold = 5;
+    if (targetId.includes('technical')) {
+        try {
+            const stored = localStorage.getItem('praxis_ai_sensitivity_technical');
+            if (stored !== null && !isNaN(parseInt(stored, 10))) {
+                displaySensitivityThreshold = parseInt(stored, 10);
+            }
+        } catch (e) {}
+    } else {
+        try {
+            const stored = localStorage.getItem('praxis_ai_sensitivity_global');
+            if (stored !== null && !isNaN(parseInt(stored, 10))) {
+                displaySensitivityThreshold = parseInt(stored, 10);
+            }
+        } catch (e) {}
+    }
+
+    const isOutdated = lastStateRef.current.score !== null && Math.abs(currentScore - lastStateRef.current.score) >= displaySensitivityThreshold;
 
     const isTyping = insight && displayedText.length < aiBody.length;
-    const showSkeleton = (isLoading && !insight) || isOutdated;
+    
+    // We should show the skeleton if:
+    // 1. It is loading and we don't have an insight yet
+    // 2. The currently displayed insight is for a wildly different score (outdated)
+    // 3. We are waiting to generate (no cache, hasn't generated yet)
+    const isWaitingToGenerate = !isRestoredFromCache && !hasGeneratedRef.current && !isLoading;
+    const showSkeleton = (isLoading && !insight) || isOutdated || isWaitingToGenerate;
 
     return (
         <>

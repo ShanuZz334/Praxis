@@ -58,12 +58,12 @@ export const DashboardProvider = ({ children }) => {
     useEffect(() => {
         if (selectedCategory === "Indices") {
             if (!FO_INDICES.find(i => i.value === selectedInstrument)) {
-                setSelectedInstrument("");
+                setSelectedInstrument(FO_INDICES[0]?.value || "");
                 setSelectedExpiry("");
             }
         } else {
             if (!FO_EQUITIES.find(i => i.value === selectedInstrument)) {
-                setSelectedInstrument("");
+                setSelectedInstrument(FO_EQUITIES[0]?.value || "");
                 setSelectedExpiry("");
             }
         }

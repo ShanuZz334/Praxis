@@ -217,6 +217,36 @@ const SettingsPage = () => {
         toast.success("Timer settings updated locally.");
     };
 
+    const [technicalAiSensitivity, setTechnicalAiSensitivity] = useState(() => {
+        try {
+            const stored = localStorage.getItem('praxis_ai_sensitivity_technical');
+            return stored ? parseInt(stored, 10) : 5;
+        } catch {
+            return 5;
+        }
+    });
+
+    const handleTechnicalAiSensitivityChange = (e) => {
+        const val = parseInt(e.target.value, 10);
+        setTechnicalAiSensitivity(val);
+        localStorage.setItem('praxis_ai_sensitivity_technical', val.toString());
+    };
+
+    const [globalAiSensitivity, setGlobalAiSensitivity] = useState(() => {
+        try {
+            const stored = localStorage.getItem('praxis_ai_sensitivity_global');
+            return stored ? parseInt(stored, 10) : 5;
+        } catch {
+            return 5;
+        }
+    });
+
+    const handleGlobalAiSensitivityChange = (e) => {
+        const val = parseInt(e.target.value, 10);
+        setGlobalAiSensitivity(val);
+        localStorage.setItem('praxis_ai_sensitivity_global', val.toString());
+    };
+
     // Initialize Data from Context & API
     useEffect(() => {
         const initData = async () => {
@@ -1106,6 +1136,66 @@ const SettingsPage = () => {
                                                 </button>
                                             );
                                         })}
+                                    </div>
+                                </div>
+
+                                {/* AI Settings */}
+                                <div className="pt-4">
+                                    <h3 className="mb-4 text-sm font-medium text-text-secondary">AI Settings</h3>
+                                    <div className="flex flex-col gap-6 rounded-lg border border-border-default bg-transparent p-4">
+                                        {/* Technical Sensitivity */}
+                                        <div className="flex flex-col gap-3">
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <p className="font-medium text-text-primary">Technical Insight Sensitivity</p>
+                                                    <p className="text-xs text-text-secondary mt-0.5">Adjust how much the technical score must change before generating a new insight (higher = less frequent updates).</p>
+                                                </div>
+                                                <div className="bg-text-secondary/10 px-3 py-1 rounded-md">
+                                                    <span className="font-semibold text-text-primary">{technicalAiSensitivity} pts</span>
+                                                </div>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="1"
+                                                max="20"
+                                                step="1"
+                                                value={technicalAiSensitivity}
+                                                onChange={handleTechnicalAiSensitivityChange}
+                                                className="w-full h-2 bg-[var(--border-default)] rounded-lg appearance-none cursor-pointer accent-blue-500 mt-2"
+                                            />
+                                            <div className="flex justify-between text-[10px] text-text-tertiary">
+                                                <span>High Sensitivity (1)</span>
+                                                <span>Low Sensitivity (20)</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="h-px w-full bg-[var(--border-default)] opacity-50" />
+
+                                        {/* Global Sensitivity */}
+                                        <div className="flex flex-col gap-3">
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <p className="font-medium text-text-primary">Global Insight Sensitivity</p>
+                                                    <p className="text-xs text-text-secondary mt-0.5">Adjust the sensitivity threshold for all other dashboard modules (Fundamentals, Options, Master).</p>
+                                                </div>
+                                                <div className="bg-text-secondary/10 px-3 py-1 rounded-md">
+                                                    <span className="font-semibold text-text-primary">{globalAiSensitivity} pts</span>
+                                                </div>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="1"
+                                                max="20"
+                                                step="1"
+                                                value={globalAiSensitivity}
+                                                onChange={handleGlobalAiSensitivityChange}
+                                                className="w-full h-2 bg-[var(--border-default)] rounded-lg appearance-none cursor-pointer accent-purple-500 mt-2"
+                                            />
+                                            <div className="flex justify-between text-[10px] text-text-tertiary">
+                                                <span>High Sensitivity (1)</span>
+                                                <span>Low Sensitivity (20)</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 

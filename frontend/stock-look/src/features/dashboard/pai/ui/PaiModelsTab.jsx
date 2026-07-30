@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Server, Cloud, Cpu, SlidersHorizontal, Plus, Edit2, Trash2, Play, CheckCircle, AlertCircle, Waypoints, GripVertical, Zap, Timer, Ban } from 'lucide-react';
+import { Server, Cloud, Cpu, SlidersHorizontal, Plus, Edit2, Trash2, Play, CheckCircle, AlertCircle, Waypoints, GripVertical, Zap, Timer, Ban, RotateCcw } from 'lucide-react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import UiverseDropdown from '@/shared/components/ui/UiverseDropdown';
+import { UniversalSlider } from '@/shared/components/ui/UniversalSlider';
 import { toast } from 'sonner';
 
 export default function PaiModelsTab() {
     const [temperature, setTemperature] = useState(0.2);
+    const [maxTokensShort, setMaxTokensShort] = useState(500);
+    const [maxTokensMedium, setMaxTokensMedium] = useState(1000);
+    const [maxTokensDetailed, setMaxTokensDetailed] = useState(3000);
     const [contextLimit, setContextLimit] = useState(15);
     const [providers, setProviders] = useState([]);
     const [templates, setTemplates] = useState([]);
@@ -62,6 +66,9 @@ export default function PaiModelsTab() {
             if (res.data) {
                 setRouting(res.data);
                 if (res.data.temperature !== undefined) setTemperature(res.data.temperature);
+                if (res.data.maxTokensShort !== undefined) setMaxTokensShort(res.data.maxTokensShort);
+                if (res.data.maxTokensMedium !== undefined) setMaxTokensMedium(res.data.maxTokensMedium);
+                if (res.data.maxTokensDetailed !== undefined) setMaxTokensDetailed(res.data.maxTokensDetailed);
             }
         } catch (e) {
             console.error(e);
@@ -433,12 +440,33 @@ export default function PaiModelsTab() {
                 </div>
                 <div className="space-y-6">
                     <div>
-                        <div className="flex justify-between mb-2">
+                        <div className="flex justify-between items-center mb-2">
                             <label className="text-[12px] font-medium text-text-secondary">Temperature (Creativity)</label>
-                            <span className="text-[12px] font-bold text-blue-500">{temperature.toFixed(1)}</span>
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={async () => {
+                                        setTemperature(0.7);
+                                        const newRouting = { ...routing, temperature: 0.7 };
+                                        setRouting(newRouting);
+                                        try {
+                                            await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
+                                            showToast('Temperature reset');
+                                        } catch (e) {
+                                            showToast('Failed to reset', 'error');
+                                        }
+                                    }}
+                                    className="text-text-tertiary hover:text-blue-400 transition-colors"
+                                    title="Reset to default (0.7)"
+                                >
+                                    <RotateCcw size={12} />
+                                </button>
+                                <span className="text-[12px] font-bold text-blue-500 w-6 text-right">{temperature.toFixed(1)}</span>
+                            </div>
                         </div>
-                        <input 
-                            type="range" min="0" max="1" step="0.1" value={temperature}
+                        <UniversalSlider 
+                            min="0" max="1" step="0.1" value={temperature}
+                            defaultValue={0.7}
+                            recommendedRange={[0.2, 0.8]}
                             onChange={(e) => setTemperature(parseFloat(e.target.value))}
                             onMouseUp={async (e) => {
                                 const val = parseFloat(e.target.value);
@@ -451,8 +479,142 @@ export default function PaiModelsTab() {
                                     showToast('Failed to save temperature', 'error');
                                 }
                             }}
-                            className="w-full accent-blue-500 h-1.5 bg-background-surface rounded-lg appearance-none cursor-pointer"
+                            className="mt-2"
                         />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2 border-t border-border-default/40">
+                    <div>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="text-[12px] font-medium text-text-secondary">Tokens (Short)</label>
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={async () => {
+                                        setMaxTokensShort(500);
+                                        const newRouting = { ...routing, maxTokensShort: 500 };
+                                        setRouting(newRouting);
+                                        try {
+                                            await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
+                                            showToast('Short Tokens reset');
+                                        } catch (e) {
+                                            showToast('Failed to reset', 'error');
+                                        }
+                                    }}
+                                    className="text-text-tertiary hover:text-blue-400 transition-colors"
+                                    title="Reset to default (500)"
+                                >
+                                    <RotateCcw size={12} />
+                                </button>
+                                <span className="text-[12px] font-bold text-blue-500 w-10 text-right">{maxTokensShort}</span>
+                            </div>
+                        </div>
+                            <UniversalSlider 
+                                min="50" max="1000" step="50" value={maxTokensShort}
+                                defaultValue={500}
+                                recommendedRange={[150, 600]}
+                                onChange={(e) => setMaxTokensShort(parseInt(e.target.value))}
+                                onMouseUp={async (e) => {
+                                    const val = parseInt(e.target.value);
+                                    const newRouting = { ...routing, maxTokensShort: val };
+                                    setRouting(newRouting);
+                                    try {
+                                        await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
+                                        showToast('Short Tokens saved');
+                                    } catch (e) {
+                                        showToast('Failed to save Short Tokens', 'error');
+                                    }
+                                }}
+                                className="mt-2"
+                            />
+                    </div>
+
+                    <div>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="text-[12px] font-medium text-text-secondary">Tokens (Medium)</label>
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={async () => {
+                                        setMaxTokensMedium(1000);
+                                        const newRouting = { ...routing, maxTokensMedium: 1000 };
+                                        setRouting(newRouting);
+                                        try {
+                                            await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
+                                            showToast('Medium Tokens reset');
+                                        } catch (e) {
+                                            showToast('Failed to reset', 'error');
+                                        }
+                                    }}
+                                    className="text-text-tertiary hover:text-blue-400 transition-colors"
+                                    title="Reset to default (1000)"
+                                >
+                                    <RotateCcw size={12} />
+                                </button>
+                                <span className="text-[12px] font-bold text-blue-500 w-10 text-right">{maxTokensMedium}</span>
+                            </div>
+                        </div>
+                            <UniversalSlider 
+                                min="500" max="3000" step="100" value={maxTokensMedium}
+                                defaultValue={1000}
+                                recommendedRange={[800, 1500]}
+                                onChange={(e) => setMaxTokensMedium(parseInt(e.target.value))}
+                                onMouseUp={async (e) => {
+                                    const val = parseInt(e.target.value);
+                                    const newRouting = { ...routing, maxTokensMedium: val };
+                                    setRouting(newRouting);
+                                    try {
+                                        await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
+                                        showToast('Medium Tokens saved');
+                                    } catch (e) {
+                                        showToast('Failed to save Medium Tokens', 'error');
+                                    }
+                                }}
+                                className="mt-2"
+                            />
+                    </div>
+
+                    <div>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="text-[12px] font-medium text-text-secondary">Tokens (Detailed)</label>
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={async () => {
+                                        setMaxTokensDetailed(3000);
+                                        const newRouting = { ...routing, maxTokensDetailed: 3000 };
+                                        setRouting(newRouting);
+                                        try {
+                                            await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
+                                            showToast('Detailed Tokens reset');
+                                        } catch (e) {
+                                            showToast('Failed to reset', 'error');
+                                        }
+                                    }}
+                                    className="text-text-tertiary hover:text-blue-400 transition-colors"
+                                    title="Reset to default (3000)"
+                                >
+                                    <RotateCcw size={12} />
+                                </button>
+                                <span className="text-[12px] font-bold text-blue-500 w-10 text-right">{maxTokensDetailed}</span>
+                            </div>
+                        </div>
+                            <UniversalSlider 
+                                min="1000" max="8000" step="100" value={maxTokensDetailed}
+                                defaultValue={3000}
+                                recommendedRange={[2500, 4500]}
+                                onChange={(e) => setMaxTokensDetailed(parseInt(e.target.value))}
+                                onMouseUp={async (e) => {
+                                    const val = parseInt(e.target.value);
+                                    const newRouting = { ...routing, maxTokensDetailed: val };
+                                    setRouting(newRouting);
+                                    try {
+                                        await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
+                                        showToast('Detailed Tokens saved');
+                                    } catch (e) {
+                                        showToast('Failed to save Detailed Tokens', 'error');
+                                    }
+                                }}
+                                className="mt-2"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -462,7 +624,7 @@ export default function PaiModelsTab() {
                     <SlidersHorizontal size={18} className="text-orange-500" />
                     <h3 className="text-[15px] font-semibold text-text-primary">Response Verbosity</h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label className="block text-[13px] font-medium text-text-primary mb-2">Header Insight Length</label>
                         <UiverseDropdown
@@ -496,6 +658,23 @@ export default function PaiModelsTab() {
                             hideSearch={true}
                         />
                         <p className="text-[11px] text-text-tertiary mt-2">Controls the length of analysis inside individual indicator cards.</p>
+                    </div>
+                    <div>
+                        <label className="block text-[13px] font-medium text-text-primary mb-2">Master Dashboard Length</label>
+                        <UiverseDropdown
+                            options={[
+                                { value: 'short', label: 'Short (1-2 sentences)' },
+                                { value: 'medium', label: 'Medium (1 paragraph)' },
+                                { value: 'detailed', label: 'Detailed (Multi-paragraph)' }
+                            ]}
+                            value={routing['pageInsight']?.verbosity || 'detailed'}
+                            onChange={(val) => handleRoutingChange('pageInsight', { verbosity: val })}
+                            placeholder="Select length..."
+                            className="w-full text-[13px]"
+                            matchWidth={true}
+                            hideSearch={true}
+                        />
+                        <p className="text-[11px] text-text-tertiary mt-2">Controls the length of the main master dashboard composite summary.</p>
                     </div>
                 </div>
             </div>

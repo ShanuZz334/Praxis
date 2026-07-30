@@ -51,7 +51,7 @@ export default function OptionsPage() {
     const [baseSpotPrice, setBaseSpotPrice] = useState(24000);
     const spotPrice = livePrices?.[selectedInstrument]?.ltp || baseSpotPrice;
     
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(!!selectedExpiry);
 
     const [idealPremium, setIdealPremium] = useState(45);
 

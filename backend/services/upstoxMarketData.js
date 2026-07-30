@@ -1,6 +1,7 @@
 import axios from "axios";
 import UpstoxAuth from "../models/UpstoxAuth.js";
 import { upsertAiCardStore } from "../config/localDb.js";
+import { processNewsItems } from "./newsAutoProcessor.js";
 
 const UPSTOX_BASE_URL = "https://api.upstox.com/v2/market";
 
@@ -251,6 +252,13 @@ export const forceMarketDataPoll = async () => {
                     uniqueNews.sort((a, b) => b.published_time - a.published_time);
                     cachedNews = uniqueNews.slice(0, 25); // Keep top 25
                     broadcast("market:news", cachedNews);
+
+                    // ============================================================
+                    // Auto-process news into Events pipeline (zero human input)
+                    // ============================================================
+                    processNewsItems(cachedNews, broadcast).catch(err =>
+                        console.error("[AutoProcessor] Pipeline error:", err.message)
+                    );
                 }
             } catch (err) {
                 console.error("Failed to fetch market news:", err.message);

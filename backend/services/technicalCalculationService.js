@@ -91,9 +91,60 @@ function calculateCMF(high, low, close, volume, period = 20) {
 }
 
 /**
+ * Helper to calculate Linear Regression (Trendline Slope) with Institutional R-Squared & Channels.
+ */
+function calculateLinearRegression(prices, period = 50) {
+    if (prices.length < period) return null;
+    const slice = prices.slice(-period);
+    
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+    const n = period;
+    
+    for (let i = 0; i < n; i++) {
+        const x = i + 1;
+        const y = slice[i];
+        sumX += x;
+        sumY += y;
+        sumXY += x * y;
+        sumX2 += x * x;
+        sumY2 += y * y;
+    }
+    
+    const xMean = sumX / n;
+    const yMean = sumY / n;
+    
+    // Slope (b) and Intercept (a)
+    const ssXY = sumXY - (sumX * sumY) / n;
+    const ssXX = sumX2 - (sumX * sumX) / n;
+    const slope = ssXY / ssXX;
+    const intercept = yMean - slope * xMean;
+    
+    // R-Squared (r2)
+    const ssYY = sumY2 - (sumY * sumY) / n;
+    const r2 = (ssXY * ssXY) / (ssXX * ssYY);
+    
+    // Standard Error of Estimate (SEE)
+    let sse = 0; // Sum of Squared Errors
+    for (let i = 0; i < n; i++) {
+        const x = i + 1;
+        const y = slice[i];
+        const yPred = intercept + slope * x;
+        sse += Math.pow(y - yPred, 2);
+    }
+    const standardError = Math.sqrt(sse / (n - 2));
+    
+    return {
+        slope,
+        slopePct: (slope / yMean) * 100,
+        r2,
+        standardError
+    };
+}
+
+/**
  * Fetch the latest N candles from SQLite for the given instrument.
  */
-function getHistoricalCandles(instrumentKey, limit = 500, timeframe = 'day') {
+export function getHistoricalCandles(instrumentKey, limit = 500, timeframe = 'day') {
     const stmt = db.prepare(`
         SELECT timestamp, open, high, low, close, volume
         FROM candles
@@ -104,6 +155,59 @@ function getHistoricalCandles(instrumentKey, limit = 500, timeframe = 'day') {
     const rows = stmt.all(instrumentKey, timeframe, limit);
     // Reverse to chronological order
     return rows.reverse();
+}
+
+/**
+ * Calculates native Beta based on Covariance / Variance of daily returns
+ */
+export function calculateNativeBeta(stockCandles, niftyCandles) {
+    if (!stockCandles || !niftyCandles || !stockCandles.length || !niftyCandles.length) return null;
+
+    const niftyMap = new Map();
+    for (const c of niftyCandles) {
+        const dateStr = new Date(c.timestamp).toISOString().split('T')[0];
+        niftyMap.set(dateStr, c.close);
+    }
+
+    const stockReturns = [];
+    const niftyReturns = [];
+    let prevStock = null;
+    let prevNifty = null;
+
+    for (const c of stockCandles) {
+        const dateStr = new Date(c.timestamp).toISOString().split('T')[0];
+        const niftyClose = niftyMap.get(dateStr);
+        if (niftyClose !== undefined) {
+            if (prevStock !== null && prevNifty !== null) {
+                stockReturns.push((c.close - prevStock) / prevStock);
+                niftyReturns.push((niftyClose - prevNifty) / prevNifty);
+            }
+            prevStock = c.close;
+            prevNifty = niftyClose;
+        }
+    }
+
+    if (stockReturns.length < 30) return null; // Require at least 30 days of overlapping data
+
+    const n = stockReturns.length;
+    let sumStock = 0, sumNifty = 0;
+    for (let i = 0; i < n; i++) {
+        sumStock += stockReturns[i];
+        sumNifty += niftyReturns[i];
+    }
+    const meanStock = sumStock / n;
+    const meanNifty = sumNifty / n;
+
+    let covariance = 0;
+    let varianceNifty = 0;
+    for (let i = 0; i < n; i++) {
+        const nDiff = niftyReturns[i] - meanNifty;
+        covariance += (stockReturns[i] - meanStock) * nDiff;
+        varianceNifty += nDiff * nDiff;
+    }
+
+    if (varianceNifty === 0) return null;
+    return covariance / varianceNifty;
 }
 
 /**
@@ -340,7 +444,7 @@ export function calculateTechnicals(instrumentKey, liveQuote = null, timeframe =
         resistance,
         fibonacci,
         pivot,
-        trendline: null, // Extremely complex to mathematically define dynamically on 1D arrays without chart patterns, leaving as null so frontend can fallback to overrides.
+        trendline: calculateLinearRegression(close, 50),
         
         // Live Equivalents for Engines
         current_price: safeLast(close),

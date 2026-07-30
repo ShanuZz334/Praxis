@@ -161,7 +161,7 @@ export default function TechnicalGrid({
                         { id: CARD_REGISTRY.nh_nl.id,        node: <NhnlCard cardId={CARD_REGISTRY.nh_nl.id} data={data} manualOverride={manualOverrides?.nh_nl} lastUpdated={resolveTime(!!data?.nh_nl, CARD_REGISTRY.nh_nl.id)} /> },
                         { id: CARD_REGISTRY.trin.id,         node: <TrinCard cardId={CARD_REGISTRY.trin.id} data={data} manualOverride={manualOverrides?.trin} lastUpdated={resolveTime(!!data?.trin, CARD_REGISTRY.trin.id)} /> }
                     ] : []),
-
+                    { id: CARD_REGISTRY.beta_correlation.id, node: <BetaCorrelationCard cardId={CARD_REGISTRY.beta_correlation.id} data={data} manualOverride={manualOverrides?.beta_correlation} lastUpdated={resolveTime(!!data?.beta, CARD_REGISTRY.beta_correlation.id)} /> }
                 ];
                 const excludeIds = renderList.map(item => item.id);
                 const flatWithData = renderList.map(item => {

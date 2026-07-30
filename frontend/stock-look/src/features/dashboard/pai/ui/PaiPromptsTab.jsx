@@ -68,6 +68,12 @@ const PAGE_HEADERS = {
     ],
     Events: [
         { targetId: 'events_header',               displayName: 'Events Header' },
+        { targetId: 'events_macro',                displayName: 'Macro Events' },
+        { targetId: 'events_earnings',             displayName: 'Earnings Events' },
+        { targetId: 'events_policy',               displayName: 'Policy Events' },
+        { targetId: 'events_corporate',            displayName: 'Corporate Events' },
+        { targetId: 'events_geopolitical',         displayName: 'Geopolitical Events' },
+        { targetId: 'events_commodities',          displayName: 'Commodities Events' },
     ],
     QChat: [
         { targetId: 'qchat_global',        displayName: 'Foreign Markets Context' },
@@ -232,10 +238,10 @@ function PromptEditor({ targetId, displayName, page, isHeaderPrompt, applicabili
     const [goldenRules, setGoldenRules] = useState([]);
 
     useEffect(() => {
-        axiosInstance.get('/api/v1/ai-prompts/golden-rules')
+        axiosInstance.get(`/api/v1/ai-prompts/golden-rules?targetId=${targetId}`)
             .then(res => setGoldenRules(res.data))
             .catch(err => console.error('Failed to load golden rules', err));
-    }, []);
+    }, [targetId]);
 
     // ── Placeholder text ─────────────────────────────────────────────────────
     const placeholder = `e.g. You are Praxis, an elite Indian market analyst. Analyze {name} for {stockSymbol}. The current value is {value} with a score of {score}/100 and a {bias} bias. Provide a 2-sentence verdict focusing on near-term price action implications.`;

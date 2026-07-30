@@ -7,7 +7,7 @@ export const useTechnicalsData = (timeframe = "day", indicatorParams = null) => 
     const livePricesRef = useRef(livePrices);
     useEffect(() => { livePricesRef.current = livePrices; }, [livePrices]);
     const [liveData, setLiveData] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {

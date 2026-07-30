@@ -90,50 +90,47 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
 
         const fetchMasterData = async () => {
             try {
-                // 1. Fetch Fallback DB State (for Global, Events, or failsafes)
-                let fallbackData = {};
-                try {
-                    const dbRes = await axiosInstance.get(`/api/v1/snapshots/header/${selectedInstrument}`);
-                    if (dbRes.data?.status === 'success' && dbRes.data?.data) {
-                        fallbackData = dbRes.data.data;
-                        if (isMounted) setDbFallbackData(fallbackData);
-                    }
-                } catch (e) {
-                    console.error("Failed to fetch fallback header state", e);
+                let missingLiveData = [];
+                const currentLtp = livePrices?.[selectedInstrument]?.ltp || '';
+
+                // Create promises for parallel execution
+                const dbPromise = axiosInstance.get(`/api/v1/snapshots/header/${selectedInstrument}`);
+                const fundPromise = axiosInstance.get(API_PATHS.FUNDAMENTALS.GET(selectedInstrument));
+                const techPromise = axiosInstance.get(`/api/v1/upstox/technicals?instrument=${selectedInstrument}&timeframe=day&ltp=${currentLtp}`);
+                const optPromise = selectedExpiry ? axiosInstance.get(API_PATHS.OPTIONS.GET_CHAIN(selectedInstrument, selectedExpiry)) : Promise.resolve(null);
+
+                // Wait for all to complete simultaneously
+                const [dbRes, fundRes, techRes, optRes] = await Promise.allSettled([dbPromise, fundPromise, techPromise, optPromise]);
+
+                // 1. Fetch Fallback DB State
+                if (dbRes.status === 'fulfilled' && dbRes.value?.data?.status === 'success' && dbRes.value?.data?.data) {
+                    if (isMounted) setDbFallbackData(dbRes.value.data.data);
+                } else if (dbRes.status === 'rejected') {
+                    console.error("Failed to fetch fallback header state", dbRes.reason);
                 }
 
-                let missingLiveData = [];
-
                 // 2. Fetch Live Fundamentals
-                try {
-                    const fundRes = await axiosInstance.get(API_PATHS.FUNDAMENTALS.GET(selectedInstrument));
-                    if (fundRes.data?.success && fundRes.data?.data) {
-                        if (isMounted) setRawFundamentals(fundRes.data.data);
-                        if (fundRes.data?.fallback) missingLiveData.push('Fundamentals');
-                    }
-                } catch (e) {
-                    console.error("Live fundamentals failed, relying on DB", e);
+                if (fundRes.status === 'fulfilled' && fundRes.value?.data?.success && fundRes.value?.data?.data) {
+                    if (isMounted) setRawFundamentals(fundRes.value.data.data);
+                    if (fundRes.value.data.fallback) missingLiveData.push('Fundamentals');
+                } else {
+                    console.error("Live fundamentals failed, relying on DB", fundRes.reason || 'Missing data');
                     missingLiveData.push('Fundamentals');
                 }
 
                 // 3. Fetch Live Technicals
-                try {
-                    const currentLtp = livePrices?.[selectedInstrument]?.ltp || '';
-                    const techRes = await axiosInstance.get(`/api/v1/upstox/technicals?instrument=${selectedInstrument}&timeframe=day&ltp=${currentLtp}`);
-                    if (techRes.data?.success && techRes.data?.data) {
-                        if (isMounted) setRawTechnicals(techRes.data.data);
-                        if (techRes.data?.fallback) missingLiveData.push('Technicals');
-                    }
-                } catch (e) {
-                    console.error("Live technicals failed, relying on DB", e);
+                if (techRes.status === 'fulfilled' && techRes.value?.data?.success && techRes.value?.data?.data) {
+                    if (isMounted) setRawTechnicals(techRes.value.data.data);
+                    if (techRes.value.data.fallback) missingLiveData.push('Technicals');
+                } else {
+                    console.error("Live technicals failed, relying on DB", techRes.reason || 'Missing data');
                     missingLiveData.push('Technicals');
                 }
 
-                // 4. Fetch Live Options Chain (only if expiry is present)
+                // 4. Fetch Live Options Chain
                 if (selectedExpiry) {
-                    try {
-                        const optRes = await axiosInstance.get(API_PATHS.OPTIONS.GET_CHAIN(selectedInstrument, selectedExpiry));
-                        const chainArray = optRes.data?.data || optRes.data || [];
+                    if (optRes.status === 'fulfilled' && optRes.value?.data) {
+                        const chainArray = optRes.value.data?.data || optRes.value.data || [];
                         if (Array.isArray(chainArray) && chainArray.length > 0 && isMounted) {
                             const normalized = chainArray.map(c => ({
                                 strike: c.strike_price,
@@ -150,17 +147,17 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                                 }
                             }));
                             setChainData(normalized);
-                            if (optRes.data?.fallback) missingLiveData.push('Options');
+                            if (optRes.value.data?.fallback) missingLiveData.push('Options');
                         }
-                    } catch (e) {
-                        console.error("Live options failed, relying on DB", e);
+                    } else if (optRes.status === 'rejected') {
+                        console.error("Live options failed, relying on DB", optRes.reason);
                         missingLiveData.push('Options');
                     }
                 }
 
-                // Toast notification if fallback is used for any critical module
+                // Silently log if fallback is used for any critical module instead of spamming toasts every 10s
                 if (missingLiveData.length > 0 && isMounted) {
-                    toast(`Live data unavailable for: ${missingLiveData.join(', ')}. Using previous snapshot.`, { id: 'master-fallback-toast', icon: '⚠️' });
+                    console.warn(`Live data unavailable for: ${missingLiveData.join(', ')}. Using previous snapshot.`);
                 }
 
             } finally {
@@ -366,7 +363,10 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
 
         Object.entries(activeCounts).forEach(([engineName, counts]) => {
             if (counts) {
-                totalCredits += counts.totalCredits || 0;
+                // Prevent 'events' engine from blowing out R CREDITS, because its 'totalCredits' is actually the raw mathematical NLP Total Weight.
+                if (engineName !== 'events') {
+                    totalCredits += counts.totalCredits || 0;
+                }
                 totalBulls += counts.bulls || 0;
                 totalBears += counts.bears || 0;
                 totalNeutrals += counts.neutrals || 0;
@@ -470,8 +470,8 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                 const weight = sec.weight || 15; 
                 const strength = deviation * weight;
                 rankedSections.push({
-                    id: sec.id,
-                    label: sec.label || sec.shortLabel || formatTitle(sec.id),
+                    id: sec.id || sec.name,
+                    label: sec.label || sec.name || sec.shortLabel || formatTitle(sec.id),
                     value: sec.score,
                     strength,
                     engine: engine
@@ -495,10 +495,9 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
         
         // Use live scores from validScores if available, else DB fallback
         const globRaw = validScores.find(s => s.id === 'global')?.rawScore;
-        const evtRaw = validScores.find(s => s.id === 'events')?.rawScore;
         
         addMacroSection('GLOB', globRaw);
-        addMacroSection('EVT', evtRaw);
+        // Exclude Events from Top Tailwinds/Headwinds aggregation as per user request
 
         // 3. Sort by Absolute Macro Strength
         rankedSections.sort((a, b) => b.strength - a.strength);

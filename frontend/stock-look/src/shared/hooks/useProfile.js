@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file useProfile.js
  * @purpose Bridges the user's selected Trading Profile (intraday / swing / positional)
  *          to the dashboard pages and AI prompt preset system.
@@ -76,6 +76,12 @@ const HEADER_TARGET_IDS = [
     'options_header',
     'foreign_header',
     'events_header',
+    'events_macro',
+    'events_earnings',
+    'events_policy',
+    'events_corporate',
+    'events_geopolitical',
+    'events_commodities',
     'praxis_composite_header',
 ];
 

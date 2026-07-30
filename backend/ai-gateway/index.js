@@ -32,6 +32,15 @@ export const aiGateway = {
         
         request.tier = tier; 
 
+        let routePlan = await getRouteForTask(tier, taskType);
+        
+        // UI manual override for interactive chat
+        if (request.explicitProvider && request.explicitModel) {
+            routePlan = [{ provider: request.explicitProvider, model: request.explicitModel, isExplicit: true }, ...routePlan];
+        }
+
+        request.targetModel = routePlan.length > 0 ? routePlan[0].model : 'fallback';
+
         const exactHit = responseCache.get(request);
         if (exactHit) {
             costLogger.log(request, exactHit);
@@ -42,13 +51,6 @@ export const aiGateway = {
         if (semanticHit) {
             costLogger.log(request, semanticHit);
             return semanticHit;
-        }
-
-        let routePlan = await getRouteForTask(tier, taskType);
-        
-        // UI manual override for interactive chat
-        if (request.explicitProvider && request.explicitModel) {
-            routePlan = [{ provider: request.explicitProvider, model: request.explicitModel, isExplicit: true }, ...routePlan];
         }
 
         let messages = [];

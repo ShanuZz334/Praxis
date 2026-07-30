@@ -238,6 +238,28 @@ export const initLocalDb = () => {
             timestamp DATETIME NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_card_history ON card_score_history(instrument_key, page_name, card_name, timestamp);
+
+        -- 18. Market Events Intelligence
+        CREATE TABLE IF NOT EXISTS market_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            headline TEXT NOT NULL,
+            summary TEXT,
+            category TEXT,
+            sub_category TEXT,
+            source TEXT,
+            published_time DATETIME,
+            sentiment TEXT,
+            importance TEXT,
+            severity TEXT,
+            override_mode TEXT,
+            confidence INTEGER,
+            affected_assets TEXT, -- JSON array string
+            event_score REAL,
+            horizon TEXT,
+            reasoning TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_market_events_time ON market_events(created_at);
     `);
 
     try {
@@ -247,6 +269,16 @@ export const initLocalDb = () => {
     try {
         db.exec(`ALTER TABLE header_data ADD COLUMN tree_payload_json TEXT;`);
     } catch (e) {}
+
+    // Market Events: new columns for institutional multi-prompt system
+    try {
+        db.exec(`ALTER TABLE market_events ADD COLUMN instrument_type TEXT;`);
+    } catch (e) {}
+
+    try {
+        db.exec(`ALTER TABLE market_events ADD COLUMN key_data_points TEXT;`); // JSON array string
+    } catch (e) {}
+
 
     console.log("✅ SQLite Tables Initialized");
 };

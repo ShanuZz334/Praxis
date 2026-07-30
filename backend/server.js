@@ -36,6 +36,7 @@ import aiSettingsRoutes from "./routes/aiSettingsRoutes.js";
 import aiPromptsRoutes from "./routes/aiPromptsRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
 import dataRoutes from "./routes/dataRoutes.js";
+import eventsRoutes from "./routes/eventsRoutes.js";
 
 // =============================
 // Express App Setup
@@ -95,6 +96,7 @@ app.use("/api/v1/ai-settings", aiSettingsRoutes);
 app.use("/api/v1/ai-prompts", aiPromptsRoutes);
 app.use("/api/v1/health", healthRoutes);
 app.use("/api/v1/data", dataRoutes);
+app.use("/api/v1/events", eventsRoutes);
 
 app.use("/api/flow", flowRoutes);
 
@@ -110,6 +112,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import { connectUpstoxWebsocket } from "./services/upstoxWebsocket.js";
 import { startMarketDataPolling, cachedFlowData, cachedSmartlists, cachedSectors, cachedNews } from "./services/upstoxMarketData.js";
+import { initNewsAutoProcessor } from "./services/newsAutoProcessor.js";
 import { initSocketBroadcaster } from "./services/socketBroadcast.js";
 import { initInstrumentCron } from "./services/upstoxInstrument.js";
 import { initIntelligenceCrons } from "./services/intelligenceCron.js";
@@ -216,5 +219,7 @@ httpServer.listen(PORT, () => {
     connectUpstoxWebsocket().catch(e => console.error(e));
     // Start periodic polling for FII/DII and Smartlists to broadcast over socket
     startMarketDataPolling();
+    // Initialize the auto-news-to-events pipeline processor
+    initNewsAutoProcessor();
 });
 
