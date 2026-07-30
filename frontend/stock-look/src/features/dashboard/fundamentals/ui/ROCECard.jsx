@@ -4,9 +4,10 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 import { scoreROCE, generateAiInsightROCECard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function ROCECard({ cardId, data, manualOverride, lastUpdated }) {
+export default function ROCECard({ cardId, data, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     // 1. Core State & Extraction
     const roceItem = (Array.isArray(data?.ratios) ? data.ratios : []).find(item => 
         item.name?.toLowerCase().includes('return on capital employed') || 
@@ -38,7 +39,7 @@ export default function ROCECard({ cardId, data, manualOverride, lastUpdated }) 
     const configData = getIndicatorConfig(CARD_REGISTRY.roce.id);
 
     // 3. Praxis Engine
-    const { score, bias, trendDesc } = scoreROCE(currentROCE, sectorROCE);
+    const { score, bias, trendDesc } = applyModeAdjustment(scoreROCE(currentROCE, sectorROCE), 'roce', tradingMode);
     
     const cCard = computeCardConfidence({
         hasLiveData: !isManual,

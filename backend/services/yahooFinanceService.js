@@ -105,7 +105,7 @@ export const yahooFinanceService = {
         try {
             let cleanSymbol = symbol.split('-')[0];
             if (cleanSymbol === 'HDFC') cleanSymbol = 'HDFCBANK';
-            const formattedSymbol = cleanSymbol.endsWith('.NS') ? cleanSymbol : `${cleanSymbol}.NS`;
+            const formattedSymbol = cleanSymbol.endsWith('.NS') || cleanSymbol.endsWith('.BO') ? cleanSymbol : `${cleanSymbol}.NS`;
             const result = await yahooFinance.quoteSummary(formattedSymbol, { modules: ['financialData'] });
             
             if (result?.financialData) {

@@ -1,6 +1,6 @@
-import { FUNDAMENTALS_RELIABILITY, TOTAL_FUNDAMENTALS_CREDITS as _TOTAL_CREDITS } from '@/config/reliability';
-import { getCreditFromReliability } from '@/shared/global/logic/signals';
-import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { FUNDAMENTALS_RELIABILITY, TOTAL_FUNDAMENTALS_CREDITS as _TOTAL_CREDITS } from '../../../../config/reliability';
+import { getCreditFromReliability } from '../../../../shared/global/logic/signals';
+import { CARD_REGISTRY } from '../../../../shared/config/cardRegistry';
 
 // =============================
 // Card Definitions

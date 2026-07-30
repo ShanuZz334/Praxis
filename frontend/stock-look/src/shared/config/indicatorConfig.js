@@ -683,12 +683,53 @@ export const INDICATOR_CONFIG = {
         source: "Manual",
         aiModel: "Qwen3 8B"
     },
-    ev_ebitda: { id: CARD_REGISTRY.ev_ebitda?.id || "ev_ebitda", title: "EV/EBITDA", creditScore: 7, category: "Valuation" },
-    relative_valuation: { id: CARD_REGISTRY.relative_valuation?.id || "relative_valuation", title: "Relative Valuation", creditScore: 6, category: "Valuation" },
-    roa: { id: CARD_REGISTRY.roa?.id || "roa", title: "ROA", creditScore: 7, category: "Corporate" },
-    promoter_holding: { id: CARD_REGISTRY.promoter_holding?.id || "promoter_holding", title: "Promoter Holding", creditScore: 8, category: "Ownership" },
-    smart_money_flow: { id: CARD_REGISTRY.smart_money_flow?.id || "smart_money_flow", title: "Smart Money Flow", creditScore: 9, category: "Ownership" },
-    earnings_quality: { id: CARD_REGISTRY.earnings_quality?.id || "earnings_quality", title: "Earnings Quality", creditScore: 8, category: "Ownership" }
+    // ─── Company: Valuation (stubs completed) ─────────────────────────────────
+    ev_ebitda:          { id: CARD_REGISTRY.ev_ebitda?.id          || 'ev_ebitda',          creditScore: 7, impactWeight: '5.0%',  source: 'Manual',  aiModel: 'Qwen3 8B' },
+    relative_valuation: { id: CARD_REGISTRY.relative_valuation?.id || 'relative_valuation', creditScore: 6, impactWeight: '3.5%',  source: 'Manual',  aiModel: 'Qwen3 8B' },
+    analyst_consensus:  { id: CARD_REGISTRY.analyst_consensus?.id  || 'analyst_consensus',  creditScore: 7, impactWeight: '4.5%',  source: 'Upstox',  aiModel: 'Qwen3 8B' },
+
+    // ─── Company: Corporate Profitability ─────────────────────────────────────
+    roa:                { id: CARD_REGISTRY.roa?.id                || 'roa',                creditScore: 7, impactWeight: '3.5%',  source: 'Manual',  aiModel: 'Qwen3 8B' },
+    cash_conversion:    { id: CARD_REGISTRY.cash_conversion?.id    || 'cash_conversion',    creditScore: 7, impactWeight: '4.0%',  source: 'Manual',  aiModel: 'Qwen3 8B' },
+
+    // ─── Company: Ownership & Flow ────────────────────────────────────────────
+    promoter_holding:   { id: CARD_REGISTRY.promoter_holding?.id   || 'promoter_holding',   creditScore: 8, impactWeight: '5.0%',  source: 'Upstox',  aiModel: 'Qwen3 8B' },
+    smart_money_flow:   { id: CARD_REGISTRY.smart_money_flow?.id   || 'smart_money_flow',   creditScore: 9, impactWeight: '5.0%',  source: 'Upstox',  aiModel: 'Qwen3 8B' },
+    earnings_quality:   { id: CARD_REGISTRY.earnings_quality?.id   || 'earnings_quality',   creditScore: 8, impactWeight: '3.5%',  source: 'Upstox',  aiModel: 'Qwen3 8B' },
+    corporate_actions:  { id: CARD_REGISTRY.corporate_actions?.id  || 'corporate_actions',  creditScore: 6, impactWeight: '2.5%',  source: 'Upstox',  aiModel: 'Qwen3 8B' },
+
+    // ─── Index: Valuation ─────────────────────────────────────────────────────
+    nifty_pe:           { id: CARD_REGISTRY.nifty_pe?.id           || 'nifty_pe',           creditScore: 9, impactWeight: '8.0%',  source: 'NSE',     aiModel: 'Qwen3 8B' },
+    nifty_pb:           { id: CARD_REGISTRY.nifty_pb?.id           || 'nifty_pb',           creditScore: 8, impactWeight: '6.0%',  source: 'NSE',     aiModel: 'Qwen3 8B' },
+
+    // ─── Index: Earnings ──────────────────────────────────────────────────────
+    eps_yoy:            { id: CARD_REGISTRY.eps_yoy?.id            || 'eps_yoy',            creditScore: 8, impactWeight: '6.0%',  source: 'Manual',  aiModel: 'Qwen3 8B' },
+    forward_eps:        { id: CARD_REGISTRY.forward_eps?.id        || 'forward_eps',        creditScore: 7, impactWeight: '5.0%',  source: 'Upstox',  aiModel: 'Qwen3 8B' },
+    profit_margin:      { id: CARD_REGISTRY.profit_margin?.id      || 'profit_margin',      creditScore: 7, impactWeight: '4.0%',  source: 'Upstox',  aiModel: 'Qwen3 8B' },
+    nifty_dividend_yield: { id: CARD_REGISTRY.nifty_dividend_yield?.id || 'nifty_dividend_yield', creditScore: 6, impactWeight: '3.0%', source: 'NSE', aiModel: 'Qwen3 8B' },
+    nifty_eps_growth:   { id: CARD_REGISTRY.nifty_eps_growth?.id   || 'nifty_eps_growth',   creditScore: 7, impactWeight: '4.5%',  source: 'NSE',     aiModel: 'Qwen3 8B' },
+    nifty_forward_eps:  { id: CARD_REGISTRY.nifty_forward_eps?.id  || 'nifty_forward_eps',  creditScore: 7, impactWeight: '4.5%',  source: 'NSE',     aiModel: 'Qwen3 8B' },
+
+    // ─── Index: Macro ─────────────────────────────────────────────────────────
+    gdp:                { id: CARD_REGISTRY.gdp?.id                || 'gdp',                creditScore: 7, impactWeight: '5.5%',  source: 'MOSPI',   aiModel: 'Qwen3 8B' },
+    cpi:                { id: CARD_REGISTRY.cpi?.id                || 'cpi',                creditScore: 8, impactWeight: '6.0%',  source: 'MOSPI',   aiModel: 'Qwen3 8B' },
+    repo:               { id: CARD_REGISTRY.repo?.id               || 'repo',               creditScore: 8, impactWeight: '5.0%',  source: 'RBI',     aiModel: 'Qwen3 8B' },
+    fiscal_deficit:     { id: CARD_REGISTRY.fiscal_deficit?.id     || 'fiscal_deficit',     creditScore: 7, impactWeight: '4.0%',  source: 'GOI',     aiModel: 'Qwen3 8B' },
+    policy_tailwinds:   { id: CARD_REGISTRY.policy_tailwinds?.id   || 'policy_tailwinds',   creditScore: 6, impactWeight: '3.5%',  source: 'Manual',  aiModel: 'Qwen3 8B' },
+
+    // ─── Index: Liquidity & Flow ──────────────────────────────────────────────
+    fii:                { id: CARD_REGISTRY.fii?.id                || 'fii',                creditScore: 9, impactWeight: '6.5%',  source: 'NSE',     aiModel: 'Qwen3 8B' },
+    dii:                { id: CARD_REGISTRY.dii?.id                || 'dii',                creditScore: 8, impactWeight: '5.5%',  source: 'NSE',     aiModel: 'Qwen3 8B' },
+    fii_trend:          { id: CARD_REGISTRY.fii_trend?.id          || 'fii_trend',          creditScore: 8, impactWeight: '5.5%',  source: 'NSE',     aiModel: 'Qwen3 8B' },
+    system_liquidity:   { id: CARD_REGISTRY.system_liquidity?.id   || 'system_liquidity',   creditScore: 7, impactWeight: '4.5%',  source: 'RBI',     aiModel: 'Qwen3 8B' },
+    mf_flows:           { id: CARD_REGISTRY.mf_flows?.id           || 'mf_flows',           creditScore: 7, impactWeight: '4.0%',  source: 'AMFI',    aiModel: 'Qwen3 8B' },
+
+    // ─── Index: Corporate & Global ────────────────────────────────────────────
+    credit_growth:      { id: CARD_REGISTRY.credit_growth?.id      || 'credit_growth',      creditScore: 7, impactWeight: '4.0%',  source: 'RBI',     aiModel: 'Qwen3 8B' },
+    corp_debt:          { id: CARD_REGISTRY.corp_debt?.id          || 'corp_debt',          creditScore: 6, impactWeight: '3.0%',  source: 'Manual',  aiModel: 'Qwen3 8B' },
+    crude:              { id: CARD_REGISTRY.crude?.id              || 'crude',              creditScore: 8, impactWeight: '5.5%',  source: 'ICE',     aiModel: 'Qwen3 8B' },
+    global_liq:         { id: CARD_REGISTRY.global_liq?.id         || 'global_liq',         creditScore: 7, impactWeight: '4.0%',  source: 'Manual',  aiModel: 'Qwen3 8B' },
+    sector_dashboard:   { id: CARD_REGISTRY.sector_dashboard?.id   || 'sector_dashboard',   creditScore: 7, impactWeight: '5.0%',  source: 'NSE',     aiModel: 'Qwen3 8B' },
 };
 
 /**

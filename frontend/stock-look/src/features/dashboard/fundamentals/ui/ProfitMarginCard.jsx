@@ -5,7 +5,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
-import { scoreAggregateProfitMargin, generateAiInsightAggregateProfitMargin } from '@/features/dashboard/fundamentals/engine/scoringEngine';
+import { scoreNetMargin, generateAiInsightNetMarginCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 export default function ProfitMarginCard({ cardId, data, manualOverride, lastUpdated }) {
     // 1. Core State & Extraction
@@ -35,8 +35,8 @@ export default function ProfitMarginCard({ cardId, data, manualOverride, lastUpd
 
     // 3. Praxis Engine
     // Note: Most macro indicators just take a single value for scoring
-    const scoreObj = scoreAggregateProfitMargin(currentValue);
-    const { score, bias, trendDesc } = scoreObj;
+    const scoreObj = scoreNetMargin(currentValue, null);
+    const { score, bias } = scoreObj;
     
     const cCard = computeCardConfidence({
         hasLiveData: !isManual,
@@ -45,7 +45,7 @@ export default function ProfitMarginCard({ cardId, data, manualOverride, lastUpd
         lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--')
     }, 'fundamentals');
     
-    const aiInsightText = generateAiInsightAggregateProfitMargin(scoreObj, currentValue);
+    const aiInsightText = generateAiInsightNetMarginCard(currentValue, null);
 
     return (
         <IndicatorCard

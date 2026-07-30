@@ -4,8 +4,9 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 import { generateAiInsightPBRatioCard, scorePBRatio } from '@/features/dashboard/fundamentals/engine/scoringEngine';
-export default function PBRatioCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function PBRatioCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     // 1. Live Data Extraction (Upstox)
     const upstoxPBObj = (Array.isArray(data?.ratios) ? data.ratios : []).find(r => r.name === "P/B" || r.name === "PB" || r.name?.toLowerCase().includes("pb ratio"));
     const parsedUpstoxPB = upstoxPBObj?.company_value ? cleanNum(upstoxPBObj.company_value) : null;
@@ -18,7 +19,7 @@ export default function PBRatioCard({ cardId, data = null, manualOverride, lastU
     const sectorPB = upstoxPBObj?.sector_value ? cleanNum(upstoxPBObj.sector_value) : null;
 
     // 3. Calculation Engine
-    const { score, bias } = scorePBRatio(currentPB, historicalPB, sectorPB);
+    const { score, bias } = applyModeAdjustment(scorePBRatio(currentPB, historicalPB, sectorPB), 'pb_ratio', tradingMode);
     const cCard = computeCardConfidence({
         hasLiveData: isLiveData,
         isManual: !!manualOverride && !isLiveData,

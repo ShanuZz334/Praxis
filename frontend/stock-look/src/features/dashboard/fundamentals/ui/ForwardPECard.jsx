@@ -4,9 +4,10 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 import { generateAiInsightForwardPECard, scoreForwardPE } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
-export default function ForwardPECard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function ForwardPECard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.forward_pe.id);
 
     // ── Step 1: Resolve Trailing PE for comparison (Live) ─────────────────────
@@ -71,7 +72,7 @@ export default function ForwardPECard({ cardId, data = null, manualOverride, las
     // Removed Projected EPS to comply with Zero Clutter Rule
 
     // ── Step 4: Run Engine ────────────────────────────────────────────────────
-    const { score, bias } = scoreForwardPE(currentFwdPE, currentPE);
+    const { score, bias } = applyModeAdjustment(scoreForwardPE(currentFwdPE, currentPE), 'forward_pe', tradingMode);
     const cCard = computeCardConfidence({
         hasLiveData: isLiveData,
         isManual: !!manualOverride && !isLiveData,

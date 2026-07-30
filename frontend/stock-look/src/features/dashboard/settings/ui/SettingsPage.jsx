@@ -62,6 +62,7 @@ import { startRegistration } from "@simplewebauthn/browser";
 import Loader from "../../../../shared/components/ui/Loader";
 
 import { useTheme } from "../../../../shared/context/ThemeContext";
+import { useProfile } from "@/shared/hooks/useProfile";
 import GhostLogo from "../../../../shared/components/ui/GhostLogo";
 import UiverseDropdown from "../../../../shared/components/ui/UiverseDropdown";
 import { UniversalToggle } from "@/components/ui/universal-toggle";
@@ -104,10 +105,14 @@ const SettingsPage = () => {
         setUseOrbNav
     } = useTheme();
 
+    // Profile hook — wraps tradingMode with preset-switching side effect
+    const { setProfile } = useProfile();
+
     // UI State
     const [activeTab, setActiveTab] = useState("account");
     const [loading, setLoading] = useState(true);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [saveStatus, setSaveStatus] = useState(null); // null | "saving"
 
     // Calculator Keybindings State
     const defaultCalcBindings = {
@@ -173,7 +178,7 @@ const SettingsPage = () => {
         systemMessages: true,
         deliveryApp: true,
         deliveryEmail: false,
-        tradingMode: "balanced",
+        tradingMode: "swing",
         theme: "dark",
         soundAlerts: true,
     });
@@ -252,18 +257,30 @@ const SettingsPage = () => {
                     systemMessages: userData.notificationSettings?.systemMessages ?? true,
                     deliveryApp: userData.notificationSettings?.deliveryApp ?? true,
                     deliveryEmail: userData.notificationSettings?.deliveryEmail ?? false,
-                    tradingMode: userData.preferences?.tradingMode || "balanced",
+                    tradingMode: userData.preferences?.tradingMode || "swing",
                     theme: userData.preferences?.theme || "dark",
                     soundAlerts: userData.preferences?.soundAlerts ?? true,
                 };
+
+                // Migrate old v1 mode names from backend to new v2 profile keys
+                const LEGACY_MAP = { conservative: 'intraday', balanced: 'swing', aggressive: 'positional' };
+                const rawMode = userData.preferences?.tradingMode || 'swing';
+                const migratedMode = LEGACY_MAP[rawMode] || rawMode;
+                // Only override localStorage if it's the default 'swing' — respect user's explicit local choice
+                const localMode = localStorage.getItem('stocky-trading-mode');
+                const validProfiles = ['intraday', 'swing', 'positional'];
+                const finalMode = validProfiles.includes(localMode) ? localMode : migratedMode;
+
+                // Patch the loaded settings to use the resolved profile key
+                loadedSettings.tradingMode = finalMode;
 
                 setFormData(loadedFormData);
                 setInitialFormData(loadedFormData);
                 setSettings(loadedSettings);
                 setInitialSettings(loadedSettings);
 
-                // Sync with ThemeContext
-                setTradingMode(loadedSettings.tradingMode);
+                // Sync ThemeContext with resolved profile
+                setTradingMode(finalMode);
 
                 setIsEmailVerified(userData.isEmailVerified || user?.isEmailVerified || false);
             } catch {
@@ -415,20 +432,11 @@ const SettingsPage = () => {
         }
     };
 
-    // -- Trading Mode Logic --
+    // -- Trading Profile Logic --
     const handleTradingModeSelect = (mode) => {
-        if (mode === "aggressive") {
-            setShowAggressiveWarning(true);
-        } else {
-            // UI update only - disconnected from backend
-            setTradingMode(mode);
-        }
-    };
-
-    const confirmAggressiveMode = () => {
-        // UI update only - disconnected from backend
-        setTradingMode("aggressive");
-        setShowAggressiveWarning(false);
+        // setProfile: updates ThemeContext + fires prompt preset switch on all headers
+        setProfile(mode);
+        setSettings(prev => ({ ...prev, tradingMode: mode }));
     };
 
     const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -629,7 +637,8 @@ const SettingsPage = () => {
                 }),
                 updatePreferences({
                     theme: settings.theme,
-                    soundAlerts: settings.soundAlerts
+                    soundAlerts: settings.soundAlerts,
+                    tradingMode: tradingMode,  // persist the active profile to backend
                 })
             ]);
 
@@ -649,7 +658,8 @@ const SettingsPage = () => {
                     },
                     preferences: {
                         theme: settings.theme,
-                        soundAlerts: settings.soundAlerts
+                        soundAlerts: settings.soundAlerts,
+                        tradingMode: tradingMode,
                     }
                 };
                 updateUser(updatedUser, token);
@@ -1067,27 +1077,20 @@ const SettingsPage = () => {
                                     <p className="text-sm text-text-secondary">Customize your trading experience</p>
                                 </div>
 
-                                {/* Trading Mode */}
+                                {/* Trading Profile */}
                                 <div>
-                                    <h3 className="mb-4 text-sm font-medium text-text-secondary">Trading Mode</h3>
+                                    <h3 className="mb-1 text-sm font-medium text-text-secondary">Trading Profile</h3>
+                                    <p className="text-[11px] text-text-tertiary mb-4">Adjusts indicator weights and AI analysis style across all dashboard pages</p>
                                     <div className="grid gap-3 md:gap-4 md:grid-cols-3">
                                         {[
-                                            { id: "conservative", label: "Conservative", icon: FiShield, desc: "Low-risk defaults" },
-                                            { id: "balanced", label: "Balanced", icon: FiTrendingUp, desc: "Standard risk-reward" },
-                                            { id: "aggressive", label: "Aggressive", icon: FiZap, desc: "High-risk, max leverage" }
+                                            { id: "positional", label: "Positional", icon: FiShield,    desc: "Fundamentals & macro focus",   activeClass: "bg-emerald-600 text-white border-transparent shadow-lg shadow-emerald-500/20" },
+                                            { id: "swing",      label: "Swing",      icon: FiTrendingUp, desc: "Balanced technicals & fundamentals", activeClass: "bg-blue-600 text-white border-transparent shadow-lg shadow-blue-500/20" },
+                                            { id: "intraday",   label: "Intraday",   icon: FiZap,       desc: "Momentum & speed signals",     activeClass: "bg-orange-600 text-white border-transparent shadow-lg shadow-orange-500/20" },
                                         ].map(mode => {
-                                            const isActive = settings.tradingMode === mode.id;
-                                            let activeClass = "";
-                                            if (isActive) {
-                                                switch (mode.id) {
-                                                    case "conservative": activeClass = "bg-emerald-600 text-white border-transparent shadow-lg shadow-emerald-500/20"; break;
-                                                    case "balanced": activeClass = "bg-blue-600 text-white border-transparent shadow-lg shadow-blue-500/20"; break;
-                                                    case "aggressive": activeClass = "bg-red-600 text-white border-transparent shadow-lg shadow-red-500/20"; break;
-                                                    default: activeClass = "bg-gray-800 text-white";
-                                                }
-                                            } else {
-                                                activeClass = "bg-transparent hover:bg-transparent hover:shadow-lg hover:-translate-y-0.5 text-text-secondary";
-                                            }
+                                            const isActive = tradingMode === mode.id;
+                                            const activeClass = isActive
+                                                ? mode.activeClass
+                                                : "bg-transparent hover:bg-transparent hover:shadow-lg hover:-translate-y-0.5 text-text-secondary";
 
                                             return (
                                                 <button
@@ -1101,7 +1104,7 @@ const SettingsPage = () => {
                                                         <p className={`mt-0.5 md:mt-1.5 text-[10px] md:text-xs leading-relaxed ${isActive ? "text-white/80" : "text-text-tertiary"}`}>{mode.desc}</p>
                                                     </div>
                                                 </button>
-                                            )
+                                            );
                                         })}
                                     </div>
                                 </div>
@@ -1145,135 +1148,6 @@ const SettingsPage = () => {
                                         </div>
                                     </div>
 
-                                    {/* PAI Mascot Color Picker */}
-                                    <div className="space-y-3 mt-3">
-                                        <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <div>
-                                                <p className="font-medium text-text-primary">Mascot Color</p>
-                                                <p className="text-xs text-text-secondary mt-0.5">Customize the color of your floating PAI ghost</p>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-border-subtle shadow-sm flex-shrink-0 group">
-                                                    <div 
-                                                        className="absolute inset-0 pointer-events-none transition-colors" 
-                                                        style={{ backgroundColor: paiMascotColor || '#FF0000' }} 
-                                                    />
-                                                    <input 
-                                                        type="color" 
-                                                        value={paiMascotColor || '#FF0000'}
-                                                        onChange={(e) => setPaiMascotColor(e.target.value)}
-                                                        className="absolute inset-[-10px] w-[60px] h-[60px] opacity-0 cursor-pointer"
-                                                        title="Choose Mascot Color"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* PAI Mascot Accessory Picker */}
-                                    <div className="space-y-3 mt-3">
-                                        <div className="flex flex-col gap-3 rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <div>
-                                                <p className="font-medium text-text-primary">Mascot Accessory</p>
-                                                <p className="text-xs text-text-secondary mt-0.5">Choose a cute accessory for your PAI ghost (Scroll for more)</p>
-                                            </div>
-                                            <div className="flex items-center gap-3 overflow-x-auto pb-2 snap-x hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                                                {PAI_ACCESSORIES.map(acc => (
-                                                    <div 
-                                                        key={acc.id}
-                                                        onClick={() => setPaiAccessory(acc.id)}
-                                                        className={`relative flex flex-col items-center justify-center flex-shrink-0 w-28 h-32 rounded-xl cursor-pointer border-2 transition-all snap-start ${
-                                                            paiAccessory === acc.id 
-                                                                ? 'border-blue-500 bg-blue-500/10' 
-                                                                : 'border-border-subtle bg-background-surface hover:border-border-default hover:bg-background-elevated'
-                                                        }`}
-                                                    >
-                                                        <div className="h-16 flex items-center justify-center scale-[0.35] pointer-events-none">
-                                                            <GhostLogo status="idle" accessory={acc.id} />
-                                                        </div>
-                                                        <span className="text-xs font-medium text-text-primary mt-4">{acc.label}</span>
-                                                        {paiAccessory === acc.id && (
-                                                            <div className="absolute top-2 right-2 text-blue-500">
-                                                                <FiCheck size={14} />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* PAI Voice Visualizer Toggle */}
-                                    <div className="space-y-3 mt-3">
-                                        <div className="flex flex-col gap-4 rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <div>
-                                                <p className="font-medium text-text-primary">PAI Voice Visualizer</p>
-                                                <p className="text-xs text-text-secondary mt-0.5">Select your preferred audio visualization style</p>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                {/* 8-Bit Pixel Art Demo Card */}
-                                                <button 
-                                                    onClick={() => setPaiAudioStyle('pixel')}
-                                                    className={`relative overflow-hidden rounded-xl border p-4 flex flex-col items-center justify-center gap-3 transition-all duration-300 ${paiAudioStyle === 'pixel' ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'border-border-default bg-background-surface hover:border-border-hover'}`}
-                                                >
-                                                    <div className="h-12 w-full flex items-center justify-center gap-1">
-                                                        {[3, 6, 4, 8, 5, 7, 4, 2].map((h, i) => (
-                                                            <div key={i} className={`w-3 bg-blue-400 animate-pulse`} style={{ height: `${h * 4}px`, animationDelay: `${i * 0.15}s`, borderRadius: '0px' }} />
-                                                        ))}
-                                                    </div>
-                                                    <div className="text-center mt-2">
-                                                        <p className={`text-sm font-semibold ${paiAudioStyle === 'pixel' ? 'text-blue-400' : 'text-text-primary'}`}>8-Bit Pixel Art</p>
-                                                        <p className="text-[10px] text-text-tertiary mt-1">Retro blocky style</p>
-                                                    </div>
-                                                    {paiAudioStyle === 'pixel' && (
-                                                        <div className="absolute top-2 right-2 text-blue-500">
-                                                            <FiCheck size={14} />
-                                                        </div>
-                                                    )}
-                                                </button>
-                                                
-                                                {/* Smooth Wave Demo Card */}
-                                                <button 
-                                                    onClick={() => setPaiAudioStyle('bar')}
-                                                    className={`relative overflow-hidden rounded-xl border p-4 flex flex-col items-center justify-center gap-3 transition-all duration-300 ${paiAudioStyle === 'bar' ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'border-border-default bg-background-surface hover:border-border-hover'}`}
-                                                >
-                                                    <div className="h-12 w-full flex items-center justify-center gap-1.5">
-                                                        {[4, 8, 5, 10, 6, 9, 5, 3].map((h, i) => (
-                                                            <div key={i} className={`w-2.5 bg-blue-400 rounded-full animate-pulse`} style={{ height: `${h * 4}px`, animationDelay: `${i * 0.1}s` }} />
-                                                        ))}
-                                                    </div>
-                                                    <div className="text-center mt-2">
-                                                        <p className={`text-sm font-semibold ${paiAudioStyle === 'bar' ? 'text-blue-400' : 'text-text-primary'}`}>Smooth Wave</p>
-                                                        <p className="text-[10px] text-text-tertiary mt-1">Modern rounded bars</p>
-                                                    </div>
-                                                    {paiAudioStyle === 'bar' && (
-                                                        <div className="absolute top-2 right-2 text-blue-500">
-                                                            <FiCheck size={14} />
-                                                        </div>
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Legacy PAI Context Toggle */}
-                                    <div className="space-y-3 mt-3">
-                                        <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <div>
-                                                <p className="font-medium text-text-primary">Legacy NLP Mention Method (PAI Voice)</p>
-                                                <p className="text-xs text-text-secondary mt-0.5">Use explicit @mentions (regex matching) instead of the Auto-Context engine</p>
-                                            </div>
-                                            <UniversalToggle 
-                                                checked={legacyVoiceContext} 
-                                                onChange={() => {
-                                                    const newValue = !legacyVoiceContext;
-                                                    setLegacyVoiceContext(newValue);
-                                                    localStorage.setItem('paiLegacyVoiceContext', newValue ? 'true' : 'false');
-                                                    toast.success(newValue ? 'Legacy Mention Method Enabled' : 'Auto-Context Engine Enabled');
-                                                }} 
-                                            />
-                                        </div>
-                                    </div>
 
                                     {/* Gradient Border Toggle */}
                                     {theme === 'dark' && (
@@ -1351,6 +1225,134 @@ const SettingsPage = () => {
                         )}
                     </div>
 
+                    {/* --- PAI PERSONALIZATION --- */}
+                    <div className="pt-8 animate-in fade-in duration-500">
+                        <h3 className="mb-4 text-sm font-medium text-text-secondary">PAI Personalization</h3>
+                        
+                        {/* PAI Mascot Color Picker */}
+                        <div className="flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4">
+                            <div>
+                                <p className="font-medium text-text-primary">Mascot Color</p>
+                                <p className="text-xs text-text-secondary mt-0.5">Customize the color of your floating PAI ghost</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-border-subtle shadow-sm flex-shrink-0 group">
+                                    <div 
+                                        className="absolute inset-0 pointer-events-none transition-colors" 
+                                        style={{ backgroundColor: paiMascotColor || '#FF0000' }} 
+                                    />
+                                    <input 
+                                        type="color" 
+                                        value={paiMascotColor || '#FF0000'}
+                                        onChange={(e) => setPaiMascotColor(e.target.value)}
+                                        className="absolute inset-[-10px] w-[60px] h-[60px] opacity-0 cursor-pointer"
+                                        title="Choose Mascot Color"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* PAI Mascot Accessory Picker */}
+                        <div className="mt-3 flex flex-col gap-3 rounded-lg border border-border-default bg-transparent p-4">
+                            <div>
+                                <p className="font-medium text-text-primary">Mascot Accessory</p>
+                                <p className="text-xs text-text-secondary mt-0.5">Choose a cute accessory for your PAI ghost (Scroll for more)</p>
+                            </div>
+                            <div className="flex items-center gap-3 overflow-x-auto pb-2 snap-x hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                {PAI_ACCESSORIES.map(acc => (
+                                    <div 
+                                        key={acc.id}
+                                        onClick={() => setPaiAccessory(acc.id)}
+                                        className={`relative flex flex-col items-center justify-center flex-shrink-0 w-28 h-32 rounded-xl cursor-pointer border-2 transition-all snap-start ${
+                                            paiAccessory === acc.id 
+                                                ? 'border-blue-500 bg-blue-500/10' 
+                                                : 'border-border-subtle bg-background-surface hover:border-border-default hover:bg-background-elevated'
+                                        }`}
+                                    >
+                                        <div className="h-16 flex items-center justify-center scale-[0.35] pointer-events-none">
+                                            <GhostLogo status="idle" accessory={acc.id} />
+                                        </div>
+                                        <span className="text-xs font-medium text-text-primary mt-4">{acc.label}</span>
+                                        {paiAccessory === acc.id && (
+                                            <div className="absolute top-2 right-2 text-blue-500">
+                                                <FiCheck size={14} />
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* PAI Voice Visualizer Toggle */}
+                        <div className="mt-3 flex flex-col gap-4 rounded-lg border border-border-default bg-transparent p-4">
+                            <div>
+                                <p className="font-medium text-text-primary">PAI Voice Visualizer</p>
+                                <p className="text-xs text-text-secondary mt-0.5">Select your preferred audio visualization style</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* 8-Bit Pixel Art Demo Card */}
+                                <button 
+                                    onClick={() => setPaiAudioStyle('pixel')}
+                                    className={`relative overflow-hidden rounded-xl border p-4 flex flex-col items-center justify-center gap-3 transition-all duration-300 ${paiAudioStyle === 'pixel' ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'border-border-default bg-background-surface hover:border-border-hover'}`}
+                                >
+                                    <div className="h-12 w-full flex items-center justify-center gap-1">
+                                        {[3, 6, 4, 8, 5, 7, 4, 2].map((h, i) => (
+                                            <div key={i} className={`w-3 bg-blue-400 animate-pulse`} style={{ height: `${h * 4}px`, animationDelay: `${i * 0.15}s`, borderRadius: '0px' }} />
+                                        ))}
+                                    </div>
+                                    <div className="text-center mt-2">
+                                        <p className={`text-sm font-semibold ${paiAudioStyle === 'pixel' ? 'text-blue-400' : 'text-text-primary'}`}>8-Bit Pixel Art</p>
+                                        <p className="text-[10px] text-text-tertiary mt-1">Retro blocky style</p>
+                                    </div>
+                                    {paiAudioStyle === 'pixel' && (
+                                        <div className="absolute top-2 right-2 text-blue-500">
+                                            <FiCheck size={14} />
+                                        </div>
+                                    )}
+                                </button>
+                                
+                                {/* Smooth Wave Demo Card */}
+                                <button 
+                                    onClick={() => setPaiAudioStyle('bar')}
+                                    className={`relative overflow-hidden rounded-xl border p-4 flex flex-col items-center justify-center gap-3 transition-all duration-300 ${paiAudioStyle === 'bar' ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'border-border-default bg-background-surface hover:border-border-hover'}`}
+                                >
+                                    <div className="h-12 w-full flex items-center justify-center gap-1.5">
+                                        {[4, 8, 5, 10, 6, 9, 5, 3].map((h, i) => (
+                                            <div key={i} className={`w-2.5 bg-blue-400 rounded-full animate-pulse`} style={{ height: `${h * 4}px`, animationDelay: `${i * 0.1}s` }} />
+                                        ))}
+                                    </div>
+                                    <div className="text-center mt-2">
+                                        <p className={`text-sm font-semibold ${paiAudioStyle === 'bar' ? 'text-blue-400' : 'text-text-primary'}`}>Smooth Wave</p>
+                                        <p className="text-[10px] text-text-tertiary mt-1">Modern rounded bars</p>
+                                    </div>
+                                    {paiAudioStyle === 'bar' && (
+                                        <div className="absolute top-2 right-2 text-blue-500">
+                                            <FiCheck size={14} />
+                                        </div>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Legacy PAI Context Toggle */}
+                        <div className="mt-3 flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4">
+                            <div>
+                                <p className="font-medium text-text-primary">Legacy NLP Mention Method (PAI Voice)</p>
+                                <p className="text-xs text-text-secondary mt-0.5">Use explicit @mentions (regex matching) instead of the Auto-Context engine</p>
+                            </div>
+                            <UniversalToggle 
+                                checked={legacyVoiceContext} 
+                                onChange={() => {
+                                    const newValue = !legacyVoiceContext;
+                                    setLegacyVoiceContext(newValue);
+                                    localStorage.setItem('paiLegacyVoiceContext', newValue ? 'true' : 'false');
+                                    toast.success(newValue ? 'Legacy Mention Method Enabled' : 'Auto-Context Engine Enabled');
+                                }} 
+                            />
+                        </div>
+                    </div>
+
+
                     {/* Calculator Keybindings Customization */}
                     <div className="pt-6 border-t border-border-subtle animate-in fade-in duration-500">
                             <div>
@@ -1415,70 +1417,107 @@ const SettingsPage = () => {
                                         </div>
                                     </div>
 
-                                    {/* COMPANY DASHBOARD */}
+                                    {/* FUNDAMENTALS MODULE */}
                                     <div className="space-y-4">
-                                        <h3 className="text-xs font-bold tracking-wider text-blue-500 uppercase border-b border-border-default pb-2">Company Dashboard</h3>
-                                        <div className="rounded-xl border border-border-default bg-background-surface/30 p-5 space-y-5">
-                                            <div className="flex items-start gap-3">
-                                                <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
-                                                    <FiDatabase size={16} />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h3 className="text-sm font-medium text-text-primary">Face Value Timer</h3>
-                                                    <p className="text-xs text-text-tertiary mb-3 mt-1">Specific expiration time for Face Value (rarely changes).</p>
-                                                    <UiverseDropdown
-                                                        options={[
-                                                            { value: 24 * 60 * 60 * 1000, label: "24 Hours" },
-                                                            { value: 7 * 24 * 60 * 60 * 1000, label: "7 Days" },
-                                                            { value: 30 * 24 * 60 * 60 * 1000, label: "30 Days" },
-                                                            { value: 365 * 24 * 60 * 60 * 1000, label: "1 Year" }
-                                                        ]}
-                                                        value={manualExpiryConfigs.face_value}
-                                                        onChange={(val) => handleManualExpiryChange("face_value", Number(val))}
-                                                        className="w-full max-w-xs"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* INDICES DASHBOARD */}
-                                    <div className="space-y-4">
-                                        <h3 className="text-xs font-bold tracking-wider text-indigo-500 uppercase border-b border-border-default pb-2">Indices Dashboard</h3>
-                                        {[
-                                            { key: "mcap_gdp", label: "M-Cap/GDP Timer", desc: "Specific expiration time for M-Cap to GDP ratio." },
-                                            { key: "eps_yoy", label: "EPS YoY Timer", desc: "Specific expiration time for EPS YoY." },
-                                            { key: "forward_eps", label: "Forward EPS Timer", desc: "Specific expiration time for Forward EPS." },
-                                            { key: "profit_margin", label: "Profit Margin Timer", desc: "Specific expiration time for Profit Margin." },
-                                            { key: "policy_tailwinds", label: "Policy Tailwinds Timer", desc: "Specific expiration time for Policy Tailwinds." },
-                                            { key: "fii_trend", label: "FII Trend Timer", desc: "Specific expiration time for FII Trend." },
-                                            { key: "mf_flows", label: "MF Flows Timer", desc: "Specific expiration time for MF Flows." },
-                                            { key: "system_liquidity", label: "Sys Liquidity Timer", desc: "Specific expiration time for System Liquidity." }
-                                        ].map((metric) => (
-                                            <div key={metric.key} className="rounded-xl border border-border-default bg-background-surface/30 p-5 space-y-5">
+                                        <h3 className="text-xs font-bold tracking-wider text-blue-500 uppercase border-b border-border-default pb-2">Fundamentals Module</h3>
+                                        
+                                        <div className="space-y-3">
+                                            <h4 className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider pl-1">Company Metrics</h4>
+                                            <div className="rounded-xl border border-border-default bg-background-surface/30 p-5 space-y-5">
                                                 <div className="flex items-start gap-3">
-                                                    <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500">
+                                                    <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
                                                         <FiDatabase size={16} />
                                                     </div>
                                                     <div className="flex-1">
-                                                        <h3 className="text-sm font-medium text-text-primary">{metric.label}</h3>
-                                                        <p className="text-xs text-text-tertiary mb-3 mt-1">{metric.desc}</p>
+                                                        <h3 className="text-sm font-medium text-text-primary">Face Value Timer</h3>
+                                                        <p className="text-xs text-text-tertiary mb-3 mt-1">Specific expiration time for Face Value (rarely changes).</p>
                                                         <UiverseDropdown
                                                             options={[
-                                                                { value: 2 * 60 * 60 * 1000, label: "2 Hours" },
                                                                 { value: 24 * 60 * 60 * 1000, label: "24 Hours" },
                                                                 { value: 7 * 24 * 60 * 60 * 1000, label: "7 Days" },
                                                                 { value: 30 * 24 * 60 * 60 * 1000, label: "30 Days" },
                                                                 { value: 365 * 24 * 60 * 60 * 1000, label: "1 Year" }
                                                             ]}
-                                                            value={manualExpiryConfigs[metric.key]}
-                                                            onChange={(val) => handleManualExpiryChange(metric.key, Number(val))}
+                                                            value={manualExpiryConfigs.face_value}
+                                                            onChange={(val) => handleManualExpiryChange("face_value", Number(val))}
                                                             className="w-full max-w-xs"
                                                         />
                                                     </div>
                                                 </div>
                                             </div>
-                                        ))}
+                                        </div>
+
+                                        <div className="space-y-3 pt-2">
+                                            <h4 className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider pl-1">Index Metrics</h4>
+                                            {[
+                                                { key: "mcap_gdp", label: "M-Cap/GDP Timer", desc: "Specific expiration time for M-Cap to GDP ratio." },
+                                                { key: "eps_yoy", label: "EPS YoY Timer", desc: "Specific expiration time for EPS YoY." },
+                                                { key: "forward_eps", label: "Forward EPS Timer", desc: "Specific expiration time for Forward EPS." },
+                                                { key: "profit_margin", label: "Profit Margin Timer", desc: "Specific expiration time for Profit Margin." },
+                                            ].map((metric) => (
+                                                <div key={metric.key} className="rounded-xl border border-border-default bg-background-surface/30 p-5 space-y-5">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                                                            <FiDatabase size={16} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <h3 className="text-sm font-medium text-text-primary">{metric.label}</h3>
+                                                            <p className="text-xs text-text-tertiary mb-3 mt-1">{metric.desc}</p>
+                                                            <UiverseDropdown
+                                                                options={[
+                                                                    { value: 2 * 60 * 60 * 1000, label: "2 Hours" },
+                                                                    { value: 24 * 60 * 60 * 1000, label: "24 Hours" },
+                                                                    { value: 7 * 24 * 60 * 60 * 1000, label: "7 Days" },
+                                                                    { value: 30 * 24 * 60 * 60 * 1000, label: "30 Days" },
+                                                                    { value: 365 * 24 * 60 * 60 * 1000, label: "1 Year" }
+                                                                ]}
+                                                                value={manualExpiryConfigs[metric.key]}
+                                                                onChange={(val) => handleManualExpiryChange(metric.key, Number(val))}
+                                                                className="w-full max-w-xs"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* GLOBAL & MACRO MODULE */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-xs font-bold tracking-wider text-indigo-500 uppercase border-b border-border-default pb-2">Global & Macro Module</h3>
+                                        <div className="space-y-3">
+                                            <h4 className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider pl-1">Liquidity & Policy Metrics</h4>
+                                            {[
+                                                { key: "policy_tailwinds", label: "Policy Tailwinds Timer", desc: "Specific expiration time for Policy Tailwinds." },
+                                                { key: "fii_trend", label: "FII Trend Timer", desc: "Specific expiration time for FII Trend." },
+                                                { key: "mf_flows", label: "MF Flows Timer", desc: "Specific expiration time for MF Flows." },
+                                                { key: "system_liquidity", label: "Sys Liquidity Timer", desc: "Specific expiration time for System Liquidity." }
+                                            ].map((metric) => (
+                                                <div key={metric.key} className="rounded-xl border border-border-default bg-background-surface/30 p-5 space-y-5">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500">
+                                                            <FiDatabase size={16} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <h3 className="text-sm font-medium text-text-primary">{metric.label}</h3>
+                                                            <p className="text-xs text-text-tertiary mb-3 mt-1">{metric.desc}</p>
+                                                            <UiverseDropdown
+                                                                options={[
+                                                                    { value: 2 * 60 * 60 * 1000, label: "2 Hours" },
+                                                                    { value: 24 * 60 * 60 * 1000, label: "24 Hours" },
+                                                                    { value: 7 * 24 * 60 * 60 * 1000, label: "7 Days" },
+                                                                    { value: 30 * 24 * 60 * 60 * 1000, label: "30 Days" },
+                                                                    { value: 365 * 24 * 60 * 60 * 1000, label: "1 Year" }
+                                                                ]}
+                                                                value={manualExpiryConfigs[metric.key]}
+                                                                onChange={(val) => handleManualExpiryChange(metric.key, Number(val))}
+                                                                className="w-full max-w-xs"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

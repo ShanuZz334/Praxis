@@ -4,9 +4,10 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 import { generateAiInsightPERatioCard, scorePERatio } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 // ─── Main Component ─────────────────────────────────────────────────────────
-export default function PERatioCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function PERatioCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.pe_ratio.id);
 
     // ── Step 1: Resolve currentPE (Live from Upstox or manual fallback) ────
@@ -27,7 +28,7 @@ export default function PERatioCard({ cardId, data = null, manualOverride, lastU
     const historicalPE = null; // Removed to strictly comply with Zero Clutter Rule (NO Fallbacks/Historical inputs)
 
     // ── Step 3: Run Engine ────────────────────────────────────────────────
-    const { score, bias } = scorePERatio(currentPE, historicalPE, sectorPE);
+    const { score, bias } = applyModeAdjustment(scorePERatio(currentPE, historicalPE, sectorPE), 'pe_ratio', tradingMode);
     const cCard = computeCardConfidence({
         hasLiveData: isLiveData,
         isManual: !!manualOverride && !isLiveData,

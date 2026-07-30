@@ -5,9 +5,10 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 import { generateAiInsightROACard, scoreROA } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function ROACard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function ROACard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     // 1. Live Data Extraction (Upstox)
     const upstoxROAObj = (Array.isArray(data?.ratios) ? data.ratios : []).find(r => 
         r.name === "ROA" || 
@@ -23,7 +24,7 @@ export default function ROACard({ cardId, data = null, manualOverride, lastUpdat
     const sectorROA = upstoxROAObj?.sector_value ? cleanNum(upstoxROAObj.sector_value) : null;
 
     // 3. Calculation Engine
-    const { score, bias, efficiencyZone } = scoreROA(currentROA, sectorROA);
+    const { score, bias, efficiencyZone } = applyModeAdjustment(scoreROA(currentROA, sectorROA), 'roa', tradingMode);
     const cCard = computeCardConfidence({
         hasLiveData: isLiveData,
         isManual: !!manualOverride && !isLiveData,

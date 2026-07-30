@@ -17,34 +17,38 @@
 // =============================
 
 export const TRADING_MODES = {
-    BALANCED: 'balanced',
-    AGGRESSIVE: 'aggressive',
-    CONSERVATIVE: 'conservative'
+    POSITIONAL: 'positional',
+    SWING:      'swing',
+    INTRADAY:   'intraday',
 };
 
 export const MODE_METADATA = {
-    [TRADING_MODES.BALANCED]: {
-        name: 'Balanced',
-        description: 'Equal weight distribution across all indicators',
+    [TRADING_MODES.POSITIONAL]: {
+        name: 'Positional',
+        description: 'Heavy weight on valuation quality, earnings compounding, and balance sheet strength. Holding period: weeks to months.',
+        riskLevel: 'Low-Medium',
+        focus: 'Fundamental Quality & Entry Point',
+        icon: '📐',
+        horizon: 'Weeks – Months',
+    },
+    [TRADING_MODES.SWING]: {
+        name: 'Swing',
+        description: 'Balanced weight across all indicators. Equal focus on fundamentals, flows, and breadth. Holding period: days to weeks.',
         riskLevel: 'Medium',
-        focus: 'All-around analysis',
-        icon: '⚖️'
+        focus: 'Balanced Analysis',
+        icon: '⚖️',
+        horizon: 'Days – Weeks',
     },
-    [TRADING_MODES.AGGRESSIVE]: {
-        name: 'Aggressive',
-        description: 'Higher weights on momentum and trend-following indicators',
+    [TRADING_MODES.INTRADAY]: {
+        name: 'Intraday',
+        description: 'Heavy weight on institutional flows, market breadth, and VIX. Trailing valuation metrics are locked to neutral. Holding period: same day.',
         riskLevel: 'High',
-        focus: 'Momentum & Trend',
-        icon: '🚀'
+        focus: 'Flows, Breadth & Risk Environment',
+        icon: '⚡',
+        horizon: 'Same Day',
     },
-    [TRADING_MODES.CONSERVATIVE]: {
-        name: 'Conservative',
-        description: 'Higher weights on structure, support/resistance, and mean-reversion',
-        riskLevel: 'Low',
-        focus: 'Structure & Support',
-        icon: '🛡️'
-    }
 };
+
 
 // =============================
 // Mode Selection Utilities
@@ -57,7 +61,7 @@ export const MODE_METADATA = {
  */
 export const getCurrentMode = (userPreferences) => {
     if (!userPreferences || !userPreferences.tradingMode) {
-        return TRADING_MODES.BALANCED;
+        return TRADING_MODES.SWING;
     }
 
     const mode = userPreferences.tradingMode.toLowerCase();
@@ -66,7 +70,7 @@ export const getCurrentMode = (userPreferences) => {
         return mode;
     }
 
-    return TRADING_MODES.BALANCED;
+    return TRADING_MODES.SWING;
 };
 
 /**
@@ -82,7 +86,7 @@ export const getModeConfig = (config, mode = TRADING_MODES.BALANCED) => {
         return config[mode];
     }
 
-    return config[TRADING_MODES.BALANCED] || config;
+    return config[TRADING_MODES.SWING] || config;
 };
 
 /**

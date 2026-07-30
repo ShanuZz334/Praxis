@@ -5,9 +5,10 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { formatCompactCurrency } from '@/shared/utils/formatters';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 import { scoreInstitutionalFlow, generateAiInsightFIIDIIFlowCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function FIIDIIFlowCard({ cardId, data = null, manualOverrides = {}, lastUpdated }) {
+export default function FIIDIIFlowCard({ cardId, data = null, manualOverrides = {}, lastUpdated, tradingMode = 'swing' }) {
     // Live Automated Data
     const liveFlowData = data?.fii_dii_flow;
     const isLive = !!liveFlowData;
@@ -27,7 +28,7 @@ export default function FIIDIIFlowCard({ cardId, data = null, manualOverrides = 
     const configData = getIndicatorConfig(CARD_REGISTRY.fii_dii_flow.id);
 
     // --- Scoring Engine ---
-    const { score, bias, netFlow } = scoreInstitutionalFlow(fiiFlow, diiFlow);
+    const { score, bias, netFlow } = applyModeAdjustment(scoreInstitutionalFlow(fiiFlow, diiFlow), 'fii_dii_flow', tradingMode);
     const isManual = !isLive && (manualOverrides.fii || manualOverrides.dii);
     
     const cCard = computeCardConfidence({

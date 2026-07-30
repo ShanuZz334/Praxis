@@ -3,7 +3,7 @@
  * @purpose Central export for all reliability configurations and institutional logic.
  */
 
-import { getCreditFromReliability } from '@/shared/global/logic/signals';
+import { getCreditFromReliability } from '../../shared/global/logic/signals';
 import TECHNICAL_RELIABILITY from './technicalReliability';
 import FUNDAMENTALS_RELIABILITY from './fundamentalsReliability';
 import OPTIONS_RELIABILITY from './optionsReliability';

@@ -5,9 +5,10 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 import { generateAiInsightEVEbitdaCard, scoreEVEbitda } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function EVEbitdaCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function EVEbitdaCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     // 1. Live Data Extraction (Upstox)
     const upstoxEVObj = (Array.isArray(data?.ratios) ? data.ratios : []).find(r => 
         r.name === "EV/EBITDA" || 
@@ -23,7 +24,7 @@ export default function EVEbitdaCard({ cardId, data = null, manualOverride, last
     const sectorEV = upstoxEVObj?.sector_value ? cleanNum(upstoxEVObj.sector_value) : null;
 
     // 3. Calculation Engine
-    const { score, bias, valuationZone } = scoreEVEbitda(currentEV, sectorEV);
+    const { score, bias, valuationZone } = applyModeAdjustment(scoreEVEbitda(currentEV, sectorEV), 'ev_ebitda', tradingMode);
     const cCard = computeCardConfidence({
         hasLiveData: isLiveData,
         isManual: !!manualOverride && !isLiveData,

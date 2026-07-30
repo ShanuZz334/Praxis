@@ -23,10 +23,10 @@
 import { FUNDAMENTAL_CARDS } from "./cards.config";
 import { BOUNDS } from "./bounds";
 import { normalize } from "./normalize";
-import { getNonMasterGaugeLabel, getNonMasterRegimeLabel } from '@/shared/global/logic/labelMappings';
-import { getFundamentalsWeights } from '@/config/weights/fundamentalsWeights';
-import { getFundamentalsSectionWeights } from '@/config/weights/fundamentalsSectionWeights';
-import { TRADING_MODES } from '@/config/tradingModes';
+import { getNonMasterGaugeLabel, getNonMasterRegimeLabel } from '../../../../shared/global/logic/labelMappings';
+import { getFundamentalsWeights } from '../../../../config/weights/fundamentalsWeights';
+import { getFundamentalsSectionWeights } from '../../../../config/weights/fundamentalsSectionWeights';
+import { TRADING_MODES } from '../../../../config/tradingModes';
 
 // =============================
 // Core Logic: Evaluation

@@ -29,6 +29,7 @@
 import { getCompositeColor, getIndicatorColor } from '../../../../shared/config/scoreColors.js';
 import { getIndicatorConfig } from '../../../../shared/config/indicatorConfig.js';
 import { CARD_REGISTRY } from '../../../../shared/config/cardRegistry.js';
+import { getWeightsForMode } from '../../../../shared/weights/modeWeights.js';
 
 // ─── Title → ID Map ──────────────────────────────────────────────────────────
 export const TITLE_TO_ID = Object.values(CARD_REGISTRY).reduce((acc, card) => {
@@ -122,77 +123,81 @@ export function getSectionBarColor(score) {
 
 // ─── COMPANY MODE — 7 Sections ────────────────────────────────────────────────
 
-function computeCompanySections(scores) {
+function computeCompanySections(scores, W) {
     const g = (id) => {
         const s = scores[id];
         return (s !== undefined && s !== null && !isNaN(Number(s))) ? Number(s) : null;
     };
 
+    const cs = W.company.sections;
+
     const valuation = weightedHarmonicMean([
-        { score: g(CARD_REGISTRY.pe_ratio.id),           weight: 0.20 },
-        { score: g(CARD_REGISTRY.forward_pe.id),         weight: 0.20 },
-        { score: g(CARD_REGISTRY.ev_ebitda.id),          weight: 0.15 },
-        { score: g(CARD_REGISTRY.pb_ratio.id),           weight: 0.10 },
-        { score: g(CARD_REGISTRY.earnings_yield.id),     weight: 0.10 },
-        { score: g(CARD_REGISTRY.relative_valuation.id), weight: 0.10 },
-        { score: g(CARD_REGISTRY.analyst_consensus.id),  weight: 0.15 },
+        { score: g(CARD_REGISTRY.pe_ratio.id),           weight: cs.valuation.pe_ratio },
+        { score: g(CARD_REGISTRY.forward_pe.id),         weight: cs.valuation.forward_pe },
+        { score: g(CARD_REGISTRY.ev_ebitda.id),          weight: cs.valuation.ev_ebitda },
+        { score: g(CARD_REGISTRY.pb_ratio.id),           weight: cs.valuation.pb_ratio },
+        { score: g(CARD_REGISTRY.earnings_yield.id),     weight: cs.valuation.earnings_yield },
+        { score: g(CARD_REGISTRY.relative_valuation.id), weight: cs.valuation.relative_valuation },
+        { score: g(CARD_REGISTRY.analyst_consensus.id),  weight: cs.valuation.analyst_consensus },
     ]);
 
     const earnings = trimmedWeightedMean([
-        { score: g(CARD_REGISTRY.eps_growth.id),     weight: 0.40 },
-        { score: g(CARD_REGISTRY.revenue_growth.id), weight: 0.35 },
-        { score: g(CARD_REGISTRY.profit_growth.id),  weight: 0.25 },
+        { score: g(CARD_REGISTRY.eps_growth.id),     weight: cs.earnings.eps_growth },
+        { score: g(CARD_REGISTRY.revenue_growth.id), weight: cs.earnings.revenue_growth },
+        { score: g(CARD_REGISTRY.profit_growth.id),  weight: cs.earnings.profit_growth },
     ]);
 
     const macro = g(CARD_REGISTRY.gdp_growth.id);
 
     const liquidity = weightedMean([
-        { score: g(CARD_REGISTRY.fii_dii_flow.id),   weight: 0.50 },
-        { score: g(CARD_REGISTRY.dividend_yield.id), weight: 0.50 },
+        { score: g(CARD_REGISTRY.fii_dii_flow.id),   weight: cs.liquidity.fii_dii_flow },
+        { score: g(CARD_REGISTRY.dividend_yield.id), weight: cs.liquidity.dividend_yield },
     ]);
 
     const ownership = weightedMean([
-        { score: g(CARD_REGISTRY.promoter_holding.id), weight: 0.35 },
-        { score: g(CARD_REGISTRY.smart_money_flow.id), weight: 0.35 },
-        { score: g(CARD_REGISTRY.earnings_quality.id), weight: 0.15 },
-        { score: g(CARD_REGISTRY.corporate_actions.id),weight: 0.15 }
+        { score: g(CARD_REGISTRY.promoter_holding.id), weight: cs.ownership.promoter_holding },
+        { score: g(CARD_REGISTRY.smart_money_flow.id), weight: cs.ownership.smart_money_flow },
+        { score: g(CARD_REGISTRY.earnings_quality.id), weight: cs.ownership.earnings_quality },
+        { score: g(CARD_REGISTRY.corporate_actions.id),weight: cs.ownership.corporate_actions },
     ]);
 
     const sector = weightedGeometricMean([
-        { score: g(CARD_REGISTRY.earnings_trend.id), weight: 1.0 },
+        { score: g(CARD_REGISTRY.earnings_trend.id), weight: cs.sector.earnings_trend },
     ]);
 
     const roeS  = g(CARD_REGISTRY.roe.id);
     const roceS = g(CARD_REGISTRY.roce.id);
     const roaS  = g(CARD_REGISTRY.roa.id);
     let corporate = weightedMean([
-        { score: roeS,             weight: 0.20 },
-        { score: roceS,            weight: 0.20 },
-        { score: roaS,             weight: 0.10 },
-        { score: g(CARD_REGISTRY.net_margin.id),  weight: 0.15 },
-        { score: g(CARD_REGISTRY.operating_margin.id), weight: 0.15 },
-        { score: g(CARD_REGISTRY.cash_conversion.id),  weight: 0.20 },
+        { score: roeS,                                      weight: cs.corporate.roe },
+        { score: roceS,                                     weight: cs.corporate.roce },
+        { score: roaS,                                      weight: cs.corporate.roa },
+        { score: g(CARD_REGISTRY.net_margin.id),            weight: cs.corporate.net_margin },
+        { score: g(CARD_REGISTRY.operating_margin.id),      weight: cs.corporate.operating_margin },
+        { score: g(CARD_REGISTRY.cash_conversion.id),       weight: cs.corporate.cash_conversion },
     ]);
     if (corporate !== null) {
         const minQuality = Math.min(roeS ?? 100, roceS ?? 100);
-        if (minQuality < 15) corporate *= 0.50;
-        else if (minQuality < 25) corporate *= 0.72;
-        else if (minQuality < 35) corporate *= 0.88;
+        const gate = W.company.penalties.corporate_quality_gate.thresholds;
+        if      (minQuality < gate[0].below) corporate *= gate[0].multiplier;
+        else if (minQuality < gate[1].below) corporate *= gate[1].multiplier;
+        else if (minQuality < gate[2].below) corporate *= gate[2].multiplier;
     }
 
-    // Balance Sheet / Risk (Mapped to global for company)
+    // Balance Sheet / Risk (Mapped to global section id for company)
+    const fh = cs.financial_health;
     const deS  = g(CARD_REGISTRY.debt_to_equity.id);
     const icS  = g(CARD_REGISTRY.interest_coverage.id);
     const fcfS = g(CARD_REGISTRY.free_cash_flow.id);
     const crS  = g(CARD_REGISTRY.current_ratio.id);
     const healthItems = [
-        { score: deS,  weight: 0.25 },
-        { score: icS,  weight: 0.25 },
-        { score: fcfS, weight: 0.20 },
-        { score: crS,  weight: 0.10 },
+        { score: deS,  weight: fh.debt_to_equity },
+        { score: icS,  weight: fh.interest_coverage },
+        { score: fcfS, weight: fh.free_cash_flow },
+        { score: crS,  weight: fh.current_ratio },
     ].filter(x => x.score !== null);
-    
-    let global = null; 
+
+    let global = null;
     if (healthItems.length > 0) {
         const mean = weightedMean(healthItems);
         const minScore = Math.min(...healthItems.map(x => x.score));
@@ -204,56 +209,58 @@ function computeCompanySections(scores) {
 
 // ─── INDEX MODE — 7 Sections ──────────────────────────────────────────────────
 
-function computeIndexSections(scores) {
+function computeIndexSections(scores, W) {
     const g = (id) => {
         const s = scores[id];
         return (s !== undefined && s !== null && !isNaN(Number(s))) ? Number(s) : null;
     };
 
+    const is = W.index.sections;
+
     const valuation = weightedHarmonicMean([
-        { score: g(CARD_REGISTRY.nifty_pe.id),       weight: 0.30 },
-        { score: g(CARD_REGISTRY.nifty_pb.id),       weight: 0.20 },
-        { score: g('mcap_gdp'),       weight: 0.20 },
-        { score: g(CARD_REGISTRY.earnings_yield.id), weight: 0.20 },
-        { score: g(CARD_REGISTRY.dividend_yield.id), weight: 0.10 },
+        { score: g(CARD_REGISTRY.nifty_pe.id),       weight: is.valuation.nifty_pe },
+        { score: g(CARD_REGISTRY.nifty_pb.id),       weight: is.valuation.nifty_pb },
+        { score: g('mcap_gdp'),                      weight: is.valuation.mcap_gdp },
+        { score: g(CARD_REGISTRY.earnings_yield.id), weight: is.valuation.earnings_yield },
+        { score: g(CARD_REGISTRY.dividend_yield.id), weight: is.valuation.dividend_yield },
     ]);
 
     const earnings = weightedMean([
-        { score: g(CARD_REGISTRY.eps_yoy.id),           weight: 0.40 },
-        { score: g(CARD_REGISTRY.forward_eps.id),       weight: 0.40 },
-        { score: g(CARD_REGISTRY.profit_margin.id),     weight: 0.20 },
+        { score: g(CARD_REGISTRY.eps_yoy.id),       weight: is.earnings.eps_yoy },
+        { score: g(CARD_REGISTRY.forward_eps.id),   weight: is.earnings.forward_eps },
+        { score: g(CARD_REGISTRY.profit_margin.id), weight: is.earnings.profit_margin },
     ]);
 
     const macro = weightedMean([
-        { score: g(CARD_REGISTRY.gdp.id),             weight: 0.35 },
-        { score: g(CARD_REGISTRY.cpi.id),             weight: 0.35 },
-        { score: g(CARD_REGISTRY.repo.id),            weight: 0.15 },
-        { score: g(CARD_REGISTRY.fiscal_deficit.id),  weight: 0.15 },
+        { score: g(CARD_REGISTRY.gdp.id),            weight: is.macro.gdp },
+        { score: g(CARD_REGISTRY.cpi.id),            weight: is.macro.cpi },
+        { score: g(CARD_REGISTRY.repo.id),           weight: is.macro.repo },
+        { score: g(CARD_REGISTRY.fiscal_deficit.id), weight: is.macro.fiscal_deficit },
     ]);
 
     const liquidity = weightedMean([
-        { score: g(CARD_REGISTRY.fii.id),              weight: 0.25 },
-        { score: g(CARD_REGISTRY.dii.id),              weight: 0.20 },
-        { score: g(CARD_REGISTRY.fii_trend.id),        weight: 0.25 },
-        { score: g(CARD_REGISTRY.system_liquidity.id), weight: 0.15 },
-        { score: g(CARD_REGISTRY.mf_flows.id),         weight: 0.15 },
+        { score: g(CARD_REGISTRY.fii.id),              weight: is.liquidity.fii },
+        { score: g(CARD_REGISTRY.dii.id),              weight: is.liquidity.dii },
+        { score: g(CARD_REGISTRY.fii_trend.id),        weight: is.liquidity.fii_trend },
+        { score: g(CARD_REGISTRY.system_liquidity.id), weight: is.liquidity.system_liquidity },
+        { score: g(CARD_REGISTRY.mf_flows.id),         weight: is.liquidity.mf_flows },
     ]);
 
     const sector = weightedMean([
-        { score: g(CARD_REGISTRY.advance_decline.id),      weight: 0.30 },
-        { score: g(CARD_REGISTRY.sector_dashboard.id),     weight: 0.70 },
+        { score: g(CARD_REGISTRY.advance_decline.id), weight: is.sector.advance_decline },
+        { score: g(CARD_REGISTRY.sector_dashboard.id),weight: is.sector.sector_dashboard },
     ]);
 
     const corporate = weightedGeometricMean([
-        { score: g(CARD_REGISTRY.credit_growth.id),    weight: 0.50 },
-        { score: g(CARD_REGISTRY.corp_debt.id),        weight: 0.25 },
-        { score: g(CARD_REGISTRY.policy_tailwinds.id), weight: 0.25 },
+        { score: g(CARD_REGISTRY.credit_growth.id),    weight: is.corporate.credit_growth },
+        { score: g(CARD_REGISTRY.corp_debt.id),        weight: is.corporate.corp_debt },
+        { score: g(CARD_REGISTRY.policy_tailwinds.id), weight: is.corporate.policy_tailwinds },
     ]);
 
     const global = weightedMean([
-        { score: g(CARD_REGISTRY.india_vix.id),  weight: 0.50 },
-        { score: g(CARD_REGISTRY.crude.id),      weight: 0.25 },
-        { score: g(CARD_REGISTRY.global_liq.id), weight: 0.25 },
+        { score: g(CARD_REGISTRY.india_vix.id),  weight: is.global.india_vix },
+        { score: g(CARD_REGISTRY.crude.id),      weight: is.global.crude },
+        { score: g(CARD_REGISTRY.global_liq.id), weight: is.global.global_liq },
     ]);
 
     return { valuation, earnings, macro, liquidity, sector, corporate, global };
@@ -275,9 +282,10 @@ function computeComposite(sections, isIndex) {
 
     if (isIndex) {
         // High volatility (VIX spike) pulls down the entire index composite score
-        const globalSection = sections.find(s => s.id === 'global');
-        if (globalSection && globalSection.score !== null && globalSection.score < 20) {
-            composite = Math.min(45, composite);
+        const cap = W.index.caps.vix_distress;
+        const globalSection = sections.find(s => s.id === cap.sectionId);
+        if (globalSection && globalSection.score !== null && globalSection.score < cap.triggerBelow) {
+            composite = Math.min(cap.maxComposite, composite);
         }
     }
 
@@ -395,18 +403,20 @@ function getRegimeDescription(score) {
 
 // ─── Main Exports ─────────────────────────────────────────────────────────────
 
-export function computeCompanyComposite(scores) {
-    const raw = computeCompanySections(scores);
+export function computeCompanyComposite(scores, mode = 'swing') {
+    const W = getWeightsForMode(mode);
+    const raw = computeCompanySections(scores, W);
 
+    const cc = W.company.composite;
     const sections = [
-        { id: 'valuation', label: 'Valuation', shortLabel: 'VAL', score: (raw.valuation !== undefined && raw.valuation !== null) ? clamp(Math.round(raw.valuation)) : null, weight: 0.20 },
-        { id: 'earnings',  label: 'Earnings',  shortLabel: 'EAR', score: (raw.earnings !== undefined && raw.earnings !== null)  ? clamp(Math.round(raw.earnings))  : null, weight: 0.22 },
-        { id: 'macro',     label: 'Macro',     shortLabel: 'MAC', score: (raw.macro !== undefined && raw.macro !== null)     ? clamp(Math.round(raw.macro))     : null, weight: 0.05 },
-        { id: 'liquidity', label: 'Liquidity', shortLabel: 'LIQ', score: (raw.liquidity !== undefined && raw.liquidity !== null) ? clamp(Math.round(raw.liquidity)) : null, weight: 0.07 },
-        { id: 'ownership', label: 'Ownership', shortLabel: 'OWN', score: (raw.ownership !== undefined && raw.ownership !== null) ? clamp(Math.round(raw.ownership)) : null, weight: 0.10 },
-        { id: 'sector',    label: 'Sector',    shortLabel: 'SEC', score: (raw.sector !== undefined && raw.sector !== null)    ? clamp(Math.round(raw.sector))    : null, weight: 0.08 },
-        { id: 'corporate', label: 'Corporate', shortLabel: 'COR', score: (raw.corporate !== undefined && raw.corporate !== null) ? clamp(Math.round(raw.corporate)) : null, weight: 0.18 },
-        { id: 'global',    label: 'Balance Sheet', shortLabel: 'BAL', score: (raw.global !== undefined && raw.global !== null)    ? clamp(Math.round(raw.global))    : null, weight: 0.10 },
+        { id: 'valuation', label: 'Valuation',     shortLabel: 'VAL', score: (raw.valuation !== undefined && raw.valuation !== null) ? clamp(Math.round(raw.valuation)) : null, weight: cc.valuation },
+        { id: 'earnings',  label: 'Earnings',       shortLabel: 'EAR', score: (raw.earnings  !== undefined && raw.earnings  !== null) ? clamp(Math.round(raw.earnings))  : null, weight: cc.earnings },
+        { id: 'macro',     label: 'Macro',          shortLabel: 'MAC', score: (raw.macro     !== undefined && raw.macro     !== null) ? clamp(Math.round(raw.macro))     : null, weight: cc.macro },
+        { id: 'liquidity', label: 'Liquidity',      shortLabel: 'LIQ', score: (raw.liquidity !== undefined && raw.liquidity !== null) ? clamp(Math.round(raw.liquidity)) : null, weight: cc.liquidity },
+        { id: 'ownership', label: 'Ownership',      shortLabel: 'OWN', score: (raw.ownership !== undefined && raw.ownership !== null) ? clamp(Math.round(raw.ownership)) : null, weight: cc.ownership },
+        { id: 'sector',    label: 'Sector',         shortLabel: 'SEC', score: (raw.sector    !== undefined && raw.sector    !== null) ? clamp(Math.round(raw.sector))    : null, weight: cc.sector },
+        { id: 'corporate', label: 'Corporate',      shortLabel: 'COR', score: (raw.corporate !== undefined && raw.corporate !== null) ? clamp(Math.round(raw.corporate)) : null, weight: cc.corporate },
+        { id: 'global',    label: 'Balance Sheet',  shortLabel: 'BAL', score: (raw.global    !== undefined && raw.global    !== null) ? clamp(Math.round(raw.global))    : null, weight: cc.global },
     ];
 
     const composite = computeComposite(sections, false);
@@ -415,17 +425,19 @@ export function computeCompanyComposite(scores) {
     return result;
 }
 
-export function computeIndexComposite(scores) {
-    const raw = computeIndexSections(scores);
+export function computeIndexComposite(scores, mode = 'swing') {
+    const W = getWeightsForMode(mode);
+    const raw = computeIndexSections(scores, W);
 
+    const ic = W.index.composite;
     const sections = [
-        { id: 'valuation', label: 'Valuation', shortLabel: 'VAL', score: (raw.valuation !== undefined && raw.valuation !== null) ? clamp(Math.round(raw.valuation)) : null, weight: 0.20 },
-        { id: 'earnings',  label: 'Earnings',  shortLabel: 'ERN', score: (raw.earnings !== undefined && raw.earnings !== null)  ? clamp(Math.round(raw.earnings))  : null, weight: 0.20 },
-        { id: 'macro',     label: 'Macro',     shortLabel: 'MAC', score: (raw.macro !== undefined && raw.macro !== null)     ? clamp(Math.round(raw.macro))     : null, weight: 0.15 },
-        { id: 'liquidity', label: 'Liquidity', shortLabel: 'LIQ', score: (raw.liquidity !== undefined && raw.liquidity !== null) ? clamp(Math.round(raw.liquidity)) : null, weight: 0.20 },
-        { id: 'sector',    label: 'Sector',    shortLabel: 'SEC', score: (raw.sector !== undefined && raw.sector !== null)    ? clamp(Math.round(raw.sector))    : null, weight: 0.10 },
-        { id: 'corporate', label: 'Corporate', shortLabel: 'COR', score: (raw.corporate !== undefined && raw.corporate !== null) ? clamp(Math.round(raw.corporate)) : null, weight: 0.05 },
-        { id: 'global',    label: 'Global',    shortLabel: 'GLO', score: (raw.global !== undefined && raw.global !== null)    ? clamp(Math.round(raw.global))    : null, weight: 0.05 }
+        { id: 'valuation', label: 'Valuation', shortLabel: 'VAL', score: (raw.valuation !== undefined && raw.valuation !== null) ? clamp(Math.round(raw.valuation)) : null, weight: ic.valuation },
+        { id: 'earnings',  label: 'Earnings',  shortLabel: 'ERN', score: (raw.earnings  !== undefined && raw.earnings  !== null) ? clamp(Math.round(raw.earnings))  : null, weight: ic.earnings },
+        { id: 'macro',     label: 'Macro',     shortLabel: 'MAC', score: (raw.macro     !== undefined && raw.macro     !== null) ? clamp(Math.round(raw.macro))     : null, weight: ic.macro },
+        { id: 'liquidity', label: 'Liquidity', shortLabel: 'LIQ', score: (raw.liquidity !== undefined && raw.liquidity !== null) ? clamp(Math.round(raw.liquidity)) : null, weight: ic.liquidity },
+        { id: 'sector',    label: 'Sector',    shortLabel: 'SEC', score: (raw.sector    !== undefined && raw.sector    !== null) ? clamp(Math.round(raw.sector))    : null, weight: ic.sector },
+        { id: 'corporate', label: 'Corporate', shortLabel: 'COR', score: (raw.corporate !== undefined && raw.corporate !== null) ? clamp(Math.round(raw.corporate)) : null, weight: ic.corporate },
+        { id: 'global',    label: 'Global',    shortLabel: 'GLO', score: (raw.global    !== undefined && raw.global    !== null) ? clamp(Math.round(raw.global))    : null, weight: ic.global },
     ];
 
     const composite = computeComposite(sections, true);

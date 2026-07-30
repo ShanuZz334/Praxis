@@ -10,7 +10,8 @@ import { scoreNiftyForwardEPS, generateAiInsightNiftyForwardEPS } from '@/featur
 export default function ForwardEPSCard({ cardId, data, manualOverride, lastUpdated }) {
     // 1. Core State & Extraction
     let isManual = true;
-    let extractedValue = null;
+    let extractedValue = null;   // YoY growth % fed to scorer
+    let extractedAbsEPS = null;  // Absolute EPS shown in UI
 
     // Attempt to extract live data from Upstox
     if (data?.income?.full_statement) {
@@ -21,14 +22,18 @@ export default function ForwardEPSCard({ cardId, data, manualOverride, lastUpdat
             const currentEps = epsObj.history[0].value;
             const previousEps = epsObj.history[1].value;
             if (previousEps !== 0) {
-                const epsYoY = (currentEps - previousEps) / Math.abs(previousEps);
-                extractedValue = currentEps * (1 + epsYoY); // Extrapolate Forward EPS
+                // scoreNiftyForwardEPS expects YoY growth as a %, e.g. 18.5 for 18.5%
+                const epsYoY = ((currentEps - previousEps) / Math.abs(previousEps)) * 100;
+                extractedValue = parseFloat(epsYoY.toFixed(2));
+                extractedAbsEPS = currentEps; // keep absolute for display
                 isManual = false;
             }
         }
     }
     
-    const currentValue = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
+    // scorer receives YoY growth %; display shows absolute EPS
+    const currentValue  = isManual ? (manualOverride !== undefined && manualOverride !== null && manualOverride !== '' ? cleanNum(manualOverride) : null) : extractedValue;
+    const displayEPS   = extractedAbsEPS;
 
     // 2. Load Central Config
     const configData = getIndicatorConfig(CARD_REGISTRY.forward_eps.id);
@@ -60,7 +65,7 @@ export default function ForwardEPSCard({ cardId, data, manualOverride, lastUpdat
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'EPS', value: currentValue !== null ? (typeof currentValue === 'number' ? '₹' + currentValue.toFixed(2) : '₹' + currentValue) : '--' },
+                currentValueObj: { label: 'EPS', value: displayEPS !== null ? '₹' + displayEPS.toFixed(2) : (currentValue !== null ? currentValue + '% growth' : '--') },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',

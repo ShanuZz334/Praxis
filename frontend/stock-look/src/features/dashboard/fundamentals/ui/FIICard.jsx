@@ -5,9 +5,10 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 import { scoreFIIFlow, generateAiInsightFIIFlow } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function FIICard({ cardId, data, manualOverride, lastUpdated }) {
+export default function FIICard({ cardId, data, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     // 1. Core State & Extraction
     let isManual = true;
     let extractedValue = null;
@@ -23,7 +24,7 @@ export default function FIICard({ cardId, data, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.fii.id);
 
     // 3. Praxis Engine
-    const scoreObj = scoreFIIFlow(currentValue);
+    const scoreObj = applyModeAdjustment(scoreFIIFlow(currentValue), 'fii_flow', tradingMode);
     const { score, bias, trendDesc } = scoreObj;
     
     const cCard = computeCardConfidence({

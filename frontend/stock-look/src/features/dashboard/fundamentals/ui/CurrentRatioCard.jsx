@@ -4,8 +4,10 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
+import { scoreCurrentRatio, generateAiInsightCurrentRatioCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function CurrentRatioCard({ cardId, data, manualOverride, lastUpdated }) {
+export default function CurrentRatioCard({ cardId, data, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     let isManual = true;
     let extractedValue = null;
     let extractedSector = null;
@@ -50,40 +52,18 @@ export default function CurrentRatioCard({ cardId, data, manualOverride, lastUpd
     // 2. Load Central Config
     const configData = getIndicatorConfig(CARD_REGISTRY.current_ratio.id);
 
-    let score = 0;
-    let bias = 'Neutral';
+    // 4. Centralized Scoring via scoringEngine.js
+    const { score = 0, bias = 'Neutral' } = currentRatio !== null ? applyModeAdjustment(scoreCurrentRatio(currentRatio), 'current_ratio', tradingMode) : {};
+    const aiInsightText = currentRatio !== null
+        ? (generateAiInsightCurrentRatioCard ? generateAiInsightCurrentRatioCard(currentRatio, sectorRatio) : 'No insights available.')
+        : 'Waiting for insight...';
+
     let confidence = '72%';
-    let aiInsightText = 'Waiting for insight...';
-
-    // 4. Custom Scoring Logic
     if (currentRatio !== null) {
-        if (currentRatio > 2.0) {
-            score = 92; bias = 'Strong Bullish';
-        } else if (currentRatio >= 1.5) {
-            score = 75; bias = 'Bullish';
-        } else if (currentRatio >= 1.0) {
-            score = 55; bias = 'Neutral';
-        } else if (currentRatio >= 0.8) {
-            score = 30; bias = 'Bearish';
-        } else {
-            score = 10; bias = 'Strong Bearish';
-        }
-
-        // 5. Dynamic AI Insight
-        if (currentRatio > 1.5) {
-            aiInsightText = 'The company has strong short-term liquidity and is well-positioned to meet current obligations.';
-        } else if (currentRatio >= 1.0) {
-            aiInsightText = 'Liquidity is adequate but should continue to be monitored.';
-        } else if (currentRatio >= 0.8) {
-            aiInsightText = 'Current liabilities exceed readily available current assets, increasing liquidity risk.';
-        } else {
-            aiInsightText = 'The company may face difficulty meeting short-term obligations without additional financing.';
-        }
-        
         const cCard = computeCardConfidence({
             hasLiveData: !isManual,
             isManual: !!manualOverride && isManual,
-            sourcePipeline: isManual ? 'manual' : (extractedSector ? 'upstox' : 'upstox'),
+            sourcePipeline: isManual ? 'manual' : 'upstox',
             lastUpdated: typeof lastUpdated === 'function' ? lastUpdated(!isManual) : (lastUpdated || '--:--')
         }, 'fundamentals');
         confidence = `${cCard}%`;

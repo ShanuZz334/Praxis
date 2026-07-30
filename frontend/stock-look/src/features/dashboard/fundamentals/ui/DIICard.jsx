@@ -6,8 +6,9 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreDIIFlow, generateAiInsightDIIFlow } from '@/features/dashboard/fundamentals/engine/scoringEngine';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
-export default function DIICard({ cardId, data, manualOverride, lastUpdated }) {
+export default function DIICard({ cardId, data, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     // 1. Core State & Extraction
     let isManual = true;
     let extractedValue = null;
@@ -23,7 +24,7 @@ export default function DIICard({ cardId, data, manualOverride, lastUpdated }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.dii.id);
 
     // 3. Praxis Engine
-    const scoreObj = scoreDIIFlow(currentValue);
+    const scoreObj = applyModeAdjustment(scoreDIIFlow(currentValue), 'dii_flow', tradingMode);
     const { score, bias, trendDesc } = scoreObj;
     
     const cCard = computeCardConfidence({

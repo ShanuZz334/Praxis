@@ -66,10 +66,14 @@ export function ThemeProvider({ children }) {
     const [tradingMode, setTradingMode] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('stocky-trading-mode');
+            // Migrate old values from v1 names to v2
+            if (saved === 'conservative') return 'intraday';
+            if (saved === 'balanced')     return 'swing';
+            if (saved === 'aggressive')   return 'positional';
             if (saved) return saved;
-            return 'balanced';
+            return 'swing';
         }
-        return 'balanced';
+        return 'swing';
     });
 
     const [tradingModeVfx, setTradingModeVfx] = useState(() => {
@@ -158,21 +162,23 @@ export function ThemeProvider({ children }) {
     // NEW: Sync Trading Mode Visuals
     useEffect(() => {
         const root = window.document.documentElement;
+        // Expose the active profile as a CSS data attribute for targeted styling
+        root.setAttribute('data-profile', tradingMode);
 
         if (tradingModeVfx) {
             switch (tradingMode) {
-                case 'conservative':
-                    root.style.setProperty('--gradient-start', '#10b981'); // Emerald 500
-                    root.style.setProperty('--gradient-end', '#06b6d4');   // Cyan 500
+                case 'intraday':
+                    root.style.setProperty('--gradient-start', '#f97316'); // Orange — fast, urgent
+                    root.style.setProperty('--gradient-end', '#ef4444');   // Red
                     break;
-                case 'aggressive':
-                    root.style.setProperty('--gradient-start', '#ef4444'); // Red 500
-                    root.style.setProperty('--gradient-end', '#f97316');   // Orange 500
+                case 'positional':
+                    root.style.setProperty('--gradient-start', '#10b981'); // Emerald — calm, long-term
+                    root.style.setProperty('--gradient-end', '#06b6d4');   // Cyan
                     break;
-                case 'balanced':
+                case 'swing':
                 default:
-                    root.style.setProperty('--gradient-start', '#3b82f6'); // Blue 500
-                    root.style.setProperty('--gradient-end', '#8b5cf6');   // Violet 500
+                    root.style.setProperty('--gradient-start', '#3b82f6'); // Blue — balanced
+                    root.style.setProperty('--gradient-end', '#8b5cf6');   // Violet
                     break;
             }
         } else {

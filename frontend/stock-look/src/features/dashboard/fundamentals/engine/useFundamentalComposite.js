@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import axiosInstance from '@/shared/utils/axiosInstance';
+import { useTheme } from '../../../../shared/context/ThemeContext';
+import axiosInstance from '../../../../shared/utils/axiosInstance';
 import { 
     computeCompanyComposite, 
     computeIndexComposite, 
@@ -8,7 +9,7 @@ import {
     ID_TO_TITLE
 } from './FundamentalCompositeEngine';
 
-import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { getIndicatorConfig } from '../../../../shared/config/indicatorConfig';
 
 /**
  * Hook to manage the Fundamental Composite state based on card snapshots.
@@ -16,6 +17,8 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
  * @param {string} instrumentKey - The unique key of the selected instrument
  */
 export function useFundamentalComposite(instrumentType, instrumentKey) {
+    const { tradingMode } = useTheme();
+    const tradingModeRef = useRef(tradingMode);
     const [result, setResult] = useState({
         sections: [],
         compositeScore: 0,
@@ -36,10 +39,11 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
         const scheduleRecompute = () => {
             if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
             debounceTimerRef.current = setTimeout(() => {
+                tradingModeRef.current = tradingMode;
                 const isIndex = instrumentType === 'Indices';
                 const newRes = isIndex 
-                    ? computeIndexComposite(scoresRef.current)
-                    : computeCompanyComposite(scoresRef.current);
+                    ? computeIndexComposite(scoresRef.current, tradingMode)
+                    : computeCompanyComposite(scoresRef.current, tradingMode);
                 setResult({ ...newRes, rawScores: { ...scoresRef.current } });
 
                 // Persist header calculation to Backend (Fire & Forget)
@@ -93,7 +97,7 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
         scheduleRecompute();
 
         return () => window.removeEventListener('ai-snapshot', handleSnapshot);
-    }, [instrumentType, instrumentKey]);
+    }, [instrumentType, instrumentKey, tradingMode]);
 
     // Automatically clear scores when instrument changes to avoid stale composite
     useEffect(() => {
@@ -102,8 +106,8 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
             scoresRef.current = {};
             const isIndex = instrumentType === 'Indices';
             const newRes = isIndex 
-                ? computeIndexComposite({})
-                : computeCompanyComposite({});
+                ? computeIndexComposite({}, tradingMode)
+                : computeCompanyComposite({}, tradingMode);
             setResult(newRes);
         }
     }, [instrumentKey, instrumentType]);
@@ -112,8 +116,8 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
         scoresRef.current = {};
         const isIndex = instrumentType === 'Indices';
         const newRes = isIndex 
-            ? computeIndexComposite(scoresRef.current)
-            : computeCompanyComposite(scoresRef.current);
+            ? computeIndexComposite(scoresRef.current, tradingMode)
+            : computeCompanyComposite(scoresRef.current, tradingMode);
         setResult(newRes);
     };
 

@@ -1,4 +1,17 @@
+import { FUNDAMENTAL_THRESHOLDS, DEFAULT_BIAS_MAP, applyBiasMap } from '../../../../shared/thresholds/fundamentalThresholds.js';
+
 export const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+
+// Helper: resolve a score from an absolute bands array in FUNDAMENTAL_THRESHOLDS
+// Band format: { below?, above?, else?, score }
+function resolveBand(value, bands) {
+    for (const band of bands) {
+        if (band.else) return band.score;
+        if (band.below !== undefined && value < band.below) return band.score;
+        if (band.above !== undefined && value > band.above) return band.score;
+    }
+    return bands[bands.length - 1].score;
+}
 
 export function scoreADRatio(adRatio) {
     if (adRatio === null || isNaN(adRatio)) {
@@ -46,13 +59,7 @@ export function scoreADRatio(adRatio) {
     const blended = (f2Score * 0.50) + (f2Score * 0.30) + (f3Score * 0.20);
     const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
 
-    // ── Bias Mapping ──────────────────────────────────────────────────────
-    let bias;
-    if (finalScore >= 80)      bias = 'Strong Bullish';
-    else if (finalScore >= 62) bias = 'Bullish';
-    else if (finalScore >= 42) bias = 'Neutral';
-    else if (finalScore >= 25) bias = 'Bearish';
-    else                       bias = 'Strong Bearish';
+    const bias = applyBiasMap(finalScore, FUNDAMENTAL_THRESHOLDS.advance_decline.biasMap);
 
     // ── Breadth Zone Label ────────────────────────────────────────────────
     let breadthZone;
@@ -64,9 +71,9 @@ export function scoreADRatio(adRatio) {
 
     // ── Confidence: higher at extremes where the signal is clearest ───────
     let confidence;
-    if (adRatio > 2.0 || adRatio < 0.5) confidence = 88; // Clear extreme signal
+    if (adRatio > 2.0 || adRatio < 0.5) confidence = 88;
     else if (adRatio > 1.3 || adRatio < 0.7) confidence = 80;
-    else confidence = 65; // Neutral zone — less predictive
+    else confidence = 65;
 
     return { score: finalScore, bias, confidence, breadthZone, signalType };
 }
@@ -76,64 +83,36 @@ export function scoreDebtToEquity(currentDE, sectorDE) {
         return { score: null, bias: 'Neutral', confidence: 0, leverageZone: 'Unknown' };
     }
 
+    const T = FUNDAMENTAL_THRESHOLDS.debt_to_equity;
+
     // ── Factor 1: Absolute D/E Thresholds (0–100) ─────────────────────────
-    // Lower D/E = healthier financial structure = higher score
-    let f1Score;
-    let leverageZone;
-    if (currentDE < 0.1) {
-        f1Score = 98; leverageZone = 'Debt Free';
-    } else if (currentDE < 0.3) {
-        f1Score = 90; leverageZone = 'Very Low Leverage';
-    } else if (currentDE < 0.6) {
-        f1Score = 78; leverageZone = 'Conservative';
-    } else if (currentDE < 1.0) {
-        f1Score = 60; leverageZone = 'Moderate Leverage';
-    } else if (currentDE < 1.5) {
-        f1Score = 42; leverageZone = 'Elevated Leverage';
-    } else if (currentDE < 2.5) {
-        f1Score = 22; leverageZone = 'High Leverage';
-    } else {
-        f1Score = 5; leverageZone = 'Dangerously Leveraged';
-    }
+    const abs1  = T.absoluteBands.find(b => b.else || (b.below !== undefined && currentDE < b.below));
+    const f1Score   = abs1?.score ?? 5;
+    const leverageZone = abs1?.zone ?? 'Dangerously Leveraged';
 
     // ── Factor 2: Relative vs Sector D/E ─────────────────────────────────
-    let f2Score = f1Score; // default if no sector data
+    let f2Score = f1Score;
     let hasSector = false;
     if (sectorDE !== null && !isNaN(sectorDE) && sectorDE > 0) {
         hasSector = true;
         const ratio = currentDE / sectorDE;
-        if (ratio < 0.5)        f2Score = 95; // Far below sector — very disciplined
-        else if (ratio < 0.8)   f2Score = 80; // Below sector — responsible
-        else if (ratio < 1.0)   f2Score = 65; // Slightly below
-        else if (ratio < 1.2)   f2Score = 50; // Near sector average
-        else if (ratio < 1.5)   f2Score = 32; // Above sector
-        else                    f2Score = 12; // Far above sector — concerning
+        f2Score = resolveBand(ratio, T.sectorRatioBands);
     }
 
     // ── Factor 3: Risk Regime Classification ─────────────────────────────
-    let f3Score;
-    if (currentDE < 0.3)      f3Score = 95; // Very safe
-    else if (currentDE < 0.7) f3Score = 75; // Safe
-    else if (currentDE < 1.2) f3Score = 50; // Watch zone
-    else if (currentDE < 2.0) f3Score = 25; // Risk zone
-    else                      f3Score = 5;  // Danger zone
+    const f3Score = resolveBand(currentDE, T.riskBands);
 
     // ── Blend ─────────────────────────────────────────────────────────────
+    const fw = hasSector ? T.factorWeights.withSector : T.factorWeights.withoutSector;
     const blended = hasSector
-        ? (f1Score * 0.50) + (f2Score * 0.30) + (f3Score * 0.20)
-        : (f1Score * 0.65) + (f3Score * 0.35);
+        ? (f1Score * fw.f1) + (f2Score * fw.f2) + (f3Score * fw.f3)
+        : (f1Score * fw.f1) + (f3Score * fw.f3);
     const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
 
-    // ── Bias ──────────────────────────────────────────────────────────────
-    let bias;
-    if (finalScore >= 80)      bias = 'Strong Bullish';
-    else if (finalScore >= 62) bias = 'Bullish';
-    else if (finalScore >= 42) bias = 'Neutral';
-    else if (finalScore >= 25) bias = 'Bearish';
-    else                       bias = 'Strong Bearish';
-
-    // ── Dynamic Confidence ────────────────────────────────────────────────
-    const confidence = hasSector ? 90 : (currentDE < 0.5 || currentDE > 2.0 ? 82 : 72);
+    const bias = applyBiasMap(finalScore, T.biasMap);
+    const confidence = hasSector
+        ? T.confidence.withSector
+        : (currentDE < 0.5 || currentDE > 2.0 ? T.confidence.extremeNoSector : T.confidence.normal);
 
     return { score: finalScore, bias, confidence, leverageZone };
 }
@@ -141,35 +120,25 @@ export function scoreDebtToEquity(currentDE, sectorDE) {
 export function scoreDividendYield(currentYield, bondYield) {
     if (currentYield === null || isNaN(currentYield)) return { score: null, bias: 'Neutral', confidence: '0%' };
 
+    const T = FUNDAMENTAL_THRESHOLDS.dividend_yield;
     let score = 50;
     let confidencePoints = 40;
 
-    // 1. Absolute Yield vs Risk-Free Rate (Bond Yield)
     if (bondYield !== null && !isNaN(bondYield)) {
         confidencePoints += 20;
         const spread = currentYield - bondYield;
-        if (spread > 2.0) score += 20; // Yielding much more than bonds
-        else if (spread > 0) score += 10; // Yielding more than bonds
-        else if (currentYield === 0) score -= 10; // No yield
+        if (spread > 2.0) score += 20;
+        else if (spread > 0) score += 10;
+        else if (currentYield === 0) score -= 10;
         else score -= 5;
     } else {
-        // Fallback to absolute thresholds if bond yield is missing
         if (currentYield > 5.0) score += 20;
         else if (currentYield > 3.0) score += 10;
         else if (currentYield === 0) score -= 10;
     }
 
-
-
     score = Math.max(0, Math.min(100, score));
-
-    let bias = "Neutral";
-    if (score >= 80) bias = "Strong Bullish";
-    else if (score >= 65) bias = "Bullish";
-    else if (score <= 20) bias = "Strong Bearish";
-    else if (score <= 35) bias = "Bearish";
-
-    return { score, bias, confidence: `${confidencePoints}%` };
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: `${confidencePoints}%` };
 }
 
 export function scoreEarningsTrend(epsHistory, manualCAGR) {
@@ -177,20 +146,18 @@ export function scoreEarningsTrend(epsHistory, manualCAGR) {
         return { score: null, bias: 'Neutral', confidence: '0%', trendLabel: '--', cagr: null };
     }
 
+    const T = FUNDAMENTAL_THRESHOLDS.earnings_trend;
     let score = 50;
     let confidencePoints = 0;
-    let trendLabel = "Unknown";
+    let trendLabel = 'Unknown';
     let calculatedCAGR = null;
 
     if (epsHistory && epsHistory.length >= 2) {
-        // epsHistory is usually sorted latest first (e.g. Mar 2026, Mar 2025, Mar 2024)
-        // Let's reverse it to chronological order
         const chronological = [...epsHistory].reverse();
-        
         let positiveYears = 0;
         let negativeYears = 0;
         let totalPeriods = chronological.length - 1;
-        
+
         for (let i = 1; i <= totalPeriods; i++) {
             const prev = chronological[i-1].value;
             const curr = chronological[i].value;
@@ -203,103 +170,71 @@ export function scoreEarningsTrend(epsHistory, manualCAGR) {
 
         const first = chronological[0].value;
         const last = chronological[chronological.length - 1].value;
-        
         if (first > 0 && last > 0) {
             calculatedCAGR = (Math.pow(last / first, 1 / totalPeriods) - 1) * 100;
         }
 
-        confidencePoints = Math.min(95, 40 + (totalPeriods * 15));
+        confidencePoints = Math.min(T.confidence.max, T.confidence.base + (totalPeriods * T.confidence.perPeriod));
 
         if (positiveYears === totalPeriods) {
-            score = 90; trendLabel = "Consistent Growth";
+            score = 90; trendLabel = 'Consistent Growth';
         } else if (positiveYears > negativeYears && last > chronological[totalPeriods-1].value) {
-            score = 75; trendLabel = "Improving";
+            score = 75; trendLabel = 'Improving';
         } else if (positiveYears === negativeYears) {
-            score = 50; trendLabel = "Volatile / Flat";
+            score = 50; trendLabel = 'Volatile / Flat';
         } else if (negativeYears > positiveYears && last < chronological[totalPeriods-1].value) {
-            score = 30; trendLabel = "Weakening";
+            score = 30; trendLabel = 'Weakening';
         } else if (negativeYears === totalPeriods) {
-            score = 10; trendLabel = "Consistent Decline";
+            score = 10; trendLabel = 'Consistent Decline';
         } else {
-            score = 50; trendLabel = "Mixed";
+            score = 50; trendLabel = 'Mixed';
         }
     } else {
-        // Manual CAGR fallback
         calculatedCAGR = manualCAGR;
-        confidencePoints = 60;
-        
-        if (manualCAGR > 15) { score = 90; trendLabel = "Consistent Growth"; }
-        else if (manualCAGR > 5) { score = 75; trendLabel = "Improving"; }
-        else if (manualCAGR > -5) { score = 50; trendLabel = "Stable / Flat"; }
-        else if (manualCAGR > -15) { score = 30; trendLabel = "Weakening"; }
-        else { score = 10; trendLabel = "Consistent Decline"; }
+        confidencePoints = T.confidence.manual;
+        if (manualCAGR > 15)       { score = 90; trendLabel = 'Consistent Growth'; }
+        else if (manualCAGR > 5)   { score = 75; trendLabel = 'Improving'; }
+        else if (manualCAGR > -5)  { score = 50; trendLabel = 'Stable / Flat'; }
+        else if (manualCAGR > -15) { score = 30; trendLabel = 'Weakening'; }
+        else                       { score = 10; trendLabel = 'Consistent Decline'; }
     }
 
-    let bias = "Neutral";
-    if (score >= 80) bias = "Strong Bullish";
-    else if (score >= 60) bias = "Bullish";
-    else if (score <= 20) bias = "Strong Bearish";
-    else if (score <= 40) bias = "Bearish";
-
-    return { score, bias, confidence: `${confidencePoints}%`, trendLabel, cagr: calculatedCAGR };
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: `${confidencePoints}%`, trendLabel, cagr: calculatedCAGR };
 }
 
 export function scoreEarningsYield(currentYield, historicalYield, bondYield) {
     if (!currentYield) {
-        return { score: null, bias: "Unknown", confidence: "0%" };
+        return { score: null, bias: 'Unknown', confidence: '0%' };
     }
 
+    const T = FUNDAMENTAL_THRESHOLDS.earnings_yield;
     let score = 50;
-    let bias = "Neutral";
-    let confidence = "50%";
     let conditionsMet = 0;
 
-    // 1. Compare vs Historical Average (Primary Weight)
     if (historicalYield) {
         conditionsMet++;
-        if (currentYield >= historicalYield * 1.3) {
-            score += 30; // Exceptionally high yield relative to history
-        } else if (currentYield > historicalYield * 1.1) {
-            score += 15; // Good yield
-        } else if (currentYield <= historicalYield * 0.7) {
-            score -= 30; // Very poor yield
-        } else if (currentYield < historicalYield * 0.9) {
-            score -= 15; // Poor yield
-        }
+        if (currentYield >= historicalYield * 1.3)     score += 30;
+        else if (currentYield > historicalYield * 1.1) score += 15;
+        else if (currentYield <= historicalYield * 0.7) score -= 30;
+        else if (currentYield < historicalYield * 0.9) score -= 15;
     }
 
-    // 2. Equity Risk Premium vs Bond Yield (Secondary Weight)
     if (bondYield) {
         conditionsMet++;
         const equityRiskPremium = currentYield - bondYield;
-        
-        if (equityRiskPremium >= 4.0) {
-            score += 20; // Excellent premium over risk-free rate
-        } else if (equityRiskPremium >= 2.0) {
-            score += 10;
-        } else if (equityRiskPremium < 0) {
-            score -= 20; // Negative risk premium (bonds yield more than equities)
-        } else if (equityRiskPremium < 1.0) {
-            score -= 10; // Weak premium
-        }
+        if (equityRiskPremium >= 4.0)      score += 20;
+        else if (equityRiskPremium >= 2.0) score += 10;
+        else if (equityRiskPremium < 0)    score -= 20;
+        else if (equityRiskPremium < 1.0)  score -= 10;
     }
 
-    // Normalize Score
     score = Math.max(0, Math.min(100, score));
 
-    // Determine Bias
-    if (score >= 80) bias = "Strong Bullish";
-    else if (score >= 60) bias = "Bullish";
-    else if (score <= 20) bias = "Strong Bearish";
-    else if (score <= 40) bias = "Bearish";
-    else bias = "Neutral";
+    const confidence = conditionsMet === 2 ? T.confidence.both
+        : conditionsMet === 1 ? T.confidence.one
+        : T.confidence.none;
 
-    // Determine Confidence
-    if (conditionsMet === 2) confidence = "90%";
-    else if (conditionsMet === 1) confidence = "70%";
-    else confidence = "40%"; // Only have current Yield
-
-    return { score, bias, confidence };
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence };
 }
 
 export function scoreEPSGrowth(cagr, latestYoY, positiveYears, totalPeriods) {
@@ -359,20 +294,13 @@ export function scoreEPSGrowth(cagr, latestYoY, positiveYears, totalPeriods) {
         : f1Score;
     const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
 
-    // ── Bias ──────────────────────────────────────────────────────────────
-    let bias;
-    if (finalScore >= 80)      bias = 'Strong Bullish';
-    else if (finalScore >= 62) bias = 'Bullish';
-    else if (finalScore >= 42) bias = 'Neutral';
-    else if (finalScore >= 25) bias = 'Bearish';
-    else                       bias = 'Strong Bearish';
+    const bias = applyBiasMap(finalScore, FUNDAMENTAL_THRESHOLDS.eps_growth.biasMap);
 
-    // ── Confidence scales with data richness ──────────────────────────────
     let confidence;
     if (totalPeriods >= 5)      confidence = 90;
     else if (totalPeriods >= 3) confidence = 80;
     else if (totalPeriods >= 2) confidence = 70;
-    else                        confidence = 55; // Manual only
+    else                        confidence = 55;
 
     return { score: finalScore, bias, confidence, growthTier, momentumLabel };
 }
@@ -385,27 +313,12 @@ export function scoreInstitutionalFlow(fiiFlow, diiFlow) {
     const netFlow = fiiFlow + diiFlow;
     let score = 50;
 
-    if (fiiFlow > 0 && diiFlow > 0) {
-        // Both buying: Strong Bullish
-        score = 95;
-    } else if (fiiFlow < 0 && diiFlow < 0) {
-        // Both selling: Strong Bearish
-        score = 10;
-    } else if (netFlow > 0) {
-        // One is selling, but net is positive (usually DII absorbing FII)
-        score = fiiFlow > 0 ? 80 : 70; // Slightly better if FII is leading the buying
-    } else {
-        // One is buying, but net is negative
-        score = fiiFlow < 0 ? 30 : 40; // Slightly worse if FII is leading the selling
-    }
+    if (fiiFlow > 0 && diiFlow > 0) { score = 95; }
+    else if (fiiFlow < 0 && diiFlow < 0) { score = 10; }
+    else if (netFlow > 0) { score = fiiFlow > 0 ? 80 : 70; }
+    else { score = fiiFlow < 0 ? 30 : 40; }
 
-    let bias = "Neutral";
-    if (score >= 80) bias = "Strong Bullish";
-    else if (score >= 60) bias = "Bullish";
-    else if (score <= 20) bias = "Strong Bearish";
-    else if (score <= 40) bias = "Bearish";
-
-    return { score, bias, confidence: '95%', netFlow };
+    return { score, bias: applyBiasMap(score, FUNDAMENTAL_THRESHOLDS.advance_decline.biasMap), confidence: '95%', netFlow };
 }
 
 export function scoreForwardPE(currentFwdPE, currentPE) {
@@ -413,46 +326,27 @@ export function scoreForwardPE(currentFwdPE, currentPE) {
         return { score: null, bias: 'Neutral', confidence: 60 };
     }
 
+    const T = FUNDAMENTAL_THRESHOLDS.forward_pe;
+
     if (currentPE === null || currentPE === undefined || isNaN(currentPE)) {
         // Absolute Forward PE scoring if Trailing PE is missing
-        let absScore = 50;
-        if (currentFwdPE < 10)       absScore = 95;
-        else if (currentFwdPE < 15)  absScore = 80;
-        else if (currentFwdPE < 20)  absScore = 65;
-        else if (currentFwdPE < 25)  absScore = 50;
-        else if (currentFwdPE < 35)  absScore = 30;
-        else                         absScore = 10;
-        
-        let bias;
-        if (absScore >= 80)      bias = 'Strong Bullish';
-        else if (absScore >= 62) bias = 'Bullish';
-        else if (absScore >= 42) bias = 'Neutral';
-        else if (absScore >= 25) bias = 'Bearish';
-        else                     bias = 'Strong Bearish';
-        
-        return { score: absScore, bias, confidence: 65 };
+        const absScore = resolveBand(currentFwdPE, T.absoluteBands);
+        return { score: absScore, bias: applyBiasMap(absScore, T.biasMap), confidence: T.confidence.absoluteOnly };
     }
 
     // Relative scoring: Forward PE vs Trailing PE
     const growthPremium = (currentPE - currentFwdPE) / currentPE; // Positive means Fwd PE is lower (growth)
-    
+
     let relScore = 50;
-    if (growthPremium > 0.30)       relScore = 95; // 30%+ earnings growth priced in
-    else if (growthPremium > 0.15)  relScore = 85; // 15-30% growth
-    else if (growthPremium > 0.05)  relScore = 65; // 5-15% growth
-    else if (growthPremium > -0.05) relScore = 50; // Flat earnings
-    else if (growthPremium > -0.15) relScore = 35; // Slight earnings decline
-    else if (growthPremium > -0.30) relScore = 20; // Significant earnings decline
-    else                            relScore = 5;  // Severe contraction
+    if (growthPremium > 0.30)       relScore = 95;
+    else if (growthPremium > 0.15)  relScore = 85;
+    else if (growthPremium > 0.05)  relScore = 65;
+    else if (growthPremium > -0.05) relScore = 50;
+    else if (growthPremium > -0.15) relScore = 35;
+    else if (growthPremium > -0.30) relScore = 20;
+    else                            relScore = 5;
 
-    let bias;
-    if (relScore >= 80)      bias = 'Strong Bullish';
-    else if (relScore >= 62) bias = 'Bullish';
-    else if (relScore >= 42) bias = 'Neutral';
-    else if (relScore >= 25) bias = 'Bearish';
-    else                     bias = 'Strong Bearish';
-
-    return { score: relScore, bias, confidence: 85 };
+    return { score: relScore, bias: applyBiasMap(relScore, T.biasMap), confidence: T.confidence.withTrailing };
 }
 
 export function scoreFreeCashFlow(currentFCF, revenue) {
@@ -523,15 +417,7 @@ export function scoreFreeCashFlow(currentFCF, revenue) {
         : (f1Score * 0.70) + (f3Score * 0.30);
     const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
 
-    // ── Bias ──────────────────────────────────────────────────────────────
-    let bias;
-    if (finalScore >= 80)      bias = 'Strong Bullish';
-    else if (finalScore >= 62) bias = 'Bullish';
-    else if (finalScore >= 42) bias = 'Neutral';
-    else if (finalScore >= 25) bias = 'Bearish';
-    else                       bias = 'Strong Bearish';
-
-    // ── Confidence: Higher when yield is available for normalization ───────
+    const bias = applyBiasMap(finalScore, FUNDAMENTAL_THRESHOLDS.free_cash_flow.biasMap);
     const confidence = hasYield ? 88 : 68;
 
     return { score: finalScore, bias, confidence, fcfCategory, fcfYield };
@@ -542,31 +428,20 @@ export function scoreGDPGrowth(currentGrowth) {
         return { score: null, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
     }
 
-    let score = 50;
-    let trendDesc = "Stable";
-    let bias = "Neutral";
+    const T = FUNDAMENTAL_THRESHOLDS.gdp_growth;
+    const match = T.absoluteBands.find(b => b.else || (b.above !== undefined && currentGrowth > b.above));
+    const score     = match?.score ?? 10;
+    const trendDesc = match?.label ?? 'Contraction (Recession)';
 
-    if (currentGrowth > 8) {
-        score = 95; bias = "Strong Bullish"; trendDesc = "Rapid Expansion";
-    } else if (currentGrowth > 6) {
-        score = 82; bias = "Bullish"; trendDesc = "Healthy Expansion";
-    } else if (currentGrowth > 4) {
-        score = 60; bias = "Neutral"; trendDesc = "Moderate Growth";
-    } else if (currentGrowth > 0) {
-        score = 35; bias = "Bearish"; trendDesc = "Economic Slowdown";
-    } else {
-        score = 10; bias = "Strong Bearish"; trendDesc = "Contraction (Recession)";
-    }
-
-    const confidence = currentGrowth > 8 || currentGrowth < 0 ? '88%' : '78%';
-    return { score, bias, confidence, trendDesc };
+    const confidence = currentGrowth > 8 || currentGrowth < 0 ? `${T.confidence.extreme}%` : `${T.confidence.normal}%`;
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence, trendDesc };
 }
 
 export function scorePCR(pcrValue) {
     if (pcrValue === null || isNaN(pcrValue)) {
         return { score: null, bias: 'Neutral', confidence: 0, optionsBias: 'Unknown', signalStrength: 'No Data' };
     }
-
+    const T = FUNDAMENTAL_THRESHOLDS.pcr;
     // ── Factor 1: Contrarian Level Score (0–100) ──────────────────────────
     // HIGH PCR = bullish contrarian signal (bearish crowd = market bottom)
     // LOW PCR = bearish contrarian signal (bullish crowd = market top)
@@ -641,6 +516,8 @@ export function scoreInterestCoverage(currentCoverage, sectorCoverage) {
         return { score: null, bias: 'Neutral', confidence: 0, safetyZone: 'Unknown' };
     }
 
+    const T = FUNDAMENTAL_THRESHOLDS.interest_coverage;
+
     // ── Factor 1: Absolute Safety Threshold ───────────────────────────────
     let f1Score;
     let safetyZone;
@@ -661,7 +538,6 @@ export function scoreInterestCoverage(currentCoverage, sectorCoverage) {
     }
 
     // ── Factor 2: Margin of Safety Above Break-Even (1.0x) ────────────────
-    // Every x above 1.0 represents one full layer of earnings buffer
     const marginAboveBreakeven = Math.max(0, currentCoverage - 1.0);
     let f2Score;
     if (marginAboveBreakeven > 10) f2Score = 95;
@@ -669,10 +545,10 @@ export function scoreInterestCoverage(currentCoverage, sectorCoverage) {
     else if (marginAboveBreakeven > 3) f2Score = 65;
     else if (marginAboveBreakeven > 1) f2Score = 42;
     else if (marginAboveBreakeven > 0) f2Score = 20;
-    else f2Score = 5; // Below break-even
+    else f2Score = 5;
 
     // ── Factor 3: Sector Comparison ──────────────────────────────────────
-    let f3Score = f1Score; // fallback
+    let f3Score = f1Score;
     let hasSector = false;
     if (sectorCoverage !== null && !isNaN(sectorCoverage) && sectorCoverage > 0) {
         hasSector = true;
@@ -684,21 +560,12 @@ export function scoreInterestCoverage(currentCoverage, sectorCoverage) {
         else                  f3Score = 10;
     }
 
-    // ── Blend ─────────────────────────────────────────────────────────────
     const blended = hasSector
         ? (f1Score * 0.50) + (f2Score * 0.30) + (f3Score * 0.20)
         : (f1Score * 0.60) + (f2Score * 0.40);
     const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
 
-    // ── Bias ──────────────────────────────────────────────────────────────
-    let bias;
-    if (finalScore >= 80)      bias = 'Strong Bullish';
-    else if (finalScore >= 62) bias = 'Bullish';
-    else if (finalScore >= 42) bias = 'Neutral';
-    else if (finalScore >= 25) bias = 'Bearish';
-    else                       bias = 'Strong Bearish';
-
-    // ── Confidence ────────────────────────────────────────────────────────
+    const bias = applyBiasMap(finalScore, T.biasMap);
     const confidence = hasSector ? 90 : (currentCoverage > 10 || currentCoverage < 1.5 ? 82 : 74);
 
     return { score: finalScore, bias, confidence, safetyZone };
@@ -764,15 +631,8 @@ export function scoreMACDHistogram(macdValue) {
     const blended = (f1Score * 0.50) + (f2Score * 0.30) + (f3Score * 0.20);
     const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
 
-    // ── Bias Mapping ──────────────────────────────────────────────────────
-    let bias;
-    if (finalScore >= 80)      bias = 'Strong Bullish';
-    else if (finalScore >= 62) bias = 'Bullish';
-    else if (finalScore >= 42) bias = 'Neutral';
-    else if (finalScore >= 25) bias = 'Bearish';
-    else                       bias = 'Strong Bearish';
+    const bias = applyBiasMap(finalScore, FUNDAMENTAL_THRESHOLDS.advance_decline.biasMap);
 
-    // ── Momentum Direction Label ──────────────────────────────────────────
     let momentumDir;
     if (macdValue > 100)       momentumDir = 'Strong Upward Momentum';
     else if (macdValue > 15)   momentumDir = 'Positive Momentum';
@@ -780,12 +640,11 @@ export function scoreMACDHistogram(macdValue) {
     else if (macdValue > -100) momentumDir = 'Negative Momentum';
     else                       momentumDir = 'Strong Downward Momentum';
 
-    // ── Confidence: highest at extremes, lowest near zero ────────────────
     let confidence;
-    if (absValue > 150) confidence = 88; // Clear directional momentum
+    if (absValue > 150) confidence = 88;
     else if (absValue > 60) confidence = 76;
     else if (absValue > 15) confidence = 64;
-    else confidence = 52; // Near zero — uncertain crossover zone
+    else confidence = 52;
 
     return { score: finalScore, bias, confidence, momentumDir, signalZone };
 }
@@ -848,19 +707,12 @@ export function scoreDMA200(dmaDistance) {
     const blended = (f1Score * 0.50) + (f2Score * 0.30) + (f3Score * 0.20);
     const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
 
-    // ── Bias Mapping ──────────────────────────────────────────────────────
-    let bias;
-    if (finalScore >= 80)      bias = 'Strong Bullish';
-    else if (finalScore >= 62) bias = 'Bullish';
-    else if (finalScore >= 42) bias = 'Neutral';
-    else if (finalScore >= 25) bias = 'Bearish';
-    else                       bias = 'Strong Bearish';
+    const bias = applyBiasMap(finalScore, FUNDAMENTAL_THRESHOLDS.advance_decline.biasMap);
 
-    // ── Confidence: highest at extremes where signal is clearest ─────────
     let confidence;
-    if (dmaDistance > 20 || dmaDistance < -15) confidence = 90; // Clear extremes
+    if (dmaDistance > 20 || dmaDistance < -15) confidence = 90;
     else if (dmaDistance > 10 || dmaDistance < -8) confidence = 82;
-    else if (Math.abs(dmaDistance) < 3) confidence = 78; // Support/resistance test
+    else if (Math.abs(dmaDistance) < 3) confidence = 78;
     else confidence = 70;
 
     return { score: finalScore, bias, confidence, dmaPosition, distanceCategory };
@@ -871,22 +723,14 @@ export function scoreNetMargin(currentMargin, sectorMargin) {
         return { score: null, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
     }
 
-    // Factor 1: Absolute margin level (50 weight)
-    let f1Score;
-    let trendDesc;
-    if (currentMargin > 20) {
-        f1Score = 95; trendDesc = "Exceptional Profitability";
-    } else if (currentMargin > 15) {
-        f1Score = 82; trendDesc = "High Margin";
-    } else if (currentMargin >= 10) {
-        f1Score = 60; trendDesc = "Healthy Margin";
-    } else if (currentMargin > 0) {
-        f1Score = 30; trendDesc = "Thin Margin";
-    } else {
-        f1Score = 5; trendDesc = "Loss Making";
-    }
+    const T = FUNDAMENTAL_THRESHOLDS.net_margin;
 
-    // Factor 2: Sector comparison (30 weight when available)
+    // Factor 1: Absolute margin level
+    const band1 = T.absoluteBands.find(b => b.else || (b.above !== undefined && currentMargin > b.above));
+    const f1Score = band1?.score ?? 5;
+    const trendDesc = band1?.label ?? 'Unknown';
+
+    // Factor 2: Sector comparison
     let hasSector = false;
     let f2Score = f1Score;
     if (sectorMargin !== null && !isNaN(sectorMargin)) {
@@ -899,19 +743,17 @@ export function scoreNetMargin(currentMargin, sectorMargin) {
         else                  f2Score = 10;
     }
 
+    const fw = T.factorWeights;
     const blended = hasSector
-        ? (f1Score * 0.65) + (f2Score * 0.35)
+        ? (f1Score * fw.withSector.f1) + (f2Score * fw.withSector.f2)
         : f1Score;
     const score = Math.round(Math.max(0, Math.min(100, blended)));
 
-    let bias;
-    if (score >= 80)      bias = 'Strong Bullish';
-    else if (score >= 60) bias = 'Bullish';
-    else if (score >= 40) bias = 'Neutral';
-    else if (score >= 20) bias = 'Bearish';
-    else                  bias = 'Strong Bearish';
+    const bias = applyBiasMap(score, T.biasMap);
+    const confidence = hasSector
+        ? `${T.confidence.withSector}%`
+        : (currentMargin > 20 || currentMargin < 0 ? `${T.confidence.absoluteOnly}%` : '72%');
 
-    const confidence = hasSector ? '90%' : (currentMargin > 20 || currentMargin < 0 ? '82%' : '72%');
     return { score, bias, confidence, trendDesc };
 }
 
@@ -920,22 +762,14 @@ export function scoreOperatingMargin(currentMargin, sectorMargin) {
         return { score: null, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
     }
 
-    // Factor 1: Absolute operating margin level
-    let f1Score;
-    let trendDesc;
-    if (currentMargin > 25) {
-        f1Score = 95; trendDesc = "Exceptional Operations";
-    } else if (currentMargin > 18) {
-        f1Score = 82; trendDesc = "High Operating Leverage";
-    } else if (currentMargin >= 10) {
-        f1Score = 60; trendDesc = "Healthy Operations";
-    } else if (currentMargin > 0) {
-        f1Score = 30; trendDesc = "Weak Operations";
-    } else {
-        f1Score = 5; trendDesc = "Operating Loss";
-    }
+    const T = FUNDAMENTAL_THRESHOLDS.operating_margin;
 
-    // Factor 2: Sector comparison (35% weight when available)
+    // Factor 1: Absolute operating margin level
+    const band1 = T.absoluteBands.find(b => b.else || (b.above !== undefined && currentMargin > b.above));
+    const f1Score = band1?.score ?? 5;
+    const trendDesc = band1?.label ?? 'Unknown';
+
+    // Factor 2: Sector comparison
     let hasSector = false;
     let f2Score = f1Score;
     if (sectorMargin !== null && !isNaN(sectorMargin)) {
@@ -948,17 +782,17 @@ export function scoreOperatingMargin(currentMargin, sectorMargin) {
         else                  f2Score = 10;
     }
 
-    const blended = hasSector ? (f1Score * 0.65) + (f2Score * 0.35) : f1Score;
+    const fw = T.factorWeights;
+    const blended = hasSector
+        ? (f1Score * fw.withSector.f1) + (f2Score * fw.withSector.f2)
+        : f1Score;
     const score = Math.round(Math.max(0, Math.min(100, blended)));
 
-    let bias;
-    if (score >= 80)      bias = 'Strong Bullish';
-    else if (score >= 60) bias = 'Bullish';
-    else if (score >= 40) bias = 'Neutral';
-    else if (score >= 20) bias = 'Bearish';
-    else                  bias = 'Strong Bearish';
+    const bias = applyBiasMap(score, T.biasMap);
+    const confidence = hasSector
+        ? `${T.confidence.withSector}%`
+        : (currentMargin > 25 || currentMargin < 0 ? `${T.confidence.absoluteOnly}%` : '72%');
 
-    const confidence = hasSector ? '90%' : (currentMargin > 25 || currentMargin < 0 ? '82%' : '72%');
     return { score, bias, confidence, trendDesc };
 }
 
@@ -967,53 +801,33 @@ export function scorePBRatio(currentPB, historicalPB, sectorPB) {
         return { score: null, bias: "Unknown", confidence: "0%" };
     }
 
+    const T = FUNDAMENTAL_THRESHOLDS.pb_ratio;
     let score = 50;
-    let bias = "Neutral";
-    let confidence = "50%";
     let conditionsMet = 0;
 
-    // 1. Compare vs Historical Average (Primary Weight)
     if (historicalPB) {
         conditionsMet++;
-        if (currentPB <= historicalPB * 0.7) {
-            score += 30; // Deep discount to own history
-        } else if (currentPB < historicalPB * 0.95) {
-            score += 15; // Moderate discount
-        } else if (currentPB >= historicalPB * 1.3) {
-            score -= 30; // Severe premium
-        } else if (currentPB > historicalPB * 1.05) {
-            score -= 15; // Moderate premium
-        }
+        if (currentPB <= historicalPB * 0.7) score += 30;
+        else if (currentPB < historicalPB * 0.95) score += 15;
+        else if (currentPB >= historicalPB * 1.3) score -= 30;
+        else if (currentPB > historicalPB * 1.05) score -= 15;
     }
 
-    // 2. Compare vs Sector Average (Secondary Weight)
     if (sectorPB) {
         conditionsMet++;
-        if (currentPB <= sectorPB * 0.8) {
-            score += 15;
-        } else if (currentPB < sectorPB * 0.95) {
-            score += 5;
-        } else if (currentPB >= sectorPB * 1.2) {
-            score -= 15;
-        } else if (currentPB > sectorPB * 1.05) {
-            score -= 5;
-        }
+        if (currentPB <= sectorPB * 0.8) score += 15;
+        else if (currentPB < sectorPB * 0.95) score += 5;
+        else if (currentPB >= sectorPB * 1.2) score -= 15;
+        else if (currentPB > sectorPB * 1.05) score -= 5;
     }
 
-    // Normalize Score
     score = Math.max(0, Math.min(100, score));
+    const bias = applyBiasMap(score, T.biasMap);
 
-    // Determine Bias
-    if (score >= 80) bias = "Strong Bullish";
-    else if (score >= 60) bias = "Bullish";
-    else if (score <= 20) bias = "Strong Bearish";
-    else if (score <= 40) bias = "Bearish";
-    else bias = "Neutral";
-
-    // Determine Confidence
+    let confidence;
     if (conditionsMet === 2) confidence = "90%";
     else if (conditionsMet === 1) confidence = "70%";
-    else confidence = "40%"; // Only have current PB
+    else confidence = "40%";
 
     return { score, bias, confidence };
 }
@@ -1023,21 +837,15 @@ export function scorePERatio(currentPE, historicalAvg, sectorPE) {
         return { score: null, bias: 'Neutral', confidence: 60 };
     }
 
+    const T = FUNDAMENTAL_THRESHOLDS.pe_ratio;
+
     // ── Factor 1: vs Historical Average (0–100) ────────────────────────────
     let f1Score = 50;
     if (historicalAvg && !isNaN(historicalAvg) && historicalAvg > 0) {
-        const deviation = (currentPE - historicalAvg) / historicalAvg; // -ve = cheap, +ve = expensive
-        // Score inversely proportional to deviation (cheaper = higher score)
-        f1Score = Math.max(0, Math.min(100, 50 - (deviation * 200)));
+        const deviation = (currentPE - historicalAvg) / historicalAvg;
+        f1Score = Math.max(0, Math.min(100, 50 - (deviation * T.deviationMultiplier)));
     } else {
-        // Absolute fallback bands when no historical avg is provided
-        if (currentPE < 10)       f1Score = 95;
-        else if (currentPE < 15)  f1Score = 80;
-        else if (currentPE < 20)  f1Score = 65;
-        else if (currentPE < 25)  f1Score = 50;
-        else if (currentPE < 30)  f1Score = 35;
-        else if (currentPE < 40)  f1Score = 20;
-        else                      f1Score = 5;
+        f1Score = resolveBand(currentPE, T.absoluteBands);
     }
 
     // ── Factor 2: vs Sector PE (0–100) ────────────────────────────────────
@@ -1045,37 +853,28 @@ export function scorePERatio(currentPE, historicalAvg, sectorPE) {
     let hasSector = false;
     if (sectorPE && !isNaN(sectorPE) && sectorPE > 0) {
         hasSector = true;
-        const sectorDev = (currentPE - sectorPE) / sectorPE;
-        f2Score = Math.max(0, Math.min(100, 50 - (sectorDev * 150)));
+        const ratio = currentPE / sectorPE;
+        f2Score = resolveBand(ratio, T.sectorRatioBands);
     }
 
     // ── Factor 3: Absolute PE Safety Bands (0–100) ────────────────────────
-    let f3Score = 50;
-    if (currentPE < 10)       f3Score = 95;  // Extremely cheap
-    else if (currentPE < 15)  f3Score = 82;  // Cheap
-    else if (currentPE < 22)  f3Score = 65;  // Fair value zone
-    else if (currentPE < 28)  f3Score = 45;  // Slightly stretched
-    else if (currentPE < 35)  f3Score = 28;  // Expensive
-    else if (currentPE < 50)  f3Score = 15;  // Very expensive
-    else                      f3Score = 5;   // Bubble territory
+    const f3Score = resolveBand(currentPE, T.safetyBands);
 
     // ── Blend Factors ──────────────────────────────────────────────────────
+    const fw = hasSector ? T.factorWeights.withSector : T.factorWeights.withoutSector;
     const blendedScore = hasSector
-        ? (f1Score * 0.50) + (f2Score * 0.30) + (f3Score * 0.20)
-        : (f1Score * 0.60) + (f3Score * 0.40);
+        ? (f1Score * fw.f1) + (f2Score * fw.f2) + (f3Score * fw.f3)
+        : (f1Score * fw.f1) + (f3Score * fw.f3);
 
     const finalScore = Math.round(Math.max(0, Math.min(100, blendedScore)));
 
     // ── Bias Mapping ───────────────────────────────────────────────────────
-    let bias;
-    if (finalScore >= 80)      bias = 'Strong Bullish';
-    else if (finalScore >= 62) bias = 'Bullish';
-    else if (finalScore >= 42) bias = 'Neutral';
-    else if (finalScore >= 25) bias = 'Bearish';
-    else                       bias = 'Strong Bearish';
+    const bias = applyBiasMap(finalScore, T.biasMap);
 
-    // ── Confidence: higher when more data sources are present ─────────────
-    const confidence = hasSector ? 90 : (historicalAvg ? 82 : 70);
+    // ── Confidence ─────────────────────────────────────────────────────────
+    const confidence = hasSector
+        ? T.confidence.withSector
+        : (historicalAvg ? T.confidence.withHistorical : T.confidence.absoluteOnly);
 
     return { score: finalScore, bias, confidence };
 }
@@ -1085,59 +884,52 @@ export function scoreProfitGrowth(profitHistory, manualCAGR) {
         return { score: null, bias: 'Neutral', confidence: '0%', calculatedCAGR: null, latestProfit: null, previousProfit: null };
     }
 
+    const T = FUNDAMENTAL_THRESHOLDS.profit_growth;
+
     let score = 50;
     let confidencePoints = 0;
     let calculatedCAGR = null;
     let latestProfit = null;
     let previousProfit = null;
-    let trendDesc = "Mixed";
+    let trendDesc = 'Mixed';
 
     if (profitHistory && profitHistory.length >= 2) {
-        // profitHistory is usually sorted latest first
         const chronological = [...profitHistory].reverse();
-        const totalPeriods = chronological.length - 1;
-        
-        latestProfit = chronological[totalPeriods].value;
+        const totalPeriods  = chronological.length - 1;
+
+        latestProfit   = chronological[totalPeriods].value;
         previousProfit = chronological[totalPeriods - 1].value;
         const firstProfit = chronological[0].value;
 
         if (firstProfit > 0 && latestProfit > 0) {
             calculatedCAGR = (Math.pow(latestProfit / firstProfit, 1 / totalPeriods) - 1) * 100;
         }
-        
-        const recentGrowth = previousProfit > 0 ? ((latestProfit - previousProfit) / previousProfit) * 100 : 0;
 
+        const recentGrowth = previousProfit > 0 ? ((latestProfit - previousProfit) / previousProfit) * 100 : 0;
         confidencePoints = Math.min(95, 40 + (totalPeriods * 15));
 
         if (calculatedCAGR > 25) {
-            score = 95; trendDesc = "Explosive Growth";
+            score = 95; trendDesc = 'Explosive Growth';
         } else if (calculatedCAGR > 12) {
-            if (recentGrowth > calculatedCAGR) { score = 85; trendDesc = "Accelerating Growth"; }
-            else { score = 75; trendDesc = "Healthy Growth"; }
+            if (recentGrowth > calculatedCAGR) { score = 85; trendDesc = 'Accelerating Growth'; }
+            else                               { score = 75; trendDesc = 'Healthy Growth'; }
         } else if (calculatedCAGR > 0) {
-            if (recentGrowth < 0) { score = 40; trendDesc = "Stalling"; }
-            else { score = 60; trendDesc = "Moderate Growth"; }
+            if (recentGrowth < 0) { score = 40; trendDesc = 'Stalling'; }
+            else                  { score = 60; trendDesc = 'Moderate Growth'; }
         } else {
-            score = 15; trendDesc = "Contraction";
+            score = 15; trendDesc = 'Contraction';
         }
     } else {
         calculatedCAGR = manualCAGR;
         confidencePoints = 60;
-        
-        if (manualCAGR > 25) { score = 95; trendDesc = "Explosive Growth"; }
-        else if (manualCAGR > 12) { score = 75; trendDesc = "Healthy Growth"; }
-        else if (manualCAGR > 0) { score = 60; trendDesc = "Moderate Growth"; }
-        else if (manualCAGR > -5) { score = 40; trendDesc = "Stalling"; }
-        else { score = 15; trendDesc = "Contraction"; }
+        if (manualCAGR > 25)      { score = 95; trendDesc = 'Explosive Growth'; }
+        else if (manualCAGR > 12) { score = 75; trendDesc = 'Healthy Growth'; }
+        else if (manualCAGR > 0)  { score = 60; trendDesc = 'Moderate Growth'; }
+        else if (manualCAGR > -5) { score = 40; trendDesc = 'Stalling'; }
+        else                      { score = 15; trendDesc = 'Contraction'; }
     }
 
-    let bias = "Neutral";
-    if (score >= 80) bias = "Strong Bullish";
-    else if (score >= 60) bias = "Bullish";
-    else if (score <= 20) bias = "Strong Bearish";
-    else if (score <= 40) bias = "Bearish";
-
-    return { score, bias, confidence: `${confidencePoints}%`, calculatedCAGR, latestProfit, previousProfit, trendDesc };
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: `${confidencePoints}%`, calculatedCAGR, latestProfit, previousProfit, trendDesc };
 }
 
 export function scoreRevenueGrowth(revenueHistory, manualCAGR) {
@@ -1145,59 +937,52 @@ export function scoreRevenueGrowth(revenueHistory, manualCAGR) {
         return { score: null, bias: 'Neutral', confidence: '0%', calculatedCAGR: null, latestRevenue: null, previousRevenue: null };
     }
 
+    const T = FUNDAMENTAL_THRESHOLDS.revenue_growth;
+
     let score = 50;
     let confidencePoints = 0;
     let calculatedCAGR = null;
     let latestRevenue = null;
     let previousRevenue = null;
-    let trendDesc = "Mixed";
+    let trendDesc = 'Mixed';
 
     if (revenueHistory && revenueHistory.length >= 2) {
-        // revenueHistory is usually sorted latest first
         const chronological = [...revenueHistory].reverse();
-        const totalPeriods = chronological.length - 1;
-        
-        latestRevenue = chronological[totalPeriods].value;
+        const totalPeriods  = chronological.length - 1;
+
+        latestRevenue   = chronological[totalPeriods].value;
         previousRevenue = chronological[totalPeriods - 1].value;
         const firstRevenue = chronological[0].value;
 
         if (firstRevenue > 0 && latestRevenue > 0) {
             calculatedCAGR = (Math.pow(latestRevenue / firstRevenue, 1 / totalPeriods) - 1) * 100;
         }
-        
-        const recentGrowth = previousRevenue > 0 ? ((latestRevenue - previousRevenue) / previousRevenue) * 100 : 0;
 
+        const recentGrowth = previousRevenue > 0 ? ((latestRevenue - previousRevenue) / previousRevenue) * 100 : 0;
         confidencePoints = Math.min(95, 40 + (totalPeriods * 15));
 
         if (calculatedCAGR > 20) {
-            score = 90; trendDesc = "Hyper Growth";
+            score = 90; trendDesc = 'Hyper Growth';
         } else if (calculatedCAGR > 10) {
-            if (recentGrowth > calculatedCAGR) { score = 85; trendDesc = "Accelerating Growth"; }
-            else { score = 75; trendDesc = "Healthy Growth"; }
+            if (recentGrowth > calculatedCAGR) { score = 85; trendDesc = 'Accelerating Growth'; }
+            else                               { score = 75; trendDesc = 'Healthy Growth'; }
         } else if (calculatedCAGR > 0) {
-            if (recentGrowth < 0) { score = 40; trendDesc = "Stalling"; }
-            else { score = 60; trendDesc = "Moderate Growth"; }
+            if (recentGrowth < 0) { score = 40; trendDesc = 'Stalling'; }
+            else                  { score = 60; trendDesc = 'Moderate Growth'; }
         } else {
-            score = 15; trendDesc = "Contraction";
+            score = 15; trendDesc = 'Contraction';
         }
     } else {
         calculatedCAGR = manualCAGR;
         confidencePoints = 60;
-        
-        if (manualCAGR > 20) { score = 90; trendDesc = "Hyper Growth"; }
-        else if (manualCAGR > 10) { score = 75; trendDesc = "Healthy Growth"; }
-        else if (manualCAGR > 0) { score = 60; trendDesc = "Moderate Growth"; }
-        else if (manualCAGR > -5) { score = 40; trendDesc = "Stalling"; }
-        else { score = 15; trendDesc = "Contraction"; }
+        if (manualCAGR > 20)       { score = 90; trendDesc = 'Hyper Growth'; }
+        else if (manualCAGR > 10)  { score = 75; trendDesc = 'Healthy Growth'; }
+        else if (manualCAGR > 0)   { score = 60; trendDesc = 'Moderate Growth'; }
+        else if (manualCAGR > -5)  { score = 40; trendDesc = 'Stalling'; }
+        else                       { score = 15; trendDesc = 'Contraction'; }
     }
 
-    let bias = "Neutral";
-    if (score >= 80) bias = "Strong Bullish";
-    else if (score >= 60) bias = "Bullish";
-    else if (score <= 20) bias = "Strong Bearish";
-    else if (score <= 40) bias = "Bearish";
-
-    return { score, bias, confidence: `${confidencePoints}%`, calculatedCAGR, latestRevenue, previousRevenue, trendDesc };
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: `${confidencePoints}%`, calculatedCAGR, latestRevenue, previousRevenue, trendDesc };
 }
 
 export function scoreROCE(currentROCE, sectorROCE) {
@@ -1205,41 +990,24 @@ export function scoreROCE(currentROCE, sectorROCE) {
         return { score: null, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
     }
 
-    let score = 50;
-    let bias = 'Neutral';
-    let trendDesc = "Average";
+    const T = FUNDAMENTAL_THRESHOLDS.roce;
+    let score, trendDesc;
 
     if (sectorROCE !== null && !isNaN(sectorROCE)) {
-        // Comparative Scoring
         const spread = currentROCE - sectorROCE;
-        if (currentROCE > 25 && spread > 5) {
-            score = 95; bias = 'Strong Bullish'; trendDesc = "Elite Capital Allocator";
-        } else if (currentROCE > 15 && spread > 0) {
-            score = 85; bias = 'Bullish'; trendDesc = "Outperforming Sector";
-        } else if (currentROCE >= 10 && spread >= -2) {
-            score = 60; bias = 'Neutral'; trendDesc = "In-line with Sector";
-        } else if (currentROCE > 0) {
-            score = 30; bias = 'Bearish'; trendDesc = "Underperforming";
-        } else {
-            score = 10; bias = 'Strong Bearish'; trendDesc = "Capital Destroyer";
-        }
+        const match = T.comparativeBands.find(b => b.else ||
+            (b.above !== undefined && currentROCE > b.above && (b.spreadAbove === undefined || spread > b.spreadAbove)));
+        score      = match?.score      ?? 10;
+        trendDesc  = match?.label      ?? 'Capital Destroyer';
     } else {
-        // Absolute Scoring
-        if (currentROCE > 25) {
-            score = 90; bias = 'Strong Bullish'; trendDesc = "High Capital Efficiency";
-        } else if (currentROCE > 15) {
-            score = 75; bias = 'Bullish'; trendDesc = "Solid Efficiency";
-        } else if (currentROCE >= 10) {
-            score = 50; bias = 'Neutral'; trendDesc = "Acceptable Efficiency";
-        } else if (currentROCE > 0) {
-            score = 30; bias = 'Bearish'; trendDesc = "Sub-par Efficiency";
-        } else {
-            score = 10; bias = 'Strong Bearish'; trendDesc = "Capital Destroyer";
-        }
+        const match = T.absoluteBands.find(b => b.else || (b.above !== undefined && currentROCE > b.above));
+        score      = match?.score      ?? 10;
+        trendDesc  = match?.label      ?? 'Capital Destroyer';
     }
 
-    const confidence = sectorROCE !== null && !isNaN(sectorROCE) ? 90 : (currentROCE > 25 || currentROCE < 0 ? 80 : 72);
-    return { score, bias, confidence, trendDesc };
+    const hasSector = sectorROCE !== null && !isNaN(sectorROCE);
+    const confidence = hasSector ? T.confidence.withSector : (currentROCE > 25 || currentROCE < 0 ? T.confidence.high : T.confidence.base);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence, trendDesc };
 }
 
 export function scoreROE(currentROE, sectorROE) {
@@ -1247,41 +1015,24 @@ export function scoreROE(currentROE, sectorROE) {
         return { score: null, bias: 'Neutral', confidence: '0%', trendDesc: "Unknown" };
     }
 
-    let score = 50;
-    let bias = 'Neutral';
-    let trendDesc = "Average";
+    const T = FUNDAMENTAL_THRESHOLDS.roe;
+    let score, trendDesc;
 
     if (sectorROE !== null && !isNaN(sectorROE)) {
-        // Comparative Scoring
         const spread = currentROE - sectorROE;
-        if (currentROE > 20 && spread > 5) {
-            score = 95; bias = 'Strong Bullish'; trendDesc = "Exceptional Compounder";
-        } else if (currentROE > 15 && spread > 0) {
-            score = 85; bias = 'Bullish'; trendDesc = "Outperforming Sector";
-        } else if (currentROE >= 10 && spread >= -2) {
-            score = 60; bias = 'Neutral'; trendDesc = "In-line with Sector";
-        } else if (currentROE > 0) {
-            score = 30; bias = 'Bearish'; trendDesc = "Underperforming";
-        } else {
-            score = 10; bias = 'Strong Bearish'; trendDesc = "Value Destroyer";
-        }
+        const match = T.comparativeBands.find(b => b.else ||
+            (b.above !== undefined && currentROE > b.above && (b.spreadAbove === undefined || spread > b.spreadAbove)));
+        score     = match?.score ?? 10;
+        trendDesc = match?.label ?? 'Value Destroyer';
     } else {
-        // Absolute Scoring
-        if (currentROE > 20) {
-            score = 90; bias = 'Strong Bullish'; trendDesc = "High Return on Capital";
-        } else if (currentROE > 15) {
-            score = 75; bias = 'Bullish'; trendDesc = "Solid Returns";
-        } else if (currentROE >= 10) {
-            score = 50; bias = 'Neutral'; trendDesc = "Cost of Capital";
-        } else if (currentROE > 0) {
-            score = 30; bias = 'Bearish'; trendDesc = "Sub-par Returns";
-        } else {
-            score = 10; bias = 'Strong Bearish'; trendDesc = "Value Destroyer";
-        }
+        const match = T.absoluteBands.find(b => b.else || (b.above !== undefined && currentROE > b.above));
+        score     = match?.score ?? 10;
+        trendDesc = match?.label ?? 'Value Destroyer';
     }
 
-    const confidence = sectorROE !== null && !isNaN(sectorROE) ? 90 : (currentROE > 20 || currentROE < 0 ? 80 : 72);
-    return { score, bias, confidence, trendDesc };
+    const hasSector = sectorROE !== null && !isNaN(sectorROE);
+    const confidence = hasSector ? 90 : (currentROE > 20 || currentROE < 0 ? 80 : 72);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence, trendDesc };
 }
 
 export function scoreVIX(vixValue) {
@@ -1289,8 +1040,9 @@ export function scoreVIX(vixValue) {
         return { score: null, bias: 'Neutral', confidence: 0, vixRegime: 'Unknown', marketCondition: 'No Data' };
     }
 
+    const T = FUNDAMENTAL_THRESHOLDS.vix;
+
     // ── Factor 1: VIX Regime Classification (0–100) ───────────────────────
-    // Scoring is INVERSE: low VIX = higher score, but extreme low has penalty
     let f1Score;
     let vixRegime;
     if (vixValue > 35) {
@@ -1308,7 +1060,7 @@ export function scoreVIX(vixValue) {
     } else if (vixValue > 10) {
         f1Score = 85; vixRegime = 'Very Calm';
     } else {
-        f1Score = 70; vixRegime = 'Extreme Complacency'; // Penalty — dangerous low
+        f1Score = 70; vixRegime = 'Extreme Complacency';
     }
 
     // ── Factor 2: Risk-Reward Context ────────────────────────────────────
@@ -1338,22 +1090,17 @@ export function scoreVIX(vixValue) {
     else                     f3Score = 72;  // Extremely low — rare and risky
 
     // ── Blend ─────────────────────────────────────────────────────────────
-    const blended = (f1Score * 0.50) + (f2Score * 0.30) + (f3Score * 0.20);
+    const fw = T.factorWeights;
+    const blended = (f1Score * fw.f1) + (f2Score * fw.f2) + (f3Score * fw.f3);
     const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
 
-    // ── Bias Mapping ──────────────────────────────────────────────────────
-    let bias;
-    if (finalScore >= 80)      bias = 'Strong Bullish';
-    else if (finalScore >= 62) bias = 'Bullish';
-    else if (finalScore >= 42) bias = 'Neutral';
-    else if (finalScore >= 25) bias = 'Bearish';
-    else                       bias = 'Strong Bearish';
+    const bias = applyBiasMap(finalScore, T.biasMap);
 
     // ── Confidence: highest at extremes where VIX is most predictive ─────
     let confidence;
-    if (vixValue > 28 || vixValue < 11) confidence = 92; // Extremes = highest signal quality
-    else if (vixValue > 22 || vixValue < 13) confidence = 84;
-    else confidence = 72; // Mid-range VIX = less directional
+    if (vixValue > 28 || vixValue < 11) confidence = T.confidence.extreme;
+    else if (vixValue > 22 || vixValue < 13) confidence = T.confidence.elevated;
+    else confidence = T.confidence.neutral;
 
     return { score: finalScore, bias, confidence, vixRegime, marketCondition };
 }
@@ -1913,43 +1660,27 @@ export function scoreEVEbitda(currentEV, sectorEV) {
         return { score: null, bias: 'Neutral', confidence: 0, valuationZone: 'Unknown' };
     }
 
-    let f1Score;
-    let valuationZone;
-    if (currentEV < 5) {
-        f1Score = 95; valuationZone = 'Deep Value';
-    } else if (currentEV < 8) {
-        f1Score = 80; valuationZone = 'Undervalued';
-    } else if (currentEV < 12) {
-        f1Score = 60; valuationZone = 'Fairly Valued';
-    } else if (currentEV < 18) {
-        f1Score = 40; valuationZone = 'Overvalued';
-    } else {
-        f1Score = 15; valuationZone = 'Highly Overvalued';
-    }
+    const T = FUNDAMENTAL_THRESHOLDS.ev_ebitda;
+
+    const band1 = T.absoluteBands.find(b => b.else || (b.below !== undefined && currentEV < b.below));
+    const f1Score = band1?.score ?? 5;
+    const valuationZone = band1?.zone ?? 'Highly Overvalued';
 
     let f2Score = f1Score;
     let hasSector = false;
     if (sectorEV !== null && !isNaN(sectorEV) && sectorEV > 0) {
         hasSector = true;
         const ratio = currentEV / sectorEV;
-        if (ratio < 0.6) f2Score = 95;
-        else if (ratio < 0.8) f2Score = 80;
-        else if (ratio < 1.0) f2Score = 60;
-        else if (ratio < 1.2) f2Score = 40;
-        else f2Score = 15;
+        f2Score = resolveBand(ratio, T.sectorRatioBands);
     }
 
-    const blended = hasSector ? (f1Score * 0.5) + (f2Score * 0.5) : f1Score;
+    const fw = T.factorWeights;
+    const blended = hasSector
+        ? (f1Score * fw.withSector.f1) + (f2Score * fw.withSector.f2)
+        : f1Score;
     const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
 
-    let bias;
-    if (finalScore >= 80) bias = 'Strong Bullish';
-    else if (finalScore >= 60) bias = 'Bullish';
-    else if (finalScore >= 40) bias = 'Neutral';
-    else if (finalScore >= 20) bias = 'Bearish';
-    else bias = 'Strong Bearish';
-
-    return { score: finalScore, bias, confidence: hasSector ? 90 : 70, valuationZone };
+    return { score: finalScore, bias: applyBiasMap(finalScore, T.biasMap), confidence: hasSector ? 90 : 70, valuationZone };
 }
 
 export function generateAiInsightEVEbitdaCard(currentEV, sectorEV, valuationZone) {
@@ -1976,19 +1707,11 @@ export function scoreROA(currentROA, sectorROA) {
         return { score: null, bias: 'Neutral', confidence: 0, efficiencyZone: 'Unknown' };
     }
 
-    let f1Score;
-    let efficiencyZone;
-    if (currentROA > 15) {
-        f1Score = 95; efficiencyZone = 'Elite Efficiency';
-    } else if (currentROA > 8) {
-        f1Score = 80; efficiencyZone = 'High Efficiency';
-    } else if (currentROA > 4) {
-        f1Score = 60; efficiencyZone = 'Average Efficiency';
-    } else if (currentROA > 0) {
-        f1Score = 40; efficiencyZone = 'Low Efficiency';
-    } else {
-        f1Score = 15; efficiencyZone = 'Asset Destroyer';
-    }
+    const T = FUNDAMENTAL_THRESHOLDS.roa;
+
+    const band1 = T.absoluteBands.find(b => b.else || (b.above !== undefined && currentROA > b.above));
+    const f1Score       = band1?.score ?? 15;
+    const efficiencyZone = band1?.zone ?? 'Asset Destroyer';
 
     let f2Score = f1Score;
     let hasSector = false;
@@ -2002,17 +1725,13 @@ export function scoreROA(currentROA, sectorROA) {
         else f2Score = 15;
     }
 
-    const blended = hasSector ? (f1Score * 0.5) + (f2Score * 0.5) : f1Score;
+    const fw = T.factorWeights;
+    const blended = hasSector
+        ? (f1Score * fw.withSector.f1) + (f2Score * fw.withSector.f2)
+        : f1Score;
     const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
 
-    let bias;
-    if (finalScore >= 80) bias = 'Strong Bullish';
-    else if (finalScore >= 60) bias = 'Bullish';
-    else if (finalScore >= 40) bias = 'Neutral';
-    else if (finalScore >= 20) bias = 'Bearish';
-    else bias = 'Strong Bearish';
-
-    return { score: finalScore, bias, confidence: hasSector ? 90 : 70, efficiencyZone };
+    return { score: finalScore, bias: applyBiasMap(finalScore, T.biasMap), confidence: hasSector ? 90 : 70, efficiencyZone };
 }
 
 export function generateAiInsightROACard(currentROA, sectorROA, efficiencyZone) {
@@ -2037,26 +1756,25 @@ export function generateAiInsightROACard(currentROA, sectorROA, efficiencyZone) 
 // --- Promoter Holding Score ---------------------------------------------------
 export function scorePromoterHolding(currentPct, prevPct) {
     if (currentPct === null || isNaN(currentPct)) return { score: null, bias: 'Neutral', confidence: 0, holdingZone: 'Unknown', trend: 'No Data' };
-    let f1Score, holdingZone;
-    if (currentPct >= 70) { f1Score = 90; holdingZone = 'Fortress Control'; }
-    else if (currentPct >= 55) { f1Score = 80; holdingZone = 'Strong Commitment'; }
-    else if (currentPct >= 45) { f1Score = 65; holdingZone = 'Moderate Commitment'; }
-    else if (currentPct >= 30) { f1Score = 48; holdingZone = 'Diluted Control'; }
-    else if (currentPct >= 15) { f1Score = 28; holdingZone = 'Low Promoter Skin'; }
-    else { f1Score = 10; holdingZone = 'Minimal Insider Stake'; }
+
+    const T = FUNDAMENTAL_THRESHOLDS.promoter_holding;
+
+    const band1 = T.absoluteBands.find(b => b.else || (b.above !== undefined && currentPct >= b.above));
+    const f1Score    = band1?.score ?? 10;
+    const holdingZone = band1?.zone ?? 'Minimal Insider Stake';
+
     let f2Score = f1Score, trend = 'Stable';
     if (prevPct !== null && !isNaN(prevPct)) {
         const delta = currentPct - prevPct;
-        if (delta > 1.0) { f2Score = Math.min(100, f1Score + 10); trend = 'Increasing'; }
-        else if (delta > 0.2) { f2Score = Math.min(100, f1Score + 5); trend = 'Slight Increase'; }
-        else if (delta < -1.0) { f2Score = Math.max(0, f1Score - 15); trend = 'Decreasing'; }
-        else if (delta < -0.2) { f2Score = Math.max(0, f1Score - 7); trend = 'Slight Dilution'; }
+        if (delta > 1.0)       { f2Score = Math.min(100, f1Score + T.trendAdjust.strongIncrease); trend = 'Increasing'; }
+        else if (delta > 0.2)  { f2Score = Math.min(100, f1Score + T.trendAdjust.slightIncrease); trend = 'Slight Increase'; }
+        else if (delta < -1.0) { f2Score = Math.max(0, f1Score + T.trendAdjust.strongDecrease); trend = 'Decreasing'; }
+        else if (delta < -0.2) { f2Score = Math.max(0, f1Score + T.trendAdjust.slightDecrease); trend = 'Slight Dilution'; }
     }
-    const finalScore = Math.round(Math.max(0, Math.min(100, (f1Score * 0.65) + (f2Score * 0.35))));
-    let bias;
-    if (finalScore >= 80) bias = 'Strong Bullish'; else if (finalScore >= 62) bias = 'Bullish';
-    else if (finalScore >= 42) bias = 'Neutral'; else if (finalScore >= 25) bias = 'Bearish'; else bias = 'Strong Bearish';
-    return { score: finalScore, bias, confidence: prevPct !== null ? 88 : 72, holdingZone, trend };
+
+    const fw = T.factorWeights;
+    const finalScore = Math.round(Math.max(0, Math.min(100, (f1Score * fw.f1) + (f2Score * fw.f2))));
+    return { score: finalScore, bias: applyBiasMap(finalScore, T.biasMap), confidence: prevPct !== null ? 88 : 72, holdingZone, trend };
 }
 
 export function generateAiInsightPromoterCard(currentPct, prevPct, holdingZone, trend) {
@@ -2076,25 +1794,22 @@ export function generateAiInsightPromoterCard(currentPct, prevPct, holdingZone, 
 // --- Smart Money Flow Score ---------------------------------------------------
 export function scoreSmartMoneyFlow(latestInstitutional, prevInstitutional) {
     if (latestInstitutional === null || isNaN(latestInstitutional)) return { score: null, bias: 'Neutral', confidence: 0, flowZone: 'Unknown', trend: 'No Data' };
-    let f1Score, flowZone;
-    if (latestInstitutional >= 50) { f1Score = 90; flowZone = 'Heavy Institutional Ownership'; }
-    else if (latestInstitutional >= 35) { f1Score = 78; flowZone = 'Strong Institutional Interest'; }
-    else if (latestInstitutional >= 20) { f1Score = 62; flowZone = 'Moderate Institutional Interest'; }
-    else if (latestInstitutional >= 10) { f1Score = 45; flowZone = 'Low Institutional Interest'; }
-    else { f1Score = 25; flowZone = 'Retail-Dominated'; }
+    const T = FUNDAMENTAL_THRESHOLDS.smart_money_flow;
+    const band = T.absoluteBands.find(b => b.else || (b.above !== undefined && latestInstitutional > b.above));
+    const f1Score = band?.score ?? 25;
+    const flowZone = band?.label ?? 'Retail-Dominated';
     let f2Score = f1Score, trend = 'Stable';
     if (prevInstitutional !== null && !isNaN(prevInstitutional)) {
         const delta = latestInstitutional - prevInstitutional;
-        if (delta > 1.5) { f2Score = Math.min(100, f1Score + 12); trend = 'Accumulating'; }
-        else if (delta > 0.5) { f2Score = Math.min(100, f1Score + 6); trend = 'Slight Accumulation'; }
-        else if (delta < -1.5) { f2Score = Math.max(0, f1Score - 18); trend = 'Distributing'; }
-        else if (delta < -0.5) { f2Score = Math.max(0, f1Score - 8); trend = 'Slight Distribution'; }
+        if (delta > 1.5) { f2Score = Math.min(100, f1Score + T.trendAdjust.strongAccum); trend = 'Accumulating'; }
+        else if (delta > 0.5) { f2Score = Math.min(100, f1Score + T.trendAdjust.slightAccum); trend = 'Slight Accumulation'; }
+        else if (delta < -1.5) { f2Score = Math.max(0, f1Score + T.trendAdjust.strongDistrib); trend = 'Distributing'; }
+        else if (delta < -0.5) { f2Score = Math.max(0, f1Score + T.trendAdjust.slightDistrib); trend = 'Slight Distribution'; }
     }
-    const finalScore = Math.round(Math.max(0, Math.min(100, (f1Score * 0.55) + (f2Score * 0.45))));
-    let bias;
-    if (finalScore >= 80) bias = 'Strong Bullish'; else if (finalScore >= 62) bias = 'Bullish';
-    else if (finalScore >= 42) bias = 'Neutral'; else if (finalScore >= 25) bias = 'Bearish'; else bias = 'Strong Bearish';
-    return { score: finalScore, bias, confidence: prevInstitutional !== null ? 90 : 72, flowZone, trend };
+    const fw = T.factorWeights;
+    const finalScore = Math.round(Math.max(0, Math.min(100, (f1Score * fw.f1) + (f2Score * fw.f2))));
+    const confidence = prevInstitutional !== null ? T.confidence.withTrend : T.confidence.withoutTrend;
+    return { score: finalScore, bias: applyBiasMap(finalScore, T.biasMap), confidence, flowZone, trend };
 }
 
 export function generateAiInsightSmartMoneyCard(latestInstitutional, prevInstitutional, flowZone, trend) {
@@ -2112,18 +1827,11 @@ export function generateAiInsightSmartMoneyCard(latestInstitutional, prevInstitu
 // --- Earnings Quality Score ---------------------------------------------------
 export function scoreEarningsQuality(cfoToNetProfit) {
     if (cfoToNetProfit === null || isNaN(cfoToNetProfit)) return { score: null, bias: 'Neutral', confidence: 0, qualityLabel: 'Unknown' };
-    let score, qualityLabel;
-    if (cfoToNetProfit > 1.5) { score = 95; qualityLabel = 'Exceptional Cash Quality'; }
-    else if (cfoToNetProfit > 1.1) { score = 82; qualityLabel = 'High Quality Earnings'; }
-    else if (cfoToNetProfit > 0.8) { score = 65; qualityLabel = 'Adequate Cash Conversion'; }
-    else if (cfoToNetProfit > 0.5) { score = 45; qualityLabel = 'Weak Cash Conversion'; }
-    else if (cfoToNetProfit > 0) { score = 28; qualityLabel = 'Poor Cash Quality'; }
-    else if (cfoToNetProfit === 0) { score = 40; qualityLabel = 'Break-Even'; }
-    else { score = 10; qualityLabel = 'Negative CFO � Paper Profits'; }
-    let bias;
-    if (score >= 80) bias = 'Strong Bullish'; else if (score >= 62) bias = 'Bullish';
-    else if (score >= 42) bias = 'Neutral'; else if (score >= 25) bias = 'Bearish'; else bias = 'Strong Bearish';
-    return { score, bias, confidence: 88, qualityLabel };
+    const T = FUNDAMENTAL_THRESHOLDS.earnings_quality;
+    const band = T.absoluteBands.find(b => b.else || (b.above !== undefined && cfoToNetProfit > b.above));
+    const score = band?.score ?? 10;
+    const qualityLabel = band?.label ?? 'Negative CFO — Paper Profits';
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always, qualityLabel };
 }
 
 export function generateAiInsightEarningsQualityCard(cfoToNetProfit, qualityLabel) {
@@ -2145,17 +1853,9 @@ export function scoreNiftyPE(pe) {
     const num = Number(pe);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
 
-    let score = 50;
-    let bias = 'Neutral';
-
-    // Historical Nifty PE averages around 20-22
-    if (num < 15) { score = 100; bias = 'Strong Bullish'; }
-    else if (num < 18) { score = 80; bias = 'Bullish'; }
-    else if (num < 22) { score = 50; bias = 'Neutral'; }
-    else if (num < 25) { score = 20; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-
-    return { score, bias, confidence: 95 };
+    const T = FUNDAMENTAL_THRESHOLDS.nifty_pe;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 
 export function generateAiInsightNiftyPE(scoreObj, val) {
@@ -2170,17 +1870,9 @@ export function scoreNiftyPB(pb) {
     const num = Number(pb);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
 
-    let score = 50;
-    let bias = 'Neutral';
-
-    // Nifty PB historical average around 3.0
-    if (num < 2.5) { score = 100; bias = 'Strong Bullish'; }
-    else if (num < 3.0) { score = 75; bias = 'Bullish'; }
-    else if (num < 3.8) { score = 50; bias = 'Neutral'; }
-    else if (num < 4.5) { score = 25; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-
-    return { score, bias, confidence: 90 };
+    const T = FUNDAMENTAL_THRESHOLDS.nifty_pb;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 
 export function generateAiInsightNiftyPB(scoreObj, val) {
@@ -2195,17 +1887,9 @@ export function scoreMarketCapGDP(ratio) {
     const num = Number(ratio);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
 
-    let score = 50;
-    let bias = 'Neutral';
-
-    // Buffett Indicator for India (Historically 75%-100% is fair, >120% is expensive)
-    if (num < 70) { score = 100; bias = 'Strong Bullish'; }
-    else if (num < 90) { score = 80; bias = 'Bullish'; }
-    else if (num < 110) { score = 50; bias = 'Neutral'; }
-    else if (num < 130) { score = 20; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-
-    return { score, bias, confidence: 90 };
+    const T = FUNDAMENTAL_THRESHOLDS.mcap_gdp;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 
 export function generateAiInsightMarketCapGDP(scoreObj, val) {
@@ -2219,18 +1903,9 @@ export function scoreNiftyDividendYield(yieldVal) {
     if (yieldVal === undefined || yieldVal === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(yieldVal);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-
-    let score = 50;
-    let bias = 'Neutral';
-
-    // Nifty Div Yield average is ~1.2%
-    if (num > 1.8) { score = 100; bias = 'Strong Bullish'; }
-    else if (num > 1.4) { score = 80; bias = 'Bullish'; }
-    else if (num > 1.0) { score = 50; bias = 'Neutral'; }
-    else if (num > 0.7) { score = 20; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-
-    return { score, bias, confidence: 90 };
+    const T = FUNDAMENTAL_THRESHOLDS.nifty_dividend_yield;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 
 export function generateAiInsightNiftyDividendYield(scoreObj, val) {
@@ -2244,18 +1919,9 @@ export function scoreNiftyEPSGrowth(growth) {
     if (growth === undefined || growth === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(growth);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-
-    let score = 50;
-    let bias = 'Neutral';
-
-    // Nifty long term EPS CAGR is ~12-14%
-    if (num > 20) { score = 100; bias = 'Strong Bullish'; }
-    else if (num > 15) { score = 80; bias = 'Bullish'; }
-    else if (num > 10) { score = 50; bias = 'Neutral'; }
-    else if (num > 5) { score = 20; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-
-    return { score, bias, confidence: 90 };
+    const T = FUNDAMENTAL_THRESHOLDS.nifty_eps_growth;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 
 export function generateAiInsightNiftyEPSGrowth(scoreObj, val) {
@@ -2269,14 +1935,9 @@ export function scoreNiftyForwardEPS(growth) {
     if (growth === undefined || growth === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(growth);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    
-    let score = 50; let bias = 'Neutral';
-    if (num > 22) { score = 100; bias = 'Strong Bullish'; }
-    else if (num > 16) { score = 80; bias = 'Bullish'; }
-    else if (num > 12) { score = 50; bias = 'Neutral'; }
-    else if (num > 6) { score = 20; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-    return { score, bias, confidence: 85 };
+    const T = FUNDAMENTAL_THRESHOLDS.nifty_forward_eps;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightNiftyForwardEPS(scoreObj, val) {
     if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Forward EPS data unavailable.";
@@ -2287,16 +1948,11 @@ export function generateAiInsightNiftyForwardEPS(scoreObj, val) {
 
 export function scoreEarningsRevision(netUpgrades) {
     if (netUpgrades === undefined || netUpgrades === null) return { score: null, bias: 'Unknown', confidence: 0 };
-    const num = Number(netUpgrades); // % of companies with EPS upgrades minus downgrades
+    const num = Number(netUpgrades);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    
-    let score = 50; let bias = 'Neutral';
-    if (num > 20) { score = 100; bias = 'Strong Bullish'; }
-    else if (num > 5) { score = 75; bias = 'Bullish'; }
-    else if (num > -5) { score = 50; bias = 'Neutral'; }
-    else if (num > -20) { score = 25; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-    return { score, bias, confidence: 80 };
+    const T = FUNDAMENTAL_THRESHOLDS.earnings_revision;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightEarningsRevision(scoreObj, val) {
     if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Earnings revision data unavailable.";
@@ -2307,16 +1963,11 @@ export function generateAiInsightEarningsRevision(scoreObj, val) {
 
 export function scoreSectorEarnings(breadth) {
     if (breadth === undefined || breadth === null) return { score: null, bias: 'Unknown', confidence: 0 };
-    const num = Number(breadth); // % of sectors beating estimates
+    const num = Number(breadth);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    
-    let score = 50; let bias = 'Neutral';
-    if (num > 75) { score = 100; bias = 'Strong Bullish'; }
-    else if (num > 60) { score = 75; bias = 'Bullish'; }
-    else if (num > 40) { score = 50; bias = 'Neutral'; }
-    else if (num > 25) { score = 25; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-    return { score, bias, confidence: 85 };
+    const T = FUNDAMENTAL_THRESHOLDS.sector_earnings_breadth;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightSectorEarnings(scoreObj, val) {
     if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Sector earnings breadth unavailable.";
@@ -2329,14 +1980,9 @@ export function scoreAggregateProfitMargin(margin) {
     if (margin === undefined || margin === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(margin);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    
-    let score = 50; let bias = 'Neutral';
-    if (num > 12) { score = 100; bias = 'Strong Bullish'; }
-    else if (num > 10) { score = 75; bias = 'Bullish'; }
-    else if (num > 8) { score = 50; bias = 'Neutral'; }
-    else if (num > 6) { score = 25; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-    return { score, bias, confidence: 90 };
+    const T = FUNDAMENTAL_THRESHOLDS.aggregate_profit_margin;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightAggregateProfitMargin(scoreObj, val) {
     if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Margin data unavailable.";
@@ -2349,15 +1995,10 @@ export function scoreCPIInflation(cpi) {
     if (cpi === undefined || cpi === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(cpi);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    
-    let score = 50; let bias = 'Neutral';
-    // RBI target is 4%, band 2-6%
-    if (num < 4.5 && num > 2) { score = 100; bias = 'Strong Bullish'; }
-    else if (num <= 5.5) { score = 75; bias = 'Bullish'; }
-    else if (num <= 6.5) { score = 50; bias = 'Neutral'; }
-    else if (num <= 7.5) { score = 25; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-    return { score, bias, confidence: 95 };
+
+    const T = FUNDAMENTAL_THRESHOLDS.cpi;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightCPIInflation(scoreObj, val) {
     if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "CPI data unavailable.";
@@ -2370,15 +2011,10 @@ export function scoreRepoRate(repo) {
     if (repo === undefined || repo === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(repo);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    
-    let score = 50; let bias = 'Neutral';
-    // Lower rates are generally bullish for equities
-    if (num < 4.5) { score = 100; bias = 'Strong Bullish'; }
-    else if (num < 5.5) { score = 80; bias = 'Bullish'; }
-    else if (num < 6.5) { score = 50; bias = 'Neutral'; }
-    else if (num < 7.5) { score = 20; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-    return { score, bias, confidence: 95 };
+
+    const T = FUNDAMENTAL_THRESHOLDS.repo;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightRepoRate(scoreObj, val) {
     if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Repo rate data unavailable.";
@@ -2389,13 +2025,12 @@ export function generateAiInsightRepoRate(scoreObj, val) {
 
 export function scorePolicyStance(stance) {
     if (stance === undefined || stance === null) return { score: null, bias: 'Unknown', confidence: 0 };
+    const T = FUNDAMENTAL_THRESHOLDS.policy_stance;
     const s = String(stance).toLowerCase();
-    
-    if (s.includes('accommodative')) return { score: 100, bias: 'Strong Bullish', confidence: 90 };
-    if (s.includes('neutral')) return { score: 50, bias: 'Neutral', confidence: 90 };
-    if (s.includes('withdrawal') || s.includes('hawkish')) return { score: 15, bias: 'Bearish', confidence: 90 };
-    
-    return { score: 50, bias: 'Neutral', confidence: 50 };
+    const match = Object.entries(T.stanceMap).find(([key]) => s.includes(key));
+    const score      = match ? match[1].score      : 50;
+    const confidence = match ? match[1].confidence : T.confidence.unknown;
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence };
 }
 export function generateAiInsightPolicyStance(scoreObj, val) {
     if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Policy stance unavailable.";
@@ -2408,15 +2043,10 @@ export function scoreFiscalDeficit(deficit) {
     if (deficit === undefined || deficit === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(deficit);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    
-    let score = 50; let bias = 'Neutral';
-    // Lower is better (Govt target glide path to 4.5%)
-    if (num < 4.5) { score = 100; bias = 'Strong Bullish'; }
-    else if (num <= 5.2) { score = 75; bias = 'Bullish'; }
-    else if (num <= 5.9) { score = 50; bias = 'Neutral'; }
-    else if (num <= 6.5) { score = 25; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-    return { score, bias, confidence: 90 };
+
+    const T = FUNDAMENTAL_THRESHOLDS.fiscal_deficit;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightFiscalDeficit(scoreObj, val) {
     if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Fiscal deficit data unavailable.";
@@ -2427,16 +2057,11 @@ export function generateAiInsightFiscalDeficit(scoreObj, val) {
 
 export function scoreCurrentAccount(cad) {
     if (cad === undefined || cad === null) return { score: null, bias: 'Unknown', confidence: 0 };
-    const num = Number(cad); // Negative means deficit, positive means surplus
+    const num = Number(cad);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    
-    let score = 50; let bias = 'Neutral';
-    if (num >= 0) { score = 100; bias = 'Strong Bullish'; } // Surplus
-    else if (num > -1.5) { score = 80; bias = 'Bullish'; }
-    else if (num > -2.5) { score = 50; bias = 'Neutral'; }
-    else if (num > -3.5) { score = 20; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-    return { score, bias, confidence: 85 };
+    const T = FUNDAMENTAL_THRESHOLDS.current_account;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightCurrentAccount(scoreObj, val) {
     if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "CAD data unavailable.";
@@ -2447,16 +2072,11 @@ export function generateAiInsightCurrentAccount(scoreObj, val) {
 
 export function scoreFiiFlowTrend(persistence) {
     if (persistence === undefined || persistence === null) return { score: null, bias: 'Unknown', confidence: 0 };
-    const num = Number(persistence); // -10 to +10 scale (days of net buying)
+    const num = Number(persistence);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    
-    let score = 50; let bias = 'Neutral';
-    if (num >= 7) { score = 100; bias = 'Strong Bullish'; }
-    else if (num >= 3) { score = 75; bias = 'Bullish'; }
-    else if (num >= -2) { score = 50; bias = 'Neutral'; }
-    else if (num >= -6) { score = 25; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-    return { score, bias, confidence: 90 };
+    const T = FUNDAMENTAL_THRESHOLDS.fii_flow_trend;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightFiiFlowTrend(scoreObj, val) {
     if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "FII trend data unavailable.";
@@ -2467,16 +2087,11 @@ export function generateAiInsightFiiFlowTrend(scoreObj, val) {
 
 export function scoreSystemLiquidity(surplus) {
     if (surplus === undefined || surplus === null) return { score: null, bias: 'Unknown', confidence: 0 };
-    const num = Number(surplus); // In Lakh Crores
+    const num = Number(surplus);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    
-    let score = 50; let bias = 'Neutral';
-    if (num > 2.0) { score = 100; bias = 'Strong Bullish'; } // 2 Lakh Cr surplus
-    else if (num > 0.5) { score = 75; bias = 'Bullish'; }
-    else if (num > -0.5) { score = 50; bias = 'Neutral'; }
-    else if (num > -2.0) { score = 25; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-    return { score, bias, confidence: 85 };
+    const T = FUNDAMENTAL_THRESHOLDS.system_liquidity;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightSystemLiquidity(scoreObj, val) {
     if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "System liquidity data unavailable.";
@@ -2487,16 +2102,11 @@ export function generateAiInsightSystemLiquidity(scoreObj, val) {
 
 export function scoreMFFlows(sip) {
     if (sip === undefined || sip === null) return { score: null, bias: 'Unknown', confidence: 0 };
-    const num = Number(sip); // SIP flows in Rs Crores
+    const num = Number(sip);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    
-    let score = 50; let bias = 'Neutral';
-    if (num > 18000) { score = 100; bias = 'Strong Bullish'; }
-    else if (num > 15000) { score = 80; bias = 'Bullish'; }
-    else if (num > 12000) { score = 50; bias = 'Neutral'; }
-    else if (num > 8000) { score = 20; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-    return { score, bias, confidence: 95 };
+    const T = FUNDAMENTAL_THRESHOLDS.mf_sip_flows;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightMFFlows(scoreObj, val) {
     if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "MF SIP data unavailable.";
@@ -2507,15 +2117,12 @@ export function generateAiInsightMFFlows(scoreObj, val) {
 
 export function scoreSectorValuationSpread(spread) {
     if (spread === undefined || spread === null) return { score: null, bias: 'Unknown', confidence: 0 };
-    const num = Number(spread); // standard deviation of sector PEs
+    const num = Number(spread);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    
-    let score = 50; let bias = 'Neutral';
-    // Lower dispersion means broad participation, high means bubble in specific sectors
-    if (num < 10) { score = 90; bias = 'Bullish'; }
-    else if (num < 15) { score = 50; bias = 'Neutral'; }
-    else { score = 20; bias = 'Bearish'; }
-    return { score, bias, confidence: 75 };
+    const T = FUNDAMENTAL_THRESHOLDS.sector_valuation_spread;
+    const band = T.spreadBands.find(b => b.else || (b.below !== undefined && num < b.below));
+    const score = band?.score ?? 20;
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightSectorValuationSpread(scoreObj, val) {
     if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Spread data unavailable.";
@@ -2526,12 +2133,11 @@ export function generateAiInsightSectorValuationSpread(scoreObj, val) {
 
 export function scoreSectorGrowthDifferential(diff) {
     if (diff === undefined || diff === null) return { score: null, bias: 'Unknown', confidence: 0 };
-    const num = Number(diff); 
+    const num = Number(diff);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    let score = 50; let bias = 'Neutral';
-    if (num > 0) { score = 75; bias = 'Bullish'; } // Growth leading
-    else { score = 25; bias = 'Bearish'; } // Laggards leading
-    return { score, bias, confidence: 70 };
+    const T = FUNDAMENTAL_THRESHOLDS.sector_growth_differential;
+    const score = num > 0 ? 75 : 25;
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightSectorGrowthDifferential(scoreObj, val) {
     if (scoreObj.score === 0) return "Data unavailable.";
@@ -2543,11 +2149,10 @@ export function scoreSectorConcentration(top3Weight) {
     if (top3Weight === undefined || top3Weight === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(top3Weight);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    let score = 50; let bias = 'Neutral';
-    if (num < 45) { score = 90; bias = 'Bullish'; }
-    else if (num < 55) { score = 50; bias = 'Neutral'; }
-    else { score = 15; bias = 'Bearish'; }
-    return { score, bias, confidence: 85 };
+    const T = FUNDAMENTAL_THRESHOLDS.sector_concentration;
+    const band = T.spreadBands.find(b => b.else || (b.below !== undefined && num < b.below));
+    const score = band?.score ?? 15;
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightSectorConcentration(scoreObj, val) {
     if (scoreObj.score === 0) return "Data unavailable.";
@@ -2559,11 +2164,9 @@ export function scoreCyclicalDefensive(ratio) {
     if (ratio === undefined || ratio === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(ratio);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    let score = 50; let bias = 'Neutral';
-    if (num > 1.2) { score = 90; bias = 'Bullish'; }
-    else if (num > 0.9) { score = 50; bias = 'Neutral'; }
-    else { score = 20; bias = 'Bearish'; }
-    return { score, bias, confidence: 80 };
+    const T = FUNDAMENTAL_THRESHOLDS.cyclical_defensive;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightCyclicalDefensive(scoreObj, val) {
     if (scoreObj.score === 0) return "Data unavailable.";
@@ -2575,13 +2178,9 @@ export function scoreBankCreditGrowth(growth) {
     if (growth === undefined || growth === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(growth);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    let score = 50; let bias = 'Neutral';
-    if (num > 15) { score = 100; bias = 'Strong Bullish'; }
-    else if (num > 12) { score = 80; bias = 'Bullish'; }
-    else if (num > 9) { score = 50; bias = 'Neutral'; }
-    else if (num > 5) { score = 20; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-    return { score, bias, confidence: 90 };
+    const T = FUNDAMENTAL_THRESHOLDS.bank_credit_growth;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightBankCreditGrowth(scoreObj, val) {
     if (scoreObj.score === 0) return "Data unavailable.";
@@ -2594,11 +2193,10 @@ export function scoreAggregateCorporateDebt(debtGdp) {
     if (debtGdp === undefined || debtGdp === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(debtGdp);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    let score = 50; let bias = 'Neutral';
-    if (num < 45) { score = 90; bias = 'Bullish'; }
-    else if (num < 55) { score = 50; bias = 'Neutral'; }
-    else { score = 15; bias = 'Bearish'; }
-    return { score, bias, confidence: 85 };
+    const T = FUNDAMENTAL_THRESHOLDS.aggregate_corporate_debt;
+    const band = T.spreadBands.find(b => b.else || (b.below !== undefined && num < b.below));
+    const score = band?.score ?? 15;
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightAggregateCorporateDebt(scoreObj, val) {
     if (scoreObj.score === 0) return "Data unavailable.";
@@ -2608,14 +2206,11 @@ export function generateAiInsightAggregateCorporateDebt(scoreObj, val) {
 
 export function scorePolicyTailwinds(score) {
     if (score === undefined || score === null) return { score: null, bias: 'Unknown', confidence: 0 };
-    const num = Number(score); // 0-10 scale
+    const num = Number(score);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    let finalScore = num * 10;
-    return { 
-        score: finalScore, 
-        bias: finalScore > 60 ? 'Bullish' : (finalScore < 40 ? 'Bearish' : 'Neutral'), 
-        confidence: 70 
-    };
+    const T = FUNDAMENTAL_THRESHOLDS.policy_tailwinds;
+    const finalScore = Math.max(0, Math.min(100, num * 10));
+    return { score: finalScore, bias: applyBiasMap(finalScore, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightPolicyTailwinds(scoreObj, val) {
     if (scoreObj.score === 0 && scoreObj.bias === 'Unknown') return "Data unavailable.";
@@ -2627,13 +2222,10 @@ export function scoreCrudeOil(crude) {
     if (crude === undefined || crude === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(crude);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    let score = 50; let bias = 'Neutral';
-    if (num < 65) { score = 100; bias = 'Strong Bullish'; }
-    else if (num < 75) { score = 80; bias = 'Bullish'; }
-    else if (num < 85) { score = 50; bias = 'Neutral'; }
-    else if (num < 95) { score = 20; bias = 'Bearish'; }
-    else { score = 0; bias = 'Strong Bearish'; }
-    return { score, bias, confidence: 95 };
+    const T = FUNDAMENTAL_THRESHOLDS.crude_oil;
+    const band = T.absoluteBands.find(b => b.else || (b.below !== undefined && num < b.below));
+    const score = band?.score ?? 0;
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightCrudeOil(scoreObj, val) {
     if (scoreObj.score === 0) return "Data unavailable.";
@@ -2646,12 +2238,10 @@ export function scoreUSDINR(usdinr) {
     if (usdinr === undefined || usdinr === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(usdinr);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    // This requires a proxy for "stability". For simplicity we assume < 82 is bullish, > 84 is bearish
-    let score = 50; let bias = 'Neutral';
-    if (num < 81) { score = 90; bias = 'Bullish'; }
-    else if (num < 83.5) { score = 50; bias = 'Neutral'; }
-    else { score = 15; bias = 'Bearish'; }
-    return { score, bias, confidence: 85 };
+    const T = FUNDAMENTAL_THRESHOLDS.usdinr;
+    const band = T.absoluteBands.find(b => b.else || (b.below !== undefined && num < b.below));
+    const score = band?.score ?? 15;
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightUSDINR(scoreObj, val) {
     if (scoreObj.score === 0) return "Data unavailable.";
@@ -2662,11 +2252,12 @@ export function generateAiInsightUSDINR(scoreObj, val) {
 
 export function scoreGlobalLiquidity(stance) {
     if (stance === undefined || stance === null) return { score: null, bias: 'Unknown', confidence: 0 };
+    const T = FUNDAMENTAL_THRESHOLDS.global_liquidity;
     const s = String(stance).toLowerCase();
-    if (s.includes('easing') || s.includes('qe')) return { score: 100, bias: 'Strong Bullish', confidence: 90 };
-    if (s.includes('neutral')) return { score: 50, bias: 'Neutral', confidence: 90 };
-    if (s.includes('tightening') || s.includes('qt')) return { score: 10, bias: 'Bearish', confidence: 90 };
-    return { score: 50, bias: 'Neutral', confidence: 50 };
+    const match = Object.entries(T.stanceMap).find(([key]) => s.includes(key));
+    const score      = match ? match[1].score      : 50;
+    const confidence = match ? match[1].confidence : T.confidence.unknown;
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence };
 }
 export function generateAiInsightGlobalLiquidity(scoreObj, val) {
     if (scoreObj.score === 0) return "Data unavailable.";
@@ -2677,13 +2268,12 @@ export function generateAiInsightGlobalLiquidity(scoreObj, val) {
 
 export function scoreSovereignRisk(cds) {
     if (cds === undefined || cds === null) return { score: null, bias: 'Unknown', confidence: 0 };
-    const num = Number(cds); // basis points
+    const num = Number(cds);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    let score = 50; let bias = 'Neutral';
-    if (num < 100) { score = 90; bias = 'Bullish'; }
-    else if (num < 150) { score = 50; bias = 'Neutral'; }
-    else { score = 10; bias = 'Bearish'; }
-    return { score, bias, confidence: 80 };
+    const T = FUNDAMENTAL_THRESHOLDS.sovereign_risk;
+    const band = T.absoluteBands.find(b => b.else || (b.below !== undefined && num < b.below));
+    const score = band?.score ?? 10;
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightSovereignRisk(scoreObj, val) {
     if (scoreObj.score === 0) return "Data unavailable.";
@@ -2695,12 +2285,10 @@ export function scoreNPA(npa) {
     if (npa === undefined || npa === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(npa);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    let score = 50; let bias = 'Neutral';
-    if (num < 3.0) { score = 100; bias = 'Strong Bullish'; }
-    else if (num < 5.0) { score = 75; bias = 'Bullish'; }
-    else if (num < 7.0) { score = 40; bias = 'Bearish'; }
-    else { score = 10; bias = 'Strong Bearish'; }
-    return { score, bias, confidence: 95 };
+    const T = FUNDAMENTAL_THRESHOLDS.npa;
+    const band = T.absoluteBands.find(b => b.else || (b.below !== undefined && num < b.below));
+    const score = band?.score ?? 10;
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightNPA(scoreObj, val) {
     if (scoreObj.score === 0) return "Data unavailable.";
@@ -2711,14 +2299,11 @@ export function generateAiInsightNPA(scoreObj, val) {
 
 export function scoreReformMomentum(momentum) {
     if (momentum === undefined || momentum === null) return { score: null, bias: 'Unknown', confidence: 0 };
-    const num = Number(momentum); // 0-10 scale
+    const num = Number(momentum);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-    let finalScore = num * 10;
-    return { 
-        score: finalScore, 
-        bias: finalScore > 60 ? 'Bullish' : (finalScore < 40 ? 'Bearish' : 'Neutral'), 
-        confidence: 70 
-    };
+    const T = FUNDAMENTAL_THRESHOLDS.reform_momentum;
+    const finalScore = Math.max(0, Math.min(100, num * 10));
+    return { score: finalScore, bias: applyBiasMap(finalScore, T.biasMap), confidence: T.confidence.always };
 }
 export function generateAiInsightReformMomentum(scoreObj, val) {
     if (scoreObj.score === 0) return "Data unavailable.";
@@ -2730,18 +2315,9 @@ export function scoreFIIFlow(val) {
     if (val === undefined || val === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(val);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-
-    let score = 50;
-    let bias = 'Neutral';
-
-    if (num > 5000) { score = 90; bias = 'Strong Bullish'; }
-    else if (num > 1000) { score = 75; bias = 'Bullish'; }
-    else if (num > 0) { score = 60; bias = 'Mild Bullish'; }
-    else if (num > -1000) { score = 40; bias = 'Mild Bearish'; }
-    else if (num > -5000) { score = 25; bias = 'Bearish'; }
-    else { score = 10; bias = 'Strong Bearish'; }
-
-    return { score, bias, confidence: 90 };
+    const T = FUNDAMENTAL_THRESHOLDS.fii_flow;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 
 export function generateAiInsightFIIFlow(scoreObj, val) {
@@ -2755,18 +2331,9 @@ export function scoreDIIFlow(val) {
     if (val === undefined || val === null) return { score: null, bias: 'Unknown', confidence: 0 };
     const num = Number(val);
     if (isNaN(num)) return { score: null, bias: 'Unknown', confidence: 0 };
-
-    let score = 50;
-    let bias = 'Neutral';
-
-    if (num > 5000) { score = 90; bias = 'Strong Bullish'; }
-    else if (num > 1000) { score = 75; bias = 'Bullish'; }
-    else if (num > 0) { score = 60; bias = 'Mild Bullish'; }
-    else if (num > -1000) { score = 40; bias = 'Mild Bearish'; }
-    else if (num > -5000) { score = 25; bias = 'Bearish'; }
-    else { score = 10; bias = 'Strong Bearish'; }
-
-    return { score, bias, confidence: 90 };
+    const T = FUNDAMENTAL_THRESHOLDS.dii_flow;
+    const score = resolveBand(num, T.absoluteBands);
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always };
 }
 
 export function generateAiInsightDIIFlow(scoreObj, val) {
@@ -2781,42 +2348,53 @@ export function scoreCurrentRatio(currentRatio) {
     if (currentRatio === null || isNaN(currentRatio)) {
         return { score: null, bias: 'Neutral', confidence: 0 };
     }
-    let score = 0;
-    let bias = 'Neutral';
-    if (currentRatio > 2.0) {
-        score = 92; bias = 'Strong Bullish';
-    } else if (currentRatio >= 1.5) {
-        score = 75; bias = 'Bullish';
-    } else if (currentRatio >= 1.0) {
-        score = 55; bias = 'Neutral';
-    } else if (currentRatio >= 0.8) {
-        score = 30; bias = 'Bearish';
-    } else {
-        score = 10; bias = 'Strong Bearish';
+    const T = FUNDAMENTAL_THRESHOLDS.current_ratio;
+    const band = T.absoluteBands.find(b => b.else || (b.above !== undefined && currentRatio > b.above));
+    const score = band?.score ?? 10;
+    const label = band?.label ?? 'Liquidity Risk';
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence: T.confidence.always, label };
+}
+
+export function generateAiInsightCurrentRatioCard(currentRatio, sectorRatio) {
+    if (currentRatio === null || isNaN(currentRatio)) return 'No current ratio data available.';
+
+    const hasSector = sectorRatio !== null && !isNaN(sectorRatio);
+    const vsStr = hasSector
+        ? ` vs sector average of ${sectorRatio.toFixed(2)}x`
+        : '';
+
+    if (currentRatio > 3.0) {
+        return `Current ratio of ${currentRatio.toFixed(2)}x${vsStr} is very high. While short-term liquidity is strong, an excessively high ratio may indicate idle cash or inefficient working capital management.`;
     }
-    return { score, bias, confidence: 72 };
+    if (currentRatio > 2.0) {
+        return `Current ratio of ${currentRatio.toFixed(2)}x${vsStr} reflects excellent short-term liquidity. The company is well-positioned to cover all near-term obligations with significant buffer.`;
+    }
+    if (currentRatio > 1.5) {
+        return `Current ratio of ${currentRatio.toFixed(2)}x${vsStr} indicates good liquidity. The company can comfortably meet short-term liabilities and has a healthy working capital cushion.`;
+    }
+    if (currentRatio > 1.2) {
+        return `Current ratio of ${currentRatio.toFixed(2)}x${vsStr} is adequate. Liquidity is sufficient, though monitoring working capital trends is advisable if the ratio continues to compress.`;
+    }
+    if (currentRatio > 1.0) {
+        return `Current ratio of ${currentRatio.toFixed(2)}x${vsStr} is tight but manageable. Current assets barely exceed current liabilities — any operational disruption could stress liquidity.`;
+    }
+    if (currentRatio > 0.8) {
+        return `Current ratio of ${currentRatio.toFixed(2)}x${vsStr} signals liquidity stress. Current liabilities exceed current assets, indicating the company may need to refinance obligations or draw down credit lines.`;
+    }
+    return `Current ratio of ${currentRatio.toFixed(2)}x${vsStr} is critically low. The company faces severe short-term liquidity risk and may struggle to meet near-term financial obligations without external financing.`;
 }
 
 export function scoreAnalystConsensus(consensusObj) {
     if (!consensusObj || !consensusObj.consensus) {
         return { score: null, bias: 'Neutral', confidence: 0 };
     }
-
+    const T = FUNDAMENTAL_THRESHOLDS.analyst_consensus;
     const rec = consensusObj.consensus.toLowerCase().replace('_', '');
-    let score = 50;
-    let bias = 'Neutral';
-
-    if (rec.includes('strongbuy')) {
-        score = 90; bias = 'Strong Bullish';
-    } else if (rec.includes('buy')) {
-        score = 75; bias = 'Bullish';
-    } else if (rec.includes('hold')) {
-        score = 50; bias = 'Neutral';
-    } else if (rec.includes('underperform')) {
-        score = 30; bias = 'Bearish';
-    } else if (rec.includes('sell')) {
-        score = 15; bias = 'Strong Bearish';
-    }
-
-    return { score, bias, confidence: consensusObj.analysts ? Math.min(100, consensusObj.analysts * 5) : 50 };
+    const score = T.ratingMap[rec] ??
+        (rec.includes('strongbuy') ? 90 :
+         rec.includes('buy')        ? 75 :
+         rec.includes('hold')       ? 50 :
+         rec.includes('underperform')? 28 : 15);
+    const confidence = consensusObj.analysts ? Math.min(100, consensusObj.analysts * 5) : T.confidence.always;
+    return { score, bias: applyBiasMap(score, T.biasMap), confidence };
 }

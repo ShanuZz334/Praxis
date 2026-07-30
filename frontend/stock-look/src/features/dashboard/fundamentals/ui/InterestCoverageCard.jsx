@@ -32,10 +32,11 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 import { scoreInterestCoverage, generateAiInsightInterestCoverageCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 // ─── Main Component ─────────────────────────────────────────────────────────
-export default function InterestCoverageCard({ cardId, data, manualOverride, lastUpdated }) {
+export default function InterestCoverageCard({ cardId, data, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     let isManual = true;
     let extractedValue = null;
     let extractedSector = null;
@@ -66,7 +67,7 @@ export default function InterestCoverageCard({ cardId, data, manualOverride, las
     const sectorCoverage = isManual ? null : extractedSector;
 
     const configData = getIndicatorConfig(CARD_REGISTRY.interest_coverage.id);
-    const { score, bias, safetyZone } = scoreInterestCoverage(currentCoverage, sectorCoverage);
+    const { score, bias, safetyZone } = applyModeAdjustment(scoreInterestCoverage(currentCoverage, sectorCoverage), 'interest_coverage', tradingMode);
     
     const cCard = computeCardConfidence({
         hasLiveData: !isManual,

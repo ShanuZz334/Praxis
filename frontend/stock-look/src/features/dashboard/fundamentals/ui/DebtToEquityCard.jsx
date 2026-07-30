@@ -18,10 +18,11 @@ import { cleanNum } from '@/lib/utils';import { IndicatorCard } from '@/shared/c
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 import { scoreDebtToEquity, generateAiInsightDebtToEquityCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 // ─── Main Component ─────────────────────────────────────────────────────────
-export default function DebtToEquityCard({ data, manualOverride, lastUpdated }) {
+export default function DebtToEquityCard({ data, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     let isManual = true;
     let extractedValue = null;
     let extractedSector = null;
@@ -66,7 +67,7 @@ export default function DebtToEquityCard({ data, manualOverride, lastUpdated }) 
     const sectorDE = isManual ? null : extractedSector;
 
     const configData = getIndicatorConfig(CARD_REGISTRY.debt_to_equity.id);
-    const { score, bias, leverageZone } = scoreDebtToEquity(currentDE, sectorDE);
+    const { score, bias, leverageZone } = applyModeAdjustment(scoreDebtToEquity(currentDE, sectorDE), 'debt_to_equity', tradingMode);
     
     const cCard = computeCardConfidence({
         hasLiveData: !isManual,

@@ -1,5 +1,5 @@
-import axiosInstance from '@/shared/utils/axiosInstance';
-import { API_PATHS } from '@/shared/utils/apiPaths';
+import axiosInstance from '../../../../shared/utils/axiosInstance';
+import { API_PATHS } from '../../../../shared/utils/apiPaths';
 
 import { 
     scorePERatio, 
@@ -17,7 +17,7 @@ import {
     scoreDividendYield
 } from './scoringEngine';
 
-import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { CARD_REGISTRY } from '../../../../shared/config/cardRegistry';
 
 function parseHeadlessFundamentals(rawFundamentals, manualOverrides = {}) {
     const scores = {};

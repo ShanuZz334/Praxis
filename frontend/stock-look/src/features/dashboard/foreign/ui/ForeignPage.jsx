@@ -23,6 +23,7 @@ import { useDataFreshness } from '@/shared/hooks/useDataFreshness';
 import { useAiSync } from "@/shared/hooks/useAiSync";
 import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/confidenceEngine";
 import { useGlobalApiData } from "../data/useGlobalApiData";
+import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import Loader from "@/shared/components/ui/Loader";
 
 const DEFAULT_OVERRIDES = {
