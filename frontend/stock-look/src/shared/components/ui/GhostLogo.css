@@ -466,3 +466,9 @@
     transform: rotate(360deg);
   }
 }
+
+.ghost-logo-container.not-animated,
+.ghost-logo-container.not-animated * {
+  animation: none !important;
+  animation-play-state: paused !important;
+}

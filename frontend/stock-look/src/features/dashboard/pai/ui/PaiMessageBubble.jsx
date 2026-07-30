@@ -3,6 +3,8 @@ import { Copy, RotateCcw, ThumbsUp, ThumbsDown, Check, Cpu } from 'lucide-react'
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import GhostLogo from '../../../../shared/components/ui/GhostLogo';
+
 const PaiMessageBubble = memo(function PaiMessageBubble({ role, content, onRegenerate, provider, model, latencyMs, timestamp }) {
     const isUser = role === 'user';
     const [copied, setCopied] = useState(false);
@@ -48,11 +50,12 @@ const PaiMessageBubble = memo(function PaiMessageBubble({ role, content, onRegen
                 {/* Avatar for PAI only */}
                 {!isUser && (
                     <div className="shrink-0 flex items-start mt-1">
-                        <img 
-                            src="/images/pai-profile.png" 
-                            alt="Praxis AI"
-                            className="w-7 h-7 rounded-full object-cover shadow-[0_0_15px_rgba(99,102,241,0.2)] bg-black"
-                        />
+                        <div className="w-7 h-7 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.2)] bg-black overflow-hidden flex items-center justify-center">
+                            <GhostLogo 
+                                animated={false}
+                                style={{ transform: 'scale(0.18)', transformOrigin: 'center' }}
+                            />
+                        </div>
                     </div>
                 )}
 

@@ -3,12 +3,12 @@ import './GhostLogo.css';
 import './GhostAccessories.css';
 import { useTheme } from '../../context/ThemeContext';
 
-const GhostLogo = ({ className, style, status = 'idle', accessory }) => {
+const GhostLogo = ({ className, style, status = 'idle', accessory, animated = true }) => {
   const { paiAccessory } = useTheme();
   const currentAccessory = accessory || paiAccessory || 'none';
   
   return (
-    <div className={`ghost-logo-container ${className || ''}`} style={style}>
+    <div className={`ghost-logo-container ${className || ''} ${!animated ? 'not-animated' : ''}`} style={style}>
       <div id="ghost">
         <div id="red">
           <div id="pupil"></div>

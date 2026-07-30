@@ -906,11 +906,12 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                                 >
                                                     {msg.role === 'ai' && (
                                                         <div className="shrink-0 flex items-start mt-0.5">
-                                                            <img 
-                                                                src="/images/pai-profile.png" 
-                                                                alt="PAI"
-                                                                className="w-6 h-6 rounded-full object-cover shadow-[0_0_10px_rgba(99,102,241,0.2)] bg-black"
-                                                            />
+                                                            <div className="w-6 h-6 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.2)] bg-black flex items-center justify-center overflow-hidden">
+                                                                <GhostLogo 
+                                                                    animated={false}
+                                                                    style={{ transform: 'scale(0.15)', transformOrigin: 'center' }}
+                                                                />
+                                                            </div>
                                                         </div>
                                                     )}
                                                     <div className={`text-[12px] leading-relaxed px-3.5 py-2.5 rounded-2xl shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm max-w-[85%] whitespace-pre-wrap' : 'bg-background-tooltip border border-border-default/50 text-text-primary rounded-tl-sm max-w-[85%] prose prose-sm dark:prose-invert prose-p:my-1 prose-pre:my-2 prose-strong:text-blue-600 dark:prose-strong:text-blue-400'}`}>
