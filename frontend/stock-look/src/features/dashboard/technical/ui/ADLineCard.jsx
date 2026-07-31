@@ -9,9 +9,9 @@ export default function ADLineCard({ cardId, data = null, manualOverride, lastUp
     const configData = getIndicatorConfig(CARD_REGISTRY.ad_line.id);
     
     // Resolve current value
-    // (Assuming Upstox live data mapping will be added here later)
-    const isLiveData = false; 
-    const currentValue = isLiveData ? null : (manualOverride ?? null);
+    const liveNet = data?.breadth?.netAdvances;
+    const isLiveData = liveNet !== undefined && liveNet !== null;
+    const currentValue = isLiveData ? liveNet : (manualOverride ?? null);
 
     const { score, bias, confidence, aiInsight } = scoreADLineCard(currentValue);
 
@@ -22,7 +22,7 @@ return (
             config={{ 
                 title: "Advance / Decline Line", 
                 category: "Market Breadth", 
-                mode: "MANUAL",
+                mode: isLiveData ? "AUTO" : "MANUAL",
                 creditScore: configData.creditScore, 
                 updateTime: lastUpdated ?? "--:--", 
                 source: configData.source, 

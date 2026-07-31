@@ -11,17 +11,28 @@ export default function GenericGlobalCard({ id, label, engineData, resolveTime, 
     const hasValue = rawValue !== null && rawValue !== undefined && rawValue !== '';
     let displayValue = '--';
     if (hasValue) {
-        // format based on id
-                if (id.includes('yield') || id.includes('futures')) {
-            displayValue = `${parseFloat(rawValue).toFixed(2)}%`;
-        } else if (['gold', 'silver', 'copper', 'natgas', 'wheat', 'aluminum', 'crude', 'bitcoin'].includes(id)) {
-            displayValue = `$${parseFloat(rawValue).toFixed(2)}`;
-        } else if (['nikkei', 'ftse', 'dax', 'hangseng', 'shanghai', 'cac40', 'eurostoxx'].includes(id)) {
-            // These are indices/prices. Typically they don't need decimals or maybe just 2.
-            const parsed = parseFloat(rawValue);
+        const parsed = parseFloat(rawValue);
+        if (id === 'us_10y_yield') {
+            // Yield: show as percentage
+            displayValue = `${parsed.toFixed(2)}%`;
+        } else if (id === 'vix' || id === 'move') {
+            displayValue = parsed.toFixed(2);
+        } else if (['sp_futures', 'nasdaq_futures', 'dow_futures', 'nikkei', 'ftse', 'dax', 'hangseng', 'shanghai', 'cac40', 'eurostoxx'].includes(id)) {
+            // Index levels: comma-separated, 2 decimal places
             displayValue = isNaN(parsed) ? rawValue : parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        } else if (id === 'copper') {
+            // HG=F returns in $/lb — show as $/lb, convert from cents if needed
+            const v = parsed > 10 ? parsed / 100 : parsed;
+            displayValue = `$${v.toFixed(2)}/lb`;
+        } else if (['gold', 'silver', 'natgas', 'crude', 'bitcoin', 'aluminum'].includes(id)) {
+            displayValue = `$${parsed.toFixed(2)}`;
+        } else if (id === 'wheat') {
+            // ZW=F in cents/bushel
+            displayValue = `${parsed.toFixed(2)} ¢/bu`;
+        } else if (['dxy', 'eurusd', 'usdjpy', 'usd_inr'].includes(id)) {
+            displayValue = parsed.toFixed(4);
         } else {
-            displayValue = parseFloat(rawValue).toFixed(2);
+            displayValue = parsed.toFixed(2);
         }
     }
 
@@ -46,7 +57,7 @@ export default function GenericGlobalCard({ id, label, engineData, resolveTime, 
                 category: "Global Macro",
                 mode: isLive ? "AUTO" : "MANUAL",
                 creditScore: configData.creditScore ?? 5,
-                updateTime: resolveTime,
+                updateTime: typeof resolveTime === 'function' ? resolveTime(isLive) : resolveTime,
                 source: configData.source || "Global Market Data",
                 aiModel: configData.aiModel || "Qwen3 8B"
             }}

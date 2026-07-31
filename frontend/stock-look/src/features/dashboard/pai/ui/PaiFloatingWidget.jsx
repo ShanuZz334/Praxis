@@ -906,7 +906,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                                 >
                                                     {msg.role === 'ai' && (
                                                         <div className="shrink-0 flex items-start mt-0.5">
-                                                            <div className="w-6 h-6 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.2)] bg-black flex items-center justify-center overflow-hidden">
+                                                            <div className="w-6 h-6 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.2)] bg-white flex items-center justify-center overflow-hidden">
                                                                 <GhostLogo 
                                                                     animated={false}
                                                                     style={{ transform: 'scale(0.15)', transformOrigin: 'center' }}

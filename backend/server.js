@@ -32,11 +32,13 @@ import snapshotRoutes from "./routes/snapshotRoutes.js";
 import intelligenceRoutes from "./routes/intelligenceRoutes.js";
 import flowRoutes from "./routes/flowRoutes.js";
 import catalystRoutes from "./routes/catalystRoutes.js";
+import technicalRoutes from "./routes/technicalRoutes.js";
 import aiSettingsRoutes from "./routes/aiSettingsRoutes.js";
 import aiPromptsRoutes from "./routes/aiPromptsRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
 import dataRoutes from "./routes/dataRoutes.js";
 import eventsRoutes from "./routes/eventsRoutes.js";
+import journalRoutes from "./routes/journalRoutes.js";
 
 // =============================
 // Express App Setup
@@ -97,6 +99,8 @@ app.use("/api/v1/ai-prompts", aiPromptsRoutes);
 app.use("/api/v1/health", healthRoutes);
 app.use("/api/v1/data", dataRoutes);
 app.use("/api/v1/events", eventsRoutes);
+app.use("/api/v1/technical", technicalRoutes);
+app.use("/api/v1/journal", journalRoutes);
 
 app.use("/api/flow", flowRoutes);
 

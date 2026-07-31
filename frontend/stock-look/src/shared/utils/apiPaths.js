@@ -62,6 +62,9 @@ export const API_PATHS = {
     ANALYTICS: "/api/v1/journal/analytics",
     GET_NOTES: "/api/v1/journal/notes",
     SAVE_NOTE: "/api/v1/journal/notes",
+    GET_HOLIDAYS: "/api/v1/journal/holidays",
+    GET_SUMMARY: "/api/v1/journal/summary",
+    GET_TRADES: "/api/v1/journal/trades",
   },
 
   ADMIN: {
@@ -75,6 +78,10 @@ export const API_PATHS = {
 
   HEALTH: {
     PROVIDERS: "/api/v1/health/providers",
+  },
+
+  DATA: {
+    GLOBAL: "/api/v1/data/global",
   },
 };
 

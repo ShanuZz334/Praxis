@@ -88,11 +88,50 @@ export function useFundamentalsData(instrumentKey) {
                 return;
             }
 
-            setLoading(true);
-            setError(null);
-
             const cachedData = getFromCache(CACHE_KEYS.FUNDAMENTALS, instrumentKey, getFundamentalTTL());
             const cachedTime = cachedData ? new Date(JSON.parse(localStorage.getItem(CACHE_KEYS.FUNDAMENTALS))[instrumentKey].timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '--:--';
+
+            // Check if fundamentals cache is valid
+            let fundDataObj = null;
+            let snapshotDataObj = null;
+            let isFundCacheValid = false;
+
+            if (cachedData && cachedData.fundData && Object.keys(cachedData.fundData).length > 0) {
+                fundDataObj = cachedData.fundData;
+                snapshotDataObj = cachedData.snapshotData;
+                isFundCacheValid = true;
+            }
+
+            // If fundamentals are cached, we still need to ensure Quote is fetched if expired
+            if (isFundCacheValid) {
+                let quoteObj = getFromCache(CACHE_KEYS.QUOTES, instrumentKey, CACHE_TTL.QUOTES);
+                
+                if (!quoteObj) {
+                    try {
+                        const quoteRes = await axiosInstance.get(`/api/v1/upstox/market-quote?instruments=${encodeURIComponent(instrumentKey)}`);
+                        const quoteData = quoteRes.data?.data;
+                        if (quoteData && Object.keys(quoteData).length > 0) {
+                            quoteObj = Object.values(quoteData)[0];
+                            saveToCache(CACHE_KEYS.QUOTES, instrumentKey, quoteObj);
+                        }
+                    } catch(qe) {
+                        console.error("Quote fetch error", qe);
+                    }
+                }
+                
+                setData({ ...fundDataObj, quote: quoteObj });
+                setSnapshot(snapshotDataObj);
+                setLastUpdated(cachedTime);
+                setLoading(false);
+                return;
+            }
+
+            setLoading(true);
+            setError(null);
+            
+            // Clear previous instrument data to prevent it from showing while the new one loads
+            setData(null);
+            setSnapshot(null);
 
             try {
                 // 1. Fetch Both Data Sources Concurrently
@@ -104,7 +143,9 @@ export function useFundamentalsData(instrumentKey) {
                 const fundData = upstoxRes.data?.data || {};
                 const snapshotData = snapshotRes.data?.data || null;
 
-                saveToCache(CACHE_KEYS.FUNDAMENTALS, instrumentKey, { fundData, snapshotData });
+                if (Object.keys(fundData).length > 0) {
+                    saveToCache(CACHE_KEYS.FUNDAMENTALS, instrumentKey, { fundData, snapshotData });
+                }
                 
                 // 2. Fetch Market Quote (Check Cache First)
                 let quoteObj = getFromCache(CACHE_KEYS.QUOTES, instrumentKey, CACHE_TTL.QUOTES);

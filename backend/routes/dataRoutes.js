@@ -8,7 +8,7 @@ const router = express.Router();
 // Memory Cache
 let globalCache = null;
 let lastFetchTime = 0;
-const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+const CACHE_TTL_MS = 1 * 60 * 1000; // 1 minute
 
 // Map of our internal IDs to Yahoo Finance symbols
 const SYMBOL_MAP = {
@@ -16,7 +16,7 @@ const SYMBOL_MAP = {
     "dxy": "DX-Y.NYB",
     "eurusd": "EURUSD=X",
     "usdjpy": "JPY=X",
-    "usd_inr": "INR=X",
+    "usd_inr": "USDINR=X",
 
     // Global Indices
     "sp_futures": "ES=F",
@@ -25,14 +25,19 @@ const SYMBOL_MAP = {
     "nikkei": "^N225",
     "ftse": "^FTSE",
     "dax": "^GDAXI",
+    "hangseng": "^HSI",
+    "shanghai": "000001.SS",
+    "cac40": "^FCHI",
+    "eurostoxx": "^STOXX50E",
 
     // Commodities
     "gold": "GC=F",
     "silver": "SI=F",
-    "crude_oil": "CL=F",
+    "crude": "CL=F",
     "copper": "HG=F",
-    "natural_gas": "NG=F",
+    "natgas": "NG=F",
     "wheat": "ZW=F",
+    "aluminum": "ALI=F",
 
     // Crypto
     "bitcoin": "BTC-USD",
@@ -41,7 +46,9 @@ const SYMBOL_MAP = {
 
     // Macro/Volatility
     "vix": "^VIX",
-    "india_vix": "^INDIAVIX"
+    "india_vix": "^INDIAVIX",
+    "us_10y_yield": "^TNX",
+    "move": "^MOVE"
 };
 
 // Generic headers to avoid blocking
@@ -76,30 +83,35 @@ router.get("/global", async (req, res) => {
             }
         }
 
-        // Map responses back to our internal IDs
+        // Map responses back to our internal IDs — extract price + 52-week range for auto-calibration
         for (const [internalId, yahooSymbol] of Object.entries(SYMBOL_MAP)) {
             const dataItem = sparkResp.find(s => s.symbol === yahooSymbol);
             if (dataItem && dataItem.response && dataItem.response[0] && dataItem.response[0].meta) {
-                const val = dataItem.response[0].meta.regularMarketPrice;
-                results[internalId] = val;
+                const meta = dataItem.response[0].meta;
+                results[internalId] = {
+                    value: meta.regularMarketPrice ?? null,
+                    hi52:  meta.fiftyTwoWeekHigh  ?? null,
+                    lo52:  meta.fiftyTwoWeekLow   ?? null,
+                };
             } else {
-                results[internalId] = null;
+                results[internalId] = { value: null, hi52: null, lo52: null };
             }
         }
 
-        // Add specific fallbacks for things Yahoo might miss
-        if (!results["bitcoin"]) {
+        // Add specific fallbacks for things Yahoo might miss (crypto)
+        if (!results["bitcoin"]?.value) {
             try {
                 const { data } = await axios.get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd", { timeout: 3000 });
-                results["bitcoin"] = data.bitcoin?.usd;
-                results["ethereum"] = data.ethereum?.usd;
-                results["solana"] = data.solana?.usd;
+                if (data.bitcoin?.usd) results["bitcoin"] = { value: data.bitcoin.usd, hi52: null, lo52: null };
+                if (data.ethereum?.usd) results["ethereum"] = { value: data.ethereum.usd, hi52: null, lo52: null };
+                if (data.solana?.usd)   results["solana"]   = { value: data.solana.usd,   hi52: null, lo52: null };
             } catch(e) {}
         }
 
         // Fetch FRED Macro Data
         try {
-            results["gdp"] = await fredApiService.getGDPGrowth();
+            const gdp = await fredApiService.getGDPGrowth();
+            results["gdp"] = { value: gdp, hi52: null, lo52: null };
         } catch(e) {
             console.error("FRED API Error:", e.message);
         }
@@ -118,5 +130,6 @@ router.get("/global", async (req, res) => {
         res.status(500).json({ error: "Failed to fetch live macro data" });
     }
 });
+
 
 export default router;

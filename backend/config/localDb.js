@@ -260,6 +260,38 @@ export const initLocalDb = () => {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
         CREATE INDEX IF NOT EXISTS idx_market_events_time ON market_events(created_at);
+        -- 19. Journal Notes
+        CREATE TABLE IF NOT EXISTS journal_notes (
+            date TEXT PRIMARY KEY,
+            premarket TEXT,
+            inmarket TEXT,
+            postmarket TEXT,
+            lessons TEXT,
+            mood TEXT,
+            tags TEXT,
+            compliance_score TEXT,
+            ai_insights TEXT,
+            images TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 20. Trade History (Historical executions)
+        CREATE TABLE IF NOT EXISTS trade_history (
+            trade_id TEXT PRIMARY KEY,
+            date TEXT,
+            instrument_key TEXT,
+            trading_symbol TEXT,
+            transaction_type TEXT,
+            quantity INTEGER,
+            average_price REAL,
+            pnl REAL,
+            r_multiple REAL,
+            strategy_tag TEXT,
+            exchange TEXT,
+            order_id TEXT,
+            exchange_timestamp DATETIME
+        );
+        CREATE INDEX IF NOT EXISTS idx_trade_history_date ON trade_history(date);
     `);
 
     try {
@@ -279,6 +311,9 @@ export const initLocalDb = () => {
         db.exec(`ALTER TABLE market_events ADD COLUMN key_data_points TEXT;`); // JSON array string
     } catch (e) {}
 
+    try {
+        db.exec(`ALTER TABLE market_events ADD COLUMN ttl_hours INTEGER;`); // Event wear-off time in hours
+    } catch (e) {}
 
     console.log("✅ SQLite Tables Initialized");
 };

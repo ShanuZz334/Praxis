@@ -240,6 +240,22 @@ export const getFundamentals = async (req, res) => {
             if (vixQuote.updated_at) payload.vix_updated_at = vixQuote.updated_at;
         }
 
+        // Live Daily High/Low Injection from Upstox API directly
+        try {
+            const quoteRes = await axios.get(`https://api.upstox.com/v2/market-quote/quotes?instrument_key=${encodeURIComponent(instrumentKey)}`, {
+                headers: { "Accept": "application/json", "Authorization": `Bearer ${auth.accessToken}` }
+            });
+            const quoteData = quoteRes.data?.data || {};
+            const quoteObj = Object.values(quoteData)[0];
+            if (quoteObj && quoteObj.ohlc) {
+                if (!payload.quote) payload.quote = {};
+                payload.quote.ohlc = { high: quoteObj.ohlc.high, low: quoteObj.ohlc.low };
+                if (!payload.quote.last_price) payload.quote.last_price = quoteObj.last_price;
+            }
+        } catch (e) {
+            console.error("Failed to fetch Live Quote for High/Low:", e.message);
+        }
+
         // Live FII/DII, Advance/Decline, and Sector Dashboard Injection
         try {
             const nse = new NseIndia();

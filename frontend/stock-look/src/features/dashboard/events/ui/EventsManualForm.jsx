@@ -287,7 +287,7 @@ function EventPreviewCard({ event }) {
                     <div className="flex flex-col items-end shrink-0 pt-0.5">
                         <div className="text-[10px] text-text-primary font-bold uppercase tracking-widest mb-1">Event Score</div>
                         <div className="text-xl font-mono font-bold" style={{ color: colors.scoreHex }}>
-                            {event.event_score > 0 ? '+' : ''}{event.event_score}
+                            {event.event_score > 0 ? '+' : ''}{(event.event_score / 10).toFixed(1)}
                         </div>
                     </div>
                 </div>

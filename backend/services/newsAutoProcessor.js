@@ -33,10 +33,10 @@ import {
 // ============================================================
 // Config
 // ============================================================
-const MAX_AGE_HOURS    = 24;    // Only process news from last 24 hours
+const MAX_AGE_HOURS    = 72;    // Only process news from last 72 hours
 const CONCURRENCY      = 2;     // Max parallel AI calls
 const INTER_CALL_DELAY = 2500;  // ms between batches (rate-limit protection)
-const MAX_PER_CYCLE    = 10;    // Max new articles to process per polling cycle
+const MAX_PER_CYCLE    = 25;    // Max new articles to process per polling cycle
 
 // ============================================================
 // State
@@ -175,8 +175,8 @@ async function processNewsArticle(newsItem, useFewShot = true) {
                 headline, summary, category, sub_category, source,
                 sentiment, importance, severity, override_mode,
                 confidence, affected_assets, event_score, horizon, reasoning,
-                instrument_type, key_data_points, source_url
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                instrument_type, key_data_points, source_url, ttl_hours
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         const info = stmt.run(
@@ -196,7 +196,8 @@ async function processNewsArticle(newsItem, useFewShot = true) {
             sanitized.reasoning      || null,
             sanitized.instrument_type || instrumentType,
             sanitized.key_data_points ? JSON.stringify(sanitized.key_data_points) : "[]",
-            article_link             || null
+            article_link             || null,
+            sanitized.ttl_hours      || 72
         );
 
         // 11. Mark as processed

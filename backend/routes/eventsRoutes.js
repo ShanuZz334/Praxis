@@ -5,7 +5,8 @@ import {
     resolvePromptByInstrumentType,
     buildEventExtractionPrompt,
     detectInstrumentType,
-    validateAndSanitizeEvent
+    validateAndSanitizeEvent,
+    computeEventScore
 } from "../../frontend/stock-look/src/shared/global/logic/eventsEngine.js";
 
 const router = express.Router();
@@ -140,8 +141,8 @@ router.post("/confirm", (req, res) => {
                 headline, summary, category, sub_category, source, 
                 sentiment, importance, severity, override_mode, 
                 confidence, affected_assets, event_score, horizon, reasoning,
-                instrument_type, key_data_points
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                instrument_type, key_data_points, ttl_hours
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         
         const info = stmt.run(
@@ -160,7 +161,8 @@ router.post("/confirm", (req, res) => {
             sanitized.horizon       || null,
             sanitized.reasoning     || null,
             sanitized.instrument_type || "INDICES",
-            sanitized.key_data_points ? JSON.stringify(sanitized.key_data_points) : "[]"
+            sanitized.key_data_points ? JSON.stringify(sanitized.key_data_points) : "[]",
+            sanitized.ttl_hours     || 72
         );
 
         res.json({ success: true, id: info.lastInsertRowid });
@@ -182,6 +184,55 @@ router.delete("/:id", (req, res) => {
     } catch (e) {
         console.error("DELETE /events/:id error:", e);
         res.status(500).json({ success: false, message: "Database delete failed: " + e.message });
+    }
+});
+
+/**
+ * POST /api/v1/events/migrate-scores
+ * One-time migration: re-computes all existing event scores using the new
+ * PES-7 v2 formula (±100 internal scale, with horizon weighting & sigmoid confidence).
+ * Safe to run multiple times — idempotent.
+ */
+router.post("/migrate-scores", (req, res) => {
+    try {
+        const rows = db.prepare(`SELECT id, sentiment, importance, severity, confidence, horizon FROM market_events`).all();
+
+        const updateStmt = db.prepare(`UPDATE market_events SET event_score = ? WHERE id = ?`);
+
+        let updated = 0;
+        let skipped = 0;
+
+        const migrate = db.transaction(() => {
+            for (const row of rows) {
+                if (!row.sentiment || !row.importance || !row.severity) {
+                    skipped++;
+                    continue;
+                }
+                // Re-compute with new formula including horizon
+                const newScore = computeEventScore(
+                    row.sentiment,
+                    row.importance,
+                    row.severity,
+                    row.confidence || 60,
+                    row.horizon || "Positional"
+                );
+                updateStmt.run(newScore, row.id);
+                updated++;
+            }
+        });
+
+        migrate();
+
+        console.log(`[Migration] Re-scored ${updated} events, skipped ${skipped}`);
+        res.json({
+            success: true,
+            message: `Migration complete: ${updated} events re-scored with PES-7 v2 formula.`,
+            updated,
+            skipped
+        });
+    } catch (e) {
+        console.error("POST /events/migrate-scores error:", e);
+        res.status(500).json({ success: false, message: e.message });
     }
 });
 

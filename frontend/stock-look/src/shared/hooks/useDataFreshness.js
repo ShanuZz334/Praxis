@@ -9,8 +9,9 @@ import { useMemo } from 'react';
 export function useDataFreshness(liveData, manualOverrides, manualOverrideTimes, isMarketOpen, formatTime, fetchFrequency = "1s") {
     
     const resolveTime = useMemo(() => (hasData, overrideKey) => {
-        // 1. Check if the card is actively using a manual override
-        const isManual = overrideKey && manualOverrides && manualOverrides[overrideKey] !== undefined && manualOverrides[overrideKey] !== null;
+        // 1. Check if the card is actively using a manual override (only if live data is missing!)
+        const hasLive = overrideKey && liveData && liveData[overrideKey] !== undefined && liveData[overrideKey] !== null;
+        const isManual = !hasLive && overrideKey && manualOverrides && manualOverrides[overrideKey] !== undefined && manualOverrides[overrideKey] !== null;
         
         if (isManual) {
             const manualTs = manualOverrideTimes && manualOverrideTimes[overrideKey];

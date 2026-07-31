@@ -6,6 +6,7 @@ import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedO
 import { useTechnicalComposite } from "../engine/useTechnicalComposite";
 import { useDataFreshness } from '@/shared/hooks/useDataFreshness';
 import { useTechnicalsData } from "../data/useTechnicalsData";
+import { useMarketBreadth } from "../api/useMarketBreadth";
 import { technicalSections } from "../engine/technicalHelper";
 import CardSegmented from "@/shared/components/controls/CardSegmented";
 import IndicatorSettingsModal from "@/shared/components/ui/IndicatorCard/IndicatorSettingsModal";
@@ -22,6 +23,17 @@ const DEFAULT_OVERRIDES = {
     support: null, resistance: null, trendline: null, fibonacci: null, pivot: null,
     kc: null, cmf: null, breadth_ratio: null
 };
+
+// Wrapper to automatically inject timer configs
+const TimerOverrideInput = ({ overrideKey, manualLastUpdated, expiryConfigs, info, ...props }) => (
+    <DebouncedOverrideInput
+        {...props}
+        overrideKey={overrideKey}
+        lastUpdatedTimestamp={manualLastUpdated?.[overrideKey]}
+        expiryDuration={expiryConfigs?.[overrideKey] || expiryConfigs?.global_default}
+        info={info}
+    />
+);
 
 export default function TechnicalPage() {
     const { selectedCategory, selectedInstrument, livePrices } = useDashboardContext();
@@ -82,7 +94,7 @@ export default function TechnicalPage() {
     }, [selectedTimeframe]);
 
     // Unified persistent overrides hook
-    const { overrides: manualOverrides, lastUpdated: manualOverrideTimes, handleChange: handleOverrideChange, handleClearAll } = useManualOverrides('technical', selectedInstrument || 'NIFTY', DEFAULT_OVERRIDES);
+    const { overrides: manualOverrides, lastUpdated: manualOverrideTimes, expiryConfigs, handleChange: handleOverrideChange, handleClearAll } = useManualOverrides('technical', selectedInstrument || 'NIFTY', DEFAULT_OVERRIDES);
     
     // Indicator Settings State
     const [indicatorParams, setIndicatorParams] = useState({ 
@@ -99,11 +111,26 @@ export default function TechnicalPage() {
 
     // Fetch Upstox data via 1-second polling hook
     const { liveData: rawTechnicalsData, loading: isLoading, error } = useTechnicalsData(selectedTimeframe, indicatorParams);
+    
+    // Fetch Market Breadth data for indices
+    const { breadthData } = useMarketBreadth();
 
     // Inject real-time data if backend DB missed it
     const technicalsData = React.useMemo(() => {
-        return { ...(rawTechnicalsData || {}) };
-    }, [rawTechnicalsData, livePrices]);
+        const breadth = breadthData || {};
+        return { 
+            ...(rawTechnicalsData || {}), 
+            breadth: breadth,
+            
+            // Flatten nested keys for the manual form's `hasData` checker
+            breadth_ratio: breadth.breadthRatio,
+            ad_line: breadth.netAdvances,
+            mcclellan: breadth.mcclellan, // Still null (manual)
+            trin: breadth.trin, // Still null (manual)
+            nh_nl: (breadth.newHighs !== undefined && breadth.newLows !== undefined) ? (breadth.newHighs - breadth.newLows) : undefined,
+            beta_correlation: rawTechnicalsData?.beta,
+        };
+    }, [rawTechnicalsData, livePrices, breadthData]);
 
     // Engine: Process the data via ai-snapshot events
     const compositeData = useTechnicalComposite(isIndex, selectedInstrument);
@@ -206,7 +233,7 @@ export default function TechnicalPage() {
         }
     );
 
-    if (isLoading) {
+    if (isLoading && !rawTechnicalsData) {
         return (
             <div className="w-full min-h-[80vh] flex flex-col items-center justify-center bg-background-base animate-in fade-in duration-500">
                 <Loader size="lg" color="indigo" />
@@ -249,18 +276,18 @@ export default function TechnicalPage() {
                         <div className="text-xs font-bold text-yellow-500 mb-2">Structure & Breadth</div>
                         {isIndex && (
                             <>
-                                {!hasData('breadth_ratio') && <DebouncedOverrideInput label="Breadth Ratio" overrideKey="breadth_ratio" value={manualOverrides.breadth_ratio} onChange={handleOverrideChange} />}
-                                {!hasData('ad_line') && <DebouncedOverrideInput label="A/D Line" overrideKey="ad_line" value={manualOverrides.ad_line} onChange={handleOverrideChange} />}
-                                {!hasData('mcclellan') && <DebouncedOverrideInput label="McClellan Osc" overrideKey="mcclellan" value={manualOverrides.mcclellan} onChange={handleOverrideChange} />}
-                                {!hasData('nh_nl') && <DebouncedOverrideInput label="New Highs / Lows" overrideKey="nh_nl" value={manualOverrides.nh_nl} onChange={handleOverrideChange} />}
-                                {!hasData('trin') && <DebouncedOverrideInput label="TRIN (Arms Index)" overrideKey="trin" value={manualOverrides.trin} onChange={handleOverrideChange} />}
+                                {!hasData('breadth_ratio') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Breadth Ratio" overrideKey="breadth_ratio" value={manualOverrides.breadth_ratio} onChange={handleOverrideChange} info="Market Breadth Ratio (Advances / Declines). Realistic range: 0.1 to 5.0." />}
+                                {!hasData('ad_line') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="A/D Line" overrideKey="ad_line" value={manualOverrides.ad_line} onChange={handleOverrideChange} info="Cumulative Advance-Decline Line." />}
+                                {!hasData('mcclellan') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="McClellan Osc" overrideKey="mcclellan" value={manualOverrides.mcclellan} onChange={handleOverrideChange} info="McClellan Oscillator measures market breadth momentum. Realistic range: -150 to +150." />}
+                                {!hasData('nh_nl') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="New Highs / Lows" overrideKey="nh_nl" value={manualOverrides.nh_nl} onChange={handleOverrideChange} info="Net New Highs minus New Lows." />}
+                                {!hasData('trin') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="TRIN (Arms Index)" overrideKey="trin" value={manualOverrides.trin} onChange={handleOverrideChange} info="TRIN (Arms Index) measures market volatility. Below 1 is bullish, above 1 is bearish. Realistic range: 0.5 to 2.5." />}
                             </>
                         )}
-                        {!hasData('support') && <DebouncedOverrideInput label="Support" overrideKey="support" value={manualOverrides.support} onChange={handleOverrideChange} />}
-                        {!hasData('resistance') && <DebouncedOverrideInput label="Resistance" overrideKey="resistance" value={manualOverrides.resistance} onChange={handleOverrideChange} />}
-                        {!hasData('trendline') && <DebouncedOverrideInput label="Trendline" overrideKey="trendline" value={manualOverrides.trendline} onChange={handleOverrideChange} />}
-                        {!hasData('fibonacci') && <DebouncedOverrideInput label="Fibonacci" overrideKey="fibonacci" value={manualOverrides.fibonacci} onChange={handleOverrideChange} />}
-                        {!hasData('pivot') && <DebouncedOverrideInput label="Pivot Points" overrideKey="pivot" value={manualOverrides.pivot} onChange={handleOverrideChange} />}
+                        {!hasData('support') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Support" overrideKey="support" value={manualOverrides.support} onChange={handleOverrideChange} info="Major structural support level price." />}
+                        {!hasData('resistance') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Resistance" overrideKey="resistance" value={manualOverrides.resistance} onChange={handleOverrideChange} info="Major structural resistance level price." />}
+                        {!hasData('trendline') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Trendline" overrideKey="trendline" value={manualOverrides.trendline} onChange={handleOverrideChange} info="Primary trendline value (support in uptrend, resistance in downtrend)." />}
+                        {!hasData('fibonacci') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Fibonacci" overrideKey="fibonacci" value={manualOverrides.fibonacci} onChange={handleOverrideChange} info="Nearest major Fibonacci retracement/extension level." />}
+                        {!hasData('pivot') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Pivot Points" overrideKey="pivot" value={manualOverrides.pivot} onChange={handleOverrideChange} info="Standard pivot point (PP) value." />}
                     </div>
                 )}
  
@@ -268,9 +295,9 @@ export default function TechnicalPage() {
                 {(!hasData('kc') || !hasData('beta_correlation') || (!isIndex && !hasData('cmf'))) && (
                     <div className="space-y-2">
                         <div className="text-xs font-bold text-purple-500 mb-2">Volatility & Advanced</div>
-                        {!hasData('kc') && <DebouncedOverrideInput label="Keltner Channels" overrideKey="kc" value={manualOverrides.kc} onChange={handleOverrideChange} />}
-                        {!hasData('beta_correlation') && <DebouncedOverrideInput label="Beta (vs Nifty)" overrideKey="beta_correlation" value={manualOverrides.beta_correlation} onChange={handleOverrideChange} />}
-                        {!isIndex && !hasData('cmf') && <DebouncedOverrideInput label="CMF" overrideKey="cmf" value={manualOverrides.cmf} onChange={handleOverrideChange} />}
+                        {!hasData('kc') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Keltner Channels" overrideKey="kc" value={manualOverrides.kc} onChange={handleOverrideChange} info="Keltner Channels upper band value." />}
+                        {!hasData('beta_correlation') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Beta (vs Nifty)" overrideKey="beta_correlation" value={manualOverrides.beta_correlation} onChange={handleOverrideChange} info="Beta correlation to benchmark. >1 is volatile, <1 is defensive." />}
+                        {!isIndex && !hasData('cmf') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="CMF" overrideKey="cmf" value={manualOverrides.cmf} onChange={handleOverrideChange} info="Chaikin Money Flow measures buying/selling pressure. Range: -1 to +1." />}
                     </div>
                 )}
             </div>
@@ -296,7 +323,7 @@ export default function TechnicalPage() {
                 }}
                 sections={sections || []}
                 tailwinds={tailwinds || []}
-                risks={risks || []}
+                headwinds={risks || []}
                 totalCredits={totalCredits}
                 creditLabel="R Credits"
                 cards={cardsForHeader}

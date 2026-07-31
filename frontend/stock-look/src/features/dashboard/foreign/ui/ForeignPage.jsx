@@ -80,17 +80,21 @@ export default function ForeignPage() {
         };
     }, [livePrices]);
 
-    const { data: liveApiData, loading } = useGlobalApiData();
+    const { data: liveApiData, ranges: liveRangeData, loading } = useGlobalApiData();
 
     // Merge Upstox and Yahoo/CoinGecko live data
     const mergedLiveData = useMemo(() => {
+        // Only merge Upstox data if it actually exists, to prevent overwriting valid API data with nulls
+        const validLiveData = Object.fromEntries(
+            Object.entries(liveData).filter(([_, v]) => v !== null && v !== undefined)
+        );
         return {
             ...liveApiData,
-            ...liveData
+            ...validLiveData
         };
     }, [liveApiData, liveData]);
 
-    const compositeData = useGlobalComposite(manualOverrides, mergedLiveData);
+    const compositeData = useGlobalComposite(manualOverrides, mergedLiveData, liveRangeData);
 
     const getISTDateTime = () => {
         const date = new Date();
@@ -116,73 +120,103 @@ export default function ForeignPage() {
     };
 
     // Calculate freshness correctly based on whether we have live data or manual overrides
-    const resolveTime = useDataFreshness(liveData, manualOverrides, manualLastUpdated, isMarketOpen, formatTime, "1m");
+    const resolveTime = useDataFreshness(mergedLiveData, manualOverrides, manualLastUpdated, isMarketOpen, formatTime, "1m");
 
-    const globalManualForm = (
-        <div className="w-full h-full">
-            <div className="flex items-center justify-between gap-2 mb-4 border-b border-border-default pb-2 pr-8 md:pr-10">
-                <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Manual Data Overrides</span>
-                    <button 
-                        onClick={handleClearAll}
-                        className="px-2 py-0.5 bg-red-900/30 text-red-400 hover:bg-red-900/50 hover:text-red-300 rounded text-[10px] font-medium transition-colors border border-red-900/50"
-                    >
-                        Clear All
-                    </button>
+    const showCurrency = !mergedLiveData.dxy || !mergedLiveData.usd_inr || !mergedLiveData.eurusd || !mergedLiveData.usdjpy;
+    const showCommodities = !mergedLiveData.crude || !mergedLiveData.gold || !mergedLiveData.silver || !mergedLiveData.copper || !mergedLiveData.natgas || !mergedLiveData.wheat || !mergedLiveData.aluminum;
+    const showRates = !mergedLiveData.us_10y_yield || !mergedLiveData.vix || !mergedLiveData.move;
+    const showUSMarkets = !mergedLiveData.sp_futures || !mergedLiveData.nasdaq_futures || !mergedLiveData.dow_futures;
+    const showDigitalAssets = !mergedLiveData.bitcoin;
+    const showGlobalIndices = !mergedLiveData.nikkei || !mergedLiveData.ftse || !mergedLiveData.dax || !mergedLiveData.hangseng || !mergedLiveData.shanghai || !mergedLiveData.cac40 || !mergedLiveData.eurostoxx;
+    
+    const showAnyManual = showCurrency || showCommodities || showRates || showUSMarkets || showDigitalAssets || showGlobalIndices;
+
+    const manualForm = (
+        <div className="text-left w-full h-full max-w-7xl mx-auto flex flex-col p-6 overflow-y-auto no-scrollbar">
+            {showAnyManual ? (
+                <>
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-sm font-black text-text-primary uppercase tracking-wider">Manual Data Overrides</h2>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); handleClearAll(); }}
+                                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors"
+                            >
+                                Clear All
+                            </button>
+                        </div>
+                    </div>
+                    <p className="text-xs text-text-tertiary mb-6 max-w-3xl leading-relaxed">
+                        When live data is unavailable for a specific global indicator, you can manually override it here.
+                    </p>
+                </>
+            ) : (
+                <div className="flex items-center justify-center h-full">
+                    <p className="text-sm text-text-tertiary italic">All data pipelines are online. No manual overrides required.</p>
                 </div>
-            </div>
-            <p className="text-[10px] text-text-secondary mb-4">
-                When Upstox does not provide data for a specific global indicator, it falls back to the manual overrides configured here.
-            </p>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8">
-                <div className="space-y-3">
-                    <div className="text-xs font-bold text-emerald-500 mb-3 border-b border-border-default pb-2">Currency</div>
-                    {!liveData.dxy && <DebouncedOverrideInput label="US Dollar Index (DXY) (Points)" overrideKey="dxy" value={manualOverrides.dxy} onChange={handleOverrideChange} />}
-                    {!liveData.usd_inr && <DebouncedOverrideInput label="USD/INR Rate (₹)" overrideKey="usd_inr" value={manualOverrides.usd_inr} onChange={handleOverrideChange} />}
-                    {!liveData.eurusd && <DebouncedOverrideInput label="EUR/USD ($)" overrideKey="eurusd" value={manualOverrides.eurusd} onChange={handleOverrideChange} />}
-                    {!liveData.usdjpy && <DebouncedOverrideInput label="USD/JPY (¥)" overrideKey="usdjpy" value={manualOverrides.usdjpy} onChange={handleOverrideChange} />}
-                </div>
+                {showCurrency && (
+                    <div className="space-y-3">
+                        <div className="text-xs font-bold text-emerald-500 mb-3 border-b border-border-default pb-2">Currency</div>
+                        {!mergedLiveData.dxy && <DebouncedOverrideInput label="US Dollar Index (DXY) (Points)" overrideKey="dxy" value={manualOverrides.dxy} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.usd_inr && <DebouncedOverrideInput label="USD/INR Rate (₹)" overrideKey="usd_inr" value={manualOverrides.usd_inr} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.eurusd && <DebouncedOverrideInput label="EUR/USD ($)" overrideKey="eurusd" value={manualOverrides.eurusd} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.usdjpy && <DebouncedOverrideInput label="USD/JPY (¥)" overrideKey="usdjpy" value={manualOverrides.usdjpy} onChange={handleOverrideChange} />}
+                    </div>
+                )}
                 
-                <div className="space-y-3">
-                    <div className="text-xs font-bold text-yellow-500 mb-3 border-b border-border-default pb-2">Commodities</div>
-                    {!liveData.crude && <DebouncedOverrideInput label="Brent Crude Oil ($/bbl)" overrideKey="crude" value={manualOverrides.crude} onChange={handleOverrideChange} />}
-                    {!liveData.gold && <DebouncedOverrideInput label="Gold ($/oz)" overrideKey="gold" value={manualOverrides.gold} onChange={handleOverrideChange} />}
-                    {!liveData.silver && <DebouncedOverrideInput label="Silver ($/oz)" overrideKey="silver" value={manualOverrides.silver} onChange={handleOverrideChange} />}
-                    {!liveData.copper && <DebouncedOverrideInput label="Copper ($/lb)" overrideKey="copper" value={manualOverrides.copper} onChange={handleOverrideChange} />}
-                    {!liveData.natgas && <DebouncedOverrideInput label="Natural Gas ($/MMBtu)" overrideKey="natgas" value={manualOverrides.natgas} onChange={handleOverrideChange} />}
-                    {!liveData.wheat && <DebouncedOverrideInput label="Wheat ($/bu)" overrideKey="wheat" value={manualOverrides.wheat} onChange={handleOverrideChange} />}
-                    {!liveData.aluminum && <DebouncedOverrideInput label="Aluminum ($/ton)" overrideKey="aluminum" value={manualOverrides.aluminum} onChange={handleOverrideChange} />}
-                </div>
+                {showCommodities && (
+                    <div className="space-y-3">
+                        <div className="text-xs font-bold text-yellow-500 mb-3 border-b border-border-default pb-2">Commodities</div>
+                        {!mergedLiveData.crude && <DebouncedOverrideInput label="Brent Crude Oil ($/bbl)" overrideKey="crude" value={manualOverrides.crude} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.gold && <DebouncedOverrideInput label="Gold ($/oz)" overrideKey="gold" value={manualOverrides.gold} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.silver && <DebouncedOverrideInput label="Silver ($/oz)" overrideKey="silver" value={manualOverrides.silver} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.copper && <DebouncedOverrideInput label="Copper ($/lb)" overrideKey="copper" value={manualOverrides.copper} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.natgas && <DebouncedOverrideInput label="Natural Gas ($/MMBtu)" overrideKey="natgas" value={manualOverrides.natgas} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.wheat && <DebouncedOverrideInput label="Wheat ($/bu)" overrideKey="wheat" value={manualOverrides.wheat} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.aluminum && <DebouncedOverrideInput label="Aluminum ($/ton)" overrideKey="aluminum" value={manualOverrides.aluminum} onChange={handleOverrideChange} />}
+                    </div>
+                )}
 
-                <div className="space-y-3">
-                    <div className="text-xs font-bold text-purple-500 mb-3 border-b border-border-default pb-2">Rates & Volatility</div>
-                    {!liveData.us_10y_yield && <DebouncedOverrideInput label="US 10-Year Yield (%)" overrideKey="us_10y_yield" value={manualOverrides.us_10y_yield} onChange={handleOverrideChange} />}
-                    {!liveData.vix && <DebouncedOverrideInput label="CBOE VIX (Absolute)" overrideKey="vix" value={manualOverrides.vix} onChange={handleOverrideChange} />}
-                    {!liveData.move && <DebouncedOverrideInput label="MOVE Index" overrideKey="move" value={manualOverrides.move} onChange={handleOverrideChange} />}
-                </div>
+                {showRates && (
+                    <div className="space-y-3">
+                        <div className="text-xs font-bold text-purple-500 mb-3 border-b border-border-default pb-2">Rates & Volatility</div>
+                        {!mergedLiveData.us_10y_yield && <DebouncedOverrideInput label="US 10-Year Yield (%)" overrideKey="us_10y_yield" value={manualOverrides.us_10y_yield} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.vix && <DebouncedOverrideInput label="CBOE VIX (Absolute)" overrideKey="vix" value={manualOverrides.vix} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.move && <DebouncedOverrideInput label="MOVE Index" overrideKey="move" value={manualOverrides.move} onChange={handleOverrideChange} />}
+                    </div>
+                )}
 
-                <div className="space-y-3">
-                    <div className="text-xs font-bold text-blue-500 mb-3 border-b border-border-default pb-2">US Markets</div>
-                    {!liveData.sp_futures && <DebouncedOverrideInput label="S&P 500 Futures ($/Points)" overrideKey="sp_futures" value={manualOverrides.sp_futures} onChange={handleOverrideChange} />}
-                    {!liveData.nasdaq_futures && <DebouncedOverrideInput label="Nasdaq Futures ($/Points)" overrideKey="nasdaq_futures" value={manualOverrides.nasdaq_futures} onChange={handleOverrideChange} />}
-                    {!liveData.dow_futures && <DebouncedOverrideInput label="Dow Jones Futures ($/Points)" overrideKey="dow_futures" value={manualOverrides.dow_futures} onChange={handleOverrideChange} />}
-                </div>
+                {showUSMarkets && (
+                    <div className="space-y-3">
+                        <div className="text-xs font-bold text-blue-500 mb-3 border-b border-border-default pb-2">US Markets</div>
+                        {!mergedLiveData.sp_futures && <DebouncedOverrideInput label="S&P 500 Futures ($/Points)" overrideKey="sp_futures" value={manualOverrides.sp_futures} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.nasdaq_futures && <DebouncedOverrideInput label="Nasdaq Futures ($/Points)" overrideKey="nasdaq_futures" value={manualOverrides.nasdaq_futures} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.dow_futures && <DebouncedOverrideInput label="Dow Jones Futures ($/Points)" overrideKey="dow_futures" value={manualOverrides.dow_futures} onChange={handleOverrideChange} />}
+                    </div>
+                )}
 
-                <div className="space-y-3">
-                    <div className="text-xs font-bold text-orange-400 mb-3 border-b border-border-default pb-2">Digital Assets</div>
-                    {!liveData.bitcoin && <DebouncedOverrideInput label="Bitcoin ($)" overrideKey="bitcoin" value={manualOverrides.bitcoin} onChange={handleOverrideChange} />}
-                </div>
-                <div className="space-y-3">
-                    <div className="text-xs font-bold text-indigo-400 mb-3 border-b border-border-default pb-2">Global Indices</div>
-                    {!liveData.nikkei && <DebouncedOverrideInput label="Nikkei 225 (¥ JPY)" overrideKey="nikkei" value={manualOverrides.nikkei} onChange={handleOverrideChange} />}
-                    {!liveData.ftse && <DebouncedOverrideInput label="FTSE 100 (£ GBP)" overrideKey="ftse" value={manualOverrides.ftse} onChange={handleOverrideChange} />}
-                    {!liveData.dax && <DebouncedOverrideInput label="DAX 40 (€ EUR)" overrideKey="dax" value={manualOverrides.dax} onChange={handleOverrideChange} />}
-                    {!liveData.hangseng && <DebouncedOverrideInput label="Hang Seng (HK$ HKD)" overrideKey="hangseng" value={manualOverrides.hangseng} onChange={handleOverrideChange} />}
-                    {!liveData.shanghai && <DebouncedOverrideInput label="Shanghai Comp (¥ CNY)" overrideKey="shanghai" value={manualOverrides.shanghai} onChange={handleOverrideChange} />}
-                    {!liveData.cac40 && <DebouncedOverrideInput label="CAC 40 (€ EUR)" overrideKey="cac40" value={manualOverrides.cac40} onChange={handleOverrideChange} />}
-                    {!liveData.eurostoxx && <DebouncedOverrideInput label="Euro Stoxx 50 (€ EUR)" overrideKey="eurostoxx" value={manualOverrides.eurostoxx} onChange={handleOverrideChange} />}
-                </div>
+                {showDigitalAssets && (
+                    <div className="space-y-3">
+                        <div className="text-xs font-bold text-orange-400 mb-3 border-b border-border-default pb-2">Digital Assets</div>
+                        {!mergedLiveData.bitcoin && <DebouncedOverrideInput label="Bitcoin ($)" overrideKey="bitcoin" value={manualOverrides.bitcoin} onChange={handleOverrideChange} />}
+                    </div>
+                )}
+
+                {showGlobalIndices && (
+                    <div className="space-y-3">
+                        <div className="text-xs font-bold text-indigo-400 mb-3 border-b border-border-default pb-2">Global Indices</div>
+                        {!mergedLiveData.nikkei && <DebouncedOverrideInput label="Nikkei 225 (¥ JPY)" overrideKey="nikkei" value={manualOverrides.nikkei} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.ftse && <DebouncedOverrideInput label="FTSE 100 (£ GBP)" overrideKey="ftse" value={manualOverrides.ftse} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.dax && <DebouncedOverrideInput label="DAX 40 (€ EUR)" overrideKey="dax" value={manualOverrides.dax} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.hangseng && <DebouncedOverrideInput label="Hang Seng (HK$ HKD)" overrideKey="hangseng" value={manualOverrides.hangseng} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.shanghai && <DebouncedOverrideInput label="Shanghai Comp (¥ CNY)" overrideKey="shanghai" value={manualOverrides.shanghai} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.cac40 && <DebouncedOverrideInput label="CAC 40 (€ EUR)" overrideKey="cac40" value={manualOverrides.cac40} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.eurostoxx && <DebouncedOverrideInput label="Euro Stoxx 50 (€ EUR)" overrideKey="eurostoxx" value={manualOverrides.eurostoxx} onChange={handleOverrideChange} />}
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -206,7 +240,7 @@ export default function ForeignPage() {
             const allocated = (score / 100) * credit;
 
             const isManual = manualOverrides && manualOverrides[id] !== undefined && manualOverrides[id] !== null && manualOverrides[id] !== '';
-            const isLive = liveData && liveData[id] !== undefined && liveData[id] !== null;
+            const isLive = mergedLiveData && mergedLiveData[id] !== undefined && mergedLiveData[id] !== null;
             const cardMeta = {
                 hasLiveData: isLive,
                 isManual: isManual,
@@ -221,7 +255,7 @@ export default function ForeignPage() {
     const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
     const headerConfidence = computeHeaderConfidence(cardsForHeader, 25, 'foreign');
 
-    const hasLiveOrManualData = Object.values(liveData).some(v => v !== null) || Object.values(manualOverrides).some(v => v !== null);
+    const hasLiveOrManualData = Object.values(mergedLiveData).some(v => v !== null && v !== undefined) || Object.values(manualOverrides).some(v => v !== null);
 
     // 7. Silently Stream the Snapshot to SQLite backend
     useAiSync(
@@ -233,7 +267,7 @@ export default function ForeignPage() {
         }
     );
 
-    if (loading) {
+    if (loading && Object.keys(liveApiData || {}).length === 0 && !hasLiveOrManualData) {
         return (
             <div className="w-full min-h-[80vh] flex flex-col items-center justify-center bg-background-base animate-in fade-in duration-500">
                 <Loader size="lg" color="indigo" />
@@ -256,17 +290,17 @@ export default function ForeignPage() {
                     integrity={{ 
                         coverageText: `${activeCardsCount}/${maxCards}`, 
                         coveragePercent: coveragePercent, 
-                        source: hasLiveOrManualData ? "Upstox + Local" : "Disconnected", 
-                        freshness: resolveTime(Object.values(liveData).some(v => v !== null))
+                        source: hasLiveOrManualData ? "Upstox + Yahoo" : "Disconnected", 
+                        freshness: resolveTime(Object.values(mergedLiveData).some(v => v !== null && v !== undefined))
                     }}
                     sections={compositeData.sections || []}
                     tailwinds={compositeData.tailwinds}
-                    risks={compositeData.risks}
+                    headwinds={compositeData.risks}
                     totalCredits={totalCredits}
                     cards={cardsForHeader}
                     masterPayload={compositeData.nestedTreePayload}
                     syncId={{ instrumentKey: 'GLOBAL', category: 'global' }}
-                    infoContent={globalManualForm}
+                    infoContent={manualForm}
                     enableBreakdown={true}
                     controls={{
                         search: searchQuery,
@@ -289,7 +323,7 @@ export default function ForeignPage() {
                     onCardClick={setSelectedCard}
                     cardData={compositeData.cardData}
                     resolveTime={resolveTime}
-                    liveData={liveData}
+                    liveData={mergedLiveData}
                     controls={{
                         search: searchQuery,
                         onSearchChange: setSearchQuery,

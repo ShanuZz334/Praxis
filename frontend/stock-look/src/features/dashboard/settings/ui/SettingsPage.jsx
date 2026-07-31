@@ -199,7 +199,17 @@ const SettingsPage = () => {
             policy_tailwinds: 30 * 24 * 60 * 60 * 1000,
             fii_trend: 24 * 60 * 60 * 1000,
             mf_flows: 30 * 24 * 60 * 60 * 1000,
-            system_liquidity: 24 * 60 * 60 * 1000
+            system_liquidity: 24 * 60 * 60 * 1000,
+            // Technical Module Overrides
+            mcclellan: 24 * 60 * 60 * 1000,
+            trin: 24 * 60 * 60 * 1000,
+            kc: 24 * 60 * 60 * 1000,
+            cmf: 24 * 60 * 60 * 1000,
+            support: 24 * 60 * 60 * 1000,
+            resistance: 24 * 60 * 60 * 1000,
+            trendline: 24 * 60 * 60 * 1000,
+            fibonacci: 24 * 60 * 60 * 1000,
+            pivot: 24 * 60 * 60 * 1000
         };
         try {
             const stored = localStorage.getItem('praxis_manual_expiry_config');
@@ -1598,6 +1608,176 @@ const SettingsPage = () => {
                                                                     { value: 7 * 24 * 60 * 60 * 1000, label: "7 Days" },
                                                                     { value: 30 * 24 * 60 * 60 * 1000, label: "30 Days" },
                                                                     { value: 365 * 24 * 60 * 60 * 1000, label: "1 Year" }
+                                                                ]}
+                                                                value={manualExpiryConfigs[metric.key]}
+                                                                onChange={(val) => handleManualExpiryChange(metric.key, Number(val))}
+                                                                className="w-full max-w-xs"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* TECHNICAL MODULE */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-xs font-bold tracking-wider text-purple-500 uppercase border-b border-border-default pb-2">Technical Module</h3>
+                                        <div className="space-y-3">
+                                            <h4 className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider pl-1">Structure & Breadth Metrics</h4>
+                                            {[
+                                                { key: "mcclellan", label: "McClellan Osc Timer", desc: "Specific expiration time for McClellan Oscillator." },
+                                                { key: "trin", label: "TRIN (Arms Index) Timer", desc: "Specific expiration time for TRIN." },
+                                                { key: "support", label: "Support Timer", desc: "Specific expiration time for Structural Support." },
+                                                { key: "resistance", label: "Resistance Timer", desc: "Specific expiration time for Structural Resistance." },
+                                                { key: "trendline", label: "Trendline Timer", desc: "Specific expiration time for Primary Trendline." },
+                                                { key: "fibonacci", label: "Fibonacci Timer", desc: "Specific expiration time for Fibonacci levels." },
+                                                { key: "pivot", label: "Pivot Points Timer", desc: "Specific expiration time for Pivot Points." },
+                                            ].map((metric) => (
+                                                <div key={metric.key} className="rounded-xl border border-border-default bg-background-surface/30 p-5 space-y-5">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-500/10 text-yellow-500">
+                                                            <FiDatabase size={16} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <h3 className="text-sm font-medium text-text-primary">{metric.label}</h3>
+                                                            <p className="text-xs text-text-tertiary mb-3 mt-1">{metric.desc}</p>
+                                                            <UiverseDropdown
+                                                                options={[
+                                                                    { value: 2 * 60 * 60 * 1000, label: "2 Hours" },
+                                                                    { value: 24 * 60 * 60 * 1000, label: "24 Hours" },
+                                                                    { value: 7 * 24 * 60 * 60 * 1000, label: "7 Days" },
+                                                                    { value: 30 * 24 * 60 * 60 * 1000, label: "30 Days" }
+                                                                ]}
+                                                                value={manualExpiryConfigs[metric.key]}
+                                                                onChange={(val) => handleManualExpiryChange(metric.key, Number(val))}
+                                                                className="w-full max-w-xs"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            
+                                            <h4 className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider pl-1 mt-6">Volatility & Advanced</h4>
+                                            {[
+                                                { key: "kc", label: "Keltner Channels Timer", desc: "Specific expiration time for Keltner Channels." },
+                                                { key: "cmf", label: "CMF Timer", desc: "Specific expiration time for Chaikin Money Flow." }
+                                            ].map((metric) => (
+                                                <div key={metric.key} className="rounded-xl border border-border-default bg-background-surface/30 p-5 space-y-5">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500">
+                                                            <FiDatabase size={16} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <h3 className="text-sm font-medium text-text-primary">{metric.label}</h3>
+                                                            <p className="text-xs text-text-tertiary mb-3 mt-1">{metric.desc}</p>
+                                                            <UiverseDropdown
+                                                                options={[
+                                                                    { value: 2 * 60 * 60 * 1000, label: "2 Hours" },
+                                                                    { value: 24 * 60 * 60 * 1000, label: "24 Hours" },
+                                                                    { value: 7 * 24 * 60 * 60 * 1000, label: "7 Days" },
+                                                                    { value: 30 * 24 * 60 * 60 * 1000, label: "30 Days" }
+                                                                ]}
+                                                                value={manualExpiryConfigs[metric.key]}
+                                                                onChange={(val) => handleManualExpiryChange(metric.key, Number(val))}
+                                                                className="w-full max-w-xs"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* OPTIONS MODULE */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-xs font-bold tracking-wider text-emerald-500 uppercase border-b border-border-default pb-2">Options Module</h3>
+                                        <div className="space-y-3">
+                                            <h4 className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider pl-1">Volatility Metrics</h4>
+                                            {[
+                                                { key: "iv_rank", label: "IV Rank Timer", desc: "Specific expiration time for IV Rank." },
+                                                { key: "iv_percentile", label: "IV Percentile Timer", desc: "Specific expiration time for IV Percentile." },
+                                                { key: "iv_lookback", label: "Lookback Timer", desc: "Specific expiration time for Lookback." },
+                                                { key: "atm_iv", label: "ATM IV Timer", desc: "Specific expiration time for ATM IV." }
+                                            ].map((metric) => (
+                                                <div key={metric.key} className="rounded-xl border border-border-default bg-background-surface/30 p-5 space-y-5">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                                                            <FiDatabase size={16} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <h3 className="text-sm font-medium text-text-primary">{metric.label}</h3>
+                                                            <p className="text-xs text-text-tertiary mb-3 mt-1">{metric.desc}</p>
+                                                            <UiverseDropdown
+                                                                options={[
+                                                                    { value: 2 * 60 * 60 * 1000, label: "2 Hours" },
+                                                                    { value: 24 * 60 * 60 * 1000, label: "24 Hours" },
+                                                                    { value: 7 * 24 * 60 * 60 * 1000, label: "7 Days" },
+                                                                    { value: 30 * 24 * 60 * 60 * 1000, label: "30 Days" }
+                                                                ]}
+                                                                value={manualExpiryConfigs[metric.key]}
+                                                                onChange={(val) => handleManualExpiryChange(metric.key, Number(val))}
+                                                                className="w-full max-w-xs"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            
+                                            <h4 className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider pl-1 mt-6">Open Interest & Positioning</h4>
+                                            {[
+                                                { key: "total_call_oi", label: "Total Call OI Timer", desc: "Specific expiration time for Total Call OI." },
+                                                { key: "total_put_oi", label: "Total Put OI Timer", desc: "Specific expiration time for Total Put OI." },
+                                                { key: "oi_change", label: "OI Change Timer", desc: "Specific expiration time for OI Change." },
+                                                { key: "pcr_oi", label: "PCR (OI) Timer", desc: "Specific expiration time for PCR OI." },
+                                                { key: "pcr_volume", label: "PCR (Volume) Timer", desc: "Specific expiration time for PCR Volume." },
+                                                { key: "max_pain", label: "Max Pain Timer", desc: "Specific expiration time for Max Pain." }
+                                            ].map((metric) => (
+                                                <div key={metric.key} className="rounded-xl border border-border-default bg-background-surface/30 p-5 space-y-5">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                                                            <FiDatabase size={16} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <h3 className="text-sm font-medium text-text-primary">{metric.label}</h3>
+                                                            <p className="text-xs text-text-tertiary mb-3 mt-1">{metric.desc}</p>
+                                                            <UiverseDropdown
+                                                                options={[
+                                                                    { value: 2 * 60 * 60 * 1000, label: "2 Hours" },
+                                                                    { value: 24 * 60 * 60 * 1000, label: "24 Hours" },
+                                                                    { value: 7 * 24 * 60 * 60 * 1000, label: "7 Days" },
+                                                                    { value: 30 * 24 * 60 * 60 * 1000, label: "30 Days" }
+                                                                ]}
+                                                                value={manualExpiryConfigs[metric.key]}
+                                                                onChange={(val) => handleManualExpiryChange(metric.key, Number(val))}
+                                                                className="w-full max-w-xs"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            
+                                            <h4 className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider pl-1 mt-6">Greeks</h4>
+                                            {[
+                                                { key: "delta", label: "Delta Timer", desc: "Specific expiration time for Delta." },
+                                                { key: "gamma", label: "Gamma Timer", desc: "Specific expiration time for Gamma." },
+                                                { key: "theta", label: "Theta Timer", desc: "Specific expiration time for Theta." },
+                                                { key: "vega", label: "Vega Timer", desc: "Specific expiration time for Vega." }
+                                            ].map((metric) => (
+                                                <div key={metric.key} className="rounded-xl border border-border-default bg-background-surface/30 p-5 space-y-5">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
+                                                            <FiDatabase size={16} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <h3 className="text-sm font-medium text-text-primary">{metric.label}</h3>
+                                                            <p className="text-xs text-text-tertiary mb-3 mt-1">{metric.desc}</p>
+                                                            <UiverseDropdown
+                                                                options={[
+                                                                    { value: 2 * 60 * 60 * 1000, label: "2 Hours" },
+                                                                    { value: 24 * 60 * 60 * 1000, label: "24 Hours" },
+                                                                    { value: 7 * 24 * 60 * 60 * 1000, label: "7 Days" },
+                                                                    { value: 30 * 24 * 60 * 60 * 1000, label: "30 Days" }
                                                                 ]}
                                                                 value={manualExpiryConfigs[metric.key]}
                                                                 onChange={(val) => handleManualExpiryChange(metric.key, Number(val))}

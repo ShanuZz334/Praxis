@@ -316,37 +316,39 @@ export const computeGlobalComposite = (scores) => {
     return result;
 };
 
-export const useGlobalComposite = (manualOverrides, liveData = {}) => {
+export const useGlobalComposite = (manualOverrides, liveData = {}, rangeData = {}) => {
     return useMemo(() => {
         // Fallback logic: Upstox Live Data -> Manual Overrides
         const getVal = (key) => liveData[key] ?? manualOverrides[key];
+        // Range data from 52-week Yahoo Finance hi/lo
+        const getRange = (key) => rangeData[key] || {};
 
         const scores = {
-            dxy: scoreDXY(getVal('dxy')),
-            usd_inr: scoreUSDINR(getVal('usd_inr')),
-            crude: scoreCrude(getVal('crude')),
-            gold: scoreGold(getVal('gold')),
-            silver: scoreSilver(getVal('silver')),
-            us_10y_yield: scoreUS10Y(getVal('us_10y_yield')),
-            sp_futures: scoreSPFutures(getVal('sp_futures')),
-            nasdaq_futures: scoreNasdaqFutures(getVal('nasdaq_futures')),
-            dow_futures: scoreDowFutures(getVal('dow_futures')),
-            vix: scoreVIX(getVal('vix')),
-            bitcoin: scoreBitcoin(getVal('bitcoin')),
-            eurusd: scoreEurusd(getVal('eurusd')),
-            usdjpy: scoreUsdjpy(getVal('usdjpy')),
-            nikkei: scoreNikkei(getVal('nikkei')),
-            ftse: scoreFtse(getVal('ftse')),
-            dax: scoreDax(getVal('dax')),
-            hangseng: scoreHangseng(getVal('hangseng')),
-            shanghai: scoreShanghai(getVal('shanghai')),
-            cac40: scoreCac40(getVal('cac40')),
-            eurostoxx: scoreEurostoxx(getVal('eurostoxx')),
-            copper: scoreCopper(getVal('copper')),
-            natgas: scoreNatgas(getVal('natgas')),
-            wheat: scoreWheat(getVal('wheat')),
-            aluminum: scoreAluminum(getVal('aluminum')),
-            move: scoreMove(getVal('move'))
+            dxy:            scoreDXY(getVal('dxy'), getRange('dxy')),
+            usd_inr:        scoreUSDINR(getVal('usd_inr'), getRange('usd_inr')),
+            crude:          scoreCrude(getVal('crude'), getRange('crude')),
+            gold:           scoreGold(getVal('gold'), getRange('gold')),
+            silver:         scoreSilver(getVal('silver'), getRange('silver')),
+            us_10y_yield:   scoreUS10Y(getVal('us_10y_yield'), getRange('us_10y_yield')),
+            sp_futures:     scoreSPFutures(getVal('sp_futures'), getRange('sp_futures')),
+            nasdaq_futures: scoreNasdaqFutures(getVal('nasdaq_futures'), getRange('nasdaq_futures')),
+            dow_futures:    scoreDowFutures(getVal('dow_futures'), getRange('dow_futures')),
+            vix:            scoreVIX(getVal('vix'), getRange('vix')),
+            bitcoin:        scoreBitcoin(getVal('bitcoin'), getRange('bitcoin')),
+            eurusd:         scoreEurusd(getVal('eurusd'), getRange('eurusd')),
+            usdjpy:         scoreUsdjpy(getVal('usdjpy'), getRange('usdjpy')),
+            nikkei:         scoreNikkei(getVal('nikkei'), getRange('nikkei')),
+            ftse:           scoreFtse(getVal('ftse'), getRange('ftse')),
+            dax:            scoreDax(getVal('dax'), getRange('dax')),
+            hangseng:       scoreHangseng(getVal('hangseng'), getRange('hangseng')),
+            shanghai:       scoreShanghai(getVal('shanghai'), getRange('shanghai')),
+            cac40:          scoreCac40(getVal('cac40'), getRange('cac40')),
+            eurostoxx:      scoreEurostoxx(getVal('eurostoxx'), getRange('eurostoxx')),
+            copper:         scoreCopper(getVal('copper'), getRange('copper')),
+            natgas:         scoreNatgas(getVal('natgas'), getRange('natgas')),
+            wheat:          scoreWheat(getVal('wheat'), getRange('wheat')),
+            aluminum:       scoreAluminum(getVal('aluminum'), getRange('aluminum')),
+            move:           scoreMove(getVal('move'), getRange('move'))
         };
 
         const engineOutput = computeGlobalComposite(scores);

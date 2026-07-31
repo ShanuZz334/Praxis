@@ -14,6 +14,8 @@ export function useSnapshots(instrument) {
     useEffect(() => {
         if (!instrument) return;
         
+        setHistoricalSnapshots({}); // Clear previous instrument's history instantly
+        
         axiosInstance.get(`/api/v1/snapshots/${encodeURIComponent(instrument)}`)
             .then(res => setHistoricalSnapshots(res.data?.data || {}))
             .catch(e => console.error("Failed to fetch snapshots", e));

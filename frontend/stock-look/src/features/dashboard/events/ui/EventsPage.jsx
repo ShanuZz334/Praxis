@@ -74,7 +74,7 @@ export default function EventsPage() {
         return () => socket.off("events:updated", handleEventsUpdated);
     }, []);
 
-    if (loading) {
+    if (loading && newsItems.length === 0) {
         return (
             <div className="w-full min-h-[80vh] flex flex-col items-center justify-center bg-background-base animate-in fade-in duration-500">
                 <Loader size="lg" color="indigo" />

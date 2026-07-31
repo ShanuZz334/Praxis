@@ -1,14 +1,23 @@
 import React, { useState } from "react";
 import { Cpu, RotateCcw, Trash2 } from "lucide-react";
 import { getColorMap, EVENT_CATEGORIES } from "@/shared/global/logic/eventsEngine";
+import { useDashboardContext } from "@/shared/context/DashboardContext";
+import { FO_EQUITIES, FO_INDICES } from "@/shared/utils/foInstruments";
+import { toast } from "sonner";
 
 export default function AdvancedNewsFeed({ newsItems, searchQuery, sortMode, onReset, onDeleteEvent }) {
     const [activeTab, setActiveTab] = useState("ALL EVENTS");
 
     if (!newsItems) return null;
 
-    // Filter by tab and search
+    // Filter by tab, search, and TTL expiry
     const filtered = newsItems.filter(news => {
+        // Expiry check
+        const ttlHours = Number(news.ttl_hours) || 72;
+        const eventDate = news.published_time ? new Date(news.published_time) : new Date(news.created_at || Date.now());
+        const expiryDate = new Date(eventDate.getTime() + ttlHours * 60 * 60 * 1000);
+        if (new Date() > expiryDate) return false;
+
         if (activeTab !== "ALL EVENTS" && news.category?.toUpperCase() !== activeTab.toUpperCase()) {
             return false;
         }
@@ -129,8 +138,31 @@ export default function AdvancedNewsFeed({ newsItems, searchQuery, sortMode, onR
 }
 
 function NewsItem({ event, onDelete }) {
+    const { setAdditionalCharts } = useDashboardContext();
+    const [showAllAssets, setShowAllAssets] = React.useState(false);
     const colors = getColorMap(event);
     const date = new Date(event.published_time || event.created_at);
+
+    const handleAssetClick = (e, asset) => {
+        e.stopPropagation();
+        const symbolUpper = asset.toUpperCase();
+        const instrument = FO_EQUITIES.find(eq => eq.label.toUpperCase() === symbolUpper) || 
+                           FO_INDICES.find(idx => idx.label.toUpperCase() === symbolUpper || idx.label.replace(/\s+/g, '').toUpperCase() === symbolUpper);
+                           
+        if (!instrument) {
+            toast.error(`Instrument ${asset} not found in tracked universe`);
+            return;
+        }
+
+        setAdditionalCharts(prev => {
+            if (prev.find(c => c.value === instrument.value)) {
+                toast.info(`${asset} is already pinned to Dashboard`);
+                return prev;
+            }
+            toast.success(`${asset} added to Master Dashboard`);
+            return [...prev, instrument];
+        });
+    };
     
     const formattedDate = date.toLocaleString('en-US', {
         month: 'short', day: '2-digit', year: 'numeric',
@@ -142,6 +174,12 @@ function NewsItem({ event, onDelete }) {
     if (diffMins > 0 && diffMins < 60) timeAgo = `${diffMins}m ago`;
     else if (diffMins >= 60 && diffMins < 1440) timeAgo = `${Math.floor(diffMins / 60)}h ago`;
     else if (diffMins >= 1440) timeAgo = `${Math.floor(diffMins / 1440)}d ago`;
+
+    // Calculate TTL / Wear-off percentage
+    const ttlHours = Number(event.ttl_hours) || 72;
+    const ttlMins = ttlHours * 60;
+    const remainingMins = Math.max(0, ttlMins - diffMins);
+    const percentRemaining = Math.max(0, Math.min(100, (remainingMins / ttlMins) * 100));
 
     // Determine icon based on sentiment value
     const sentimentLower = event.sentiment?.toLowerCase() || '';
@@ -156,7 +194,19 @@ function NewsItem({ event, onDelete }) {
     else if (c >= 50) confIcon = 'confidence-medium';
 
     return (
-        <div className="group relative w-full bg-background-card border border-border-default hover:border-border-subtle transition-all duration-200 rounded-xl overflow-hidden">
+        <div 
+            className="group relative w-full bg-background-card border border-border-default hover:border-border-subtle transition-all duration-200 rounded-xl overflow-hidden cursor-pointer"
+            onDoubleClick={() => {
+                const url = event.source_url || event.article_link || event.url || event.link;
+                if (url) {
+                    window.open(url, '_blank');
+                } else {
+                    const searchStr = event.headline || event.title || '';
+                    window.open(`https://www.google.com/search?tbm=nws&q=${encodeURIComponent(searchStr)}`, '_blank');
+                }
+            }}
+            title="Double-click to read full article"
+        >
             {/* Delete Button (visible on hover) */}
             {onDelete && (
                 <button 
@@ -168,8 +218,16 @@ function NewsItem({ event, onDelete }) {
                 </button>
             )}
 
-            {/* Left Accent Bar */}
-            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: colors.scoreHex }} />
+            {/* Left Accent Bar (TTL Depleting Timer) */}
+            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-background-surface overflow-hidden">
+                <div 
+                    className="absolute bottom-0 left-0 w-full transition-all duration-1000 ease-linear"
+                    style={{ 
+                        height: `${percentRemaining}%`, 
+                        backgroundColor: colors.scoreHex 
+                    }}
+                />
+            </div>
 
             <div className="pl-6 pr-4 py-4 flex flex-col xl:flex-row gap-6">
                 
@@ -194,15 +252,30 @@ function NewsItem({ event, onDelete }) {
                     {Array.isArray(event.affected_assets) && event.affected_assets.length > 0 && (
                         <div className="flex items-center flex-wrap gap-2 mt-1">
                             <span className="text-[10px] font-bold text-[#3B82F6] mr-1">Affected Assets:</span>
-                            {event.affected_assets.slice(0, 5).map(a => (
-                                <span key={a} className="text-[9px] px-2 py-0.5 rounded bg-[#1E3A8A]/30 text-[#3B82F6] border border-[#1E3A8A] font-bold tracking-wider uppercase">
+                            {(showAllAssets ? event.affected_assets : event.affected_assets.slice(0, 5)).map(a => (
+                                <span 
+                                    key={a} 
+                                    onClick={(e) => handleAssetClick(e, a)}
+                                    className="text-[9px] px-2 py-0.5 rounded bg-[#1E3A8A]/30 text-[#3B82F6] border border-[#1E3A8A] font-bold tracking-wider uppercase cursor-pointer hover:bg-[#3B82F6] hover:text-white transition-colors"
+                                >
                                     {a}
                                 </span>
                             ))}
-                            {event.affected_assets.length > 5 && (
-                                <span className="text-[9px] px-2 py-0.5 rounded bg-[#1E3A8A]/30 text-[#3B82F6] border border-[#1E3A8A] font-bold tracking-wider uppercase">
+                            {!showAllAssets && event.affected_assets.length > 5 && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); setShowAllAssets(true); }}
+                                    className="text-[9px] px-2 py-0.5 rounded bg-[#1E3A8A]/30 text-[#3B82F6] border border-[#1E3A8A] font-bold tracking-wider uppercase hover:bg-[#1E3A8A]/50 transition-colors cursor-pointer"
+                                >
                                     +{event.affected_assets.length - 5}
-                                </span>
+                                </button>
+                            )}
+                            {showAllAssets && event.affected_assets.length > 5 && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); setShowAllAssets(false); }}
+                                    className="text-[9px] px-2 py-0.5 rounded bg-[#1E3A8A]/30 text-[#3B82F6] border border-[#1E3A8A] font-bold tracking-wider uppercase hover:bg-[#1E3A8A]/50 transition-colors cursor-pointer"
+                                >
+                                    Show Less
+                                </button>
                             )}
                         </div>
                     )}
@@ -249,7 +322,7 @@ function NewsItem({ event, onDelete }) {
                                 borderColor: `${colors.scoreHex}30`
                             }}
                         >
-                            {event.event_score > 0 ? '+' : ''}{event.event_score}
+                            {event.event_score > 0 ? '+' : ''}{(event.event_score / 10).toFixed(1)}
                         </div>
                     </div>
                     

@@ -127,11 +127,13 @@ export const yahooFinanceService = {
             const yfSymbol = symbol.endsWith('.NS') || symbol.endsWith('.BO') ? symbol : `${symbol}.NS`;
             const result = await yahooFinance.quoteSummary(yfSymbol, { modules: ['summaryDetail'] });
             if (result && result.summaryDetail) {
-                if (result.summaryDetail.dividendYield !== undefined) {
+                if (result.summaryDetail.dividendYield !== undefined && result.summaryDetail.dividendYield !== null) {
                     return result.summaryDetail.dividendYield * 100;
+                } else if (result.summaryDetail.trailingAnnualDividendYield !== undefined && result.summaryDetail.trailingAnnualDividendYield !== null && result.summaryDetail.trailingAnnualDividendYield > 0) {
+                    return result.summaryDetail.trailingAnnualDividendYield * 100;
                 } else {
-                    // Company doesn't pay dividends, yield is exactly 0%
-                    return 0;
+                    // Company doesn't pay dividends or data missing, return null to show '--' in UI
+                    return null;
                 }
             }
             return null;

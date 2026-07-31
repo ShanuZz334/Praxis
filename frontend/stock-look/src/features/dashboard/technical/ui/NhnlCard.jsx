@@ -9,9 +9,9 @@ export default function NhnlCard({ cardId, data = null, manualOverride, lastUpda
     const configData = getIndicatorConfig(CARD_REGISTRY.nh_nl.id);
     
     // Resolve current value
-    // (Assuming Upstox live data mapping will be added here later)
-    const isLiveData = false; 
-    const currentValue = isLiveData ? null : (manualOverride ?? null);
+    const liveNHNL = data?.breadth?.nhnlRatio;
+    const isLiveData = liveNHNL !== undefined && liveNHNL !== null;
+    const currentValue = isLiveData ? liveNHNL : (manualOverride ?? null);
 
     const { score, bias, confidence, aiInsight } = scoreNhnlCard(currentValue);
 
@@ -22,7 +22,7 @@ return (
             config={{ 
                 title: "New High / New Low", 
                 category: "Market Breadth", 
-                mode: "MANUAL",
+                mode: isLiveData ? "AUTO" : "MANUAL",
                 creditScore: configData.creditScore, 
                 updateTime: lastUpdated ?? "--:--", 
                 source: configData.source, 

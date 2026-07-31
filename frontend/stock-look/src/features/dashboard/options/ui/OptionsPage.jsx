@@ -29,6 +29,17 @@ import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { useDataRegistry } from '@/shared/context/DataRegistryContext';
 
+// Wrapper to automatically inject timer configs
+const TimerOverrideInput = ({ overrideKey, manualLastUpdated, expiryConfigs, info, ...props }) => (
+    <DebouncedOverrideInput
+        {...props}
+        overrideKey={overrideKey}
+        lastUpdatedTimestamp={manualLastUpdated?.[overrideKey]}
+        expiryDuration={expiryConfigs?.[overrideKey] || expiryConfigs?.global_default}
+        info={info}
+    />
+);
+
 export default function OptionsPage() {
     const [selectedCard, setSelectedCard] = useState(null);
     const [viewMode, setViewMode] = useState("sectioned");
@@ -56,7 +67,7 @@ export default function OptionsPage() {
     const [idealPremium, setIdealPremium] = useState(45);
 
     const DEFAULT_OVERRIDES = {};
-    const { overrides: manualOverrides, lastUpdated: manualOverrideTimes, handleClearAll, handleChange: handleOverrideChange } = useManualOverrides('options', selectedInstrument, DEFAULT_OVERRIDES);
+    const { overrides: manualOverrides, lastUpdated: manualOverrideTimes, expiryConfigs, handleClearAll, handleChange: handleOverrideChange } = useManualOverrides('options', selectedInstrument, DEFAULT_OVERRIDES);
     const { historicalSnapshots } = useSnapshots(selectedInstrument?.value || selectedInstrument);
     const { register } = useDataRegistry();
 
@@ -534,31 +545,31 @@ export default function OptionsPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6">
                 <div className="space-y-2">
                     <div className="text-xs font-bold text-emerald-500 mb-2">Volatility Settings</div>
-                    {!hasIvRank && <DebouncedOverrideInput label="IV Rank (%)" overrideKey={CARD_REGISTRY.iv_rank.id} value={manualOverrides.iv_rank} onChange={handleOverrideChange} />}
-                    {!hasIvPercentile && <DebouncedOverrideInput label="IV Percentile (%)" overrideKey={CARD_REGISTRY.iv_percentile.id} value={manualOverrides.iv_percentile} onChange={handleOverrideChange} />}
-                    {(!hasIvRank || !hasIvPercentile) && <DebouncedOverrideInput label="Lookback (Days)" overrideKey="iv_lookback" value={manualOverrides.iv_lookback} onChange={handleOverrideChange} />}
-                    {!hasAtmIv && <DebouncedOverrideInput label="ATM IV (%)" overrideKey={CARD_REGISTRY.atm_iv.id} value={manualOverrides.atm_iv} onChange={handleOverrideChange} />}
+                    {!hasIvRank && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="IV Rank (%)" overrideKey={CARD_REGISTRY.iv_rank.id} value={manualOverrides.iv_rank} onChange={handleOverrideChange} info="IV Rank measures current IV relative to its 1-year high/low. (0-100%)" />}
+                    {!hasIvPercentile && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="IV Percentile (%)" overrideKey={CARD_REGISTRY.iv_percentile.id} value={manualOverrides.iv_percentile} onChange={handleOverrideChange} info="Percentage of days over the past year where IV was lower than current IV. (0-100%)" />}
+                    {(!hasIvRank || !hasIvPercentile) && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Lookback (Days)" overrideKey="iv_lookback" value={manualOverrides.iv_lookback} onChange={handleOverrideChange} info="Number of days used for historical volatility calculation (usually 252 for 1-year)." />}
+                    {!hasAtmIv && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="ATM IV (%)" overrideKey={CARD_REGISTRY.atm_iv.id} value={manualOverrides.atm_iv} onChange={handleOverrideChange} info="At-The-Money Implied Volatility." />}
                 </div>
 
                 {(!hasTotalCallOI || !hasTotalPutOI || !hasOiChange || !hasMaxPain || !hasPcrOi || !hasPcrVolume) && (
                     <div className="space-y-2">
                         <div className="text-xs font-bold text-blue-500 mb-2">Open Interest & Positioning</div>
-                        {!hasTotalCallOI && <DebouncedOverrideInput label="Total Call OI" overrideKey={CARD_REGISTRY.total_call_oi.id} value={manualOverrides.total_call_oi} onChange={handleOverrideChange} />}
-                        {!hasTotalPutOI && <DebouncedOverrideInput label="Total Put OI" overrideKey={CARD_REGISTRY.total_put_oi.id} value={manualOverrides.total_put_oi} onChange={handleOverrideChange} />}
-                        {!hasOiChange && <DebouncedOverrideInput label="OI Change" overrideKey={CARD_REGISTRY.oi_change.id} value={manualOverrides.oi_change} onChange={handleOverrideChange} />}
-                        {!hasPcrOi && <DebouncedOverrideInput label="PCR (OI)" overrideKey={CARD_REGISTRY.pcr_oi.id} value={manualOverrides.pcr_oi} onChange={handleOverrideChange} />}
-                        {!hasPcrVolume && <DebouncedOverrideInput label="PCR (Volume)" overrideKey={CARD_REGISTRY.pcr_volume.id} value={manualOverrides.pcr_volume} onChange={handleOverrideChange} />}
-                        {!hasMaxPain && <DebouncedOverrideInput label="Max Pain Strike" overrideKey={CARD_REGISTRY.max_pain.id} value={manualOverrides.max_pain} onChange={handleOverrideChange} />}
+                        {!hasTotalCallOI && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Total Call OI" overrideKey={CARD_REGISTRY.total_call_oi.id} value={manualOverrides.total_call_oi} onChange={handleOverrideChange} info="Cumulative Call Open Interest across all strikes." />}
+                        {!hasTotalPutOI && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Total Put OI" overrideKey={CARD_REGISTRY.total_put_oi.id} value={manualOverrides.total_put_oi} onChange={handleOverrideChange} info="Cumulative Put Open Interest across all strikes." />}
+                        {!hasOiChange && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="OI Change" overrideKey={CARD_REGISTRY.oi_change.id} value={manualOverrides.oi_change} onChange={handleOverrideChange} info="Net change in Open Interest for the day." />}
+                        {!hasPcrOi && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="PCR (OI)" overrideKey={CARD_REGISTRY.pcr_oi.id} value={manualOverrides.pcr_oi} onChange={handleOverrideChange} info="Put-Call Ratio based on Open Interest. >1 is bearish, <1 is bullish." />}
+                        {!hasPcrVolume && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="PCR (Volume)" overrideKey={CARD_REGISTRY.pcr_volume.id} value={manualOverrides.pcr_volume} onChange={handleOverrideChange} info="Put-Call Ratio based on Trading Volume." />}
+                        {!hasMaxPain && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Max Pain Strike" overrideKey={CARD_REGISTRY.max_pain.id} value={manualOverrides.max_pain} onChange={handleOverrideChange} info="The strike price with the most open options contracts." />}
                     </div>
                 )}
 
                 {(!hasDelta || !hasGamma || !hasTheta || !hasVega) && (
                     <div className="space-y-2">
                         <div className="text-xs font-bold text-purple-500 mb-2">Option Greeks</div>
-                        {!hasDelta && <DebouncedOverrideInput label="Delta" overrideKey={CARD_REGISTRY.delta.id} value={manualOverrides.delta} onChange={handleOverrideChange} />}
-                        {!hasGamma && <DebouncedOverrideInput label="Gamma" overrideKey={CARD_REGISTRY.gamma.id} value={manualOverrides.gamma} onChange={handleOverrideChange} />}
-                        {!hasTheta && <DebouncedOverrideInput label="Theta" overrideKey={CARD_REGISTRY.theta.id} value={manualOverrides.theta} onChange={handleOverrideChange} />}
-                        {!hasVega && <DebouncedOverrideInput label="Vega" overrideKey={CARD_REGISTRY.vega.id} value={manualOverrides.vega} onChange={handleOverrideChange} />}
+                        {!hasDelta && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Delta" overrideKey={CARD_REGISTRY.delta.id} value={manualOverrides.delta} onChange={handleOverrideChange} info="Rate of change of option price with respect to underlying price." />}
+                        {!hasGamma && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Gamma" overrideKey={CARD_REGISTRY.gamma.id} value={manualOverrides.gamma} onChange={handleOverrideChange} info="Rate of change of Delta." />}
+                        {!hasTheta && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Theta" overrideKey={CARD_REGISTRY.theta.id} value={manualOverrides.theta} onChange={handleOverrideChange} info="Time decay of option price." />}
+                        {!hasVega && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Vega" overrideKey={CARD_REGISTRY.vega.id} value={manualOverrides.vega} onChange={handleOverrideChange} info="Sensitivity to Implied Volatility changes." />}
                     </div>
                 )}
 
@@ -567,7 +578,7 @@ export default function OptionsPage() {
         </div>
     );
 
-    if (loading) {
+    if (loading && chainData.length === 0) {
         return (
             <div className="w-full min-h-[80vh] flex flex-col items-center justify-center bg-background-base animate-in fade-in duration-500">
                 <Loader size="lg" color="indigo" />
@@ -598,7 +609,7 @@ export default function OptionsPage() {
                     }}
                     sections={engineSections || []}
                     tailwinds={engineTailwinds || []}
-                    risks={engineRisks || []}
+                    headwinds={engineRisks || []}
                     totalCredits={totalCredits}
                     creditLabel="R Credits"
                     cards={cardsForHeader}

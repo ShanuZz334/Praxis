@@ -91,7 +91,7 @@ const PaiMessageBubble = memo(function PaiMessageBubble({ role, content, onRegen
                                         strong: ({node, children}) => <strong className="text-blue-600 dark:text-blue-400 font-bold">{children}</strong>
                                     }}
                                 >
-                                    {content?.replace(/<think>[\s\S]*?(<\/think>|$)/gi, '').trim()}
+                                    {content?.replace(/<think>[\s\S]*?(<\/think>|$)/gi, '').trim().replace(/\n/g, '  \n')}
                                 </ReactMarkdown>
                             )}
                         </div>

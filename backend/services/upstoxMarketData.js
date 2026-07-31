@@ -2,6 +2,7 @@ import axios from "axios";
 import UpstoxAuth from "../models/UpstoxAuth.js";
 import { upsertAiCardStore } from "../config/localDb.js";
 import { processNewsItems } from "./newsAutoProcessor.js";
+import { getNifty50Keys } from "../utils/nifty50.js";
 
 const UPSTOX_BASE_URL = "https://api.upstox.com/v2/market";
 
@@ -10,6 +11,43 @@ const getAuthToken = async () => {
     if (!auth || !auth.accessToken) throw new Error("Upstox is not authenticated");
     return auth.accessToken;
 };
+
+// ============================================================================
+// Rotating Tracking Lists for Market News
+// ============================================================================
+let currentTrackingIndex = 0;
+const TRACKING_LISTS = [
+    // Bucket 1: Entire Nifty 50 (All 50 components)
+    getNifty50Keys(),
+    
+    // Bucket 2: Major Indices & Benchmarks
+    [
+        'NSE_INDEX|Nifty 50', 
+        'NSE_INDEX|Nifty Bank', 
+        'NSE_INDEX|India VIX', 
+        'NSE_INDEX|Nifty Fin Service', 
+        'NSE_INDEX|Nifty IT',
+        'NSE_INDEX|Nifty Midcap 100',
+        'BSE_INDEX|SENSEX'
+    ],
+    
+    // Bucket 4: Volatile Midcaps & Other Key Assets (Gold, Crude Proxy, etc.)
+    [
+        'MCX_FO|CRUDEOIL',
+        'MCX_FO|GOLD',
+        'NSE_EQ|INE011A01019', // HDFC AMC
+        'NSE_EQ|INE151A01013', // Trent
+        'NSE_EQ|INE423A01024', // Adani Ent (midcap/volatile)
+        'NSE_EQ|INE036A01016', // Zomato
+        'NSE_EQ|INE758T01015', // IRFC
+        'NSE_EQ|INE172A01027', // Castrol
+        'NSE_EQ|INE121E01018', // Chola Inv
+        'NSE_EQ|INE669E01016', // Vodafone Idea
+        'NSE_EQ|INE245A01021', // Tata Power
+        'NSE_EQ|INE196A01026', // TVS Motor
+        'NSE_EQ|INE002A01018', // Reliance (Keep anchor in this bucket too)
+    ]
+];
 
 export const fetchFiiDiiFlow = async () => {
     try {
@@ -223,22 +261,16 @@ export const forceMarketDataPoll = async () => {
                 console.error("Failed to fetch Sector indices:", err.message);
             }
 
-            // Fetch Market News (using major Nifty 50 constituent equity keys)
+            // Fetch Market News (Rotating through buckets to cover entire market)
             try {
-                const newsKeys = [
-                    'NSE_EQ|INE002A01018', // Reliance
-                    'NSE_EQ|INE040A01034', // HDFC Bank
-                    'NSE_EQ|INE090A01021', // ICICI Bank
-                    'NSE_EQ|INE467B01029', // TCS
-                    'NSE_EQ|INE009A01021', // Infosys
-                    'NSE_EQ|INE585B01010', // Maruti
-                    'NSE_EQ|INE154A01025', // ITC
-                    'NSE_EQ|INE030A01027', // HUL
-                    'NSE_EQ|INE628A01036', // Kotak Bank
-                    'NSE_EQ|INE019A01038', // SBI
-                ];
+                // Select the current bucket
+                const newsKeys = TRACKING_LISTS[currentTrackingIndex];
+                
+                // Rotate to the next bucket for the next cycle
+                currentTrackingIndex = (currentTrackingIndex + 1) % TRACKING_LISTS.length;
+
                 const token = await getAuthToken();
-                const newsUrl = `https://api.upstox.com/v2/news?category=instrument_keys&instrument_keys=${encodeURIComponent(newsKeys.join(','))}&page_size=30`;
+                const newsUrl = `https://api.upstox.com/v2/news?category=instrument_keys&instrument_keys=${encodeURIComponent(newsKeys.join(','))}&page_size=100`;
                 const newsRes = await axios.get(newsUrl, { headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` } });
 
                 if (newsRes.data?.data) {
@@ -250,7 +282,7 @@ export const forceMarketDataPoll = async () => {
                     const uniqueNews = Array.from(new Map(allNews.map(n => [n.article_link, n])).values());
                     // Sort descending by publish time
                     uniqueNews.sort((a, b) => b.published_time - a.published_time);
-                    cachedNews = uniqueNews.slice(0, 25); // Keep top 25
+                    cachedNews = uniqueNews.slice(0, 100); // Keep top 100
                     broadcast("market:news", cachedNews);
 
                     // ============================================================
@@ -273,6 +305,7 @@ export const startMarketDataPolling = () => {
     
     // Poll immediately, then every 5 minutes
     forceMarketDataPoll();
-    setInterval(forceMarketDataPoll, 5 * 60 * 1000);
-};
 
+    // Poll every 1 minute for near-continuous updates (Upstox does not provide WebSocket for News)
+    setInterval(forceMarketDataPoll, 1 * 60 * 1000);
+};

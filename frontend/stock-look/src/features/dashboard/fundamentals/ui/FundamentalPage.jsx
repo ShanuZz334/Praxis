@@ -681,7 +681,7 @@ export default function FundamentalPage() {
 
   const contextValue = React.useMemo(() => ({ instrumentKey: selectedInstrument, snapshots: historicalSnapshots }), [selectedInstrument, historicalSnapshots]);
 
-  if (loading) {
+  if (loading && !rawFundamentalsData) {
       return (
           <div className="w-full min-h-[80vh] flex flex-col items-center justify-center bg-background-base animate-in fade-in duration-500">
               <Loader size="lg" color="blue" />

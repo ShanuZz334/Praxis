@@ -685,6 +685,21 @@ router.post('/chat/:targetId', async (req, res) => {
 
         // 3. Call AI Gateway
         const isHeaderTarget = targetId.endsWith('_header') || targetId.startsWith('qchat_') || targetId.includes('manual');
+        
+        // Match the dynamic max tokens logic from /execute so multi-para prompts don't get cut off
+        let dynamicMaxTokens = savedPrompt?.maxTokens || (isHeaderTarget ? 2000 : 800);
+        if (routing) {
+            const isMasterDashboard = targetId === 'praxis_composite_header';
+            const verbosityLevel = isMasterDashboard ? routing.pageInsight?.verbosity : (isHeaderTarget ? routing.headerInsight?.verbosity : routing.cardInsight?.verbosity);
+            if (verbosityLevel === 'short') {
+                dynamicMaxTokens = routing.maxTokensShort || Math.max(dynamicMaxTokens, 500);
+            } else if (verbosityLevel === 'detailed') {
+                dynamicMaxTokens = routing.maxTokensDetailed || Math.max(dynamicMaxTokens, 3000);
+            } else {
+                dynamicMaxTokens = routing.maxTokensMedium || Math.max(dynamicMaxTokens, 1000);
+            }
+        }
+
         const response = await aiGateway.process({
             taskType: 'chat_conversation',
             prompt: cardContextPrefix + message,  // #mention card data prepended
@@ -692,7 +707,7 @@ router.post('/chat/:targetId', async (req, res) => {
             history,
             data: Object.keys(contextData).length > 0 ? contextData : null,
             jsonMode: false,
-            maxTokens: routing?.maxTokens || savedPrompt?.maxTokens || (isHeaderTarget ? 2000 : 800),
+            maxTokens: dynamicMaxTokens,
             temperature: routing?.temperature !== undefined ? routing.temperature : 0.7,
             explicitProvider,
             explicitModel

@@ -158,7 +158,7 @@ export default function MasterDashboard() {
         }
     );
 
-    if (loading) {
+    if (loading && aggregatedCards.length === 0) {
         return (
             <div className="w-full min-h-[80vh] flex flex-col items-center justify-center bg-background-base animate-in fade-in duration-500">
                 <Loader size="lg" color="blue" />
@@ -309,7 +309,7 @@ export default function MasterDashboard() {
                 integrity={integrity}
                 sections={sectionsForHeader}
                 tailwinds={tailwinds}
-                risks={risks}
+                headwinds={risks}
                 totalCredits={totalCredits}
                 enableBreakdown={true}
                 cards={aggregatedCards}

@@ -100,12 +100,13 @@ export const SOURCE_COLORS = {
 // ============================================================================================
 
 export function getEventScoreColor(score) {
+    // Thresholds calibrated to the internal ±100 PES-7 scale.
     const s = Number(score) || 0;
-    if (s <= -5) return { label: "Extremely Negative", color: "#DC2626" }; // Crimson Red
-    if (s < 0) return { label: "Negative", color: "#F97316" }; // Orange Red
-    if (s === 0) return { label: "Neutral", color: "#94A3B8" }; // Slate Gray
-    if (s < 5) return { label: "Positive", color: "#22C55E" }; // Emerald Green
-    return { label: "Extremely Positive", color: "#2E5BFF" }; // Praxis Blue
+    if (s <= -50) return { label: "Extremely Negative", color: "#DC2626" }; // Crimson Red
+    if (s < 0)    return { label: "Negative",           color: "#F97316" }; // Orange Red
+    if (s === 0)  return { label: "Neutral",             color: "#94A3B8" }; // Slate Gray
+    if (s < 50)   return { label: "Positive",            color: "#22C55E" }; // Emerald Green
+    return         { label: "Extremely Positive",        color: "#2E5BFF" }; // Praxis Blue
 }
 
 export function getConfidenceColor(confidence) {
@@ -154,61 +155,126 @@ export const getColorMap = (event) => ({
 // ============================================================================================
 
 /**
- * PES-7 Weight Tables — The AI classifies 4 inputs; the formula computes the score.
- * The AI NEVER outputs event_score. The backend always calls computeEventScore().
+ * PES-7 Weight Tables — Institutional Grade (v2).
+ *
+ * SCALE RATIONALE:
+ * - Sentiment is the base signal: ±100 pts max. This is the raw directional force.
+ * - Importance gates how much of that signal reaches the portfolio (30%–100%).
+ * - Severity gates the structural market impact of the event (30%–100%).
+ * - Horizon weights persistence: Intraday events matter less than Structural shifts.
+ * - Confidence is a sigmoid curve — events below 50% AI confidence barely register.
+ *   At 80% confidence, the event carries ~76% weight. At 95%, ~93%.
+ *
+ * Combined theoretical max: 100 × 1.00 × 1.00 × 1.15 × ~0.97 ≈ 111 → clamped to ±100.
  */
 export const PES7_WEIGHTS = {
     sentiment: {
-        "Very Bullish": +5.0,
-        "Bullish":      +3.0,
-        "Neutral":       0.0,
-        "Bearish":      -3.0,
-        "Very Bearish": -5.0
+        "Very Bullish": +100.0,
+        "Bullish":       +60.0,
+        "Neutral":         0.0,
+        "Bearish":        -60.0,
+        "Very Bearish":  -100.0
     },
     importance: {
-        "Low":      0.4,
-        "Medium":   0.7,
-        "High":     1.0,
-        "Critical": 1.4
+        "Low":      0.30,  // Low-importance noise barely moves the needle
+        "Medium":   0.55,
+        "High":     0.80,
+        "Critical": 1.00   // Critical events carry full importance weight
     },
     severity: {
-        "Normal":     0.5,
-        "Important":  0.8,
-        "Major":      1.2,
-        "Systemic":   1.6,
-        "Black Swan": 2.0
+        "Normal":     0.30,  // Routine events: minimal structural impact
+        "Important":  0.55,
+        "Major":      0.80,
+        "Systemic":   0.92,
+        "Black Swan": 1.00   // Market-defining events: full severity weight
+    },
+    horizon: {
+        "Intraday":   0.70,  // Noise — fades within hours
+        "Swing":      0.85,
+        "Positional": 1.00,  // Standard multi-week impact: baseline
+        "Structural": 1.10,
+        "Long Term":  1.15   // Multi-quarter structural shifts carry premium weight
     }
 };
 
 /**
- * Computes the deterministic PES-7 Event Score.
- * Formula: SentimentWeight x ImportanceMultiplier x SeverityMultiplier x (Confidence/100)
- * Clamped to [-10.0, +10.0], rounded to 1 decimal.
+ * Sigmoid confidence curve for PES-7.
+ * Creates a conviction threshold — low-confidence events barely register.
+ * conf=30 → 0.07 | conf=50 → 0.25 | conf=65 → 0.50 | conf=80 → 0.76 | conf=95 → 0.93
+ * @private
  */
-export function computeEventScore(sentiment, importance, severity, confidence) {
+function confidenceSigmoid(conf) {
+    return 1.0 / (1.0 + Math.exp(-0.08 * (conf - 65)));
+}
+
+/**
+ * Computes dynamic exponential time-decay factor for an event at render time.
+ *
+ * Decay curve (relative to TTL):
+ *   t=0       → 1.00 (full weight — event is fresh)
+ *   t=TTL/4   → 0.61 (40% weight shed by quarter-life)
+ *   t=TTL/2   → 0.37 (majority weight shed)
+ *   t=TTL     → 0.00 (event has expired, zero contribution)
+ *
+ * @param {string|null} createdAt  - ISO timestamp of DB insert
+ * @param {string|null} publishedTime - ISO timestamp of original event
+ * @param {number}      ttlHours   - Event time-to-live in hours
+ * @returns {number} Decay factor [0.0 – 1.0]
+ */
+export function computeTimeDecay(createdAt, publishedTime, ttlHours) {
+    const eventDate = publishedTime ? new Date(publishedTime) : new Date(createdAt || Date.now());
+    const ttl = Math.max(1, Number(ttlHours) || 72);
+    const hoursElapsed = (Date.now() - eventDate.getTime()) / (1000 * 60 * 60);
+    if (hoursElapsed < 0)    return 1.0; // Future-dated events: full weight
+    if (hoursElapsed >= ttl) return 0.0; // Expired events: zero weight
+    return Math.exp(-2.0 * hoursElapsed / ttl);
+}
+
+/**
+ * Converts the internal ±100 raw PES-7 score to the ±10 display range shown on cards.
+ * Use this everywhere a human-readable score is rendered in the UI.
+ */
+export function getDisplayScore(rawScore) {
+    return Math.round((Number(rawScore) || 0) / 10 * 10) / 10;
+}
+
+/**
+ * Computes the deterministic PES-7 Event Score (Institutional Grade v2).
+ *
+ * Formula: SentimentBase × Importance × Severity × HorizonWeight × ConfidenceSigmoid
+ * Internal scale: ±100  |  Display scale (via getDisplayScore): ±10
+ *
+ * The AI NEVER outputs event_score. This function is the sole source of truth.
+ */
+export function computeEventScore(sentiment, importance, severity, confidence, horizon = "Positional") {
     const sentWeight = PES7_WEIGHTS.sentiment[sentiment]   ?? 0.0;
-    const impMult    = PES7_WEIGHTS.importance[importance] ?? 0.7;
-    const sevMult    = PES7_WEIGHTS.severity[severity]     ?? 0.5;
-    const confFactor = Math.max(0, Math.min(100, Number(confidence) || 60)) / 100;
-    const raw        = sentWeight * impMult * sevMult * confFactor;
-    return Math.round(Math.max(-10.0, Math.min(10.0, raw)) * 10) / 10;
+    const impMult    = PES7_WEIGHTS.importance[importance] ?? 0.55;
+    const sevMult    = PES7_WEIGHTS.severity[severity]     ?? 0.30;
+    const horizMult  = PES7_WEIGHTS.horizon[horizon]       ?? 1.00;
+    const confFactor = confidenceSigmoid(Math.max(0, Math.min(100, Number(confidence) || 60)));
+    const raw        = sentWeight * impMult * sevMult * horizMult * confFactor;
+    return Math.round(Math.max(-100.0, Math.min(100.0, raw)) * 10) / 10;
 }
 
 /**
  * Returns a full PES-7 breakdown object for display in the Prompt Panel UI.
  */
-export function getPES7Breakdown(sentiment, importance, severity, confidence) {
+export function getPES7Breakdown(sentiment, importance, severity, confidence, horizon = "Positional") {
     const sentWeight = PES7_WEIGHTS.sentiment[sentiment]   ?? 0.0;
-    const impMult    = PES7_WEIGHTS.importance[importance] ?? 0.7;
-    const sevMult    = PES7_WEIGHTS.severity[severity]     ?? 0.5;
-    const confFactor = Math.max(0, Math.min(100, Number(confidence) || 60)) / 100;
+    const impMult    = PES7_WEIGHTS.importance[importance] ?? 0.55;
+    const sevMult    = PES7_WEIGHTS.severity[severity]     ?? 0.30;
+    const horizMult  = PES7_WEIGHTS.horizon[horizon]       ?? 1.00;
+    const confFactor = confidenceSigmoid(Math.max(0, Math.min(100, Number(confidence) || 60)));
+    const finalScore = computeEventScore(sentiment, importance, severity, confidence, horizon);
     return {
         sentimentWeight:      sentWeight,
         importanceMultiplier: impMult,
         severityMultiplier:   sevMult,
-        confidenceFactor:     confFactor,
-        rawScore:             sentWeight * impMult * sevMult * confFactor,
-        finalScore:           computeEventScore(sentiment, importance, severity, confidence)
+        horizonMultiplier:    horizMult,
+        confidenceFactor:     Math.round(confFactor * 1000) / 1000,
+        rawScore:             sentWeight * impMult * sevMult * horizMult * confFactor,
+        finalScore,
+        displayScore:         getDisplayScore(finalScore)
     };
 }
 
@@ -307,7 +373,8 @@ Output ONLY a raw JSON object (no markdown, no triple-backtick wrapper):
   "affected_assets": ["array of NSE/BSE ticker symbols or index names, max 8"],
   "instrument_type": "MACRO_POLICY | INDICES | EQUITY | COMMODITY | CURRENCY | GLOBAL",
   "key_data_points": ["specific quantitative facts from the news e.g. 5.1% CPI, Rate held at 6.5%"],
-  "reasoning": "string - detailed institutional explanation: mechanism, sector sensitivity, horizon"
+  "reasoning": "string - detailed institutional explanation: mechanism, sector sensitivity, horizon",
+  "ttl_hours": "integer - the estimated time-to-live of this event's impact in hours (e.g. 24 for intraday noise, 72 for typical earnings, 720 for structural shifts, 8760 for a pandemic)"
 }
 
 CRITICAL RULES:
@@ -347,7 +414,8 @@ ${JSON.stringify({
     affected_assets: ["NIFTY", "BANKNIFTY", "FINNIFTY", "REALTY", "SBIN", "HDFCBANK", "LICHSGFIN"],
     instrument_type: "MACRO_POLICY",
     key_data_points: ["Repo rate held at 6.5%", "Stance changed to Neutral", "MPC vote: 4-2"],
-    reasoning: "A stance change to Neutral is forward guidance for rate cuts. Structurally bullish for Real Estate, NBFCs, and select banks. BANKNIFTY benefits from renewed credit cycle optimism. Near-term NIM compression risk for banks as yields fall. FII flows likely improve on reduced carry trade cost."
+    reasoning: "A stance change to Neutral is forward guidance for rate cuts. Structurally bullish for Real Estate, NBFCs, and select banks. BANKNIFTY benefits from renewed credit cycle optimism. Near-term NIM compression risk for banks as yields fall. FII flows likely improve on reduced carry trade cost.",
+    ttl_hours: 720
 }, null, 2)}
 ${SHARED_OUTPUT_SCHEMA}`;
 
@@ -380,7 +448,8 @@ ${JSON.stringify({
     affected_assets: ["NIFTY", "BANKNIFTY", "SENSEX", "MIDCPNIFTY", "FINNIFTY"],
     instrument_type: "INDICES",
     key_data_points: ["NIFTY down 1.8%", "FII outflow Rs 4200 Cr", "VIX at 18", "A/D ratio 1:4"],
-    reasoning: "FII outflows of this magnitude with deteriorating breadth signal institutional de-risking. VIX above 16 typically precedes swing-level corrections of 3-5%. Key support at NIFTY 23800 (200 DMA). Watch DII absorption rate next session to gauge institutional support."
+    reasoning: "FII outflows of this magnitude with deteriorating breadth signal institutional de-risking. VIX above 16 typically precedes swing-level corrections of 3-5%. Key support at NIFTY 23800 (200 DMA). Watch DII absorption rate next session to gauge institutional support.",
+    ttl_hours: 24
 }, null, 2)}
 ${SHARED_OUTPUT_SCHEMA}`;
 
@@ -416,7 +485,8 @@ ${JSON.stringify({
     affected_assets: ["INFY", "TCS", "WIPRO", "HCLTECH", "NIFTYIT", "LTIM"],
     instrument_type: "EQUITY",
     key_data_points: ["PAT Rs 6368 Cr vs est Rs 6100 Cr", "Revenue beat consensus", "Guidance raised to 4.5-5%"],
-    reasoning: "Guidance upgrade removes the bear case of US tech demand slowdown. A 4.5-5% guidance by Infosys creates sector re-rating for NIFTYIT. Peer read-through positive for TCS, HCL Tech, Wipro. Key risk: US BFSI discretionary spend sustainability."
+    reasoning: "Guidance upgrade removes the bear case of US tech demand slowdown. A 4.5-5% guidance by Infosys creates sector re-rating for NIFTYIT. Peer read-through positive for TCS, HCL Tech, Wipro. Key risk: US BFSI discretionary spend sustainability.",
+    ttl_hours: 72
 }, null, 2)}
 ${SHARED_OUTPUT_SCHEMA}`;
 
@@ -449,7 +519,8 @@ ${JSON.stringify({
     affected_assets: ["BPCL", "IOCL", "HPCL", "INDIGO", "SPICEJET", "ASIANPAINT", "BERGERPAINTS"],
     instrument_type: "COMMODITY",
     key_data_points: ["Brent at $89/bbl (+4.2%)", "OPEC+ cut 1.5 Mb/day", "Effective next month"],
-    reasoning: "At $89/bbl, OMC marketing margins are under severe pressure without retail fuel price hikes. BPCL/IOCL/HPCL directly impacted. Airlines face ATF cost spike of 8-10%. Paint companies face crude-derivative inflation. Government fuel price hike would be electorally sensitive. Rupee stability critical - weaker INR amplifies landed crude cost."
+    reasoning: "At $89/bbl, OMC marketing margins are under severe pressure without retail fuel price hikes. BPCL/IOCL/HPCL directly impacted. Airlines face ATF cost spike of 8-10%. Paint companies face crude-derivative inflation. Government fuel price hike would be electorally sensitive. Rupee stability critical - weaker INR amplifies landed crude cost.",
+    ttl_hours: 168
 }, null, 2)}
 ${SHARED_OUTPUT_SCHEMA}`;
 
@@ -483,7 +554,8 @@ ${JSON.stringify({
     affected_assets: ["NIFTY", "TCS", "INFY", "WIPRO", "IOCL", "BPCL", "SUNPHARMA"],
     instrument_type: "CURRENCY",
     key_data_points: ["USDINR at 84.80", "DXY at 106.2", "RBI intervention confirmed"],
-    reasoning: "IT exporters benefit as USD revenues translate higher. OMCs face higher crude import bills. Pharma exporters see margin tailwind. RBI intervention means aggressive moves beyond 85 will be resisted. Watch forex reserves as proxy for intervention intensity."
+    reasoning: "IT exporters benefit as USD revenues translate higher. OMCs face higher crude import bills. Pharma exporters see margin tailwind. RBI intervention means aggressive moves beyond 85 will be resisted. Watch forex reserves as proxy for intervention intensity.",
+    ttl_hours: 48
 }, null, 2)}
 ${SHARED_OUTPUT_SCHEMA}`;
 
@@ -519,7 +591,8 @@ ${JSON.stringify({
     affected_assets: ["NIFTY", "BANKNIFTY", "FINNIFTY", "NIFTYIT"],
     instrument_type: "GLOBAL",
     key_data_points: ["Two more Fed hikes signaled", "10Y Treasury at 5.1%", "Powell speaks at Jackson Hole"],
-    reasoning: "10Y UST at 5.1% makes risk-free US returns highly attractive vs Indian equity risk premium. FII historically sell EM equities when US risk-free rates exceed 4.5%. BANKNIFTY and NIFTYIT most vulnerable due to high FII ownership. Structural resilience: domestic SIP inflows provide DII counter."
+    reasoning: "10Y UST at 5.1% makes risk-free US returns highly attractive vs Indian equity risk premium. FII historically sell EM equities when US risk-free rates exceed 4.5%. BANKNIFTY and NIFTYIT most vulnerable due to high FII ownership. Structural resilience: domestic SIP inflows provide DII counter.",
+    ttl_hours: 720
 }, null, 2)}
 ${SHARED_OUTPUT_SCHEMA}`;
 
@@ -613,13 +686,17 @@ export function validateAndSanitizeEvent(raw) {
     sanitized.confidence      = Math.max(0, Math.min(100, Number(raw.confidence) || 60));
     sanitized.affected_assets = Array.isArray(sanitized.affected_assets) ? sanitized.affected_assets : [];
     sanitized.key_data_points = Array.isArray(sanitized.key_data_points)  ? sanitized.key_data_points  : [];
+    sanitized.ttl_hours       = Number.isInteger(Number(raw.ttl_hours)) ? Number(raw.ttl_hours) : 72; // Default to 72 hours (3 days)
 
-    // Compute event score deterministically - never trust AI-provided score
+
+    // Compute event score deterministically — never trust AI-provided score.
+    // Horizon is now a 5th input to the PES-7 formula (v2 institutional scale).
     sanitized.event_score = computeEventScore(
         sanitized.sentiment,
         sanitized.importance,
         sanitized.severity,
-        sanitized.confidence
+        sanitized.confidence,
+        sanitized.horizon
     );
 
     return {
@@ -636,27 +713,24 @@ export function validateAndSanitizeEvent(raw) {
 export function extractInstitutionalImpacts(events) {
     if (!events || !Array.isArray(events)) return { tailwinds: [], headwinds: [] };
 
-    const SEVERITY_MULT = { "Normal": 1.0, "Important": 1.2, "Major": 1.5, "Systemic": 2.0, "Black Swan": 3.0 };
-    const IMPORTANCE_MULT = { "Low": 0.8, "Medium": 1.0, "High": 1.2, "Critical": 1.5 };
-    
-    // Configurable threshold
-    const MIN_IMPACT_THRESHOLD = 1.0; 
+    // Minimum time-decayed impact for an asset to surface in tailwinds/headwinds.
+    // Calibrated to the ±100 internal scale: ~10 pts minimum effective impact.
+    const MIN_IMPACT_THRESHOLD = 10.0;
 
     const assetImpacts = {};
 
     events.forEach(ev => {
         if (!ev.affected_assets || !Array.isArray(ev.affected_assets)) return;
-        
-        const score = Number(ev.event_score) || 0;
-        if (score === 0) return;
 
-        const sevMult = SEVERITY_MULT[ev.severity] || 1.0;
-        const impMult = IMPORTANCE_MULT[ev.importance] || 1.0;
-        const conf = Number(ev.confidence) || 50;
-        
-        // Institutional Momentum Algorithm
-        const impact = score * sevMult * impMult * (conf / 100);
-        
+        const rawScore = Number(ev.event_score) || 0;
+        if (rawScore === 0) return;
+
+        // Apply dynamic time decay — events lose influence as they age relative to their TTL
+        const decayFactor = computeTimeDecay(ev.created_at, ev.published_time, ev.ttl_hours);
+        if (decayFactor === 0) return; // Expired event: skip entirely
+
+        const impact = rawScore * decayFactor;
+
         ev.affected_assets.forEach(asset => {
             if (!asset || typeof asset !== 'string') return;
             const name = asset.trim().toUpperCase();
@@ -665,10 +739,10 @@ export function extractInstitutionalImpacts(events) {
             if (!assetImpacts[name]) {
                 assetImpacts[name] = { totalImpact: 0, count: 0, latestReason: ev.headline, date: ev.created_at };
             }
-            
+
             assetImpacts[name].totalImpact += impact;
             assetImpacts[name].count += 1;
-            
+
             if (ev.created_at && (!assetImpacts[name].date || new Date(ev.created_at) > new Date(assetImpacts[name].date))) {
                 assetImpacts[name].latestReason = ev.headline;
                 assetImpacts[name].date = ev.created_at;
@@ -682,26 +756,28 @@ export function extractInstitutionalImpacts(events) {
         reason: assetImpacts[name].latestReason
     }));
 
-    // Sort by absolute magnitude
+    // Sort by absolute magnitude (strongest signals surface first)
     impactArray.sort((a, b) => Math.abs(b.totalImpact) - Math.abs(a.totalImpact));
 
     const tailwinds = [];
     const headwinds = [];
 
     impactArray.forEach(item => {
+        // Display score uses ÷10 scale so val shown is on the familiar ±10 range
+        const displayVal = item.totalImpact / 10;
         if (item.totalImpact >= MIN_IMPACT_THRESHOLD && tailwinds.length < 5) {
             tailwinds.push({
                 id: item.name,
                 label: item.name,
-                sub: item.reason.length > 55 ? item.reason.substring(0, 55) + "..." : item.reason,
-                val: "+" + item.totalImpact.toFixed(1)
+                sub: item.reason.length > 55 ? item.reason.substring(0, 55) + '...' : item.reason,
+                val: '+' + displayVal.toFixed(1)
             });
         } else if (item.totalImpact <= -MIN_IMPACT_THRESHOLD && headwinds.length < 5) {
             headwinds.push({
                 id: item.name,
                 label: item.name,
-                sub: item.reason.length > 55 ? item.reason.substring(0, 55) + "..." : item.reason,
-                val: item.totalImpact.toFixed(1)
+                sub: item.reason.length > 55 ? item.reason.substring(0, 55) + '...' : item.reason,
+                val: displayVal.toFixed(1)
             });
         }
     });
@@ -715,75 +791,105 @@ export function extractInstitutionalImpacts(events) {
 export function computePortfolioMetrics(events) {
     if (!events || !Array.isArray(events)) return { totalWeight: 0, netMomentum: 0, eventCount: 0, activeSources: 0 };
 
-    const SEVERITY_MULT = { "Normal": 1.0, "Important": 1.2, "Major": 1.5, "Systemic": 2.0, "Black Swan": 3.0 };
-    const IMPORTANCE_MULT = { "Low": 0.8, "Medium": 1.0, "High": 1.2, "Critical": 1.5 };
-    
     let totalWeight = 0;
     let netMomentum = 0;
     const sources = new Set();
+    // catMomentum tracks: net momentum, total weight, event count, and directional polarity
     const catMomentum = {};
+    const effectiveScores = []; // raw effective impacts for regime divergence penalty
 
     events.forEach(ev => {
-        const score = Number(ev.event_score) || 0;
-        const sevMult = SEVERITY_MULT[ev.severity] || 1.0;
-        const impMult = IMPORTANCE_MULT[ev.importance] || 1.0;
-        const conf = Number(ev.confidence) || 50;
-        
-        const impact = score * sevMult * impMult * (conf / 100);
-        
+        const rawScore = Number(ev.event_score) || 0;
+        if (rawScore === 0) return;
+
+        // Apply dynamic time decay — impact shrinks exponentially as event ages relative to TTL.
+        // This replaces the old static TTL-expiry hard-cut: instead of binary on/off,
+        // events gracefully fade, which is far closer to how markets absorb news.
+        const decayFactor = computeTimeDecay(ev.created_at, ev.published_time, ev.ttl_hours);
+        if (decayFactor === 0) return; // Fully expired event: skip
+
+        const impact = rawScore * decayFactor;
+        effectiveScores.push(Math.abs(impact));
         totalWeight += Math.abs(impact);
         netMomentum += impact;
         if (ev.source) sources.add(ev.source);
-        
+
         if (ev.category) {
             const cat = ev.category.trim();
-            if (!catMomentum[cat]) catMomentum[cat] = { momentum: 0, count: 0 };
+            if (!catMomentum[cat]) catMomentum[cat] = { momentum: 0, weight: 0, count: 0, bullishCount: 0, bearishCount: 0 };
             catMomentum[cat].momentum += impact;
-            catMomentum[cat].count += 1;
+            catMomentum[cat].weight   += Math.abs(impact);
+            catMomentum[cat].count    += 1;
+            if (impact > 0) catMomentum[cat].bullishCount += 1;
+            else if (impact < 0) catMomentum[cat].bearishCount += 1;
         }
     });
 
-    // Top notch institutional grade bounding equation (Sigmoid Tanh)
-    // Centers at 50, scales asymptotically to 0 (extreme bearish) and 100 (extreme bullish)
-    const K = 25.0; // Half-activation threshold
-    const compositeScore = Math.round(50 + 50 * Math.tanh(netMomentum / K));
-    
-    // -------------------------------------------------------------------------
-    // Institutional Relative Dominance Algorithm for Category Sections
-    // -------------------------------------------------------------------------
-    // Instead of a static sigmoid which compresses low-volatility days into gray noise,
-    // we use a Relative Strength scale bounded to the market's current peak driver.
-    // Combined with an Absolute Activation Threshold to prevent micro-events from maxing the gauge.
-    
-    let maxAbsMomentum = 0.01; // Prevent divide by zero
-    const sortedCats = Object.keys(catMomentum).sort((a, b) => Math.abs(catMomentum[b].momentum) - Math.abs(catMomentum[a].momentum));
-    
-    if (sortedCats.length > 0) {
-        maxAbsMomentum = Math.max(0.01, Math.abs(catMomentum[sortedCats[0]].momentum));
+    // ─────────────────────────────────────────────────────────────────────────
+    // COMPOSITE SCORE — Institutional Grade
+    // ─────────────────────────────────────────────────────────────────────────
+    // Directional Consensus: -1.0 (pure bearish) to +1.0 (pure bullish)
+    const consensus = totalWeight > 0 ? (netMomentum / totalWeight) : 0;
+
+    // Volume Activation (slower curve: 8 events for ~63% activation, 15 for ~85%)
+    // This ensures that a single dominant event cannot pin the Global Score to extremes.
+    const activeCount = effectiveScores.length;
+    const volumeActivation = 1.0 - Math.exp(-activeCount / 8.0);
+
+    // Regime Divergence Penalty:
+    // If one event has an outsized effective impact >2.5× the median, it is an outlier.
+    // We dampen the composite by 20% to prevent a single Black Swan from dominating.
+    let divergencePenalty = 1.0;
+    if (effectiveScores.length > 2) {
+        const sorted = [...effectiveScores].sort((a, b) => a - b);
+        const median = sorted[Math.floor(sorted.length / 2)];
+        const max    = sorted[sorted.length - 1];
+        if (median > 0 && max > 2.5 * median) divergencePenalty = 0.80;
     }
-    
-    const topCats = sortedCats.slice(0, 6); // Top 6 ensures perfect spacing in the GlobalHeader
-    
+
+    const compositeScore = Math.round(50 + 50 * consensus * volumeActivation * divergencePenalty);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SECTION / CATEGORY SCORES — Institutional Grade
+    // ─────────────────────────────────────────────────────────────────────────
+    const sortedCats = Object.keys(catMomentum).sort((a, b) => Math.abs(catMomentum[b].momentum) - Math.abs(catMomentum[a].momentum));
+    const topCats = sortedCats.slice(0, 6); // Top 6 fits the GlobalHeader perfectly
+
     const sections = topCats.map(cat => {
-        const rawMomentum = catMomentum[cat].momentum;
-        const absMomentum = Math.abs(rawMomentum);
-        
-        // 1. Relative Strength (-1.0 to +1.0) compared to the leading category
-        const relativeStrength = rawMomentum / maxAbsMomentum;
-        
-        // 2. Absolute Activation Threshold (Dampener)
-        // A category needs an absolute impact score of >= 5.0 to fully unlock the 100/0 color extremes.
-        // If it's a weak day (e.g. max momentum is only 1.2), the dampener keeps the colors visually muted (neutral/gray)
-        // to accurately reflect low market conviction.
-        const activationFactor = Math.min(1.0, absMomentum / 5.0); 
-        // 3. Final Activated Score mapped to 0-100 scale
-        const activatedStrength = relativeStrength * activationFactor;
-        const catScore = Math.round(50 + 50 * activatedStrength);
-        
+        const rawMomentum  = catMomentum[cat].momentum;
+        const catWeight    = catMomentum[cat].weight;
+        const catCount     = catMomentum[cat].count;
+        const bullishCount = catMomentum[cat].bullishCount;
+        const bearishCount = catMomentum[cat].bearishCount;
+
+        // 1. Category Consensus (-1.0 to +1.0)
+        // Directional alignment within this category.
+        const catConsensus = catWeight > 0 ? (rawMomentum / catWeight) : 0;
+
+        // 2. Volume Activation — slow logarithmic curve
+        // count=1→0.15, count=3→0.39, count=6→0.63, count=10→0.81, count=15→0.92
+        const catVolumeActivation = 1.0 - Math.exp(-catCount / 6.0);
+
+        // 3. Contrarian Haircut
+        // Measures how unified the category's signals are. If 3 events are bullish
+        // but 1 is bearish, conviction is lower than if all 4 are bullish.
+        // Ratio: 1.0 = perfect consensus, 0.0 = perfectly split.
+        const contrarianRatio = catCount > 0 ? Math.abs(bullishCount - bearishCount) / catCount : 0;
+
+        // 4. Dynamic Score Ceiling Gate
+        // Scales with event count — you need more validated signals to earn extreme scores.
+        // count=1 → ±15 | count=3 → ±25 | count=6 → ±35 | count=10 → ±45 (hard cap)
+        const maxDivergence = Math.min(45, 10 + 5 * catCount);
+
+        // 5. Final Score
+        const rawDivergence     = 50 * catConsensus * catVolumeActivation * contrarianRatio;
+        const clampedDivergence = Math.max(-maxDivergence, Math.min(maxDivergence, rawDivergence));
+        const catScore          = Math.round(50 + clampedDivergence);
+
         return {
-            id: cat.toLowerCase(),
+            id:         cat.toLowerCase(),
             shortLabel: cat.substring(0, 4).toUpperCase(),
-            score: Math.max(0, Math.min(100, catScore))
+            score:      Math.max(0, Math.min(100, catScore))
         };
     });
 
@@ -810,9 +916,10 @@ export function computePortfolioMetrics(events) {
     }
 
     return {
-        totalWeight: totalWeight.toFixed(1),
-        netMomentum: (netMomentum > 0 ? "+" : "") + netMomentum.toFixed(1),
-        netMomentumRaw: netMomentum,
+        // Display values divided by 10 to convert internal ±100 scale → familiar ±10 range
+        totalWeight: (totalWeight / 10).toFixed(1),
+        netMomentum: (netMomentum > 0 ? "+" : "") + (netMomentum / 10).toFixed(1),
+        netMomentumRaw: netMomentum / 10,
         compositeScore: Math.max(0, Math.min(100, compositeScore)),
         marketConfidence,
         eventCount: events.length,

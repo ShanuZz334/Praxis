@@ -45,7 +45,32 @@ export function useManualOverrides(moduleKey, instrument, defaultOverrides) {
             policy_tailwinds: 30 * 24 * 60 * 60 * 1000,
             fii_trend: 24 * 60 * 60 * 1000,
             mf_flows: 30 * 24 * 60 * 60 * 1000,
-            system_liquidity: 24 * 60 * 60 * 1000
+            system_liquidity: 24 * 60 * 60 * 1000,
+            // Technical Module Overrides
+            mcclellan: 24 * 60 * 60 * 1000,
+            trin: 24 * 60 * 60 * 1000,
+            kc: 24 * 60 * 60 * 1000,
+            cmf: 24 * 60 * 60 * 1000,
+            support: 24 * 60 * 60 * 1000,
+            resistance: 24 * 60 * 60 * 1000,
+            trendline: 24 * 60 * 60 * 1000,
+            fibonacci: 24 * 60 * 60 * 1000,
+            pivot: 24 * 60 * 60 * 1000,
+            // Options Module Overrides
+            iv_rank: 24 * 60 * 60 * 1000,
+            iv_percentile: 24 * 60 * 60 * 1000,
+            iv_lookback: 24 * 60 * 60 * 1000,
+            atm_iv: 24 * 60 * 60 * 1000,
+            total_call_oi: 24 * 60 * 60 * 1000,
+            total_put_oi: 24 * 60 * 60 * 1000,
+            oi_change: 24 * 60 * 60 * 1000,
+            pcr_oi: 24 * 60 * 60 * 1000,
+            pcr_volume: 24 * 60 * 60 * 1000,
+            max_pain: 24 * 60 * 60 * 1000,
+            delta: 24 * 60 * 60 * 1000,
+            gamma: 24 * 60 * 60 * 1000,
+            theta: 24 * 60 * 60 * 1000,
+            vega: 24 * 60 * 60 * 1000
         };
         try {
             const stored = localStorage.getItem('praxis_manual_expiry_config');

@@ -268,7 +268,7 @@ function computeIndexSections(scores, W) {
 
 // ─── Composite Score ──────────────────────────────────────────────────────────
 
-function computeComposite(sections, isIndex) {
+function computeComposite(sections, isIndex, W) {
     const validSections = sections.filter(s => s.score !== null);
     if (!validSections.length) return 0;
 
@@ -280,7 +280,7 @@ function computeComposite(sections, isIndex) {
     const distressCount = validSections.filter(x => x.score < 25).length;
     composite = Math.max(0, composite - distressCount * 4);
 
-    if (isIndex) {
+    if (isIndex && W) {
         // High volatility (VIX spike) pulls down the entire index composite score
         const cap = W.index.caps.vix_distress;
         const globalSection = sections.find(s => s.id === cap.sectionId);
@@ -419,7 +419,7 @@ export function computeCompanyComposite(scores, mode = 'swing') {
         { id: 'global',    label: 'Balance Sheet',  shortLabel: 'BAL', score: (raw.global    !== undefined && raw.global    !== null) ? clamp(Math.round(raw.global))    : null, weight: cc.global },
     ];
 
-    const composite = computeComposite(sections, false);
+    const composite = computeComposite(sections, false, W);
     const result = buildResult(sections, composite, scores);
     result.nestedTreePayload = buildFundamentalNestedPayload(result, scores, false);
     return result;
@@ -440,7 +440,7 @@ export function computeIndexComposite(scores, mode = 'swing') {
         { id: 'global',    label: 'Global',    shortLabel: 'GLO', score: (raw.global    !== undefined && raw.global    !== null) ? clamp(Math.round(raw.global))    : null, weight: ic.global },
     ];
 
-    const composite = computeComposite(sections, true);
+    const composite = computeComposite(sections, true, W);
     const result = buildResult(sections, composite, scores);
     result.nestedTreePayload = buildFundamentalNestedPayload(result, scores, true);
     return result;

@@ -9,9 +9,9 @@ export default function BreadthRatioCard({ cardId, data = null, manualOverride, 
     const configData = getIndicatorConfig(CARD_REGISTRY.breadth_ratio.id);
     
     // Resolve current value
-    // (Assuming Upstox live data mapping will be added here later)
-    const isLiveData = false; 
-    const currentValue = isLiveData ? null : (manualOverride ?? null);
+    const liveRatio = data?.breadth?.breadthRatio;
+    const isLiveData = liveRatio !== undefined && liveRatio !== null;
+    const currentValue = isLiveData ? liveRatio : (manualOverride ?? null);
 
     const { score, bias, confidence, aiInsight } = scoreBreadthRatioCard(currentValue);
 
@@ -22,7 +22,7 @@ return (
             config={{ 
                 title: "Market Breadth Ratio", 
                 category: "Market Breadth", 
-                mode: "MANUAL",
+                mode: isLiveData ? "AUTO" : "MANUAL",
                 creditScore: configData.creditScore, 
                 updateTime: lastUpdated ?? "--:--", 
                 source: configData.source, 
