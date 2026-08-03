@@ -33,7 +33,7 @@ import { UserContext } from "@/shared/context/UserContext";
 import AuthLayout from "@/shared/components/layouts/AuthLayout";
 import DashboardLayout from "@/shared/components/layouts/DashboardLayout";
 import UpstoxCallback from "@/features/admin/pages/UpstoxCallback";
-
+import Loader from "@/shared/components/ui/Loader";
 
 // =============================
 // Utility / Guard Functions
@@ -45,9 +45,32 @@ import UpstoxCallback from "@/features/admin/pages/UpstoxCallback";
 const ProtectedRoute = ({ children }) => {
   const { token, loading } = useContext(UserContext);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="w-screen h-screen flex items-center justify-center bg-background-app">
+        <Loader text="Verifying session..." />
+      </div>
+    );
+  }
 
   return token ? children : <Navigate to="/login" replace />;
+};
+
+/**
+ * Root / Entry Redirection
+ */
+const RootRedirect = () => {
+  const { token, loading } = useContext(UserContext);
+
+  if (loading) {
+    return (
+      <div className="w-screen h-screen flex items-center justify-center bg-background-app">
+        <Loader text="Loading..." />
+      </div>
+    );
+  }
+
+  return token ? <Navigate to="/dashboard/home" replace /> : <Navigate to="/login" replace />;
 };
 
 // =============================
@@ -58,7 +81,7 @@ const AppRoutes = () => {
     <Router>
       <Routes>
         {/* Default Entry */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<RootRedirect />} />
 
         {/* Authentication Routes */}
         <Route
@@ -85,8 +108,6 @@ const AppRoutes = () => {
         />
 
         {/* Authenticated Dashboard Scope */}
-
-
         <Route
           path="/dashboard/*"
           element={
@@ -97,7 +118,7 @@ const AppRoutes = () => {
         />
 
         {/* Fallback Redirection */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<RootRedirect />} />
       </Routes>
     </Router>
   );

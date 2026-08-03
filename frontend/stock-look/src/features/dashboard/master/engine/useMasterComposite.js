@@ -110,7 +110,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                 }
 
                 // 2. Fetch Live Fundamentals
-                if (fundRes.status === 'fulfilled' && fundRes.value?.data?.success && fundRes.value?.data?.data) {
+                if (fundRes.status === 'fulfilled' && (fundRes.value?.data?.success || fundRes.value?.data?.status === 'success') && fundRes.value?.data?.data) {
                     if (isMounted) setRawFundamentals(fundRes.value.data.data);
                     if (fundRes.value.data.fallback) missingLiveData.push('Fundamentals');
                 } else {
@@ -119,7 +119,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                 }
 
                 // 3. Fetch Live Technicals
-                if (techRes.status === 'fulfilled' && techRes.value?.data?.success && techRes.value?.data?.data) {
+                if (techRes.status === 'fulfilled' && (techRes.value?.data?.success || techRes.value?.data?.status === 'success') && techRes.value?.data?.data) {
                     if (isMounted) setRawTechnicals(techRes.value.data.data);
                     if (techRes.value.data.fallback) missingLiveData.push('Technicals');
                 } else {

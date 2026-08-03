@@ -14,10 +14,6 @@ export default function JournalPage() {
     const { dayMap, loading, error } = useJournalCalendar(selectedYear);
 
     const handleDayClick = (dateStr, dayData) => {
-        // Only open panel for valid trading days (profit, loss, no-trade)
-        if (dayData?.state === 'holiday' || dayData?.state === 'weekend') {
-            return;
-        }
         setSelectedDate(dateStr);
         setSelectedDayData(dayData);
     };

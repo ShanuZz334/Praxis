@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useDashboardContext } from '@/shared/context/DashboardContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import Loader from '@/shared/components/ui/Loader';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDashboardContext } from '@/shared/context/DashboardContext';
 
-export default function FiiDiiFlow() {
-    const { fiiDiiFlow: liveFiiDiiFlow } = useDashboardContext();
+const FiiDiiFlow = React.memo(function FiiDiiFlow({ liveFiiDiiFlow: propFlow }) {
+    const context = useDashboardContext();
+    const liveFiiDiiFlow = propFlow || context?.fiiDiiFlow;
     const [historyOffset, setHistoryOffset] = useState(0);
     const [historicalFlow, setHistoricalFlow] = useState(null);
     const [loadingHistory, setLoadingHistory] = useState(false);
@@ -186,4 +187,6 @@ export default function FiiDiiFlow() {
             </div>
         </div>
     );
-}
+});
+
+export default FiiDiiFlow;

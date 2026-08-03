@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
-import { useDashboardContext } from '@/shared/context/DashboardContext';
 import { useDataRegistry } from '@/shared/context/DataRegistryContext';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { Newspaper } from 'lucide-react';
+import { useDashboardContext } from '@/shared/context/DashboardContext';
 
-export default function CatalystCalendar() {
-    const { marketNews } = useDashboardContext();
+const CatalystCalendar = React.memo(function CatalystCalendar({ marketNews: propNews }) {
+    const context = useDashboardContext();
+    const marketNews = propNews || context?.marketNews;
     const { register } = useDataRegistry();
     const newsItems = marketNews || [];
 
@@ -94,4 +95,6 @@ export default function CatalystCalendar() {
             </div>
         </div>
     );
-}
+});
+
+export default CatalystCalendar;

@@ -1,6 +1,6 @@
 import React from "react";
-import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { ArrowUpRight, ArrowDownRight, Activity } from "lucide-react";
+import { useDashboardContext } from "@/shared/context/DashboardContext";
 
 const TICKER_KEYS = [
     { key: "NSE_INDEX|India VIX", label: "INDIA VIX" },
@@ -8,8 +8,9 @@ const TICKER_KEYS = [
     { key: "GLOBAL_INDICATOR|BZUSD", label: "BRENT CRUDE" }
 ];
 
-export default function LiveMarketTicker() {
-    const { livePrices } = useDashboardContext();
+const LiveMarketTicker = React.memo(function LiveMarketTicker({ livePrices: propLivePrices }) {
+    const context = useDashboardContext();
+    const livePrices = propLivePrices || context?.livePrices;
 
     return (
         <div className="flex flex-wrap items-center gap-4 w-full">
@@ -18,7 +19,7 @@ export default function LiveMarketTicker() {
                 Live Market
             </div>
             {TICKER_KEYS.map(({ key, label }) => {
-                const data = livePrices[key] || {};
+                const data = livePrices?.[key] || {};
                 const ltp = data.ltp || 0;
                 const pctChange = data.pctChange || 0;
                 const netChange = data.netChange || 0;
@@ -49,4 +50,6 @@ export default function LiveMarketTicker() {
             })}
         </div>
     );
-}
+});
+
+export default LiveMarketTicker;

@@ -3,12 +3,12 @@ import UpstoxAuth from "../models/UpstoxAuth.js";
 import db from "../config/localDb.js";
 import { broadcast } from "./socketBroadcast.js";
 
+import { getUpstoxLiveToken } from "../utils/upstoxAuthHelper.js";
+
 const UPSTOX_BASE_URL = "https://api.upstox.com/v2";
 
 const getAuthToken = async () => {
-    const auth = await UpstoxAuth.findOne().sort({ createdAt: -1 });
-    if (!auth || !auth.accessToken) throw new Error("Upstox is not authenticated");
-    return auth.accessToken;
+    return await getUpstoxLiveToken();
 };
 
 const insertHoldingStmt = db.prepare(`

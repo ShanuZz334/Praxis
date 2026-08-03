@@ -29,10 +29,10 @@ const getTradingDay = () => {
     return istDate.toISOString().split('T')[0];
 };
 
+import { getUpstoxLiveToken } from "../utils/upstoxAuthHelper.js";
+
 const getAuthToken = async () => {
-    const auth = await UpstoxAuth.findOne().sort({ createdAt: -1 });
-    if (!auth || !auth.accessToken) throw new Error("Upstox is not authenticated");
-    return auth.accessToken;
+    return await getUpstoxLiveToken();
 };
 
 const insertOptionChainStmt = db.prepare(`
@@ -91,32 +91,7 @@ export const fetchOptionChain = async (instrumentKey, expiryDate) => {
         const chainData = response.data?.data || [];
         const today = getTradingDay();
         
-        // Inject true OI change from backend baseline before saving
-        chainData.forEach(c => {
-            const strike = c.strike_price;
-            const ce_oi = c.call_options?.market_data?.oi || 0;
-            const pe_oi = c.put_options?.market_data?.oi || 0;
-            
-            // Register baseline for the day (ignored if already exists)
-            insertBaselineStmt.run(instrumentKey, expiryDate, strike, today, ce_oi, pe_oi);
-            
-            const baseline = getBaselineStmt.get(instrumentKey, expiryDate, strike, today);
-            
-            let ce_oi_change = 0;
-            let pe_oi_change = 0;
-            
-            if (baseline) {
-                ce_oi_change = ce_oi - baseline.ce_oi;
-                pe_oi_change = pe_oi - baseline.pe_oi;
-            }
 
-            if (c.call_options && c.call_options.market_data) {
-                c.call_options.market_data.oi_change = ce_oi_change;
-            }
-            if (c.put_options && c.put_options.market_data) {
-                c.put_options.market_data.oi_change = pe_oi_change;
-            }
-        });
         
         const insertAll = db.transaction((items) => {
             for (const c of items) {

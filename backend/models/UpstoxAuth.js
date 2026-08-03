@@ -14,6 +14,11 @@ const upstoxAuthSchema = new mongoose.Schema({
         type: String,
         default: null
     },
+    mode: {
+        type: String,
+        enum: ['live', 'sandbox'],
+        default: 'live'
+    },
     expiresAt: {
         type: Date,
         default: null

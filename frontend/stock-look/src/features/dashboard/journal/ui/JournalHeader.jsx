@@ -26,7 +26,7 @@ function SparklineCard({ title, value, sub, subColor, subValue, colorTheme, subV
     const maxVal = chartData?.length ? Math.max(...chartData.map(d => Math.abs(d.value))) : 1;
 
     return (
-        <div className="relative bg-background-card border border-border-default rounded-xl p-4 md:p-5 shadow-lg flex flex-col justify-between overflow-hidden group hover:border-border-hover hover:-translate-y-1 transition-all duration-300 min-h-[140px]">
+        <div className="relative bg-background-card border border-border-default rounded-xl p-4 md:p-5 shadow-lg flex flex-col justify-between overflow-hidden group hover:border-border-hover hover:-translate-y-1 transition-all duration-300 min-h-[140px] transform-gpu will-change-transform">
             {/* Top Label */}
             <div className={`mb-2 relative z-10 ${isDark ? 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : ''}`}>
                 <span className="text-[10px] md:text-[11px] font-bold text-text-secondary uppercase tracking-widest leading-tight">{title}</span>

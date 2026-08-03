@@ -82,6 +82,8 @@ export default React.memo(function AdvancedCandlestickChart({
     const rsiRef = useRef(null);
     const lastDataTimeRef = useRef(null);
     const hiddenFutureSeriesRef = useRef(null);
+    const volumeDataRef = useRef([]);
+    const visibleMaxVolRef = useRef(0);
     
     const [showSupertrend, setShowSupertrend] = useState(false);
     const [showVWAP, setShowVWAP] = useState(false);
@@ -178,18 +180,45 @@ export default React.memo(function AdvancedCandlestickChart({
 
         chartRef.current = chart;
 
+
+
         candleSeriesRef.current = chart.addSeries(CandlestickSeries, {
             upColor: '#26a69a', downColor: '#ef5350', borderVisible: false,
             wickUpColor: '#26a69a', wickDownColor: '#ef5350', priceLineVisible: true,
         });
 
         volumeSeriesRef.current = chart.addSeries(HistogramSeries, {
-            color: '#26a69a', priceFormat: { type: 'volume' }, priceScaleId: 'volume_scale',
-            lastValueVisible: false, priceLineVisible: false
+            color: '#26a69a', 
+            priceScaleId: 'left',
+            lastValueVisible: false, 
+            priceLineVisible: false,
+            priceFormat: {
+                type: 'custom',
+                minMove: 0.01,
+                formatter: (price) => {
+                    // Physically calculate the exact price at the 50% height mark of the screen
+                    if (chartContainerRef.current && volumeSeriesRef.current) {
+                        const h = chartContainerRef.current.clientHeight;
+                        const priceAtHalf = volumeSeriesRef.current.coordinateToPrice(h / 2);
+                        // The volume scale goes from highest at the top to lowest at the bottom.
+                        // If the current price is greater than the price at the halfway mark, 
+                        // it means it physically sits in the top half of the screen. Hide it!
+                        if (priceAtHalf !== null && price > priceAtHalf) {
+                            return '';
+                        }
+                    }
+                    
+                    if (price <= 0) return '';
+                    if (price >= 1000000000) return (price / 1000000000).toFixed(1) + 'B';
+                    if (price >= 1000000) return (price / 1000000).toFixed(1) + 'M';
+                    if (price >= 1000) return (price / 1000).toFixed(1) + 'K';
+                    return price.toString();
+                }
+            }
         });
-        chart.priceScale('volume_scale').applyOptions({ 
-            scaleMargins: { top: 0.8, bottom: 0 },
-            visible: false
+        chart.priceScale('left').applyOptions({ 
+            scaleMargins: { top: 0.65, bottom: 0 },
+            visible: true,
         });
 
         undervaluedSeriesRef.current = chart.addSeries(LineSeries, {
@@ -383,6 +412,7 @@ export default React.memo(function AdvancedCandlestickChart({
             time: item.time, value: item.volume || 0,
             color: item.close >= item.open ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)'
         }));
+        volumeDataRef.current = volumeData;
         volumeSeriesRef.current.setData(volumeData);
         
         if (showSupertrend && supertrendUpSeriesRef.current && supertrendDownSeriesRef.current) {

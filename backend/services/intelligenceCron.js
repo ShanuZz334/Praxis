@@ -40,6 +40,8 @@ async function fetchRawFundamentals(isin, accessToken) {
     };
 }
 
+import { getUpstoxLiveToken } from "../utils/upstoxAuthHelper.js";
+
 /**
  * Execute the Fundamental Intelligence pipeline.
  */
@@ -47,8 +49,8 @@ export const runFundamentalIntelligence = async () => {
     console.log("🧠 Starting Headless Fundamental Intelligence Engine...");
     
     try {
-        const auth = await UpstoxAuth.findOne().sort({ createdAt: -1 });
-        if (!auth || !auth.accessToken) {
+        const token = await getUpstoxLiveToken();
+        if (!token) {
             console.error("❌ Intelligence Engine aborted: Upstox not authenticated.");
             return;
         }
@@ -61,7 +63,7 @@ export const runFundamentalIntelligence = async () => {
             console.log(`📊 Processing ${instrument.tradingSymbol}...`);
             
             // 2. Fetch raw data from Upstox
-            const rawData = await fetchRawFundamentals(instrument.isin, auth.accessToken);
+            const rawData = await fetchRawFundamentals(instrument.isin, token);
 
             // 3. Fetch External Data with Fallbacks
             const symbol = instrument.tradingSymbol;

@@ -39,6 +39,8 @@ import healthRoutes from "./routes/healthRoutes.js";
 import dataRoutes from "./routes/dataRoutes.js";
 import eventsRoutes from "./routes/eventsRoutes.js";
 import journalRoutes from "./routes/journalRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
+import portfolioRoutes from "./routes/portfolioRoutes.js";
 
 // =============================
 // Express App Setup
@@ -79,7 +81,9 @@ app.use(express.json());
 // =============================
 // Database Connection
 // =============================
-connectDB();
+// We await the database connection to ensure Mongoose doesn't buffer requests
+// and timeout for startup services that immediately hit the database (like Upstox WebSockets)
+await connectDB();
 
 // =============================
 // Routes
@@ -101,6 +105,8 @@ app.use("/api/v1/data", dataRoutes);
 app.use("/api/v1/events", eventsRoutes);
 app.use("/api/v1/technical", technicalRoutes);
 app.use("/api/v1/journal", journalRoutes);
+app.use("/api/v1/orders", orderRoutes);
+app.use("/api/v1/portfolio", portfolioRoutes);
 
 app.use("/api/flow", flowRoutes);
 
@@ -173,12 +179,30 @@ io.on("connection", (socket) => {
                         const cp = (q.net_change !== undefined && q.net_change !== null) 
                             ? Number((q.last_price - q.net_change).toFixed(2)) 
                             : q.ohlc?.close;
-                        
+
+                        let marketDepth = null;
+                        if (q.depth && q.depth.buy && q.depth.sell) {
+                            marketDepth = [];
+                            for (let i = 0; i < 5; i++) {
+                                marketDepth.push({
+                                    bidQ: q.depth.buy[i]?.quantity || 0,
+                                    bidP: q.depth.buy[i]?.price || 0,
+                                    askQ: q.depth.sell[i]?.quantity || 0,
+                                    askP: q.depth.sell[i]?.price || 0
+                                });
+                            }
+                        }
+
                         const payload = {
                             instrumentKey: k,
                             ltp: q.last_price,
                             cp: cp,
-                            volume: q.volume
+                            volume: q.volume,
+                            marketDepth: marketDepth,
+                            tbq: q.total_buy_quantity || 0,
+                            tsq: q.total_sell_quantity || 0,
+                            optionGreeks: q.optionGreeks || null,
+                            iv: q.iv || null
                         };
                         // Broadcast globally so all sockets get the true close price
                         broadcast("market:update", { instrumentKey: k, data: payload });
@@ -192,24 +216,23 @@ io.on("connection", (socket) => {
     });
     
     // Hydrate frontend with cached data immediately upon connection
-    if (cachedFlowData) {
-        socket.emit("market:fiidii", cachedFlowData);
-    }
-    if (cachedSmartlists) {
-        socket.emit("market:smartlists", cachedSmartlists);
-    }
-    if (cachedSectors) {
-        socket.emit("market:sectors", cachedSectors);
-    }
-    if (cachedNews) {
-        socket.emit("market:news", cachedNews);
-    }
+    const sendHydration = async () => {
+        try {
+            const { getCachedMarketData } = await import("./services/upstoxMarketData.js");
+            const cached = getCachedMarketData();
+            if (cached.flow) socket.emit("market:fiidii", cached.flow);
+            if (cached.smartlists) socket.emit("market:smartlists", cached.smartlists);
+            if (cached.sectors) socket.emit("market:sectors", cached.sectors);
+            if (cached.news) socket.emit("market:news", cached.news);
+        } catch (err) {
+            console.error("Socket hydration error:", err.message);
+        }
+    };
+    
+    sendHydration();
     
     socket.on("request:hydration", () => {
-        if (cachedFlowData) socket.emit("market:fiidii", cachedFlowData);
-        if (cachedSmartlists) socket.emit("market:smartlists", cachedSmartlists);
-        if (cachedSectors) socket.emit("market:sectors", cachedSectors);
-        if (cachedNews) socket.emit("market:news", cachedNews);
+        sendHydration();
     });
 
     socket.on("disconnect", () => {

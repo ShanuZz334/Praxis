@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { API_PATHS } from '@/shared/utils/apiPaths';
 import { FO_INDICES, FO_EQUITIES } from '../utils/foInstruments';
@@ -14,6 +14,7 @@ export const DashboardProvider = ({ children }) => {
     const [selectedInstrument, setSelectedInstrument] = useState(() => localStorage.getItem('dash_instrument') || "NSE_INDEX|Nifty 50");
     const [selectedExpiry, setSelectedExpiry] = useState(() => localStorage.getItem('dash_expiry') || "");
     const [expiries, setExpiries] = useState([]);
+    const [globalOrderTicket, setGlobalOrderTicket] = useState(null); // { type: 'FULL' | 'QUICK', data: {...} }
 
     // Persist to localStorage
     useEffect(() => {
@@ -132,6 +133,12 @@ export const DashboardProvider = ({ children }) => {
         if (marketNews) localStorage.setItem('dash_marketNews', JSON.stringify(marketNews));
     }, [marketNews]);
 
+    // Throttle updates using a ref to prevent React from re-rendering the entire
+    // dashboard tree on every single tick (which can be several times a second).
+    const pendingUpdatesRef = useRef({});
+    // Track all keys we've ever subscribed to (grows dynamically as OrderTicket opens)
+    const subscribedKeysRef = useRef(new Set());
+
     useEffect(() => {
         const keysToFetch = Array.from(new Set([
             "NSE_INDEX|Nifty 50", 
@@ -144,6 +151,9 @@ export const DashboardProvider = ({ children }) => {
             ...getNifty50Keys()
         ].filter(Boolean)));
 
+        // Track all subscribed keys dynamically
+        keysToFetch.forEach(k => subscribedKeysRef.current.add(k));
+
         // Rely strictly on WebSocket for live data to conserve Upstox API limits
         // The backend Upstox WebSocket automatically requests a 'full' mode snapshot on subscription
 
@@ -152,34 +162,52 @@ export const DashboardProvider = ({ children }) => {
         socket.emit("request:hydration");
 
         const handleMarketUpdate = ({ instrumentKey, data }) => {
-            // Only update if it's one of the keys we care about
-            if (!keysToFetch.includes(instrumentKey)) return;
+            if (!instrumentKey || !data) return;
+            const normKey = instrumentKey.replace(':', '|');
+            pendingUpdatesRef.current[normKey] = data;
+            if (normKey !== instrumentKey) {
+                pendingUpdatesRef.current[instrumentKey] = data;
+            }
+        };
+
+        // Flush updates to state exactly once every 500ms
+        const flushInterval = setInterval(() => {
+            if (Object.keys(pendingUpdatesRef.current).length === 0) return;
 
             setLivePrices(prev => {
-                const existing = prev[instrumentKey] || {};
-                const ltp = data.ltp || existing.ltp || 0;
-                
-                // Keep the true close price if available. Don't fake it to ltp, 
-                // which causes 0.00% netChange bugs when the market is closed or cp is missing.
-                let close = data.cp || data.close || existing.close || 0;
-                
-                // Only calculate netChange if we actually have a close price
-                const netChange = close > 0 ? ltp - close : 0;
-                const pctChange = close > 0 ? (netChange / close) * 100 : 0;
+                const nextPrices = { ...prev };
+                let hasChanges = false;
 
-                return {
-                    ...prev,
-                    [instrumentKey]: {
+                for (const [instrumentKey, data] of Object.entries(pendingUpdatesRef.current)) {
+                    const existing = prev[instrumentKey] || {};
+                    const ltp = data.ltp || existing.ltp || 0;
+                    
+                    let close = data.cp || data.close || existing.close || 0;
+                    const netChange = close > 0 ? ltp - close : 0;
+                    const pctChange = close > 0 ? (netChange / close) * 100 : 0;
+
+                    nextPrices[instrumentKey] = {
                         ltp,
                         close,
                         netChange,
                         pctChange,
                         volume: data.volume || existing.volume || 0,
+                        marketDepth: data.marketDepth || existing.marketDepth || null,
+                        tbq: data.tbq !== undefined ? data.tbq : (existing.tbq || 0),
+                        tsq: data.tsq !== undefined ? data.tsq : (existing.tsq || 0),
+                        optionGreeks: data.optionGreeks || existing.optionGreeks || null,
+                        iv: data.iv || existing.iv || null,
                         status: netChange > 0 ? 'up' : netChange < 0 ? 'down' : 'neutral'
-                    }
-                };
+                    };
+                    hasChanges = true;
+                }
+
+                // Clear the queue after processing
+                pendingUpdatesRef.current = {};
+
+                return hasChanges ? nextPrices : prev;
             });
-        };
+        }, 500);
 
         const handleFiiDii = (data) => setFiiDiiFlow(data);
         const handleSmartlists = (data) => {
@@ -212,6 +240,7 @@ export const DashboardProvider = ({ children }) => {
         socket.on("market:news", handleNews);
 
         return () => {
+            clearInterval(flushInterval);
             socket.off("connect", handleConnect);
             socket.off("market:update", handleMarketUpdate);
             socket.off("market:fiidii", handleFiiDii);
@@ -220,6 +249,23 @@ export const DashboardProvider = ({ children }) => {
             socket.off("market:news", handleNews);
         };
     }, [selectedInstrument, additionalCharts]);
+
+    /**
+     * Called by OrderTicket (or any component) to dynamically subscribe a specific
+     * instrument key so it receives live updates including market depth.
+     * Idempotent — safe to call multiple times for the same key.
+     */
+    const subscribeInstrumentKey = (key) => {
+        if (!key || !socket) return;
+        subscribedKeysRef.current.add(key);
+        socket.emit("subscribe:instruments", { keys: [key], mode: "full" });
+    };
+
+    const subscribeMultipleInstrumentKeys = (keys) => {
+        if (!keys || !keys.length || !socket) return;
+        keys.forEach(k => subscribedKeysRef.current.add(k));
+        socket.emit("subscribe:instruments", { keys, mode: "full" });
+    };
 
     const value = {
         selectedCategory,
@@ -236,7 +282,11 @@ export const DashboardProvider = ({ children }) => {
         sectors,
         marketNews,
         additionalCharts,
-        setAdditionalCharts
+        setAdditionalCharts,
+        subscribeInstrumentKey,
+        subscribeMultipleInstrumentKeys,
+        globalOrderTicket,
+        setGlobalOrderTicket
     };
 
     return (

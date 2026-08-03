@@ -423,7 +423,7 @@ a[href*='tradingview'] { display: none !important; }
   width: 1.3em;
   border-radius: 50px;
   transition: all 0.7s;
-  --spread: 20px;
+  --spread: 8px;
   display: inline-block;
 }
 

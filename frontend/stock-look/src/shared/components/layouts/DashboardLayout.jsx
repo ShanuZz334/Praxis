@@ -32,6 +32,7 @@ import { DashboardProvider } from "@/shared/context/DashboardContext";
 import { PaiWidgetProvider } from "@/shared/context/PaiWidgetContext";
 import PaiFloatingWidget from "@/features/dashboard/pai/ui/PaiFloatingWidget";
 import OrbNavigation from "@/shared/components/layouts/OrbNavigation";
+import GlobalOrderTickets from "@/features/trading/ui/GlobalOrderTickets";
 import "@/shared/components/backgrounds/Meteors.css";
 
 // =============================
@@ -183,6 +184,7 @@ const DashboardLayout = () => {
           <SideMenu
             collapsed={collapsed}
             activeMenu={activeMenu}
+            setActiveMenu={setActiveMenu}
             topOffset={NAVBAR_HEIGHT + 10}
             user={user}
           />
@@ -204,7 +206,7 @@ const DashboardLayout = () => {
       </main>
       
       <PaiFloatingWidget sidebarCollapsed={collapsed} isPaiPage={isPaiPage} />
-      
+      <GlobalOrderTickets />
     </div>
     </DashboardProvider>
     </PaiWidgetProvider>

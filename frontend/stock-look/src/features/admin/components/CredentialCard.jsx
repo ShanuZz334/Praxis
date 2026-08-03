@@ -35,11 +35,14 @@ const CredentialCard = ({ providerKey, meta, healthData, onCheckConnection, chec
                     <Icon size={24} className={isConnected ? "text-white" : "text-text-muted"} />
                 </div>
 
-                <div className={`
-                    px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase
-                    ${isConnected ? "bg-green-500/10 text-green-500" : isConfigured ? "bg-red-500/10 text-red-500" : "bg-gray-500/10 text-gray-500"}
-                `}>
-                    {statusBadge.text}
+                <div className="flex flex-col items-end gap-2">
+                    <div className={`
+                        px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase
+                        ${isConnected ? "bg-green-500/10 text-green-500" : isConfigured ? "bg-red-500/10 text-red-500" : "bg-gray-500/10 text-gray-500"}
+                    `}>
+                        {statusBadge.text}
+                    </div>
+                    {meta.customToggle && meta.customToggle()}
                 </div>
             </div>
 

@@ -1,51 +1,41 @@
 import axios from "axios";
 import UpstoxAuth from "../models/UpstoxAuth.js";
-import { upsertAiCardStore } from "../config/localDb.js";
+import localDb, { upsertAiCardStore } from "../config/localDb.js";
 import { processNewsItems } from "./newsAutoProcessor.js";
 import { getNifty50Keys } from "../utils/nifty50.js";
 
 const UPSTOX_BASE_URL = "https://api.upstox.com/v2/market";
 
+import { getUpstoxLiveToken } from "../utils/upstoxAuthHelper.js";
+
 const getAuthToken = async () => {
-    const auth = await UpstoxAuth.findOne().sort({ createdAt: -1 });
-    if (!auth || !auth.accessToken) throw new Error("Upstox is not authenticated");
-    return auth.accessToken;
+    return await getUpstoxLiveToken();
 };
 
 // ============================================================================
-// Rotating Tracking Lists for Market News
+// Rotating Tracking Lists for Market News (Equity keys only for Upstox News API)
 // ============================================================================
 let currentTrackingIndex = 0;
 const TRACKING_LISTS = [
-    // Bucket 1: Entire Nifty 50 (All 50 components)
-    getNifty50Keys(),
+    // Bucket 1: Top 20 Nifty 50 Equities
+    getNifty50Keys().filter(k => k.startsWith('NSE_EQ|')).slice(0, 20),
     
-    // Bucket 2: Major Indices & Benchmarks
-    [
-        'NSE_INDEX|Nifty 50', 
-        'NSE_INDEX|Nifty Bank', 
-        'NSE_INDEX|India VIX', 
-        'NSE_INDEX|Nifty Fin Service', 
-        'NSE_INDEX|Nifty IT',
-        'NSE_INDEX|Nifty Midcap 100',
-        'BSE_INDEX|SENSEX'
-    ],
+    // Bucket 2: Next 20 Nifty 50 Equities
+    getNifty50Keys().filter(k => k.startsWith('NSE_EQ|')).slice(20, 40),
     
-    // Bucket 4: Volatile Midcaps & Other Key Assets (Gold, Crude Proxy, etc.)
+    // Bucket 3: High Beta & Active Equities
     [
-        'MCX_FO|CRUDEOIL',
-        'MCX_FO|GOLD',
-        'NSE_EQ|INE011A01019', // HDFC AMC
-        'NSE_EQ|INE151A01013', // Trent
-        'NSE_EQ|INE423A01024', // Adani Ent (midcap/volatile)
+        'NSE_EQ|INE002A01018', // Reliance
+        'NSE_EQ|INE040A01034', // HDFC Bank
+        'NSE_EQ|INE009A01021', // Infosys
+        'NSE_EQ|INE467B01029', // TCS
+        'NSE_EQ|INE090A01021', // ICICI Bank
+        'NSE_EQ|INE238A01034', // Axis Bank
+        'NSE_EQ|INE018A01030', // L&T
         'NSE_EQ|INE036A01016', // Zomato
         'NSE_EQ|INE758T01015', // IRFC
-        'NSE_EQ|INE172A01027', // Castrol
-        'NSE_EQ|INE121E01018', // Chola Inv
-        'NSE_EQ|INE669E01016', // Vodafone Idea
         'NSE_EQ|INE245A01021', // Tata Power
         'NSE_EQ|INE196A01026', // TVS Motor
-        'NSE_EQ|INE002A01018', // Reliance (Keep anchor in this bucket too)
     ]
 ];
 
@@ -177,6 +167,13 @@ export let cachedSmartlists = null;
 export let cachedSectors = null;
 export let cachedNews = null;
 
+export const getCachedMarketData = () => ({
+    flow: cachedFlowData,
+    smartlists: cachedSmartlists,
+    sectors: cachedSectors,
+    news: cachedNews
+});
+
 export const forceMarketDataPoll = async () => {
     try {
         const flowData = await fetchFiiDiiFlow();
@@ -219,12 +216,30 @@ export const forceMarketDataPoll = async () => {
                         }
                     }
 
-                    optionsSmartlist.forEach(item => {
-                        item.trading_symbol = symbolMap[item.instrument_key] || item.instrument_key;
-                    });
-                    futuresSmartlist.forEach(item => {
-                        item.trading_symbol = symbolMap[item.instrument_key] || item.instrument_key;
-                    });
+                    // Attach local lot_size from SQLite database
+                    try {
+                        const getLotSize = localDb.prepare("SELECT lot_size FROM instruments WHERE instrument_key = ?");
+                        
+                        optionsSmartlist.forEach(item => {
+                            item.trading_symbol = symbolMap[item.instrument_key] || item.instrument_key;
+                            const row = getLotSize.get(item.instrument_key);
+                            if (row && row.lot_size) item.lot_size = row.lot_size;
+                        });
+                        futuresSmartlist.forEach(item => {
+                            item.trading_symbol = symbolMap[item.instrument_key] || item.instrument_key;
+                            const row = getLotSize.get(item.instrument_key);
+                            if (row && row.lot_size) item.lot_size = row.lot_size;
+                        });
+                    } catch (dbErr) {
+                        console.error("Failed to fetch lot sizes from SQLite:", dbErr.message);
+                        // Fallback map if DB fails
+                        optionsSmartlist.forEach(item => {
+                            item.trading_symbol = symbolMap[item.instrument_key] || item.instrument_key;
+                        });
+                        futuresSmartlist.forEach(item => {
+                            item.trading_symbol = symbolMap[item.instrument_key] || item.instrument_key;
+                        });
+                    }
                 } catch (err) {
                     console.error("Failed to resolve smartlist symbols via Quotes API:", err.message);
                 }
@@ -241,7 +256,9 @@ export const forceMarketDataPoll = async () => {
                 const sectorKeys = [
                     'NSE_INDEX|Nifty Bank', 'NSE_INDEX|Nifty IT', 'NSE_INDEX|Nifty Auto',
                     'NSE_INDEX|Nifty Pharma', 'NSE_INDEX|Nifty Metal', 'NSE_INDEX|Nifty FMCG',
-                    'NSE_INDEX|Nifty Energy', 'NSE_INDEX|Nifty Fin Service', 'NSE_INDEX|Nifty PSE'
+                    'NSE_INDEX|Nifty Energy', 'NSE_INDEX|Nifty Fin Service', 'NSE_INDEX|Nifty PSE',
+                    'NSE_INDEX|Nifty Realty', 'NSE_INDEX|Nifty Media', 'NSE_INDEX|Nifty PSU Bank',
+                    'NSE_INDEX|Nifty Pvt Bank', 'NSE_INDEX|Nifty Infra', 'NSE_INDEX|Nifty MNC'
                 ];
                 const token = await getAuthToken();
                 const url = `https://api.upstox.com/v2/market-quote/quotes?instrument_key=${encodeURIComponent(sectorKeys.join(','))}`;
@@ -270,19 +287,28 @@ export const forceMarketDataPoll = async () => {
                 currentTrackingIndex = (currentTrackingIndex + 1) % TRACKING_LISTS.length;
 
                 const token = await getAuthToken();
+                
+                // Fetch news for the current equity bucket (Upstox valid category is instrument_keys)
                 const newsUrl = `https://api.upstox.com/v2/news?category=instrument_keys&instrument_keys=${encodeURIComponent(newsKeys.join(','))}&page_size=100`;
-                const newsRes = await axios.get(newsUrl, { headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` } });
+                const newsRes = await axios.get(newsUrl, { headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` } }).catch(err => { console.error("Inst news error:", err.response?.data || err.message); return null; });
 
-                if (newsRes.data?.data) {
-                    let allNews = [];
+                let allNews = cachedNews ? [...cachedNews] : [];
+                
+                // Collect instrument news
+                if (newsRes?.data?.data) {
                     Object.values(newsRes.data.data).forEach(arr => {
                         if (Array.isArray(arr)) allNews.push(...arr);
                     });
+                }
+
+                if (allNews.length > 0) {
                     // Deduplicate by article_link
                     const uniqueNews = Array.from(new Map(allNews.map(n => [n.article_link, n])).values());
                     // Sort descending by publish time
                     uniqueNews.sort((a, b) => b.published_time - a.published_time);
                     cachedNews = uniqueNews.slice(0, 100); // Keep top 100
+                    
+                    // Broadcast will include both general news and instrument news, ensuring UI is never empty
                     broadcast("market:news", cachedNews);
 
                     // ============================================================

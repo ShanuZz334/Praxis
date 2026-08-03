@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Check } from 'lucide-react';
 
 /**
  * A standard, reusable premium custom dropdown inspired by the Uiverse aesthetic.
@@ -34,8 +35,8 @@ export default function UiverseDropdown({
     const selectedOption = options.find(opt => opt.value === value);
 
     const filteredOptions = options.filter(opt => 
-        opt.label.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        opt.value.toLowerCase().includes(searchTerm.toLowerCase())
+        (opt.label || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (opt.value || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -47,10 +48,10 @@ export default function UiverseDropdown({
                     w-full min-h-[32px] py-1.5 flex items-center justify-between px-3 rounded-md
                     bg-background-tooltip hover:bg-background-surface transition-colors
                     border border-border-default/50 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20
-                    text-[11px] sm:text-xs text-text-primary shadow-sm gap-2
+                    text-[10px] text-text-primary shadow-sm gap-2
                 `}
             >
-                <span className={`text-left break-words whitespace-normal leading-tight ${selectedOption ? "text-text-primary" : "text-text-tertiary"}`}>
+                <span className={`text-left break-words whitespace-normal leading-tight ${selectedOption ? "text-text-primary font-medium" : "text-text-tertiary"}`}>
                     {selectedOption ? selectedOption.label : placeholder}
                 </span>
                 <svg 
@@ -69,7 +70,7 @@ export default function UiverseDropdown({
                         <div className="p-2 border-b border-border-default/50 sticky top-0 bg-background-tooltip z-10">
                             <input
                                 type="text"
-                                className="w-full bg-background-surface/50 border border-border-default/50 rounded-md px-3 py-1 text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-blue-500/50"
+                                className="w-full bg-background-surface/50 border border-border-default/50 rounded-md px-2.5 py-1 text-[10px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-blue-500/50"
                                 placeholder="Search..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -82,30 +83,40 @@ export default function UiverseDropdown({
                         {filteredOptions.length === 0 ? (
                             <div className="px-3 py-2 text-xs text-text-tertiary italic">No options</div>
                         ) : (
-                            filteredOptions.map(opt => (
-                                <button
-                                    key={opt.value}
-                                    onClick={() => {
-                                        onChange(opt.value);
-                                        setIsOpen(false);
-                                        setSearchTerm("");
-                                    }}
-                                    className={`
-                                        w-full text-left px-3 py-1.5 text-xs transition-colors
-                                        hover:bg-background-surface/80
-                                        ${value === opt.value ? 'bg-blue-500/10 text-blue-500 font-medium' : 'text-text-primary'}
-                                    `}
-                                >
-                                    <div className="flex items-center justify-between w-full">
-                                        <span>{opt.label}</span>
-                                        {opt.badge && (
-                                            <span className="text-[9px] font-bold bg-white/10 text-text-secondary px-1.5 py-0.5 rounded ml-2 uppercase tracking-wider">
-                                                {opt.badge}
-                                            </span>
-                                        )}
-                                    </div>
-                                </button>
-                            ))
+                            filteredOptions.map(opt => {
+                                const isSelected = value === opt.value;
+                                return (
+                                    <button
+                                        key={opt.value}
+                                        onClick={() => {
+                                            onChange(opt.value);
+                                            setIsOpen(false);
+                                            setSearchTerm("");
+                                        }}
+                                        className={`
+                                            w-full text-left px-2.5 py-1 text-[10px] font-normal tracking-wide transition-colors flex items-center justify-between
+                                            hover:bg-background-surface/80
+                                            ${isSelected 
+                                                ? 'bg-blue-600/15 text-blue-600 dark:text-blue-400 font-semibold border-l-2 border-blue-600 dark:border-blue-400 pl-2.5' 
+                                                : 'text-text-primary border-l-2 border-transparent'}
+                                        `}
+                                    >
+                                        <div className="flex items-center justify-between w-full">
+                                            <span className="truncate">{opt.label}</span>
+                                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                                {opt.badge && (
+                                                    <span className="text-[9px] font-bold bg-white/10 text-text-secondary px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                        {opt.badge}
+                                                    </span>
+                                                )}
+                                                {isSelected && (
+                                                    <Check size={13} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                                                )}
+                                            </div>
+                                        </div>
+                                    </button>
+                                );
+                            })
                         )}
                     </div>
                 </div>

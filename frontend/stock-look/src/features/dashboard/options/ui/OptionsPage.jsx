@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Settings } from "lucide-react";
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import OptionsModal from "./OptionsModal";
 import OptionsChainLayout from "@/features/dashboard/options/ui/chain/OptionsChainLayout";
+import OptionsOiAnalysisChart from "./OptionsOiAnalysisChart";
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { API_PATHS } from '@/shared/utils/apiPaths';
 import UiverseDropdown from '@/shared/components/ui/UiverseDropdown';
@@ -18,7 +19,7 @@ import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { useAiSync } from "@/shared/hooks/useAiSync";
 import { useOptionsComposite } from '../engine/useOptionsComposite';
 import { useOptionsCompositeScore } from '../engine/useOptionsCompositeScore';
-import { saveDailyOISnapshot, computeLiveOiChange } from '../engine/oiTrackerEngine';
+
 import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
 import { useSnapshots } from '@/shared/hooks/useSnapshots';
 import { useDataFreshness } from "@/shared/hooks/useDataFreshness";
@@ -54,7 +55,8 @@ export default function OptionsPage() {
         expiries,
         livePrices,
         additionalCharts,
-        setAdditionalCharts
+        setAdditionalCharts,
+        setGlobalOrderTicket
     } = useDashboardContext();
 
     // Data state
@@ -87,6 +89,42 @@ export default function OptionsPage() {
             toast.success(`${label || 'Contract'} added to Master Dashboard graphs!`, { id: 'chart-added' });
         } else {
             toast.info(`${label || 'Contract'} is already in the Master Dashboard graphs.`, { id: 'chart-exists' });
+        }
+    };
+
+    const handleBuyOption = (contract) => {
+        if (!contract || !contract.instrument_key) return;
+        if (setGlobalOrderTicket) {
+            setGlobalOrderTicket({
+                type: 'QUICK',
+                data: {
+                    transactionType: 'BUY',
+                    instrument: {
+                        instrument_token: contract.instrument_key,
+                        trading_symbol: contract.trading_symbol || contract.label || contract.instrument_key.split('|').pop(),
+                        ltp: contract.ltp || 0,
+                        close: contract.close || contract.ltp || 0
+                    }
+                }
+            });
+        }
+    };
+
+    const handleSellOption = (contract) => {
+        if (!contract || !contract.instrument_key) return;
+        if (setGlobalOrderTicket) {
+            setGlobalOrderTicket({
+                type: 'QUICK',
+                data: {
+                    transactionType: 'SELL',
+                    instrument: {
+                        instrument_token: contract.instrument_key,
+                        trading_symbol: contract.trading_symbol || contract.label || contract.instrument_key.split('|').pop(),
+                        ltp: contract.ltp || 0,
+                        close: contract.close || contract.ltp || 0
+                    }
+                }
+            });
         }
     };
 
@@ -129,8 +167,9 @@ export default function OptionsPage() {
                         const close = newRow.call.close || ltp;
                         const oiChgPct = close > 0 ? ((ltp - close) / close) * 100 : newRow.call.oiChgPct;
 
-                        // Calculate Live OI Change
-                        const oiChg = computeLiveOiChange(selectedInstrument?.value || selectedInstrument, newRow.strike, 'call', parseFloat(oi) || 0);
+                        // Calculate Live OI Change stateless-ly
+                        const sodOi = (newRow.call.oi || 0) - (newRow.call.oiChg || 0);
+                        const oiChg = (parseFloat(oi) || 0) - sodOi;
 
                         newRow.call = { 
                             ...newRow.call, 
@@ -162,8 +201,9 @@ export default function OptionsPage() {
                         const close = newRow.put.close || ltp;
                         const oiChgPct = close > 0 ? ((ltp - close) / close) * 100 : newRow.put.oiChgPct;
 
-                        // Calculate Live OI Change
-                        const oiChg = computeLiveOiChange(selectedInstrument?.value || selectedInstrument, newRow.strike, 'put', parseFloat(oi) || 0);
+                        // Calculate Live OI Change stateless-ly
+                        const sodOi = (newRow.put.oi || 0) - (newRow.put.oiChg || 0);
+                        const oiChg = (parseFloat(oi) || 0) - sodOi;
 
                         newRow.put = { 
                             ...newRow.put, 
@@ -190,131 +230,130 @@ export default function OptionsPage() {
     // 1. Fetch expiries is now handled globally by DashboardContext
 
     // 2. Fetch chain when instrument or expiry changes
-    useEffect(() => {
-        const fetchChain = async () => {
-            setLoading(true);
-            try {
-                const res = await axiosInstance.get(API_PATHS.OPTIONS.GET_CHAIN(selectedInstrument, selectedExpiry));
-                
-                const chainArray = res.data?.data || res.data || [];
-                
-                if (Array.isArray(chainArray) && chainArray.length > 0) {
-                    // Normalize Upstox API response to match UI format
-                    const normalizedChain = chainArray.map(c => {
-                        const callData = c.call_options?.market_data || {};
-                        const putData = c.put_options?.market_data || {};
-                        
-                        // Safely calculate Price change percentage
-                        const calcPriceChgPct = (ltp, close) => {
-                            if (!ltp || !close || close === 0) return 0;
-                            return ((ltp - close) / close) * 100;
-                        };
+    const fetchChain = useCallback(async () => {
+        if (!selectedInstrument || !selectedExpiry) {
+            setChainData([]);
+            return;
+        }
+        setLoading(true);
+        try {
+            const res = await axiosInstance.get(API_PATHS.OPTIONS.GET_CHAIN(selectedInstrument, selectedExpiry));
+            
+            const chainArray = res.data?.data || res.data || [];
+            
+            if (Array.isArray(chainArray) && chainArray.length > 0) {
+                // Normalize Upstox API response to match UI format
+                const normalizedChain = chainArray.map(c => {
+                    const callData = c.call_options?.market_data || {};
+                    const putData = c.put_options?.market_data || {};
+                    
+                    // Safely calculate Price change percentage
+                    const calcPriceChgPct = (ltp, close) => {
+                        if (!ltp || !close || close === 0) return 0;
+                        return ((ltp - close) / close) * 100;
+                    };
 
-                        return {
-                            strike: c.strike_price,
-                            iv: 0, // General IV or placeholder
-                            call: {
-                                instrument_key: c.call_options?.instrument_key,
-                                ltp: parseFloat(callData.ltp) || 0,
-                                close: parseFloat(callData.close) || parseFloat(callData.ltp) || 0,
-                                oi: parseFloat(callData.oi) || 0,
-                                vol: parseFloat(callData.volume) || 0,
-                                oiChg: callData.oi_change !== undefined ? parseFloat(callData.oi_change) : 0,
-                                oiChgPct: calcPriceChgPct(parseFloat(callData.ltp), parseFloat(callData.close)),
-                                delta: 0, gamma: 0, theta: 0, vega: 0, iv: 0
-                            },
-                            put: {
-                                instrument_key: c.put_options?.instrument_key,
-                                ltp: parseFloat(putData.ltp) || 0,
-                                close: parseFloat(putData.close) || parseFloat(putData.ltp) || 0,
-                                oi: parseFloat(putData.oi) || 0,
-                                vol: parseFloat(putData.volume) || 0,
-                                oiChg: putData.oi_change !== undefined ? parseFloat(putData.oi_change) : 0,
-                                oiChgPct: calcPriceChgPct(parseFloat(putData.ltp), parseFloat(putData.close)),
-                                delta: 0, gamma: 0, theta: 0, vega: 0, iv: 0
-                            }
-                        };
-                    });
+                    return {
+                        strike: c.strike_price,
+                        iv: 0, // General IV or placeholder
+                        call: {
+                            instrument_key: c.call_options?.instrument_key,
+                            ltp: parseFloat(callData.ltp) || 0,
+                            close: parseFloat(callData.close) || parseFloat(callData.ltp) || 0,
+                            oi: parseFloat(callData.oi) || 0,
+                            vol: parseFloat(callData.volume) || 0,
+                            oiChg: callData.oi_change !== undefined ? parseFloat(callData.oi_change) : ((parseFloat(callData.oi) || 0) - (parseFloat(callData.prev_oi) || parseFloat(callData.oi) || 0)),
+                            oiChgPct: calcPriceChgPct(parseFloat(callData.ltp), parseFloat(callData.close)),
+                            delta: 0, gamma: 0, theta: 0, vega: 0, iv: 0
+                        },
+                        put: {
+                            instrument_key: c.put_options?.instrument_key,
+                            ltp: parseFloat(putData.ltp) || 0,
+                            close: parseFloat(putData.close) || parseFloat(putData.ltp) || 0,
+                            oi: parseFloat(putData.oi) || 0,
+                            vol: parseFloat(putData.volume) || 0,
+                            oiChg: putData.oi_change !== undefined ? parseFloat(putData.oi_change) : ((parseFloat(putData.oi) || 0) - (parseFloat(putData.prev_oi) || parseFloat(putData.oi) || 0)),
+                            oiChgPct: calcPriceChgPct(parseFloat(putData.ltp), parseFloat(putData.close)),
+                            delta: 0, gamma: 0, theta: 0, vega: 0, iv: 0
+                        }
+                    };
+                });
 
-                    // Attempt to extract spot price from the first item if available
-                    if (chainArray[0].underlying_spot_price) {
-                        setBaseSpotPrice(chainArray[0].underlying_spot_price);
-                    }
+                // Attempt to extract spot price from the first item if available
+                if (chainArray[0].underlying_spot_price) {
+                    setBaseSpotPrice(chainArray[0].underlying_spot_price);
+                }
 
-                    // Save base OI snapshot for intraday change tracking
-                    saveDailyOISnapshot(selectedInstrument?.value || selectedInstrument, normalizedChain);
+                // Removed local storage saveDailyOISnapshot as backend provides baseline
 
-                    setChainData(normalizedChain);  // --- SUBSCRIBE TO WEBSOCKET GREEKS + SEED B-S GREEKS ---
-                    try {
-                        const spotIndex = normalizedChain.findIndex(c => c.strike >= (chainArray[0].underlying_spot_price || baseSpotPrice));
-                        if (spotIndex !== -1) {
-                            const start = Math.max(0, spotIndex - 15);
-                            const end = Math.min(normalizedChain.length, spotIndex + 16);
-                            const keysToFetch = [];
+                setChainData(normalizedChain);  // --- SUBSCRIBE TO WEBSOCKET GREEKS + SEED B-S GREEKS ---
+                try {
+                    const spotIndex = normalizedChain.findIndex(c => c.strike >= (chainArray[0].underlying_spot_price || baseSpotPrice));
+                    if (spotIndex !== -1) {
+                        const start = Math.max(0, spotIndex - 15);
+                        const end = Math.min(normalizedChain.length, spotIndex + 16);
+                        const keysToFetch = [];
 
-                            // Compute real T from expiry string
-                            const T = timeToExpiry(selectedExpiry);
+                        // Compute real T from expiry string
+                        const T = timeToExpiry(selectedExpiry);
 
-                            // Find ATM IV from the chain (best available IV from near-ATM strikes)
-                            // Use the call_options option_greeks IV from the raw API if present
-                            let atmIv = 15; // Default fallback
-                            const atmRow = chainArray[spotIndex];
-                            if (atmRow?.call_options?.option_greeks?.iv) {
-                                atmIv = atmRow.call_options.option_greeks.iv;
-                            } else if (atmRow?.put_options?.option_greeks?.iv) {
-                                atmIv = atmRow.put_options.option_greeks.iv;
-                            }
+                        // Find ATM IV from the chain (best available IV from near-ATM strikes)
+                        let atmIv = 15; // Default fallback
+                        const atmRow = chainArray[spotIndex];
+                        if (atmRow?.call_options?.option_greeks?.iv) {
+                            atmIv = atmRow.call_options.option_greeks.iv;
+                        } else if (atmRow?.put_options?.option_greeks?.iv) {
+                            atmIv = atmRow.put_options.option_greeks.iv;
+                        }
 
-                            for (let i = start; i < end; i++) {
-                                if (normalizedChain[i]?.call.instrument_key) keysToFetch.push(normalizedChain[i].call.instrument_key);
-                                if (normalizedChain[i]?.put.instrument_key) keysToFetch.push(normalizedChain[i].put.instrument_key);
+                        for (let i = start; i < end; i++) {
+                            if (normalizedChain[i]?.call.instrument_key) keysToFetch.push(normalizedChain[i].call.instrument_key);
+                            if (normalizedChain[i]?.put.instrument_key) keysToFetch.push(normalizedChain[i].put.instrument_key);
 
-                                if (normalizedChain[i]) {
-                                    const row = normalizedChain[i];
+                            if (normalizedChain[i]) {
+                                const row = normalizedChain[i];
 
-                                    // Use real IV from the raw chain if available, else use ATM IV
-                                    const rawRow = chainArray[i];
-                                    const callIvRaw = rawRow?.call_options?.option_greeks?.iv || atmIv;
-                                    const putIvRaw  = rawRow?.put_options?.option_greeks?.iv  || atmIv;
+                                // Use real IV from the raw chain if available, else use ATM IV
+                                const rawRow = chainArray[i];
+                                const callIvRaw = rawRow?.call_options?.option_greeks?.iv || atmIv;
+                                const putIvRaw  = rawRow?.put_options?.option_greeks?.iv  || atmIv;
 
-                                    const callVol = callIvRaw / 100.0;
-                                    const putVol  = putIvRaw  / 100.0;
+                                const callVol = callIvRaw / 100.0;
+                                const putVol  = putIvRaw  / 100.0;
 
-                                    const initialSpot = chainArray[0]?.underlying_spot_price || baseSpotPrice || 24000;
-                                    const callGreeks = calculateGreeks(initialSpot, row.strike, T, 0.07, callVol, 'call');
-                                    const putGreeks  = calculateGreeks(initialSpot, row.strike, T, 0.07, putVol,  'put');
+                                const initialSpot = chainArray[0]?.underlying_spot_price || baseSpotPrice || 24000;
+                                const callGreeks = calculateGreeks(initialSpot, row.strike, T, 0.07, callVol, 'call');
+                                const putGreeks  = calculateGreeks(initialSpot, row.strike, T, 0.07, putVol,  'put');
 
-                                    row.call = { ...row.call, ...callGreeks, iv: callIvRaw };
-                                    row.put  = { ...row.put,  ...putGreeks,  iv: putIvRaw  };
-                                    row.iv   = callIvRaw;
-                                }
-                            }
-
-                            if (keysToFetch.length > 0) {
-                                socket.emit("subscribe:instruments", { keys: keysToFetch, mode: "option_greeks" });
+                                row.call = { ...row.call, ...callGreeks, iv: callIvRaw };
+                                row.put  = { ...row.put,  ...putGreeks,  iv: putIvRaw  };
+                                row.iv   = callIvRaw;
                             }
                         }
-                    } catch (greekErr) {
-                        console.error("Failed to seed Greeks:", greekErr);
-                    }
 
-                    setChainData(normalizedChain);
-                } else {
-                    setChainData([]);
+                        if (keysToFetch.length > 0) {
+                            socket.emit("subscribe:instruments", { keys: keysToFetch, mode: "option_greeks" });
+                        }
+                    }
+                } catch (greekErr) {
+                    console.error("Failed to seed Greeks:", greekErr);
                 }
-            } catch (err) {
-                console.error("Failed to fetch chain:", err);
+
+                setChainData(normalizedChain);
+            } else {
                 setChainData([]);
-            } finally {
-                setLoading(false);
             }
-        };
-        if (selectedInstrument && selectedExpiry) {
-            fetchChain();
-        } else {
+        } catch (err) {
+            console.error("Failed to fetch chain:", err);
             setChainData([]);
+        } finally {
+            setLoading(false);
         }
-    }, [selectedInstrument, selectedExpiry]);
+    }, [selectedInstrument, selectedExpiry, baseSpotPrice]);
+
+    useEffect(() => {
+        fetchChain();
+    }, [fetchChain]);
 
 
     // 3. Generate Pro Desk picks using the engine
@@ -646,8 +685,15 @@ export default function OptionsPage() {
                 />
             </div>
 
+
+
             {/* Main Chain Layout Component */}
-            {chainData.length > 0 ? (
+            {loading && chainData.length === 0 ? (
+                <div className="w-full h-80 rounded-2xl bg-[#0c1019] border border-border-default/60 flex flex-col items-center justify-center gap-3">
+                    <div className="w-10 h-10 rounded-full border-2 border-blue-500/20 border-t-blue-500 animate-spin" />
+                    <span className="text-xs text-text-secondary font-medium tracking-wide">Loading Live Options Chain Matrix...</span>
+                </div>
+            ) : chainData.length > 0 ? (
                 <OptionsChainLayout 
                     chain={chainData} 
                     picks={proDeskData.categories} 
@@ -658,10 +704,24 @@ export default function OptionsPage() {
                     onAddChart={handleAddChart}
                 />
             ) : (
-                <div className="flex items-center justify-center p-12 text-text-tertiary">
-                    {loading ? "Loading Options Data..." : "No Options Data Available"}
+                <div className="flex items-center justify-center p-12 text-text-tertiary bg-[#0c1019] rounded-2xl border border-border-default/60">
+                    No Options Data Available
                 </div>
             )}
+
+            {/* Open Interest Analytics Visualization */}
+            <div className="mb-6 mt-6">
+                <OptionsOiAnalysisChart
+                    loading={loading}
+                    chainData={chainData}
+                    spotPrice={spotPrice || baseSpotPrice}
+                    metrics={metrics}
+                    onRefresh={fetchChain}
+                    onAddChart={handleAddChart}
+                    onBuyOption={handleBuyOption}
+                    onSellOption={handleSellOption}
+                />
+            </div>
 
             {/* Live Metrics Grid */}
             {chainData.length > 0 && (

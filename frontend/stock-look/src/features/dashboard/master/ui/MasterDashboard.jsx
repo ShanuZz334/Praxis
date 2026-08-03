@@ -30,6 +30,7 @@ import { FO_INDICES, FO_EQUITIES } from "@/shared/utils/foInstruments";
 import { getNifty50Keys, NIFTY_50_SYMBOLS } from "../data/nifty50";
 import { PlusCircle, X, PlusSquare } from 'lucide-react';
 import UiverseDropdown from "@/shared/components/ui/UiverseDropdown";
+import InstrumentSelectorModal from "@/features/trading/ui/InstrumentSelectorModal";
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { API_PATHS } from '@/shared/utils/apiPaths';
 
@@ -60,8 +61,10 @@ export default function MasterDashboard() {
         sectors,
         smartlists,
         fiiDiiFlow,
+        marketNews,
         additionalCharts,
-        setAdditionalCharts
+        setAdditionalCharts,
+        setGlobalOrderTicket
     } = useDashboardContext();
 
     useEffect(() => {
@@ -185,11 +188,11 @@ export default function MasterDashboard() {
     const gridColsClass = combinedCharts.length > 1 ? 'grid-cols-2' : 'grid-cols-1';
     const gridRowsClass = combinedCharts.length > 2 ? 'grid-rows-2' : 'grid-rows-1';
 
-    const handleAddChart = (val) => {
+    const handleAddChart = (selected) => {
+        const val = selected?.value || selected?.instrument_token;
+        const label = selected?.tradingsymbol || selected?.label || selected?.name || val?.split('|').pop();
+        
         if (val && additionalCharts.length < 3 && !additionalCharts.some(c => c.value === val) && val !== instKey) {
-            const all = [...(FO_INDICES || []), ...(FO_EQUITIES || []), ...optionContracts];
-            const found = all.find(i => i.value === val);
-            const label = found ? found.label : val.split('|').pop();
             setAdditionalCharts([...additionalCharts, { value: val, label }]);
         }
         setIsAddChartOpen(false);
@@ -210,7 +213,25 @@ export default function MasterDashboard() {
                 <>
                     <div className="flex justify-between items-center mb-2 px-2 pt-2 z-50 relative pointer-events-none">
                         <div className="text-[15px] font-black text-text-primary uppercase tracking-widest drop-shadow-sm flex items-center gap-4 pointer-events-auto">
-                            {combinedCharts.length === 1 ? getReadableName(selectedInstrument) : 'MULTI-CHART VIEW'}
+                            {combinedCharts.length === 1 ? (
+                                <div className="flex items-center gap-2">
+                                    <span>{getReadableName(selectedInstrument)}</span>
+                                    <button 
+                                        onClick={() => setGlobalOrderTicket({ type: 'QUICK', data: { instrument_token: selectedInstrument?.value || selectedInstrument, tradingsymbol: getReadableName(selectedInstrument), side: 'BUY' }})} 
+                                        className="px-2 py-[2px] bg-blue-600/15 text-blue-500 hover:bg-blue-600 hover:text-white border border-blue-500/30 rounded-[4px] text-[10px] font-bold transition-all cursor-pointer shadow-sm"
+                                        title="Quick Buy"
+                                    >
+                                        B
+                                    </button>
+                                    <button 
+                                        onClick={() => setGlobalOrderTicket({ type: 'QUICK', data: { instrument_token: selectedInstrument?.value || selectedInstrument, tradingsymbol: getReadableName(selectedInstrument), side: 'SELL' }})} 
+                                        className="px-2 py-[2px] bg-red-500/15 text-[#eb4b4b] hover:bg-[#eb4b4b] hover:text-white border border-red-500/30 rounded-[4px] text-[10px] font-bold transition-all cursor-pointer shadow-sm"
+                                        title="Quick Sell"
+                                    >
+                                        S
+                                    </button>
+                                </div>
+                            ) : 'MULTI-CHART VIEW'}
                             
                             {/* Add Chart UI */}
                             {combinedCharts.length < 4 && (
@@ -224,28 +245,13 @@ export default function MasterDashboard() {
                                     </button>
                                     
                                     {isAddChartOpen && (
-                                        <div className="absolute top-full left-0 mt-2 bg-[#0B0E14] border border-border-default rounded-xl p-3 shadow-2xl w-[300px] flex flex-col gap-3 z-[9999]">
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-xs text-text-secondary font-medium">Add Instrument</span>
-                                                <button onClick={() => setIsAddChartOpen(false)} className="text-text-tertiary hover:text-red-400"><X size={14}/></button>
-                                            </div>
-                                            <div className="flex bg-background-surface rounded-lg p-1 border border-border-default shadow-inner w-full mb-3">
-                                            {["Indices", "Companies", "Options"].map(cat => (
-                                                <button 
-                                                        key={cat}
-                                                        onClick={() => setAddChartCategory(cat)}
-                                                        className={`flex-1 text-[11px] py-1 rounded transition-colors ${addChartCategory === cat ? 'bg-blue-500/20 text-blue-400 font-bold' : 'text-text-secondary hover:text-text-primary'}`}
-                                                    >
-                                                        {cat}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            <UiverseDropdown
-                                                value={null}
-                                                onChange={handleAddChart}
-                                                options={addChartCategory === "Indices" ? FO_INDICES : addChartCategory === "Companies" ? FO_EQUITIES : optionContracts}
-                                                placeholder={optionsLoading ? "Loading Options..." : `Select ${addChartCategory}...`}
-                                                searchPlaceholder="Search..."
+                                        <div className="absolute top-full left-0 mt-2 w-[300px] h-[380px] z-[99999]">
+                                            <InstrumentSelectorModal
+                                                isOpen={isAddChartOpen}
+                                                onClose={() => setIsAddChartOpen(false)}
+                                                currentInstrument={null}
+                                                onSelect={handleAddChart}
+                                                mode="select"
                                             />
                                         </div>
                                     )}
@@ -278,10 +284,12 @@ export default function MasterDashboard() {
                                     key={`${key}-${selectedTimeframe}`}
                                     instrumentKey={key}
                                     label={chartItem.label}
+                                    lotSize={chartItem.lot_size}
                                     timeframe={selectedTimeframe}
                                     isPrimary={index === 0}
                                     isSingle={combinedCharts.length === 1}
                                     onClose={() => handleRemoveChart(key)}
+                                    onQuickOrder={(data) => setGlobalOrderTicket({ type: 'QUICK', data })}
                                     className={
                                         combinedCharts.length === 3 && index === 0 
                                             ? "col-span-2 order-last" 
@@ -314,21 +322,21 @@ export default function MasterDashboard() {
                 enableBreakdown={true}
                 cards={aggregatedCards}
                 masterPayload={masterPayload}
-                controls={{ customComponent: <LiveMarketTicker /> }}
+                controls={{ customComponent: <LiveMarketTicker livePrices={livePrices} /> }}
                 customBackContent={chartBackside}
             />
 
             {/* Tier 1 Grid */}
             <div className="grid grid-cols-12 gap-4">
                 <div className="col-span-12 lg:col-span-8 h-full">
-                    <MarketHeatmap />
+                    <MarketHeatmap livePrices={livePrices} />
                 </div>
                 <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
                     <div className="h-[250px]">
-                        <FiiDiiFlow />
+                        <FiiDiiFlow liveFiiDiiFlow={fiiDiiFlow} />
                     </div>
                     <div className="h-[300px]">
-                        <OptionsPulse />
+                        <OptionsPulse smartlists={smartlists} />
                     </div>
                 </div>
             </div>
@@ -336,16 +344,16 @@ export default function MasterDashboard() {
             {/* Tier 2 Grid */}
             <div className="grid grid-cols-12 gap-4">
                 <div className="col-span-12 lg:col-span-4 h-[350px]">
-                    <SectorRotation />
+                    <SectorRotation sectors={sectors} />
                 </div>
                 <div className="col-span-12 lg:col-span-4 h-[350px]">
-                    <VolumeShockers />
+                    <VolumeShockers smartlists={smartlists} />
                 </div>
                 <div className="col-span-12 lg:col-span-4 h-[350px]">
-                    <CatalystCalendar />
+                    <CatalystCalendar marketNews={marketNews} />
                 </div>
             </div>
-
+            
         </div>
     );
 }

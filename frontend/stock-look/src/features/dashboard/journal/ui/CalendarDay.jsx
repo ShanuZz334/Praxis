@@ -41,7 +41,7 @@ export default function CalendarDay({ date, dayData, dayNum, onClick }) {
     tooltipText = 'No Trades Recorded';
   }
 
-  const isClickable = state !== 'holiday' && state !== 'weekend';
+  const isClickable = true;
 
   return (
     <div

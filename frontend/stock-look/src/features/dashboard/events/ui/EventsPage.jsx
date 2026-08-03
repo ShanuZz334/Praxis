@@ -74,6 +74,17 @@ export default function EventsPage() {
         return () => socket.off("events:updated", handleEventsUpdated);
     }, []);
 
+    const filteredNewsCount = useMemo(() => {
+        if (!searchQuery) return newsItems.length;
+        const query = searchQuery.toLowerCase();
+        return newsItems.filter(news => {
+            const inHeadline = news.headline?.toLowerCase().includes(query);
+            const inSummary = news.summary?.toLowerCase().includes(query);
+            const inAssets = Array.isArray(news.affected_assets) && news.affected_assets.some(a => a.toLowerCase().includes(query));
+            return inHeadline || inSummary || inAssets;
+        }).length;
+    }, [newsItems, searchQuery]);
+
     if (loading && newsItems.length === 0) {
         return (
             <div className="w-full min-h-[80vh] flex flex-col items-center justify-center bg-background-base animate-in fade-in duration-500">
@@ -149,7 +160,7 @@ export default function EventsPage() {
                         { value: "score_desc", label: "High Score" },
                         { value: "score_asc", label: "Low Score" }
                     ],
-                    matchCount: newsItems.length
+                    matchCount: filteredNewsCount
                 }}
                 customBackContent={
                     <EventsManualForm onEventSubmitted={fetchEvents} />

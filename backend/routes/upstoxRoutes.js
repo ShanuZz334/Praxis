@@ -4,21 +4,51 @@ import UpstoxAuth from "../models/UpstoxAuth.js";
 import MarketTick from "../models/MarketTick.js";
 import { getCache, setCache } from "../services/cacheService.js";
 import db from "../config/localDb.js";
+import { getUpstoxLiveToken, getUpstoxAuthForMode } from "../utils/upstoxAuthHelper.js";
 
 const router = express.Router();
 
 const UPSTOX_BASE_URL = "https://api.upstox.com/v2";
 
+// Helper to get correct base URL
+const getUpstoxBaseUrl = (mode) => {
+    return mode === 'sandbox' ? "https://api-sandbox.upstox.com/v2" : "https://api.upstox.com/v2";
+};
+
 // @route   GET /api/v1/upstox/login
-// @desc    Redirects user to Upstox login page for OAuth 2.0
-router.get("/login", (req, res) => {
-    const { UPSTOX_API_KEY, UPSTOX_REDIRECT_URI } = process.env;
+// @desc    Redirects user to Upstox login page for OAuth 2.0 (or bypasses for Sandbox)
+router.get("/login", async (req, res) => {
+    const mode = req.query.mode === 'sandbox' ? 'sandbox' : 'live';
     
-    if (!UPSTOX_API_KEY || !UPSTOX_REDIRECT_URI) {
-        return res.status(500).json({ error: "Upstox credentials missing in .env" });
+    // Sandbox Bypass: If a static Sandbox Access Token is provided in .env, skip OAuth entirely
+    if (mode === 'sandbox' && process.env.UPSTOX_SANDBOX_ACCESS_TOKEN) {
+        try {
+            await UpstoxAuth.deleteMany({ mode: 'sandbox' });
+            const authRecord = new UpstoxAuth({
+                accessToken: process.env.UPSTOX_SANDBOX_ACCESS_TOKEN,
+                authCode: 'STATIC_SANDBOX_TOKEN',
+                mode: 'sandbox'
+            });
+            await authRecord.save();
+            
+            const frontendUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0] : "http://localhost:5173";
+            return res.redirect(`${frontendUrl}/dashboard/admin?upstox_auth=success&mode=sandbox`);
+        } catch (err) {
+            console.error("Failed to save static sandbox token:", err);
+            return res.status(500).json({ error: "Failed to save sandbox token" });
+        }
     }
 
-    const authUrl = `${UPSTOX_BASE_URL}/login/authorization/dialog?response_type=code&client_id=${UPSTOX_API_KEY}&redirect_uri=${UPSTOX_REDIRECT_URI}`;
+    const apiKey = mode === 'sandbox' ? process.env.UPSTOX_SANDBOX_API_KEY : process.env.UPSTOX_API_KEY;
+    const redirectUri = process.env.UPSTOX_REDIRECT_URI;
+    
+    if (!apiKey || !redirectUri) {
+        return res.status(500).json({ error: `Upstox ${mode} credentials missing in .env` });
+    }
+
+    const baseUrl = getUpstoxBaseUrl(mode);
+    // Pass mode in the state parameter so we know which keys to use in the callback
+    const authUrl = `${baseUrl}/login/authorization/dialog?response_type=code&client_id=${apiKey}&redirect_uri=${redirectUri}&state=${mode}`;
     
     // Redirect the client to Upstox
     res.redirect(authUrl);
@@ -27,28 +57,49 @@ router.get("/login", (req, res) => {
 import { connectUpstoxWebsocket } from "../services/upstoxWebsocket.js";
 import { forceMarketDataPoll } from "../services/upstoxMarketData.js";
 
+// @route   GET /api/v1/upstox/instrument/:key
+// @desc    Get instrument details from local DB (including lot_size)
+router.get("/instrument/:key", async (req, res) => {
+    try {
+        const { key } = req.params;
+        const result = db.prepare("SELECT * FROM instruments WHERE instrument_key = ?").get(key);
+        if (result) {
+            return res.json({ status: "success", data: result });
+        } else {
+            return res.status(404).json({ error: "Instrument not found" });
+        }
+    } catch (err) {
+        console.error("Error fetching instrument:", err);
+        return res.status(500).json({ error: err.message });
+    }
+});
+
 // @route   GET /api/v1/upstox/callback
 // @desc    Callback URL for Upstox OAuth 2.0 flow
 router.get("/callback", async (req, res) => {
-    const { code } = req.query;
+    const { code, state } = req.query;
+    const mode = state === 'sandbox' ? 'sandbox' : 'live';
     
     if (!code) {
         return res.status(400).send("Authorization code missing from Upstox callback.");
     }
 
-    const { UPSTOX_API_KEY, UPSTOX_API_SECRET, UPSTOX_REDIRECT_URI } = process.env;
+    const apiKey = mode === 'sandbox' ? process.env.UPSTOX_SANDBOX_API_KEY : process.env.UPSTOX_API_KEY;
+    const apiSecret = mode === 'sandbox' ? process.env.UPSTOX_SANDBOX_API_SECRET : process.env.UPSTOX_API_SECRET;
+    const redirectUri = process.env.UPSTOX_REDIRECT_URI;
+    const baseUrl = getUpstoxBaseUrl(mode);
 
     try {
         // Exchange code for access_token
         const params = new URLSearchParams({
             code: code,
-            client_id: UPSTOX_API_KEY,
-            client_secret: UPSTOX_API_SECRET,
-            redirect_uri: UPSTOX_REDIRECT_URI,
+            client_id: apiKey,
+            client_secret: apiSecret,
+            redirect_uri: redirectUri,
             grant_type: "authorization_code"
         });
 
-        const tokenResponse = await axios.post(`${UPSTOX_BASE_URL}/login/authorization/token`, params.toString(), {
+        const tokenResponse = await axios.post(`${baseUrl}/login/authorization/token`, params.toString(), {
             headers: {
                 "Accept": "application/json",
                 "Content-Type": "application/x-www-form-urlencoded"
@@ -57,25 +108,28 @@ router.get("/callback", async (req, res) => {
 
         const { access_token } = tokenResponse.data;
 
-        // Store in DB (we only keep one global token for the platform instance for now)
-        await UpstoxAuth.deleteMany({}); // Clear old tokens
+        // Delete old token for THIS mode and save the new one
+        await UpstoxAuth.deleteMany({ mode }); 
         const authRecord = new UpstoxAuth({
             accessToken: access_token,
-            authCode: code
+            authCode: code,
+            mode: mode
         });
         await authRecord.save();
 
-        // Reconnect Upstox Market Data Feed and Poll APIs immediately using the new token
-        try {
-            connectUpstoxWebsocket();
-            forceMarketDataPoll(); // Instantly fetch FII/DII, Smartlists, News, and Sectors
-        } catch (wsErr) {
-            console.error("Failed to re-initialize websocket or polling after login", wsErr);
+        // If we just connected Live mode, instantly reconnect websockets
+        if (mode === 'live') {
+            try {
+                connectUpstoxWebsocket();
+                forceMarketDataPoll();
+            } catch (wsErr) {
+                console.error("Failed to re-initialize websocket or polling after login", wsErr);
+            }
         }
 
         // Redirect back to frontend
         const frontendUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0] : "http://localhost:5173";
-        res.redirect(`${frontendUrl}?upstox_auth=success`);
+        res.redirect(`${frontendUrl}/dashboard/admin?upstox_auth=success&mode=${mode}`);
 
     } catch (error) {
         console.error("Error exchanging Upstox token:", error?.response?.data || error.message);
@@ -87,23 +141,43 @@ router.get("/callback", async (req, res) => {
 // @desc    Check if the platform has a valid Upstox access token
 router.get("/status", async (req, res) => {
     try {
-        const auth = await UpstoxAuth.findOne().sort({ createdAt: -1 });
-        if (auth && auth.accessToken) {
+        const liveAuth = await UpstoxAuth.findOne({ mode: 'live' }).sort({ createdAt: -1 });
+        const sandboxAuth = await UpstoxAuth.findOne({ mode: 'sandbox' }).sort({ createdAt: -1 });
+
+        let isLiveValid = false;
+        if (liveAuth && liveAuth.accessToken) {
             try {
-                // Validate token by hitting profile endpoint
-                await axios.get(`${UPSTOX_BASE_URL}/user/profile`, {
-                    headers: { "Accept": "application/json", "Authorization": `Bearer ${auth.accessToken}` }
+                await axios.get("https://api.upstox.com/v2/user/profile", {
+                    headers: { "Accept": "application/json", "Authorization": `Bearer ${liveAuth.accessToken}` }
                 });
-                return res.json({ connected: true, lastUpdated: auth.updatedAt });
+                isLiveValid = true;
             } catch (err) {
-                // If token is expired or invalid, delete it
                 if (err.response && (err.response.status === 401 || err.response.data?.errors?.[0]?.errorCode === 'UDAPI100050')) {
-                    await UpstoxAuth.deleteMany({});
-                    return res.json({ connected: false });
+                    await UpstoxAuth.deleteOne({ _id: liveAuth._id });
                 }
             }
         }
-        res.json({ connected: false });
+
+        const isSandboxValid = Boolean(sandboxAuth && sandboxAuth.accessToken);
+
+        if (isLiveValid || isSandboxValid) {
+            let activeAuth;
+            if (isLiveValid && isSandboxValid) {
+                activeAuth = liveAuth.updatedAt > sandboxAuth.updatedAt ? liveAuth : sandboxAuth;
+            } else {
+                activeAuth = isLiveValid ? liveAuth : sandboxAuth;
+            }
+            
+            return res.json({ 
+                connected: true, 
+                liveConnected: isLiveValid,
+                sandboxConnected: isSandboxValid,
+                lastUpdated: activeAuth.updatedAt, 
+                mode: activeAuth.mode 
+            });
+        }
+
+        res.json({ connected: false, liveConnected: false, sandboxConnected: false });
     } catch (error) {
         console.error("Error fetching Upstox status:", error);
         res.status(500).json({ error: "Internal server error" });
@@ -117,8 +191,10 @@ router.get("/news", async (req, res) => {
         const { keys } = req.query;
         if (!keys) return res.status(400).json({ error: "Missing keys parameter" });
 
-        const auth = await UpstoxAuth.findOne().sort({ createdAt: -1 });
-        if (!auth || !auth.accessToken) {
+        let token;
+        try {
+            token = await getUpstoxLiveToken();
+        } catch (e) {
             return res.status(401).json({ error: "Upstox not authenticated" });
         }
 
@@ -126,7 +202,7 @@ router.get("/news", async (req, res) => {
         const response = await axios.get(url, {
             headers: {
                 "Accept": "application/json",
-                "Authorization": `Bearer ${auth.accessToken}`
+                "Authorization": `Bearer ${token}`
             }
         });
 
@@ -141,8 +217,10 @@ router.get("/news", async (req, res) => {
 // @desc    Fetch initial market quote for a list of instruments
 router.get("/market-quote", async (req, res) => {
     try {
-        const auth = await UpstoxAuth.findOne().sort({ createdAt: -1 });
-        if (!auth || !auth.accessToken) {
+        let token;
+        try {
+            token = await getUpstoxLiveToken();
+        } catch (e) {
             return res.status(401).json({ error: "Upstox is not authenticated" });
         }
 
@@ -158,7 +236,7 @@ router.get("/market-quote", async (req, res) => {
         const url = `${UPSTOX_BASE_URL}/market-quote/quotes?instrument_key=${encodeURIComponent(keys)}`;
         
         const response = await axios.get(url, {
-            headers: { "Accept": "application/json", "Authorization": `Bearer ${auth.accessToken}` }
+            headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` }
         });
 
         setCache(cacheKey, response.data?.data, 1); // 1 second TTL
@@ -306,8 +384,10 @@ router.get("/market-quote", async (req, res) => {
 // @desc    Fetch available expiries for an instrument
 router.get("/option-contracts", async (req, res) => {
     try {
-        const auth = await UpstoxAuth.findOne().sort({ createdAt: -1 });
-        if (!auth || !auth.accessToken) {
+        let token;
+        try {
+            token = await getUpstoxLiveToken();
+        } catch (e) {
             return res.status(401).json({ error: "Upstox is not authenticated" });
         }
 
@@ -317,7 +397,7 @@ router.get("/option-contracts", async (req, res) => {
         const url = `${UPSTOX_BASE_URL}/option/contract?instrument_key=${encodeURIComponent(instrumentKey)}`;
         
         const response = await axios.get(url, {
-            headers: { "Accept": "application/json", "Authorization": `Bearer ${auth.accessToken}` }
+            headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` }
         });
 
         // --- SQLITE DB WRITE ---
@@ -350,10 +430,6 @@ router.get("/option-contracts", async (req, res) => {
             console.error("SQLite Fallback failed for option contracts:", dbErr.message);
         }
 
-        if (error?.response?.data?.errors?.[0]?.errorCode === 'UDAPI100050' || error?.response?.status === 401) {
-            await UpstoxAuth.deleteMany({});
-            return res.status(401).json({ error: "Upstox token expired" });
-        }
         res.status(500).json({ error: "Internal server error" });
     }
 });
@@ -417,8 +493,10 @@ router.get("/option-chain", async (req, res) => {
 // @desc    Fetch option greeks for a list of specific instruments using Upstox V3 API
 router.get("/option-greeks", async (req, res) => {
     try {
-        const auth = await UpstoxAuth.findOne().sort({ createdAt: -1 });
-        if (!auth || !auth.accessToken) {
+        let token;
+        try {
+            token = await getUpstoxLiveToken();
+        } catch (e) {
             return res.status(401).json({ error: "Upstox is not authenticated" });
         }
 

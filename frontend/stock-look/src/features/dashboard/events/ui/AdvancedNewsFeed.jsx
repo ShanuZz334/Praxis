@@ -10,14 +10,8 @@ export default function AdvancedNewsFeed({ newsItems, searchQuery, sortMode, onR
 
     if (!newsItems) return null;
 
-    // Filter by tab, search, and TTL expiry
+    // Filter by tab and search
     const filtered = newsItems.filter(news => {
-        // Expiry check
-        const ttlHours = Number(news.ttl_hours) || 72;
-        const eventDate = news.published_time ? new Date(news.published_time) : new Date(news.created_at || Date.now());
-        const expiryDate = new Date(eventDate.getTime() + ttlHours * 60 * 60 * 1000);
-        if (new Date() > expiryDate) return false;
-
         if (activeTab !== "ALL EVENTS" && news.category?.toUpperCase() !== activeTab.toUpperCase()) {
             return false;
         }
@@ -120,6 +114,9 @@ export default function AdvancedNewsFeed({ newsItems, searchQuery, sortMode, onR
 
             {/* Feed List */}
             <div className="space-y-3">
+                <div className="text-[10px] text-text-tertiary pb-2 px-1 font-mono">
+                    Diagnostic: Rendering {sorted.length} items from {newsItems.length} total.
+                </div>
                 {sorted.length > 0 ? (
                     sorted.map((news) => (
                         <NewsItem key={news.id} event={news} onDelete={() => onDeleteEvent && onDeleteEvent(news.id)} />

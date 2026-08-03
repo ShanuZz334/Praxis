@@ -1,25 +1,18 @@
 import React from 'react';
-import { useDashboardContext } from '@/shared/context/DashboardContext';
 import { TrendingUp, TrendingDown, Activity, AlertTriangle } from 'lucide-react';
 import Loader from '@/shared/components/ui/Loader';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDashboardContext } from '@/shared/context/DashboardContext';
+import { toast } from 'sonner';
 
-export default function OptionsPulse() {
-    const { smartlists } = useDashboardContext();
+const OptionsPulse = React.memo(function OptionsPulse({ smartlists: propSmartlists }) {
+    const context = useDashboardContext();
+    const smartlists = propSmartlists || context?.smartlists;
+    const additionalCharts = context?.additionalCharts || [];
+    const setAdditionalCharts = context?.setAdditionalCharts;
+    const selectedInstrument = context?.selectedInstrument;
 
     const isLoading = !smartlists || (Object.keys(smartlists).length === 0);
-
-    // Attempt to extract some key signals
-    const extractList = (source, category) => {
-        if (Array.isArray(source)) {
-            return source.filter(i => i.category === category);
-        }
-        if (source && typeof source === 'object' && source[category]) {
-            return source[category];
-        }
-        if (Array.isArray(source)) return source;
-        return [];
-    };
 
     const oiGainers = smartlists?.['OI_GAINERS'] || [];
     const ivSurge = smartlists?.['IV_GAINERS'] || [];
@@ -44,6 +37,31 @@ export default function OptionsPulse() {
         return sym;
     };
 
+    const handleAddToChart = (item) => {
+        if (!setAdditionalCharts) return;
+        const rawSymbol = item.trading_symbol || formatSymbol(item.instrument_key || item.symbol);
+        const displaySymbol = formatTradingSymbol(rawSymbol);
+        const instKey = item.instrument_key || item.symbol || item.trading_symbol;
+        if (!instKey) return;
+
+        const currentMainKey = selectedInstrument?.value || selectedInstrument;
+        const isAlreadyMain = currentMainKey === instKey;
+        const isAlreadyAdded = additionalCharts?.some(c => (typeof c === 'string' ? c : c.value) === instKey);
+
+        if (isAlreadyMain || isAlreadyAdded) {
+            toast.info(`${displaySymbol} is already pinned to Charts`, { id: `chart-${instKey}` });
+            return;
+        }
+
+        if (additionalCharts.length >= 3) {
+            toast.error("Chart grid is fully filled (Max 4 charts). Remove a chart to add more.", { id: 'max-charts-error' });
+            return;
+        }
+
+        setAdditionalCharts(prev => [...(prev || []), { value: instKey, label: displaySymbol }]);
+        toast.success(`${displaySymbol} added to Chart Grid!`, { id: `chart-${instKey}` });
+    };
+
     const renderList = (title, items, icon, color) => (
         <div className="mb-4 last:mb-0">
             <div className="flex items-center gap-1.5 mb-2 sticky top-0 bg-background-card z-10 py-1">
@@ -58,18 +76,23 @@ export default function OptionsPulse() {
                     const displaySymbol = formatTradingSymbol(rawSymbol);
                     
                     return (
-                        <div key={i} className="flex items-center justify-between bg-background-elevated px-2.5 py-2 rounded text-[10.5px]">
-                            <span className="font-semibold text-text-primary truncate mr-2 flex-1" title={displaySymbol}>
+                        <div 
+                            key={i} 
+                            onClick={() => handleAddToChart(item)}
+                            className="flex items-center justify-between bg-background-elevated hover:bg-background-subtle/80 border border-transparent hover:border-blue-500/30 px-2.5 py-2 rounded text-[10.5px] cursor-pointer transition-all active:scale-[0.99] group/item"
+                            title={`Click to add ${displaySymbol} to Charts`}
+                        >
+                            <span className="font-semibold text-text-primary group-hover/item:text-blue-400 transition-colors truncate mr-2 flex-1" title={displaySymbol}>
                                 {displaySymbol}
                             </span>
                             <div className="flex flex-col items-end shrink-0">
-                            <span className="text-text-secondary font-medium">₹{item.price?.current || item.ltp || 0}</span>
-                            <span className={item.price?.change_pct > 0 ? color : color.replace('400', '400')}>
-                                {item.price?.change_pct > 0 ? '+' : ''}
-                                {(item.price?.change_pct || item.pct_change || 0).toFixed(1)}%
-                            </span>
+                                <span className="text-text-secondary font-medium">₹{item.price?.current || item.ltp || 0}</span>
+                                <span className={item.price?.change_pct > 0 ? color : color.replace('400', '400')}>
+                                    {item.price?.change_pct > 0 ? '+' : ''}
+                                    {(item.price?.change_pct || item.pct_change || 0).toFixed(1)}%
+                                </span>
+                            </div>
                         </div>
-                    </div>
                     );
                 })}
             </div>
@@ -116,4 +139,6 @@ export default function OptionsPulse() {
             </div>
         </div>
     );
-}
+});
+
+export default OptionsPulse;

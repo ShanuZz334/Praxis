@@ -7,13 +7,17 @@ import { yahooFinanceService } from "../services/yahooFinanceService.js";
 import { fredApiService } from "../services/fredApiService.js";
 import { rbiApiService } from "../services/rbiApiService.js";
 
+import { getUpstoxLiveToken } from "../utils/upstoxAuthHelper.js";
+
 const UPSTOX_FUNDAMENTALS_URL = "https://api.upstox.com/v2/fundamentals";
 
 export const getFundamentals = async (req, res) => {
     try {
-        const auth = await UpstoxAuth.findOne().sort({ createdAt: -1 });
-        if (!auth || !auth.accessToken) {
-            return res.status(401).json({ error: "Upstox is not authenticated" });
+        let liveToken;
+        try {
+            liveToken = await getUpstoxLiveToken();
+        } catch (authErr) {
+            return res.status(401).json({ error: "Upstox is not authenticated for live market data" });
         }
 
         const instrumentKey = req.query.instrument_key;
@@ -60,7 +64,7 @@ export const getFundamentals = async (req, res) => {
             } else {
                 const headers = {
                     "Accept": "application/json",
-                    "Authorization": `Bearer ${auth.accessToken}`
+                    "Authorization": `Bearer ${liveToken}`
                 };
 
                 // Fetch all endpoints concurrently. Mark error: true if they fail.
@@ -243,7 +247,7 @@ export const getFundamentals = async (req, res) => {
         // Live Daily High/Low Injection from Upstox API directly
         try {
             const quoteRes = await axios.get(`https://api.upstox.com/v2/market-quote/quotes?instrument_key=${encodeURIComponent(instrumentKey)}`, {
-                headers: { "Accept": "application/json", "Authorization": `Bearer ${auth.accessToken}` }
+                headers: { "Accept": "application/json", "Authorization": `Bearer ${liveToken}` }
             });
             const quoteData = quoteRes.data?.data || {};
             const quoteObj = Object.values(quoteData)[0];

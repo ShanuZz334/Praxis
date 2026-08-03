@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useDashboardContext } from '@/shared/context/DashboardContext';
 import { getNifty50Keys, NIFTY_50_SYMBOLS } from '../data/nifty50';
+import { useDashboardContext } from '@/shared/context/DashboardContext';
 
-export default function MarketHeatmap() {
-    const { livePrices } = useDashboardContext();
+const MarketHeatmap = React.memo(function MarketHeatmap({ livePrices: propLivePrices }) {
+    const context = useDashboardContext();
+    const livePrices = propLivePrices || context?.livePrices;
     const [activeTooltip, setActiveTooltip] = useState(null);
 
     // Dismiss tooltip when clicking outside
@@ -14,6 +15,13 @@ export default function MarketHeatmap() {
         document.addEventListener('click', handleClick);
         return () => document.removeEventListener('click', handleClick);
     }, []);
+
+    // Subscribe to Nifty 50 instruments to ensure we receive tick data
+    useEffect(() => {
+        if (context?.subscribeMultipleInstrumentKeys) {
+            context.subscribeMultipleInstrumentKeys(getNifty50Keys());
+        }
+    }, [context?.subscribeMultipleInstrumentKeys]);
 
     const HEATMAP_TIERS = [
         { min: 3.0, name: 'Exceptional', threshold: '(> +3%)', bg: '#2E5BFF', text: '#FFFFFF' },
@@ -30,7 +38,7 @@ export default function MarketHeatmap() {
     
     const stocksData = NIFTY_50_SYMBOLS.map((symbol, index) => {
         const key = keys[index];
-        const tick = livePrices[key];
+        const tick = livePrices?.[key];
         
         let ltp = tick?.ltp || null;
         let pctChange = tick?.pctChange || 0;
@@ -136,4 +144,6 @@ export default function MarketHeatmap() {
             </AnimatePresence>
         </div>
     );
-}
+});
+
+export default MarketHeatmap;

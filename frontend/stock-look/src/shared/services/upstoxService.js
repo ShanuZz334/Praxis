@@ -19,8 +19,8 @@ export const upstoxService = {
     },
 
     // Trigger OAuth Login
-    login: () => {
-        window.location.href = `${API_URL}/login`;
+    login: (mode = 'live') => {
+        window.location.href = `${API_URL}/login?mode=${mode}`;
     },
 
     // Connect to Socket.io for Realtime data

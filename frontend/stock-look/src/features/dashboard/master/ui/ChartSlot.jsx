@@ -11,7 +11,9 @@ export default function ChartSlot({
     timeframe, 
     isPrimary = false, 
     isSingle = false,
+    lotSize,
     onClose,
+    onQuickOrder,
     className = ""
 }) {
     const { data: candleData, loading: candlesLoading, isBackfilling, liveCandle } = useHistoricalCandles(instrumentKey, timeframe);
@@ -28,8 +30,30 @@ export default function ChartSlot({
             {/* Header / Top Bar */}
             {!isSingle && (
                 <div className="absolute top-0 left-0 right-0 h-8 flex items-center justify-between px-2 z-10 pointer-events-none mt-1">
-                    <div className="text-[10px] font-bold text-text-primary uppercase tracking-widest drop-shadow-md pointer-events-auto bg-background-surface/80 backdrop-blur-md px-1.5 py-0.5 rounded-md border border-border-subtle">
-                        {label || getReadableName(instrumentKey)}
+                    <div className="flex items-center gap-1.5 pointer-events-auto">
+                        <div className="text-[10px] font-bold text-text-primary uppercase tracking-widest drop-shadow-md bg-background-surface/80 backdrop-blur-md px-1.5 py-0.5 rounded-md border border-border-subtle">
+                            {label || getReadableName(instrumentKey)}
+                        </div>
+                        <button 
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                onQuickOrder?.({ instrument_token: instrumentKey, tradingsymbol: label || getReadableName(instrumentKey), side: 'BUY', lot_size: lotSize }); 
+                            }} 
+                            className="px-2 py-[2px] bg-blue-600/15 text-blue-500 hover:bg-blue-600 hover:text-white border border-blue-500/30 rounded-[4px] text-[10px] font-bold transition-all cursor-pointer shadow-sm"
+                            title="Quick Buy"
+                        >
+                            B
+                        </button>
+                        <button 
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                onQuickOrder?.({ instrument_token: instrumentKey, tradingsymbol: label || getReadableName(instrumentKey), side: 'SELL', lot_size: lotSize }); 
+                            }} 
+                            className="px-2 py-[2px] bg-red-500/15 text-[#eb4b4b] hover:bg-[#eb4b4b] hover:text-white border border-red-500/30 rounded-[4px] text-[10px] font-bold transition-all cursor-pointer shadow-sm"
+                            title="Quick Sell"
+                        >
+                            S
+                        </button>
                     </div>
                     {!isPrimary && (
                         <button 

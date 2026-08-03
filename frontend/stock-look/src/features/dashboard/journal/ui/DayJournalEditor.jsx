@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useJournalNotes } from '../data/useJournalNotes';
 import { Lock, Save, Edit3 } from 'lucide-react';
 import dayjs from 'dayjs';
+import RichTextEditor from '@/shared/components/ui/Inputs/RichTextEditor';
 
-const SECTIONS = [
+const TRADING_SECTIONS = [
   { id: 'preMarket', label: 'Pre-Market' },
   { id: 'inMarket', label: 'In-Market' },
   { id: 'postMarket', label: 'Post-Market' },
@@ -11,9 +12,24 @@ const SECTIONS = [
   { id: 'aiInsights', label: 'AI Insights' }
 ];
 
-export function DayJournalEditor({ date }) {
+const OFFDAY_SECTIONS = [
+  { id: 'weeklyReview', label: 'Weekly Review' },
+  { id: 'marketAnalysis', label: 'Market Analysis' },
+  { id: 'lessonsLearned', label: 'Lessons Learned' },
+  { id: 'aiInsights', label: 'AI Insights' }
+];
+
+export function DayJournalEditor({ date, isOffDay }) {
+  const SECTIONS = isOffDay ? OFFDAY_SECTIONS : TRADING_SECTIONS;
   const { notes, saveNotes, loading } = useJournalNotes(date);
+  
+  // Important: when isOffDay changes (e.g. between selected days), reset the active tab
   const [activeTab, setActiveTab] = useState(SECTIONS[0].id);
+  
+  useEffect(() => {
+    setActiveTab(SECTIONS[0].id);
+  }, [isOffDay]);
+
   const [localNotes, setLocalNotes] = useState({});
   const [isSaving, setIsSaving] = useState(false);
 
@@ -45,19 +61,17 @@ export function DayJournalEditor({ date }) {
 
   return (
     <div className="flex flex-col h-full bg-background-card rounded-xl border border-border-default shadow-sm overflow-hidden flex-1">
-      {isPast && (
-        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 flex items-center text-amber-500 text-sm font-semibold">
-          <Lock className="w-4 h-4 mr-2" />
-          🔒 Past entries are locked
-        </div>
-      )}
-      
       <div className="flex items-center justify-between px-5 py-4 border-b border-border-default bg-background-surface/50">
         <h3 className="text-lg font-bold text-text-primary flex items-center">
           <Edit3 className="w-5 h-5 mr-2 text-text-tertiary" />
           Journal Notes
         </h3>
-        {!isPast && (
+        {isPast ? (
+          <div className="flex items-center text-text-secondary text-xs font-medium px-3 py-1.5 bg-background-elevated rounded-md border border-border-default shadow-sm">
+            <Lock className="w-3.5 h-3.5 mr-1.5 text-text-tertiary" />
+            Read-Only
+          </div>
+        ) : (
           <button 
             onClick={handleSave}
             disabled={isSaving || loading}
@@ -86,10 +100,10 @@ export function DayJournalEditor({ date }) {
       </div>
 
       <div className="flex-1 p-5 bg-background-surface/30">
-        <textarea
-          className="w-full h-full min-h-[250px] p-4 rounded-xl border border-border-default focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 resize-none outline-none text-text-primary bg-background-card disabled:bg-background-surface disabled:text-text-tertiary disabled:opacity-70 transition-all shadow-inner custom-scrollbar"
+        <RichTextEditor
+          className="w-full h-full custom-scrollbar"
           value={localNotes[activeTab] || ''}
-          onChange={handleChange}
+          onChange={(val) => setLocalNotes(prev => ({ ...prev, [activeTab]: val }))}
           readOnly={isPast}
           placeholder={isPast ? "No notes recorded." : `Write your ${SECTIONS.find(s => s.id === activeTab)?.label.toLowerCase()} notes here...`}
         />

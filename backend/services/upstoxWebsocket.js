@@ -136,6 +136,9 @@ const handleMarketData = (dataBuffer) => {
                 openInterest: 0,
                 optionGreeks: null,
                 iv: null,
+                marketDepth: null,
+                tbq: 0,
+                tsq: 0,
                 timestamp: new Date(currentTs).toISOString()
             };
 
@@ -150,6 +153,11 @@ const handleMarketData = (dataBuffer) => {
                     tickObj.cp = ff.marketFF.ltpc?.cp;
                     tickObj.volume = ff.marketFF.vtt || 0;
                     tickObj.openInterest = ff.marketFF.oi || 0;
+                    tickObj.tbq = ff.marketFF.tbq || 0;
+                    tickObj.tsq = ff.marketFF.tsq || 0;
+                    if (ff.marketFF.marketLevel && ff.marketFF.marketLevel.bidAskQuote) {
+                        tickObj.marketDepth = ff.marketFF.marketLevel.bidAskQuote;
+                    }
                     if (ff.marketFF.optionGreeks) {
                         tickObj.optionGreeks = ff.marketFF.optionGreeks;
                         tickObj.iv = ff.marketFF.iv;
@@ -163,6 +171,9 @@ const handleMarketData = (dataBuffer) => {
                 tickObj.openInterest = flwg.oi || 0;
                 tickObj.optionGreeks = flwg.optionGreeks;
                 tickObj.iv = flwg.iv;
+                if (flwg.firstDepth) {
+                    tickObj.marketDepth = [flwg.firstDepth];
+                }
             } else if (feedData.ltpc) {
                 tickObj.ltp = feedData.ltpc.ltp;
                 tickObj.cp = feedData.ltpc.cp;
@@ -211,20 +222,24 @@ let pendingSubscriptions = new Set([
     ...getNifty50Keys()
 ]);
 
+import { getUpstoxLiveToken } from "../utils/upstoxAuthHelper.js";
+
 export const connectUpstoxWebsocket = async () => {
     if (!FeedResponse) await initProtobuf();
 
     try {
-        const auth = await UpstoxAuth.findOne().sort({ createdAt: -1 });
-        if (!auth || !auth.accessToken) {
-            console.log("⚠️ No Upstox access token found in DB. Please authenticate.");
+        let token;
+        try {
+            token = await getUpstoxLiveToken();
+        } catch (e) {
+            console.log("⚠️ No active live Upstox access token found in DB. Please authenticate.");
             return;
         }
 
         const apiUrl = "https://api.upstox.com/v3/feed/market-data-feed/authorize";
         const authHeaders = {
             "Accept": "application/json",
-            "Authorization": `Bearer ${auth.accessToken}`
+            "Authorization": `Bearer ${token}`
         };
 
         const response = await axios.get(apiUrl, { headers: authHeaders });
@@ -271,11 +286,16 @@ export const connectUpstoxWebsocket = async () => {
 };
 
 export const subscribeToInstruments = (instrumentKeys, mode = "full") => {
+    const validPrefixes = ['NSE_INDEX|', 'NSE_EQ|', 'NSE_FO|', 'BSE_EQ|', 'BSE_FO|', 'MCX_FO|', 'BCD_FO|', 'BSE_INDEX|'];
+    const upstoxKeys = instrumentKeys.filter(k => validPrefixes.some(p => k.startsWith(p)));
+
+    if (upstoxKeys.length === 0) return;
+
     // Add to pending subscriptions
-    instrumentKeys.forEach(k => pendingSubscriptions.add(k));
+    upstoxKeys.forEach(k => pendingSubscriptions.add(k));
 
     if (!upstoxWs || upstoxWs.readyState !== WebSocket.OPEN) {
-        console.warn(`⚠️ Cannot send subscription immediately (WS not open). Queued ${instrumentKeys.length} instruments.`);
+        console.warn(`⚠️ Cannot send subscription immediately (WS not open). Queued ${upstoxKeys.length} instruments.`);
         return;
     }
 
@@ -284,10 +304,10 @@ export const subscribeToInstruments = (instrumentKeys, mode = "full") => {
         method: "sub",
         data: {
             mode: mode,
-            instrumentKeys: instrumentKeys
+            instrumentKeys: upstoxKeys
         }
     };
 
     upstoxWs.send(Buffer.from(JSON.stringify(request)));
-    console.log(`📡 Sent subscription for ${instrumentKeys.length} instruments [${mode}]`);
+    console.log(`📡 Sent subscription for ${upstoxKeys.length} instruments [${mode}]`);
 };

@@ -64,6 +64,7 @@ export const API_PATHS = {
     SAVE_NOTE: "/api/v1/journal/notes",
     GET_HOLIDAYS: "/api/v1/journal/holidays",
     GET_SUMMARY: "/api/v1/journal/summary",
+    GET_STATS: "/api/v1/journal/stats",
     GET_TRADES: "/api/v1/journal/trades",
   },
 
@@ -82,6 +83,14 @@ export const API_PATHS = {
 
   DATA: {
     GLOBAL: "/api/v1/data/global",
+  },
+
+  PORTFOLIO: {
+    FUNDS:      "/api/v1/portfolio/funds",
+    HOLDINGS:   "/api/v1/portfolio/holdings",
+    POSITIONS:  "/api/v1/portfolio/positions",
+    ORDER_BOOK: "/api/v1/portfolio/order-book",
+    TRADE_BOOK: "/api/v1/portfolio/trade-book",
   },
 };
 

@@ -17,7 +17,7 @@ const router = express.Router();
  */
 router.get("/", (req, res) => {
     try {
-        const stmt = db.prepare(`SELECT * FROM market_events ORDER BY created_at DESC LIMIT 100`);
+        const stmt = db.prepare(`SELECT * FROM market_events ORDER BY created_at DESC LIMIT 500`);
         const rows = stmt.all();
         
         const formatted = rows.map(r => {

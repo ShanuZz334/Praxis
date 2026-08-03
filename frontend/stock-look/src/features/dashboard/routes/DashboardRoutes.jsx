@@ -21,7 +21,8 @@
 // =============================
 
 import React, { Suspense, lazy } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import Loader from "@/shared/components/ui/Loader";
 
 // Lazy-loaded Feature Pages
@@ -54,9 +55,24 @@ import MenuSync from "@/shared/components/effects/MenuSync";
 // =============================
 
 const DashboardRoutes = ({ setActiveMenu }) => {
+  const location = useLocation();
+
   return (
     <Suspense fallback={<div className="w-full h-full flex items-center justify-center min-h-[50vh]"><Loader text="Loading Workspace..." /></div>}>
-      <Routes>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0, y: 15, scale: 0.99 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -15, scale: 0.99 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          className="w-full h-full"
+        >
+          <Routes location={location}>
+            {/* Default /dashboard entry redirects to /dashboard/home */}
+        <Route index element={<Navigate to="home" replace />} />
+        <Route path="" element={<Navigate to="home" replace />} />
+
         <Route
           path="home"
           element={
@@ -230,7 +246,12 @@ const DashboardRoutes = ({ setActiveMenu }) => {
         />
 
         <Route path="/oauth/upstox/callback" element={<UpstoxCallback />} />
-      </Routes>
+        
+          {/* Fallback to Home for any unmapped /dashboard/* routes */}
+          <Route path="*" element={<Navigate to="home" replace />} />
+        </Routes>
+        </motion.div>
+      </AnimatePresence>
     </Suspense>
   );
 };

@@ -274,7 +274,7 @@ export async function processNewsItems(newsItems, broadcastFn = null, useFewShot
             if (broadcastFn) {
                 try {
                     const updatedEvents = db.prepare(`
-                        SELECT * FROM market_events ORDER BY created_at DESC LIMIT 100
+                        SELECT * FROM market_events ORDER BY created_at DESC LIMIT 500
                     `).all().map(r => {
                         let assets = [], keyPoints = [];
                         try { assets    = JSON.parse(r.affected_assets); } catch {}

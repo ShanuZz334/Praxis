@@ -23,7 +23,9 @@ import { useDashboardContext } from "@/shared/context/DashboardContext";
 import DetachableInstrumentSelector from "@/shared/components/controls/DetachableInstrumentSelector";
 import CalculatorWidget from "@/shared/components/controls/CalculatorWidget";
 import { Calculator } from "lucide-react";
+import { MdPointOfSale } from "react-icons/md";
 
+import { FO_INDICES, FO_EQUITIES } from '@/shared/utils/foInstruments';
 import nseLogo from "@/assets/images/nse.png";
 import upstoxLogo from "@/assets/images/Upstox.png";
 import logo1Bgless from "@/assets/icons/praxis logo 1 bgless.png"; // light mode P icon (black)
@@ -34,6 +36,7 @@ import ThemeToggle from "@/shared/components/ui/ThemeToggle";
 import { Database, AlertTriangle, Headset } from 'lucide-react';
 import { upstoxService } from "@/shared/services/upstoxService";
 import { useVoice } from "@/shared/context/VoiceContext";
+import OrderTicket from "@/features/trading/ui/OrderTicket";
 
 const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
@@ -57,7 +60,7 @@ const Navbar = ({ onToggleSidebar }) => {
     };
   }, []);
 
-  const { livePrices: prices, selectedInstrument, filteredInstruments } = useDashboardContext();
+  const { livePrices: prices, selectedInstrument, filteredInstruments, globalOrderTicket, setGlobalOrderTicket } = useDashboardContext();
 
   const niftyStatus = prices?.["NSE_INDEX|Nifty 50"]?.status || 'neutral';
   const niftyColor = niftyStatus === 'up' ? 'text-emerald-400' : niftyStatus === 'down' ? 'text-rose-400' : 'text-text-tertiary';
@@ -291,6 +294,39 @@ const Navbar = ({ onToggleSidebar }) => {
           title="Calculator"
         >
           <Calculator className="w-[18px] h-[18px] transition-transform hover:scale-110" />
+        </button>
+
+        {/* Order Ticket Toggle */}
+        <button
+          onClick={() => {
+            if (globalOrderTicket) {
+              setGlobalOrderTicket(null);
+            } else {
+              const allInst = [...FO_INDICES, ...FO_EQUITIES];
+              const match = allInst.find(i => i.value === selectedInstrument);
+              setGlobalOrderTicket({
+                type: 'QUICK',
+                data: {
+                  instrument_token: selectedInstrument || "NSE_INDEX|Nifty 50",
+                  value: selectedInstrument || "NSE_INDEX|Nifty 50",
+                  tradingsymbol: match ? match.label : (selectedLabel || "NIFTY 50"),
+                  name: match ? match.label : (selectedLabel || "NIFTY 50"),
+                  exchange: match?.exchange || "NSE"
+                }
+              });
+            }
+          }}
+          className={`
+            relative
+            transition-colors
+            ${globalOrderTicket ? 'text-accent-primary' : 'text-text-tertiary hover:text-accent-primary'}
+          `}
+          title="Order Ticket (T)"
+        >
+          <MdPointOfSale className="text-xl transition-transform hover:scale-110" />
+          {globalOrderTicket && (
+            <div className="absolute -top-1 -right-1 w-2 h-2 bg-accent-primary rounded-full animate-pulse" />
+          )}
         </button>
       </div>
 

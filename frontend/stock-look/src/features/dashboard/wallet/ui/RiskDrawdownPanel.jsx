@@ -29,7 +29,7 @@ export default function RiskDrawdownPanel({ drawdown, riskRules }) {
                     <div className="text-xs font-bold text-white/40 uppercase tracking-widest">Drawdown Concentrator</div>
                     <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${isCritical ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
-                        <span className={`text-[10px] font-bold uppercase ${isCritical ? 'text-red-400' : 'text-emerald-400'}`}>
+                        <span className={`text-[9px] font-bold uppercase tracking-widest ${isCritical ? 'text-red-400' : 'text-emerald-400'}`}>
                             {isCritical ? 'Critical Zone' : 'Stable'}
                         </span>
                     </div>
@@ -141,13 +141,13 @@ export default function RiskDrawdownPanel({ drawdown, riskRules }) {
 
 function DrawdownStat({ label, value, subtext, color = "text-white" }) {
     return (
-        <div className="flex justify-between items-center pb-2 border-b border-white/5 last:border-0">
+        <div className="flex justify-between items-center pb-3 border-b border-white/5 last:border-0 last:pb-0">
             <div>
-                <div className="text-[10px] text-slate-500 uppercase font-bold">{label}</div>
+                <div className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider">{label}</div>
             </div>
             <div className="text-right">
                 <div className={`text-sm font-mono font-bold ${color}`}>{value}</div>
-                <div className="text-[9px] text-white/20 italic">{subtext}</div>
+                <div className="text-[9px] text-text-tertiary opacity-70 italic font-medium">{subtext}</div>
             </div>
         </div>
     );

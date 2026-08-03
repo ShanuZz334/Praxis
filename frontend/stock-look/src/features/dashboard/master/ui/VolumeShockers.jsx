@@ -1,13 +1,18 @@
 import React, { useEffect } from 'react';
-import { useDashboardContext } from '@/shared/context/DashboardContext';
 import { useDataRegistry } from '@/shared/context/DataRegistryContext';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { Zap } from 'lucide-react';
 import Loader from '@/shared/components/ui/Loader';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDashboardContext } from '@/shared/context/DashboardContext';
+import { toast } from 'sonner';
 
-export default function VolumeShockers() {
-    const { smartlists } = useDashboardContext();
+const VolumeShockers = React.memo(function VolumeShockers({ smartlists: propSmartlists }) {
+    const context = useDashboardContext();
+    const smartlists = propSmartlists || context?.smartlists;
+    const additionalCharts = context?.additionalCharts || [];
+    const setAdditionalCharts = context?.setAdditionalCharts;
+    const selectedInstrument = context?.selectedInstrument;
     const { register } = useDataRegistry();
 
     const isLoading = !smartlists || Object.keys(smartlists).length === 0 || !smartlists?.['MOST_ACTIVE'];
@@ -28,7 +33,6 @@ export default function VolumeShockers() {
         });
     }, [activeOpts, register]);
 
-
     // Format Trading Symbol
     const formatTradingSymbol = (sym) => {
         if (!sym) return 'Unknown';
@@ -37,6 +41,31 @@ export default function VolumeShockers() {
             return matchOpt.slice(1).filter(Boolean).join('-');
         }
         return sym;
+    };
+
+    const handleAddToChart = (item) => {
+        if (!setAdditionalCharts) return;
+        const rawSymbol = item.trading_symbol || item.instrument_key || item.symbol;
+        const displaySymbol = formatTradingSymbol(rawSymbol);
+        const instKey = item.instrument_key || item.symbol || item.trading_symbol;
+        if (!instKey) return;
+
+        const currentMainKey = selectedInstrument?.value || selectedInstrument;
+        const isAlreadyMain = currentMainKey === instKey;
+        const isAlreadyAdded = additionalCharts?.some(c => (typeof c === 'string' ? c : c.value) === instKey);
+
+        if (isAlreadyMain || isAlreadyAdded) {
+            toast.info(`${displaySymbol} is already pinned to Charts`, { id: `chart-${instKey}` });
+            return;
+        }
+
+        if (additionalCharts.length >= 3) {
+            toast.error("Chart grid is fully filled (Max 4 charts). Remove a chart to add more.", { id: 'max-charts-error' });
+            return;
+        }
+
+        setAdditionalCharts(prev => [...(prev || []), { value: instKey, label: displaySymbol, lot_size: item.lot_size }]);
+        toast.success(`${displaySymbol} added to Chart Grid!`, { id: `chart-${instKey}` });
     };
 
     return (
@@ -77,8 +106,13 @@ export default function VolumeShockers() {
                                 const isCall = displaySymbol.endsWith('CE');
                                 
                                 return (
-                                    <div key={i} className="flex items-center justify-between bg-background-elevated px-2.5 py-2 rounded text-[10.5px]">
-                                        <span className={`font-semibold truncate mr-2 flex-1 ${isCall ? 'text-emerald-400' : 'text-rose-400'}`} title={displaySymbol}>
+                                    <div 
+                                        key={i} 
+                                        onClick={() => handleAddToChart(item)}
+                                        className="flex items-center justify-between bg-background-elevated hover:bg-background-subtle/80 border border-transparent hover:border-blue-500/30 px-2.5 py-2 rounded text-[10.5px] cursor-pointer transition-all active:scale-[0.99] group/item"
+                                        title={`Click to add ${displaySymbol} to Charts`}
+                                    >
+                                        <span className={`font-semibold truncate mr-2 flex-1 group-hover/item:text-blue-400 transition-colors ${isCall ? 'text-emerald-400' : 'text-rose-400'}`} title={displaySymbol}>
                                             {displaySymbol}
                                         </span>
                                         <div className="flex flex-col items-end shrink-0">
@@ -97,4 +131,6 @@ export default function VolumeShockers() {
             </div>
         </div>
     );
-}
+});
+
+export default VolumeShockers;

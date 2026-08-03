@@ -21,7 +21,7 @@
 // Imports
 // =============================
 
-import React, { useContext } from "react";
+import React, { useContext, startTransition } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { motion } from "framer-motion";
@@ -38,7 +38,7 @@ import GhostLogo from "../ui/GhostLogo";
 // Component
 // =============================
 
-const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
+const SideMenu = ({ collapsed, activeMenu, setActiveMenu, topOffset, theme = 'dark' }) => {
   const { user, clearUser } = useContext(UserContext);
   const navigate = useNavigate();
   
@@ -85,7 +85,16 @@ const SideMenu = ({ collapsed, activeMenu, topOffset, theme = 'dark' }) => {
       navigate("/login", { replace: true });
       return;
     }
-    navigate(route);
+
+    // Optimistically update the menu active state so the sidebar feels instantly responsive
+    if (setActiveMenu) {
+        setActiveMenu(itemKey);
+    }
+    
+    // Use startTransition to yield the heavy render to the browser
+    startTransition(() => {
+        navigate(route);
+    });
   };
 
   // Drawer is always desktop in this setup

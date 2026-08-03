@@ -2,12 +2,12 @@ import axios from "axios";
 import UpstoxAuth from "../models/UpstoxAuth.js";
 import db from "../config/localDb.js";
 
+import { getUpstoxLiveToken } from "../utils/upstoxAuthHelper.js";
+
 const UPSTOX_BASE_URL = "https://api.upstox.com/v2";
 
 const getAuthToken = async () => {
-    const auth = await UpstoxAuth.findOne().sort({ createdAt: -1 });
-    if (!auth || !auth.accessToken) throw new Error("Upstox is not authenticated");
-    return auth.accessToken;
+    return await getUpstoxLiveToken();
 };
 
 const insertQuoteStmt = db.prepare(`
@@ -32,8 +32,14 @@ const insertQuoteStmt = db.prepare(`
 
 export const fetchQuotes = async (instrumentKeys) => {
     try {
+        // Filter out non-Upstox keys (like GLOBAL_INDICATOR) before requesting
+        const validPrefixes = ['NSE_INDEX|', 'NSE_EQ|', 'NSE_FO|', 'BSE_EQ|', 'BSE_FO|', 'MCX_FO|', 'BCD_FO|', 'BSE_INDEX|'];
+        const upstoxKeys = instrumentKeys.filter(k => validPrefixes.some(p => k.startsWith(p)));
+        
+        if (upstoxKeys.length === 0) return {};
+
         const token = await getAuthToken();
-        const url = `${UPSTOX_BASE_URL}/market-quote/quotes?instrument_key=${encodeURIComponent(instrumentKeys.join(","))}`;
+        const url = `${UPSTOX_BASE_URL}/market-quote/quotes?instrument_key=${encodeURIComponent(upstoxKeys.join(","))}`;
         
         const response = await axios.get(url, {
             headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` }

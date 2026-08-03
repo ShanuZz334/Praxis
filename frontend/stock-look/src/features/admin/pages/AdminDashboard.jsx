@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import {
     Plus, Wifi, ShieldCheck, Activity, Settings,
     BarChart3, Globe, Zap, Database, TrendingUp, Layers, Key,
@@ -80,12 +82,15 @@ const SCRAPER_META = {
 };
 
 const AdminDashboard = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [providers, setProviders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [checkingProvider, setCheckingProvider] = useState(null);
     const [activeTab, setActiveTab] = useState("api"); // 'api' or 'scraper'
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedProvider, setSelectedProvider] = useState(null);
+
+    const [upstoxMode, setUpstoxMode] = useState('live');
 
     const fetchProviderHealth = async () => {
         setLoading(true);
@@ -96,9 +101,10 @@ const AdminDashboard = () => {
             const liveProviders = [];
             
             if (upstoxStatus.connected) {
-                liveProviders.push({ provider: "upstox", status: "UP", configured: true, latency: 45 });
+                setUpstoxMode(upstoxStatus.mode || 'live');
+                liveProviders.push({ provider: "upstox", status: "UP", configured: true, latency: 45, mode: upstoxStatus.mode || 'live' });
             } else {
-                liveProviders.push({ provider: "upstox", status: "OFFLINE", configured: false, latency: 0 });
+                liveProviders.push({ provider: "upstox", status: "OFFLINE", configured: false, latency: 0, mode: upstoxMode });
             }
 
             // Mock Health for other APIs
@@ -143,6 +149,14 @@ const AdminDashboard = () => {
     };
 
     useEffect(() => {
+        if (searchParams.get("upstox_auth") === "success") {
+            const authMode = searchParams.get("mode") || "live";
+            toast.success(`Upstox (${authMode.toUpperCase()}) connected and authenticated successfully!`);
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.delete("upstox_auth");
+            nextParams.delete("mode");
+            setSearchParams(nextParams, { replace: true });
+        }
         fetchProviderHealth();
     }, []);
 
@@ -314,6 +328,25 @@ const AdminDashboard = () => {
                     Object.entries(currentMeta).map(([key, meta]) => {
                         const healthData = providers.find(p => p.provider === key);
                         
+                        if (key === 'upstox') {
+                            meta.customToggle = () => (
+                                <div className="flex items-center gap-2 mt-1 bg-background-surface/50 px-2 py-1 rounded-md border border-border-default shadow-inner">
+                                    <span className={`text-[9px] font-bold uppercase transition-colors ${upstoxMode === 'live' ? 'text-accent-primary' : 'text-text-muted'}`}>Live</span>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const newMode = upstoxMode === 'live' ? 'sandbox' : 'live';
+                                            upstoxService.login(newMode);
+                                        }}
+                                        className={`relative w-7 h-3.5 rounded-full transition-colors duration-300 ${upstoxMode === 'sandbox' ? 'bg-amber-500' : 'bg-accent-primary'}`}
+                                    >
+                                        <div className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all duration-300 ${upstoxMode === 'sandbox' ? 'left-[16px]' : 'left-[2px]'}`} />
+                                    </button>
+                                    <span className={`text-[9px] font-bold uppercase transition-colors ${upstoxMode === 'sandbox' ? 'text-amber-500' : 'text-text-muted'}`}>Sandbox</span>
+                                </div>
+                            );
+                        }
+
                         return (
                             <div key={key} className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" style={{ animationDelay: `${Math.random() * 200}ms` }}>
                                 <CredentialCard
