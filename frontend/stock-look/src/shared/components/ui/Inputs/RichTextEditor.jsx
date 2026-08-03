@@ -79,9 +79,13 @@ export default function RichTextEditor({ value, onChange, readOnly, placeholder,
         elements.forEach((el) => {
           if (el.classList.contains('ql-picker')) {
             const label = el.querySelector('.ql-picker-label');
-            if (label) label.setAttribute('title', tooltips[selector]);
+            if (label) {
+              label.setAttribute('data-tooltip', tooltips[selector]);
+              label.removeAttribute('title');
+            }
           } else {
-            el.setAttribute('title', tooltips[selector]);
+            el.setAttribute('data-tooltip', tooltips[selector]);
+            el.removeAttribute('title');
           }
         });
       });
