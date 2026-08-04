@@ -44,8 +44,8 @@ const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
   const { theme, useOrbNav } = useTheme();
   const { isStandbyMode, toggleStandby } = useVoice();
-  const { isWidgetOpen, setIsWidgetOpen } = usePaiWidget();
   const { unreadCount } = useNotificationStore();
+  const [isWidgetOpen, setIsWidgetOpen] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [upstoxConnected, setUpstoxConnected] = useState(true);
 
@@ -65,16 +65,41 @@ const Navbar = ({ onToggleSidebar }) => {
 
   const { livePrices: prices, selectedInstrument, filteredInstruments, globalOrderTicket, setGlobalOrderTicket } = useDashboardContext();
 
-  const niftyStatus = prices?.["NSE_INDEX|Nifty 50"]?.status || 'neutral';
+  const getResolvedPrice = (instrumentKey) => {
+    let priceData = prices?.[instrumentKey];
+    if (!priceData || !priceData.ltp) {
+      try {
+        const cache = JSON.parse(localStorage.getItem('praxis_quotes_cache') || '{}');
+        if (cache[instrumentKey] && cache[instrumentKey].data) {
+          const q = cache[instrumentKey].data;
+          priceData = {
+            ltp: q.last_price || 0,
+            netChange: q.net_change || 0,
+            pctChange: (q.net_change && q.last_price && (q.last_price - q.net_change) !== 0) 
+              ? (q.net_change / (q.last_price - q.net_change)) * 100 
+              : 0,
+            status: q.net_change > 0 ? 'up' : q.net_change < 0 ? 'down' : 'neutral'
+          };
+        }
+      } catch (e) {
+        // ignore cache errors
+      }
+    }
+    return priceData;
+  };
+
+  const niftyPrice = getResolvedPrice("NSE_INDEX|Nifty 50");
+  const niftyStatus = niftyPrice?.status || 'neutral';
   const niftyColor = niftyStatus === 'up' ? 'text-emerald-400' : niftyStatus === 'down' ? 'text-rose-400' : 'text-text-tertiary';
 
-  const bankNiftyStatus = prices?.["NSE_INDEX|Nifty Bank"]?.status || 'neutral';
+  const bankNiftyPrice = getResolvedPrice("NSE_INDEX|Nifty Bank");
+  const bankNiftyStatus = bankNiftyPrice?.status || 'neutral';
   const bankNiftyColor = bankNiftyStatus === 'up' ? 'text-emerald-400' : bankNiftyStatus === 'down' ? 'text-rose-400' : 'text-text-tertiary';
 
   // Selected instrument — show after BANK NIFTY if it's not one of the two pinned indices
   const PINNED_KEYS = new Set(["NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank"]);
   const showSelected = selectedInstrument && !PINNED_KEYS.has(selectedInstrument);
-  const selectedPrice = showSelected ? prices?.[selectedInstrument] : null;
+  const selectedPrice = showSelected ? getResolvedPrice(selectedInstrument) : null;
   const selectedStatus = selectedPrice?.status || 'neutral';
   const selectedColor = selectedStatus === 'up' ? 'text-emerald-400' : selectedStatus === 'down' ? 'text-rose-400' : 'text-text-tertiary';
   // Find human-readable label from the context instruments array
@@ -124,11 +149,11 @@ const Navbar = ({ onToggleSidebar }) => {
           <span className="text-text-secondary tracking-wide">NIFTY 50</span>
           <div className="flex flex-col mt-0.5">
             <span className={`font-semibold transition-colors duration-300 ${niftyColor}`}>
-              {prices?.["NSE_INDEX|Nifty 50"]?.ltp > 0 ? "₹" + prices["NSE_INDEX|Nifty 50"].ltp.toFixed(2) : "—"}
+              {niftyPrice?.ltp > 0 ? "₹" + niftyPrice.ltp.toFixed(2) : "—"}
             </span>
-            {prices?.["NSE_INDEX|Nifty 50"]?.ltp > 0 && (
+            {niftyPrice?.ltp > 0 && (
               <span className={`text-[9px] ${niftyColor} opacity-90 tracking-tight`}>
-                {prices["NSE_INDEX|Nifty 50"].netChange > 0 ? '+' : ''}{prices["NSE_INDEX|Nifty 50"].netChange.toFixed(2)} ({prices["NSE_INDEX|Nifty 50"].pctChange.toFixed(2)}%)
+                {niftyPrice.netChange > 0 ? '+' : ''}{niftyPrice.netChange.toFixed(2)} ({niftyPrice.pctChange.toFixed(2)}%)
               </span>
             )}
           </div>
@@ -138,11 +163,11 @@ const Navbar = ({ onToggleSidebar }) => {
           <span className="text-text-secondary tracking-wide">BANK NIFTY</span>
           <div className="flex flex-col mt-0.5">
             <span className={`font-semibold transition-colors duration-300 ${bankNiftyColor}`}>
-              {prices?.["NSE_INDEX|Nifty Bank"]?.ltp > 0 ? "₹" + prices["NSE_INDEX|Nifty Bank"].ltp.toFixed(2) : "—"}
+              {bankNiftyPrice?.ltp > 0 ? "₹" + bankNiftyPrice.ltp.toFixed(2) : "—"}
             </span>
-            {prices?.["NSE_INDEX|Nifty Bank"]?.ltp > 0 && (
+            {bankNiftyPrice?.ltp > 0 && (
               <span className={`text-[9px] ${bankNiftyColor} opacity-90 tracking-tight`}>
-                {prices["NSE_INDEX|Nifty Bank"].netChange > 0 ? '+' : ''}{prices["NSE_INDEX|Nifty Bank"].netChange.toFixed(2)} ({prices["NSE_INDEX|Nifty Bank"].pctChange.toFixed(2)}%)
+                {bankNiftyPrice.netChange > 0 ? '+' : ''}{bankNiftyPrice.netChange.toFixed(2)} ({bankNiftyPrice.pctChange.toFixed(2)}%)
               </span>
             )}
           </div>

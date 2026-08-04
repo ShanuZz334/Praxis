@@ -9,7 +9,7 @@ import GhostLogo from "@/shared/components/ui/GhostLogo";
 import PaiLoader from './PaiLoader';
 import PaiAudioWaves from './PaiAudioWaves';
 import Loader from '@/shared/components/ui/Loader';
-import { X, Send, Sparkles, Globe, AtSign, Brain, Mic, MicOff, Loader2, Volume2, Square, Minimize2 } from 'lucide-react';
+import { X, Send, Sparkles, Radar, AtSign, Brain, Mic, MicOff, Loader2, Volume2, Square, Minimize2 } from 'lucide-react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { useMentions, inferPageFromChatId, resolveReadableSymbol } from '@/shared/hooks/useMentions';
 import MentionSuggestionDropdown from '@/shared/components/ui/MentionSuggestionDropdown';
@@ -81,6 +81,10 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     const controls = useAnimation();
     
     const [messages, setMessages] = useState([]);
+    const [webSearchEnabled, setWebSearchEnabled] = useState(() => localStorage.getItem('pai_web_search_enabled') !== 'false');
+    useEffect(() => {
+        localStorage.setItem('pai_web_search_enabled', webSearchEnabled);
+    }, [webSearchEnabled]);
     const [isGenerating, setIsGenerating] = useState(false);
     const bottomRef = useRef(null);
     const lastUserMsgRef = useRef(null);
@@ -438,6 +442,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                 contextData: autoContextData,
                 explicitProvider,
                 explicitModel,
+                enableWebSearch: webSearchEnabled
             }, {
                 timeout: 120000, // 120 second timeout for complex AI responses
                 signal: abortControllerRef.current.signal
@@ -799,7 +804,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                     <img src={paiLabelImg} alt="PAI" className="h-7 object-contain drop-shadow-md transition-transform group-hover:scale-105" draggable={false} />
                                     {chatMode === 'global' && (
                                         <div className="absolute -right-6 flex items-center">
-                                            <Globe size={14} className="text-blue-500 animate-pulse" />
+                                            <Radar size={14} className="text-blue-500 animate-[spin_3s_linear_infinite]" />
                                         </div>
                                     )}
                                 </div>
@@ -1025,6 +1030,18 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                             ) : (
                                                 <MicOff className="w-3.5 h-3.5" />
                                             )}
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+                                            className={`p-1.5 rounded-lg transition-colors relative ${
+                                                webSearchEnabled 
+                                                ? 'bg-blue-500/10 text-blue-500 hover:bg-blue-500/20' 
+                                                : 'text-text-tertiary hover:bg-background-elevated hover:text-text-primary'
+                                            }`}
+                                            title={webSearchEnabled ? 'Web Search Grounding Enabled' : 'Web Search Grounding Disabled'}
+                                        >
+                                            <Radar className={`w-3.5 h-3.5 ${webSearchEnabled ? 'opacity-100 animate-[pulse_2s_ease-in-out_infinite]' : 'opacity-70'}`} />
                                         </button>
                                         <button type="submit" disabled={isGenerating || !message.trim()} className="p-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white rounded-lg transition-colors">
                                             <Send className="w-3.5 h-3.5" />

@@ -338,7 +338,7 @@ function buildResult(sections, compositeScore, rawScores) {
             id: s.id,
             label: s.label,
             shortLabel: s.shortLabel,
-            score: s.score,
+            value: Math.round(s.score),
             sub: `${Math.round(s.weight * 100)}% weight • ${getIndicatorColor(s.score).label}`,
         }));
 

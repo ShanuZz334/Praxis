@@ -237,15 +237,15 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
             });
 
             if (res.data?.message) {
-                // Overwrite the optimistic message with the final response
-                setMessages(prev => prev.map(m => m.id === tempId ? {
-                    ...m,
+                setMessages(prev => [...prev, {
+                    id: Date.now(),
+                    role: 'ai',
                     content: res.data.message,
                     provider: res.data.provider,
                     model: res.data.model,
                     latencyMs: res.data.latencyMs,
                     timestamp: new Date().toISOString()
-                } : m));
+                }]);
                 if (isVoiceMode || fromVoice) {
                     synthesize(res.data.message);
                 }
@@ -416,7 +416,6 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                                         model={msg.model}
                                         latencyMs={msg.latencyMs}
                                         timestamp={msg.timestamp}
-                                        onRegenerate={msg.role === 'ai' ? () => console.log('Regenerating...', msg.id) : undefined}
                                     />
                                     {/* Show attached card badges under user messages */}
                                     {msg.role === 'user' && msg.cardSnapshots?.length > 0 && (
