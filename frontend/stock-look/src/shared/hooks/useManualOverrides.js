@@ -90,6 +90,20 @@ export function useManualOverrides(moduleKey, instrument, defaultOverrides) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [instrument]);
 
+    // Listen for storage events (e.g. from global OverrideUpdateModal)
+    useEffect(() => {
+        const handleStorage = (e) => {
+            // A custom event triggers this with e = Event, which doesn't have e.key
+            if (!e.key || e.key === storageKey || e.key === timeStorageKey) {
+                setOverrides(getInitialOverrides());
+                setLastUpdated(getInitialLastUpdated());
+            }
+        };
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [instrument, storageKey, timeStorageKey]);
+
     const handleChange = useCallback((key, val) => {
         setOverrides(prev => {
             const next = { ...prev, [key]: val };

@@ -19,6 +19,7 @@
 // Imports
 // =============================
 import React from "react";
+import OverrideUpdateModal from "@/features/dashboard/messages/ui/OverrideUpdateModal";
 
 // =============================
 // Main Component
@@ -36,6 +37,7 @@ const AppShell = ({ children }) => {
             "
     >
       {children}
+      <OverrideUpdateModal />
     </main>
   );
 };

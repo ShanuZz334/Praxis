@@ -30,6 +30,7 @@ import { VoiceProvider } from "@/shared/context/VoiceContext";
 import AppRoutes from "./routes";
 import AppShell from "./AppShell";
 import { Toaster } from "@/components/ui/sonner";
+import { NotificationProvider } from "@/shared/context/NotificationContext";
 
 // =============================
 // Main Component
@@ -37,18 +38,20 @@ import { Toaster } from "@/components/ui/sonner";
 const App = () => {
   return (
     <DataRegistryProvider>
-      <UserProvider>
-        <VerificationProvider>
-          <ThemeProvider>
-            <VoiceProvider>
-              <AppShell>
-                <AppRoutes />
-                <Toaster />
-              </AppShell>
-            </VoiceProvider>
-          </ThemeProvider>
-        </VerificationProvider>
-      </UserProvider>
+      <NotificationProvider>
+        <UserProvider>
+          <VerificationProvider>
+            <ThemeProvider>
+              <VoiceProvider>
+                <AppShell>
+                  <AppRoutes />
+                  <Toaster />
+                </AppShell>
+              </VoiceProvider>
+            </ThemeProvider>
+          </VerificationProvider>
+        </UserProvider>
+      </NotificationProvider>
     </DataRegistryProvider>
   );
 };

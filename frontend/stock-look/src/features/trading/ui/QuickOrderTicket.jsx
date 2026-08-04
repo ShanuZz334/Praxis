@@ -110,8 +110,8 @@ export default function QuickOrderTicket({ instrumentData, onClose }) {
   
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [transactionType, setTransactionType] = useState(instrumentData?.side || 'BUY'); // BUY, SELL
-  const defaultQty = instrumentData?.quantity || (activeInstrument?.lot_size ? Number(activeInstrument.lot_size) : 1);
-  const [quantity, setQuantity] = useState(defaultQty);
+  const defaultLots = instrumentData?.quantity ? Math.max(1, Math.round(Number(instrumentData.quantity) / (activeInstrument?.lot_size || 1))) : 1;
+  const [quantity, setQuantity] = useState(defaultLots); // Tracks LOTS (1, 2, 3...)
   const [orderType, setOrderType] = useState('MARKET'); // MARKET, LIMIT
   const [price, setPrice] = useState('');
   const [exchange, setExchange] = useState(activeInstrument?.exchange || 'NSE');
@@ -121,10 +121,10 @@ export default function QuickOrderTicket({ instrumentData, onClose }) {
     if (instrumentData?.side) {
       setTransactionType(instrumentData.side);
     }
-    if (instrumentData?.quantity) {
-      setQuantity(instrumentData.quantity);
-    } else if (activeInstrument?.lot_size) {
-      setQuantity(Number(activeInstrument.lot_size));
+    if (instrumentData?.quantity && activeInstrument?.lot_size) {
+      setQuantity(Math.max(1, Math.round(Number(instrumentData.quantity) / Number(activeInstrument.lot_size))));
+    } else if (!instrumentData?.quantity) {
+      setQuantity(1);
     }
   }, [instrumentData, activeInstrument]);
   
@@ -167,7 +167,7 @@ export default function QuickOrderTicket({ instrumentData, onClose }) {
         exchange: exchange,
         transaction_type: transactionType,
         order_type: orderType,
-        quantity: Number(quantity),
+        quantity: Number(quantity) * Number(activeInstrument?.lot_size || 1), // Send raw shares to API
         price: orderType === 'LIMIT' ? Number(price) : 0,
         product: 'I', // Upstox expects 'I' for Intraday
         validity: 'DAY',
@@ -188,10 +188,9 @@ export default function QuickOrderTicket({ instrumentData, onClose }) {
   };
 
   const handleQtyChange = (val) => {
-    const lotSize = Number(activeInstrument?.lot_size) || 1;
     const currentQty = Number(quantity) || 0;
-    let newQty = currentQty + (val * lotSize);
-    if (newQty < lotSize) newQty = lotSize;
+    let newQty = currentQty + val;
+    if (newQty < 1) newQty = 1;
     setQuantity(newQty);
   };
 
@@ -242,7 +241,7 @@ export default function QuickOrderTicket({ instrumentData, onClose }) {
         </div>
         <div className="flex items-center gap-1 non-draggable">
           <button 
-            onClick={() => setGlobalOrderTicket && setGlobalOrderTicket({ type: 'FULL', data: { ...activeInstrument, side: transactionType, quantity: Number(quantity) } })} 
+            onClick={() => setGlobalOrderTicket && setGlobalOrderTicket({ type: 'FULL', data: { ...activeInstrument, side: transactionType, quantity: Number(quantity) * Number(activeInstrument?.lot_size || 1) } })} 
             className="p-1 rounded text-text-tertiary hover:text-text-primary transition-colors cursor-pointer hover:bg-white/5"
             title="Switch to Full Ticket"
           >
@@ -254,15 +253,15 @@ export default function QuickOrderTicket({ instrumentData, onClose }) {
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
         {/* BUY / SELL TOGGLE */}
-        <div className="flex gap-1.5 h-[38px] mb-4">
+        <div className="flex bg-background-surface rounded-lg p-1 border border-border-default mb-4">
            <button 
              onClick={() => setTransactionType('BUY')}
              className={`flex-1 rounded-md text-[13px] font-bold transition-all cursor-pointer ${
                transactionType === 'BUY' 
                  ? 'bg-blue-600 text-white shadow-sm' 
-                 : 'text-text-secondary hover:text-text-primary hover:bg-background-subtle border border-border-default'
+                 : 'text-text-secondary hover:text-text-primary hover:bg-background-subtle'
              }`}
            >
              BUY

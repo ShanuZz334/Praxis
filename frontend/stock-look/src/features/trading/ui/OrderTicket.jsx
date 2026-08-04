@@ -113,8 +113,8 @@ export default function OrderTicket({ instrumentData, onClose }) {
   const [activeTab, setActiveTab] = useState('REGULAR'); // REGULAR, GTT, MTF
   const [productType, setProductType] = useState('DELIVERY'); // DELIVERY, INTRADAY
   const [transactionType, setTransactionType] = useState(instrumentData?.side || 'BUY'); // BUY, SELL
-  const defaultQty = instrumentData?.quantity || (instrumentData?.lot_size ? Number(instrumentData.lot_size) : 1);
-  const [quantity, setQuantity] = useState(defaultQty);
+  const defaultLots = instrumentData?.quantity ? Math.max(1, Math.round(Number(instrumentData.quantity) / (activeInstrument?.lot_size || 1))) : 1;
+  const [quantity, setQuantity] = useState(defaultLots); // Tracks LOTS (1, 2, 3...)
   const [orderType, setOrderType] = useState('MARKET'); // MARKET, LIMIT
   const [price, setPrice] = useState('');
   const [exchange, setExchange] = useState(activeInstrument?.exchange || 'NSE');
@@ -123,10 +123,10 @@ export default function OrderTicket({ instrumentData, onClose }) {
     if (instrumentData?.side) {
       setTransactionType(instrumentData.side);
     }
-    if (instrumentData?.quantity) {
-      setQuantity(instrumentData.quantity);
-    } else if (activeInstrument?.lot_size) {
-      setQuantity(Number(activeInstrument.lot_size));
+    if (instrumentData?.quantity && activeInstrument?.lot_size) {
+      setQuantity(Math.max(1, Math.round(Number(instrumentData.quantity) / Number(activeInstrument.lot_size))));
+    } else if (!instrumentData?.quantity) {
+      setQuantity(1);
     }
   }, [instrumentData, activeInstrument]);
   
@@ -235,7 +235,7 @@ export default function OrderTicket({ instrumentData, onClose }) {
 
          const gttPayload = {
             type: rules.length > 1 ? "MULTIPLE" : "SINGLE",
-            quantity: Number(quantity),
+            quantity: Number(quantity) * Number(activeInstrument?.lot_size || 1), // Send raw shares to API
             product: useMtf ? "MTF" : (productType === 'DELIVERY' ? 'D' : 'I'),
             transaction_type: transactionType,
             instrument_key: activeInstrument.instrument_token || activeInstrument.value,
@@ -254,7 +254,7 @@ export default function OrderTicket({ instrumentData, onClose }) {
          // REGULAR OR MTF
          const payload = {
             instrument_key: activeInstrument.instrument_token || activeInstrument.value,
-            quantity: Number(quantity),
+            quantity: Number(quantity) * Number(activeInstrument?.lot_size || 1), // Send raw shares to API
             transaction_type: transactionType,
             order_type: orderType,
             price: orderType === 'LIMIT' ? Number(price) : 0,
@@ -280,10 +280,9 @@ export default function OrderTicket({ instrumentData, onClose }) {
   };
 
   const handleQtyChange = (val) => {
-    const lotSize = Number(activeInstrument?.lot_size) || 1;
     const currentQty = Number(quantity) || 0;
-    let newQty = currentQty + (val * lotSize);
-    if (newQty < lotSize) newQty = lotSize;
+    let newQty = currentQty + val;
+    if (newQty < 1) newQty = 1;
     setQuantity(newQty);
   };
 
@@ -347,7 +346,7 @@ export default function OrderTicket({ instrumentData, onClose }) {
         </div>
         <div className="flex items-center gap-1 non-draggable">
           <button 
-            onClick={() => setGlobalOrderTicket && setGlobalOrderTicket({ type: 'QUICK', data: { ...activeInstrument, side: transactionType, quantity: Number(quantity) } })} 
+            onClick={() => setGlobalOrderTicket && setGlobalOrderTicket({ type: 'QUICK', data: { ...activeInstrument, side: transactionType, quantity: Number(quantity) * Number(activeInstrument?.lot_size || 1) } })} 
             className="p-1 rounded text-text-tertiary hover:text-text-primary transition-colors cursor-pointer hover:bg-white/5"
             title="Switch to Quick Order"
           >

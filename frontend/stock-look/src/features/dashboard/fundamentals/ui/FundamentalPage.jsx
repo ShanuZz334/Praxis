@@ -30,17 +30,23 @@ import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedO
 import Loader from "@/shared/components/ui/Loader";
 import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
 import { useSnapshots } from "@/shared/hooks/useSnapshots";
+import { useGlobalApiData } from "@/features/dashboard/foreign/data/useGlobalApiData";
 
 // Wrapper to automatically inject timer configs
-const TimerOverrideInput = ({ overrideKey, manualLastUpdated, expiryConfigs, info, ...props }) => (
-    <DebouncedOverrideInput
-        {...props}
-        overrideKey={overrideKey}
-        lastUpdatedTimestamp={manualLastUpdated?.[overrideKey]}
-        expiryDuration={expiryConfigs?.[overrideKey] || expiryConfigs?.global_default}
-        info={info}
-    />
-);
+const TimerOverrideInput = ({ overrideKey, manualLastUpdated, expiryConfigs, info, ...props }) => {
+    const { selectedInstrument } = useDashboardContext();
+    return (
+        <DebouncedOverrideInput
+            {...props}
+            overrideKey={overrideKey}
+            lastUpdatedTimestamp={manualLastUpdated?.[overrideKey]}
+            expiryDuration={expiryConfigs?.[overrideKey] || expiryConfigs?.global_default}
+            info={info}
+            instrument={selectedInstrument}
+            moduleKey="fundamentals"
+        />
+    );
+};
 import { useAiSync } from "@/shared/hooks/useAiSync";
 import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/confidenceEngine";
 import { useDataFreshness } from '@/shared/hooks/useDataFreshness';
@@ -177,6 +183,7 @@ export default function FundamentalPage() {
   // Context manages auto-updating instrument when category changes
 
   const { data: rawFundamentalsData, snapshot, loading, error, lastUpdated } = useFundamentalsData(selectedInstrument);
+  const { data: globalApiData } = useGlobalApiData();
 
   const [liveInstFlow, setLiveInstFlow] = useState(null);
 
@@ -216,7 +223,7 @@ export default function FundamentalPage() {
             data.india_vix = vixLtp;
         }
         
-        const crudeLtp = livePrices?.["GLOBAL_INDICATOR|BZUSD"]?.ltp;
+        const crudeLtp = livePrices?.["GLOBAL_INDICATOR|BZUSD"]?.ltp || globalApiData?.crude;
         if (crudeLtp) {
             data.crude = crudeLtp;
         }
@@ -265,7 +272,7 @@ export default function FundamentalPage() {
       }
 
       return data;
-  }, [rawFundamentalsData, livePrices, liveInstFlow, snapshot, selectedInstrument]);
+  }, [rawFundamentalsData, livePrices, liveInstFlow, snapshot, selectedInstrument, globalApiData]);
 
   // Fundamental Composite Engine integration
   const compositeData = useFundamentalComposite(selectedCategory, selectedInstrument);

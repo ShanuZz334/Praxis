@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AlertTriangle, AlertCircle } from 'lucide-react';
+import { useNotificationStore } from '@/shared/context/NotificationContext';
 
-export const DebouncedOverrideInput = ({ label, overrideKey, value, onChange, lastUpdatedTimestamp, expiryDuration, info }) => {
+export const DebouncedOverrideInput = ({ label, overrideKey, value, onChange, lastUpdatedTimestamp, expiryDuration, info, instrument, moduleKey }) => {
     const [localValue, setLocalValue] = useState(value ?? "");
     const [progress, setProgress] = useState(null);
+    const hasNotifiedRef = useRef(false);
+    const { addNotification, setActiveOverrideRequest, removeNotification } = useNotificationStore();
 
     // Sync local state when external value changes (e.g. clear all)
     useEffect(() => {
         setLocalValue(value ?? "");
+        // Reset notification state if data receives a fresh manual override
+        if (value !== null && value !== undefined) {
+            hasNotifiedRef.current = false;
+        }
     }, [value]);
 
     useEffect(() => {
@@ -32,6 +39,32 @@ export const DebouncedOverrideInput = ({ label, overrideKey, value, onChange, la
             const remaining = Math.max(0, expiryDuration - elapsed);
             const percentage = (remaining / expiryDuration) * 100;
             setProgress(percentage);
+
+            if (percentage === 0 && !hasNotifiedRef.current) {
+                hasNotifiedRef.current = true;
+                addNotification({
+                    id: `stale_${moduleKey || 'global'}_${instrument || 'all'}_${overrideKey}`,
+                    category: 'alerts',
+                    priority: 'critical',
+                    title: `Stale Data: ${label}`,
+                    description: `The manual override for ${label} has expired and needs a fresh value.`,
+                    metadata: { instrument: instrument || "Global", module: moduleKey || "Dashboard" },
+                    actions: [
+                        {
+                            label: "Ignore",
+                            onClick: (id) => {
+                                removeNotification(id);
+                            }
+                        },
+                        { 
+                            label: "Update", 
+                            onClick: (id) => {
+                                setActiveOverrideRequest({ overrideKey, moduleKey, instrument, label, info, notificationId: id });
+                            }
+                        }
+                    ]
+                });
+            }
         };
 
         updateProgress();
@@ -39,7 +72,7 @@ export const DebouncedOverrideInput = ({ label, overrideKey, value, onChange, la
         const intervalId = setInterval(updateProgress, Math.min(1000, expiryDuration / 100));
 
         return () => clearInterval(intervalId);
-    }, [expiryDuration, lastUpdatedTimestamp, value]);
+    }, [expiryDuration, lastUpdatedTimestamp, value, label, overrideKey, instrument, moduleKey, info, addNotification, setActiveOverrideRequest, removeNotification]);
 
     const getProgressColor = (pct) => {
         if (pct > 80) return 'bg-emerald-500';
@@ -87,9 +120,13 @@ export const DebouncedOverrideInput = ({ label, overrideKey, value, onChange, la
                     </div>
                 )}
                 {progress !== null && progress === 0 && (
-                    <div className="absolute top-1/2 -translate-y-1/2 -right-5 flex items-center justify-center" title="Data expired">
-                        <AlertCircle className="w-[14px] h-[14px] text-red-500" />
-                    </div>
+                    <button 
+                        onClick={() => setActiveOverrideRequest({ overrideKey, moduleKey, instrument, label, info })}
+                        className="absolute top-1/2 -translate-y-1/2 -right-6 flex items-center justify-center p-1 rounded hover:bg-background-elevated transition-colors cursor-pointer group/btn" 
+                        title="Data expired. Click to update."
+                    >
+                        <AlertCircle className="w-[14px] h-[14px] text-red-500 group-hover/btn:scale-110 transition-transform" />
+                    </button>
                 )}
             </div>
         </div>

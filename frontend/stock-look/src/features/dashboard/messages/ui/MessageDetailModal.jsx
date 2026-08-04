@@ -64,7 +64,7 @@ export default function MessageDetailModal({ message, onClose, formatTimestamp }
 
                 {/* Content */}
                 <div className="bg-background-surface rounded-xl p-5 border border-border-default mb-6 shadow-inner">
-                    <p className="text-sm text-text-primary leading-relaxed">{message.content}</p>
+                    <p className="text-sm text-text-primary leading-relaxed">{message.content || message.description}</p>
                 </div>
 
                 {/* Metadata */}
@@ -83,20 +83,28 @@ export default function MessageDetailModal({ message, onClose, formatTimestamp }
 
                 {/* Actions */}
                 <div className="flex gap-3">
-                    {message.actions.map((action, idx) => {
+                    {message.actions?.map((action, idx) => {
                         const ActionIcon = action.icon;
                         return (
                             <button
                                 key={idx}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (action.onClick) action.onClick(message.id);
+                                    onClose();
+                                }}
                                 className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl text-sm font-medium hover:opacity-90 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-200 flex items-center justify-center gap-2.5 active:scale-95"
                             >
-                                <ActionIcon className="text-base" />
+                                {ActionIcon && <ActionIcon className="text-base" />}
                                 {action.label}
                             </button>
                         );
                     })}
-                    <button className="px-5 py-3 bg-background-surface hover:bg-border-default text-text-secondary hover:text-text-primary border border-border-default rounded-xl text-sm font-medium transition-all duration-200 active:scale-95">
-                        Mark as Read
+                    <button 
+                        onClick={() => onClose()}
+                        className="px-5 py-3 bg-background-surface hover:bg-border-default text-text-secondary hover:text-text-primary border border-border-default rounded-xl text-sm font-medium transition-all duration-200 active:scale-95"
+                    >
+                        Mark as Read & Close
                     </button>
                 </div>
             </div>

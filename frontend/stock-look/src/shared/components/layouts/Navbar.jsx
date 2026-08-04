@@ -20,6 +20,8 @@ import { FiBell, FiSettings, FiCrosshair } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/shared/context/ThemeContext";
 import { useDashboardContext } from "@/shared/context/DashboardContext";
+import { usePaiWidget } from "@/shared/context/PaiWidgetContext";
+import { useNotificationStore } from "@/shared/context/NotificationContext";
 import DetachableInstrumentSelector from "@/shared/components/controls/DetachableInstrumentSelector";
 import CalculatorWidget from "@/shared/components/controls/CalculatorWidget";
 import { Calculator } from "lucide-react";
@@ -42,7 +44,8 @@ const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
   const { theme, useOrbNav } = useTheme();
   const { isStandbyMode, toggleStandby } = useVoice();
-  const [isWidgetOpen, setIsWidgetOpen] = useState(false);
+  const { isWidgetOpen, setIsWidgetOpen } = usePaiWidget();
+  const { unreadCount } = useNotificationStore();
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [upstoxConnected, setUpstoxConnected] = useState(true);
 
@@ -259,12 +262,18 @@ const Navbar = ({ onToggleSidebar }) => {
         <button
           onClick={() => navigate("/dashboard/messages")}
           className="
+            relative
             text-text-tertiary
             transition-colors
             hover:text-accent-primary
           "
         >
           <FiBell className="text-lg transition-transform hover:scale-110" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-1 ring-background-app">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </button>
 
 

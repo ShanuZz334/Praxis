@@ -20,6 +20,7 @@ import {
 } from "react-icons/fi";
 import MessageCard from "./MessageCard";
 import MessageDetailModal from "./MessageDetailModal";
+import { useNotificationStore } from "@/shared/context/NotificationContext";
 
 const MESSAGE_CATEGORIES = [
     { id: "all", label: "All Messages" },
@@ -33,6 +34,36 @@ const QUICK_FILTERS = [
     { id: "pinned", label: "Pinned" }
 ];
 
+const formatTimestamp = (isoString) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    
+    if (diffMins < 60) return `${diffMins || 1}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+const getMessageStyles = (msg) => {
+    let Icon = FiBell;
+    let priorityStyles = { border: 'border-border-default', bg: 'bg-background-card', glow: '' };
+    
+    if (msg.priority === 'critical') {
+        Icon = FiAlertTriangle;
+        priorityStyles = { border: 'border-red-500/30', bg: 'bg-red-500/5', glow: 'shadow-[0_0_15px_rgba(239,68,68,0.1)]' };
+    } else if (msg.priority === 'high') {
+        Icon = FiAlertTriangle;
+        priorityStyles = { border: 'border-amber-500/30', bg: 'bg-amber-500/5', glow: 'shadow-[0_0_15px_rgba(245,158,11,0.1)]' };
+    } else if (msg.category === 'updates') {
+        Icon = FiCheckCircle;
+    }
+    
+    return { Icon, priorityStyles };
+};
+
 export default function MessagesPage() {
     const [activeCategory, setActiveCategory] = useState("all");
     const [activeFilter, setActiveFilter] = useState("all");
@@ -40,14 +71,30 @@ export default function MessagesPage() {
     const [selectedMessage, setSelectedMessage] = useState(null);
     const [pinnedIds, setPinnedIds] = useState([]);
 
-    // Empty state for data
-    const messages = [];
-    const categories = MESSAGE_CATEGORIES.map(cat => ({
-        ...cat,
-        count: 0
+    const { notifications, removeNotification, markAsRead } = useNotificationStore();
+
+    // Map notifications to the format expected by the page
+    const messages = notifications.map(n => ({
+        ...n,
+        // Ensure required fields exist if they were omitted
+        category: n.category || 'alerts',
+        priority: n.priority || 'normal',
     }));
 
-    const filteredMessages = [];
+    const categories = MESSAGE_CATEGORIES.map(cat => ({
+        ...cat,
+        count: cat.id === 'all' 
+            ? messages.length 
+            : messages.filter(m => m.category === cat.id).length
+    }));
+
+    const filteredMessages = messages.filter(msg => {
+        if (activeCategory !== "all" && msg.category !== activeCategory) return false;
+        if (activeFilter === "unread" && msg.read) return false;
+        if (activeFilter === "pinned" && !pinnedIds.includes(msg.id)) return false;
+        if (searchQuery && !msg.title.toLowerCase().includes(searchQuery.toLowerCase()) && !msg.description.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
+    });
 
     const handlePin = (id, e) => {
         e.stopPropagation();
@@ -138,15 +185,25 @@ export default function MessagesPage() {
                     {/* Message List */}
                     <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-3">
                         {filteredMessages.length > 0 ? (
-                            filteredMessages.map((msg) => (
-                                <MessageCard
-                                    key={msg.id}
-                                    message={msg}
-                                    isPinned={pinnedIds.includes(msg.id)}
-                                    onPin={(e) => handlePin(msg.id, e)}
-                                    onClick={() => setSelectedMessage(msg)}
-                                />
-                            ))
+                            filteredMessages.map((msg) => {
+                                const { Icon, priorityStyles } = getMessageStyles(msg);
+                                return (
+                                    <MessageCard
+                                        key={msg.id}
+                                        message={msg}
+                                        Icon={Icon}
+                                        priorityStyles={priorityStyles}
+                                        formatTimestamp={formatTimestamp}
+                                        isPinned={pinnedIds.includes(msg.id)}
+                                        onTogglePin={(e) => handlePin(msg.id, e)}
+                                        onClick={() => {
+                                            markAsRead(msg.id);
+                                            setSelectedMessage({ ...msg, icon: Icon });
+                                        }}
+                                        onRemove={() => removeNotification(msg.id)}
+                                    />
+                                );
+                            })
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-text-tertiary space-y-4">
                                 <FiBell size={48} className="opacity-20" />
@@ -167,6 +224,7 @@ export default function MessagesPage() {
                 onClose={() => setSelectedMessage(null)}
                 isPinned={selectedMessage ? pinnedIds.includes(selectedMessage.id) : false}
                 onPin={handlePin}
+                formatTimestamp={formatTimestamp}
             />
         </div>
     );

@@ -28,16 +28,7 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect, on
     const scrollContainerRef = useRef(null);
     const atmRowRef = useRef(null);
 
-    // 1. Strike Filtering (Optimization)
-    // Find ATM index to slice relevant range (+/- 15 strikes)
-    const spotIndex = chain.findIndex(c => c.strike >= spotPrice);
-    if (spotIndex === -1) return null;
-
-    const start = Math.max(0, spotIndex - 15);
-    const end = Math.min(chain.length, spotIndex + 16);
-    const viewChain = chain.slice(start, end);
-
-    const firstStrike = chain[0]?.strike;
+    const firstStrike = chain?.[0]?.strike;
 
     // Auto-scroll to ATM row only when the chain itself loads/changes
     // We use firstStrike as the dependency because it won't mutate on live socket ticks,
@@ -48,6 +39,15 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect, on
             atmRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }, [firstStrike]);
+
+    // 1. Strike Filtering (Optimization)
+    // Find ATM index to slice relevant range (+/- 15 strikes)
+    const spotIndex = chain.findIndex(c => c.strike >= spotPrice);
+    if (spotIndex === -1) return null;
+
+    const start = Math.max(0, spotIndex - 15);
+    const end = Math.min(chain.length, spotIndex + 16);
+    const viewChain = chain.slice(start, end);
 
 
 
