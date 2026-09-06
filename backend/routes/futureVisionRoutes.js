@@ -22,8 +22,8 @@ router.post('/predict', protect, async (req, res) => {
         if (!contextPayload || !instrumentKey) {
             return res.status(400).json({ error: 'contextPayload and instrumentKey are required' });
         }
-        if (typeof contextPayload !== 'string' || contextPayload.length > 20000) {
-            return res.status(400).json({ error: 'contextPayload must be a string under 20KB' });
+        if (typeof contextPayload !== 'string' || contextPayload.length > 40000) {
+            return res.status(400).json({ error: 'contextPayload must be a string under 40KB' });
         }
         if (horizonBars < 1 || horizonBars > 20) {
             return res.status(400).json({ error: 'horizonBars must be between 1 and 20' });

@@ -241,10 +241,30 @@ router.get("/market-quote", async (req, res) => {
 
         // Asynchronously save to database
         if (response.data?.data) {
-            const ticksToSave = Object.entries(response.data.data).map(([instrumentKey, quote]) => {
-                return {
+            const ticksToSave = [];
+            Object.entries(response.data.data).forEach(([rawKey, quote]) => {
+                let instrument = rawKey.replace(':', '|');
+                if (instrument.startsWith('NSE_EQ|')) {
+                    const shortSymbol = instrument.split('|')[1];
+                    if (shortSymbol && NIFTY_50_MAPPING && NIFTY_50_MAPPING[shortSymbol]) {
+                        instrument = NIFTY_50_MAPPING[shortSymbol];
+                    }
+                }
+                
+                // Prevent stale ISIN records from overriding
+                const existingTick = ticksToSave.find(t => t.instrument === instrument);
+                if (existingTick) {
+                    const existingTime = existingTick.exchangeTimestamp.getTime();
+                    const newTime = quote.timestamp ? new Date(quote.timestamp).getTime() : Date.now();
+                    if (newTime <= existingTime) return; // skip stale
+                    // Remove existing to replace
+                    const idx = ticksToSave.indexOf(existingTick);
+                    ticksToSave.splice(idx, 1);
+                }
+
+                ticksToSave.push({
                     timestamp: new Date(),
-                    instrument: instrumentKey.replace(':', '|'), // normalize to pipe
+                    instrument,
                     ltp: quote.last_price,
                     open: quote.ohlc?.open,
                     high: quote.ohlc?.high,
@@ -257,7 +277,7 @@ router.get("/market-quote", async (req, res) => {
                     totalSellQuantity: quote.total_sell_quantity,
                     openInterest: quote.open_interest,
                     exchangeTimestamp: quote.timestamp ? new Date(quote.timestamp) : new Date()
-                };
+                });
             });
 
             // Seed Local SQLite for fast synchronous reads by Technical Engines
@@ -282,7 +302,7 @@ router.get("/market-quote", async (req, res) => {
                 const insertManyQuotes = db.transaction((quotesToInsert) => {
                     for (const q of quotesToInsert) {
                         insertTick.run(q.instrument, q.ltp, q.volume || 0, q.openInterest || 0);
-                        insertQuote.run(q.instrument, q.ltp, q.open || null, q.high || null, q.low || null, q.close || null, q.volume || 0);
+                        insertQuote.run(q.instrument, q.ltp, q.open || null, q.high || null, q.low || null, q.previousClose || q.close || null, q.volume || 0);
                     }
                 });
                 insertManyQuotes(ticksToSave);

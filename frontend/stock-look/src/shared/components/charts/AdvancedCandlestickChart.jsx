@@ -124,6 +124,7 @@ export default React.memo(function AdvancedCandlestickChart({
     const [fvRisk, setFvRisk] = useState('');
     const [fvPAE, setFvPAE] = useState(null);
     const [fvModel, setFvModel] = useState(null);
+    const fvIgnoreStaleRef = useRef(false); // useRef so it's instantly readable in the same closure
 
     const fvSessionRef = useRef(null);
     const fvLiveBarIndexRef = useRef(0);
@@ -459,14 +460,47 @@ export default React.memo(function AdvancedCandlestickChart({
     // ── Ghost Candle Renderer ────────────────────────────────────────────────────
     const _renderGhostCandles = (candles, times, withPAEDimming) => {
         if (!ghostCandleSeriesRef.current) return;
+        if (!candles?.length || !times?.length) return;
 
-        const ghostData = candles.map((c, i) => ({
-            time:  times[i],
-            open:  c.open,
-            high:  c.high,
-            low:   c.low,
-            close: c.close,
-        }));
+        // The time of the very last REAL candle in the chart
+        let lastValidTime = data && data.length > 0 ? data[data.length - 1].time : 0;
+
+        let ghostData = candles
+            .map((c, i) => ({
+                time:  times[i],
+                open:  Number(c.open)  || 0,
+                high:  Number(c.high)  || 0,
+                low:   Number(c.low)   || 0,
+                close: Number(c.close) || 0,
+            }))
+            .filter(c => c.time != null && c.open > 0);
+
+        // Lightweight Charts FATAL ERROR FIX:
+        // Times MUST be strictly increasing and must be > the last real candle's time.
+        // If times duplicate or go backward, LWC throws "Cannot read properties of undefined (reading 'startTime')"
+        ghostData = ghostData.filter(c => {
+            // Helper to compare times (handles both UNIX seconds and YYYY-MM-DD string)
+            const getMs = (t) => {
+                if (typeof t === 'number') return t; // UNIX timestamp
+                if (typeof t === 'string') return new Date(t).getTime();
+                if (t?.year) return new Date(t.year, t.month - 1, t.day).getTime();
+                return 0;
+            };
+            
+            const currMs = getMs(c.time);
+            const prevMs = getMs(lastValidTime);
+
+            if (currMs > prevMs) {
+                lastValidTime = c.time; // Update running last valid time
+                return true;
+            }
+            return false; // Skip if not strictly increasing
+        });
+
+        if (!ghostData.length) {
+            console.warn('[FutureVision] No valid ghost candles to render after strictly increasing filter.');
+            return;
+        }
 
         console.log('[FutureVision] Rendering ghost candles:', ghostData.length, 'candles. First time:', ghostData[0]?.time);
         ghostCandleSeriesRef.current.setData(ghostData);
@@ -474,7 +508,10 @@ export default React.memo(function AdvancedCandlestickChart({
 
     // ──────────────── Hierarchical AI Prerequisite Check ────────────────────────────────
     const isIndexSymbol = instrumentKey.startsWith('NSE_INDEX|');
-    const cleanSymbol = instrumentKey.split('|').pop() || instrumentKey;
+    
+    let cleanSymbol = instrumentKey.split('|').pop() || instrumentKey;
+    const match = FO_EQUITIES.find(e => e.value === instrumentKey) || FO_INDICES.find(i => i.value === instrumentKey);
+    if (match) cleanSymbol = match.label;
     const reqIds = [
         { id: isIndexSymbol ? 'fundamentals_index_header' : 'fundamentals_company_header', name: 'Fundamentals' },
         { id: isIndexSymbol ? 'technical_index_header' : 'technical_company_header', name: 'Technical' },
@@ -484,25 +521,33 @@ export default React.memo(function AdvancedCandlestickChart({
     ];
     
     const globalCache = getGlobalInsightCache();
-    let fvStaleMsg = null;
+    const fvIssues = [];
     let aiNarratives = {};
 
     if (!fvActive) {
         for (const req of reqIds) {
-            const key = `${req.id}_${cleanSymbol}`;
+            let symbolSuffix = cleanSymbol;
+            if (req.id === 'foreign_header') symbolSuffix = 'GLOBAL';
+            if (req.id === 'events_header') symbolSuffix = 'EVENTS';
+
+            const key = `${req.id}_${symbolSuffix}`;
             const entry = globalCache[key];
             if (!entry) {
-                fvStaleMsg = `⚠️ ${req.name} AI summary missing. Visit the page to generate it.`;
-                break;
-            } else if (Date.now() - entry.timestamp > 5 * 60 * 1000) {
+                fvIssues.push(`• ${req.name} — missing`);
+            } else if (Date.now() - entry.timestamp > 12 * 60 * 1000) {
                 const mins = Math.floor((Date.now() - entry.timestamp) / 60000);
-                fvStaleMsg = `⚠️ ${req.name} AI summary is ${mins} mins old. Visit the page to refresh it.`;
-                break;
+                fvIssues.push(`• ${req.name} — ${mins} min${mins !== 1 ? 's' : ''} old`);
+                aiNarratives[req.name] = entry.insightText;
             } else {
                 aiNarratives[req.name] = entry.insightText;
             }
         }
     }
+
+    const fvStaleMsg = fvIssues.length > 0
+        ? `⚠️ AI summaries need attention:\n${fvIssues.join('\n')}`
+        : null;
+
 
     // ── Future Vision: Trigger Function ─────────────────────────────────────────
     const triggerFutureVision = async () => {
@@ -515,14 +560,28 @@ export default React.memo(function AdvancedCandlestickChart({
             setFvRisk('');
             setFvPAE(null);
             setFvModel(null);
+            fvIgnoreStaleRef.current = false;
             fvSessionRef.current = null;
             fvLiveBarIndexRef.current = 0;
             if (ghostCandleSeriesRef.current) ghostCandleSeriesRef.current.setData([]);
             return;
         }
 
-        if (fvStaleMsg) {
-            import('sonner').then(({ toast }) => toast.error(fvStaleMsg, { duration: 4000 }));
+        if (fvStaleMsg && !fvIgnoreStaleRef.current) {
+            import('sonner').then(({ toast }) => {
+                const lines = fvIssues;
+                toast.warning('Future Vision — AI Summaries Needed', {
+                    description: lines.join('\n'),
+                    duration: 10000,
+                    action: {
+                        label: 'Ignore & Run',
+                        onClick: () => {
+                            fvIgnoreStaleRef.current = true;
+                            triggerFutureVision();
+                        }
+                    }
+                });
+            });
             return;
         }
 
@@ -532,6 +591,12 @@ export default React.memo(function AdvancedCandlestickChart({
         try {
             const fvSettings = getFVSettings();
             const horizonBars = fvSettings.horizonBars;
+            const ohlcvBars   = fvSettings.ohlcvBars ?? 50;
+
+            const masterSnapshot = getMasterSnapshot();
+            const registryTechnicals = masterSnapshot.technical || {};
+            const registryFundamentals = masterSnapshot.fundamentals || {};
+            const resolvedEvents = events || [];
 
             // Assemble payload using the pre-digested AI narratives
             const contextPayload = assembleContext({
@@ -544,6 +609,8 @@ export default React.memo(function AdvancedCandlestickChart({
                 fundamentals:  registryFundamentals,
                 events:        resolvedEvents,
                 horizonBars,
+                ohlcvBars,
+                aiNarratives
             });
 
 
@@ -1042,56 +1109,81 @@ export default React.memo(function AdvancedCandlestickChart({
                     }
                 </button>
 
-                {/* ── Future Vision Bias + PAE HUD ─────────────────────────── */}
-                {fvActive && fvBias && (
-                    <motion.div
-                        initial={{ opacity: 0, x: -6 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center ml-1"
-                    >
-                        <button
-                            onMouseEnter={(e) => {
-                                const tooltipContent = (
-                                    <div className="flex flex-col gap-1.5 min-w-[140px]">
-                                        <div className="flex justify-between items-center border-b border-white/10 pb-1.5 mb-0.5">
-                                            <span className="text-white/50 text-[9px] uppercase font-bold tracking-wider">Bias</span>
-                                            <span className={`text-[10px] font-bold ${fvBias === 'bullish' ? 'text-emerald-400' : fvBias === 'bearish' ? 'text-red-400' : 'text-slate-400'}`}>
-                                                AI {fvBias.toUpperCase()}
-                                            </span>
-                                        </div>
-                                        {fvSessionRef.current?.candles && (
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-white/50 text-[9px] uppercase font-bold tracking-wider">Confidence</span>
-                                                <span className="text-violet-400 text-[10px] font-bold font-mono">
-                                                    {Math.round(fvSessionRef.current.candles.reduce((acc, c) => acc + c.confidence, 0) / fvSessionRef.current.candles.length)}%
-                                                </span>
-                                            </div>
-                                        )}
-                                        {fvPAE && fvPAE.scores?.length > 0 && (
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-white/50 text-[9px] uppercase font-bold tracking-wider">Dir. Accuracy</span>
-                                                <span className="text-blue-400 text-[10px] font-bold font-mono">
-                                                    {Math.round(fvPAE.scores.reduce((a, b) => a + b.da, 0) / fvPAE.scores.length * 100)}% ({fvPAE.scores.length}/{fvSessionRef.current?.candles?.length})
-                                                </span>
-                                            </div>
-                                        )}
-                                        {fvModel && (
-                                            <div className="flex justify-between items-center pt-1 border-t border-white/10 mt-0.5">
-                                                <span className="text-white/50 text-[9px] uppercase font-bold tracking-wider">Model</span>
-                                                <span className="text-slate-300 text-[9px] truncate max-w-[90px]" title={fvModel}>{fvModel}</span>
-                                            </div>
-                                        )}
+                {/* ── Future Vision Bias HUD ─────────────────────────── */}
+                {fvActive && fvBias && (() => {
+                    const isBull = fvBias === 'bullish';
+                    const isBear = fvBias === 'bearish';
+                    const biasColor   = isBull ? 'text-emerald-400' : isBear ? 'text-red-400' : 'text-slate-400';
+                    const biasBg      = isBull ? 'bg-emerald-500/10 border-emerald-500/30' : isBear ? 'bg-red-500/10 border-red-500/30' : 'bg-slate-500/10 border-slate-500/30';
+                    const dotColor    = isBull ? 'bg-emerald-400' : isBear ? 'bg-red-400' : 'bg-slate-400';
+                    const confidence  = fvSessionRef.current?.candles
+                        ? Math.round(fvSessionRef.current.candles.reduce((a, c) => a + c.confidence, 0) / fvSessionRef.current.candles.length)
+                        : null;
+                    const confBarColor = confidence >= 70 ? 'bg-emerald-400' : confidence >= 50 ? 'bg-amber-400' : 'bg-red-400';
+                    const modelShort  = fvModel ? fvModel.split('/').pop().split('-').slice(0, 2).join('-') : null;
+
+                    const tooltipContent = (
+                        <div className="flex flex-col gap-2 min-w-[180px] p-0.5">
+                            <div className="flex items-center gap-2 pb-2 border-b border-white/10">
+                                <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">Future Vision</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-white/40 text-[9px] uppercase font-semibold tracking-wider">Bias</span>
+                                <span className={`text-[11px] font-bold ${biasColor}`}>AI {fvBias.toUpperCase()}</span>
+                            </div>
+                            {confidence !== null && (
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-white/40 text-[9px] uppercase font-semibold tracking-wider">Confidence</span>
+                                        <span className="text-violet-300 text-[10px] font-bold font-mono">{confidence}%</span>
                                     </div>
-                                );
-                                handleMouseEnter(e, tooltipContent);
-                            }}
-                            onMouseLeave={() => setHoveredIndicator(null)}
-                            className="p-1 text-slate-500 hover:text-violet-400 transition-colors bg-black/5 hover:bg-violet-500/10 rounded-full"
+                                    <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+                                        <div className={`h-full rounded-full ${confBarColor} transition-all duration-500`} style={{ width: `${confidence}%` }} />
+                                    </div>
+                                </div>
+                            )}
+                            {fvPAE?.scores?.length > 0 && (
+                                <div className="flex justify-between items-center">
+                                    <span className="text-white/40 text-[9px] uppercase font-semibold tracking-wider">Dir. Accuracy</span>
+                                    <span className="text-blue-300 text-[10px] font-bold font-mono">
+                                        {Math.round(fvPAE.scores.reduce((a, b) => a + b.da, 0) / fvPAE.scores.length * 100)}%
+                                        <span className="text-white/30 font-normal ml-1">({fvPAE.scores.length}/{fvSessionRef.current?.candles?.length})</span>
+                                    </span>
+                                </div>
+                            )}
+                            {modelShort && (
+                                <div className="flex justify-between items-center pt-1.5 border-t border-white/10">
+                                    <span className="text-white/40 text-[9px] uppercase font-semibold tracking-wider">Model</span>
+                                    <span className="text-slate-400 text-[9px] font-mono">{modelShort}</span>
+                                </div>
+                            )}
+                        </div>
+                    );
+
+                    return (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, x: -4 }}
+                            animate={{ opacity: 1, scale: 1, x: 0 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                            className="flex items-center ml-1.5 gap-1"
                         >
-                            <Info size={13} strokeWidth={2.5} />
-                        </button>
-                    </motion.div>
-                )}
+                            {/* Pill badge */}
+                            <button
+                                onMouseEnter={(e) => handleMouseEnter(e, tooltipContent)}
+                                onMouseLeave={() => setHoveredIndicator(null)}
+                                className={`pointer-events-auto flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-bold tracking-wide transition-all duration-150 hover:brightness-110 ${biasBg} ${biasColor}`}
+                            >
+                                <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${dotColor}`} />
+                                AI {fvBias.toUpperCase()}
+                                {confidence !== null && (
+                                    <span className="text-[9px] font-mono text-white/50 ml-0.5">{confidence}%</span>
+                                )}
+                            </button>
+                        </motion.div>
+                    );
+                })()}
+
 
 
                 {/* OHLC Legend inline in top toolbar */}

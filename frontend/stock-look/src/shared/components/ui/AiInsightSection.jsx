@@ -50,10 +50,22 @@ function resolvePageId(path) {
     return 'master';
 }
 
-// Global in-memory cache to prevent re-generating insights on tab switches
-// (persistence is now handled by SQLite via aiPromptsRoutes — not localStorage)
-const globalInsightCache = {};
+// Global cache backed by localStorage to survive page refreshes for the Future Vision engine
+const CACHE_KEY = 'praxis_fv_global_insight_cache';
+let globalInsightCache = {};
+try {
+    const saved = localStorage.getItem(CACHE_KEY);
+    if (saved) globalInsightCache = JSON.parse(saved);
+} catch (e) {}
+
 export const getGlobalInsightCache = () => globalInsightCache;
+
+export const updateGlobalInsightCache = (key, data) => {
+    globalInsightCache[key] = data;
+    try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(globalInsightCache));
+    } catch (e) {}
+};
 
 export default function AiInsightSection({
     actionType = "Neutral",
@@ -281,13 +293,13 @@ export default function AiInsightSection({
         if (!cleanInsight || isRestoredFromCache) return;
         
         const currentScore = typeof score === 'number' ? score : parseFloat(score) || 0;
-        globalInsightCache[cacheKey] = {
+        updateGlobalInsightCache(cacheKey, {
             score: currentScore,
             symbol: currentSymbol,
             regime: actionType,
             insightText: cleanInsight,
             timestamp: Date.now()
-        };
+        });
     }, [cleanInsight, score, currentSymbol, actionType, cacheKey, isRestoredFromCache]);
 
     // Safety measure: if the currently displayed insight was generated for a wildly different score 

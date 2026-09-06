@@ -29,14 +29,14 @@ export function getFVSettings() {
         const s = JSON.parse(localStorage.getItem(FV_SETTINGS_KEY) || '{}');
         return {
             horizonBars:         s.horizonBars         ?? 7,
+            ohlcvBars:           s.ohlcvBars           ?? 50,
             showCone:            s.showCone            ?? true,
             autoRefreshOnNewBar: s.autoRefreshOnNewBar ?? false,
-            confidenceDisplay:   s.confidenceDisplay   ?? 'both',
             confidenceHigh:      s.confidenceHigh      ?? 75,
             confidenceLow:       s.confidenceLow       ?? 50,
         };
     } catch {
-        return { horizonBars: 7, showCone: true, autoRefreshOnNewBar: false, confidenceDisplay: 'both', confidenceHigh: 75, confidenceLow: 50 };
+        return { horizonBars: 7, ohlcvBars: 50, showCone: true, autoRefreshOnNewBar: false, confidenceHigh: 75, confidenceLow: 50 };
     }
 }
 
@@ -62,35 +62,41 @@ export function saveFVSettings(updates) {
  * @param {number} params.horizonBars
  */
 export function assembleContext({
-    ohlcv,
-    instrumentKey,
-    symbol,
-    timeframe,
-    tradingMode,
+    ohlcv = [],
+    instrumentKey = '',
+    symbol = '',
+    timeframe = 'day',
+    tradingMode = 'swing',
+    indicators = {},
+    fundamentals = {},
+    events = [],
     horizonBars = 7,
+    ohlcvBars = 50,
     aiNarratives = {}
 }) {
     // ─── Pre-process OHLCV ────────────────────────────────────────────
-    const window50 = ohlcv.slice(-50);   // Reduced from 96 to fit smaller model token limits
-    const window20 = ohlcv.slice(-20);
+    const clampedBars = Math.max(10, Math.min(ohlcvBars, 200));
+    const windowMain = ohlcv.slice(-clampedBars);
+    const window20 = ohlcv.slice(-Math.min(20, clampedBars));
     const window5  = ohlcv.slice(-5);
-    const last     = window50.at(-1) ?? {};
-    const prev     = window50.at(-2) ?? {};
+    const last     = windowMain.at(-1) ?? {};
+    const prev     = windowMain.at(-2) ?? {};
     const lastClose = last.close ?? 0;
 
     // ─── Block 1A: Raw OHLCV CSV ──────────────────────────────────────
-    const ohlcvCsv = window50
+    const ohlcvCsv = windowMain
         .map(c => `${_formatTime(c.time)},${_f2(c.open)},${_f2(c.high)},${_f2(c.low)},${_f2(c.close)},${Math.round(c.volume ?? 0)}`)
         .join('\n');
 
     // ─── Block 1B: Derived Price Analytics ───────────────────────────
-    const priceAnalytics = _computePriceAnalytics(window50, window20, window5, last, prev, indicators);
+    const priceAnalytics = _computePriceAnalytics(windowMain, window20, window5, last, prev, indicators);
 
-    const technicalBlock = aiNarratives['Technical'] || 'N/A';
-    const fundamentalBlock = aiNarratives['Fundamentals'] || 'N/A';
-    const eventBlock = aiNarratives['Events'] || 'N/A';
-    const optionsBlock = aiNarratives['Options'] || 'N/A';
-    const globalBlock = aiNarratives['Global'] || 'N/A';
+    const _trim = (s, n = 800) => s && s.length > n ? s.substring(0, n) + '...' : (s || 'N/A');
+    const technicalBlock   = _trim(aiNarratives['Technical']);
+    const fundamentalBlock = _trim(aiNarratives['Fundamentals']);
+    const eventBlock       = _trim(aiNarratives['Events']);
+    const optionsBlock     = _trim(aiNarratives['Options']);
+    const globalBlock      = _trim(aiNarratives['Global']);
     const sessionBlock = _computeSessionBlock(tradingMode, timeframe, horizonBars);
     const paeReport = getPAEReport(instrumentKey, timeframe);
 
@@ -111,7 +117,7 @@ export function assembleContext({
   BLOCK 1 - PRICE ACTION
   ================================================================================
   
-  A 1.1 RAW OHLCV - Last ${window50.length} bars (format: time,O,H,L,C,V)
+  A 1.1 RAW OHLCV - Last ${windowMain.length} bars (format: time,O,H,L,C,V)
   Note: Most recent bar at the bottom. Analyse recency-weighted.
   ${ohlcvCsv}
   

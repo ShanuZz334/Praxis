@@ -3,6 +3,7 @@ import UpstoxAuth from "../models/UpstoxAuth.js";
 import db from "../config/localDb.js";
 
 import { getUpstoxLiveToken } from "../utils/upstoxAuthHelper.js";
+import { NIFTY_50_MAPPING } from "../utils/nifty50.js";
 
 const UPSTOX_BASE_URL = "https://api.upstox.com/v2";
 
@@ -50,7 +51,25 @@ export const fetchQuotes = async (instrumentKeys) => {
         // Re-map the quotesData object so it is keyed by instrument_token (ISIN) rather than Upstox's SYMBOL
         const normalizedQuotes = {};
         for (const [rawKey, q] of Object.entries(quotesData)) {
-            const key = q.instrument_token || rawKey.replace(":", "|");
+            let key = rawKey.replace(":", "|");
+            
+            // Map alias short symbols back to their ISINs for persistence mapping
+            if (key.startsWith('NSE_EQ|')) {
+                const shortSymbol = key.split('|')[1];
+                if (shortSymbol && NIFTY_50_MAPPING && NIFTY_50_MAPPING[shortSymbol]) {
+                    key = NIFTY_50_MAPPING[shortSymbol];
+                }
+            }
+
+            // Prevent stale ISIN records from overwriting fresh Alias records
+            if (normalizedQuotes[key]) {
+                const existingTime = new Date(normalizedQuotes[key].timestamp || 0).getTime();
+                const newTime = new Date(q.timestamp || 0).getTime();
+                if (newTime <= existingTime) {
+                    continue; // Skip this one if it's older than what we already mapped
+                }
+            }
+
             normalizedQuotes[key] = q;
         }
 

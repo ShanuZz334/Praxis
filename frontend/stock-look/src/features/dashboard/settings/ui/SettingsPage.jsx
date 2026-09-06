@@ -141,6 +141,8 @@ const SettingsPage = () => {
 
     // Feature State
     const [showAggressiveWarning, setShowAggressiveWarning] = useState(false);
+    const [fvHorizonBars, setFvHorizonBars] = useState(() => { try { return JSON.parse(localStorage.getItem('praxis_future_vision_settings') || '{}').horizonBars ?? 7; } catch { return 7; } });
+    const [fvOhlcvBars, setFvOhlcvBars] = useState(() => { try { return JSON.parse(localStorage.getItem('praxis_future_vision_settings') || '{}').ohlcvBars ?? 50; } catch { return 50; } });
     const [showEmailChangeModal, setShowEmailChangeModal] = useState(false);
     const [showEmailOtpModal, setShowEmailOtpModal] = useState(false);
     const [pendingEmail, setPendingEmail] = useState("");
@@ -1493,47 +1495,48 @@ const SettingsPage = () => {
                             <div className="mb-5">
                                 <label className="block text-xs font-medium text-text-secondary mb-2">Prediction Horizon (bars)</label>
                                 <div className="flex flex-wrap gap-2">
-                                    {[3, 5, 7, 10, 15].map(n => {
-                                        const fvs = (() => { try { return JSON.parse(localStorage.getItem('praxis_future_vision_settings') || '{}'); } catch (_e) { return {}; } })();
-                                        const isCurrent = (fvs.horizonBars ?? 7) === n;
-                                        return (
-                                            <button key={n}
-                                                onClick={() => {
-                                                    const cur = (() => { try { return JSON.parse(localStorage.getItem('praxis_future_vision_settings') || '{}'); } catch (_e) { return {}; } })();
-                                                    localStorage.setItem('praxis_future_vision_settings', JSON.stringify({ ...cur, horizonBars: n }));
-                                                    toast.success(`Prediction horizon set to ${n} bars`);
-                                                }}
-                                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${isCurrent ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' : 'bg-background-elevated text-text-secondary border-border-default hover:border-violet-500/30 hover:text-violet-400'}`}
-                                            >
-                                                {n}{n === 7 ? ' *' : ''} bars
-                                            </button>
-                                        );
-                                    })}
+                                    {[3, 5, 7, 10, 15].map(n => (
+                                        <button key={n}
+                                            onClick={() => {
+                                                const cur = (() => { try { return JSON.parse(localStorage.getItem('praxis_future_vision_settings') || '{}'); } catch { return {}; } })();
+                                                localStorage.setItem('praxis_future_vision_settings', JSON.stringify({ ...cur, horizonBars: n }));
+                                                setFvHorizonBars(n);
+                                                toast.success(`Prediction horizon set to ${n} bars`);
+                                            }}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${fvHorizonBars === n ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' : 'bg-background-elevated text-text-secondary border-border-default hover:border-violet-500/30 hover:text-violet-400'}`}
+                                        >
+                                            {n}{n === 7 ? ' *' : ''} bars
+                                        </button>
+                                    ))}
                                 </div>
                                 <p className="text-[11px] text-text-tertiary mt-1.5">* Default (7). Longer horizons reduce confidence scores. &gt;10 bars on intraday not recommended.</p>
                             </div>
 
-                            {/* Confidence Display Mode */}
+                            {/* OHLCV Window Size */}
                             <div className="mb-5">
-                                <label className="block text-xs font-medium text-text-secondary mb-2">Confidence Score Display</label>
+                                <label className="block text-xs font-medium text-text-secondary mb-2">OHLCV Window Size <span className="text-text-tertiary font-normal">(bars sent to AI)</span></label>
                                 <div className="flex flex-wrap gap-2">
-                                    {[{ k: 'both', l: '% Badge + Color' }, { k: 'badge', l: '% Badge only' }, { k: 'color', l: 'Color only' }].map(opt => {
-                                        const fvsCur = (() => { try { return JSON.parse(localStorage.getItem('praxis_future_vision_settings') || '{}'); } catch (_e) { return {}; } })();
-                                        const curDisplay = fvsCur.confidenceDisplay ?? 'both';
-                                        return (
-                                            <button key={opt.k}
-                                                onClick={() => {
-                                                    const cur = (() => { try { return JSON.parse(localStorage.getItem('praxis_future_vision_settings') || '{}'); } catch (_e) { return {}; } })();
-                                                    localStorage.setItem('praxis_future_vision_settings', JSON.stringify({ ...cur, confidenceDisplay: opt.k }));
-                                                    toast.success(`Confidence display: ${opt.l}`);
-                                                }}
-                                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${curDisplay === opt.k ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' : 'bg-background-elevated text-text-secondary border-border-default hover:border-violet-500/30 hover:text-violet-400'}`}
-                                            >
-                                                {opt.l}
-                                            </button>
-                                        );
-                                    })}
+                                    {[
+                                        { k: 24,  l: '24 bars',  hint: 'Fast — recent momentum focus' },
+                                        { k: 50,  l: '50 bars',  hint: 'Balanced — default' },
+                                        { k: 100, l: '100 bars', hint: 'Deep — structural patterns' },
+                                        { k: 200, l: '200 bars', hint: 'Max — full trend context (slower)' },
+                                    ].map(opt => (
+                                        <button key={opt.k}
+                                            title={opt.hint}
+                                            onClick={() => {
+                                                const cur = (() => { try { return JSON.parse(localStorage.getItem('praxis_future_vision_settings') || '{}'); } catch { return {}; } })();
+                                                localStorage.setItem('praxis_future_vision_settings', JSON.stringify({ ...cur, ohlcvBars: opt.k }));
+                                                setFvOhlcvBars(opt.k);
+                                                toast.success(`OHLCV window: ${opt.l}`);
+                                            }}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${fvOhlcvBars === opt.k ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' : 'bg-background-elevated text-text-secondary border-border-default hover:border-violet-500/30 hover:text-violet-400'}`}
+                                        >
+                                            {opt.l}
+                                        </button>
+                                    ))}
                                 </div>
+                                <p className="text-[11px] text-text-tertiary mt-1.5">* More bars = richer context but larger payload. On intraday (1m/5m), 24–50 bars recommended.</p>
                             </div>
                         </div>
 
