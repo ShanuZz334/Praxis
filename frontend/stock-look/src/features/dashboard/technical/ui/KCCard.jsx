@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreKCCard } from '../engine/TechnicalCompositeEngine';
 
-export default function KCCard({ cardId, data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function KCCard({ cardId, data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.kc.id);
     
     const settingsConfig = [
@@ -18,7 +19,7 @@ export default function KCCard({ cardId, data = null, manualOverride, lastUpdate
     const valObj = data?.kc || null;
     const currentPrice = data?.current_price || null;
 
-    const { score, bias, confidence, aiInsight } = scoreKCCard(valObj, currentPrice);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreKCCard(valObj, currentPrice), 'kc', tradingMode);
 
     const formatVal = (v) => (v !== null && v !== undefined && !isNaN(v) ? "₹" + parseFloat(v).toFixed(2) : '--');
 

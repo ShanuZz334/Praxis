@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreNhnlCard } from '../engine/TechnicalCompositeEngine';
 
-export default function NhnlCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function NhnlCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.nh_nl.id);
     
     // Resolve current value
@@ -13,7 +14,9 @@ export default function NhnlCard({ cardId, data = null, manualOverride, lastUpda
     const isLiveData = liveNHNL !== undefined && liveNHNL !== null;
     const currentValue = isLiveData ? liveNHNL : (manualOverride ?? null);
 
-    const { score, bias, confidence, aiInsight } = scoreNhnlCard(currentValue);
+    const rawScoreObj = scoreNhnlCard(currentValue);
+    const { score, bias: adjustedBias, confidence, aiInsight } = { ...rawScoreObj, ...applyModeAdjustment(rawScoreObj, 'nh_nl', tradingMode) };
+    const bias = adjustedBias;
 
     const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) : '--';
 return (

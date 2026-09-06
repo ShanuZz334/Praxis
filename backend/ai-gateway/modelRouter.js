@@ -39,6 +39,7 @@ export async function getRouteForTask(tier, taskType) {
             if (taskType === 'per_card_insight') explicitPref = routing.cardInsight;
             else if (taskType === 'page_header_insight') explicitPref = routing.headerInsight;
             else if (taskType === 'chat_conversation') explicitPref = routing.manualChat;
+            else if (taskType === 'future_vision_prediction') explicitPref = routing.futureVision;
             else explicitPref = routing.pageInsight; // Default map for others or actual pageInsight
             
             if (explicitPref && explicitPref.providerId && explicitPref.modelId) {
@@ -75,7 +76,7 @@ export async function getRouteForTask(tier, taskType) {
 
     if (tier === 3) {
         const ollamaSpecific = ['journal_behavioral_patterns'];
-        const cloudSpecific = ['stock_narrative', 'report_generation', 'strategy_suggestion', 'macro_cycle_assessment'];
+        const cloudSpecific = ['stock_narrative', 'report_generation', 'strategy_suggestion', 'macro_cycle_assessment', 'future_vision_prediction'];
         
         if (ollamaSpecific.includes(taskType)) {
             const ollama = available.find(p => p.providerId === 'ollama');
@@ -87,9 +88,31 @@ export async function getRouteForTask(tier, taskType) {
             });
             return routePlan;
         } else if (cloudSpecific.includes(taskType)) {
+            // Robust multi-tier fallback:
+            // 1. Explicit user-selected model is already at position 0 in routePlan
+            // 2. Fill with tier3_complex from other providers (not duplicating the same provider)
+            // 3. Then tier2_medium as lighter fallbacks
+            // 4. Then tier4_vision if available
+            // This ensures maximum coverage even if 2-3 providers are rate-limited
+            const explicitProviders = new Set(routePlan.map(r => r.provider));
+
+            // Tier 3 fallbacks (same tier, different providers)
             available.filter(p => p.providerId !== 'ollama').forEach(p => {
-                if (p.models.tier3_complex) routePlan.push({ provider: p.providerId, model: p.models.tier3_complex });
+                if (p.models.tier3_complex && !explicitProviders.has(p.providerId)) {
+                    routePlan.push({ provider: p.providerId, model: p.models.tier3_complex });
+                    explicitProviders.add(p.providerId); // prevent duplicating same provider in next loop
+                }
             });
+
+            // Tier 2 fallbacks (lighter models, but still structured JSON capable)
+            const allProviders = [...providers].sort((a, b) => a.priority - b.priority);
+            allProviders.filter(p => p.isActive && p.providerId !== 'ollama').forEach(p => {
+                if (p.models.tier2_medium && !explicitProviders.has(`${p.providerId}_t2`)) {
+                    routePlan.push({ provider: p.providerId, model: p.models.tier2_medium });
+                    explicitProviders.add(`${p.providerId}_t2`);
+                }
+            });
+
             return routePlan;
         }
         

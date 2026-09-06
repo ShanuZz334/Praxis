@@ -37,6 +37,7 @@ function getSectionDescription(key) {
         Liquidity: "DII/FII flows & market depth",
         Sector: "Relative strength & rotation",
         Corporate: "Governance, dividends & buybacks",
+        "Balance Sheet": "Debt, coverage, cash flow & liquidity",
         Global: "US/EU market correlation",
         Risk: "VIX, spreads & volatility"
     };

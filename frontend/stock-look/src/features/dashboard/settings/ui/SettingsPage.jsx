@@ -1479,6 +1479,64 @@ const SettingsPage = () => {
                             </div>
                         </div>
 
+                        {/* Future Vision Settings */}
+                        <div className="pt-6 border-t border-border-subtle animate-in fade-in duration-500">
+                            <div className="mb-4">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-sm font-medium text-text-primary">Future Vision</h3>
+                                    <span className="px-1.5 py-0.5 text-[9px] font-bold tracking-wider rounded-full bg-violet-500/10 text-violet-400 uppercase">AI Prediction</span>
+                                </div>
+                                <p className="text-xs text-text-secondary mt-1">Configure the AI predictive ghost candle engine on the chart toolbar.</p>
+                            </div>
+
+                            {/* Prediction Horizon Pill Selector */}
+                            <div className="mb-5">
+                                <label className="block text-xs font-medium text-text-secondary mb-2">Prediction Horizon (bars)</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {[3, 5, 7, 10, 15].map(n => {
+                                        const fvs = (() => { try { return JSON.parse(localStorage.getItem('praxis_future_vision_settings') || '{}'); } catch (_e) { return {}; } })();
+                                        const isCurrent = (fvs.horizonBars ?? 7) === n;
+                                        return (
+                                            <button key={n}
+                                                onClick={() => {
+                                                    const cur = (() => { try { return JSON.parse(localStorage.getItem('praxis_future_vision_settings') || '{}'); } catch (_e) { return {}; } })();
+                                                    localStorage.setItem('praxis_future_vision_settings', JSON.stringify({ ...cur, horizonBars: n }));
+                                                    toast.success(`Prediction horizon set to ${n} bars`);
+                                                }}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${isCurrent ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' : 'bg-background-elevated text-text-secondary border-border-default hover:border-violet-500/30 hover:text-violet-400'}`}
+                                            >
+                                                {n}{n === 7 ? ' *' : ''} bars
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <p className="text-[11px] text-text-tertiary mt-1.5">* Default (7). Longer horizons reduce confidence scores. &gt;10 bars on intraday not recommended.</p>
+                            </div>
+
+                            {/* Confidence Display Mode */}
+                            <div className="mb-5">
+                                <label className="block text-xs font-medium text-text-secondary mb-2">Confidence Score Display</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {[{ k: 'both', l: '% Badge + Color' }, { k: 'badge', l: '% Badge only' }, { k: 'color', l: 'Color only' }].map(opt => {
+                                        const fvsCur = (() => { try { return JSON.parse(localStorage.getItem('praxis_future_vision_settings') || '{}'); } catch (_e) { return {}; } })();
+                                        const curDisplay = fvsCur.confidenceDisplay ?? 'both';
+                                        return (
+                                            <button key={opt.k}
+                                                onClick={() => {
+                                                    const cur = (() => { try { return JSON.parse(localStorage.getItem('praxis_future_vision_settings') || '{}'); } catch (_e) { return {}; } })();
+                                                    localStorage.setItem('praxis_future_vision_settings', JSON.stringify({ ...cur, confidenceDisplay: opt.k }));
+                                                    toast.success(`Confidence display: ${opt.l}`);
+                                                }}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${curDisplay === opt.k ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' : 'bg-background-elevated text-text-secondary border-border-default hover:border-violet-500/30 hover:text-violet-400'}`}
+                                            >
+                                                {opt.l}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 )}
 

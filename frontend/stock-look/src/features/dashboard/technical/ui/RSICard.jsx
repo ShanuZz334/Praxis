@@ -2,10 +2,10 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
-
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 import { scoreRSICard } from '../engine/TechnicalCompositeEngine';
 
-export default function RSICard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function RSICard({ cardId, data = null, lastUpdated, tradingMode = 'swing', indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.rsi.id);
     
     const settingsConfig = [
@@ -15,7 +15,7 @@ export default function RSICard({ cardId, data = null, lastUpdated, indicatorPar
     // Resolve current value
     const currentValue = data?.rsi ?? null;
 
-    const { score, bias, confidence, aiInsight } = scoreRSICard(currentValue);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreRSICard(currentValue), 'rsi', tradingMode);
 
     const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) : '--';
     

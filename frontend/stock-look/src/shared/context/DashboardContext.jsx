@@ -2,39 +2,68 @@ import React, { createContext, useState, useEffect, useContext, useRef } from 'r
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { API_PATHS } from '@/shared/utils/apiPaths';
 import { FO_INDICES, FO_EQUITIES } from '../utils/foInstruments';
-import { getNifty50Keys } from '@/features/dashboard/master/data/nifty50';
+import { getNifty50Keys, NIFTY_50_MAPPING } from '@/features/dashboard/master/data/nifty50';
 import socket from '@/shared/utils/socket';
+import { saveIntelScore } from '@/shared/utils/intelCache';
 
 export const DashboardContext = createContext();
 
 export const useDashboardContext = () => useContext(DashboardContext);
 
 export const DashboardProvider = ({ children }) => {
+    // ─── Page State — now backed by SQLite via /api/v1/preferences/page-state ──
+    // Still use localStorage as the INSTANT read (so no flash on first render),
+    // then sync to SQLite in the background. On next load, SQLite is the source of truth.
     const [selectedCategory, setSelectedCategory] = useState(() => localStorage.getItem('dash_category') || "Indices");
     const [selectedInstrument, setSelectedInstrument] = useState(() => localStorage.getItem('dash_instrument') || "NSE_INDEX|Nifty 50");
     const [selectedExpiry, setSelectedExpiry] = useState(() => localStorage.getItem('dash_expiry') || "");
     const [expiries, setExpiries] = useState([]);
-    const [globalOrderTicket, setGlobalOrderTicket] = useState(null); // { type: 'FULL' | 'QUICK', data: {...} }
+    const [globalOrderTicket, setGlobalOrderTicket] = useState(null);
+    const [globalData, setGlobalData] = useState({});
 
-    // Persist to localStorage
+    // Persist page state to BOTH localStorage (instant) AND SQLite (durable)
+    const persistPageState = useRef(null);
     useEffect(() => {
         localStorage.setItem('dash_category', selectedCategory);
-    }, [selectedCategory]);
-
-    useEffect(() => {
         localStorage.setItem('dash_instrument', selectedInstrument);
-    }, [selectedInstrument]);
+        localStorage.setItem('dash_expiry', selectedExpiry);
+        // Debounce the SQLite write to avoid hammering on rapid changes
+        if (persistPageState.current) clearTimeout(persistPageState.current);
+        persistPageState.current = setTimeout(() => {
+            fetch('/api/v1/preferences/page-state', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    page_name: 'global',
+                    state: { category: selectedCategory, instrument: selectedInstrument, expiry: selectedExpiry }
+                })
+            }).catch(() => {});
+        }, 800);
+    }, [selectedCategory, selectedInstrument, selectedExpiry]);
 
     useEffect(() => {
-        localStorage.setItem('dash_expiry', selectedExpiry);
-    }, [selectedExpiry]);
+        let isMounted = true;
+        const fetchGlobal = async () => {
+            try {
+                const res = await axiosInstance.get('/api/v1/data/global');
+                if (isMounted && res.data?.status === 'success' && res.data.data) {
+                    setGlobalData(res.data.data);
+                }
+            } catch (err) {}
+        };
+        fetchGlobal();
+        const interval = setInterval(fetchGlobal, 60000);
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+        };
+    }, []);
 
     const [additionalCharts, setAdditionalCharts] = useState(() => {
         try {
             const saved = localStorage.getItem('praxis_master_charts');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                // Sanitize: Convert old raw strings into objects or filter them out
                 return Array.isArray(parsed) 
                     ? parsed.map(c => typeof c === 'string' ? { value: c, label: c.split('|').pop() } : c).filter(c => c && c.value)
                     : [];
@@ -47,6 +76,12 @@ export const DashboardProvider = ({ children }) => {
 
     useEffect(() => {
         localStorage.setItem('praxis_master_charts', JSON.stringify(additionalCharts));
+        // Also persist to SQLite page state
+        fetch('/api/v1/preferences/page-state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page_name: 'master', state: { extra_charts: additionalCharts } })
+        }).catch(() => {});
     }, [additionalCharts]);
     
     // Live Prices State
@@ -59,12 +94,12 @@ export const DashboardProvider = ({ children }) => {
     useEffect(() => {
         if (selectedCategory === "Indices") {
             if (!FO_INDICES.find(i => i.value === selectedInstrument)) {
-                setSelectedInstrument(FO_INDICES[0]?.value || "");
+                setSelectedInstrument("");
                 setSelectedExpiry("");
             }
         } else {
             if (!FO_EQUITIES.find(i => i.value === selectedInstrument)) {
-                setSelectedInstrument(FO_EQUITIES[0]?.value || "");
+                setSelectedInstrument("");
                 setSelectedExpiry("");
             }
         }
@@ -104,6 +139,9 @@ export const DashboardProvider = ({ children }) => {
         fetchExpiries();
     }, [selectedInstrument]);
 
+    // ─── Market Broadcast Caches — now backed by SQLite ──────────────────────
+    // On first load: still read from localStorage for zero-flash instant restore.
+    // Backend now also seeds these from SQLite so Socket.IO emits fresh data on connect.
     const [fiiDiiFlow, setFiiDiiFlow] = useState(() => {
         try { return JSON.parse(localStorage.getItem('dash_fiiDiiFlow')) || null; } catch { return null; }
     });
@@ -117,21 +155,12 @@ export const DashboardProvider = ({ children }) => {
         try { return JSON.parse(localStorage.getItem('dash_marketNews')) || null; } catch { return null; }
     });
 
-    useEffect(() => {
-        if (fiiDiiFlow) localStorage.setItem('dash_fiiDiiFlow', JSON.stringify(fiiDiiFlow));
-    }, [fiiDiiFlow]);
+    // Keep localStorage in sync for instant restore (SQLite handles durability on the backend)
+    useEffect(() => { if (fiiDiiFlow) localStorage.setItem('dash_fiiDiiFlow', JSON.stringify(fiiDiiFlow)); }, [fiiDiiFlow]);
+    useEffect(() => { if (smartlists) localStorage.setItem('dash_smartlists', JSON.stringify(smartlists)); }, [smartlists]);
+    useEffect(() => { if (sectors) localStorage.setItem('dash_sectors', JSON.stringify(sectors)); }, [sectors]);
+    useEffect(() => { if (marketNews) localStorage.setItem('dash_marketNews', JSON.stringify(marketNews)); }, [marketNews]);
 
-    useEffect(() => {
-        if (smartlists) localStorage.setItem('dash_smartlists', JSON.stringify(smartlists));
-    }, [smartlists]);
-
-    useEffect(() => {
-        if (sectors) localStorage.setItem('dash_sectors', JSON.stringify(sectors));
-    }, [sectors]);
-
-    useEffect(() => {
-        if (marketNews) localStorage.setItem('dash_marketNews', JSON.stringify(marketNews));
-    }, [marketNews]);
 
     // Throttle updates using a ref to prevent React from re-rendering the entire
     // dashboard tree on every single tick (which can be several times a second).
@@ -167,6 +196,14 @@ export const DashboardProvider = ({ children }) => {
             pendingUpdatesRef.current[normKey] = data;
             if (normKey !== instrumentKey) {
                 pendingUpdatesRef.current[instrumentKey] = data;
+            }
+            
+            // Map Upstox alias symbols (e.g. NSE_EQ|RELIANCE) back to their subscribed ISIN keys
+            if (normKey.startsWith('NSE_EQ|')) {
+                const shortSymbol = normKey.split('|')[1];
+                if (shortSymbol && NIFTY_50_MAPPING[shortSymbol]) {
+                    pendingUpdatesRef.current[NIFTY_50_MAPPING[shortSymbol]] = data;
+                }
             }
         };
 
@@ -226,6 +263,33 @@ export const DashboardProvider = ({ children }) => {
         const handleSectors = (data) => setSectors(data);
         const handleNews = (data) => setMarketNews(data);
 
+        // ── Backend Intelligence Cron → Frontend Score Bridge ──────────────────────
+        // The backend cron (backgroundIntelligenceService.js) computes EVT/GLOB/TECH/OPT/FUND
+        // scores every 30s–10min (mode-aware) and broadcasts them via 'intelligence:snapshot'.
+        // We listen here and immediately write to intelCache localStorage so useMasterComposite
+        // reads them in its next render cycle — this is how the Master Dashboard gets live scores
+        // without any page needing to be open.
+        const handleIntelligenceSnapshot = (payload) => {
+            if (!payload) return;
+            const instrKey = payload.instrument_key;
+            if (!instrKey) return;
+
+            if (payload.fundamental?.composite_score != null)
+                saveIntelScore('fund', instrKey, payload.fundamental.composite_score, payload.fundamental.regime, 'socket');
+            if (payload.technical?.composite_score != null)
+                saveIntelScore('tech', instrKey, payload.technical.composite_score, payload.technical.regime, 'socket');
+            if (payload.options?.composite_score != null)
+                saveIntelScore('opt', instrKey, payload.options.composite_score, null, 'socket');
+            if (payload.global?.composite_score != null)
+                saveIntelScore('glob', 'GLOBAL', payload.global.composite_score, payload.global.regime, 'socket');
+            if (payload.events?.composite_score != null)
+                saveIntelScore('evt', 'GLOBAL', payload.events.composite_score, null, 'socket');
+
+            // Trigger a lightweight re-read of module scores on the dashboard
+            // by dispatching a custom event that useMasterComposite can listen for
+            window.dispatchEvent(new CustomEvent('praxis:intel:update', { detail: payload }));
+        };
+
         const handleConnect = () => {
             // Resubscribe automatically if socket reconnects (e.g. after server restart)
             socket.emit("subscribe:instruments", { keys: keysToFetch, mode: "full" });
@@ -238,6 +302,7 @@ export const DashboardProvider = ({ children }) => {
         socket.on("market:smartlists", handleSmartlists);
         socket.on("market:sectors", handleSectors);
         socket.on("market:news", handleNews);
+        socket.on("intelligence:snapshot", handleIntelligenceSnapshot);
 
         return () => {
             clearInterval(flushInterval);
@@ -247,6 +312,7 @@ export const DashboardProvider = ({ children }) => {
             socket.off("market:smartlists", handleSmartlists);
             socket.off("market:sectors", handleSectors);
             socket.off("market:news", handleNews);
+            socket.off("intelligence:snapshot", handleIntelligenceSnapshot);
         };
     }, [selectedInstrument, additionalCharts]);
 
@@ -286,7 +352,8 @@ export const DashboardProvider = ({ children }) => {
         subscribeInstrumentKey,
         subscribeMultipleInstrumentKeys,
         globalOrderTicket,
-        setGlobalOrderTicket
+        setGlobalOrderTicket,
+        globalData
     };
 
     return (

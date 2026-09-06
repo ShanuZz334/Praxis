@@ -3,12 +3,19 @@ import UpstoxAuth from "../models/UpstoxAuth.js";
 import db from "../config/localDb.js";
 import { broadcast } from "./socketBroadcast.js";
 
-import { getUpstoxLiveToken } from "../utils/upstoxAuthHelper.js";
+import { getUpstoxAuthForMode, getExecutionMode } from "../utils/upstoxAuthHelper.js";
 
-const UPSTOX_BASE_URL = "https://api.upstox.com/v2";
-
-const getAuthToken = async () => {
-    return await getUpstoxLiveToken();
+const getActiveHeaders = async () => {
+    const activeAuth = await getUpstoxAuthForMode(getExecutionMode());
+    if (!activeAuth?.accessToken) throw new Error("Upstox token not available");
+    
+    return {
+        headers: {
+            "Accept": "application/json",
+            "Authorization": `Bearer ${activeAuth.accessToken}`
+        },
+        baseUrl: activeAuth.mode === 'sandbox' ? "https://api-sandbox.upstox.com/v2" : "https://api.upstox.com/v2"
+    };
 };
 
 const insertHoldingStmt = db.prepare(`
@@ -27,9 +34,9 @@ const insertHoldingStmt = db.prepare(`
 
 export const syncHoldings = async () => {
     try {
-        const token = await getAuthToken();
-        const response = await axios.get(`${UPSTOX_BASE_URL}/portfolio/long-term-holdings`, {
-            headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` }
+        const { headers, baseUrl } = await getActiveHeaders();
+        const response = await axios.get(`${baseUrl}/portfolio/long-term-holdings`, {
+            headers
         });
 
         const holdings = response.data?.data || [];
@@ -70,9 +77,9 @@ const insertPositionStmt = db.prepare(`
 
 export const syncPositions = async () => {
     try {
-        const token = await getAuthToken();
-        const response = await axios.get(`${UPSTOX_BASE_URL}/portfolio/short-term-positions`, {
-            headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` }
+        const { headers, baseUrl } = await getActiveHeaders();
+        const response = await axios.get(`${baseUrl}/portfolio/short-term-positions`, {
+            headers
         });
 
         const positions = response.data?.data || [];

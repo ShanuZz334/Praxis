@@ -12,15 +12,16 @@ export async function executeWithFallback(routePlan, providers, requestConfig) {
             continue;
         }
 
-        const providerModule = providers[route.provider];
+        const baseType = route.provider.split('_')[0];
+        const providerModule = providers[baseType];
         if (!providerModule) {
-            console.warn(`[AI Gateway] Provider ${route.provider} not implemented yet, skipping...`);
+            console.warn(`[AI Gateway] Provider ${route.provider} (Base: ${baseType}) not implemented yet, skipping...`);
             continue;
         }
 
         let providerAttempts = 0;
         
-        while (providerAttempts < 2) {
+        while (providerAttempts < 1) {
             providerAttempts++;
             attempts++;
             
@@ -30,6 +31,7 @@ export async function executeWithFallback(routePlan, providers, requestConfig) {
                 console.log(`[AI Gateway] Attempting ${route.provider} (${route.model}) - Try ${providerAttempts}`);
                 
                 const result = await providerModule.call({
+                    providerId: route.provider,
                     model: route.model,
                     ...requestConfig
                 });
@@ -51,6 +53,7 @@ export async function executeWithFallback(routePlan, providers, requestConfig) {
 
             } catch (error) {
                 console.error(`[AI Gateway] Error with ${route.provider}:`, error.message);
+                
                 if (error.message.includes('Malformed JSON')) {
                     console.warn(`[AI Gateway] Malformed JSON from ${route.provider}, retrying...`);
                     fallbackReason = "Malformed JSON";

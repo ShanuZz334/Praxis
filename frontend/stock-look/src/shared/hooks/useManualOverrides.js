@@ -1,167 +1,82 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
+
+const API_BASE = '/api/v1';
 
 /**
- * Universal hook for managing manual dashboard overrides via LocalStorage.
- * @param {string} moduleKey - Unique key for the dashboard module (e.g., "fundamentals", "options").
- * @param {string} instrument - The currently selected instrument (e.g., "NIFTY", "RELIANCE").
- * @param {object} defaultOverrides - The base structure of all null overrides for this module.
+ * Universal hook for managing manual dashboard overrides via SQLite (server-side).
+ * Drop-in replacement for the old localStorage-based version.
+ * External API is identical: { overrides, lastUpdated, expiryConfigs, handleChange, handleClearAll }
+ *
+ * @param {string} moduleKey - 'fundamentals', 'technical', 'options', 'foreign'
+ * @param {string} instrument - Instrument key e.g. 'NSE_INDEX|Nifty 50'
+ * @param {object} defaultOverrides - Base null-override structure for this module
  */
 export function useManualOverrides(moduleKey, instrument, defaultOverrides) {
-    const storageKey = `praxis_manual_overrides_${moduleKey}`;
-    const timeStorageKey = `praxis_manual_last_updated_${moduleKey}`;
+    const [overrides, setOverrides] = useState({ ...defaultOverrides });
+    const [lastUpdated, setLastUpdated] = useState({});
+    const debounceTimers = useRef({});
 
-    const getInitialOverrides = () => {
-        const stored = localStorage.getItem(storageKey);
-        if (stored) {
-            try {
-                const parsed = JSON.parse(stored);
-                if (parsed && parsed[instrument]) {
-                    return { ...defaultOverrides, ...parsed[instrument] };
+    const expiryConfigs = {
+        face_value: 30 * 24 * 60 * 60 * 1000, global_default: 2 * 60 * 60 * 1000,
+        mcap_gdp: 30 * 24 * 60 * 60 * 1000, eps_yoy: 30 * 24 * 60 * 60 * 1000,
+        forward_eps: 7 * 24 * 60 * 60 * 1000, profit_margin: 30 * 24 * 60 * 60 * 1000,
+        policy_tailwinds: 30 * 24 * 60 * 60 * 1000, fii_trend: 24 * 60 * 60 * 1000,
+        mf_flows: 30 * 24 * 60 * 60 * 1000, system_liquidity: 24 * 60 * 60 * 1000,
+        mcclellan: 24 * 60 * 60 * 1000, trin: 24 * 60 * 60 * 1000, kc: 24 * 60 * 60 * 1000,
+        cmf: 24 * 60 * 60 * 1000, support: 24 * 60 * 60 * 1000, resistance: 24 * 60 * 60 * 1000,
+        trendline: 24 * 60 * 60 * 1000, fibonacci: 24 * 60 * 60 * 1000, pivot: 24 * 60 * 60 * 1000,
+        iv_rank: 24 * 60 * 60 * 1000, iv_percentile: 24 * 60 * 60 * 1000, iv_lookback: 24 * 60 * 60 * 1000,
+        atm_iv: 24 * 60 * 60 * 1000, total_call_oi: 24 * 60 * 60 * 1000, total_put_oi: 24 * 60 * 60 * 1000,
+        oi_change: 24 * 60 * 60 * 1000, pcr_oi: 24 * 60 * 60 * 1000, pcr_volume: 24 * 60 * 60 * 1000,
+        max_pain: 24 * 60 * 60 * 1000, delta: 24 * 60 * 60 * 1000, gamma: 24 * 60 * 60 * 1000,
+        theta: 24 * 60 * 60 * 1000, vega: 24 * 60 * 60 * 1000
+    };
+
+    // Load overrides from SQLite when module or instrument changes
+    useEffect(() => {
+        if (!moduleKey || !instrument) return;
+        const encodedKey = encodeURIComponent(instrument);
+        fetch(`${API_BASE}/overrides/${moduleKey}/${encodedKey}`)
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === 'success' && res.data) {
+                    const loaded = { ...defaultOverrides };
+                    const times = {};
+                    for (const [fieldKey, entry] of Object.entries(res.data)) {
+                        loaded[fieldKey] = entry.value;
+                        times[fieldKey] = entry.updated_at ? new Date(entry.updated_at).getTime() : Date.now();
+                    }
+                    setOverrides(loaded);
+                    setLastUpdated(times);
                 }
-            } catch (e) { console.error(`Error parsing ${storageKey}`, e); }
-        }
-        return { ...defaultOverrides };
-    };
-
-    const getInitialLastUpdated = () => {
-        const stored = localStorage.getItem(timeStorageKey);
-        if (stored) {
-            try {
-                const parsed = JSON.parse(stored);
-                if (parsed && parsed[instrument]) return parsed[instrument]; // This should now be an object: { key: timestamp }
-            } catch (e) { console.error(`Error parsing ${timeStorageKey}`, e); }
-        }
-        return {};
-    };
-
-    const getExpiryConfigs = () => {
-        const defaults = { 
-            face_value: 30 * 24 * 60 * 60 * 1000, 
-            global_default: 2 * 60 * 60 * 1000,
-            mcap_gdp: 30 * 24 * 60 * 60 * 1000,
-            eps_yoy: 30 * 24 * 60 * 60 * 1000,
-            forward_eps: 7 * 24 * 60 * 60 * 1000,
-            profit_margin: 30 * 24 * 60 * 60 * 1000,
-            policy_tailwinds: 30 * 24 * 60 * 60 * 1000,
-            fii_trend: 24 * 60 * 60 * 1000,
-            mf_flows: 30 * 24 * 60 * 60 * 1000,
-            system_liquidity: 24 * 60 * 60 * 1000,
-            // Technical Module Overrides
-            mcclellan: 24 * 60 * 60 * 1000,
-            trin: 24 * 60 * 60 * 1000,
-            kc: 24 * 60 * 60 * 1000,
-            cmf: 24 * 60 * 60 * 1000,
-            support: 24 * 60 * 60 * 1000,
-            resistance: 24 * 60 * 60 * 1000,
-            trendline: 24 * 60 * 60 * 1000,
-            fibonacci: 24 * 60 * 60 * 1000,
-            pivot: 24 * 60 * 60 * 1000,
-            // Options Module Overrides
-            iv_rank: 24 * 60 * 60 * 1000,
-            iv_percentile: 24 * 60 * 60 * 1000,
-            iv_lookback: 24 * 60 * 60 * 1000,
-            atm_iv: 24 * 60 * 60 * 1000,
-            total_call_oi: 24 * 60 * 60 * 1000,
-            total_put_oi: 24 * 60 * 60 * 1000,
-            oi_change: 24 * 60 * 60 * 1000,
-            pcr_oi: 24 * 60 * 60 * 1000,
-            pcr_volume: 24 * 60 * 60 * 1000,
-            max_pain: 24 * 60 * 60 * 1000,
-            delta: 24 * 60 * 60 * 1000,
-            gamma: 24 * 60 * 60 * 1000,
-            theta: 24 * 60 * 60 * 1000,
-            vega: 24 * 60 * 60 * 1000
-        };
-        try {
-            const stored = localStorage.getItem('praxis_manual_expiry_config');
-            if (stored) return { ...defaults, ...JSON.parse(stored) };
-        } catch (e) { }
-        return defaults;
-    };
-
-    const [overrides, setOverrides] = useState(getInitialOverrides);
-    const [lastUpdated, setLastUpdated] = useState(getInitialLastUpdated);
-    const [expiryConfigs, setExpiryConfigs] = useState(getExpiryConfigs);
-
-    // Re-initialize state when instrument changes
-    useEffect(() => {
-        setOverrides(getInitialOverrides());
-        setLastUpdated(getInitialLastUpdated());
+            })
+            .catch(e => console.warn('[useManualOverrides] Failed to load from SQLite:', e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [instrument]);
-
-    // Listen for storage events (e.g. from global OverrideUpdateModal)
-    useEffect(() => {
-        const handleStorage = (e) => {
-            // A custom event triggers this with e = Event, which doesn't have e.key
-            if (!e.key || e.key === storageKey || e.key === timeStorageKey) {
-                setOverrides(getInitialOverrides());
-                setLastUpdated(getInitialLastUpdated());
-            }
-        };
-        window.addEventListener('storage', handleStorage);
-        return () => window.removeEventListener('storage', handleStorage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [instrument, storageKey, timeStorageKey]);
+    }, [moduleKey, instrument]);
 
     const handleChange = useCallback((key, val) => {
-        setOverrides(prev => {
-            const next = { ...prev, [key]: val };
-            
-            const stored = localStorage.getItem(storageKey);
-            let allOverrides = {};
-            if (stored) {
-                try { allOverrides = JSON.parse(stored); } catch (e) {}
-            }
-            allOverrides[instrument] = next;
-            localStorage.setItem(storageKey, JSON.stringify(allOverrides));
-            
-            return next;
-        });
-
         const timeVal = Date.now();
-        setLastUpdated(prev => {
-            const next = { ...prev, [key]: timeVal };
-            const storedTime = localStorage.getItem(timeStorageKey);
-            let allTimes = {};
-            if (storedTime) {
-                try { allTimes = JSON.parse(storedTime); } catch(e) {}
-            }
-            allTimes[instrument] = next;
-            localStorage.setItem(timeStorageKey, JSON.stringify(allTimes));
-            return next;
-        });
-    }, [instrument, storageKey, timeStorageKey]);
+        setOverrides(prev => ({ ...prev, [key]: val }));
+        setLastUpdated(prev => ({ ...prev, [key]: timeVal }));
 
-    const handleClearAll = () => {
-        const resetState = { ...defaultOverrides };
-        
-        const stored = localStorage.getItem(storageKey);
-        let allOverrides = {};
-        if (stored) {
-            try { allOverrides = JSON.parse(stored); } catch (e) {}
-        }
-        allOverrides[instrument] = resetState;
-        localStorage.setItem(storageKey, JSON.stringify(allOverrides));
-        
-        setOverrides(resetState);
-        
+        // Debounce the API write 400ms after last keystroke
+        if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key]);
+        debounceTimers.current[key] = setTimeout(() => {
+            fetch(`${API_BASE}/overrides`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ module_key: moduleKey, instrument_key: instrument, field_key: key, value: val })
+            }).catch(e => console.warn('[useManualOverrides] Failed to save to SQLite:', e.message));
+        }, 400);
+    }, [moduleKey, instrument]);
+
+    const handleClearAll = useCallback(() => {
+        setOverrides({ ...defaultOverrides });
         setLastUpdated({});
-        
-        const storedTime = localStorage.getItem(timeStorageKey);
-        let allTimes = {};
-        if (storedTime) {
-            try { allTimes = JSON.parse(storedTime); } catch(e) {}
-        }
-        allTimes[instrument] = {};
-        localStorage.setItem(timeStorageKey, JSON.stringify(allTimes));
-    };
+        const encodedKey = encodeURIComponent(instrument);
+        fetch(`${API_BASE}/overrides/${moduleKey}/${encodedKey}`, { method: 'DELETE' })
+            .catch(e => console.warn('[useManualOverrides] Failed to clear from SQLite:', e.message));
+    }, [moduleKey, instrument, defaultOverrides]);
 
-    return {
-        overrides,
-        lastUpdated,
-        expiryConfigs,
-        handleChange,
-        handleClearAll
-    };
+    return { overrides, lastUpdated, expiryConfigs, handleChange, handleClearAll };
 }

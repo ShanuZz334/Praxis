@@ -2,8 +2,9 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
-export default function BetaCorrelationCard({ cardId, data, manualOverride, lastUpdated }) {
+export default function BetaCorrelationCard({ cardId, data, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     // Expecting data: { beta: 1.2, correlation: 0.85 }
     let beta = data?.beta ?? null;
     const correlation = data?.correlation ?? null;
@@ -47,7 +48,7 @@ export default function BetaCorrelationCard({ cardId, data, manualOverride, last
                 details: [
                     correlation !== null && { label: 'Correlation', value: correlation.toFixed(2), isManual: false },
                 ].filter(Boolean),
-                score: score,
+                score: applyModeAdjustment({ score, bias }, 'beta_correlation', tradingMode)?.score ?? score,
                 bias: bias,
                 confidence: '95%',
                 impactWeight: configData.impactWeight

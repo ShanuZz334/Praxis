@@ -12,25 +12,14 @@
 import express from "express";
 import axios from "axios";
 import db from "../config/localDb.js";
-import { getUpstoxAuthForMode } from "../utils/upstoxAuthHelper.js";
+import { getUpstoxAuthForMode, getExecutionMode } from "../utils/upstoxAuthHelper.js";
 import { syncHoldings } from "../services/upstoxPortfolio.js";
 
-import UpstoxAuth from "../models/UpstoxAuth.js";
-
 const router = express.Router();
-const UPSTOX_V2 = "https://api.upstox.com/v2";
 
 /** Helper — determines active mode and returns headers and baseUrl */
 const getActiveHeaders = async () => {
-    const liveAuth = await UpstoxAuth.findOne({ mode: 'live' }).sort({ createdAt: -1 });
-    const sandboxAuth = await UpstoxAuth.findOne({ mode: 'sandbox' }).sort({ createdAt: -1 });
-    
-    let activeAuth = liveAuth;
-    if (liveAuth && sandboxAuth) {
-        activeAuth = liveAuth.updatedAt > sandboxAuth.updatedAt ? liveAuth : sandboxAuth;
-    } else if (sandboxAuth && !liveAuth) {
-        activeAuth = sandboxAuth;
-    }
+    const activeAuth = await getUpstoxAuthForMode(getExecutionMode());
     
     if (!activeAuth?.accessToken) throw new Error("Upstox token not available");
     

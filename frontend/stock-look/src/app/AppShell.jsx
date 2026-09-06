@@ -20,11 +20,14 @@
 // =============================
 import React from "react";
 import OverrideUpdateModal from "@/features/dashboard/messages/ui/OverrideUpdateModal";
+import { useHighImpactEventNotifier } from "@/shared/hooks/useHighImpactEventNotifier.jsx";
 
 // =============================
 // Main Component
 // =============================
 const AppShell = ({ children }) => {
+  useHighImpactEventNotifier();
+
   return (
     <main
       className="

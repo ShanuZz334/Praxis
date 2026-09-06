@@ -1,0 +1,1364 @@
+
+
+=== REPLACEMENT at 2026-09-06T08:43:27Z ===
+Target: import { calculateBollingerBands, calculateMACD, calculateKeltnerChannels, calculateDonchianChannels, calculatePSAR, calculateIchimoku, calculateAnchoredVWAP, calculateAutoFib, calculateRSIDivergence } from '../../utils/advancedIndicators';
+Replacement: import { calculateMACD, calculatePSAR, calculateIchimoku, calculateAnchoredVWAP, calculateAutoFib, calculateRSIDivergence } from '../../utils/advancedIndicators';
+import { computeAdaptiveBands } from '../../utils/adaptiveBandsEngine';
+
+
+=== REPLACEMENT at 2026-09-06T08:43:44Z ===
+Target: 
+    // Advanced Indicators Refs
+    const bbUpperRef = useRef(null);
+    const bbMiddleRef = useRef(null);
+    const bbLowerRef = useRef(null);
+    const macdLineRef = useRef(null);
+    const signalLineRef = useRef(null);
+    const macdHistRef = useRef(null);
+    const keltnerUpperRef = useRef(null);
+    const keltnerMiddleRef = useRef(null);
+    const keltnerLowerRef = useRef(null);
+    const donchianUpperRef = useRef(null);
+    const donchianMiddleRef = useRef(null);
+    const donchianLowerRef = useRef(null);
+Replacement: 
+    // Advanced Indicators Refs
+    // ── Adaptive Bands (replaces separate BB / KC / Donchian refs) ──────────
+    const bandOuterUpperRef = useRef(null);
+    const bandOuterLowerRef = useRef(null);
+    const bandMiddleRef     = useRef(null);
+    const bandInnerUpperRef = useRef(null);   // KC inner / Donchian 20-bar (null for BB)
+    const bandInnerLowerRef = useRef(null);
+    const macdLineRef = useRef(null);
+    const signalLineRef = useRef(null);
+    const macdHistRef = useRef(null);
+
+
+=== REPLACEMENT at 2026-09-06T08:43:59Z ===
+Target:     const [showMenu, setShowMenu] = useState(false);
+    const [showBollinger, setShowBollinger] = useState(false);
+    const [showMACD, setShowMACD] = useState(false);
+    const [showKeltner, setShowKeltner] = useState(false);
+    const [showDonchian, setShowDonchian] = useState(false);
+Replacement:     const [showMenu, setShowMenu] = useState(false);
+    // Unified Adaptive Bands state — replaces showBollinger, showKeltner, showDonchian
+    const [showAdaptiveBands, setShowAdaptiveBands] = useState(false);
+    const [bandsMode, setBandsMode] = useState('swing'); // 'scalp' | 'swing' | 'positional'
+    const [showMACD, setShowMACD] = useState(false);
+
+
+=== REPLACEMENT at 2026-09-06T08:44:14Z ===
+Target: 
+        // Advanced Indicators
+        bbUpperRef.current = chart.addSeries(LineSeries, { color: '#818cf8', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        bbMiddleRef.current = chart.addSeries(LineSeries, { color: '#818cf8', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        bbLowerRef.current = chart.addSeries(LineSeries, { color: '#818cf8', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+
+        macdHistRef.current = chart.addSeries(HistogramSeries, { priceScaleId: 'macd', priceFormat: { type: 'volume' } });
+        macdLineRef.current = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: '#2962FF', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        signalLineRef.current = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: '#FF6D00', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        chart.priceScale('macd').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+
+        keltnerUpperRef.current = chart.addSeries(LineSeries, { color: '#e879f9', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        keltnerMiddleRef.current = chart.addSeries(LineSeries, { color: '#e879f9', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        keltnerLowerRef.current = chart.addSeries(LineSeries, { color: '#e879f9', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+
+        donchianUpperRef.current = chart.addSeries(LineSeries, { color: '#9ca3af', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        donchianMiddleRef.current = chart.addSeries(LineSeries, { color: '#9ca3af', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        donchianLowerRef.current = chart.addSeries(LineSeries, { color: '#9ca3af', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+Replacement: 
+        // Advanced Indicators — Adaptive Bands (outer + middle + inner)
+        // Colors are overridden per-mode in the useEffect
+        bandOuterUpperRef.current = chart.addSeries(LineSeries, { color: '#fbbf24', lineWidth: 1, lineStyle: 0, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        bandOuterLowerRef.current = chart.addSeries(LineSeries, { color: '#fbbf24', lineWidth: 1, lineStyle: 0, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        bandMiddleRef.current     = chart.addSeries(LineSeries, { color: '#fbbf24', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        bandInnerUpperRef.current = chart.addSeries(LineSeries, { color: '#fbbf2466', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        bandInnerLowerRef.current = chart.addSeries(LineSeries, { color: '#fbbf2466', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+
+
+
+=== REPLACEMENT at 2026-09-06T08:44:37Z ===
+Target: 
+
+        psarRef.current = chart.addSeries(LineSeries, { color: '#06b6d4', lineWidth: 2, lineStyle: 3, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+Replacement:         macdHistRef.current = chart.addSeries(HistogramSeries, { priceScaleId: 'macd', priceFormat: { type: 'volume' } });
+        macdLineRef.current = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: '#2962FF', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        signalLineRef.current = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: '#FF6D00', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        chart.priceScale('macd').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+
+        psarRef.current = chart.addSeries(LineSeries, { color: '#06b6d4', lineWidth: 2, lineStyle: 3, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+
+
+=== REPLACEMENT at 2026-09-06T08:44:58Z ===
+Target:         if (showBollinger && bbUpperRef.current && bbMiddleRef.current && bbLowerRef.current) {
+            const bb = calculateBollingerBands(data, 20, 2);
+            bbUpperRef.current.setData(bb.upper);
+            bbMiddleRef.current.setData(bb.middle);
+            bbLowerRef.current.setData(bb.lower);
+        } else if (bbUpperRef.current) {
+            bbUpperRef.current.setData([]);
+            bbMiddleRef.current.setData([]);
+            bbLowerRef.current.setData([]);
+        }
+
+        if (showMACD && macdLineRef.current && signalLineRef.current && macdHistRef.current) {
+            const macd = calculateMACD(data);
+            macdLineRef.current.setData(macd.macd);
+            signalLineRef.current.setData(macd.signal);
+            macdHistRef.current.setData(macd.histogram);
+        } else if (macdLineRef.current) {
+            macdLineRef.current.setData([]);
+            signalLineRef.current.setData([]);
+            macdHistRef.current.setData([]);
+        }
+
+        if (showKeltner && keltnerUpperRef.current && keltnerMiddleRef.current && keltnerLowerRef.current) {
+            const kc = calculateKeltnerChannels(data, 20, 2);
+            keltnerUpperRef.current.setData(kc.upper);
+            keltnerMiddleRef.current.setData(kc.middle);
+            keltnerLowerRef.current.setData(kc.lower);
+        } else if (keltnerUpperRef.current) {
+            keltnerUpperRef.current.setData([]);
+            keltnerMiddleRef.current.setData([]);
+            keltnerLowerRef.current.setData([]);
+        }
+
+        if (showDonchian && donchianUpperRef.current && donchianMiddleRef.current && donchianLowerRef.current) {
+            const dc = calculateDonchianChannels(data, 20);
+            donchianUpperRef.current.setData(dc.upper);
+            donchianMiddleRef.current.setData(dc.middle);
+            donchianLowerRef.current.setData(dc.lower);
+        } else if (donchianUpperRef.current) {
+            donchianUpperRef.current.setData([]);
+            donchianMiddleRef.current.setData([]);
+            donchianLowerRef.current.setData([]);
+        }
+Replacement:         // ── Adaptive Bands — unified 3-mode institutional engine ─────────────
+        if (showAdaptiveBands && bandOuterUpperRef.current && bandOuterLowerRef.current && bandMiddleRef.current) {
+            // Per-mode color palette
+            const modeColors = {
+                scalp:      { outer: '#818cf8', inner: '#818cf866', middle: '#818cf8' }, // indigo  (BB)
+                swing:      { outer: '#fbbf24', inner: '#fbbf2466', middle: '#fbbf24' }, // amber   (KC)
+                positional: { outer: '#34d399', inner: '#34d39966', middle: '#6ee7b7' }, // emerald (Donchian)
+            };
+            const palette = modeColors[bandsMode] || modeColors.swing;
+
+            // Apply colors
+            bandOuterUpperRef.current.applyOptions({ color: palette.outer });
+            bandOuterLowerRef.current.applyOptions({ color: palette.outer });
+            bandMiddleRef.current.applyOptions({ color: palette.middle, lineStyle: 2 });
+            bandInnerUpperRef.current.applyOptions({ color: palette.inner });
+            bandInnerLowerRef.current.applyOptions({ color: palette.inner });
+
+            // Compute institutional-grade bands for this mode
+            const bands = computeAdaptiveBands(data, bandsMode);
+            bandOuterUpperRef.current.setData(bands.outer.upper);
+            bandOuterLowerRef.current.setData(bands.outer.lower);
+            bandMiddleRef.current.setData(bands.middle);
+            // Inner channel: KC has it, Donchian has it, BB (scalp) does not
+            bandInnerUpperRef.current.setData(bands.inner ? bands.inner.upper : []);
+            bandInnerLowerRef.current.setData(bands.inner ? bands.inner.lower : []);
+        } else if (bandOuterUpperRef.current) {
+            bandOuterUpperRef.current.setData([]);
+            bandOuterLowerRef.current.setData([]);
+            bandMiddleRef.current.setData([]);
+            bandInnerUpperRef.current.setData([]);
+            bandInnerLowerRef.current.setData([]);
+        }
+
+
+
+=== REPLACEMENT at 2026-09-06T08:45:25Z ===
+Target:         if (showPSAR && psarRef.current) {
+            psarRef.current.setData(calculatePSAR(data));
+        } else if (psarRef.current) {
+            psarRef.current.setData([]);
+        }
+Replacement:         if (showMACD && macdLineRef.current && signalLineRef.current && macdHistRef.current) {
+            const macd = calculateMACD(data);
+            macdLineRef.current.setData(macd.macd);
+            signalLineRef.current.setData(macd.signal);
+            macdHistRef.current.setData(macd.histogram);
+        } else if (macdLineRef.current) {
+            macdLineRef.current.setData([]);
+            signalLineRef.current.setData([]);
+            macdHistRef.current.setData([]);
+        }
+
+        if (showPSAR && psarRef.current) {
+            psarRef.current.setData(calculatePSAR(data));
+        } else if (psarRef.current) {
+            psarRef.current.setData([]);
+        }
+
+
+=== REPLACEMENT at 2026-09-06T08:45:46Z ===
+Target:     }, [data, showSupertrend, showVWAP, showEMA, showCPR, showBollinger, showMACD, showKeltner, showDonchian, showPSAR, showIchimoku, showAnchoredVWAP, showAutoFib, showRSI]);
+Replacement:     }, [data, showSupertrend, showVWAP, showEMA, showCPR, showAdaptiveBands, bandsMode, showMACD, showPSAR, showIchimoku, showAnchoredVWAP, showAutoFib, showRSI]);
+
+
+=== REPLACEMENT at 2026-09-06T08:45:59Z ===
+Target:                             <div className="grid grid-cols-4 gap-2">
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Bollinger Bands (20, 2)')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowBollinger(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showBollinger ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Waves size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'MACD (12, 26, 9)')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowMACD(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showMACD ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <TrendingUpDown size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Anchored VWAP')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowAnchoredVWAP(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAnchoredVWAP ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Anchor size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Auto Fibonacci')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowAutoFib(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAutoFib ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <AlignJustify size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Parabolic SAR')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowPSAR(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showPSAR ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <MoreHorizontal size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Ichimoku Cloud')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowIchimoku(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showIchimoku ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Cloud size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Keltner Channels')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowKeltner(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showKeltner ? 'bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Frame size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Donchian Channels')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowDonchian(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showDonchian ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <SlidersHorizontal size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'RSI Divergence')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowRSI(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showRSI ? 'bg-pink-500/15 text-pink-600 dark:text-pink-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Spline size={13} strokeWidth={2} />
+                                </button>
+                            </div>
+Replacement:                             <div className="grid grid-cols-4 gap-2">
+                                {/* ── Adaptive Bands — replaces Bollinger, Keltner, Donchian ── */}
+                                <div className="col-span-4 flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            onMouseEnter={(e) => handleMouseEnter(e, `Adaptive Bands — ${bandsMode === 'scalp' ? 'BB Scalp' : bandsMode === 'swing' ? 'KC Swing' : 'DC Positional'}`)}
+                                            onMouseLeave={() => setHoveredIndicator(null)}
+                                            onClick={() => setShowAdaptiveBands(p => !p)}
+                                            className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAdaptiveBands
+                                                ? bandsMode === 'scalp'      ? 'bg-indigo-500/15 text-indigo-400'
+                                                : bandsMode === 'positional' ? 'bg-emerald-500/15 text-emerald-400'
+                                                :                              'bg-amber-500/15 text-amber-400'
+                                                : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                        >
+                                            <Waves size={13} strokeWidth={2} />
+                                        </button>
+                                        {/* Mode toggle pills — visible only when bands are on */}
+                                        <AnimatePresence>
+                                            {showAdaptiveBands && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, x: -6 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    exit={{ opacity: 0, x: -6 }}
+                                                    transition={{ duration: 0.12 }}
+                                                    className="flex items-center gap-1"
+                                                >
+                                                    {[
+                                                        { id: 'scalp',      label: 'SCP', color: 'indigo' },
+                                                        { id: 'swing',      label: 'SWG', color: 'amber'  },
+                                                        { id: 'positional', label: 'POS', color: 'emerald'},
+                                                    ].map(m => (
+                                                        <button
+                                                            key={m.id}
+                                                            onMouseEnter={(e) => handleMouseEnter(e,
+                                                                m.id === 'scalp'      ? 'Scalp — Bollinger Bands (20, 2σ sample)'
+                                                                : m.id === 'swing'    ? 'Swing — Keltner Channels (EMA20, ATR14)'
+                                                                :                       'Positional — Donchian Dual Channel (50+20)'
+                                                            )}
+                                                            onMouseLeave={() => setHoveredIndicator(null)}
+                                                            onClick={() => setBandsMode(m.id)}
+                                                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide transition-all duration-150
+                                                                ${bandsMode === m.id
+                                                                    ? m.color === 'indigo'  ? 'bg-indigo-500/20  text-indigo-300  border border-indigo-400/40'
+                                                                    : m.color === 'amber'   ? 'bg-amber-500/20   text-amber-300   border border-amber-400/40'
+                                                                    :                         'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40'
+                                                                    : 'bg-white/5 text-white/30 border border-white/8 hover:text-white/60 hover:bg-white/10'
+                                                                }`}
+                                                        >
+                                                            {m.label}
+                                                        </button>
+                                                    ))}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+
+                                {/* Remaining indicators */}
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'MACD (12, 26, 9)')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowMACD(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showMACD ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <TrendingUpDown size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Anchored VWAP')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowAnchoredVWAP(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAnchoredVWAP ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Anchor size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Auto Fibonacci')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowAutoFib(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAutoFib ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <AlignJustify size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Parabolic SAR')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowPSAR(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showPSAR ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <MoreHorizontal size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Ichimoku Cloud')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowIchimoku(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showIchimoku ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Cloud size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'RSI Divergence')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowRSI(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showRSI ? 'bg-pink-500/15 text-pink-600 dark:text-pink-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Spline size={13} strokeWidth={2} />
+                                </button>
+                            </div>
+
+
+=== REPLACEMENT at 2026-09-06T08:51:06Z ===
+Target:                             <div className="grid grid-cols-4 gap-2">
+                                {/* ── Adaptive Bands — replaces Bollinger, Keltner, Donchian ── */}
+                                <div className="col-span-4 flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            onMouseEnter={(e) => handleMouseEnter(e, `Adaptive Bands — ${bandsMode === 'scalp' ? 'BB Scalp' : bandsMode === 'swing' ? 'KC Swing' : 'DC Positional'}`)}
+                                            onMouseLeave={() => setHoveredIndicator(null)}
+                                            onClick={() => setShowAdaptiveBands(p => !p)}
+                                            className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAdaptiveBands
+                                                ? bandsMode === 'scalp'      ? 'bg-indigo-500/15 text-indigo-400'
+                                                : bandsMode === 'positional' ? 'bg-emerald-500/15 text-emerald-400'
+                                                :                              'bg-amber-500/15 text-amber-400'
+                                                : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                        >
+                                            <Waves size={13} strokeWidth={2} />
+                                        </button>
+                                        {/* Mode toggle pills — visible only when bands are on */}
+                                        <AnimatePresence>
+                                            {showAdaptiveBands && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, x: -6 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    exit={{ opacity: 0, x: -6 }}
+                                                    transition={{ duration: 0.12 }}
+                                                    className="flex items-center gap-1"
+                                                >
+                                                    {[
+                                                        { id: 'scalp',      label: 'SCP', color: 'indigo' },
+                                                        { id: 'swing',      label: 'SWG', color: 'amber'  },
+                                                        { id: 'positional', label: 'POS', color: 'emerald'},
+                                                    ].map(m => (
+                                                        <button
+                                                            key={m.id}
+                                                            onMouseEnter={(e) => handleMouseEnter(e,
+                                                                m.id === 'scalp'      ? 'Scalp — Bollinger Bands (20, 2σ sample)'
+                                                                : m.id === 'swing'    ? 'Swing — Keltner Channels (EMA20, ATR14)'
+                                                                :                       'Positional — Donchian Dual Channel (50+20)'
+                                                            )}
+                                                            onMouseLeave={() => setHoveredIndicator(null)}
+                                                            onClick={() => setBandsMode(m.id)}
+                                                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide transition-all duration-150
+                                                                ${bandsMode === m.id
+                                                                    ? m.color === 'indigo'  ? 'bg-indigo-500/20  text-indigo-300  border border-indigo-400/40'
+                                                                    : m.color === 'amber'   ? 'bg-amber-500/20   text-amber-300   border border-amber-400/40'
+                                                                    :                         'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40'
+                                                                    : 'bg-white/5 text-white/30 border border-white/8 hover:text-white/60 hover:bg-white/10'
+                                                                }`}
+                                                        >
+                                                            {m.label}
+                                                        </button>
+                                                    ))}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+
+                                {/* Remaining indicators */}
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'MACD (12, 26, 9)')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowMACD(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showMACD ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <TrendingUpDown size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Anchored VWAP')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowAnchoredVWAP(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAnchoredVWAP ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Anchor size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Auto Fibonacci')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowAutoFib(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAutoFib ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <AlignJustify size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Parabolic SAR')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowPSAR(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showPSAR ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <MoreHorizontal size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'Ichimoku Cloud')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowIchimoku(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showIchimoku ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Cloud size={13} strokeWidth={2} />
+                                </button>
+                                <button
+                                    onMouseEnter={(e) => handleMouseEnter(e, 'RSI Divergence')}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    onClick={() => setShowRSI(p => !p)}
+                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showRSI ? 'bg-pink-500/15 text-pink-600 dark:text-pink-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <Spline size={13} strokeWidth={2} />
+                                </button>
+                            </div>
+Replacement:                             <div className="flex flex-col gap-2">
+                                <div className="grid grid-cols-4 gap-2">
+                                    {/* ── Adaptive Bands ── */}
+                                    <button
+                                        onMouseEnter={(e) => handleMouseEnter(e, `Adaptive Bands — ${bandsMode === 'scalp' ? 'BB Scalp' : bandsMode === 'swing' ? 'KC Swing' : 'DC Positional'}`)}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        onClick={() => setShowAdaptiveBands(p => !p)}
+                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAdaptiveBands
+                                            ? bandsMode === 'scalp'      ? 'bg-indigo-500/15 text-indigo-400'
+                                            : bandsMode === 'positional' ? 'bg-emerald-500/15 text-emerald-400'
+                                            :                              'bg-amber-500/15 text-amber-400'
+                                            : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <Waves size={13} strokeWidth={2} />
+                                    </button>
+
+                                    {/* Remaining indicators */}
+                                    <button
+                                        onMouseEnter={(e) => handleMouseEnter(e, 'MACD (12, 26, 9)')}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        onClick={() => setShowMACD(p => !p)}
+                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showMACD ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <TrendingUpDown size={13} strokeWidth={2} />
+                                    </button>
+                                    <button
+                                        onMouseEnter={(e) => handleMouseEnter(e, 'Anchored VWAP')}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        onClick={() => setShowAnchoredVWAP(p => !p)}
+                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAnchoredVWAP ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <Anchor size={13} strokeWidth={2} />
+                                    </button>
+                                    <button
+                                        onMouseEnter={(e) => handleMouseEnter(e, 'Auto Fibonacci')}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        onClick={() => setShowAutoFib(p => !p)}
+                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAutoFib ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <AlignJustify size={13} strokeWidth={2} />
+                                    </button>
+                                    <button
+                                        onMouseEnter={(e) => handleMouseEnter(e, 'Parabolic SAR')}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        onClick={() => setShowPSAR(p => !p)}
+                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showPSAR ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <MoreHorizontal size={13} strokeWidth={2} />
+                                    </button>
+                                    <button
+                                        onMouseEnter={(e) => handleMouseEnter(e, 'Ichimoku Cloud')}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        onClick={() => setShowIchimoku(p => !p)}
+                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showIchimoku ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <Cloud size={13} strokeWidth={2} />
+                                    </button>
+                                    <button
+                                        onMouseEnter={(e) => handleMouseEnter(e, 'RSI Divergence')}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        onClick={() => setShowRSI(p => !p)}
+                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showRSI ? 'bg-pink-500/15 text-pink-600 dark:text-pink-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <Spline size={13} strokeWidth={2} />
+                                    </button>
+                                </div>
+
+                                {/* Mode toggle pills — visible only when bands are on */}
+                                <AnimatePresence>
+                                    {showAdaptiveBands && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -6, height: 0 }}
+                                            animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                            exit={{ opacity: 0, y: -6, height: 0 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="flex items-center justify-between bg-black/5 dark:bg-white/5 p-1 rounded-md"
+                                        >
+                                            {[
+                                                { id: 'scalp',      label: 'SCP', color: 'indigo' },
+                                                { id: 'swing',      label: 'SWG', color: 'amber'  },
+                                                { id: 'positional', label: 'POS', color: 'emerald'},
+                                            ].map(m => (
+                                                <button
+                                                    key={m.id}
+                                                    onMouseEnter={(e) => handleMouseEnter(e,
+                                                        m.id === 'scalp'      ? 'Scalp — Bollinger Bands (20, 2σ sample)'
+                                                        : m.id === 'swing'    ? 'Swing — Keltner Channels (EMA20, ATR14)'
+                                                        :                       'Positional — Donchian Dual Channel (50+20)'
+                                                    )}
+                                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                                    onClick={() => setBandsMode(m.id)}
+                                                    className={`flex-1 px-1 py-1 rounded text-[10px] font-bold tracking-wide transition-all duration-150 mx-0.5
+                                                        ${bandsMode === m.id
+                                                            ? m.color === 'indigo'  ? 'bg-indigo-500/20  text-indigo-400  border border-indigo-500/30 shadow-sm'
+                                                            : m.color === 'amber'   ? 'bg-amber-500/20   text-amber-400   border border-amber-500/30 shadow-sm'
+                                                            :                         'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                                                            : 'bg-transparent text-slate-500 dark:text-white/40 border border-transparent hover:text-slate-800 dark:hover:text-white/80 hover:bg-black/5 dark:hover:bg-white/10'
+                                                        }`}
+                                                >
+                                                    {m.label}
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+
+=== REPLACEMENT at 2026-09-06T08:58:15Z ===
+Target:     // Unified Adaptive Bands state — replaces showBollinger, showKeltner, showDonchian
+    const [showAdaptiveBands, setShowAdaptiveBands] = useState(false);
+    const [bandsMode, setBandsMode] = useState('swing'); // 'scalp' | 'swing' | 'positional'
+    const [showMACD, setShowMACD] = useState(false);
+    const [showPSAR, setShowPSAR] = useState(false);
+    const [showIchimoku, setShowIchimoku] = useState(false);
+    const [showAnchoredVWAP, setShowAnchoredVWAP] = useState(false);
+    const [showAutoFib, setShowAutoFib] = useState(false);
+    const [showRSI, setShowRSI] = useState(false);
+    
+    const [hoveredIndicator, setHoveredIndicator] = useState(null);
+
+    const { theme } = useTheme();
+Replacement:     // Unified Adaptive Bands state — replaces showBollinger, showKeltner, showDonchian
+    const [showAdaptiveBands, setShowAdaptiveBands] = useState(false);
+    const [showMACD, setShowMACD] = useState(false);
+    const [showPSAR, setShowPSAR] = useState(false);
+    const [showIchimoku, setShowIchimoku] = useState(false);
+    const [showAnchoredVWAP, setShowAnchoredVWAP] = useState(false);
+    const [showAutoFib, setShowAutoFib] = useState(false);
+    const [showRSI, setShowRSI] = useState(false);
+    
+    const [hoveredIndicator, setHoveredIndicator] = useState(null);
+
+    const { theme, tradingMode } = useTheme();
+    // Derive bandsMode from global tradingMode (intraday -> scalp)
+    const bandsMode = tradingMode === 'intraday' ? 'scalp' : (tradingMode || 'swing');
+
+
+=== REPLACEMENT at 2026-09-06T08:59:15Z ===
+Target:                                 {/* Mode toggle pills — visible only when bands are on */}
+                                <AnimatePresence>
+                                    {showAdaptiveBands && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -6, height: 0 }}
+                                            animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                            exit={{ opacity: 0, y: -6, height: 0 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="flex items-center justify-between bg-black/5 dark:bg-white/5 p-1 rounded-md"
+                                        >
+                                            {[
+                                                { id: 'scalp',      label: 'SCP', color: 'indigo' },
+                                                { id: 'swing',      label: 'SWG', color: 'amber'  },
+                                                { id: 'positional', label: 'POS', color: 'emerald'},
+                                            ].map(m => (
+                                                <button
+                                                    key={m.id}
+                                                    onMouseEnter={(e) => handleMouseEnter(e,
+                                                        m.id === 'scalp'      ? 'Scalp — Bollinger Bands (20, 2σ sample)'
+                                                        : m.id === 'swing'    ? 'Swing — Keltner Channels (EMA20, ATR14)'
+                                                        :                       'Positional — Donchian Dual Channel (50+20)'
+                                                    )}
+                                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                                    onClick={() => setBandsMode(m.id)}
+                                                    className={`flex-1 px-1 py-1 rounded text-[10px] font-bold tracking-wide transition-all duration-150 mx-0.5
+                                                        ${bandsMode === m.id
+                                                            ? m.color === 'indigo'  ? 'bg-indigo-500/20  text-indigo-400  border border-indigo-500/30 shadow-sm'
+                                                            : m.color === 'amber'   ? 'bg-amber-500/20   text-amber-400   border border-amber-500/30 shadow-sm'
+                                                            :                         'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                                                            : 'bg-transparent text-slate-500 dark:text-white/40 border border-transparent hover:text-slate-800 dark:hover:text-white/80 hover:bg-black/5 dark:hover:bg-white/10'
+                                                        }`}
+                                                >
+                                                    {m.label}
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+Replacement:                             </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+
+=== REPLACEMENT at 2026-09-06T09:34:59Z ===
+Target: import { PencilRuler, Activity, TrendingUp, BarChart2, Layers, Plus, Waves, TrendingUpDown, Anchor, AlignJustify, MoreHorizontal, Cloud, Frame, SlidersHorizontal, Spline } from 'lucide-react';
+import DrawingToolbar, { COLORS } from './drawing/DrawingToolbar';
+import DrawingCanvas from './drawing/DrawingCanvas';
+import { useDrawings } from './drawing/useDrawings';
+import { calculateSupertrend, calculateVWAP, calculateEMA, calculateCPR } from '../../utils/chartUtils';
+import { calculateMACD, calculatePSAR, calculateIchimoku, calculateAnchoredVWAP, calculateAutoFib, calculateRSIDivergence } from '../../utils/advancedIndicators';
+import { computeAdaptiveBands } from '../../utils/adaptiveBandsEngine';
+import { useTheme } from '../../context/ThemeContext';
+import { FO_INDICES, FO_EQUITIES } from '../../utils/foInstruments';
+Replacement: import { PencilRuler, Activity, TrendingUp, BarChart2, Layers, Plus, Waves, TrendingUpDown, Anchor, AlignJustify, MoreHorizontal, Cloud, Frame, SlidersHorizontal, Spline, Telescope, Loader2 } from 'lucide-react';
+import DrawingToolbar, { COLORS } from './drawing/DrawingToolbar';
+import DrawingCanvas from './drawing/DrawingCanvas';
+import { useDrawings } from './drawing/useDrawings';
+import { calculateSupertrend, calculateVWAP, calculateEMA, calculateCPR } from '../../utils/chartUtils';
+import { calculateMACD, calculatePSAR, calculateIchimoku, calculateAnchoredVWAP, calculateAutoFib, calculateRSIDivergence } from '../../utils/advancedIndicators';
+import { computeAdaptiveBands } from '../../utils/adaptiveBandsEngine';
+import { assembleContext, getFVSettings } from '../../utils/futureVisionContextAssembler';
+import { storePrediction, scoreClosedCandle, getPAESession, clearPAESession, computeConfidence } from '../../utils/predictionAccuracyEngine';
+import axiosInstance from '../../utils/axiosInstance';
+import { useTheme } from '../../context/ThemeContext';
+import { FO_INDICES, FO_EQUITIES } from '../../utils/foInstruments';
+
+
+=== REPLACEMENT at 2026-09-06T09:35:19Z ===
+Target:     const ichimokuSpanBRef = useRef(null);
+    const anchoredVwapRef = useRef(null);
+    const autoFibLinesRef = useRef([]);
+    const rsiRef = useRef(null);
+    const lastDataTimeRef = useRef(null);
+    const hiddenFutureSeriesRef = useRef(null);
+    const volumeDataRef = useRef([]);
+    const visibleMaxVolRef = useRef(0);
+    
+    const [showSupertrend, setShowSupertrend] = useState(false);
+    const [showVWAP, setShowVWAP] = useState(false);
+    const [showEMA, setShowEMA] = useState(false);
+    const [showCPR, setShowCPR] = useState(false);
+    
+    const [showMenu, setShowMenu] = useState(false);
+    // Unified Adaptive Bands state — replaces showBollinger, showKeltner, showDonchian
+    const [showAdaptiveBands, setShowAdaptiveBands] = useState(false);
+    const [showMACD, setShowMACD] = useState(false);
+    const [showPSAR, setShowPSAR] = useState(false);
+    const [showIchimoku, setShowIchimoku] = useState(false);
+    const [showAnchoredVWAP, setShowAnchoredVWAP] = useState(false);
+    const [showAutoFib, setShowAutoFib] = useState(false);
+    const [showRSI, setShowRSI] = useState(false);
+    
+    const [hoveredIndicator, setHoveredIndicator] = useState(null);
+
+    const { theme, tradingMode } = useTheme();
+    // Derive bandsMode from global tradingMode (intraday -> scalp)
+    const bandsMode = tradingMode === 'intraday' ? 'scalp' : (tradingMode || 'swing');
+    const isLight = theme === 'light';
+Replacement:     const ichimokuSpanBRef = useRef(null);
+    const anchoredVwapRef = useRef(null);
+    const autoFibLinesRef = useRef([]);
+    const rsiRef = useRef(null);
+    const lastDataTimeRef = useRef(null);
+    const hiddenFutureSeriesRef = useRef(null);
+    const volumeDataRef = useRef([]);
+    const visibleMaxVolRef = useRef(0);
+    // Future Vision ghost candle refs
+    const ghostCandleSeriesRef  = useRef(null);
+    const ghostUpperConeRef     = useRef(null);
+    const ghostLowerConeRef     = useRef(null);
+    const fvSessionRef          = useRef(null); // { candles, instrumentKey, timeframe, lastBarIndex }
+    const fvLiveBarIndexRef     = useRef(0);    // tracks which ghost bar we're currently scoring
+
+    const [showSupertrend, setShowSupertrend] = useState(false);
+    const [showVWAP, setShowVWAP] = useState(false);
+    const [showEMA, setShowEMA] = useState(false);
+    const [showCPR, setShowCPR] = useState(false);
+    
+    const [showMenu, setShowMenu] = useState(false);
+    // Unified Adaptive Bands state — replaces showBollinger, showKeltner, showDonchian
+    const [showAdaptiveBands, setShowAdaptiveBands] = useState(false);
+    const [showMACD, setShowMACD] = useState(false);
+    const [showPSAR, setShowPSAR] = useState(false);
+    const [showIchimoku, setShowIchimoku] = useState(false);
+    const [showAnchoredVWAP, setShowAnchoredVWAP] = useState(false);
+    const [showAutoFib, setShowAutoFib] = useState(false);
+    const [showRSI, setShowRSI] = useState(false);
+    // Future Vision state
+    const [fvActive, setFvActive]       = useState(false); // ghost candles visible
+    const [fvLoading, setFvLoading]     = useState(false); // AI request in flight
+    const [fvPAE, setFvPAE]             = useState(null);  // live PAE scores for HUD
+    const [fvBias, setFvBias]           = useState(null);  // 'bullish'|'bearish'|'neutral'
+    const [fvRisk, setFvRisk]           = useState('');    // key_risk string from AI
+    
+    const [hoveredIndicator, setHoveredIndicator] = useState(null);
+
+    const { theme, tradingMode } = useTheme();
+    // Derive bandsMode from global tradingMode (intraday -> scalp)
+    const bandsMode = tradingMode === 'intraday' ? 'scalp' : (tradingMode || 'swing');
+    const isLight = theme === 'light';
+
+
+=== REPLACEMENT at 2026-09-06T09:35:45Z ===
+Target:         rsiRef.current = chart.addSeries(LineSeries, { priceScaleId: 'rsi', color: '#a78bfa', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        chart.priceScale('rsi').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+Replacement:         rsiRef.current = chart.addSeries(LineSeries, { priceScaleId: 'rsi', color: '#a78bfa', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        chart.priceScale('rsi').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+
+        // ── Future Vision Ghost Candle Series ─────────────────────────────────────
+        // CandlestickSeries rendered as translucent ghost candles for AI predictions
+        ghostCandleSeriesRef.current = chart.addSeries(CandlestickSeries, {
+            upColor:         'rgba(167,139,250,0.3)',   // violet-400
+            downColor:       'rgba(239,68,68,0.25)',    // red-500
+            borderUpColor:   'rgba(167,139,250,0.8)',
+            borderDownColor: 'rgba(239,68,68,0.7)',
+            wickUpColor:     'rgba(167,139,250,0.6)',
+            wickDownColor:   'rgba(239,68,68,0.5)',
+            borderVisible:   true,
+            priceLineVisible:      false,
+            lastValueVisible:      false,
+            crosshairMarkerVisible: false,
+        });
+        // Uncertainty cone: area between highest-high and lowest-low of all predicted bars
+        ghostUpperConeRef.current = chart.addSeries(LineSeries, {
+            color: 'rgba(167,139,250,0.12)', lineWidth: 1, lineStyle: 2,
+            priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+        });
+        ghostLowerConeRef.current = chart.addSeries(LineSeries, {
+            color: 'rgba(167,139,250,0.12)', lineWidth: 1, lineStyle: 2,
+            priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+        });
+
+
+=== REPLACEMENT at 2026-09-06T09:36:04Z ===
+Target:         } catch (e) {
+            // Ignore error if live tick is older than our latest historical candle
+        }
+    }, [liveCandle]);
+
+
+Replacement:         } catch (e) {
+            // Ignore error if live tick is older than our latest historical candle
+        }
+    }, [liveCandle]);
+
+    // ── Future Vision: PAE Scoring on live bar close ────────────────────────────
+    // When FV is active and a new live tick arrives, check if a new bar has closed
+    // and score it against the stored prediction.
+    useEffect(() => {
+        if (!fvActive || !liveCandle || !fvSessionRef.current) return;
+
+        const session = fvSessionRef.current;
+        const barIdx  = fvLiveBarIndexRef.current;
+
+        // Check if this liveCandle is a new bar (time changed from previous)
+        // We compare against the last scored bar's time
+        if (barIdx < session.candles.length) {
+            const barScore = scoreClosedCandle(
+                session.instrumentKey,
+                session.timeframe,
+                barIdx,
+                liveCandle
+            );
+            if (barScore) {
+                fvLiveBarIndexRef.current = barIdx + 1;
+                // Update PAE HUD
+                const paeSession = getPAESession(session.instrumentKey, session.timeframe);
+                setFvPAE(paeSession);
+
+                // Dim the ghost candle that was just scored
+                if (ghostCandleSeriesRef.current && session.candles[barIdx]) {
+                    // Mark correct/wrong by adjusting opacity (done via full re-render below)
+                    _renderGhostCandles(session.candles, session.times, true);
+                }
+            }
+        }
+    }, [liveCandle, fvActive]);
+
+    // ── Future Vision: Trigger Function ─────────────────────────────────────────
+    const triggerFutureVision = async () => {
+        if (fvLoading) return;
+
+        // If active, toggle off (clear ghosts)
+        if (fvActive) {
+            setFvActive(false);
+            setFvBias(null);
+            setFvRisk('');
+            setFvPAE(null);
+            fvSessionRef.current = null;
+            fvLiveBarIndexRef.current = 0;
+            if (ghostCandleSeriesRef.current) ghostCandleSeriesRef.current.setData([]);
+            if (ghostUpperConeRef.current)    ghostUpperConeRef.current.setData([]);
+            if (ghostLowerConeRef.current)    ghostLowerConeRef.current.setData([]);
+            return;
+        }
+
+        if (!data || data.length === 0) return;
+
+        setFvLoading(true);
+        try {
+            const fvSettings = getFVSettings();
+            const horizonBars = fvSettings.horizonBars;
+
+            // Assemble 6-block context payload
+            const contextPayload = assembleContext({
+                ohlcv:         data,
+                instrumentKey,
+                symbol:        instrumentKey.split('|')[0] || instrumentKey,
+                timeframe,
+                tradingMode:   tradingMode || 'swing',
+                indicators:    {}, // TODO: pass live indicator snapshot when available
+                fundamentals:  fundamentalData || {},
+                events:        events || [],
+                horizonBars,
+            });
+
+            // Call backend
+            const res = await axiosInstance.post('/api/v1/future-vision/predict', {
+                contextPayload,
+                instrumentKey,
+                horizonBars,
+            });
+
+            const { candles, overall_bias, key_risk } = res.data;
+
+            // Store prediction in PAE engine
+            clearPAESession(instrumentKey, timeframe);
+            storePrediction(instrumentKey, timeframe, tradingMode || 'swing', candles);
+            fvLiveBarIndexRef.current = 0;
+
+            // Generate future timestamps for ghost candles
+            const lastCandle = data[data.length - 1];
+            const timeDiff = data.length > 1 ? (
+                typeof lastCandle.time === 'number'
+                    ? lastCandle.time - data[data.length - 2].time
+                    : 86400
+            ) : 86400;
+
+            const times = candles.map((_, i) => {
+                if (typeof lastCandle.time === 'number') return lastCandle.time + timeDiff * (i + 1);
+                return lastCandle.time; // fallback — chart handles string times too
+            });
+
+            // Store session for PAE
+            fvSessionRef.current = { candles, instrumentKey, timeframe, times };
+
+            // Render ghost candles
+            _renderGhostCandles(candles, times, false);
+
+            setFvBias(overall_bias || 'neutral');
+            setFvRisk(key_risk || '');
+            setFvActive(true);
+        } catch (err) {
+            console.error('[FutureVision] Error:', err);
+        } finally {
+            setFvLoading(false);
+        }
+    };
+
+    // ── Ghost Candle Renderer ────────────────────────────────────────────────────
+    const _renderGhostCandles = (candles, times, withPAEDimming) => {
+        if (!ghostCandleSeriesRef.current || !ghostUpperConeRef.current) return;
+
+        const ghostData = candles.map((c, i) => ({
+            time:  times[i],
+            open:  c.open,
+            high:  c.high,
+            low:   c.low,
+            close: c.close,
+        }));
+
+        ghostCandleSeriesRef.current.setData(ghostData);
+
+        // Uncertainty cone (connects highest-high and lowest-low across all bars)
+        const upperCone = candles.map((c, i) => ({ time: times[i], value: c.high }));
+        const lowerCone = candles.map((c, i) => ({ time: times[i], value: c.low  }));
+        ghostUpperConeRef.current.setData(upperCone);
+        ghostLowerConeRef.current.setData(lowerCone);
+    };
+
+
+
+
+=== REPLACEMENT at 2026-09-06T09:36:51Z ===
+Target:                 <button
+                    onMouseEnter={(e) => handleMouseEnter(e, showMenu ? 'Hide Extra Indicators' : 'More Indicators')}
+                    onMouseLeave={() => setHoveredIndicator(null)}
+                    onClick={() => setShowMenu(p => !p)}
+                    className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showMenu ? 'text-blue-500 rotate-45' : 'text-text-secondary hover:text-text-primary'}`}
+                >
+                    <Plus size={14} strokeWidth={2.5} />
+                </button>
+
+
+Replacement:                 <button
+                    onMouseEnter={(e) => handleMouseEnter(e, showMenu ? 'Hide Extra Indicators' : 'More Indicators')}
+                    onMouseLeave={() => setHoveredIndicator(null)}
+                    onClick={() => setShowMenu(p => !p)}
+                    className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showMenu ? 'text-blue-500 rotate-45' : 'text-text-secondary hover:text-text-primary'}`}
+                >
+                    <Plus size={14} strokeWidth={2.5} />
+                </button>
+
+                {/* ── Future Vision Button ─────────────────────────────────── */}
+                <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+                <button
+                    onMouseEnter={(e) => handleMouseEnter(e, fvActive ? 'Clear Future Vision' : 'Future Vision — AI Candle Prediction')}
+                    onMouseLeave={() => setHoveredIndicator(null)}
+                    onClick={triggerFutureVision}
+                    disabled={fvLoading}
+                    className={`pointer-events-auto relative flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200
+                        ${fvLoading ? 'text-violet-400 animate-pulse' : ''}
+                        ${fvActive && !fvLoading ? 'text-violet-400' : ''}
+                        ${!fvActive && !fvLoading ? 'text-text-secondary hover:text-violet-400' : ''}`}
+                >
+                    {fvActive && !fvLoading && (
+                        <span className="absolute inset-0 rounded-md ring-2 ring-violet-400/50 animate-ping" />
+                    )}
+                    {fvLoading
+                        ? <Loader2 size={13} strokeWidth={2} className="animate-spin" />
+                        : <Telescope size={13} strokeWidth={2} />
+                    }
+                </button>
+
+                {/* ── Future Vision Bias + PAE HUD ─────────────────────────── */}
+                {fvActive && fvBias && (
+                    <motion.div
+                        initial={{ opacity: 0, x: -6 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex items-center gap-1 ml-1"
+                    >
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full
+                            ${fvBias === 'bullish'  ? 'bg-emerald-500/15 text-emerald-400' : ''}
+                            ${fvBias === 'bearish'  ? 'bg-red-500/15 text-red-400' : ''}
+                            ${fvBias === 'neutral'  ? 'bg-slate-500/15 text-slate-400' : ''}`}
+                        >
+                            AI {fvBias?.toUpperCase()}
+                        </span>
+                        {fvPAE && fvPAE.scores?.length > 0 && (() => {
+                            const n  = fvPAE.scores.length;
+                            const da = Math.round(fvPAE.scores.reduce((a, b) => a + b.da, 0) / n * 100);
+                            return (
+                                <span className="text-[9px] text-violet-400/80 font-mono">
+                                    DA:{da}% ({n}/{fvSessionRef.current?.candles?.length ?? '?'})
+                                </span>
+                            );
+                        })()}
+                    </motion.div>
+                )}
+
+
+
+
+=== REPLACEMENT at 2026-09-06T09:51:30Z ===
+Target: import { assembleContext, getFVSettings } from '../../utils/futureVisionContextAssembler';
+import { storePrediction, scoreClosedCandle, getPAESession, clearPAESession, computeConfidence } from '../../utils/predictionAccuracyEngine';
+import axiosInstance from '../../utils/axiosInstance';
+import { useTheme } from '../../context/ThemeContext';
+import { FO_INDICES, FO_EQUITIES } from '../../utils/foInstruments';
+Replacement: import { assembleContext, getFVSettings } from '../../utils/futureVisionContextAssembler';
+import { storePrediction, scoreClosedCandle, getPAESession, clearPAESession, computeConfidence } from '../../utils/predictionAccuracyEngine';
+import axiosInstance from '../../utils/axiosInstance';
+import { useTheme } from '../../context/ThemeContext';
+import { useDataRegistry } from '../../context/DataRegistryContext';
+import { FO_INDICES, FO_EQUITIES } from '../../utils/foInstruments';
+
+
+=== REPLACEMENT at 2026-09-06T09:51:43Z ===
+Target:     const { theme, tradingMode } = useTheme();
+    // Derive bandsMode from global tradingMode (intraday -> scalp)
+    const bandsMode = tradingMode === 'intraday' ? 'scalp' : (tradingMode || 'swing');
+    const isLight = theme === 'light';
+Replacement:     const { theme, tradingMode } = useTheme();
+    // Derive bandsMode from global tradingMode (intraday -> scalp)
+    const bandsMode = tradingMode === 'intraday' ? 'scalp' : (tradingMode || 'swing');
+    const isLight = theme === 'light';
+
+    // ── DataRegistry — gives us all Fundamentals / Technical / Events / Options cards ─
+    const { getMasterSnapshot } = useDataRegistry();
+
+    // ── Live Indicator Snapshot Ref ────────────────────────────────────────────────────
+    // Written every time the data useEffect recomputes indicators.
+    // Always computed (regardless of showXxx toggles) so Future Vision always has fresh values.
+    const liveIndicatorSnapshotRef = useRef({});
+
+
+=== REPLACEMENT at 2026-09-06T09:51:53Z ===
+Target:         volumeDataRef.current = volumeData;
+        volumeSeriesRef.current.setData(volumeData);
+        
+
+Replacement:         volumeDataRef.current = volumeData;
+        volumeSeriesRef.current.setData(volumeData);
+
+        // ── Always compute full indicator snapshot for Future Vision ──────────────────
+        // These run unconditionally (not gated on showXxx) so the AI always gets fresh data.
+        try {
+            const snap = {};
+            const d = data;
+            if (d.length >= 14) {
+                // Supertrend
+                const stData = calculateSupertrend(d, 10, 3);
+                const lastST = stData.up.at(-1) || stData.down.at(-1);
+                snap.supertrendDir = stData.up.at(-1)?.value != null ? 'bullish' : 'bearish';
+                snap.supertrendLevel = lastST?.value ?? null;
+
+                // VWAP
+                const vwapData = calculateVWAP(d);
+                snap.vwap = vwapData.at(-1)?.value ?? null;
+
+                // EMA 9 / 21 / 50
+                const ema9Data  = calculateEMA(d, 9);
+                const ema21Data = calculateEMA(d, 21);
+                const ema50Data = calculateEMA(d, 50);
+                snap.ema9  = ema9Data.at(-1)?.value  ?? null;
+                snap.ema21 = ema21Data.at(-1)?.value ?? null;
+                snap.ema50 = ema50Data.at(-1)?.value ?? null;
+
+                // MACD
+                const macd = calculateMACD(d);
+                snap.macdLine   = macd.macd.at(-1)?.value      ?? null;
+                snap.macdSignal = macd.signal.at(-1)?.value    ?? null;
+                snap.macdHist   = macd.histogram.at(-1)?.value ?? null;
+
+                // RSI
+                const rsiResult = calculateRSIDivergence(d, 14);
+                const lastRsi   = rsiResult.rsi.at(-1)?.value ?? null;
+                snap.rsi = lastRsi;
+                snap.rsiSignal = lastRsi != null
+                    ? (lastRsi > 70 ? 'OVERBOUGHT' : lastRsi < 30 ? 'OVERSOLD' : lastRsi > 55 ? 'Bullish' : lastRsi < 45 ? 'Bearish' : 'Neutral')
+                    : 'N/A';
+
+                // Adaptive Bands (always compute in current bandsMode for ATR proxy)
+                const bands = computeAdaptiveBands(d, bandsMode);
+                const lastOU = bands.outer?.upper?.at(-1)?.value ?? null;
+                const lastOL = bands.outer?.lower?.at(-1)?.value ?? null;
+                const lastMid = bands.middle?.at(-1)?.value      ?? null;
+                snap.bandsMode    = bandsMode;
+                snap.bandsUpper   = lastOU;
+                snap.bandsLower   = lastOL;
+                snap.bandsMid     = lastMid;
+                snap.bandsWidth   = (lastOU != null && lastOL != null) ? lastOU - lastOL : null;
+
+                // ATR(14) — compute from True Ranges
+                {
+                    const atrWindow = d.slice(-15);
+                    let atrSum = 0, atrN = 0;
+                    for (let i = 1; i < atrWindow.length; i++) {
+                        const hi = atrWindow[i].high, lo = atrWindow[i].low, pc = atrWindow[i-1].close;
+                        const tr = Math.max(hi - lo, Math.abs(hi - pc), Math.abs(lo - pc));
+                        if (tr > 0) { atrSum += tr; atrN++; }
+                    }
+                    snap.atr14 = atrN ? atrSum / atrN : null;
+                }
+
+                // Volume averages
+                const vol5  = d.slice(-5).reduce((a, c) => a + (c.volume || 0), 0) / 5;
+                const vol20 = d.slice(-20).reduce((a, c) => a + (c.volume || 0), 0) / 20;
+                snap.recentVolAvg5  = vol5;
+                snap.recentVolAvg20 = vol20;
+
+                // Pass horizonBars for ATR-scaling note in assembler
+                snap._horizonBars = getFVSettings().horizonBars;
+            }
+            liveIndicatorSnapshotRef.current = snap;
+        } catch (e) {
+            // Never crash the chart if snapshot computation fails
+            console.warn('[FV] Indicator snapshot error:', e);
+        }
+
+
+
+
+=== REPLACEMENT at 2026-09-06T09:52:17Z ===
+Target:         setFvLoading(true);
+        try {
+            const fvSettings = getFVSettings();
+            const horizonBars = fvSettings.horizonBars;
+
+            // Assemble 6-block context payload
+            const contextPayload = assembleContext({
+                ohlcv:         data,
+                instrumentKey,
+                symbol:        instrumentKey.split('|')[0] || instrumentKey,
+                timeframe,
+                tradingMode:   tradingMode || 'swing',
+                indicators:    {}, // TODO: pass live indicator snapshot when available
+                fundamentals:  fundamentalData || {},
+                events:        events || [],
+                horizonBars,
+            });
+
+
+Replacement:         setFvLoading(true);
+        try {
+            const fvSettings = getFVSettings();
+            const horizonBars = fvSettings.horizonBars;
+
+            // ── Pull ALL page data from DataRegistry ─────────────────────────────────
+            // getMasterSnapshot() returns the full registry: { fundamentals, technical, options, events, ... }
+            // Each page has card-level snapshots: { cardId: { value, score, signal, displayName, ... } }
+            const masterSnapshot = getMasterSnapshot();
+
+            // ── Extract Fundamentals from registry cards ─────────────────────────────
+            const fundPage  = masterSnapshot?.fundamentals || {};
+            const techPage  = masterSnapshot?.technical    || {};
+            const optPage   = masterSnapshot?.options      || {};
+            const eventsPage = masterSnapshot?.events      || {};
+            const globalPage = masterSnapshot?.foreign     || masterSnapshot?.global || {};
+
+            // Map card snapshots → flat fundamentals object for the context assembler
+            const registryFundamentals = {
+                // Valuation
+                pe:              fundPage?.pe_ratio?.value      ?? fundPage?.pe?.value        ?? null,
+                forwardPE:       fundPage?.forward_pe?.value    ?? fundPage?.forwardPE?.value  ?? null,
+                pb:              fundPage?.pb_ratio?.value      ?? fundPage?.pb?.value         ?? null,
+                evEbitda:        fundPage?.ev_ebitda?.value     ?? null,
+                // Growth
+                epsGrowth:       fundPage?.eps_growth?.value    ?? fundPage?.epsGrowth?.value  ?? null,
+                revenueGrowth:   fundPage?.revenue_growth?.value ?? fundPage?.revenueGrowth?.value ?? null,
+                profitGrowth:    fundPage?.profit_growth?.value  ?? fundPage?.profitGrowth?.value ?? null,
+                // Quality
+                netMargin:       fundPage?.net_margin?.value    ?? null,
+                operatingMargin: fundPage?.operating_margin?.value ?? null,
+                roe:             fundPage?.roe?.value           ?? null,
+                roce:            fundPage?.roce?.value          ?? null,
+                // Balance Sheet
+                debtToEquity:    fundPage?.debt_to_equity?.value ?? fundPage?.debtEquity?.value ?? null,
+                interestCoverage:fundPage?.interest_coverage?.value ?? null,
+                currentRatio:    fundPage?.current_ratio?.value ?? null,
+                // Ownership
+                promoterHolding: fundPage?.promoter_holding?.value ?? fundPage?.promoterHolding?.value ?? null,
+                fiiHolding:      fundPage?.fii_holding?.value  ?? null,
+                diiHolding:      fundPage?.dii_holding?.value  ?? null,
+                // Flows
+                fiiFlow:         fundPage?.fii_flow?.value     ?? globalPage?.fii_flow?.value  ?? null,
+                diiFlow:         fundPage?.dii_flow?.value     ?? globalPage?.dii_flow?.value  ?? null,
+                // Macro
+                repoRate:        globalPage?.repo_rate?.value  ?? null,
+                // Merge with prop-passed fundamentalData (prop = Upstox/Yahoo live data, registry = card-computed)
+                ...(fundamentalData || {}),
+            };
+
+            // ── Extract additional technical signals from registry ────────────────────
+            // Chart already computes indicators natively; registry adds any page-level card data
+            const registryTechnicals = {
+                ...liveIndicatorSnapshotRef.current,
+                // Augment with Technical Page card values if available
+                ...(techPage?.rsi         ? { rsiCardValue: techPage.rsi.value }           : {}),
+                ...(techPage?.macd        ? { macdCardSignal: techPage.macd.signal }        : {}),
+                ...(techPage?.pcr         ? { pcr: techPage.pcr.value }                     : {}),
+                ...(optPage?.pcr          ? { pcr: optPage.pcr.value }                      : {}),
+                ...(optPage?.iv_rank      ? { ivRank: optPage.iv_rank.value }               : {}),
+                ...(optPage?.max_pain     ? { maxPain: optPage.max_pain.value }             : {}),
+            };
+
+            // ── Extract events from registry or prop ──────────────────────────────────
+            // Prefer prop-passed events (most specific), fall back to registry
+            const resolvedEvents = (events?.length > 0 ? events : null)
+                || Object.values(eventsPage).map(e => ({ date: e.date, type: e.displayName || e.cardId, daysUntil: e.daysUntil }))
+                || [];
+
+            // ── Assemble 6-block context payload ─────────────────────────────────────
+            const contextPayload = assembleContext({
+                ohlcv:         data,
+                instrumentKey,
+                symbol:        instrumentKey.split('|').pop() || instrumentKey,
+                timeframe,
+                tradingMode:   tradingMode || 'swing',
+                indicators:    registryTechnicals,
+                fundamentals:  registryFundamentals,
+                events:        resolvedEvents,
+                horizonBars,
+            });
+
+
+
+
+=== REPLACEMENT at 2026-09-06T09:52:56Z ===
+Target:             // Call backend
+            const res = await axiosInstance.post('/api/v1/future-vision/predict', {
+Replacement:             // Debug log — visible in browser console to verify all data is populated
+            console.groupCollapsed('[FutureVision] Context Payload Preview');
+            console.log('Indicators snapshot:', registryTechnicals);
+            console.log('Fundamentals (merged):', registryFundamentals);
+            console.log('Events:', resolvedEvents);
+            console.log('Master Registry pages:', Object.keys(masterSnapshot || {}));
+            console.log('Payload length (chars):', contextPayload.length);
+            console.groupEnd();
+
+            // Call backend
+            const res = await axiosInstance.post('/api/v1/future-vision/predict', {
+
+
+=== REPLACEMENT at 2026-09-06T10:25:17Z ===
+Target: import { Telescope, Loader2 } from 'lucide-react';
+import { assembleContext, getFVSettings } from '../../utils/futureVisionContextAssembler';
+import { storePrediction, scoreClosedCandle, getPAESession, clearPAESession, computeConfidence } from '../../utils/predictionAccuracyEngine';
+import axiosInstance from '../../utils/axiosInstance';
+import { useTheme } from '../../context/ThemeContext';
+import { useDataRegistry } from '../../context/DataRegistryContext';
+import { FO_INDICES, FO_EQUITIES } from '../../utils/foInstruments';
+Replacement: import { Telescope } from 'lucide-react';
+import { assembleContext, getFVSettings } from '../../utils/futureVisionContextAssembler';
+import { storePrediction, scoreClosedCandle, getPAESession, clearPAESession, computeConfidence } from '../../utils/predictionAccuracyEngine';
+import axiosInstance from '../../utils/axiosInstance';
+import { useTheme } from '../../context/ThemeContext';
+import { useDataRegistry } from '../../context/DataRegistryContext';
+import { FO_INDICES, FO_EQUITIES } from '../../utils/foInstruments';
+import Loader from '../ui/Loader';
+
+
+=== REPLACEMENT at 2026-09-06T10:26:19Z ===
+Target:                     {fvLoading 
+                        ? <Loader2 size={13} strokeWidth={2} className="animate-spin" /> 
+                        : <Telescope size={15} strokeWidth={2} className={`${fvActive ? 'text-violet-200' : ''}`} />
+                    }
+Replacement:                     {fvLoading
+                        ? <div className="mt-[-2px] ml-[-2px]"><Loader size="xxs" color="purple" /></div>
+                        : <Telescope size={15} strokeWidth={2} className={`${fvActive ? 'text-violet-200' : ''}`} />
+                    }
+
+
+=== REPLACEMENT at 2026-09-06T11:12:37Z ===
+Target:                     {fvLoading
+                        ? <div className="mt-[-2px] ml-[-2px]"><Loader size="xxs" color="purple" /></div>
+                        : <Telescope size={15} strokeWidth={2} className={`${fvActive ? 'text-violet-200' : ''}`} />
+                    }
+Replacement:                     {fvLoading
+                        ? <div className="mt-[-2px] ml-[-2px]"><Loader size="tiny" color="purple" /></div>
+                        : <Telescope size={15} strokeWidth={2} className={`${fvActive ? 'text-violet-200' : ''}`} />
+                    }
+
+
+=== REPLACEMENT at 2026-09-06T11:12:54Z ===
+Target:                     {fvLoading
+                        ? <div className="mt-[-2px] ml-[-2px]"><Loader size="tiny" color="purple" /></div>
+                        : <Telescope size={15} strokeWidth={2} className={`${fvActive ? 'text-violet-200' : ''}`} />
+                    }
+Replacement:                     {fvLoading
+                        ? <div><Loader size="tiny" color="purple" /></div>
+                        : <Telescope size={15} strokeWidth={2} className={`${fvActive ? 'text-violet-200' : ''}`} />
+                    }
+
+
+=== REPLACEMENT at 2026-09-06T12:33:00Z ===
+Target:             // Generate future timestamps for ghost candles
+            const lastCandle = data[data.length - 1];
+            const timeDiff = data.length > 1 ? (
+                typeof lastCandle.time === 'number'
+                    ? lastCandle.time - data[data.length - 2].time
+                    : 86400
+            ) : 86400;
+
+            const times = candles.map((_, i) => {
+                if (typeof lastCandle.time === 'number') return lastCandle.time + timeDiff * (i + 1);
+                return lastCandle.time; // fallback ?" chart handles string times too
+            });
+Replacement:             // Generate future timestamps for ghost candles
+            const lastCandle = data[data.length - 1];
+            
+            const times = candles.map((_, i) => {
+                if (typeof lastCandle.time === 'number') {
+                    const timeDiff = data.length > 1 ? lastCandle.time - data[data.length - 2].time : 86400;
+                    return lastCandle.time + timeDiff * (i + 1);
+                } else if (typeof lastCandle.time === 'string') {
+                    const timeDiffMs = data.length > 1 
+                        ? new Date(lastCandle.time).getTime() - new Date(data[data.length - 2].time).getTime() 
+                        : 86400000;
+                    const nextTimeMs = new Date(lastCandle.time).getTime() + (timeDiffMs * (i + 1));
+                    return new Date(nextTimeMs).toISOString().split('T')[0];
+                } else if (lastCandle.time && lastCandle.time.year) {
+                    let date = new Date(lastCandle.time.year, lastCandle.time.month - 1, lastCandle.time.day);
+                    date.setDate(date.getDate() + (i + 1));
+                    return { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() };
+                }
+                return lastCandle.time; // ultimate fallback
+            });
+
+
+=== REPLACEMENT at 2026-09-06T12:34:32Z ===
+Target:                     {fvLoading
+                        ? <div className="mt-[-2px] ml-[-2px]"><Loader size="xxs" color="purple" /></div>
+                        : <Telescope size={15} strokeWidth={2} className={`${fvActive ? 'text-violet-200' : ''}`} />
+                    }
+Replacement:                     {fvLoading
+                        ? <div><Loader size="tiny" color="purple" /></div>
+                        : <Telescope size={15} strokeWidth={2} className={`${fvActive ? 'text-violet-200' : ''}`} />
+                    }

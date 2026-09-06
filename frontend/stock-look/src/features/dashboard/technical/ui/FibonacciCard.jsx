@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreFibonacciCard } from '../engine/TechnicalCompositeEngine';
 
-export default function FibonacciCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function FibonacciCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.fibonacci.id);
     
     const liveValue = data?.fibonacci ?? null;
@@ -32,7 +33,11 @@ export default function FibonacciCard({ cardId, data = null, manualOverride, las
         };
     }
 
-    const { score, bias, confidence, aiInsight, nearestFib, nearestFibVal, distancePct } = scoreFibonacciCard(currentValue, currentPrice);
+    const rawFibResult = scoreFibonacciCard(currentValue, currentPrice);
+    const { score, bias, confidence, aiInsight, nearestFib, nearestFibVal, distancePct } = {
+        ...rawFibResult,
+        ...applyModeAdjustment(rawFibResult, 'fibonacci', tradingMode)
+    };
 
     return (
         <IndicatorCard

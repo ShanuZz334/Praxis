@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreCmfCard } from '../engine/TechnicalCompositeEngine';
 
-export default function CmfCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function CmfCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.cmf.id);
     
     // Resolve current value from live backend data, fallback to manual
@@ -13,7 +14,7 @@ export default function CmfCard({ cardId, data = null, manualOverride, lastUpdat
     const isManual = liveValue === null && manualOverride !== null && manualOverride !== undefined;
     const currentValue = liveValue ?? manualOverride ?? null;
 
-    const { score, bias, confidence, aiInsight } = scoreCmfCard(currentValue);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreCmfCard(currentValue), 'cmf', tradingMode);
 
     const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) : '--';
     

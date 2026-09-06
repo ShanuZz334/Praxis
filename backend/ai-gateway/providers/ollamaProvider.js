@@ -1,8 +1,8 @@
 import { providerCache } from '../cache/providerCache.js';
 
-export async function call({ model, messages, maxTokens, temperature, jsonMode }) {
-    const p = await providerCache.getProvider('ollama');
-    if (!p) throw new Error('Ollama provider is not configured.');
+export async function call({ model, messages, maxTokens, temperature, jsonMode, providerId = 'ollama' }) {
+    const p = await providerCache.getProvider(providerId);
+    if (!p) throw new Error(`${providerId} provider is not configured.`);
 
     const url = p.baseUrl || 'http://localhost:11434';
     

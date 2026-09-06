@@ -47,24 +47,31 @@ export const SECTION_WEIGHTS = {
 // =============================
 
 export const SECTION_MODE_MULTIPLIERS = {
-    [TRADING_MODES.BALANCED]: {
-        // No multipliers - use base weights
+    // SWING: Balanced — no adjustments, use base weights
+    [TRADING_MODES.SWING]: {},
+
+    // POSITIONAL: Risk and macro dominate for multi-week fundamental thesis
+    [TRADING_MODES.POSITIONAL]: {
+        'Macro':     1.35,  // Macro regime determines positional direction
+        'Risk':      1.40,  // Systemic risk is the key positional filter
+        'Corporate': 1.30,  // Balance sheet strength for multi-week holds
+        'Valuation': 1.20,  // Valuation matters for longer-term thesis
+        'Earnings':  0.85,  // Short-term earnings less critical positionally
+        'Liquidity': 0.90,
+        'Sector':    0.90,
+        'Global':    1.10,
     },
 
-    [TRADING_MODES.AGGRESSIVE]: {
-        'Earnings': 1.4,
-        'Macro': 1.2,
-        'Liquidity': 1.3,
-        'Valuation': 0.8,
-        'Risk': 0.6
-    },
-
-    [TRADING_MODES.CONSERVATIVE]: {
-        'Risk': 1.6,
-        'Corporate': 1.4,
-        'Valuation': 1.2,
-        'Earnings': 0.7,
-        'Liquidity': 0.9
+    // INTRADAY: Earnings and liquidity catalysts dominate intraday moves
+    [TRADING_MODES.INTRADAY]: {
+        'Earnings':  1.40,  // Earnings surprise = biggest intraday catalyst
+        'Liquidity': 1.35,  // Liquidity flows drive intraday momentum
+        'Macro':     1.20,  // Data releases (CPI, GDP) move markets intraday
+        'Global':    1.15,  // Global triggers drive intraday gaps
+        'Risk':      0.70,  // Systemic risk changes are slow intraday
+        'Corporate': 0.75,  // Corporate health is a slow-moving signal
+        'Valuation': 0.80,  // Valuation irrelevant for same-day trades
+        'Sector':    0.90,
     }
 };
 
@@ -77,10 +84,8 @@ export const SECTION_MODE_MULTIPLIERS = {
  * @param {Object} userPreferences - User preferences object
  * @returns {Object} Section configuration with adjusted weights
  */
-export const getFundamentalsSectionWeights = (userPreferences = null) => {
-    const mode = getCurrentMode(userPreferences);
-
-    if (mode === TRADING_MODES.BALANCED) {
+export const getFundamentalsSectionWeights = (mode = TRADING_MODES.SWING) => {
+    if (mode === TRADING_MODES.SWING) {
         return SECTION_WEIGHTS;
     }
 

@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreBreadthRatioCard } from '../engine/TechnicalCompositeEngine';
 
-export default function BreadthRatioCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function BreadthRatioCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.breadth_ratio.id);
     
     // Resolve current value
@@ -13,7 +14,7 @@ export default function BreadthRatioCard({ cardId, data = null, manualOverride, 
     const isLiveData = liveRatio !== undefined && liveRatio !== null;
     const currentValue = isLiveData ? liveRatio : (manualOverride ?? null);
 
-    const { score, bias, confidence, aiInsight } = scoreBreadthRatioCard(currentValue);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreBreadthRatioCard(currentValue), 'breadth_ratio', tradingMode);
 
     const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) : '--';
 return (

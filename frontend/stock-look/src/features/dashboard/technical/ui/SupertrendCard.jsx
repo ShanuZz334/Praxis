@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreSupertrendCard } from '../engine/TechnicalCompositeEngine';
 
-export default function SupertrendCard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function SupertrendCard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.supertrend.id);
     
     const settingsConfig = [
@@ -17,7 +18,7 @@ export default function SupertrendCard({ cardId, data = null, lastUpdated, indic
     const currentValueObj = data?.supertrend ?? null;
     const currentPrice = data?.current_price ?? null;
 
-    const { score, bias, confidence, aiInsight } = scoreSupertrendCard(currentValueObj, currentPrice);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreSupertrendCard(currentValueObj, currentPrice), 'supertrend', tradingMode);
 
     const displayValue = currentValueObj !== null && currentValueObj.value !== undefined ? parseFloat(currentValueObj.value).toFixed(2) : '--';
     

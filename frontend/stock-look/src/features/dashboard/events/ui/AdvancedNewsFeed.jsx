@@ -5,7 +5,7 @@ import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { FO_EQUITIES, FO_INDICES } from "@/shared/utils/foInstruments";
 import { toast } from "sonner";
 
-export default function AdvancedNewsFeed({ newsItems, searchQuery, sortMode, onReset, onDeleteEvent }) {
+export default React.memo(function AdvancedNewsFeed({ newsItems, searchQuery, sortMode, onReset, onDeleteEvent, setAdditionalCharts }) {
     const [activeTab, setActiveTab] = useState("ALL EVENTS");
 
     if (!newsItems) return null;
@@ -22,6 +22,13 @@ export default function AdvancedNewsFeed({ newsItems, searchQuery, sortMode, onR
             const inAssets = Array.isArray(news.affected_assets) && news.affected_assets.some(a => a.toLowerCase().includes(query));
             if (!inHeadline && !inSummary && !inAssets) return false;
         }
+
+        // Filter out fully expired events (where TTL decay is 0)
+        const date = news.published_time ? new Date(news.published_time) : new Date(news.created_at || Date.now());
+        const diffMins = Math.floor((new Date() - date) / 60000);
+        const ttlMins = (Number(news.ttl_hours) || 72) * 60;
+        if (diffMins >= ttlMins) return false;
+
         return true;
     });
 
@@ -119,7 +126,7 @@ export default function AdvancedNewsFeed({ newsItems, searchQuery, sortMode, onR
                 </div>
                 {sorted.length > 0 ? (
                     sorted.map((news) => (
-                        <NewsItem key={news.id} event={news} onDelete={() => onDeleteEvent && onDeleteEvent(news.id)} />
+                        <NewsItem key={news.id} event={news} onDelete={() => onDeleteEvent && onDeleteEvent(news.id)} setAdditionalCharts={setAdditionalCharts} />
                     ))
                 ) : (
                     <div className="py-10 flex flex-col items-center justify-center border border-dashed border-border-default rounded-xl">
@@ -132,23 +139,78 @@ export default function AdvancedNewsFeed({ newsItems, searchQuery, sortMode, onR
 
         </div>
     );
+});
+
+function resolveInstrument(assetStr) {
+    if (!assetStr) return null;
+    const symbolUpper = assetStr.toUpperCase();
+    
+    // 1. Strict label match
+    let instrument = FO_EQUITIES.find(eq => eq.label.toUpperCase() === symbolUpper) || 
+                     FO_INDICES.find(idx => idx.label.toUpperCase() === symbolUpper || idx.label.replace(/\s+/g, '').toUpperCase() === symbolUpper);
+    
+    // 2. Known Index & Stock Aliases (AI Hallucinations)
+    const COMMON_ALIASES = {
+        'NIFTY50': 'NIFTY',
+        'NIFTY 50': 'NIFTY',
+        'BANK NIFTY': 'BANKNIFTY',
+        'BANKNIFTY50': 'BANKNIFTY',
+        'FINNIFTY50': 'FINNIFTY',
+        'NIFTY FIN SERVICE': 'FINNIFTY',
+        'NIFTY MID SELECT': 'MIDCPNIFTY',
+        'MIDCAP NIFTY': 'MIDCPNIFTY',
+        'PVRINX': 'PVRINOX', // AI hallucinates PVRINX instead of PVRINOX
+        'IHCL': 'INDHOTEL',   // Indian Hotels Co Ltd
+        'HDFC': 'HDFCBANK',   // Often confused
+        'MCDOWELL': 'MCDOWELL-N', // United Spirits
+        'L&T': 'LT',
+        'LNT': 'LT'
+    };
+
+    if (!instrument && COMMON_ALIASES[symbolUpper]) {
+        const alias = COMMON_ALIASES[symbolUpper];
+        instrument = FO_EQUITIES.find(eq => eq.label.toUpperCase() === alias) || 
+                     FO_INDICES.find(idx => idx.label.toUpperCase() === alias);
+    }
+
+    // 3. Fuzzy matching on Equities (name or label contains the word, or vice versa)
+    if (!instrument) {
+        instrument = FO_EQUITIES.find(eq => {
+            const eqLabel = (eq.label || '').toUpperCase();
+            const eqName = (eq.name || '').toUpperCase();
+            
+            const strippedSymbol = symbolUpper.replace(/\s+/g, '');
+            const strippedLabel = eqLabel.replace(/\s+/g, '');
+            const strippedName = eqName.replace(/\s+/g, '');
+            
+            return eqName.includes(symbolUpper) || 
+                   eqLabel.includes(symbolUpper) ||
+                   strippedName.includes(strippedSymbol) ||
+                   strippedLabel.includes(strippedSymbol) ||
+                   (strippedLabel.length >= 5 && strippedSymbol.includes(strippedLabel));
+        });
+    }
+
+    return instrument;
 }
 
-function NewsItem({ event, onDelete }) {
-    const { setAdditionalCharts } = useDashboardContext();
+const NewsItem = React.memo(function NewsItem({ event, onDelete, setAdditionalCharts }) {
     const [showAllAssets, setShowAllAssets] = React.useState(false);
     const colors = getColorMap(event);
     const date = new Date(event.published_time || event.created_at);
 
     const handleAssetClick = (e, asset) => {
         e.stopPropagation();
-        const symbolUpper = asset.toUpperCase();
-        const instrument = FO_EQUITIES.find(eq => eq.label.toUpperCase() === symbolUpper) || 
-                           FO_INDICES.find(idx => idx.label.toUpperCase() === symbolUpper || idx.label.replace(/\s+/g, '').toUpperCase() === symbolUpper);
-                           
+        
+        let instrument = resolveInstrument(asset);
+
         if (!instrument) {
-            toast.error(`Instrument ${asset} not found in tracked universe`);
-            return;
+            const symbolUpper = asset.toUpperCase();
+            // Ultimate fallback to a synthetic token if no fuzzy match is found
+            instrument = {
+                label: symbolUpper,
+                value: `NSE_EQ|${symbolUpper}`
+            };
         }
 
         setAdditionalCharts(prev => {
@@ -249,15 +311,23 @@ function NewsItem({ event, onDelete }) {
                     {Array.isArray(event.affected_assets) && event.affected_assets.length > 0 && (
                         <div className="flex items-center flex-wrap gap-2 mt-1">
                             <span className="text-[10px] font-bold text-[#3B82F6] mr-1">Affected Assets:</span>
-                            {(showAllAssets ? event.affected_assets : event.affected_assets.slice(0, 5)).map(a => (
-                                <span 
-                                    key={a} 
-                                    onClick={(e) => handleAssetClick(e, a)}
-                                    className="text-[9px] px-2 py-0.5 rounded bg-[#1E3A8A]/30 text-[#3B82F6] border border-[#1E3A8A] font-bold tracking-wider uppercase cursor-pointer hover:bg-[#3B82F6] hover:text-white transition-colors"
-                                >
-                                    {a}
-                                </span>
-                            ))}
+                            {(showAllAssets ? event.affected_assets : event.affected_assets.slice(0, 5)).map(a => {
+                                const isTracked = !!resolveInstrument(a);
+                                return (
+                                    <span 
+                                        key={a} 
+                                        onClick={isTracked ? ((e) => handleAssetClick(e, a)) : undefined}
+                                        className={`text-[9px] px-2 py-0.5 rounded font-bold tracking-wider uppercase transition-colors ${
+                                            isTracked 
+                                                ? "bg-[#1E3A8A]/30 text-[#3B82F6] border border-[#1E3A8A] cursor-pointer hover:bg-[#3B82F6] hover:text-white" 
+                                                : "bg-background-surface/50 text-text-tertiary border border-border-default cursor-default opacity-80"
+                                        }`}
+                                        title={!isTracked ? "Not in F&O tracked universe" : "Add to Dashboard"}
+                                    >
+                                        {a}
+                                    </span>
+                                );
+                            })}
                             {!showAllAssets && event.affected_assets.length > 5 && (
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); setShowAllAssets(true); }}
@@ -341,7 +411,7 @@ function NewsItem({ event, onDelete }) {
             </div>
         </div>
     );
-}
+});
 
 function Metric({ icon, label, value, color }) {
     return (

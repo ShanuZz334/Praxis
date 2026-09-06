@@ -2,15 +2,16 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreVolumeSmaCard } from '../engine/TechnicalCompositeEngine';
 
-export default function VolumeSmaCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function VolumeSmaCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.volume_sma.id);
     
     const currentValue = data?.volume_sma ?? null;
 
-    const { score, bias, confidence, aiInsight } = scoreVolumeSmaCard(data?.volume_sma, data?.current_volume);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreVolumeSmaCard(data?.volume_sma, data?.current_volume), 'volume_sma', tradingMode);
 
     const displayValue = currentValue !== null && !isNaN(currentValue) ? Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 2 }).format(currentValue) : '--';
     

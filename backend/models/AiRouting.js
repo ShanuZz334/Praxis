@@ -10,21 +10,28 @@ const aiRoutingSchema = new mongoose.Schema({
     cardInsight: { 
         providerId: String,
         modelId: String,
-        verbosity: { type: String, default: 'medium' }
+        verbosity: { type: mongoose.Schema.Types.Mixed, default: 150 }
     },
     headerInsight: { 
         providerId: String,
         modelId: String,
-        verbosity: { type: String, default: 'detailed' }
+        verbosity: { type: mongoose.Schema.Types.Mixed, default: 350 }
     },
     pageInsight: { 
         providerId: String,
         modelId: String,
-        verbosity: { type: String, default: 'detailed' }
+        verbosity: { type: mongoose.Schema.Types.Mixed, default: 500 }
     },
     manualChat: { 
         providerId: String,
-        modelId: String
+        modelId: String,
+        verbosity: { type: mongoose.Schema.Types.Mixed, default: 500 }
+    },
+    futureVision: {
+        // Dedicated model routing for the Future Vision predictive candle engine.
+        // Defaults to the best tier3_complex model available if not explicitly set.
+        providerId: { type: String, default: null },
+        modelId:    { type: String, default: null },
     }
 }, { timestamps: true });
 

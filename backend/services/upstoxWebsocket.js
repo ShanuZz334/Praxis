@@ -78,9 +78,10 @@ export const getLatestQuotes = (keys) => {
                         instrumentKey: k,
                         ltp: row.ltp,
                         cp: row.cp,
-                        volume: row.volume
+                        volume: row.volume,
+                        isStale: true // Flag to force REST API refresh
                     };
-                    latestQuotesCache.set(k, quote);
+                    // Do NOT pollute the memory cache with stale SQLite data so it remains stale until refreshed
                     quotes.push(quote);
                 }
             } catch (e) {}
@@ -181,14 +182,28 @@ const handleMarketData = (dataBuffer) => {
 
             if (tickObj.ltp !== null && tickObj.ltp !== undefined) {
                 tickBatch.push(tickObj);
+                
+                // Map Upstox alias symbols (e.g. NSE_EQ|RELIANCE) back to their subscribed ISIN keys
+                let mappedKey = null;
+                const normKey = instrumentKey.replace(':', '|');
+                if (normKey.startsWith('NSE_EQ|')) {
+                    const shortSymbol = normKey.split('|')[1];
+                    if (shortSymbol && NIFTY_50_MAPPING && NIFTY_50_MAPPING[shortSymbol]) {
+                        mappedKey = NIFTY_50_MAPPING[shortSymbol];
+                        tickBatch.push({ ...tickObj, instrumentKey: mappedKey });
+                    }
+                }
+
+                // Cache it in memory for instant delivery to new sockets
+                const existing = latestQuotesCache.get(instrumentKey) || {};
+                if (tickObj.ltp === null || tickObj.ltp === undefined) tickObj.ltp = existing.ltp;
+                if (tickObj.cp === null || tickObj.cp === undefined) tickObj.cp = existing.cp;
+                latestQuotesCache.set(instrumentKey, tickObj);
+                
+                if (mappedKey) {
+                    latestQuotesCache.set(mappedKey, { ...tickObj, instrumentKey: mappedKey });
+                }
             }
-            
-            // Cache it in memory for instant delivery to new sockets
-            // Merge with existing so we don't lose 'cp' if a subsequent tick only has 'ltp'
-            const existing = latestQuotesCache.get(instrumentKey) || {};
-            if (tickObj.ltp === null || tickObj.ltp === undefined) tickObj.ltp = existing.ltp;
-            if (tickObj.cp === null || tickObj.cp === undefined) tickObj.cp = existing.cp;
-            latestQuotesCache.set(instrumentKey, tickObj);
             
             // Broadcast if we have LTP OR Option Greeks
             if ((tickObj.ltp !== null && tickObj.ltp !== undefined) || tickObj.optionGreeks) {
@@ -210,7 +225,7 @@ const handleMarketData = (dataBuffer) => {
     }
 };
 
-import { getNifty50Keys } from "../utils/nifty50.js";
+import { getNifty50Keys, NIFTY_50_MAPPING } from "../utils/nifty50.js";
 
 // Queue for subscriptions requested before WS connects
 let pendingSubscriptions = new Set([
@@ -221,6 +236,15 @@ let pendingSubscriptions = new Set([
     "GLOBAL_INDICATOR|BZUSD",
     ...getNifty50Keys()
 ]);
+
+// Attempt to load all known instrument keys from local DB to fulfill the "subscribe to all" requirement
+try {
+    const allInstruments = db.prepare(`SELECT instrument_key FROM instruments WHERE segment IN ('NSE_EQ', 'NSE_INDEX')`).all();
+    allInstruments.forEach(row => pendingSubscriptions.add(row.instrument_key));
+    console.log(`Loaded ${allInstruments.length} instruments into websocket subscription queue.`);
+} catch (e) {
+    console.warn("Failed to load instrument keys from DB for global websocket subscription:", e.message);
+}
 
 import { getUpstoxLiveToken } from "../utils/upstoxAuthHelper.js";
 
@@ -282,6 +306,8 @@ export const connectUpstoxWebsocket = async () => {
 
     } catch (error) {
         console.error("❌ Upstox WebSocket Connection Failed:", error?.response?.data || error.message);
+        console.log("🔄 Retrying Upstox WebSocket connection in 5 seconds...");
+        setTimeout(() => connectUpstoxWebsocket(), 5000);
     }
 };
 

@@ -1,6 +1,5 @@
-import { getSourceConfig } from '../config/sourceRegistry.js';
+﻿import { getSourceConfig } from '../config/sourceRegistry.js';
 import db from '../config/localDb.js';
-import InstrumentOverride from '../models/InstrumentOverride.js';
 
 /**
  * Executes a fetch function with fallback logic based on the Source Registry tiering.
@@ -34,17 +33,13 @@ export async function fetchWithFallback(instrumentKey, cardId, fetchFn) {
     for (const strategy of config.fallbackChain) {
         if (strategy === 'last_known_good') {
             try {
-                // Try to get the latest snapshot from SQLite card_score_history or ai_card_store
                 const stmt = db.prepare(`
                     SELECT gauge_score as raw_value
                     FROM card_score_history 
                     WHERE instrument_key = ? AND card_name = ?
                     ORDER BY timestamp DESC LIMIT 1
                 `);
-                
-                // Note: card_name in db needs to match cardId mapping
                 const row = stmt.get(instrumentKey, cardId);
-                
                 if (row && row.raw_value !== null) {
                     return { value: row.raw_value, sourcePipeline: 'fallback' };
                 }
@@ -55,13 +50,17 @@ export async function fetchWithFallback(instrumentKey, cardId, fetchFn) {
         
         if (strategy === 'manual_override') {
             try {
-                // Read from MongoDB InstrumentOverride
-                const override = await InstrumentOverride.findOne({ instrumentKey });
-                if (override && override.overrides && override.overrides[cardId] !== undefined) {
-                    return { value: override.overrides[cardId], sourcePipeline: 'manual' };
+                // Read from SQLite user_overrides (replaced MongoDB InstrumentOverride)
+                const row = db.prepare(`
+                    SELECT value FROM user_overrides
+                    WHERE instrument_key = ? AND field_key = ?
+                    ORDER BY updated_at DESC LIMIT 1
+                `).get(instrumentKey, cardId);
+                if (row && row.value !== undefined && row.value !== '') {
+                    return { value: row.value, sourcePipeline: 'manual' };
                 }
-            } catch (mongoErr) {
-                console.error(`[Fallback Error] manual_override failed for ${cardId}:`, mongoErr.message);
+            } catch (sqliteErr) {
+                console.error(`[Fallback Error] manual_override (SQLite) failed for ${cardId}:`, sqliteErr.message);
             }
         }
     }

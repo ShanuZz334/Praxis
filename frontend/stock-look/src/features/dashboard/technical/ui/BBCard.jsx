@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreBBCard } from '../engine/TechnicalCompositeEngine';
 
-export default function BBCard({ cardId, data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function BBCard({ cardId, data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.bb_20_2.id);
     
     const settingsConfig = [
@@ -16,7 +17,7 @@ export default function BBCard({ cardId, data = null, manualOverride, lastUpdate
     // Resolve current value from live backend data
     const valObj = data?.bb_20_2 || null;
 
-    const { score, bias, confidence, aiInsight } = scoreBBCard(valObj);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreBBCard(valObj), 'bb_20_2', tradingMode);
 
     const formatPrice = (v) => (v !== null && v !== undefined && !isNaN(v) ? "₹" + parseFloat(v).toFixed(2) : '--');
     const formatPercent = (v) => (v !== null && v !== undefined && !isNaN(v) ? (parseFloat(v) * 100).toFixed(2) + '%' : '--');

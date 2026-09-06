@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreSupportCard } from '../engine/TechnicalCompositeEngine';
 
-export default function SupportCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function SupportCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.support.id);
     
     const liveValue = data?.support ?? null;
@@ -13,7 +14,7 @@ export default function SupportCard({ cardId, data = null, manualOverride, lastU
     const currentValue = liveValue ?? manualOverride ?? null;
     const currentPrice = data?.current_price ?? null;
 
-    const { score, bias, confidence, aiInsight } = scoreSupportCard(currentValue, currentPrice);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreSupportCard(currentValue, currentPrice), 'support', tradingMode);
 
     const displayValue = currentValue !== null && !isNaN(currentValue) ? "₹" + parseFloat(currentValue).toFixed(2) : '--';
     return (

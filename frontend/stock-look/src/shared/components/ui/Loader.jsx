@@ -26,6 +26,7 @@ import './Loader.css';
 
 const Loader = ({ size = 'md', color = 'indigo' }) => {
     const sizeClasses = {
+        tiny: 'w-3.5 h-3.5',
         xxs: 'w-5 h-5',
         xs: 'w-6 h-6',
         sm: 'w-12 h-12',

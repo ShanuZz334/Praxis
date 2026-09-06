@@ -1,6 +1,6 @@
 import { getCompositeColor } from '../../../../shared/config/scoreColors.js';
-
 import { CARD_REGISTRY } from '../../../../shared/config/cardRegistry.js';
+import { getTechnicalSectionWeights } from '../../../../config/weights/technicalSectionWeights.js';
 
 export const TITLE_TO_ID = {
     // Trend
@@ -151,7 +151,7 @@ function computeSections(scores) {
     return { trend, momentum, volatility, volume, structure, breadth };
 }
 
-export function computeTechnicalComposite(scoresData, isIndex = false) {
+export function computeTechnicalComposite(scoresData, isIndex = false, tradingMode = 'swing') {
     if (!scoresData || Object.keys(scoresData).length === 0) {
         return { compositeScore: 50, regime: { label: 'Unknown', color: 'text-slate-400' }, sections: [], rawSections: {}, cardScores: {} };
     }
@@ -159,17 +159,20 @@ export function computeTechnicalComposite(scoresData, isIndex = false) {
     const scores = scoresData;
     const { trend, momentum, volatility, volume, structure, breadth } = computeSections(scores);
 
+    // Resolve mode-specific section weights from centralized config
+    const sw = getTechnicalSectionWeights(tradingMode);
+
     const sectionsData = [
-        { id: 'trend', label: 'Trend', shortLabel: 'TRN', score: trend !== null ? Math.round(trend) : null, weight: 0.30 },
-        { id: 'momentum', label: 'Momentum', shortLabel: 'MOM', score: momentum !== null ? Math.round(momentum) : null, weight: 0.25 },
-        { id: 'volatility', label: 'Volatility', shortLabel: 'VOL', score: volatility !== null ? Math.round(volatility) : null, weight: 0.15 },
-        { id: 'structure', label: 'Structure', shortLabel: 'STR', score: structure !== null ? Math.round(structure) : null, weight: 0.15 }
+        { id: 'trend',      label: 'Trend',      shortLabel: 'TRN',  score: trend      !== null ? Math.round(trend)      : null, weight: sw.Trend      || 0.30 },
+        { id: 'momentum',   label: 'Momentum',   shortLabel: 'MOM',  score: momentum   !== null ? Math.round(momentum)   : null, weight: sw.Momentum   || 0.25 },
+        { id: 'volatility', label: 'Volatility', shortLabel: 'VOL',  score: volatility !== null ? Math.round(volatility) : null, weight: sw.Volatility || 0.15 },
+        { id: 'structure',  label: 'Structure',  shortLabel: 'STR',  score: structure  !== null ? Math.round(structure)  : null, weight: sw.Structure  || 0.15 }
     ];
 
     if (isIndex) {
-        sectionsData.push({ id: 'breadth', label: 'Breadth', shortLabel: 'BRD', score: breadth !== null ? Math.round(breadth) : null, weight: 0.20 });
+        sectionsData.push({ id: 'breadth', label: 'Breadth', shortLabel: 'BRD',  score: breadth !== null ? Math.round(breadth) : null, weight: sw.Breadth || 0.20 });
     } else {
-        sectionsData.push({ id: 'volume', label: 'Volume', shortLabel: 'VOLM', score: volume !== null ? Math.round(volume) : null, weight: 0.15 });
+        sectionsData.push({ id: 'volume',  label: 'Volume',  shortLabel: 'VOLM', score: volume  !== null ? Math.round(volume)  : null, weight: sw.Volume  || 0.15 });
     }
 
     const validSections = sectionsData.filter(s => s.score !== null);
@@ -253,17 +256,19 @@ function buildTechnicalNestedPayload(result, scores, isIndex) {
     };
 }
 
-export function generateAiInsightTechnical(compositeScore, rawSections, isIndex) {
+export function generateAiInsightTechnical(compositeScore, rawSections, isIndex, tradingMode = 'swing') {
+    const modeLabel = tradingMode === 'positional' ? 'Positional' : tradingMode === 'intraday' ? 'Intraday' : 'Swing';
+
     if (compositeScore >= 75) {
-        return `Strong technical confirmation. Trend and momentum are strongly aligned. Buyers are in full control across all timeframes.`;
+        return `[${modeLabel}] Strong technical confirmation. Trend and momentum are strongly aligned. Buyers are in full control — ${tradingMode === 'intraday' ? 'tape and VWAP confirm aggression' : tradingMode === 'positional' ? 'price is above all key MAs with healthy structure' : 'breakouts above resistance are holding'}.`;
     } else if (compositeScore >= 55) {
-        return `Bullish bias. Trend indicates upward momentum, though there may be minor pullbacks due to overbought conditions or resistance.`;
+        return `[${modeLabel}] Bullish bias. Trend indicates upward momentum, though there may be minor pullbacks. ${tradingMode === 'intraday' ? 'Watch VWAP reclaim for intraday entries.' : tradingMode === 'positional' ? 'Hold positions while price stays above EMA 50.' : 'Look for continuation setups on pullbacks to support.'}`;
     } else if (compositeScore <= 25) {
-        return `Strong bearish structure. Multiple technical indicators confirm a robust downtrend with heavy selling pressure.`;
+        return `[${modeLabel}] Strong bearish structure. Multiple technical indicators confirm a robust downtrend. ${tradingMode === 'intraday' ? 'Short bias below VWAP with volume confirmation.' : tradingMode === 'positional' ? 'Price is below key MAs — avoid longs until structure repairs.' : 'Avoid long positions until momentum reversal is confirmed.'}`;
     } else if (compositeScore <= 45) {
-        return `Bearish bias. Momentum is fading and support levels are being tested. Caution is advised.`;
+        return `[${modeLabel}] Bearish bias. Momentum is fading and support levels are being tested. ${tradingMode === 'intraday' ? 'Intraday bulls are losing control — watch for ORB failure.' : tradingMode === 'positional' ? 'Weekly structure is deteriorating — reduce exposure.' : 'Caution advised — wait for clear trend resumption signal.'}`;
     }
-    return `Market is range-bound and consolidating. Wait for a clear breakout above resistance or breakdown below support.`;
+    return `[${modeLabel}] Market is range-bound and consolidating. ${tradingMode === 'intraday' ? 'Avoid directional bias — trade the ORB range only.' : tradingMode === 'positional' ? 'Wait for a confirmed weekly breakout before adding positions.' : 'Wait for a clear breakout above resistance or breakdown below support.'}`;
 }
 
 const defaultReturn = { score: null, bias: "Neutral", confidence: "0%", aiInsight: "Awaiting valid data to calculate." };

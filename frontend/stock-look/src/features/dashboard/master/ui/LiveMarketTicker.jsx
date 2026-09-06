@@ -11,6 +11,19 @@ const TICKER_KEYS = [
 const LiveMarketTicker = React.memo(function LiveMarketTicker({ livePrices: propLivePrices }) {
     const context = useDashboardContext();
     const livePrices = propLivePrices || context?.livePrices;
+    const globalData = context?.globalData || {};
+
+    const getDisplayData = (key) => {
+        if (key === "GLOBAL_INDICATOR|USDINR") {
+            const val = globalData["usd_inr"]?.value;
+            return { ltp: val || 0, netChange: 0, pctChange: 0 };
+        }
+        if (key === "GLOBAL_INDICATOR|BZUSD") {
+            const val = globalData["crude"]?.value;
+            return { ltp: val || 0, netChange: 0, pctChange: 0 };
+        }
+        return livePrices?.[key] || {};
+    };
 
     return (
         <div className="flex flex-wrap items-center gap-4 w-full">
@@ -19,7 +32,7 @@ const LiveMarketTicker = React.memo(function LiveMarketTicker({ livePrices: prop
                 Live Market
             </div>
             {TICKER_KEYS.map(({ key, label }) => {
-                const data = livePrices?.[key] || {};
+                const data = getDisplayData(key);
                 const ltp = data.ltp || 0;
                 const pctChange = data.pctChange || 0;
                 const netChange = data.netChange || 0;
@@ -39,7 +52,7 @@ const LiveMarketTicker = React.memo(function LiveMarketTicker({ livePrices: prop
                             {ltp > 0 ? ltp.toFixed(2) : "---"}
                             {isUp && <ArrowUpRight className="w-3.5 h-3.5 ml-1" />}
                             {isDown && <ArrowDownRight className="w-3.5 h-3.5 ml-1" />}
-                            {ltp > 0 && (
+                            {ltp > 0 && pctChange !== 0 && (
                                 <span className="ml-2 text-[10px] bg-background-elevated px-1.5 py-0.5 rounded text-text-primary tabular-nums">
                                     {isUp ? '+' : ''}{pctChange.toFixed(2)}%
                                 </span>

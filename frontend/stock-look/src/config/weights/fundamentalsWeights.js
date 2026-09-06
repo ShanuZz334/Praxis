@@ -75,34 +75,34 @@ export const FUNDAMENTALS_WEIGHTS = {
 // =============================
 
 export const MODE_WEIGHT_MULTIPLIERS = {
-    [TRADING_MODES.BALANCED]: {
-        // No multipliers - use base weights
+    // SWING: Balanced — no adjustments, use base weights
+    [TRADING_MODES.SWING]: {},
+
+    // POSITIONAL: Risk/stability metrics dominate for multi-week fundamental holds
+    [TRADING_MODES.POSITIONAL]: {
+        npa:              1.50,  // NPA risk defines long-term fundamental health
+        sovereign_risk:   1.40,  // Macro regime for positional thesis
+        corp_debt:        1.30,  // Balance sheet strength for multi-week holds
+        fiscal_deficit:   1.30,  // Fiscal health is a positional macro signal
+        current_account:  1.20,
+        // Reduce short-term earnings noise
+        eps_yoy:          0.80,  // Trailing earnings less relevant for forward-looking thesis
+        earnings_revision: 0.85,
+        credit_growth:    0.85
     },
 
-    [TRADING_MODES.AGGRESSIVE]: {
-        // Focus on growth and momentum
-        eps_yoy: 1.4,
-        forward_eps: 1.3,
-        earnings_revision: 1.4,
-        gdp: 1.3,
-        credit_growth: 1.3,
-        // Reduce defensive focus
-        npa: 0.7,
-        sovereign_risk: 0.7,
-        corp_debt: 0.8
-    },
-
-    [TRADING_MODES.CONSERVATIVE]: {
-        // Focus on risk and stability
-        npa: 1.5,
-        sovereign_risk: 1.4,
-        corp_debt: 1.3,
-        fiscal_deficit: 1.3,
-        current_account: 1.2,
-        // Reduce growth focus
-        eps_yoy: 0.7,
-        forward_eps: 0.8,
-        credit_growth: 0.8
+    // INTRADAY: Momentum/catalyst metrics dominate for same-day reactions
+    [TRADING_MODES.INTRADAY]: {
+        eps_yoy:          1.40,  // Earnings surprise drives intraday moves
+        forward_eps:      1.35,  // Forward guidance drives gap-up/gap-down
+        earnings_revision: 1.40, // Analyst revision = intraday catalyst
+        gdp:              1.25,  // GDP data release is an intraday macro catalyst
+        credit_growth:    1.20,  // Credit data surprises move markets intraday
+        // Reduce slow-moving structural fundamentals
+        npa:              0.70,  // NPA changes are quarterly, not intraday
+        sovereign_risk:   0.70,
+        corp_debt:        0.75,
+        reform_momentum:  0.60   // Policy reform is a slow-moving signal
     }
 };
 
@@ -115,8 +115,8 @@ export const MODE_WEIGHT_MULTIPLIERS = {
  * @param {string} mode - Trading mode (balanced, aggressive, conservative)
  * @returns {Object} Weight configuration
  */
-export const getFundamentalsWeights = (mode = TRADING_MODES.BALANCED) => {
-    if (mode === TRADING_MODES.BALANCED) {
+export const getFundamentalsWeights = (mode = TRADING_MODES.SWING) => {
+    if (mode === TRADING_MODES.SWING) {
         return FUNDAMENTALS_WEIGHTS;
     }
 

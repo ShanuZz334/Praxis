@@ -126,38 +126,43 @@ export function ThemeProvider({ children }) {
         localStorage.setItem('stocky-theme', theme);
     }, [theme]);
 
-    useEffect(() => {
-        localStorage.setItem('stocky-vfx-preset', vfxPreset);
-    }, [vfxPreset]);
-
-    useEffect(() => {
-        localStorage.setItem('stocky-gradient-border', gradientBorder);
-    }, [gradientBorder]);
-
-    useEffect(() => {
-        localStorage.setItem('stocky-trading-mode', tradingMode);
-    }, [tradingMode]);
-
-    useEffect(() => {
-        localStorage.setItem('stocky-trading-mode-vfx', tradingModeVfx);
-    }, [tradingModeVfx]);
+    useEffect(() => { localStorage.setItem('stocky-vfx-preset', vfxPreset); }, [vfxPreset]);
+    useEffect(() => { localStorage.setItem('stocky-gradient-border', gradientBorder); }, [gradientBorder]);
+    useEffect(() => { localStorage.setItem('stocky-trading-mode', tradingMode); }, [tradingMode]);
+    useEffect(() => { localStorage.setItem('stocky-trading-mode-vfx', tradingModeVfx); }, [tradingModeVfx]);
 
     useEffect(() => {
         localStorage.setItem('pai-mascot-color', paiMascotColor);
         window.document.documentElement.style.setProperty('--pai-mascot-color', paiMascotColor);
     }, [paiMascotColor]);
 
-    useEffect(() => {
-        localStorage.setItem('pai-mascot-accessory', paiAccessory);
-    }, [paiAccessory]);
+    useEffect(() => { localStorage.setItem('pai-mascot-accessory', paiAccessory); }, [paiAccessory]);
+    useEffect(() => { localStorage.setItem('pai-audio-style', paiAudioStyle); }, [paiAudioStyle]);
+    useEffect(() => { localStorage.setItem('stocky-orb-nav', useOrbNav); }, [useOrbNav]);
 
+    // Dual-write all theme preferences to SQLite (durable across browser clears)
     useEffect(() => {
-        localStorage.setItem('pai-audio-style', paiAudioStyle);
-    }, [paiAudioStyle]);
-
-    useEffect(() => {
-        localStorage.setItem('stocky-orb-nav', useOrbNav);
-    }, [useOrbNav]);
+        const timer = setTimeout(() => {
+            fetch('/api/v1/preferences/batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    preferences: [
+                        { pref_key: 'stocky-theme', pref_value: theme },
+                        { pref_key: 'stocky-vfx-preset', pref_value: vfxPreset },
+                        { pref_key: 'stocky-gradient-border', pref_value: String(gradientBorder) },
+                        { pref_key: 'stocky-trading-mode', pref_value: tradingMode },
+                        { pref_key: 'stocky-trading-mode-vfx', pref_value: String(tradingModeVfx) },
+                        { pref_key: 'pai-mascot-color', pref_value: paiMascotColor },
+                        { pref_key: 'pai-mascot-accessory', pref_value: paiAccessory },
+                        { pref_key: 'pai-audio-style', pref_value: paiAudioStyle },
+                        { pref_key: 'stocky-orb-nav', pref_value: String(useOrbNav) },
+                    ]
+                })
+            }).catch(() => {});
+        }, 1000); // 1s debounce — batch all rapid changes into one write
+        return () => clearTimeout(timer);
+    }, [theme, vfxPreset, gradientBorder, tradingMode, tradingModeVfx, paiMascotColor, paiAccessory, paiAudioStyle, useOrbNav]);
 
     // NEW: Sync Trading Mode Visuals
     useEffect(() => {

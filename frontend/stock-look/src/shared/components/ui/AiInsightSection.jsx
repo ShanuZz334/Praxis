@@ -50,16 +50,10 @@ function resolvePageId(path) {
     return 'master';
 }
 
-// Global cache to prevent re-generating insights across tab switches unless score moves by >= 5 points
-let globalInsightCache = {};
-try {
-    const stored = localStorage.getItem('praxis_ai_insight_cache');
-    if (stored) {
-        globalInsightCache = JSON.parse(stored);
-    }
-} catch (e) {
-    console.warn("Failed to load insight cache", e);
-}
+// Global in-memory cache to prevent re-generating insights on tab switches
+// (persistence is now handled by SQLite via aiPromptsRoutes — not localStorage)
+const globalInsightCache = {};
+export const getGlobalInsightCache = () => globalInsightCache;
 
 export default function AiInsightSection({
     actionType = "Neutral",
@@ -96,6 +90,19 @@ export default function AiInsightSection({
     const [displayedText, setDisplayedText] = useState("");
     const [isRestoredFromCache, setIsRestoredFromCache] = useState(false);
 
+    // Sensitivity thresholds — loaded from SQLite preferences on mount
+    const sensitivityRef = useRef({});
+    useEffect(() => {
+        fetch('/api/v1/preferences')
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === 'success' && res.data) {
+                    sensitivityRef.current = res.data;
+                }
+            })
+            .catch(() => {});
+    }, []);
+
     // ── Restore from Global Cache on Mount ──
     const currentSymbol = resolveReadableSymbol(stockSymbol) || "Market";
     const cacheKey = `${targetId}_${currentSymbol}`;
@@ -127,22 +134,10 @@ export default function AiInsightSection({
         const { score: lastScore, symbol: lastSymbol, regime: lastRegime } = lastStateRef.current;
 
         // Determine threshold dynamically based on target ID (Technical vs others)
-        let sensitivityThreshold = 5;
-        if (targetId.includes('technical')) {
-            try {
-                const stored = localStorage.getItem('praxis_ai_sensitivity_technical');
-                if (stored !== null && !isNaN(parseInt(stored, 10))) {
-                    sensitivityThreshold = parseInt(stored, 10);
-                }
-            } catch (e) {}
-        } else {
-            try {
-                const stored = localStorage.getItem('praxis_ai_sensitivity_global');
-                if (stored !== null && !isNaN(parseInt(stored, 10))) {
-                    sensitivityThreshold = parseInt(stored, 10);
-                }
-            } catch (e) {}
-        }
+        // Sensitivity is loaded from SQLite preferences on mount (see sensitivityRef below)
+        const key = targetId.includes('technical') ? 'praxis_ai_sensitivity_technical' : 'praxis_ai_sensitivity_global';
+        const stored = sensitivityRef.current[key];
+        let sensitivityThreshold = (stored !== undefined && !isNaN(parseInt(stored, 10))) ? parseInt(stored, 10) : 5;
 
         // Only regenerate if user manually clicked, symbol changed, OR score moved by >= threshold, OR regime changed
         const isSignificantScoreChange = lastScore === null || Math.abs(currentScore - lastScore) >= sensitivityThreshold;
@@ -258,22 +253,8 @@ export default function AiInsightSection({
     const aiBody = cleanInsight;
 
     useEffect(() => {
-        if (!insight || insight === prevInsightRef.current) return;
-        prevInsightRef.current = insight;
-        
-        // Save to global cache so tab switching doesn't wipe it
-        const currentScore = typeof score === 'number' ? score : parseFloat(score) || 0;
-        globalInsightCache[cacheKey] = {
-            score: currentScore,
-            symbol: currentSymbol,
-            regime: actionType,
-            insightText: cleanInsight
-        };
-        try {
-            localStorage.setItem('praxis_ai_insight_cache', JSON.stringify(globalInsightCache));
-        } catch (e) {
-            console.warn("Failed to save insight cache", e);
-        }
+        if (!cleanInsight || cleanInsight === prevInsightRef.current) return;
+        prevInsightRef.current = cleanInsight;
 
         // Clear previous interval
         if (intervalRef.current) clearInterval(intervalRef.current);
@@ -292,30 +273,32 @@ export default function AiInsightSection({
         }, 8);
 
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-    }, [insight, aiBody, meta, score, currentSymbol, actionType, cacheKey, cleanInsight]);
+    }, [cleanInsight]);
+
+    // Separate effect for saving to global in-memory cache (tab switch prevention)
+    // SQLite persistence is handled by aiPromptsRoutes on the backend when generate() resolves
+    useEffect(() => {
+        if (!cleanInsight || isRestoredFromCache) return;
+        
+        const currentScore = typeof score === 'number' ? score : parseFloat(score) || 0;
+        globalInsightCache[cacheKey] = {
+            score: currentScore,
+            symbol: currentSymbol,
+            regime: actionType,
+            insightText: cleanInsight,
+            timestamp: Date.now()
+        };
+    }, [cleanInsight, score, currentSymbol, actionType, cacheKey, isRestoredFromCache]);
 
     // Safety measure: if the currently displayed insight was generated for a wildly different score 
     // (e.g. before the rest of the Master Dashboard finished loading), instantly hide the outdated text 
     // so the user doesn't see a blatant contradiction while waiting for the new insight to generate.
     const currentScore = typeof score === 'number' ? score : parseFloat(score) || 0;
     
-    // Determine threshold dynamically based on target ID (Technical vs others)
-    let displaySensitivityThreshold = 5;
-    if (targetId.includes('technical')) {
-        try {
-            const stored = localStorage.getItem('praxis_ai_sensitivity_technical');
-            if (stored !== null && !isNaN(parseInt(stored, 10))) {
-                displaySensitivityThreshold = parseInt(stored, 10);
-            }
-        } catch (e) {}
-    } else {
-        try {
-            const stored = localStorage.getItem('praxis_ai_sensitivity_global');
-            if (stored !== null && !isNaN(parseInt(stored, 10))) {
-                displaySensitivityThreshold = parseInt(stored, 10);
-            }
-        } catch (e) {}
-    }
+    // Determine display threshold using sensitivityRef (loaded from SQLite preferences)
+    const displayKey = targetId.includes('technical') ? 'praxis_ai_sensitivity_technical' : 'praxis_ai_sensitivity_global';
+    const displayStored = sensitivityRef.current[displayKey];
+    const displaySensitivityThreshold = (displayStored !== undefined && !isNaN(parseInt(displayStored, 10))) ? parseInt(displayStored, 10) : 5;
 
     const isOutdated = lastStateRef.current.score !== null && Math.abs(currentScore - lastStateRef.current.score) >= displaySensitivityThreshold;
 

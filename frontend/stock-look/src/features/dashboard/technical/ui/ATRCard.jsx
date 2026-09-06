@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreATRCard } from '../engine/TechnicalCompositeEngine';
 
-export default function ATRCard({ cardId, data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function ATRCard({ cardId, data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.atr.id);
     
     const settingsConfig = [
@@ -16,7 +17,7 @@ export default function ATRCard({ cardId, data = null, manualOverride, lastUpdat
     const currentValue = data?.atr ?? null;
     const currentPrice = data?.current_price ?? null;
 
-    const { score, bias, confidence, aiInsight } = scoreATRCard(currentValue, currentPrice);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreATRCard(currentValue, currentPrice), 'atr', tradingMode);
 
     const formatVal = (v) => (v !== null && v !== undefined && !isNaN(v) ? parseFloat(v).toFixed(2) : '--');
 

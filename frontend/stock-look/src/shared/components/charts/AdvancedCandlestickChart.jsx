@@ -12,9 +12,18 @@ import DrawingToolbar, { COLORS } from './drawing/DrawingToolbar';
 import DrawingCanvas from './drawing/DrawingCanvas';
 import { useDrawings } from './drawing/useDrawings';
 import { calculateSupertrend, calculateVWAP, calculateEMA, calculateCPR } from '../../utils/chartUtils';
-import { calculateBollingerBands, calculateMACD, calculateKeltnerChannels, calculateDonchianChannels, calculatePSAR, calculateIchimoku, calculateAnchoredVWAP, calculateAutoFib, calculateRSIDivergence } from '../../utils/advancedIndicators';
+import { calculateMACD, calculatePSAR, calculateIchimoku, calculateAnchoredVWAP, calculateAutoFib, calculateRSIDivergence } from '../../utils/advancedIndicators';
+import { computeAdaptiveBands } from '../../utils/adaptiveBandsEngine';
+
 import { useTheme } from '../../context/ThemeContext';
 import { FO_INDICES, FO_EQUITIES } from '../../utils/foInstruments';
+import { assembleContext, getFVSettings } from '../../utils/futureVisionContextAssembler';
+import { storePrediction, scoreClosedCandle, getPAESession, clearPAESession, computeConfidence } from '../../utils/predictionAccuracyEngine';
+import axiosInstance from '../../utils/axiosInstance';
+import { useDataRegistry } from '../../context/DataRegistryContext';
+import { Telescope, Info } from 'lucide-react';
+import Loader from '../ui/Loader';
+import { getGlobalInsightCache } from '../ui/AiInsightSection';
 
 const DEFAULT_DATA = [];
 const DEFAULT_FUNDAMENTAL_DATA = {};
@@ -60,18 +69,16 @@ export default React.memo(function AdvancedCandlestickChart({
     const markersPluginRef = useRef(null);
 
     // Advanced Indicators Refs
-    const bbUpperRef = useRef(null);
-    const bbMiddleRef = useRef(null);
-    const bbLowerRef = useRef(null);
+    // ── Adaptive Bands (replaces separate BB / KC / Donchian refs) ──────────
+    const bandOuterUpperRef = useRef(null);
+    const bandOuterLowerRef = useRef(null);
+    const bandMiddleRef     = useRef(null);
+    const bandInnerUpperRef = useRef(null);   // KC inner / Donchian 20-bar (null for BB)
+    const bandInnerLowerRef = useRef(null);
     const macdLineRef = useRef(null);
     const signalLineRef = useRef(null);
     const macdHistRef = useRef(null);
-    const keltnerUpperRef = useRef(null);
-    const keltnerMiddleRef = useRef(null);
-    const keltnerLowerRef = useRef(null);
-    const donchianUpperRef = useRef(null);
-    const donchianMiddleRef = useRef(null);
-    const donchianLowerRef = useRef(null);
+
     const psarRef = useRef(null);
     const ichimokuTenkanRef = useRef(null);
     const ichimokuKijunRef = useRef(null);
@@ -91,10 +98,11 @@ export default React.memo(function AdvancedCandlestickChart({
     const [showCPR, setShowCPR] = useState(false);
     
     const [showMenu, setShowMenu] = useState(false);
-    const [showBollinger, setShowBollinger] = useState(false);
+    // Unified Adaptive Bands state — replaces showBollinger, showKeltner, showDonchian
+    const [showAdaptiveBands, setShowAdaptiveBands] = useState(false);
+    const [bandsMode, setBandsMode] = useState('swing'); // 'scalp' | 'swing' | 'positional'
     const [showMACD, setShowMACD] = useState(false);
-    const [showKeltner, setShowKeltner] = useState(false);
-    const [showDonchian, setShowDonchian] = useState(false);
+
     const [showPSAR, setShowPSAR] = useState(false);
     const [showIchimoku, setShowIchimoku] = useState(false);
     const [showAnchoredVWAP, setShowAnchoredVWAP] = useState(false);
@@ -103,8 +111,27 @@ export default React.memo(function AdvancedCandlestickChart({
     
     const [hoveredIndicator, setHoveredIndicator] = useState(null);
 
-    const { theme } = useTheme();
+    const { theme, tradingMode } = useTheme();
+    // Derive bandsMode from global tradingMode (intraday -> scalp)
+    const bandsModeTheme = tradingMode === 'intraday' ? 'scalp' : (tradingMode || 'swing');
     const isLight = theme === 'light';
+
+    const { getMasterSnapshot } = useDataRegistry();
+
+    const [fvActive, setFvActive] = useState(false);
+    const [fvLoading, setFvLoading] = useState(false);
+    const [fvBias, setFvBias] = useState(null);
+    const [fvRisk, setFvRisk] = useState('');
+    const [fvPAE, setFvPAE] = useState(null);
+    const [fvModel, setFvModel] = useState(null);
+
+    const fvSessionRef = useRef(null);
+    const fvLiveBarIndexRef = useRef(0);
+    const ghostCandleSeriesRef = useRef(null);
+    const ghostUpperConeRef = useRef(null);
+    const ghostLowerConeRef = useRef(null);
+
+    const liveIndicatorSnapshotRef = useRef({});
 
     useEffect(() => {
         if (!chartContainerRef.current) return;
@@ -263,25 +290,21 @@ export default React.memo(function AdvancedCandlestickChart({
             color: '#94a3b8', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
         });
 
-        // Advanced Indicators
-        bbUpperRef.current = chart.addSeries(LineSeries, { color: '#818cf8', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-        bbMiddleRef.current = chart.addSeries(LineSeries, { color: '#818cf8', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-        bbLowerRef.current = chart.addSeries(LineSeries, { color: '#818cf8', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        // Advanced Indicators — Adaptive Bands (outer + middle + inner)
+        // Colors are overridden per-mode in the useEffect
+        bandOuterUpperRef.current = chart.addSeries(LineSeries, { color: '#fbbf24', lineWidth: 1, lineStyle: 0, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        bandOuterLowerRef.current = chart.addSeries(LineSeries, { color: '#fbbf24', lineWidth: 1, lineStyle: 0, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        bandMiddleRef.current     = chart.addSeries(LineSeries, { color: '#fbbf24', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        bandInnerUpperRef.current = chart.addSeries(LineSeries, { color: '#fbbf2466', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        bandInnerLowerRef.current = chart.addSeries(LineSeries, { color: '#fbbf2466', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
 
         macdHistRef.current = chart.addSeries(HistogramSeries, { priceScaleId: 'macd', priceFormat: { type: 'volume' } });
         macdLineRef.current = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: '#2962FF', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
         signalLineRef.current = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: '#FF6D00', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
         chart.priceScale('macd').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
 
-        keltnerUpperRef.current = chart.addSeries(LineSeries, { color: '#e879f9', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-        keltnerMiddleRef.current = chart.addSeries(LineSeries, { color: '#e879f9', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-        keltnerLowerRef.current = chart.addSeries(LineSeries, { color: '#e879f9', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-
-        donchianUpperRef.current = chart.addSeries(LineSeries, { color: '#9ca3af', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-        donchianMiddleRef.current = chart.addSeries(LineSeries, { color: '#9ca3af', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-        donchianLowerRef.current = chart.addSeries(LineSeries, { color: '#9ca3af', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-
         psarRef.current = chart.addSeries(LineSeries, { color: '#06b6d4', lineWidth: 2, lineStyle: 3, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+
         
         hiddenFutureSeriesRef.current = chart.addSeries(LineSeries, { color: 'transparent', priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
 
@@ -294,6 +317,22 @@ export default React.memo(function AdvancedCandlestickChart({
         
         rsiRef.current = chart.addSeries(LineSeries, { priceScaleId: 'rsi', color: '#a78bfa', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
         chart.priceScale('rsi').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+
+        // ── Future Vision Ghost Candle Series ──────────────────────────────────────
+        // CandlestickSeries rendered as translucent ghost candles for AI predictions
+        ghostCandleSeriesRef.current = chart.addSeries(CandlestickSeries, {
+            upColor:         'rgba(167,139,250,0.25)', // Solid translucent violet for UP
+            downColor:       'transparent',            // Hollow for DOWN
+            borderVisible:   true,
+            borderUpColor:   'rgba(167,139,250,0.7)',
+            borderDownColor: 'rgba(167,139,250,0.4)',
+            wickUpColor:     'rgba(167,139,250,0.6)',
+            wickDownColor:   'rgba(167,139,250,0.3)',
+            priceLineVisible:      false,
+            lastValueVisible:      false,
+            crosshairMarkerVisible: false,
+        });
+
 
 
         const handleResize = () => {
@@ -370,6 +409,253 @@ export default React.memo(function AdvancedCandlestickChart({
         }
     }, [liveCandle]);
 
+    // ── Future Vision: PAE Scoring on live bar close ────────────────────────────
+    // When FV is active and a new live tick arrives, check if a new bar has closed
+    // and score it against the stored prediction.
+    useEffect(() => {
+        if (!fvActive || !liveCandle || !fvSessionRef.current) return;
+
+        const session = fvSessionRef.current;
+        const barIdx  = fvLiveBarIndexRef.current;
+
+        if (barIdx < session.candles.length) {
+            // Only score if the live market has ACTUALLY reached or passed the predicted candle's time!
+            // We use string comparison for daily charts, or numeric comparison for intraday.
+            const expectedTime = session.times[barIdx];
+            
+            let isTimePassed = false;
+            if (typeof liveCandle.time === 'number' && typeof expectedTime === 'number') {
+                // For intraday, we consider the bar "closed" when the liveCandle time has moved PAST the expected time
+                isTimePassed = liveCandle.time > expectedTime;
+            } else {
+                // For daily/string dates, we can't easily check > unless we parse, so we just check if it moved past
+                const liveT = new Date(liveCandle.time).getTime();
+                const expT = new Date(expectedTime).getTime();
+                isTimePassed = liveT > expT;
+            }
+
+            if (!isTimePassed) return;
+
+            const barScore = scoreClosedCandle(
+                session.instrumentKey,
+                session.timeframe,
+                barIdx,
+                liveCandle
+            );
+            if (barScore) {
+                fvLiveBarIndexRef.current = barIdx + 1;
+                // Update PAE HUD
+                const paeSession = getPAESession(session.instrumentKey, session.timeframe);
+                setFvPAE(paeSession);
+
+                // Dim the ghost candle that was just scored
+                if (ghostCandleSeriesRef.current && session.candles[barIdx]) {
+                    _renderGhostCandles(session.candles, session.times, true);
+                }
+            }
+        }
+    }, [liveCandle, fvActive]);
+
+    // ── Ghost Candle Renderer ────────────────────────────────────────────────────
+    const _renderGhostCandles = (candles, times, withPAEDimming) => {
+        if (!ghostCandleSeriesRef.current) return;
+
+        const ghostData = candles.map((c, i) => ({
+            time:  times[i],
+            open:  c.open,
+            high:  c.high,
+            low:   c.low,
+            close: c.close,
+        }));
+
+        console.log('[FutureVision] Rendering ghost candles:', ghostData.length, 'candles. First time:', ghostData[0]?.time);
+        ghostCandleSeriesRef.current.setData(ghostData);
+    };
+
+    // ──────────────── Hierarchical AI Prerequisite Check ────────────────────────────────
+    const isIndexSymbol = instrumentKey.startsWith('NSE_INDEX|');
+    const cleanSymbol = instrumentKey.split('|').pop() || instrumentKey;
+    const reqIds = [
+        { id: isIndexSymbol ? 'fundamentals_index_header' : 'fundamentals_company_header', name: 'Fundamentals' },
+        { id: isIndexSymbol ? 'technical_index_header' : 'technical_company_header', name: 'Technical' },
+        { id: 'options_header', name: 'Options' },
+        { id: 'events_header', name: 'Events' },
+        { id: 'foreign_header', name: 'Global' }
+    ];
+    
+    const globalCache = getGlobalInsightCache();
+    let fvStaleMsg = null;
+    let aiNarratives = {};
+
+    if (!fvActive) {
+        for (const req of reqIds) {
+            const key = `${req.id}_${cleanSymbol}`;
+            const entry = globalCache[key];
+            if (!entry) {
+                fvStaleMsg = `⚠️ ${req.name} AI summary missing. Visit the page to generate it.`;
+                break;
+            } else if (Date.now() - entry.timestamp > 5 * 60 * 1000) {
+                const mins = Math.floor((Date.now() - entry.timestamp) / 60000);
+                fvStaleMsg = `⚠️ ${req.name} AI summary is ${mins} mins old. Visit the page to refresh it.`;
+                break;
+            } else {
+                aiNarratives[req.name] = entry.insightText;
+            }
+        }
+    }
+
+    // ── Future Vision: Trigger Function ─────────────────────────────────────────
+    const triggerFutureVision = async () => {
+        if (fvLoading) return;
+
+        // If active, toggle off (clear ghosts)
+        if (fvActive) {
+            setFvActive(false);
+            setFvBias(null);
+            setFvRisk('');
+            setFvPAE(null);
+            setFvModel(null);
+            fvSessionRef.current = null;
+            fvLiveBarIndexRef.current = 0;
+            if (ghostCandleSeriesRef.current) ghostCandleSeriesRef.current.setData([]);
+            return;
+        }
+
+        if (fvStaleMsg) {
+            import('sonner').then(({ toast }) => toast.error(fvStaleMsg, { duration: 4000 }));
+            return;
+        }
+
+        if (!data || data.length === 0) return;
+
+        setFvLoading(true);
+        try {
+            const fvSettings = getFVSettings();
+            const horizonBars = fvSettings.horizonBars;
+
+            // Assemble payload using the pre-digested AI narratives
+            const contextPayload = assembleContext({
+                ohlcv:         data,
+                instrumentKey,
+                symbol:        instrumentKey.split('|').pop() || instrumentKey,
+                timeframe,
+                tradingMode:   tradingMode || 'swing',
+                indicators:    registryTechnicals,
+                fundamentals:  registryFundamentals,
+                events:        resolvedEvents,
+                horizonBars,
+            });
+
+
+            // Debug log — visible in browser console to verify all data is populated
+            console.groupCollapsed('[FutureVision] Context Payload Preview');
+            console.log('Indicators snapshot:', registryTechnicals);
+            console.log('Fundamentals (merged):', registryFundamentals);
+            console.log('Events:', resolvedEvents);
+            console.log('Master Registry pages:', Object.keys(masterSnapshot || {}));
+            console.log('Payload length (chars):', contextPayload.length);
+            console.groupEnd();
+
+            // Call backend
+            const res = await axiosInstance.post('/api/v1/future-vision/predict', {
+
+                contextPayload,
+                instrumentKey,
+                horizonBars,
+            });
+
+            const { candles, overall_bias, key_risk } = res.data;
+
+            // Store prediction in PAE engine
+            clearPAESession(instrumentKey, timeframe);
+            fvLiveBarIndexRef.current = 0;
+
+            // Generate future timestamps for ghost candles
+            const lastCandle = data[data.length - 1];
+            
+            const times = candles.map((_, i) => {
+                if (typeof lastCandle.time === 'number') {
+                    const timeDiff = data.length > 1 ? lastCandle.time - data[data.length - 2].time : 86400;
+                    return lastCandle.time + timeDiff * (i + 1);
+                } else if (typeof lastCandle.time === 'string') {
+                    const timeDiffMs = data.length > 1 
+                        ? new Date(lastCandle.time).getTime() - new Date(data[data.length - 2].time).getTime() 
+                        : 86400000;
+                    const nextTimeMs = new Date(lastCandle.time).getTime() + (timeDiffMs * (i + 1));
+                    return new Date(nextTimeMs).toISOString().split('T')[0];
+                } else if (lastCandle.time && lastCandle.time.year) {
+                    let date = new Date(lastCandle.time.year, lastCandle.time.month - 1, lastCandle.time.day);
+                    date.setDate(date.getDate() + (i + 1));
+                    return { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() };
+                }
+                return lastCandle.time; // ultimate fallback
+            });
+
+            // Store session for PAE
+            fvSessionRef.current = { candles, instrumentKey, timeframe, times };
+            storePrediction(instrumentKey, timeframe, tradingMode || 'swing', candles, overall_bias, key_risk, times, res.data.modelUsed);
+
+            // Render ghost candles
+            _renderGhostCandles(candles, times, false);
+
+            setFvBias(overall_bias || 'neutral');
+            setFvRisk(key_risk || '');
+            setFvModel(res.data.modelUsed);
+            setFvActive(true);
+
+            if (res.data.fallbackTriggered) {
+                import('sonner').then(({ toast }) => {
+                    toast.warning(`Model Fallback: ${res.data.fallbackReason || 'Selected model failed'}. Used ${res.data.modelUsed} instead.`, { duration: 6000 });
+                });
+            }
+        } catch (err) {
+            console.error('[FutureVision] Error:', err);
+            // Display the exact error from the backend so the user knows if the model hallucinated or failed
+            const errorMsg = err.response?.data?.error || err.message || 'Prediction failed';
+            import('sonner').then(({ toast }) => {
+                toast.error(`Future Vision Error: ${errorMsg}`, { duration: 6000 });
+            });
+        } finally {
+            setFvLoading(false);
+        }
+    };
+
+
+
+    // Check for stored PAE session on mount or instrument/timeframe change
+    useEffect(() => {
+        if (!chartRef.current) return;
+        const session = getPAESession(instrumentKey, timeframe);
+        if (session && session.candles && session.times && session.bias) {
+            // Restore session
+            fvSessionRef.current = { 
+                candles: session.candles, 
+                instrumentKey: session.instrumentKey, 
+                timeframe: session.timeframe, 
+                times: session.times 
+            };
+            setFvBias(session.bias);
+            setFvRisk(session.risk || '');
+            setFvModel(session.modelUsed || null);
+            setFvActive(true);
+            
+            // Re-render ghosts
+            _renderGhostCandles(session.candles, session.times, false);
+            
+            // Setup HUD
+            setFvPAE(getPAESession(instrumentKey, timeframe));
+        } else {
+            // Clear if none
+            setFvActive(false);
+            setFvBias(null);
+            setFvRisk('');
+            setFvPAE(null);
+            setFvModel(null);
+            fvSessionRef.current = null;
+            if (ghostCandleSeriesRef.current) ghostCandleSeriesRef.current.setData([]);
+        }
+    }, [instrumentKey, timeframe]);
+
     useEffect(() => {
         if (!candleSeriesRef.current || !volumeSeriesRef.current || !data || data.length === 0) return;
         
@@ -414,7 +700,84 @@ export default React.memo(function AdvancedCandlestickChart({
         }));
         volumeDataRef.current = volumeData;
         volumeSeriesRef.current.setData(volumeData);
-        
+
+        // ── Always compute full indicator snapshot for Future Vision ──────────────────
+        // These run unconditionally (not gated on showXxx) so the AI always gets fresh data.
+        try {
+            const snap = {};
+            const d = data;
+            if (d.length >= 14) {
+                // Supertrend
+                const stData = calculateSupertrend(d, 10, 3);
+                const lastST = stData.up.at(-1) || stData.down.at(-1);
+                snap.supertrendDir = stData.up.at(-1)?.value != null ? 'bullish' : 'bearish';
+                snap.supertrendLevel = lastST?.value ?? null;
+
+                // VWAP
+                const vwapData = calculateVWAP(d);
+                snap.vwap = vwapData.at(-1)?.value ?? null;
+
+                // EMA 9 / 21 / 50
+                const ema9Data  = calculateEMA(d, 9);
+                const ema21Data = calculateEMA(d, 21);
+                const ema50Data = calculateEMA(d, 50);
+                snap.ema9  = ema9Data.at(-1)?.value  ?? null;
+                snap.ema21 = ema21Data.at(-1)?.value ?? null;
+                snap.ema50 = ema50Data.at(-1)?.value ?? null;
+
+                // MACD
+                const macd = calculateMACD(d);
+                snap.macdLine   = macd.macd.at(-1)?.value      ?? null;
+                snap.macdSignal = macd.signal.at(-1)?.value    ?? null;
+                snap.macdHist   = macd.histogram.at(-1)?.value ?? null;
+
+                // RSI
+                const rsiResult = calculateRSIDivergence(d, 14);
+                const lastRsi   = rsiResult.rsi.at(-1)?.value ?? null;
+                snap.rsi = lastRsi;
+                snap.rsiSignal = lastRsi != null
+                    ? (lastRsi > 70 ? 'OVERBOUGHT' : lastRsi < 30 ? 'OVERSOLD' : lastRsi > 55 ? 'Bullish' : lastRsi < 45 ? 'Bearish' : 'Neutral')
+                    : 'N/A';
+
+                // Adaptive Bands (always compute in current bandsMode for ATR proxy)
+                const bands = computeAdaptiveBands(d, bandsMode);
+                const lastOU = bands.outer?.upper?.at(-1)?.value ?? null;
+                const lastOL = bands.outer?.lower?.at(-1)?.value ?? null;
+                const lastMid = bands.middle?.at(-1)?.value      ?? null;
+                snap.bandsMode    = bandsMode;
+                snap.bandsUpper   = lastOU;
+                snap.bandsLower   = lastOL;
+                snap.bandsMid     = lastMid;
+                snap.bandsWidth   = (lastOU != null && lastOL != null) ? lastOU - lastOL : null;
+
+                // ATR(14) — compute from True Ranges
+                {
+                    const atrWindow = d.slice(-15);
+                    let atrSum = 0, atrN = 0;
+                    for (let i = 1; i < atrWindow.length; i++) {
+                        const hi = atrWindow[i].high, lo = atrWindow[i].low, pc = atrWindow[i-1].close;
+                        const tr = Math.max(hi - lo, Math.abs(hi - pc), Math.abs(lo - pc));
+                        if (tr > 0) { atrSum += tr; atrN++; }
+                    }
+                    snap.atr14 = atrN ? atrSum / atrN : null;
+                }
+
+                // Volume averages
+                const vol5  = d.slice(-5).reduce((a, c) => a + (c.volume || 0), 0) / 5;
+                const vol20 = d.slice(-20).reduce((a, c) => a + (c.volume || 0), 0) / 20;
+                snap.recentVolAvg5  = vol5;
+                snap.recentVolAvg20 = vol20;
+
+                // Pass horizonBars for ATR-scaling note in assembler
+                snap._horizonBars = getFVSettings().horizonBars;
+            }
+            liveIndicatorSnapshotRef.current = snap;
+        } catch (e) {
+            // Never crash the chart if snapshot computation fails
+            console.warn('[FV] Indicator snapshot error:', e);
+        }
+
+
         if (showSupertrend && supertrendUpSeriesRef.current && supertrendDownSeriesRef.current) {
             const stData = calculateSupertrend(data, 10, 3);
             supertrendUpSeriesRef.current.setData(stData.up);
@@ -448,16 +811,40 @@ export default React.memo(function AdvancedCandlestickChart({
             cprPivotSeriesRef.current.setData([]);
             cprBcSeriesRef.current.setData([]);
         }
-        if (showBollinger && bbUpperRef.current && bbMiddleRef.current && bbLowerRef.current) {
-            const bb = calculateBollingerBands(data, 20, 2);
-            bbUpperRef.current.setData(bb.upper);
-            bbMiddleRef.current.setData(bb.middle);
-            bbLowerRef.current.setData(bb.lower);
-        } else if (bbUpperRef.current) {
-            bbUpperRef.current.setData([]);
-            bbMiddleRef.current.setData([]);
-            bbLowerRef.current.setData([]);
+        // ── Adaptive Bands — unified 3-mode institutional engine ─────────────
+        if (showAdaptiveBands && bandOuterUpperRef.current && bandOuterLowerRef.current && bandMiddleRef.current) {
+            // Per-mode color palette
+            const modeColors = {
+                scalp:      { outer: '#818cf8', inner: '#818cf866', middle: '#818cf8' }, // indigo  (BB)
+                swing:      { outer: '#fbbf24', inner: '#fbbf2466', middle: '#fbbf24' }, // amber   (KC)
+                positional: { outer: '#34d399', inner: '#34d39966', middle: '#6ee7b7' }, // emerald (Donchian)
+            };
+            const palette = modeColors[bandsMode] || modeColors.swing;
+
+            // Apply colors
+            bandOuterUpperRef.current.applyOptions({ color: palette.outer });
+            bandOuterLowerRef.current.applyOptions({ color: palette.outer });
+            bandMiddleRef.current.applyOptions({ color: palette.middle, lineStyle: 2 });
+            bandInnerUpperRef.current.applyOptions({ color: palette.inner });
+            bandInnerLowerRef.current.applyOptions({ color: palette.inner });
+
+            // Compute institutional-grade bands for this mode
+            const bands = computeAdaptiveBands(data, bandsMode);
+            bandOuterUpperRef.current.setData(bands.outer.upper);
+            bandOuterLowerRef.current.setData(bands.outer.lower);
+            bandMiddleRef.current.setData(bands.middle);
+            // Inner channel: KC has it, Donchian has it, BB (scalp) does not
+            bandInnerUpperRef.current.setData(bands.inner ? bands.inner.upper : []);
+            bandInnerLowerRef.current.setData(bands.inner ? bands.inner.lower : []);
+        } else if (bandOuterUpperRef.current) {
+            bandOuterUpperRef.current.setData([]);
+            bandOuterLowerRef.current.setData([]);
+            bandMiddleRef.current.setData([]);
+            bandInnerUpperRef.current.setData([]);
+            bandInnerLowerRef.current.setData([]);
         }
+
+
 
         if (showMACD && macdLineRef.current && signalLineRef.current && macdHistRef.current) {
             const macd = calculateMACD(data);
@@ -470,33 +857,12 @@ export default React.memo(function AdvancedCandlestickChart({
             macdHistRef.current.setData([]);
         }
 
-        if (showKeltner && keltnerUpperRef.current && keltnerMiddleRef.current && keltnerLowerRef.current) {
-            const kc = calculateKeltnerChannels(data, 20, 2);
-            keltnerUpperRef.current.setData(kc.upper);
-            keltnerMiddleRef.current.setData(kc.middle);
-            keltnerLowerRef.current.setData(kc.lower);
-        } else if (keltnerUpperRef.current) {
-            keltnerUpperRef.current.setData([]);
-            keltnerMiddleRef.current.setData([]);
-            keltnerLowerRef.current.setData([]);
-        }
-
-        if (showDonchian && donchianUpperRef.current && donchianMiddleRef.current && donchianLowerRef.current) {
-            const dc = calculateDonchianChannels(data, 20);
-            donchianUpperRef.current.setData(dc.upper);
-            donchianMiddleRef.current.setData(dc.middle);
-            donchianLowerRef.current.setData(dc.lower);
-        } else if (donchianUpperRef.current) {
-            donchianUpperRef.current.setData([]);
-            donchianMiddleRef.current.setData([]);
-            donchianLowerRef.current.setData([]);
-        }
-
         if (showPSAR && psarRef.current) {
             psarRef.current.setData(calculatePSAR(data));
         } else if (psarRef.current) {
             psarRef.current.setData([]);
         }
+
 
         if (showIchimoku && ichimokuTenkanRef.current && ichimokuKijunRef.current && ichimokuSpanARef.current && ichimokuSpanBRef.current) {
             const ichi = calculateIchimoku(data);
@@ -550,7 +916,8 @@ export default React.memo(function AdvancedCandlestickChart({
             rsiRef.current.setData([]);
         }
 
-    }, [data, showSupertrend, showVWAP, showEMA, showCPR, showBollinger, showMACD, showKeltner, showDonchian, showPSAR, showIchimoku, showAnchoredVWAP, showAutoFib, showRSI]);
+    }, [data, showSupertrend, showVWAP, showEMA, showCPR, showAdaptiveBands, bandsMode, showMACD, showPSAR, showIchimoku, showAnchoredVWAP, showAutoFib, showRSI]);
+
 
     useEffect(() => {
         if (!undervaluedSeriesRef.current) return;
@@ -654,6 +1021,79 @@ export default React.memo(function AdvancedCandlestickChart({
                     <Plus size={14} strokeWidth={2.5} />
                 </button>
 
+                {/* ── Future Vision Button ─────────────────────────────────── */}
+                <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+                <button
+                    onMouseEnter={(e) => handleMouseEnter(e, fvActive ? 'Clear Future Vision' : (fvStaleMsg || 'Future Vision — AI Candle Prediction'))}
+                    onMouseLeave={() => setHoveredIndicator(null)}
+                    onClick={triggerFutureVision}
+                    disabled={fvLoading}
+                    className={`pointer-events-auto relative flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200
+                        ${fvLoading ? 'text-violet-400 animate-pulse' : ''}
+                        ${fvActive && !fvLoading ? 'text-violet-400' : ''}
+                        ${!fvActive && !fvLoading ? 'text-text-secondary hover:text-violet-400' : ''}`}
+                >
+                    {fvActive && !fvLoading && (
+                        <span className="absolute inset-0 rounded-md ring-2 ring-violet-400/50 animate-ping" />
+                    )}
+                    {fvLoading
+                        ? <Loader size="tiny" />
+                        : <Telescope size={13} strokeWidth={2} />
+                    }
+                </button>
+
+                {/* ── Future Vision Bias + PAE HUD ─────────────────────────── */}
+                {fvActive && fvBias && (
+                    <motion.div
+                        initial={{ opacity: 0, x: -6 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex items-center ml-1"
+                    >
+                        <button
+                            onMouseEnter={(e) => {
+                                const tooltipContent = (
+                                    <div className="flex flex-col gap-1.5 min-w-[140px]">
+                                        <div className="flex justify-between items-center border-b border-white/10 pb-1.5 mb-0.5">
+                                            <span className="text-white/50 text-[9px] uppercase font-bold tracking-wider">Bias</span>
+                                            <span className={`text-[10px] font-bold ${fvBias === 'bullish' ? 'text-emerald-400' : fvBias === 'bearish' ? 'text-red-400' : 'text-slate-400'}`}>
+                                                AI {fvBias.toUpperCase()}
+                                            </span>
+                                        </div>
+                                        {fvSessionRef.current?.candles && (
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-white/50 text-[9px] uppercase font-bold tracking-wider">Confidence</span>
+                                                <span className="text-violet-400 text-[10px] font-bold font-mono">
+                                                    {Math.round(fvSessionRef.current.candles.reduce((acc, c) => acc + c.confidence, 0) / fvSessionRef.current.candles.length)}%
+                                                </span>
+                                            </div>
+                                        )}
+                                        {fvPAE && fvPAE.scores?.length > 0 && (
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-white/50 text-[9px] uppercase font-bold tracking-wider">Dir. Accuracy</span>
+                                                <span className="text-blue-400 text-[10px] font-bold font-mono">
+                                                    {Math.round(fvPAE.scores.reduce((a, b) => a + b.da, 0) / fvPAE.scores.length * 100)}% ({fvPAE.scores.length}/{fvSessionRef.current?.candles?.length})
+                                                </span>
+                                            </div>
+                                        )}
+                                        {fvModel && (
+                                            <div className="flex justify-between items-center pt-1 border-t border-white/10 mt-0.5">
+                                                <span className="text-white/50 text-[9px] uppercase font-bold tracking-wider">Model</span>
+                                                <span className="text-slate-300 text-[9px] truncate max-w-[90px]" title={fvModel}>{fvModel}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                                handleMouseEnter(e, tooltipContent);
+                            }}
+                            onMouseLeave={() => setHoveredIndicator(null)}
+                            className="p-1 text-slate-500 hover:text-violet-400 transition-colors bg-black/5 hover:bg-violet-500/10 rounded-full"
+                        >
+                            <Info size={13} strokeWidth={2.5} />
+                        </button>
+                    </motion.div>
+                )}
+
+
                 {/* OHLC Legend inline in top toolbar */}
                 <div className="pointer-events-none flex items-center gap-1.5 text-[11px] font-mono drop-shadow-md bg-black/5 dark:bg-black/20 border border-black/5 dark:border-white/5 px-1.5 py-0.5 rounded backdrop-blur-sm ml-1">
                     {(() => {
@@ -685,80 +1125,114 @@ export default React.memo(function AdvancedCandlestickChart({
                             transition={{ duration: 0.15, ease: 'easeOut' }}
                             className="absolute top-full left-0 mt-2 bg-white/80 dark:bg-[#1e222d]/80 border border-black/5 dark:border-white/5 rounded-xl backdrop-blur-md shadow-2xl p-2 z-30"
                         >
-                            <div className="grid grid-cols-4 gap-2">
-                                <button
-                                    onMouseEnter={(e) => handleMouseEnter(e, 'Bollinger Bands (20, 2)')}
-                                    onMouseLeave={() => setHoveredIndicator(null)}
-                                    onClick={() => setShowBollinger(p => !p)}
-                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showBollinger ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                >
-                                    <Waves size={13} strokeWidth={2} />
-                                </button>
-                                <button
-                                    onMouseEnter={(e) => handleMouseEnter(e, 'MACD (12, 26, 9)')}
-                                    onMouseLeave={() => setHoveredIndicator(null)}
-                                    onClick={() => setShowMACD(p => !p)}
-                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showMACD ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                >
-                                    <TrendingUpDown size={13} strokeWidth={2} />
-                                </button>
-                                <button
-                                    onMouseEnter={(e) => handleMouseEnter(e, 'Anchored VWAP')}
-                                    onMouseLeave={() => setHoveredIndicator(null)}
-                                    onClick={() => setShowAnchoredVWAP(p => !p)}
-                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAnchoredVWAP ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                >
-                                    <Anchor size={13} strokeWidth={2} />
-                                </button>
-                                <button
-                                    onMouseEnter={(e) => handleMouseEnter(e, 'Auto Fibonacci')}
-                                    onMouseLeave={() => setHoveredIndicator(null)}
-                                    onClick={() => setShowAutoFib(p => !p)}
-                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAutoFib ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                >
-                                    <AlignJustify size={13} strokeWidth={2} />
-                                </button>
-                                <button
-                                    onMouseEnter={(e) => handleMouseEnter(e, 'Parabolic SAR')}
-                                    onMouseLeave={() => setHoveredIndicator(null)}
-                                    onClick={() => setShowPSAR(p => !p)}
-                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showPSAR ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                >
-                                    <MoreHorizontal size={13} strokeWidth={2} />
-                                </button>
-                                <button
-                                    onMouseEnter={(e) => handleMouseEnter(e, 'Ichimoku Cloud')}
-                                    onMouseLeave={() => setHoveredIndicator(null)}
-                                    onClick={() => setShowIchimoku(p => !p)}
-                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showIchimoku ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                >
-                                    <Cloud size={13} strokeWidth={2} />
-                                </button>
-                                <button
-                                    onMouseEnter={(e) => handleMouseEnter(e, 'Keltner Channels')}
-                                    onMouseLeave={() => setHoveredIndicator(null)}
-                                    onClick={() => setShowKeltner(p => !p)}
-                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showKeltner ? 'bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                >
-                                    <Frame size={13} strokeWidth={2} />
-                                </button>
-                                <button
-                                    onMouseEnter={(e) => handleMouseEnter(e, 'Donchian Channels')}
-                                    onMouseLeave={() => setHoveredIndicator(null)}
-                                    onClick={() => setShowDonchian(p => !p)}
-                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showDonchian ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                >
-                                    <SlidersHorizontal size={13} strokeWidth={2} />
-                                </button>
-                                <button
-                                    onMouseEnter={(e) => handleMouseEnter(e, 'RSI Divergence')}
-                                    onMouseLeave={() => setHoveredIndicator(null)}
-                                    onClick={() => setShowRSI(p => !p)}
-                                    className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showRSI ? 'bg-pink-500/15 text-pink-600 dark:text-pink-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                >
-                                    <Spline size={13} strokeWidth={2} />
-                                </button>
+                            <div className="flex flex-col gap-2">
+                                <div className="grid grid-cols-4 gap-2">
+                                    {/* ── Adaptive Bands ── */}
+                                    <button
+                                        onMouseEnter={(e) => handleMouseEnter(e, `Adaptive Bands — ${bandsMode === 'scalp' ? 'BB Scalp' : bandsMode === 'swing' ? 'KC Swing' : 'DC Positional'}`)}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        onClick={() => setShowAdaptiveBands(p => !p)}
+                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAdaptiveBands
+                                            ? bandsMode === 'scalp'      ? 'bg-indigo-500/15 text-indigo-400'
+                                            : bandsMode === 'positional' ? 'bg-emerald-500/15 text-emerald-400'
+                                            :                              'bg-amber-500/15 text-amber-400'
+                                            : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <Waves size={13} strokeWidth={2} />
+                                    </button>
+
+                                    {/* Remaining indicators */}
+                                    <button
+                                        onMouseEnter={(e) => handleMouseEnter(e, 'MACD (12, 26, 9)')}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        onClick={() => setShowMACD(p => !p)}
+                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showMACD ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <TrendingUpDown size={13} strokeWidth={2} />
+                                    </button>
+                                    <button
+                                        onMouseEnter={(e) => handleMouseEnter(e, 'Anchored VWAP')}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        onClick={() => setShowAnchoredVWAP(p => !p)}
+                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAnchoredVWAP ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <Anchor size={13} strokeWidth={2} />
+                                    </button>
+                                    <button
+                                        onMouseEnter={(e) => handleMouseEnter(e, 'Auto Fibonacci')}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        onClick={() => setShowAutoFib(p => !p)}
+                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAutoFib ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <AlignJustify size={13} strokeWidth={2} />
+                                    </button>
+                                    <button
+                                        onMouseEnter={(e) => handleMouseEnter(e, 'Parabolic SAR')}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        onClick={() => setShowPSAR(p => !p)}
+                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showPSAR ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <MoreHorizontal size={13} strokeWidth={2} />
+                                    </button>
+                                    <button
+                                        onMouseEnter={(e) => handleMouseEnter(e, 'Ichimoku Cloud')}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        onClick={() => setShowIchimoku(p => !p)}
+                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showIchimoku ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <Cloud size={13} strokeWidth={2} />
+                                    </button>
+                                    <button
+                                        onMouseEnter={(e) => handleMouseEnter(e, 'RSI Divergence')}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        onClick={() => setShowRSI(p => !p)}
+                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showRSI ? 'bg-pink-500/15 text-pink-600 dark:text-pink-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                    >
+                                        <Spline size={13} strokeWidth={2} />
+                                    </button>
+                                </div>
+
+                                {/* Mode toggle pills — visible only when bands are on */}
+                                <AnimatePresence>
+                                    {showAdaptiveBands && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -6, height: 0 }}
+                                            animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                            exit={{ opacity: 0, y: -6, height: 0 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="flex items-center justify-between bg-black/5 dark:bg-white/5 p-1 rounded-md"
+                                        >
+                                            {[
+                                                { id: 'scalp',      label: 'SCP', color: 'indigo' },
+                                                { id: 'swing',      label: 'SWG', color: 'amber'  },
+                                                { id: 'positional', label: 'POS', color: 'emerald'},
+                                            ].map(m => (
+                                                <button
+                                                    key={m.id}
+                                                    onMouseEnter={(e) => handleMouseEnter(e,
+                                                        m.id === 'scalp'      ? 'Scalp — Bollinger Bands (20, 2σ sample)'
+                                                        : m.id === 'swing'    ? 'Swing — Keltner Channels (EMA20, ATR14)'
+                                                        :                       'Positional — Donchian Dual Channel (50+20)'
+                                                    )}
+                                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                                    onClick={() => setBandsMode(m.id)}
+                                                    className={`flex-1 px-1 py-1 rounded text-[10px] font-bold tracking-wide transition-all duration-150 mx-0.5
+                                                        ${bandsMode === m.id
+                                                            ? m.color === 'indigo'  ? 'bg-indigo-500/20  text-indigo-400  border border-indigo-500/30 shadow-sm'
+                                                            : m.color === 'amber'   ? 'bg-amber-500/20   text-amber-400   border border-amber-500/30 shadow-sm'
+                                                            :                         'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                                                            : 'bg-transparent text-slate-500 dark:text-white/40 border border-transparent hover:text-slate-800 dark:hover:text-white/80 hover:bg-black/5 dark:hover:bg-white/10'
+                                                        }`}
+                                                >
+                                                    {m.label}
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
+
+
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -869,3 +1343,12 @@ function FundamentalTimeline({ data, height }) {
     }, [data, height]);
     return React.createElement('div', { className: 'mt-4' }, React.createElement('canvas', { ref: canvasRef, className: 'w-full' }));
 }
+
+
+
+
+
+
+
+
+

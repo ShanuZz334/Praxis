@@ -2,16 +2,17 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreObvCard } from '../engine/TechnicalCompositeEngine';
 
-export default function ObvCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function ObvCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.obv.id);
     
     // Resolve current value from live backend data
     const currentValue = data?.obv ?? null;
 
-    const { score, bias, confidence, aiInsight } = scoreObvCard(data?.obv, data?.obv_sma);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreObvCard(data?.obv, data?.obv_sma), 'obv', tradingMode);
 
     const displayValue = currentValue !== null && !isNaN(currentValue) ? Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 2 }).format(currentValue) : '--';
 return (

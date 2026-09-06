@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreStochRSICard } from '../engine/TechnicalCompositeEngine';
 
-export default function StochRSICard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function StochRSICard({ cardId, data = null, lastUpdated, tradingMode = 'swing', indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.stoch_rsi.id);
     
     const settingsConfig = [
@@ -18,7 +19,7 @@ export default function StochRSICard({ cardId, data = null, lastUpdated, indicat
     // Resolve current value
     const currentValueObj = data?.stoch_rsi ?? null;
 
-    const { score, bias, confidence, aiInsight } = scoreStochRSICard(currentValueObj);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreStochRSICard(currentValueObj), 'stoch_rsi', tradingMode);
 
     const kValue = currentValueObj?.k !== undefined && currentValueObj.k !== null ? parseFloat(currentValueObj.k).toFixed(2) + "%" : '--';
     const dValue = currentValueObj?.d !== undefined && currentValueObj.d !== null ? parseFloat(currentValueObj.d).toFixed(2) + "%" : '--';

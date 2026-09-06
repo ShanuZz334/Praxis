@@ -1,8 +1,8 @@
 import { providerCache } from '../cache/providerCache.js';
 
-export async function call({ model, messages, maxTokens, temperature, jsonMode }) {
-    const p = await providerCache.getProvider('groq');
-    if (!p || !p.apiKey) throw new Error('Groq provider is not configured.');
+export async function call({ model, messages, maxTokens, temperature, jsonMode, providerId = 'groq' }) {
+    const p = await providerCache.getProvider(providerId);
+    if (!p || !p.apiKey) throw new Error(`${providerId} provider is not configured.`);
 
     const url = p.baseUrl || 'https://api.groq.com/openai/v1';
     const endpoint = url.endsWith('/chat/completions') ? url : `${url}/chat/completions`;
@@ -64,3 +64,4 @@ export async function transcribeAudio(fileBuffer, originalName, mimeType) {
     const data = await response.json();
     return data.text;
 }
+

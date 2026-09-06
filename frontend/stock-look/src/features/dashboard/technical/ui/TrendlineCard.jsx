@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreTrendlineCard } from '../engine/TechnicalCompositeEngine';
 
-export default function TrendlineCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function TrendlineCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.trendline.id);
     
     // Check if we have dynamic linear regression trendline data from the backend
@@ -23,7 +24,7 @@ export default function TrendlineCard({ cardId, data = null, manualOverride, las
     }
 
     const isLiveData = !!trendlineObj;
-    const { score, bias, confidence, aiInsight } = scoreTrendlineCard(currentValue, currentPrice);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreTrendlineCard(currentValue, currentPrice), 'trendline', tradingMode);
 
     // Format display depending on if it's manual (price level) or dynamic (slope object)
     let displayValue = '--';

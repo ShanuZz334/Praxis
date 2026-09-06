@@ -4,8 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getNifty50Keys, NIFTY_50_SYMBOLS } from '../data/nifty50';
 import { useDashboardContext } from '@/shared/context/DashboardContext';
 
+import { useDataRegistry } from '@/shared/context/DataRegistryContext';
+
 const MarketHeatmap = React.memo(function MarketHeatmap({ livePrices: propLivePrices }) {
     const context = useDashboardContext();
+    const { register } = useDataRegistry();
     const livePrices = propLivePrices || context?.livePrices;
     const [activeTooltip, setActiveTooltip] = useState(null);
 
@@ -52,6 +55,19 @@ const MarketHeatmap = React.memo(function MarketHeatmap({ livePrices: propLivePr
 
     // Sort alphabetically so the boxes stay in the same position and don't jiggle around
     const sortedStocks = [...stocksData].sort((a, b) => a.symbol.localeCompare(b.symbol));
+
+    // Expose heatmap data to the AI Chat agent
+    useEffect(() => {
+        register('master', 'market_heatmap', {
+            displayName: "NIFTY 50 Live Movers Heatmap",
+            value: "Live Heatmap",
+            type: "heatmap",
+            data: sortedStocks.reduce((acc, s) => {
+                acc[s.symbol] = s.ltp ? { ltp: s.ltp, pctChange: parseFloat(s.pctChange.toFixed(2)) } : null;
+                return acc;
+            }, {})
+        });
+    }, [sortedStocks, register]);
 
     const getColor = (pct) => {
         if (pct === undefined || pct === null) return { bg: '#1e293b', text: '#94a3b8' };

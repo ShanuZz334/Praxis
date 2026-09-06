@@ -46,7 +46,7 @@ export default function DetachableInstrumentSelector({ isOpen, onClose }) {
                 exit={{ opacity: 0, scale: 0.8, y: -20, x: 20 }}
                 transition={springTransition}
                 className={`fixed z-[9999] top-[80px] right-[80px] cursor-grab active:cursor-grabbing
-                    bg-[#0B0E14] border border-border-default 
+                    bg-background-elevated border border-border-default 
                     rounded-2xl shadow-2xl min-w-[320px] max-w-[90vw]
                     transition-shadow duration-300
                     ${isDragging ? 'shadow-blue-500/20 shadow-2xl border-blue-500/30' : ''}
@@ -61,7 +61,7 @@ export default function DetachableInstrumentSelector({ isOpen, onClose }) {
                     </div>
                     <button 
                         onClick={onClose}
-                        className="p-1 rounded-md text-text-tertiary hover:bg-white/10 hover:text-red-400 transition-colors"
+                        className="p-1 rounded-md text-text-tertiary hover:bg-background-subtle hover:text-red-400 transition-colors"
                     >
                         <FiX size={14} />
                     </button>
@@ -78,7 +78,7 @@ export default function DetachableInstrumentSelector({ isOpen, onClose }) {
                                 className={`flex-1 flex items-center justify-center px-4 h-full rounded-md text-sm font-bold transition-all ${
                                     selectedCategory === c.value
                                         ? "bg-blue-500/15 text-blue-400 border border-blue-500/30 shadow-sm"
-                                        : "text-text-secondary hover:text-text-primary hover:bg-white/5 border border-transparent"
+                                        : "text-text-secondary hover:text-text-primary hover:bg-background-subtle border border-transparent"
                                 }`}
                             >
                                 {c.label}

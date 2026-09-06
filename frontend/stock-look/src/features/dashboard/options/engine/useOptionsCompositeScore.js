@@ -5,7 +5,7 @@ import { getOptionsRegime, getOptionsGauge } from './optionsHelper';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
-export function useOptionsCompositeScore(compositeData, instrumentKey, metrics = null, proDeskPicks = null, spotPrice = null) {
+export function useOptionsCompositeScore(compositeData, instrumentKey, metrics = null, proDeskPicks = null, spotPrice = null, disableSync = false) {
     return useMemo(() => {
         const empty = {
             compositeScore: 50,
@@ -270,20 +270,22 @@ export function useOptionsCompositeScore(compositeData, instrumentKey, metrics =
         };
 
         // Fire & Forget DB Sync
-        if (typeof window !== 'undefined' && compositeData && instrumentKey) {
+        if (!disableSync && typeof window !== 'undefined' && compositeData && instrumentKey) {
             import('@/shared/utils/axiosInstance').then(({ default: axiosInstance }) => {
                 const ik = typeof instrumentKey === 'object' ? instrumentKey.value || instrumentKey.id : instrumentKey;
                 axiosInstance.post('/api/v1/snapshots/header', {
-                    instrument_key: ik || 'NIFTY',
+                    instrument_key: ik || 'NSE_INDEX|Nifty 50',
                     category: 'options',
                     composite_score: compositeScore,
                     regime_json: result.regime,
                     tailwinds_json: tailwinds,
-                    risks_json: risks
+                    risks_json: risks,
+                    counts_json: cardScores,
+                    tree_payload_json: nestedTreePayload
                 }).catch(err => console.error("Failed to sync Options header:", err));
             });
         }
 
         return result;
-    }, [compositeData, instrumentKey, metrics, proDeskPicks, spotPrice]);
+    }, [compositeData, instrumentKey, metrics, proDeskPicks, spotPrice, disableSync]);
 }

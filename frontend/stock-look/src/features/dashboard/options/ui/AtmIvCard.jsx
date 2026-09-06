@@ -3,8 +3,9 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { gradeAtmIv } from '../engine/optionsScoringEngine';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
-export default function AtmIvCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
+export default function AtmIvCard({ cardId, liveData = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.atm_iv.id);
     
     // Step 1: Detect if we have live data
@@ -34,6 +35,8 @@ export default function AtmIvCard({ cardId, liveData = null, manualOverride, las
         }
     }
 
+    const { score: adjScore, bias: adjBias } = applyModeAdjustment({ score, bias }, 'atm_iv', tradingMode);
+
     const whyItMatters = [
         "Measures expected market volatility.",
         "Helps evaluate option premiums.",
@@ -61,8 +64,8 @@ export default function AtmIvCard({ cardId, liveData = null, manualOverride, las
                 details: [
                     { label: "Trend", value: isLiveData ? "Live" : "Static" }
                 ],
-                score: rawValue !== null ? score : null,
-                bias,
+                score: rawValue !== null ? adjScore : null,
+                bias: adjBias,
                 confidence,
                 impactWeight: configData.impactWeight
             }}

@@ -2,26 +2,26 @@
  * @file optionsSectionWeights.js
  * @purpose Section weight configurations for Options page categories.
  * @responsibilities
- * - Defines weights for 3 options sections (Open Interest, Greeks, Volatility)
- * - Provides mode-specific section weight multipliers
+ * - Defines weights for 5 options sections (OI, PCR, Greeks, Volatility, Market Positioning)
+ * - Provides mode-specific section weight multipliers (POSITIONAL / SWING / INTRADAY)
  * @key_exports
  * - optionsSections - Section definitions with weights
  * - getOptionsSectionWeights - Gets section weights for specific mode
- * @date 2026-02-04
+ * @date 2026-08-14
  */
 
-import { TRADING_MODES, getCurrentMode } from '../tradingModes.js';
+import { TRADING_MODES } from '../tradingModes.js';
 
 // =============================
 // Base Section Weights
 // =============================
 
 export const optionsSections = [
-    { id: 'Open Interest', label: 'Open Interest', w: 0.25 },
-    { id: 'Put-Call Ratio', label: 'Put-Call Ratio', w: 0.20 },
-    { id: 'Greeks', label: 'Greeks', w: 0.20 },
-    { id: 'Volatility', label: 'Volatility', w: 0.15 },
-    { id: 'Market Positioning', label: 'Market Positioning', w: 0.20 }
+    { id: 'Open Interest',      label: 'Open Interest',      w: 0.25 },
+    { id: 'Put-Call Ratio',     label: 'Put-Call Ratio',     w: 0.20 },
+    { id: 'Greeks',             label: 'Greeks',             w: 0.20 },
+    { id: 'Volatility',         label: 'Volatility',         w: 0.15 },
+    { id: 'Market Positioning', label: 'Market Positioning', w: 0.20 },
 ];
 
 // =============================
@@ -29,25 +29,26 @@ export const optionsSections = [
 // =============================
 
 export const SECTION_MODE_MULTIPLIERS = {
-    [TRADING_MODES.BALANCED]: {
-        // No multipliers - use base weights
+    // POSITIONAL: Bigger picture — OI and Volatility dominate, short-term Greeks less relevant
+    [TRADING_MODES.POSITIONAL]: {
+        'Open Interest':      1.20,  // OI walls matter for weekly/monthly positioning
+        'Put-Call Ratio':     1.10,  // PCR confirms sentiment direction
+        'Greeks':             0.75,  // Short-term Delta/Gamma irrelevant for multi-day holds
+        'Volatility':         1.30,  // IV Rank/Percentile critical for entry premium assessment
+        'Market Positioning': 1.20,  // Max Pain highly relevant near expiry for positional
     },
 
-    [TRADING_MODES.AGGRESSIVE]: {
-        'Open Interest': 1.3,
-        'Put-Call Ratio': 1.2,
-        'Greeks': 1.4,
-        'Volatility': 0.7,
-        'Market Positioning': 1.2
-    },
+    // SWING: Balanced — use base weights (no multipliers)
+    [TRADING_MODES.SWING]: {},
 
-    [TRADING_MODES.CONSERVATIVE]: {
-        'Open Interest': 1.0,
-        'Put-Call Ratio': 1.0,
-        'Greeks': 0.8,
-        'Volatility': 1.5,
-        'Market Positioning': 1.0
-    }
+    // INTRADAY: Short-term Greeks + PCR dominate, slower IV metrics less actionable
+    [TRADING_MODES.INTRADAY]: {
+        'Open Interest':      0.90,  // OI walls still relevant but less granular intraday
+        'Put-Call Ratio':     1.30,  // Real-time PCR volume is the primary tape signal
+        'Greeks':             1.40,  // Delta/Gamma dominate — live option price movement
+        'Volatility':         0.80,  // ATM IV shifts slowly; IV Rank not an intraday signal
+        'Market Positioning': 0.70,  // Max Pain is an expiry-week metric, not intraday
+    },
 };
 
 // =============================
@@ -56,13 +57,11 @@ export const SECTION_MODE_MULTIPLIERS = {
 
 /**
  * Gets section weights for a specific trading mode
- * @param {Object} userPreferences - User preferences object
+ * @param {string} mode - Trading mode ('positional' | 'swing' | 'intraday')
  * @returns {Array} Section configuration with adjusted weights
  */
-export const getOptionsSectionWeights = (userPreferences = null) => {
-    const mode = getCurrentMode(userPreferences);
-
-    if (mode === TRADING_MODES.BALANCED) {
+export const getOptionsSectionWeights = (mode = TRADING_MODES.SWING) => {
+    if (mode === TRADING_MODES.SWING) {
         return optionsSections;
     }
 

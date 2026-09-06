@@ -12,7 +12,8 @@ import {
     Calendar,
     Globe,
     Plus,
-    Trash2
+    Trash2,
+    Telescope
 } from 'lucide-react';
 
 import paiLogoLight from '@/assets/images/pai 2-bgless.png';
@@ -443,6 +444,20 @@ const INITIAL_SECTIONS = [
                     { id: 'shanghai', title: 'Shanghai Composite', type: 'card' },
                     { id: 'cac40', title: 'CAC 40', type: 'card' },
                     { id: 'eurostoxx', title: 'Euro Stoxx 50', type: 'card' }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'future_vision',
+        label: 'Future Vision',
+        icon: Telescope,
+        subSections: [
+            {
+                id: 'fv_general',
+                label: 'General',
+                chats: [
+                    { id: 'fv_logs', title: 'System Trace', type: 'readonly' }
                 ]
             }
         ]

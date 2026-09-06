@@ -65,7 +65,7 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
         if (activeChatId) {
             const fetchHistory = async () => {
                 try {
-                    const scope = chatType === 'header' ? 'page' : 'card';
+                    const scope = chatType === 'header' || chatType === 'readonly' ? 'page' : 'card';
                     const res = await axiosInstance.get(`/api/v1/ai-prompts/thread/${activeChatId}`, { params: { scope } });
                     if (isMounted && res.data?.entries) {
                         setMessages(res.data.entries.map((m, i) => ({
@@ -213,7 +213,7 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
         };
 
         try {
-            const scope = chatType === 'header' ? 'page' : 'card';
+            const scope = chatType === 'header' || chatType === 'readonly' ? 'page' : 'card';
             
             // Extract explicit provider/model if possible
             let explicitProvider = null;
@@ -478,7 +478,8 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                                 )}
                                 {/* Removed Voice Status Badge and Standby Badge as requested */}
                                 
-                                <form
+                                {chatType !== 'readonly' ? (
+<form
                                     onSubmit={handleSend}
                                     className="relative flex items-end bg-background-tooltip border border-border-default rounded-xl shadow-lg focus-within:ring-1 focus-within:ring-blue-500/50 transition-shadow overflow-hidden"
                                 >
@@ -553,6 +554,9 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                                         </button>
                                     </div>
                                 </form>
+) : (
+<div className="p-3 text-center text-[11px] text-text-tertiary bg-background-elevated/50 rounded-xl border border-border-subtle font-mono">System Trace logs are read-only. Manual chatting is disabled.</div>
+)}
                             </div>
                         </div>
 
@@ -578,3 +582,5 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
         </div>
     );
 }
+
+

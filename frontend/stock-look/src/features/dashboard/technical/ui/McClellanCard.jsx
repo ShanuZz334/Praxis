@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreMcClellanCard } from '../engine/TechnicalCompositeEngine';
 
-export default function McClellanCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function McClellanCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.mcclellan.id);
     
     // Resolve current value
@@ -13,7 +14,7 @@ export default function McClellanCard({ cardId, data = null, manualOverride, las
     const isLiveData = false; 
     const currentValue = isLiveData ? null : (manualOverride ?? null);
 
-    const { score, bias, confidence, aiInsight } = scoreMcClellanCard(currentValue);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreMcClellanCard(currentValue), 'mcclellan', tradingMode);
 
     const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) : '--';
 return (

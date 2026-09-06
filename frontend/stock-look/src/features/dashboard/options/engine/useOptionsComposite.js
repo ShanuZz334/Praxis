@@ -21,7 +21,7 @@ import {
     gradeMaxPain
 } from './optionsScoringEngine';
 
-export const useOptionsComposite = (chainData, spotPrice, instrumentKey, selectedExpiry, manualOverrides = {}, historicalSnapshots = {}) => {
+export const useOptionsComposite = (chainData, spotPrice, instrumentKey, selectedExpiry, manualOverrides = {}, historicalSnapshots = {}, tradingMode = 'swing') => {
     return useMemo(() => {
         if (!chainData || chainData.length === 0) {
             return {
@@ -173,5 +173,5 @@ export const useOptionsComposite = (chainData, spotPrice, instrumentKey, selecte
             
             maxPain: gradeMaxPain(chainData, spotPrice)
         };
-    }, [chainData, spotPrice, instrumentKey, selectedExpiry, manualOverrides, historicalSnapshots]);
+    }, [chainData, spotPrice, instrumentKey, selectedExpiry, manualOverrides, historicalSnapshots, tradingMode]);
 };

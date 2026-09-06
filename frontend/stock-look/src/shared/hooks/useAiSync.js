@@ -24,6 +24,9 @@ export function useAiSync(instrumentKey, pageName, snapshot) {
         }
 
         const syncToBackend = async () => {
+            // Optimistically mark as synced to prevent infinite retry loops on network errors
+            lastSyncedRef.current = hashStr;
+            
             try {
                 // Ensure we have the minimum required data to avoid DB errors
                 if (snapshot.compositeScore === undefined || snapshot.compositeScore === null) return;
@@ -37,11 +40,11 @@ export function useAiSync(instrumentKey, pageName, snapshot) {
                     }
                 );
                 
-                // Mark as successfully synced
-                lastSyncedRef.current = hashStr;
                 console.log(`📡 Silently synced ${pageName} AI Snapshot for ${instrumentKey} to SQLite.`);
             } catch (err) {
                 console.error(`Failed to sync ${pageName} AI Snapshot to backend:`, err.message);
+                // On failure, revert the ref so it tries again when data actually changes
+                lastSyncedRef.current = null;
             }
         };
 

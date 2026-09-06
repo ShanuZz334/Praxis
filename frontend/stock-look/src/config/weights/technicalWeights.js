@@ -270,34 +270,44 @@ export const TECHNICAL_WEIGHTS = {
 
 // =============================
 // Trading Mode Multipliers
+// Applied to individual card weights within each section.
+// Section-level weights are managed in technicalSectionWeights.js.
 // =============================
 
 export const MODE_MULTIPLIERS = {
-    [TRADING_MODES.BALANCED]: {
-        // No multipliers - use base weights
+
+    // ── SWING (Baseline) ────────────────────────────────────────────────────
+    // No multipliers — base weights are used as-is.
+    [TRADING_MODES.SWING]: {},
+
+    // ── POSITIONAL ──────────────────────────────────────────────────────────
+    // Holding weeks-to-months. Trend-following indicators (EMA, ADX, Supertrend)
+    // carry more weight. Short-term oscillators and intraday structure less so.
+    [TRADING_MODES.POSITIONAL]: {
+        // Boost long-term trend indicators
+        trend: 1.30,        // t_ prefix cards
+        structure: 1.20,    // s_ prefix cards (swing highs, BOS, CHoCH)
+        fibonacci: 1.15,    // f_ prefix cards
+
+        // Reduce short-term oscillator noise
+        momentum: 0.80,     // m_ prefix cards (RSI, MACD, etc.)
+        breakout: 0.90,     // bk_ prefix cards (less relevant at positional scale)
     },
 
-    [TRADING_MODES.AGGRESSIVE]: {
-        // Boost momentum and trend indicators
-        momentum: 1.3,
-        trend: 1.2,
-        breakout: 1.4,
-        // Reduce structure and support
-        structure: 0.8,
-        fibonacci: 0.7,
-        trap: 0.7
-    },
+    // ── INTRADAY ────────────────────────────────────────────────────────────
+    // Same-day hold. Momentum, Volume, and Opening Range indicators dominate.
+    // Long-term trend is context only. Fibonacci/structure less actionable.
+    [TRADING_MODES.INTRADAY]: {
+        // Boost intraday-relevant indicators
+        momentum: 1.30,     // m_ prefix cards (RSI, MACD, Stoch)
+        breakout: 1.40,     // bk_ prefix cards (ORB, gap plays)
 
-    [TRADING_MODES.CONSERVATIVE]: {
-        // Boost structure and support indicators
-        structure: 1.3,
-        fibonacci: 1.2,
-        support: 1.3,
-        trap: 1.4,
-        // Reduce momentum
-        momentum: 0.7,
-        breakout: 0.6
-    }
+        // Reduce long-horizon indicators
+        trend: 0.75,        // t_ prefix cards (weekly trend less relevant)
+        structure: 0.80,    // s_ prefix cards
+        fibonacci: 0.60,    // f_ prefix cards (Fib levels less actionable on 5m)
+        trap: 0.85,         // tp_ prefix cards
+    },
 };
 
 // =============================
@@ -309,8 +319,8 @@ export const MODE_MULTIPLIERS = {
  * @param {string} mode - Trading mode
  * @returns {Object} Weight configuration
  */
-export const getTechnicalWeights = (mode = TRADING_MODES.BALANCED) => {
-    if (mode === TRADING_MODES.BALANCED) {
+export const getTechnicalWeights = (mode = TRADING_MODES.SWING) => {
+    if (mode === TRADING_MODES.SWING) {
         return TECHNICAL_WEIGHTS;
     }
 

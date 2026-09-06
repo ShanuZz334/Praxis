@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scorePivotCard } from '../engine/TechnicalCompositeEngine';
 
-export default function PivotCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function PivotCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.pivot.id);
     
     const liveValue = data?.pivot ?? null;
@@ -22,7 +23,7 @@ export default function PivotCard({ cardId, data = null, manualOverride, lastUpd
         };
     }
 
-    const { score, bias, confidence, aiInsight } = scorePivotCard(currentValue, currentPrice);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scorePivotCard(currentValue, currentPrice), 'pivot', tradingMode);
 
     return (
         <IndicatorCard

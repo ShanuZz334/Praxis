@@ -21,46 +21,28 @@ export default function OverrideUpdateModal() {
     const handleSave = () => {
         if (inputValue.trim() === "") return;
 
-        // 1. Update the value in localStorage
-        const storageKey = `praxis_manual_overrides_${moduleKey}`;
-        let allOverrides = {};
-        try {
-            const stored = localStorage.getItem(storageKey);
-            if (stored) allOverrides = JSON.parse(stored);
-        } catch (e) {
-            console.error(e);
-        }
-        
-        if (!allOverrides[instrument]) {
-            allOverrides[instrument] = {};
-        }
-        allOverrides[instrument][overrideKey] = inputValue;
-        localStorage.setItem(storageKey, JSON.stringify(allOverrides));
+        // Save override to SQLite via backend API (replaces localStorage)
+        fetch('/api/v1/overrides', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                module_key: moduleKey,
+                instrument_key: instrument,
+                field_key: overrideKey,
+                value: inputValue
+            })
+        }).catch(e => console.warn('[OverrideUpdateModal] Failed to save override:', e.message));
 
-        // 2. Update the timestamp in localStorage
-        const timeStorageKey = `praxis_manual_last_updated_${moduleKey}`;
-        let allTimes = {};
-        try {
-            const storedTime = localStorage.getItem(timeStorageKey);
-            if (storedTime) allTimes = JSON.parse(storedTime);
-        } catch (e) {
-            console.error(e);
-        }
-        
-        if (!allTimes[instrument]) {
-            allTimes[instrument] = {};
-        }
-        allTimes[instrument][overrideKey] = Date.now();
-        localStorage.setItem(timeStorageKey, JSON.stringify(allTimes));
-
-        // 3. Close the modal and dismiss the notification
+        // Close the modal and dismiss the notification
         setActiveOverrideRequest(null);
         if (notificationId) {
             removeNotification(notificationId);
         }
-        
-        // 4. Optionally dispatch an event so active hooks can refresh immediately (if they listen, or they'll get it on remount)
-        window.dispatchEvent(new Event('storage')); // Forces a storage event which some hooks might catch
+
+        // Dispatch a custom event so active useManualOverrides hooks know to reload
+        window.dispatchEvent(new CustomEvent('praxis:override-updated', {
+            detail: { moduleKey, instrument, field: overrideKey, value: inputValue }
+        }));
     };
 
     const handleClose = () => {

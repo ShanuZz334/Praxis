@@ -294,7 +294,7 @@ function generateHistory(baseValue, volatility, count = 7) {
 // Simulation Engine
 // =============================
 
-export function generateLiveTechnicalData(mode = TRADING_MODES.BALANCED) {
+export function generateLiveTechnicalData(mode = TRADING_MODES.SWING) {
     _seed = 5678; // Reset seed for deterministic output across pages
 
     // Fetch mode-specific weights
@@ -309,9 +309,9 @@ export function generateLiveTechnicalData(mode = TRADING_MODES.BALANCED) {
         const baseWeight = config.weight || 0.05;
 
         let multiplier = weight / baseWeight;
-        if (mode === TRADING_MODES.BALANCED) multiplier = 1.0;
+        if (mode === TRADING_MODES.SWING) multiplier = 1.0;
 
-        const isFocused = mode !== TRADING_MODES.BALANCED && multiplier > 1.1;
+        const isFocused = mode !== TRADING_MODES.SWING && multiplier > 1.1;
 
         let raw = 0;
         let unit = '';

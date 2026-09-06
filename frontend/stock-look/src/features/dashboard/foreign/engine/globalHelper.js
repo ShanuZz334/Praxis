@@ -40,7 +40,7 @@ export const globalSections = baseSections;
  * @param {string} mode - Trading mode.
  * @returns {number} Composite Score
  */
-export function calculateGlobalComposite(cards, mode = TRADING_MODES.BALANCED) {
+export function calculateGlobalComposite(cards, mode = TRADING_MODES.SWING) {
     if (!cards || cards.length === 0) return 50;
 
     // Fetch active weights
@@ -69,9 +69,9 @@ export function calculateGlobalComposite(cards, mode = TRADING_MODES.BALANCED) {
         const baseWeight = card.weight || 0.1;
 
         let multiplier = weight / baseWeight;
-        if (mode === TRADING_MODES.BALANCED) multiplier = 1.0;
+        if (mode === TRADING_MODES.SWING) multiplier = 1.0;
 
-        const isFocused = mode !== TRADING_MODES.BALANCED && multiplier > 1.1;
+        const isFocused = mode !== TRADING_MODES.SWING && multiplier > 1.1;
 
         card.multiplier = multiplier;
         card.isFocused = isFocused;
@@ -105,7 +105,7 @@ export function calculateGlobalComposite(cards, mode = TRADING_MODES.BALANCED) {
  * @param {string} mode
  * @returns {Object} Map of Category -> Score (0-100)
  */
-export function calculateSectionScores(cards, mode = TRADING_MODES.BALANCED) {
+export function calculateSectionScores(cards, mode = TRADING_MODES.SWING) {
     const activeWeights = getForeignWeights(mode);
     const sectionScores = {};
     const sectionWeightSums = {};
@@ -176,7 +176,7 @@ export function extractGlobalRisks(cards) {
  * @param {Array} cards - Card data needed for high-precision confidence calculation
  * @param {string} mode - Trading Mode
  */
-export function getGlobalRegime(score, cards = [], mode = TRADING_MODES.BALANCED) {
+export function getGlobalRegime(score, cards = [], mode = TRADING_MODES.SWING) {
     const regime = getNonMasterRegimeLabel(score);
     const activeSectionWeights = getForeignSectionWeights({ tradingMode: mode });
 

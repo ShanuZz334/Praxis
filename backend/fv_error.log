@@ -1,0 +1,4 @@
+Error: AI Gateway error for Future Vision: AI temporarily unavailable
+    at runFutureVisionPrediction (file:///C:/project/ALLBACKUP/Praxis/backend/services/futureVisionService.js:174:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///C:/project/ALLBACKUP/Praxis/backend/routes/futureVisionRoutes.js:31:24

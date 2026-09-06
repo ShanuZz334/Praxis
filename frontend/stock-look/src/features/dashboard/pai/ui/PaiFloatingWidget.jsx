@@ -22,15 +22,28 @@ import remarkGfm from 'remark-gfm';
 
 const getPowerScore = (modelId) => {
     const id = modelId.toLowerCase();
-    if (id.includes('1b') || id.includes('3b') || id.includes('mini')) return 1;
-    if (id.includes('7b') || id.includes('8b') || id.includes('flash-lite')) return 2;
-    if (id.includes('11b') || id.includes('14b') || id.includes('32b')) return 3;
-    if (id.includes('70b') || id.includes('72b')) return 4;
-    if (id.includes('flash')) return 5;
-    if (id.includes('90b') || id.includes('104b')) return 6;
+    
+    // Hardcoded special names
+    if (id.includes('claude-3-opus') || id.includes('gpt-4o')) return 9;
+    if (id.includes('sonnet')) return 8;
     if (id.includes('haiku')) return 7;
-    if (id.includes('405b') || id.includes('sonnet')) return 8;
-    if (id.includes('gpt-4o') || id.includes('claude-3-opus')) return 9;
+    if (id.includes('flash-lite')) return 2;
+    if (id.includes('flash')) return 5;
+    if (id.includes('mini')) return 1;
+
+    // Dynamic parameter size extraction
+    const match = id.match(/(\d+(?:\.\d+)?)b/);
+    if (match) {
+        const size = parseFloat(match[1]);
+        if (size <= 3) return 1;
+        if (size <= 10) return 2;
+        if (size <= 35) return 3;
+        if (size <= 72) return 4;
+        if (size <= 105) return 6;
+        if (size <= 200) return 8;
+        return 9; // > 200B
+    }
+
     return 0;
 };
 
@@ -65,7 +78,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     
     // Hooks for auto context injection
     const { getPageSnapshot, getMasterSnapshot } = useDataRegistry();
-    const { selectedInstrument, livePrices } = useDashboardContext();
+    const { selectedInstrument, livePrices, globalData } = useDashboardContext();
     const [isDragging, setIsDragging] = useState(false);
     const [hasDragged, setHasDragged] = useState(false);
     const [message, setMessage] = useState("");
@@ -415,6 +428,8 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
             selectedInstrumentPrice: livePrices?.[selectedInstrument]?.ltp || null,
             nifty50: livePrices?.['NSE_INDEX|Nifty 50']?.ltp || null,
             bankNifty: livePrices?.['NSE_INDEX|Nifty Bank']?.ltp || null,
+            indiaVix: livePrices?.['NSE_INDEX|India VIX']?.ltp || null,
+            globalData: globalData || {},
             pageSnapshot: mentionScopePageId ? getPageSnapshot(mentionScopePageId) : getMasterSnapshot(),
             maxAiLevel: availableModelsRef.current.filter(m => m.level).length || 1
         };
@@ -728,7 +743,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                     whileHover={!isDragging ? { scale: 1.05 } : {}}
                     whileDrag={{ scale: 1.1, cursor: 'grabbing' }}
                     animate={getGlowAnimation()}
-                    className="w-[48px] h-[48px] rounded-full flex-shrink-0 cursor-pointer pointer-events-auto relative z-20 bg-background-surface flex items-center justify-center"
+                    className="w-[48px] h-[48px] rounded-full flex-shrink-0 cursor-pointer pointer-events-auto relative z-20 flex items-center justify-center bg-transparent"
                 >
                     {/* Freq Based Wave Ring (Canvas) */}
                     <AnimatePresence>
@@ -749,9 +764,6 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                             </motion.div>
                         )}
                     </AnimatePresence>
-                    
-                    {/* Inner core to mask the gradient center so it only looks like a ring */}
-                    <div className="absolute inset-[3px] rounded-full bg-background-surface z-10" />
 
                     <div className="w-[85%] h-[85%] flex items-center justify-center pointer-events-none relative z-20">
                         <GhostLogo 
@@ -843,7 +855,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                             <div className="text-[11px] text-text-tertiary mb-4 leading-relaxed">
                                                 Select a model to use for this session. It will reset to default when you close the widget.
                                             </div>
-                                            <div className="flex flex-col gap-2 overflow-y-auto no-scrollbar pb-2">
+                                            <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar max-h-[400px] pb-2">
                                                 <button
                                                     onClick={() => { setTempModel(null); setShowModelSelector(false); }}
                                                     className={`px-3 py-2 text-left text-xs rounded-lg transition-colors border ${

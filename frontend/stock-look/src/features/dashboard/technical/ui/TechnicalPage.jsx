@@ -91,10 +91,16 @@ export default function TechnicalPage() {
 
     useEffect(() => {
         localStorage.setItem('praxis_technical_timeframe', selectedTimeframe);
+        // Dual-write to SQLite preferences for durability
+        fetch('/api/v1/preferences', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pref_key: 'praxis_technical_timeframe', pref_value: selectedTimeframe })
+        }).catch(() => {});
     }, [selectedTimeframe]);
 
     // Unified persistent overrides hook
-    const { overrides: manualOverrides, lastUpdated: manualOverrideTimes, expiryConfigs, handleChange: handleOverrideChange, handleClearAll } = useManualOverrides('technical', selectedInstrument || 'NIFTY', DEFAULT_OVERRIDES);
+    const { overrides: manualOverrides, lastUpdated: manualOverrideTimes, expiryConfigs, handleChange: handleOverrideChange, handleClearAll } = useManualOverrides('technical', selectedInstrument || 'NSE_INDEX|Nifty 50', DEFAULT_OVERRIDES);
     
     // Indicator Settings State
     const [indicatorParams, setIndicatorParams] = useState({ 

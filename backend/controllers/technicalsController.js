@@ -143,6 +143,7 @@ export const getTechnicalIndicators = async (req, res) => {
         });
 
         // --- SQLITE DB WRITE (BACKGROUND) ---
+        // Write 1: raw JSON blob (for quick full-restore reads)
         try {
             db.prepare(`
                 INSERT INTO technicals_data (instrument_key, raw_json, updated_at) 
@@ -152,8 +153,104 @@ export const getTechnicalIndicators = async (req, res) => {
                     updated_at=CURRENT_TIMESTAMP
             `).run(instrument, JSON.stringify(finalData));
         } catch (dbErr) {
-            console.error("Failed to save technical data to SQLite:", dbErr.message);
+            console.error("Failed to save technical data to SQLite (raw):", dbErr.message);
         }
+
+        // Write 2: column-level fields for queryable technicals_cache (institutional cache layer)
+        try {
+            // Sanitizer: ensure every value is a primitive number (or null).
+            // better-sqlite3 throws "You cannot specify named parameters in two different objects"
+            // when an object/array is passed as a positional ? value — this guards against
+            // any calculation service returning objects for support, resistance, fibs, etc.
+            const toNum = (v) => {
+                if (v === null || v === undefined) return null;
+                if (typeof v === 'object') return null; // objects → null, never pass to sqlite
+                const n = parseFloat(v);
+                return isNaN(n) ? null : n;
+            };
+
+            db.prepare(`
+                INSERT INTO technicals_cache (
+                    instrument_key, timeframe, candles_count,
+                    ema_20, ema_50, ema_200, sma_50, sma_200,
+                    adx, adx_plus_di, adx_minus_di, supertrend, supertrend_direction, beta_correlation,
+                    rsi, macd_line, macd_signal, macd_histogram,
+                    stoch_rsi, stoch_k, stoch_d, williams_r,
+                    bb_upper, bb_middle, bb_lower, bb_pb, atr,
+                    kc_upper, kc_middle, kc_lower,
+                    volume_sma, obv, cmf, vwap,
+                    support, resistance,
+                    pivot_p, pivot_r1, pivot_s1, pivot_r2, pivot_s2,
+                    fib_0, fib_236, fib_382, fib_500, fib_618, fib_100,
+                    trendline_slope, trendline_r2, trendline_std_err,
+                    breadth_ratio, ad_line, mcclellan, nh_nl, trin,
+                    updated_at
+                ) VALUES (
+                    ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    CURRENT_TIMESTAMP
+                )
+                ON CONFLICT(instrument_key) DO UPDATE SET
+                    timeframe=excluded.timeframe, candles_count=excluded.candles_count,
+                    ema_20=excluded.ema_20, ema_50=excluded.ema_50, ema_200=excluded.ema_200,
+                    sma_50=excluded.sma_50, sma_200=excluded.sma_200,
+                    adx=excluded.adx, adx_plus_di=excluded.adx_plus_di, adx_minus_di=excluded.adx_minus_di,
+                    supertrend=excluded.supertrend, supertrend_direction=excluded.supertrend_direction,
+                    beta_correlation=excluded.beta_correlation,
+                    rsi=excluded.rsi, macd_line=excluded.macd_line, macd_signal=excluded.macd_signal,
+                    macd_histogram=excluded.macd_histogram, stoch_rsi=excluded.stoch_rsi,
+                    stoch_k=excluded.stoch_k, stoch_d=excluded.stoch_d, williams_r=excluded.williams_r,
+                    bb_upper=excluded.bb_upper, bb_middle=excluded.bb_middle, bb_lower=excluded.bb_lower,
+                    bb_pb=excluded.bb_pb, atr=excluded.atr,
+                    kc_upper=excluded.kc_upper, kc_middle=excluded.kc_middle, kc_lower=excluded.kc_lower,
+                    volume_sma=excluded.volume_sma, obv=excluded.obv, cmf=excluded.cmf, vwap=excluded.vwap,
+                    support=excluded.support, resistance=excluded.resistance,
+                    pivot_p=excluded.pivot_p, pivot_r1=excluded.pivot_r1, pivot_s1=excluded.pivot_s1,
+                    pivot_r2=excluded.pivot_r2, pivot_s2=excluded.pivot_s2,
+                    fib_0=excluded.fib_0, fib_236=excluded.fib_236, fib_382=excluded.fib_382,
+                    fib_500=excluded.fib_500, fib_618=excluded.fib_618, fib_100=excluded.fib_100,
+                    trendline_slope=excluded.trendline_slope, trendline_r2=excluded.trendline_r2,
+                    trendline_std_err=excluded.trendline_std_err,
+                    breadth_ratio=excluded.breadth_ratio, ad_line=excluded.ad_line,
+                    mcclellan=excluded.mcclellan, nh_nl=excluded.nh_nl, trin=excluded.trin,
+                    updated_at=CURRENT_TIMESTAMP
+            `).run(
+                instrument, timeframe, toNum(finalData.candles_count),
+                toNum(finalData.ema_20), toNum(finalData.ema_50), toNum(finalData.ema_200),
+                toNum(finalData.sma_50), toNum(finalData.sma_200),
+                toNum(finalData.adx), toNum(finalData.adx_plus_di), toNum(finalData.adx_minus_di),
+                toNum(finalData.supertrend), toNum(finalData.supertrend_direction), toNum(finalData.beta),
+                toNum(finalData.rsi), toNum(finalData.macd_line), toNum(finalData.macd_signal),
+                toNum(finalData.macd_histogram), toNum(finalData.stoch_rsi),
+                toNum(finalData.stoch_k), toNum(finalData.stoch_d), toNum(finalData.williams_r),
+                toNum(finalData.bb_upper), toNum(finalData.bb_middle), toNum(finalData.bb_lower),
+                toNum(finalData.bb_pb), toNum(finalData.atr),
+                toNum(finalData.kc_upper), toNum(finalData.kc_middle), toNum(finalData.kc_lower),
+                toNum(finalData.volume_sma), toNum(finalData.obv), toNum(finalData.cmf), toNum(finalData.vwap),
+                toNum(finalData.support), toNum(finalData.resistance),
+                toNum(finalData.pivot_p), toNum(finalData.pivot_r1), toNum(finalData.pivot_s1),
+                toNum(finalData.pivot_r2), toNum(finalData.pivot_s2),
+                toNum(finalData.fib_0), toNum(finalData.fib_236), toNum(finalData.fib_382),
+                toNum(finalData.fib_500), toNum(finalData.fib_618), toNum(finalData.fib_100),
+                toNum(finalData.trendline_slope), toNum(finalData.trendline_r2), toNum(finalData.trendline_std_err),
+                toNum(finalData.breadth_ratio), toNum(finalData.ad_line),
+                toNum(finalData.mcclellan), toNum(finalData.nh_nl), toNum(finalData.trin)
+            );
+        } catch (dbErr) {
+            console.error("Failed to save technical data to SQLite (column-level):", dbErr.message);
+        }
+
 
         res.status(200).json({
             success: true,
@@ -180,6 +277,7 @@ export const getTechnicalIndicators = async (req, res) => {
 };
 
 export const getCandles = async (req, res) => {
+    console.log(`[getCandles] Route hit! instrument: ${req.query.instrument}`);
     try {
         const { instrument, timeframe = 'day', limit = 1000 } = req.query;
         if (!instrument) {
@@ -189,10 +287,12 @@ export const getCandles = async (req, res) => {
         // Smart Sync Historical Data to ensure latest candles are in DB
         try {
             await syncCandlesIfStale(instrument, timeframe);
+            console.log(`[getCandles] Sync completed`);
         } catch (syncErr) {
             console.warn(`[Candles] Sync skipped for ${instrument}: ${syncErr.message}`);
         }
 
+        console.log(`[getCandles] Fetching from DB...`);
         // Fetch from DB
         const stmt = db.prepare(`
             SELECT timestamp, open, high, low, close, volume 
@@ -236,3 +336,5 @@ export const getCandles = async (req, res) => {
         res.status(500).json({ success: false, error: "Internal server error" });
     }
 };
+
+

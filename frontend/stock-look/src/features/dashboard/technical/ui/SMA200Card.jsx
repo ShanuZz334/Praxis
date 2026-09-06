@@ -2,17 +2,18 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreSMA200Card } from '../engine/TechnicalCompositeEngine';
 
-export default function SMA200Card({ cardId, data = null, lastUpdated }) {
+export default function SMA200Card({ cardId, data = null, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.sma_200.id);
     
     // Resolve current value
     const currentValue = data?.sma_200 ?? null;
     const currentPrice = data?.current_price ?? null;
 
-    const { score, bias, confidence, aiInsight } = scoreSMA200Card(currentValue, currentPrice);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreSMA200Card(currentValue, currentPrice), 'sma_200', tradingMode);
 
     const displayValue = currentValue !== null && !isNaN(currentValue) ? "₹" + parseFloat(currentValue).toFixed(2) : '--';
     

@@ -128,21 +128,38 @@ export default function QuickOrderTicket({ instrumentData, onClose }) {
     }
   }, [instrumentData, activeInstrument]);
   
-  // Live LTP from dashboard websocket
   const instKey = activeInstrument?.instrument_token || activeInstrument?.value;
-  const ltp = livePrices?.[instKey]?.ltp || activeInstrument?.last_price || 0;
-  const netChange = livePrices?.[instKey]?.netChange || 0;
-  const pctChange = livePrices?.[instKey]?.pctChange || 0;
-  
-  const isUp = netChange >= 0;
-  const colorClass = isUp ? 'text-[#158d60]' : 'text-[#eb4b4b]';
+  const [restQuote, setRestQuote] = useState(null);
 
   // Subscribe this specific instrument for live depth data on mount
   useEffect(() => {
     if (instKey) {
       subscribeInstrumentKey(instKey);
+      
+      // Fetch a baseline snapshot from REST API to ensure we have data 
+      // even if market is closed and websocket isn't broadcasting new ticks.
+      axiosInstance.get(`/api/v1/upstox/market-quote?keys=${encodeURIComponent(instKey)}`)
+        .then(res => {
+           const data = res.data?.data?.[instKey];
+           if (data) {
+               setRestQuote({
+                   ltp: data.last_price,
+                   netChange: data.net_change || 0,
+                   pctChange: data.ohlc?.close ? ((data.net_change || 0) / data.ohlc.close) * 100 : 0
+               });
+           }
+        })
+        .catch(err => console.warn("REST fallback quote failed:", err.message));
     }
   }, [instKey]);
+
+  // Live LTP from dashboard websocket OR REST fallback
+  const ltp = livePrices?.[instKey]?.ltp || restQuote?.ltp || activeInstrument?.last_price || 0;
+  const netChange = livePrices?.[instKey]?.netChange !== undefined ? livePrices[instKey].netChange : (restQuote?.netChange || 0);
+  const pctChange = livePrices?.[instKey]?.pctChange !== undefined ? livePrices[instKey].pctChange : (restQuote?.pctChange || 0);
+  
+  const isUp = netChange >= 0;
+  const colorClass = isUp ? 'text-[#158d60]' : 'text-[#eb4b4b]';
 
   useEffect(() => {
     if (orderType === 'LIMIT' && ltp && !price) {

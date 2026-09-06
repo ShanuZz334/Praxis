@@ -63,8 +63,8 @@ const OptionsPulse = React.memo(function OptionsPulse({ smartlists: propSmartlis
     };
 
     const renderList = (title, items, icon, color) => (
-        <div className="mb-4 last:mb-0">
-            <div className="flex items-center gap-1.5 mb-2 sticky top-0 bg-background-card z-10 py-1">
+        <div className="mb-4 last:mb-0 relative">
+            <div className="flex items-center gap-1.5 mb-2 sticky top-0 bg-background-card z-10 py-1.5 -mx-1 px-1">
                 {icon}
                 <span className="text-[11px] font-bold text-text-secondary uppercase">{title}</span>
             </div>
@@ -101,9 +101,12 @@ const OptionsPulse = React.memo(function OptionsPulse({ smartlists: propSmartlis
 
     return (
         <div className="bg-background-card border border-border-default rounded-xl p-4 flex flex-col h-full shadow-sm relative">
-            <div className="flex items-center gap-2 mb-4 shrink-0">
-                <Activity className="w-4 h-4 text-brand-primary" />
-                <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wide">Options Pulse</h3>
+            <div className="flex items-center justify-between mb-3 shrink-0">
+                <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-brand-primary" />
+                    <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wide">Options Pulse</h3>
+                </div>
+                <span className="text-[10px] font-medium text-text-tertiary bg-background-elevated px-2 py-0.5 rounded-full">Smartlist Signals</span>
             </div>
             
             <div className="flex-1 overflow-y-auto no-scrollbar relative min-h-[150px]">
@@ -127,9 +130,6 @@ const OptionsPulse = React.memo(function OptionsPulse({ smartlists: propSmartlis
                             transition={{ duration: 0.4 }}
                             className="w-full h-full"
                         >
-                            <div className="mb-2">
-                                <span className="text-[10px] text-text-tertiary">Smartlist Signals</span>
-                            </div>
                             {renderList("OI Surge", oiGainers, <TrendingUp className="w-3 h-3 text-blue-400" />, "text-blue-400")}
                             {renderList("IV Expansion", ivSurge, <AlertTriangle className="w-3 h-3 text-yellow-400" />, "text-yellow-400")}
                             {renderList("Premium Gainers", premium, <TrendingUp className="w-3 h-3 text-emerald-400" />, "text-emerald-400")}

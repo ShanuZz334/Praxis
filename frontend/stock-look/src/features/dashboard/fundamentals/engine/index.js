@@ -31,10 +31,10 @@ import { TRADING_MODES } from '../../../../config/tradingModes';
 // =============================
 // Core Logic: Evaluation
 // =============================
-export function evaluateFundamentals(snapshot, mode = TRADING_MODES.BALANCED) {
+export function evaluateFundamentals(snapshot, mode = TRADING_MODES.SWING) {
   // Fetch active weights based on mode
   const activeCardWeights = getFundamentalsWeights(mode);
-  const activeSectionWeights = getFundamentalsSectionWeights({ tradingMode: mode });
+  const activeSectionWeights = getFundamentalsSectionWeights(mode);
 
   // 1. Calculate Score for Each Card
   const evaluatedCards = FUNDAMENTAL_CARDS.map((c) => {
@@ -52,9 +52,9 @@ export function evaluateFundamentals(snapshot, mode = TRADING_MODES.BALANCED) {
     const baseWeight = c.weight || 1;
 
     let multiplier = weight / baseWeight;
-    if (mode === TRADING_MODES.BALANCED) multiplier = 1.0;
+    if (mode === TRADING_MODES.SWING) multiplier = 1.0;
 
-    const isFocused = mode !== TRADING_MODES.BALANCED && multiplier > 1.1;
+    const isFocused = mode !== TRADING_MODES.SWING && multiplier > 1.1;
 
     // Final score contribution
     const score = n * reliability;

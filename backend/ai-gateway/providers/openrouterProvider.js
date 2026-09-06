@@ -1,18 +1,21 @@
 import { providerCache } from '../cache/providerCache.js';
 
-export async function call({ model, messages, maxTokens, temperature, jsonMode }) {
-    const p = await providerCache.getProvider('openrouter');
-    if (!p || !p.apiKey) throw new Error('OpenRouter provider is not configured.');
+export async function call({ model, messages, maxTokens, temperature, jsonMode, providerId = 'openrouter' }) {
+    const p = await providerCache.getProvider(providerId);
+    if (!p || !p.apiKey) throw new Error(`${providerId} provider is not configured.`);
 
     const url = p.baseUrl || 'https://openrouter.ai/api/v1';
     const endpoint = url.endsWith('/chat/completions') ? url : `${url}/chat/completions`;
 
     const payload = { model, messages, temperature: temperature ?? 0.2, max_tokens: maxTokens ?? 1024 };
-    if (jsonMode) payload.response_format = { type: "json_object" };
+    
+    // We do NOT append response_format for OpenRouter because many free/open models 
+    // will throw a 400 error if it is present. Our outputGuard regex will extract the JSON block.
 
     const startTime = Date.now();
     const response = await fetch(endpoint, {
         method: 'POST',
+        signal: AbortSignal.timeout(45000), // 45 second timeout per attempt
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${p.apiKey}`,

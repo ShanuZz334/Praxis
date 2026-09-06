@@ -54,7 +54,7 @@ export default function OptionsGrid({
     manualOverrides,
     resolveTime
 }) {
-    const { useOrbNav } = useTheme();
+    const { useOrbNav, tradingMode } = useTheme();
     const gridClass = `grid grid-cols-1 md:grid-cols-2 ${useOrbNav ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-3 md:gap-4 items-start`;
 
     // =============================
@@ -121,19 +121,19 @@ export default function OptionsGrid({
     // =============================
     if (viewMode === 'flat') {
         const renderList = [];
-        renderList.push({ id: CARD_REGISTRY.atm_iv.id, node: <AtmIvCard cardId={CARD_REGISTRY.atm_iv.id} /> });
-        renderList.push({ id: CARD_REGISTRY.iv_rank.id, node: <IvRankCard cardId={CARD_REGISTRY.iv_rank.id} /> });
-        renderList.push({ id: CARD_REGISTRY.iv_percentile.id, node: <IvPercentileCard cardId={CARD_REGISTRY.iv_percentile.id} /> });
-        renderList.push({ id: CARD_REGISTRY.total_call_oi.id, node: <TotalCallOpenInterestCard cardId={CARD_REGISTRY.total_call_oi.id} /> });
-        renderList.push({ id: CARD_REGISTRY.total_put_oi.id, node: <TotalPutOpenInterestCard cardId={CARD_REGISTRY.total_put_oi.id} /> });
-        renderList.push({ id: CARD_REGISTRY.oi_change.id, node: <OpenInterestChangeCard cardId={CARD_REGISTRY.oi_change.id} /> });
-        renderList.push({ id: CARD_REGISTRY.delta.id, node: <DeltaCard cardId={CARD_REGISTRY.delta.id} /> });
-        renderList.push({ id: CARD_REGISTRY.gamma.id, node: <GammaCard cardId={CARD_REGISTRY.gamma.id} /> });
-        renderList.push({ id: CARD_REGISTRY.theta.id, node: <ThetaCard cardId={CARD_REGISTRY.theta.id} /> });
-        renderList.push({ id: CARD_REGISTRY.vega.id, node: <VegaCard cardId={CARD_REGISTRY.vega.id} /> });
-        renderList.push({ id: CARD_REGISTRY.pcr_oi.id, node: <PcrOiCard cardId={CARD_REGISTRY.pcr_oi.id} /> });
-        renderList.push({ id: CARD_REGISTRY.pcr_volume.id, node: <PcrVolumeCard cardId={CARD_REGISTRY.pcr_volume.id} /> });
-        renderList.push({ id: CARD_REGISTRY.max_pain.id, node: <MaxPainCard cardId={CARD_REGISTRY.max_pain.id} /> });
+        renderList.push({ id: CARD_REGISTRY.atm_iv.id,       node: <AtmIvCard       cardId={CARD_REGISTRY.atm_iv.id}       tradingMode={tradingMode} /> });
+        renderList.push({ id: CARD_REGISTRY.iv_rank.id,       node: <IvRankCard       cardId={CARD_REGISTRY.iv_rank.id}       tradingMode={tradingMode} /> });
+        renderList.push({ id: CARD_REGISTRY.iv_percentile.id, node: <IvPercentileCard cardId={CARD_REGISTRY.iv_percentile.id} tradingMode={tradingMode} /> });
+        renderList.push({ id: CARD_REGISTRY.total_call_oi.id, node: <TotalCallOpenInterestCard cardId={CARD_REGISTRY.total_call_oi.id} tradingMode={tradingMode} /> });
+        renderList.push({ id: CARD_REGISTRY.total_put_oi.id,  node: <TotalPutOpenInterestCard  cardId={CARD_REGISTRY.total_put_oi.id}  tradingMode={tradingMode} /> });
+        renderList.push({ id: CARD_REGISTRY.oi_change.id,     node: <OpenInterestChangeCard     cardId={CARD_REGISTRY.oi_change.id}     tradingMode={tradingMode} /> });
+        renderList.push({ id: CARD_REGISTRY.delta.id,         node: <DeltaCard         cardId={CARD_REGISTRY.delta.id}         tradingMode={tradingMode} /> });
+        renderList.push({ id: CARD_REGISTRY.gamma.id,         node: <GammaCard         cardId={CARD_REGISTRY.gamma.id}         tradingMode={tradingMode} /> });
+        renderList.push({ id: CARD_REGISTRY.theta.id,         node: <ThetaCard         cardId={CARD_REGISTRY.theta.id}         tradingMode={tradingMode} /> });
+        renderList.push({ id: CARD_REGISTRY.vega.id,          node: <VegaCard          cardId={CARD_REGISTRY.vega.id}          tradingMode={tradingMode} /> });
+        renderList.push({ id: CARD_REGISTRY.pcr_oi.id,        node: <PcrOiCard        cardId={CARD_REGISTRY.pcr_oi.id}        tradingMode={tradingMode} /> });
+        renderList.push({ id: CARD_REGISTRY.pcr_volume.id,    node: <PcrVolumeCard    cardId={CARD_REGISTRY.pcr_volume.id}    tradingMode={tradingMode} /> });
+        renderList.push({ id: CARD_REGISTRY.max_pain.id,      node: <MaxPainCard      cardId={CARD_REGISTRY.max_pain.id}      tradingMode={tradingMode} /> });
         const excludeIds = renderList.map(item => item.id);
 
         const flatWithData = renderList.map(item => {
@@ -160,6 +160,7 @@ export default function OptionsGrid({
             const clonedNode = React.cloneElement(item.node, { 
                 liveData, 
                 manualOverride,
+                tradingMode,
                 lastUpdated: (isLive) => resolveTime ? resolveTime(isLive, isLive ? null : item.id) : null 
             });
 
@@ -254,35 +255,35 @@ export default function OptionsGrid({
                         <div className={gridClass}>
                             {section.id === 'Open Interest' && (
                                 <>
-                                    <TotalCallOpenInterestCard cardId={CARD_REGISTRY.total_call_oi.id} liveData={compositeData?.totalCallOI} manualOverride={manualOverrides?.total_call_oi} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.total_call_oi.id) : null} />
-                                    <TotalPutOpenInterestCard cardId={CARD_REGISTRY.total_put_oi.id} liveData={compositeData?.totalPutOI} manualOverride={manualOverrides?.total_put_oi} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.total_put_oi.id) : null} />
-                                    <OpenInterestChangeCard cardId={CARD_REGISTRY.oi_change.id} liveData={compositeData?.oiChange} manualOverride={manualOverrides?.oi_change} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.oi_change.id) : null} />
+                                    <TotalCallOpenInterestCard cardId={CARD_REGISTRY.total_call_oi.id} tradingMode={tradingMode} liveData={compositeData?.totalCallOI} manualOverride={manualOverrides?.total_call_oi} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.total_call_oi.id) : null} />
+                                    <TotalPutOpenInterestCard  cardId={CARD_REGISTRY.total_put_oi.id}  tradingMode={tradingMode} liveData={compositeData?.totalPutOI}  manualOverride={manualOverrides?.total_put_oi}  lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.total_put_oi.id) : null} />
+                                    <OpenInterestChangeCard    cardId={CARD_REGISTRY.oi_change.id}    tradingMode={tradingMode} liveData={compositeData?.oiChange}    manualOverride={manualOverrides?.oi_change}    lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.oi_change.id) : null} />
                                 </>
                             )}
                             {section.id === 'Volatility' && (
                                 <>
-                                    <AtmIvCard cardId={CARD_REGISTRY.atm_iv.id} liveData={compositeData?.volatility?.atmIv} manualOverride={manualOverrides?.atm_iv} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.atm_iv.id) : null} />
-                                    <IvRankCard cardId={CARD_REGISTRY.iv_rank.id} liveData={compositeData?.volatility?.ivRank ? { ...compositeData.volatility.ivRank, lookback: compositeData.volatility.lookback } : null} manualOverride={manualOverrides?.iv_rank} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.iv_rank.id) : null} />
-                                    <IvPercentileCard cardId={CARD_REGISTRY.iv_percentile.id} liveData={compositeData?.volatility?.ivPercentile ? { ...compositeData.volatility.ivPercentile, lookback: compositeData.volatility.lookback } : null} manualOverride={manualOverrides?.iv_percentile} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.iv_percentile.id) : null} />
+                                    <AtmIvCard       cardId={CARD_REGISTRY.atm_iv.id}       tradingMode={tradingMode} liveData={compositeData?.volatility?.atmIv} manualOverride={manualOverrides?.atm_iv} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.atm_iv.id) : null} />
+                                    <IvRankCard      cardId={CARD_REGISTRY.iv_rank.id}      tradingMode={tradingMode} liveData={compositeData?.volatility?.ivRank ? { ...compositeData.volatility.ivRank, lookback: compositeData.volatility.lookback } : null} manualOverride={manualOverrides?.iv_rank} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.iv_rank.id) : null} />
+                                    <IvPercentileCard cardId={CARD_REGISTRY.iv_percentile.id} tradingMode={tradingMode} liveData={compositeData?.volatility?.ivPercentile ? { ...compositeData.volatility.ivPercentile, lookback: compositeData.volatility.lookback } : null} manualOverride={manualOverrides?.iv_percentile} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.iv_percentile.id) : null} />
                                 </>
                             )}
                             {section.id === 'Greeks' && (
                                 <>
-                                    <DeltaCard cardId={CARD_REGISTRY.delta.id} liveData={compositeData?.atmGreeks?.delta} manualOverride={manualOverrides?.delta} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.delta.id) : null} />
-                                    <GammaCard cardId={CARD_REGISTRY.gamma.id} liveData={compositeData?.atmGreeks?.gamma} manualOverride={manualOverrides?.gamma} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.gamma.id) : null} />
-                                    <ThetaCard cardId={CARD_REGISTRY.theta.id} liveData={compositeData?.atmGreeks?.theta} manualOverride={manualOverrides?.theta} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.theta.id) : null} />
-                                    <VegaCard cardId={CARD_REGISTRY.vega.id} liveData={compositeData?.atmGreeks?.vega} manualOverride={manualOverrides?.vega} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.vega.id) : null} />
+                                    <DeltaCard cardId={CARD_REGISTRY.delta.id} tradingMode={tradingMode} liveData={compositeData?.atmGreeks?.delta} manualOverride={manualOverrides?.delta} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.delta.id) : null} />
+                                    <GammaCard cardId={CARD_REGISTRY.gamma.id} tradingMode={tradingMode} liveData={compositeData?.atmGreeks?.gamma} manualOverride={manualOverrides?.gamma} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.gamma.id) : null} />
+                                    <ThetaCard cardId={CARD_REGISTRY.theta.id} tradingMode={tradingMode} liveData={compositeData?.atmGreeks?.theta} manualOverride={manualOverrides?.theta} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.theta.id) : null} />
+                                    <VegaCard  cardId={CARD_REGISTRY.vega.id}  tradingMode={tradingMode} liveData={compositeData?.atmGreeks?.vega}  manualOverride={manualOverrides?.vega}  lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.vega.id) : null} />
                                 </>
                             )}
                             {section.id === 'Put-Call Ratio' && (
                                 <>
-                                    <PcrOiCard cardId={CARD_REGISTRY.pcr_oi.id} liveData={compositeData?.pcrOi} manualOverride={manualOverrides?.pcr_oi} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.pcr_oi.id) : null} />
-                                    <PcrVolumeCard cardId={CARD_REGISTRY.pcr_volume.id} liveData={compositeData?.pcrVolume} manualOverride={manualOverrides?.pcr_volume} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.pcr_volume.id) : null} />
+                                    <PcrOiCard     cardId={CARD_REGISTRY.pcr_oi.id}     tradingMode={tradingMode} liveData={compositeData?.pcrOi}     manualOverride={manualOverrides?.pcr_oi}     lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.pcr_oi.id) : null} />
+                                    <PcrVolumeCard cardId={CARD_REGISTRY.pcr_volume.id} tradingMode={tradingMode} liveData={compositeData?.pcrVolume} manualOverride={manualOverrides?.pcr_volume} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.pcr_volume.id) : null} />
                                 </>
                             )}
                             {section.id === 'Market Positioning' && (
                                 <>
-                                    <MaxPainCard cardId={CARD_REGISTRY.max_pain.id} liveData={compositeData?.maxPain} manualOverride={manualOverrides?.max_pain} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.max_pain.id) : null} />
+                                    <MaxPainCard cardId={CARD_REGISTRY.max_pain.id} tradingMode={tradingMode} liveData={compositeData?.maxPain} manualOverride={manualOverrides?.max_pain} lastUpdated={(isLive) => resolveTime ? resolveTime(isLive, isLive ? null : CARD_REGISTRY.max_pain.id) : null} />
                                 </>
                             )}
                             {sortedSectionCards.map((card) => {

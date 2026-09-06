@@ -413,19 +413,8 @@ export const useGlobalComposite = (manualOverrides, liveData = {}, rangeData = {
         });
         result.cards = cards;
 
-        // Fire & Forget DB Sync
-        if (typeof window !== 'undefined') {
-            import('@/shared/utils/axiosInstance').then(({ default: axiosInstance }) => {
-                axiosInstance.post('/api/v1/snapshots/header', {
-                    instrument_key: 'GLOBAL',
-                    category: 'global',
-                    composite_score: engineOutput.compositeScore,
-                    regime_json: engineOutput.regime,
-                    tailwinds_json: engineOutput.tailwinds,
-                    risks_json: engineOutput.risks
-                }).catch(err => console.error("Failed to sync Global header:", err));
-            });
-        }
+        // DB Sync is handled by useAiSync in ForeignPage.jsx. Do NOT write to header_data here,
+        // because this hook is also used by the Master Dashboard which would overwrite the DB with 59.
 
         return result;
     }, [manualOverrides, liveData]);

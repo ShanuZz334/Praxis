@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreADXCard } from '../engine/TechnicalCompositeEngine';
 
-export default function ADXCard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function ADXCard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.adx.id);
     
     const settingsConfig = [
@@ -15,7 +16,7 @@ export default function ADXCard({ cardId, data = null, lastUpdated, indicatorPar
     // Resolve current value
     const currentValueObj = data?.adx ?? null;
 
-    const { score, bias, confidence, aiInsight } = scoreADXCard(currentValueObj);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreADXCard(currentValueObj), 'adx', tradingMode);
 
     const displayValue = currentValueObj !== null && currentValueObj.value !== undefined ? parseFloat(currentValueObj.value).toFixed(2) : '--';
     

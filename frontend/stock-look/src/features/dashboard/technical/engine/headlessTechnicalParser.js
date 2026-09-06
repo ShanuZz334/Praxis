@@ -249,14 +249,30 @@ export class TechnicalEngine {
         if (!this.instrument) return;
         
         const currentLtp = this.callbacks.getLtp ? this.callbacks.getLtp() : '';
+        const savedTimeframe = typeof window !== 'undefined' ? (localStorage.getItem('praxis_technical_timeframe') || 'day') : 'day';
+        
         try {
-            const res = await axiosInstance.get(`/api/v1/upstox/technicals?instrument=${this.instrument}&timeframe=day&ltp=${currentLtp}`);
+            const res = await axiosInstance.get(`/api/v1/upstox/technicals?instrument=${this.instrument}&timeframe=${savedTimeframe}&ltp=${currentLtp}`);
             if (res.data?.success && res.data?.data) {
                 this.lastRawData = res.data.data;
                 this.lastCurrentLtp = currentLtp;
                 this.parse(this.lastRawData, currentLtp, this.manualOverrides);
                 this.register();
                 this.publish();
+
+                // Persist composite score to header_data (fire & forget)
+                const { computeTechnicalComposite } = await import('./TechnicalCompositeEngine');
+                const composite = computeTechnicalComposite(this.cache.scores, this.instrument?.startsWith?.('NSE_INDEX'));
+                if (composite?.compositeScore != null) {
+                    axiosInstance.post('/api/v1/snapshots/header', {
+                        instrument_key: this.instrument,
+                        category: 'technical',
+                        composite_score: composite.compositeScore,
+                        regime_json: composite.regime,
+                        counts_json: this.cache.scores,
+                        tree_payload_json: composite.nestedTreePayload
+                    }).catch(() => {});
+                }
             }
         } catch (e) {
             console.error("TechnicalEngine poll failed", e);

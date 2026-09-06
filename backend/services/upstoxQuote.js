@@ -47,12 +47,17 @@ export const fetchQuotes = async (instrumentKeys) => {
 
         const quotesData = response.data?.data || {};
         
+        // Re-map the quotesData object so it is keyed by instrument_token (ISIN) rather than Upstox's SYMBOL
+        const normalizedQuotes = {};
+        for (const [rawKey, q] of Object.entries(quotesData)) {
+            const key = q.instrument_token || rawKey.replace(":", "|");
+            normalizedQuotes[key] = q;
+        }
+
         const insertAll = db.transaction((keys) => {
-            for (const rawKey of keys) {
-                const q = quotesData[rawKey];
+            for (const key of keys) {
+                const q = normalizedQuotes[key];
                 if (!q) continue;
-                
-                const key = rawKey.replace(":", "|");
                 
                 const cp = (q.net_change !== undefined && q.net_change !== null) 
                     ? Number((q.last_price - q.net_change).toFixed(2)) 
@@ -68,10 +73,10 @@ export const fetchQuotes = async (instrumentKeys) => {
             }
         });
 
-        const keys = Object.keys(quotesData);
+        const keys = Object.keys(normalizedQuotes);
         if (keys.length > 0) insertAll(keys);
 
-        return quotesData;
+        return normalizedQuotes;
     } catch (error) {
         console.error("❌ Failed to fetch quotes:", error?.response?.data || error.message);
         throw error;

@@ -151,15 +151,26 @@ router.get("/header/:instrument_key", (req, res) => {
                 return res.json({ status: "success", data: null });
             }
         } else {
-            // Fetch all categories for this instrument (plus global which is universal)
+            // Fetch all categories for this instrument + universal GLOBAL key (holds global/events scores)
             const rows = localDb.prepare(`
-                SELECT category, composite_score, regime_json, tailwinds_json, risks_json, counts_json, tree_payload_json, updated_at 
+                SELECT instrument_key, category, composite_score, regime_json, tailwinds_json, risks_json, counts_json, tree_payload_json, updated_at 
                 FROM header_data 
-                WHERE instrument_key = ? OR category = 'global' OR category = 'events'
+                WHERE instrument_key = ? OR instrument_key = 'GLOBAL' OR instrument_key = 'EVENTS'
             `).all(instrument_key);
 
             const result = {};
             for (const row of rows) {
+                // For global/events categories, only take them from the GLOBAL/EVENTS instrument key
+                // For instrument-specific categories (fundamental/technical/options), prefer those rows
+                const existingEntry = result[row.category];
+                const isGlobalCategory = row.category === 'global' || row.category === 'events';
+                const isFromGlobalKey = row.instrument_key === 'GLOBAL' || row.instrument_key === 'EVENTS';
+                
+                // For global/events: only accept rows from the GLOBAL/EVENTS instrument key
+                if (isGlobalCategory && !isFromGlobalKey) continue;
+                // For instrument-specific categories: only accept rows from the actual instrument
+                if (!isGlobalCategory && isFromGlobalKey) continue;
+                
                 result[row.category] = {
                     composite_score: row.composite_score,
                     regime: row.regime_json ? JSON.parse(row.regime_json) : null,

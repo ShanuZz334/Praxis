@@ -27,8 +27,9 @@ import CatalystCalendar from "./CatalystCalendar";
 import { useMasterComposite } from "../engine/useMasterComposite";
 import { getCompositeColor } from "@/shared/config/scoreColors";
 import { FO_INDICES, FO_EQUITIES } from "@/shared/utils/foInstruments";
+import { useTheme } from "@/shared/context/ThemeContext";
 import { getNifty50Keys, NIFTY_50_SYMBOLS } from "../data/nifty50";
-import { PlusCircle, X, PlusSquare } from 'lucide-react';
+import { RefreshCw, PlusCircle, X, PlusSquare } from 'lucide-react';
 import UiverseDropdown from "@/shared/components/ui/UiverseDropdown";
 import InstrumentSelectorModal from "@/features/trading/ui/InstrumentSelectorModal";
 import axiosInstance from '@/shared/utils/axiosInstance';
@@ -39,19 +40,24 @@ import { API_PATHS } from '@/shared/utils/apiPaths';
 // =============================
 
 export default function MasterDashboard() {
-    // Persist timeframe in localStorage — synced with TechnicalPage
+    // Persist timeframe in localStorage (instant) + SQLite (durable) — synced with TechnicalPage
     const [selectedTimeframe, setSelectedTimeframe] = useState(() => {
         return localStorage.getItem('praxis_technical_timeframe') || 'day';
     });
+
+    useEffect(() => {
+        localStorage.setItem('praxis_technical_timeframe', selectedTimeframe);
+        fetch('/api/v1/preferences', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pref_key: 'praxis_technical_timeframe', pref_value: selectedTimeframe })
+        }).catch(() => {});
+    }, [selectedTimeframe]);
 
     const [isAddChartOpen, setIsAddChartOpen] = useState(false);
     const [addChartCategory, setAddChartCategory] = useState("Indices");
     const [optionContracts, setOptionContracts] = useState([]);
     const [optionsLoading, setOptionsLoading] = useState(false);
-
-    useEffect(() => {
-        localStorage.setItem('praxis_technical_timeframe', selectedTimeframe);
-    }, [selectedTimeframe]);
 
     const {
         selectedCategory,
@@ -62,6 +68,7 @@ export default function MasterDashboard() {
         smartlists,
         fiiDiiFlow,
         marketNews,
+        globalData,
         additionalCharts,
         setAdditionalCharts,
         setGlobalOrderTicket
@@ -100,6 +107,7 @@ export default function MasterDashboard() {
 
     const isIndex = selectedCategory === 'Indices';
     const activeOpts = smartlists?.['MOST_ACTIVE'] || [];
+    const { tradingMode } = useTheme();
     
     // Compute Market Heatmap Data for AI Payload
     const heatmapKeys = getNifty50Keys();
@@ -108,14 +116,29 @@ export default function MasterDashboard() {
         return { symbol, pctChange: tick?.pctChange || 0 };
     });
 
+    const [isSyncing, setIsSyncing] = React.useState(false);
+
     const instKeyForEngine = selectedInstrument?.value || selectedInstrument || null;
-    const { praxisComposite, modifierImpact, sectionsForHeader, tailwinds, risks, regime, loading, integrity, totalCredits, aggregatedCards, nestedTreePayload } = useMasterComposite(instKeyForEngine, isIndex, selectedExpiry, livePrices, {
+    const { praxisComposite, modifierImpact, sectionsForHeader, tailwinds, risks, regime, loading, integrity, totalCredits, aggregatedCards, nestedTreePayload, refresh } = useMasterComposite(instKeyForEngine, isIndex, selectedExpiry, livePrices, {
         sectors,
         activeOpts,
-        fiiDiiFlow
+        fiiDiiFlow,
+        globalData,   // Yahoo-scraped: DXY, Gold, Crude, SP500, US10Y, VIX, Bitcoin, 25 global symbols
+        marketNews,   // Socket-pushed news — used to compute EVT live on Master Dashboard
+        tradingMode,  // From ThemeContext — used to cadence EVT scoring
     });
 
     const { getMasterSnapshot, registerBulk, register } = useDataRegistry();
+
+    const handleForceSync = React.useCallback(async () => {
+        if (isSyncing) return;
+        setIsSyncing(true);
+        try {
+            if (typeof refresh === 'function') await refresh();
+        } finally {
+            setIsSyncing(false);
+        }
+    }, [refresh, isSyncing]);
 
     // Register fallback cards globally so autocomplete has live values for unmounted cards
     useEffect(() => {
@@ -322,7 +345,26 @@ export default function MasterDashboard() {
                 enableBreakdown={true}
                 cards={aggregatedCards}
                 masterPayload={masterPayload}
-                controls={{ customComponent: <LiveMarketTicker livePrices={livePrices} /> }}
+                controls={{ 
+                    customComponent: (
+                        <div className="flex w-full items-center justify-between">
+                            <LiveMarketTicker livePrices={livePrices} />
+                            <button 
+                                onClick={handleForceSync}
+                                disabled={isSyncing}
+                                className={`
+                                    px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg
+                                    border border-[var(--border-subtle)] hover:border-blue-500/30 hover:bg-blue-500/10
+                                    transition-all duration-300 flex items-center gap-2 shadow-sm
+                                    ${isSyncing ? 'opacity-50 cursor-not-allowed text-blue-400' : 'text-text-secondary hover:text-blue-400'}
+                                `}
+                            >
+                                <RefreshCw size={13} className={isSyncing ? "animate-spin" : ""} />
+                                <span>{isSyncing ? "Synchronizing" : "Sync"}</span>
+                            </button>
+                        </div>
+                    ) 
+                }}
                 customBackContent={chartBackside}
             />
 

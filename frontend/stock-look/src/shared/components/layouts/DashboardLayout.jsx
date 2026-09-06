@@ -33,7 +33,6 @@ import { PaiWidgetProvider } from "@/shared/context/PaiWidgetContext";
 import PaiFloatingWidget from "@/features/dashboard/pai/ui/PaiFloatingWidget";
 import OrbNavigation from "@/shared/components/layouts/OrbNavigation";
 import GlobalOrderTickets from "@/features/trading/ui/GlobalOrderTickets";
-import "@/shared/components/backgrounds/Meteors.css";
 
 // =============================
 // Constants
@@ -126,13 +125,8 @@ const DashboardLayout = () => {
         </div>
       )}
 
-      {/* METEORS VFX (DARK MODE ONLY) */}
-      {theme === "dark" && vfxPreset === "meteors" && (
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden meteors-container"></div>
-      )}
-
       {/* PREMIUM ANIMATED BACKGROUND VFX - VIBRANT (DARK MODE ONLY) */}
-      {theme === "dark" && vfxPreset !== "cosmos" && vfxPreset !== "meteors" && (
+      {theme === "dark" && vfxPreset !== "cosmos" && (
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
           {/* Layer 1: Primary Vibrant Orbs - Slow Float */}
           <div className="absolute inset-0">

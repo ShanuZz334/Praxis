@@ -56,7 +56,8 @@ export default function PaiModelsTab() {
         cardInsight: { providerId: '', modelId: '' },
         headerInsight: { providerId: '', modelId: '' },
         pageInsight: { providerId: '', modelId: '' },
-        manualChat: { providerId: '', modelId: '' }
+        manualChat: { providerId: '', modelId: '' },
+        futureVision: { providerId: '', modelId: '' },
     });
     const [localModels, setLocalModels] = useState([]);
 
@@ -431,7 +432,83 @@ export default function PaiModelsTab() {
                         )
                     })}
                 </div>
+
+                {/* ── Future Vision Model (Curated Prediction Models) ── */}
+                <div className="mt-6 pt-6 border-t border-border-default/20">
+                    <div className="flex items-start gap-3 mb-4">
+                        <div className="mt-0.5 p-1.5 rounded-lg bg-violet-500/10">
+                            <Zap size={14} className="text-violet-400" />
+                        </div>
+                        <div>
+                            <p className="text-[13px] font-semibold text-text-primary">Future Vision — Prediction Model</p>
+                            <p className="text-[11px] text-text-tertiary mt-0.5">
+                                The AI brain used for predictive OHLCV candle generation. All active provider models across tiers 2, 3, and 4 are shown here.
+                            </p>
+                        </div>
+                    </div>
+                    {(() => {
+                        // Build full model list dynamically from ALL active providers, tiers 2-4
+                        // Sorted: tier2 → tier3 → tier4, then by provider priority within each tier
+                        const FUTURE_VISION_MODELS = [
+                            { value: '', label: 'Auto — Best Available (tier3_complex fallback)' },
+                        ];
+
+                        const tierOrder = [
+                            { key: 'tier2_medium',  label: 'T2 Medium' },
+                            { key: 'tier3_complex', label: 'T3 Complex' },
+                            { key: 'tier4_vision',  label: 'T4 Vision' },
+                        ];
+
+                        const seen = new Set();
+
+                        // Sort providers by priority ascending
+                        const sortedProviders = [...providers].filter(p => p.isActive).sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
+
+                        tierOrder.forEach(({ key, label: tierLabel }) => {
+                            sortedProviders.forEach(p => {
+                                const modelId = p.models?.[key];
+                                if (!modelId) return;
+                                const val = `${p.providerId}::${modelId}`;
+                                if (seen.has(val)) return;
+                                seen.add(val);
+                                FUTURE_VISION_MODELS.push({
+                                    value: val,
+                                    label: `${p.displayName}: ${modelId} [${tierLabel}]`
+                                });
+                            });
+                        });
+
+                        const currentValue = routing.futureVision?.providerId && routing.futureVision?.modelId
+                            ? `${routing.futureVision.providerId}::${routing.futureVision.modelId}`
+                            : '';
+
+                        return (
+                            <div className="flex flex-col gap-2">
+                                <UiverseDropdown
+                                    options={FUTURE_VISION_MODELS}
+                                    value={currentValue}
+                                    onChange={(val) => {
+                                        if (!val) {
+                                            handleRoutingChange('futureVision', { providerId: null, modelId: null });
+                                        } else {
+                                            const parts = val.split('::');
+                                            handleRoutingChange('futureVision', { providerId: parts[0], modelId: parts.slice(1).join('::') });
+                                        }
+                                    }}
+                                    placeholder="Auto — Best Available (tier3_complex fallback)"
+                                    className="w-full text-[13px]"
+                                    matchWidth={true}
+                                    hideSearch={false}
+                                />
+                                <p className="text-[10px] text-text-tertiary">
+                                    Default (Auto): uses the highest-priority active tier3_complex model from your gateway with circuit-breaker fallback across all providers.
+                                </p>
+                            </div>
+                        );
+                    })()}
+                </div>
             </div>
+
 
             <div className="bg-background-card border border-border-default/40 rounded-2xl p-6 shadow-sm mt-6">
                 <div className="flex items-center gap-2 mb-4">
@@ -483,139 +560,7 @@ export default function PaiModelsTab() {
                         />
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2 border-t border-border-default/40">
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="text-[12px] font-medium text-text-secondary">Tokens (Short)</label>
-                            <div className="flex items-center gap-3">
-                                <button 
-                                    onClick={async () => {
-                                        setMaxTokensShort(500);
-                                        const newRouting = { ...routing, maxTokensShort: 500 };
-                                        setRouting(newRouting);
-                                        try {
-                                            await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
-                                            showToast('Short Tokens reset');
-                                        } catch (e) {
-                                            showToast('Failed to reset', 'error');
-                                        }
-                                    }}
-                                    className="text-text-tertiary hover:text-blue-400 transition-colors"
-                                    title="Reset to default (500)"
-                                >
-                                    <RotateCcw size={12} />
-                                </button>
-                                <span className="text-[12px] font-bold text-blue-500 w-10 text-right">{maxTokensShort}</span>
-                            </div>
-                        </div>
-                            <UniversalSlider 
-                                min="50" max="1000" step="50" value={maxTokensShort}
-                                defaultValue={500}
-                                recommendedRange={[150, 600]}
-                                onChange={(e) => setMaxTokensShort(parseInt(e.target.value))}
-                                onMouseUp={async (e) => {
-                                    const val = parseInt(e.target.value);
-                                    const newRouting = { ...routing, maxTokensShort: val };
-                                    setRouting(newRouting);
-                                    try {
-                                        await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
-                                        showToast('Short Tokens saved');
-                                    } catch (e) {
-                                        showToast('Failed to save Short Tokens', 'error');
-                                    }
-                                }}
-                                className="mt-2"
-                            />
-                    </div>
-
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="text-[12px] font-medium text-text-secondary">Tokens (Medium)</label>
-                            <div className="flex items-center gap-3">
-                                <button 
-                                    onClick={async () => {
-                                        setMaxTokensMedium(1000);
-                                        const newRouting = { ...routing, maxTokensMedium: 1000 };
-                                        setRouting(newRouting);
-                                        try {
-                                            await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
-                                            showToast('Medium Tokens reset');
-                                        } catch (e) {
-                                            showToast('Failed to reset', 'error');
-                                        }
-                                    }}
-                                    className="text-text-tertiary hover:text-blue-400 transition-colors"
-                                    title="Reset to default (1000)"
-                                >
-                                    <RotateCcw size={12} />
-                                </button>
-                                <span className="text-[12px] font-bold text-blue-500 w-10 text-right">{maxTokensMedium}</span>
-                            </div>
-                        </div>
-                            <UniversalSlider 
-                                min="500" max="3000" step="100" value={maxTokensMedium}
-                                defaultValue={1000}
-                                recommendedRange={[800, 1500]}
-                                onChange={(e) => setMaxTokensMedium(parseInt(e.target.value))}
-                                onMouseUp={async (e) => {
-                                    const val = parseInt(e.target.value);
-                                    const newRouting = { ...routing, maxTokensMedium: val };
-                                    setRouting(newRouting);
-                                    try {
-                                        await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
-                                        showToast('Medium Tokens saved');
-                                    } catch (e) {
-                                        showToast('Failed to save Medium Tokens', 'error');
-                                    }
-                                }}
-                                className="mt-2"
-                            />
-                    </div>
-
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="text-[12px] font-medium text-text-secondary">Tokens (Detailed)</label>
-                            <div className="flex items-center gap-3">
-                                <button 
-                                    onClick={async () => {
-                                        setMaxTokensDetailed(3000);
-                                        const newRouting = { ...routing, maxTokensDetailed: 3000 };
-                                        setRouting(newRouting);
-                                        try {
-                                            await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
-                                            showToast('Detailed Tokens reset');
-                                        } catch (e) {
-                                            showToast('Failed to reset', 'error');
-                                        }
-                                    }}
-                                    className="text-text-tertiary hover:text-blue-400 transition-colors"
-                                    title="Reset to default (3000)"
-                                >
-                                    <RotateCcw size={12} />
-                                </button>
-                                <span className="text-[12px] font-bold text-blue-500 w-10 text-right">{maxTokensDetailed}</span>
-                            </div>
-                        </div>
-                            <UniversalSlider 
-                                min="1000" max="8000" step="100" value={maxTokensDetailed}
-                                defaultValue={3000}
-                                recommendedRange={[2500, 4500]}
-                                onChange={(e) => setMaxTokensDetailed(parseInt(e.target.value))}
-                                onMouseUp={async (e) => {
-                                    const val = parseInt(e.target.value);
-                                    const newRouting = { ...routing, maxTokensDetailed: val };
-                                    setRouting(newRouting);
-                                    try {
-                                        await axiosInstance.put('/api/v1/ai-settings/routing', newRouting);
-                                        showToast('Detailed Tokens saved');
-                                    } catch (e) {
-                                        showToast('Failed to save Detailed Tokens', 'error');
-                                    }
-                                }}
-                                className="mt-2"
-                            />
-                        </div>
-                    </div>
+                    {/* Tokens sliders removed as verbosity dynamically calculates tokens */}
                 </div>
             </div>
 
@@ -624,57 +569,115 @@ export default function PaiModelsTab() {
                     <SlidersHorizontal size={18} className="text-orange-500" />
                     <h3 className="text-[15px] font-semibold text-text-primary">Response Verbosity</h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div>
-                        <label className="block text-[13px] font-medium text-text-primary mb-2">Header Insight Length</label>
-                        <UiverseDropdown
-                            options={[
-                                { value: 'short', label: 'Short (1-2 sentences)' },
-                                { value: 'medium', label: 'Medium (1 paragraph)' },
-                                { value: 'detailed', label: 'Detailed (Multi-paragraph)' }
-                            ]}
-                            value={routing['headerInsight']?.verbosity || 'detailed'}
-                            onChange={(val) => handleRoutingChange('headerInsight', { verbosity: val })}
-                            placeholder="Select length..."
-                            className="w-full text-[13px]"
-                            matchWidth={true}
-                            hideSearch={true}
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="text-[12px] font-medium text-text-secondary">Header Insight Length</label>
+                            <span className="text-[12px] font-bold text-blue-500 text-right">
+                                {(()=>{
+                                    let v = routing['headerInsight']?.verbosity;
+                                    if(v === 'short') v = 50; else if(v === 'detailed') v = 350; else if(v === 'medium' || !v) v = 150;
+                                    return v >= 1000 ? 'Max' : `${v} words`;
+                                })()}
+                            </span>
+                        </div>
+                        <UniversalSlider 
+                            min="50" max="1000" step="50"
+                            value={typeof routing['headerInsight']?.verbosity === 'number' ? routing['headerInsight'].verbosity : (routing['headerInsight']?.verbosity === 'short' ? 50 : routing['headerInsight']?.verbosity === 'detailed' ? 350 : 150)}
+                            defaultValue={350}
+                            onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setRouting(prev => ({ ...prev, headerInsight: { ...prev.headerInsight, verbosity: val } }));
+                            }}
+                            onMouseUp={async (e) => {
+                                const val = Number(e.target.value);
+                                handleRoutingChange('headerInsight', { verbosity: val });
+                            }}
+                            className="mt-2"
                         />
-                        <p className="text-[11px] text-text-tertiary mt-2">Controls the length of page-level AI summaries at the top.</p>
+                        <p className="text-[11px] text-text-tertiary mt-2">Controls the word length of page-level AI summaries at the top.</p>
                     </div>
                     <div>
-                        <label className="block text-[13px] font-medium text-text-primary mb-2">Card Insight Length</label>
-                        <UiverseDropdown
-                            options={[
-                                { value: 'short', label: 'Short (1-2 sentences)' },
-                                { value: 'medium', label: 'Medium (1 paragraph)' },
-                                { value: 'detailed', label: 'Detailed (Multi-paragraph)' }
-                            ]}
-                            value={routing['cardInsight']?.verbosity || 'medium'}
-                            onChange={(val) => handleRoutingChange('cardInsight', { verbosity: val })}
-                            placeholder="Select length..."
-                            className="w-full text-[13px]"
-                            matchWidth={true}
-                            hideSearch={true}
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="text-[12px] font-medium text-text-secondary">Card Insight Length</label>
+                            <span className="text-[12px] font-bold text-blue-500 text-right">
+                                {(()=>{
+                                    let v = routing['cardInsight']?.verbosity;
+                                    if(v === 'short') v = 50; else if(v === 'detailed') v = 350; else if(v === 'medium' || !v) v = 150;
+                                    return v >= 1000 ? 'Max' : `${v} words`;
+                                })()}
+                            </span>
+                        </div>
+                        <UniversalSlider 
+                            min="50" max="1000" step="50"
+                            value={typeof routing['cardInsight']?.verbosity === 'number' ? routing['cardInsight'].verbosity : (routing['cardInsight']?.verbosity === 'short' ? 50 : routing['cardInsight']?.verbosity === 'detailed' ? 350 : 150)}
+                            defaultValue={150}
+                            onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setRouting(prev => ({ ...prev, cardInsight: { ...prev.cardInsight, verbosity: val } }));
+                            }}
+                            onMouseUp={async (e) => {
+                                const val = Number(e.target.value);
+                                handleRoutingChange('cardInsight', { verbosity: val });
+                            }}
+                            className="mt-2"
                         />
-                        <p className="text-[11px] text-text-tertiary mt-2">Controls the length of analysis inside individual indicator cards.</p>
+                        <p className="text-[11px] text-text-tertiary mt-2">Controls the word length of analysis inside individual indicator cards.</p>
                     </div>
                     <div>
-                        <label className="block text-[13px] font-medium text-text-primary mb-2">Master Dashboard Length</label>
-                        <UiverseDropdown
-                            options={[
-                                { value: 'short', label: 'Short (1-2 sentences)' },
-                                { value: 'medium', label: 'Medium (1 paragraph)' },
-                                { value: 'detailed', label: 'Detailed (Multi-paragraph)' }
-                            ]}
-                            value={routing['pageInsight']?.verbosity || 'detailed'}
-                            onChange={(val) => handleRoutingChange('pageInsight', { verbosity: val })}
-                            placeholder="Select length..."
-                            className="w-full text-[13px]"
-                            matchWidth={true}
-                            hideSearch={true}
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="text-[12px] font-medium text-text-secondary">Master Dashboard Length</label>
+                            <span className="text-[12px] font-bold text-blue-500 text-right">
+                                {(()=>{
+                                    let v = routing['pageInsight']?.verbosity;
+                                    if(v === 'short') v = 50; else if(v === 'detailed') v = 350; else if(v === 'medium' || !v) v = 500;
+                                    return v >= 1000 ? 'Max' : `${v} words`;
+                                })()}
+                            </span>
+                        </div>
+                        <UniversalSlider 
+                            min="50" max="1000" step="50"
+                            value={typeof routing['pageInsight']?.verbosity === 'number' ? routing['pageInsight'].verbosity : (routing['pageInsight']?.verbosity === 'short' ? 50 : routing['pageInsight']?.verbosity === 'detailed' ? 350 : 500)}
+                            defaultValue={500}
+                            onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setRouting(prev => ({ ...prev, pageInsight: { ...prev.pageInsight, verbosity: val } }));
+                            }}
+                            onMouseUp={async (e) => {
+                                const val = Number(e.target.value);
+                                handleRoutingChange('pageInsight', { verbosity: val });
+                            }}
+                            className="mt-2"
                         />
-                        <p className="text-[11px] text-text-tertiary mt-2">Controls the length of the main master dashboard composite summary.</p>
+                        <p className="text-[11px] text-text-tertiary mt-2">Controls the word length of the main master dashboard composite summary.</p>
+                    </div>
+
+                    <div>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="text-[12px] font-medium text-text-secondary">Chat Response Length</label>
+                            <span className="text-[12px] font-bold text-blue-500 text-right">
+                                {(()=>{
+                                    let v = routing['manualChat']?.verbosity;
+                                    if(v === undefined) v = 500;
+                                    return v >= 1000 ? 'Max' : `${v} words`;
+                                })()}
+                            </span>
+                        </div>
+                        <UniversalSlider 
+                            min="50" max="1000" step="50"
+                            value={typeof routing['manualChat']?.verbosity === 'number' ? routing['manualChat'].verbosity : 500}
+                            defaultValue={500}
+                            onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setRouting(prev => ({ ...prev, manualChat: { ...prev.manualChat, verbosity: val } }));
+                            }}
+                            onMouseUp={async (e) => {
+                                const val = Number(e.target.value);
+                                handleRoutingChange('manualChat', { verbosity: val });
+                            }}
+                            className="mt-2"
+                        />
+                        <p className="text-[11px] text-text-tertiary mt-2">Controls the word length of QChat and manual chat conversations.</p>
                     </div>
                 </div>
             </div>
@@ -803,3 +806,4 @@ export default function PaiModelsTab() {
         </div>
     );
 }
+

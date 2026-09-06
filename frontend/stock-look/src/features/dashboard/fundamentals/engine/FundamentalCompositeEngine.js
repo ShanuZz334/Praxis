@@ -54,12 +54,12 @@ export const INDEX_CARD_TO_SECTION_MAP = {
 
 export const COMPANY_CARD_TO_SECTION_MAP = {
     [CARD_REGISTRY.pe_ratio.id]: 'Valuation', [CARD_REGISTRY.forward_pe.id]: 'Valuation', [CARD_REGISTRY.pb_ratio.id]: 'Valuation', [CARD_REGISTRY.ev_ebitda.id]: 'Valuation', [CARD_REGISTRY.earnings_yield.id]: 'Valuation', [CARD_REGISTRY.relative_valuation.id]: 'Valuation', [CARD_REGISTRY.analyst_consensus.id]: 'Valuation',
-    [CARD_REGISTRY.eps_growth.id]: 'Growth', [CARD_REGISTRY.revenue_growth.id]: 'Growth', [CARD_REGISTRY.profit_growth.id]: 'Growth',
+    [CARD_REGISTRY.eps_growth.id]: 'Earnings', [CARD_REGISTRY.revenue_growth.id]: 'Earnings', [CARD_REGISTRY.profit_growth.id]: 'Earnings',
     [CARD_REGISTRY.gdp_growth.id]: 'Macro',
     [CARD_REGISTRY.fii_dii_flow.id]: 'Liquidity', [CARD_REGISTRY.dividend_yield.id]: 'Liquidity', [CARD_REGISTRY.earnings_trend.id]: 'Sector',
     [CARD_REGISTRY.promoter_holding.id]: 'Ownership', [CARD_REGISTRY.smart_money_flow.id]: 'Ownership', [CARD_REGISTRY.earnings_quality.id]: 'Ownership', [CARD_REGISTRY.corporate_actions.id]: 'Ownership',
-    [CARD_REGISTRY.roe.id]: 'Profitability', [CARD_REGISTRY.roce.id]: 'Profitability', [CARD_REGISTRY.roa.id]: 'Profitability', [CARD_REGISTRY.net_margin.id]: 'Profitability', [CARD_REGISTRY.operating_margin.id]: 'Profitability', [CARD_REGISTRY.cash_conversion.id]: 'Profitability',
-    [CARD_REGISTRY.debt_to_equity.id]: 'Financial Health', [CARD_REGISTRY.interest_coverage.id]: 'Financial Health', [CARD_REGISTRY.free_cash_flow.id]: 'Financial Health', [CARD_REGISTRY.current_ratio.id]: 'Financial Health'
+    [CARD_REGISTRY.roe.id]: 'Corporate', [CARD_REGISTRY.roce.id]: 'Corporate', [CARD_REGISTRY.roa.id]: 'Corporate', [CARD_REGISTRY.net_margin.id]: 'Corporate', [CARD_REGISTRY.operating_margin.id]: 'Corporate', [CARD_REGISTRY.cash_conversion.id]: 'Corporate',
+    [CARD_REGISTRY.debt_to_equity.id]: 'Balance Sheet', [CARD_REGISTRY.interest_coverage.id]: 'Balance Sheet', [CARD_REGISTRY.free_cash_flow.id]: 'Balance Sheet', [CARD_REGISTRY.current_ratio.id]: 'Balance Sheet'
 };
 
 // ─── Aggregation Utilities ────────────────────────────────────────────────────
@@ -184,7 +184,7 @@ function computeCompanySections(scores, W) {
         else if (minQuality < gate[2].below) corporate *= gate[2].multiplier;
     }
 
-    // Balance Sheet / Risk (Mapped to global section id for company)
+    // Balance Sheet / Financial Health
     const fh = cs.financial_health;
     const deS  = g(CARD_REGISTRY.debt_to_equity.id);
     const icS  = g(CARD_REGISTRY.interest_coverage.id);

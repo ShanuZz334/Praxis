@@ -100,11 +100,15 @@ const AdminDashboard = () => {
             
             const liveProviders = [];
             
-            if (upstoxStatus.connected) {
-                setUpstoxMode(upstoxStatus.mode || 'live');
-                liveProviders.push({ provider: "upstox", status: "UP", configured: true, latency: 45, mode: upstoxStatus.mode || 'live' });
+            const currentMode = upstoxStatus.mode || 'live';
+            setUpstoxMode(currentMode);
+
+            const isCurrentModeConnected = currentMode === 'live' ? upstoxStatus.liveConnected : upstoxStatus.sandboxConnected;
+
+            if (isCurrentModeConnected) {
+                liveProviders.push({ provider: "upstox", status: "UP", configured: true, latency: 45, mode: currentMode });
             } else {
-                liveProviders.push({ provider: "upstox", status: "OFFLINE", configured: false, latency: 0, mode: upstoxMode });
+                liveProviders.push({ provider: "upstox", status: "OFFLINE", configured: false, latency: 0, mode: currentMode });
             }
 
             // Mock Health for other APIs

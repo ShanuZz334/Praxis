@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { computePositionSize, getSwingTP1R, getSwingTP2R, getScalpPartialFraction, getScalpTP } from '@/shared/utils/positionSizingEngine';
 
 const FIB_LEVELS = [-0.618, -0.382, 0, 0.236, 0.382, 0.5, 0.618, 0.786, 1, 1.382, 1.618];
 const FIB_LABELS = ['-61.8%', '-38.2%', '0%', '23.6%', '38.2%', '50%', '61.8%', '78.6%', '100%', '138.2%', '161.8%'];
@@ -428,18 +429,20 @@ export default function DrawingCanvas({
                     return;
                 }
                 
-                // Dynamic multi-target levels
-                const tp1Price = isLong ? entryPrice + risk * 2 : entryPrice - risk * 2;
-                const tp2Price = isLong ? entryPrice + risk * 3 : entryPrice - risk * 3;
-                const rr1 = 2.0;
-                const rr2 = 3.0;
+                // Dynamic multi-target levels (configurable via Chart Settings)
+                const rr1 = getSwingTP1R();   // default 2R, user-configurable
+                const rr2 = getSwingTP2R();   // default 3R, user-configurable
+                const tp1Price = isLong ? entryPrice + risk * rr1 : entryPrice - risk * rr1;
+                const tp2Price = isLong ? entryPrice + risk * rr2 : entryPrice - risk * rr2;
                 
-                // Position sizing: default ₹5000 risk
-                const RISK_AMOUNT = 5000;
-                const qty = Math.floor(RISK_AMOUNT / risk);
+                // Institutional Fixed-Fractional Position Sizing
+                // Reads live capital from localStorage (set by WalletPage).
+                // Falls back to Rs 5,00,000 capital / 1% risk if wallet not loaded.
+                const sizing = computePositionSize({ entryPrice, stopPrice, rr: rr1 });
+                const qty       = sizing?.qty ?? Math.floor(5000 / risk);
+                const lossAmt   = sizing ? sizing.lossIfStopped : qty * risk;
                 const profitTP1 = qty * risk * rr1;
                 const profitTP2 = qty * risk * rr2;
-                const lossAmt = qty * risk;
                 
                 // Percentages
                 const pctStop = ((risk / entryPrice) * 100).toFixed(2);
@@ -504,26 +507,26 @@ export default function DrawingCanvas({
                 ctx.font = 'bold 10px Inter, sans-serif';
                 ctx.textAlign = 'left';
                 
-                // TP2 label
+                // TP2 label (3R — swing extension target)
                 ctx.fillStyle = isLong ? greenText : redText;
                 ctx.fillText(showDetails ? `TP2: ₹${tp2Price.toFixed(2)}  (${pctTP2}%)  ${rr2}R` : 'TP2', boxLeft + 5, tp2Y + (isLong ? -16 : 13));
                 if (showDetails) {
                     ctx.font = '9px Inter, sans-serif';
                     ctx.fillStyle = 'rgba(255,255,255,0.45)';
-                    ctx.fillText(`P&L: +₹${profitTP2.toLocaleString('en-IN')}`, boxLeft + 5, tp2Y + (isLong ? -5 : 24));
+                    ctx.fillText(`Max P&L: +₹${profitTP2.toLocaleString('en-IN')}  (${qty} × ${rr2}R)`, boxLeft + 5, tp2Y + (isLong ? -5 : 24));
                 }
                 
-                // TP1 label
+                // TP1 label (2R — primary target)
                 ctx.font = 'bold 10px Inter, sans-serif';
                 ctx.fillStyle = isLong ? greenText : redText;
                 ctx.fillText(showDetails ? `TP1: ₹${tp1Price.toFixed(2)}  (${pctTP1}%)  ${rr1}R` : 'TP1', boxLeft + 5, tp1Y + (isLong ? 13 : -5));
                 if (showDetails) {
                     ctx.font = '9px Inter, sans-serif';
                     ctx.fillStyle = 'rgba(255,255,255,0.45)';
-                    ctx.fillText(`P&L: +₹${profitTP1.toLocaleString('en-IN')}`, boxLeft + 5, tp1Y + (isLong ? 24 : -15));
+                    ctx.fillText(`P&L: +₹${profitTP1.toLocaleString('en-IN')}  (${qty} × ${rr1}R)`, boxLeft + 5, tp1Y + (isLong ? 24 : -15));
                 }
                 
-                // Entry label (center of entry line)
+                // Entry label
                 ctx.font = 'bold 10px Inter, sans-serif';
                 ctx.fillStyle = 'rgba(255,255,255,0.7)';
                 ctx.fillText(showDetails ? `ENTRY: ₹${entryPrice.toFixed(2)}` : 'ENTRY', boxLeft + 5, entryY - 6);
@@ -531,17 +534,32 @@ export default function DrawingCanvas({
                     ctx.font = '9px Inter, sans-serif';
                     ctx.fillStyle = 'rgba(255,255,255,0.5)';
                     const rrActual = (Math.abs(tp1Price - entryPrice) / risk).toFixed(1);
-                    ctx.fillText(`R/R: ${rrActual}  |  Qty: ${qty}  |  Risk: ₹${lossAmt.toLocaleString('en-IN')}`, boxLeft + 5, entryY + 12);
+                    const evLabel = sizing
+                        ? `  |  EV: ${sizing.ev >= 0 ? '+' : ''}₹${Math.abs(sizing.ev).toLocaleString('en-IN')}`
+                        : '';
+                    ctx.fillText(
+                        `R/R: ${rrActual}  |  Qty: ${qty}  |  Risk: ₹${lossAmt.toLocaleString('en-IN')}${evLabel}`,
+                        boxLeft + 5, entryY + 12
+                    );
+                    if (sizing) {
+                        ctx.font = '8.5px Inter, sans-serif';
+                        ctx.fillStyle = 'rgba(255,255,255,0.30)';
+                        const cappedWarn = sizing.isCapped ? '  ⚠ Exp.Cap' : '';
+                        ctx.fillText(
+                            `Capital: ${sizing.capLabel}  |  ${sizing.riskPctDisplay}% risk  |  ½Kelly: ${sizing.halfKellyPct}%  |  WR: ${sizing.winRatePct}%${cappedWarn}`,
+                            boxLeft + 5, entryY + 23
+                        );
+                    }
                 }
                 
-                // Stop label
+                // SL label (always shows -1R for both LONG and SHORT)
                 ctx.font = 'bold 10px Inter, sans-serif';
                 ctx.fillStyle = isLong ? redText : greenText;
                 ctx.fillText(showDetails ? `SL: ₹${stopPrice.toFixed(2)}  (-${pctStop}%)  -1R` : 'SL', boxLeft + 5, stopY + (isLong ? 13 : -16));
                 if (showDetails) {
                     ctx.font = '9px Inter, sans-serif';
                     ctx.fillStyle = 'rgba(255,255,255,0.45)';
-                    ctx.fillText(`Loss: -₹${lossAmt.toLocaleString('en-IN')}`, boxLeft + 5, stopY + (isLong ? 24 : -5));
+                    ctx.fillText(`Max Loss: -₹${lossAmt.toLocaleString('en-IN')}  (${qty} × 1R)`, boxLeft + 5, stopY + (isLong ? 24 : -5));
                 }
                 
                 // Position type badge (top-right corner)
@@ -574,21 +592,23 @@ export default function DrawingCanvas({
                     return;
                 }
                 
-                // Scalp: 1R partial, 1.5R full target
-                const partialPrice = isLong ? entryPrice + risk : entryPrice - risk;      // 1R
-                const targetPrice = isLong ? entryPrice + risk * 1.5 : entryPrice - risk * 1.5; // 1.5R
+                // Scalp targets — configurable via Chart Settings
+                const scalpTP       = getScalpTP();              // default 1.5R
+                const partialFrac   = getScalpPartialFraction(); // default 0.5 = 50%
+                const partialPrice  = isLong ? entryPrice + risk           : entryPrice - risk;
+                const targetPrice   = isLong ? entryPrice + risk * scalpTP : entryPrice - risk * scalpTP;
                 
-                // Position sizing
-                const RISK_AMOUNT = 5000;
-                const qty = Math.floor(RISK_AMOUNT / risk);
-                const halfQty = Math.floor(qty / 2);
-                const partialProfit = halfQty * risk;          // 50% at 1R
-                const remainProfit = (qty - halfQty) * risk * 1.5; // rest at 1.5R
-                const totalProfit = partialProfit + remainProfit;
-                const lossAmt = qty * risk;
+                // Institutional Fixed-Fractional Position Sizing (rr = scalpTP)
+                const sizing = computePositionSize({ entryPrice, stopPrice, rr: scalpTP });
+                const qty        = sizing?.qty ?? Math.floor(5000 / risk);
+                const lossAmt    = sizing ? sizing.lossIfStopped : qty * risk;
+                const halfQty    = Math.floor(qty * partialFrac);            // e.g. 50% = floor(qty*0.5)
+                const partialProfit  = halfQty * risk;                       // partial qty booked at 1R
+                const remainProfit   = (qty - halfQty) * risk * scalpTP;    // rest rides to scalpTP
+                const totalProfit    = partialProfit + remainProfit;
                 
                 const pctStop = ((risk / entryPrice) * 100).toFixed(2);
-                const pctTarget = ((risk * 1.5 / entryPrice) * 100).toFixed(2);
+                const pctTarget = ((risk * scalpTP / entryPrice) * 100).toFixed(2);
                 
                 const entryY = p1.y;
                 const stopY = p2.y;
@@ -649,43 +669,64 @@ export default function DrawingCanvas({
                 ctx.font = 'bold 10px Inter, sans-serif';
                 ctx.textAlign = 'left';
                 
-                // Target label (1.5R)
+                // EXIT label (scalpTP — full target, remaining position)
                 ctx.fillStyle = amberText;
-                ctx.fillText(showDetails ? `EXIT: ₹${targetPrice.toFixed(2)}  (${pctTarget}%)  1.5R` : 'EXIT', boxLeft + 5, targetY + (isLong ? -16 : 13));
+                ctx.fillText(showDetails ? `EXIT: ₹${targetPrice.toFixed(2)}  (${pctTarget}%)  ${scalpTP}R` : 'EXIT', boxLeft + 5, targetY + (isLong ? -16 : 13));
                 if (showDetails) {
                     ctx.font = '9px Inter, sans-serif';
                     ctx.fillStyle = 'rgba(255,255,255,0.45)';
-                    ctx.fillText(`Total P&L: +₹${Math.round(totalProfit).toLocaleString('en-IN')}`, boxLeft + 5, targetY + (isLong ? -5 : 24));
+                    const remainQty = qty - halfQty;
+                    ctx.fillText(`Total P&L: +₹${Math.round(totalProfit).toLocaleString('en-IN')}  (${remainQty} shares × ${scalpTP}R)`, boxLeft + 5, targetY + (isLong ? -5 : 24));
                 }
                 
-                // Partial exit label (1R)
+                // PARTIAL exit label (1R — partial% booked, BE locked in for rest)
                 ctx.font = 'bold 10px Inter, sans-serif';
                 ctx.fillStyle = amberText;
-                ctx.fillText(showDetails ? `PARTIAL: ₹${partialPrice.toFixed(2)}  1R  (50% exit)` : 'PARTIAL', boxLeft + 5, partialY + (isLong ? 13 : -5));
+                const partialPctLabel = Math.round(partialFrac * 100);
+                ctx.fillText(showDetails ? `PARTIAL: ₹${partialPrice.toFixed(2)}  1R  (${partialPctLabel}% exit)` : 'PARTIAL', boxLeft + 5, partialY + (isLong ? 13 : -5));
                 if (showDetails) {
                     ctx.font = '9px Inter, sans-serif';
                     ctx.fillStyle = 'rgba(255,255,255,0.4)';
                     ctx.fillText(`Book: ${halfQty} of ${qty} qty → +₹${Math.round(partialProfit).toLocaleString('en-IN')}`, boxLeft + 5, partialY + (isLong ? 24 : -15));
                 }
                 
-                // Entry label
+                // Entry label + BE annotation
                 ctx.font = 'bold 10px Inter, sans-serif';
                 ctx.fillStyle = 'rgba(255,255,255,0.7)';
                 ctx.fillText(showDetails ? `ENTRY: ₹${entryPrice.toFixed(2)}` : 'ENTRY', boxLeft + 5, entryY - 6);
                 if (showDetails) {
                     ctx.font = '9px Inter, sans-serif';
                     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                    ctx.fillText(`Qty: ${qty}  |  Risk: ₹${lossAmt.toLocaleString('en-IN')}  |  R/R: 1.5`, boxLeft + 5, entryY + 12);
+                    const evLabel = sizing
+                        ? `  |  EV: ${sizing.ev >= 0 ? '+' : ''}₹${Math.abs(sizing.ev).toLocaleString('en-IN')}`
+                        : '';
+                    ctx.fillText(
+                        `Qty: ${qty}  |  Risk: ₹${lossAmt.toLocaleString('en-IN')}  |  R/R: 1.5${evLabel}`,
+                        boxLeft + 5, entryY + 12
+                    );
+                    if (sizing) {
+                        ctx.font = '8.5px Inter, sans-serif';
+                        ctx.fillStyle = 'rgba(255,255,255,0.30)';
+                        const cappedWarn = sizing.isCapped ? '  ⚠ Exp.Cap' : '';
+                        ctx.fillText(
+                            `Capital: ${sizing.capLabel}  |  ${sizing.riskPctDisplay}% risk  |  ½Kelly: ${sizing.halfKellyPct}%  |  WR: ${sizing.winRatePct}%${cappedWarn}`,
+                            boxLeft + 5, entryY + 23
+                        );
+                    }
+                    // Break-even annotation — after booking 50% at 1R, remaining position is at zero cost
+                    ctx.font = '8.5px Inter, sans-serif';
+                    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+                    ctx.fillText(`↑ BE after partial: ₹${entryPrice.toFixed(2)}`, boxRight + 5, entryY + 4);
                 }
                 
-                // Stop label
+                // SL label — shows -1R and max loss consistent with swing tool
                 ctx.font = 'bold 10px Inter, sans-serif';
                 ctx.fillStyle = redText;
-                ctx.fillText(showDetails ? `SL: ₹${stopPrice.toFixed(2)}  (-${pctStop}%)` : 'SL', boxLeft + 5, stopY + (isLong ? 13 : -16));
+                ctx.fillText(showDetails ? `SL: ₹${stopPrice.toFixed(2)}  (-${pctStop}%)  -1R` : 'SL', boxLeft + 5, stopY + (isLong ? 13 : -16));
                 if (showDetails) {
                     ctx.font = '9px Inter, sans-serif';
                     ctx.fillStyle = 'rgba(255,255,255,0.45)';
-                    ctx.fillText(`Loss: -₹${lossAmt.toLocaleString('en-IN')}`, boxLeft + 5, stopY + (isLong ? 24 : -5));
+                    ctx.fillText(`Max Loss: -₹${lossAmt.toLocaleString('en-IN')}  (${qty} × 1R)`, boxLeft + 5, stopY + (isLong ? 24 : -5));
                 }
                 
                 // Badge

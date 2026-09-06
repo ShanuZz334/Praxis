@@ -2,16 +2,18 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
-export default function MaxPainCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
+export default function MaxPainCard({ cardId, liveData = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.max_pain.id);
 
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
     const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);
 
     const distancePct = isLiveData ? liveData.distance : '--';
-    const score = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
-    const bias = isLiveData ? liveData.bias : "Neutral";
+    const rawScore = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
+    const rawBias  = isLiveData ? liveData.bias  : 'Neutral';
+    const { score, bias } = { ...{ score: rawScore, bias: rawBias }, ...applyModeAdjustment({ score: rawScore, bias: rawBias }, 'max_pain', tradingMode) };
     const confidence = isLiveData ? liveData.confidence : "0%";
     const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Awaiting live options chain data to calculate Max Pain...");
 

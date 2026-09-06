@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
-export default function VegaCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
+export default function VegaCard({ cardId, liveData = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.vega.id);
     
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
@@ -11,8 +12,9 @@ export default function VegaCard({ cardId, liveData = null, manualOverride, last
 
     const currentIV = isLiveData && liveData.impliedVol ? `${liveData.impliedVol.toFixed(2)}%` : '--%';
     const ivSensitivity = isLiveData ? liveData.exposure : '--';
-    const score = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
-    const bias = isLiveData ? liveData.bias : "Neutral";
+    const rawScore = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
+    const rawBias  = isLiveData ? liveData.bias  : 'Neutral';
+    const { score, bias } = { ...{ score: rawScore, bias: rawBias }, ...applyModeAdjustment({ score: rawScore, bias: rawBias }, 'vega', tradingMode) };
     const confidence = isLiveData ? liveData.confidence : "0%";
     const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Waiting for market data...");
 

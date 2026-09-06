@@ -35,7 +35,7 @@ export const optionsSections = baseSections;
  * calculatePositioningScore
  * Institutional logic to calculate a single bullish/bearish score (0-100).
  */
-export function calculatePositioningScore(metrics, mode = TRADING_MODES.BALANCED) {
+export function calculatePositioningScore(metrics, mode = TRADING_MODES.SWING) {
     if (!metrics) return { score: 50, details: {} };
 
     // Fetch active weights based on mode

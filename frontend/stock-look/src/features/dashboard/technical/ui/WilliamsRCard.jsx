@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreWilliamsRCard } from '../engine/TechnicalCompositeEngine';
 
-export default function WilliamsRCard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function WilliamsRCard({ cardId, data = null, lastUpdated, tradingMode = 'swing', indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.williams_r.id);
     
     const settingsConfig = [
@@ -15,7 +16,7 @@ export default function WilliamsRCard({ cardId, data = null, lastUpdated, indica
     // Resolve current value
     const currentValue = data?.williams_r ?? null;
 
-    const { score, bias, confidence, aiInsight } = scoreWilliamsRCard(currentValue);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreWilliamsRCard(currentValue), 'williams_r', tradingMode);
 
     const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) + "%" : '--';
     

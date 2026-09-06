@@ -79,7 +79,7 @@ export const getCurrentMode = (userPreferences) => {
  * @param {string} mode - Trading mode
  * @returns {*} Configuration for the specified mode
  */
-export const getModeConfig = (config, mode = TRADING_MODES.BALANCED) => {
+export const getModeConfig = (config, mode = TRADING_MODES.SWING) => {
     if (!config) return null;
 
     if (config[mode]) {

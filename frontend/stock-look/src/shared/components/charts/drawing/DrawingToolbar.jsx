@@ -6,6 +6,7 @@ import {
     Crosshair, AlignJustify, ArrowUpRight, Circle, PenTool,
     Columns, Ruler, ArrowUpCircle, ArrowDownCircle, Zap
 } from 'lucide-react';
+import ChartSettingsPanel from './ChartSettingsPanel';
 
 export const TOOLS = [
     { id: 'cursor',    label: 'Select / Move',        Icon: Crosshair },
@@ -66,7 +67,7 @@ export default function DrawingToolbar({
                     className="absolute left-0 top-8 z-30 flex flex-col gap-1 
                                bg-white/80 dark:bg-[#1e222d]/80 border border-black/5 dark:border-white/5 rounded-xl 
                                backdrop-blur-md shadow-2xl p-1.5 w-[68px]
-                               max-h-[calc(100%-2rem)]"
+                               max-h-[calc(100%-2rem)] overflow-visible"
                     onPointerDown={e => e.stopPropagation()}
                     onClick={e => e.stopPropagation()}
                 >
@@ -103,7 +104,7 @@ export default function DrawingToolbar({
                     </div>
 
                     {/* Fixed Bottom Section */}
-                    <div className="flex-shrink-0 w-full flex flex-col gap-1 border-t border-black/5 dark:border-white/5 pt-1 mt-1">
+                    <div className="flex-shrink-0 w-full flex flex-col gap-1 border-t border-black/5 dark:border-white/5 pt-1 mt-1 overflow-visible">
                         <div className="flex flex-wrap gap-1.5 justify-center py-1 px-0.5">
                         {COLORS.map(color => (
                             <button
@@ -161,6 +162,12 @@ export default function DrawingToolbar({
                             >
                                 <Trash2 size={13} />
                             </button>
+                        </div>
+
+                        {/* Position Settings */}
+                        <div className="w-full h-px bg-black/5 dark:bg-white/5 my-0.5" />
+                        <div className="flex justify-center">
+                            <ChartSettingsPanel visible={true} />
                         </div>
                     </div>
                 </motion.div>

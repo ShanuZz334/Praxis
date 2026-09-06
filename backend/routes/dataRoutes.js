@@ -2,13 +2,40 @@ import express from "express";
 import axios from "axios";
 import { yahooFinanceService } from "../services/yahooFinanceService.js";
 import { fredApiService } from "../services/fredApiService.js";
+import db from "../config/localDb.js";
 
 const router = express.Router();
 
-// Memory Cache
+// Prepared statements for global_cache persistence
+const upsertGlobal = db.prepare(`
+    INSERT INTO global_cache (symbol_id, value, hi_52, lo_52, pct_change, source, fetched_at)
+    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(symbol_id) DO UPDATE SET
+        value = excluded.value, hi_52 = excluded.hi_52, lo_52 = excluded.lo_52,
+        pct_change = excluded.pct_change, source = excluded.source, fetched_at = CURRENT_TIMESTAMP
+`);
+const getAllGlobal = db.prepare(`SELECT symbol_id, value, hi_52, lo_52, pct_change FROM global_cache`);
+
+// Memory Cache (still used for intra-request speed)
 let globalCache = null;
 let lastFetchTime = 0;
+
+// Seed memory cache from SQLite on startup so data is available immediately
+try {
+    const rows = getAllGlobal.all();
+    if (rows.length > 0) {
+        globalCache = {};
+        for (const row of rows) {
+            globalCache[row.symbol_id] = { value: row.value, hi52: row.hi_52, lo52: row.lo_52, pctChange: row.pct_change };
+        }
+        console.log(`✅ Global cache seeded from SQLite (${rows.length} symbols)`);
+    }
+} catch (e) {
+    console.warn("⚠️ Could not seed global cache from SQLite:", e.message);
+}
 const CACHE_TTL_MS = 1 * 60 * 1000; // 1 minute
+const STALE_FALLBACK_MS = 24 * 60 * 60 * 1000; // 24 hours — serve stale rather than failing
+
 
 // Map of our internal IDs to Yahoo Finance symbols
 const SYMBOL_MAP = {
@@ -63,6 +90,9 @@ router.get("/global", async (req, res) => {
         return res.json({ status: "success", cached: true, data: globalCache });
     }
 
+    // If stale but within 24h, serve it while we try fresh fetch in background
+    const isStaleButUsable = globalCache && (Date.now() - lastFetchTime < STALE_FALLBACK_MS);
+
     try {
         const results = {};
         
@@ -88,42 +118,60 @@ router.get("/global", async (req, res) => {
             const dataItem = sparkResp.find(s => s.symbol === yahooSymbol);
             if (dataItem && dataItem.response && dataItem.response[0] && dataItem.response[0].meta) {
                 const meta = dataItem.response[0].meta;
+                const prev = meta.chartPreviousClose || meta.previousClose || null;
+                const curr = meta.regularMarketPrice ?? null;
+                const pctChange = (prev && curr && prev > 0) ? parseFloat(((curr - prev) / prev * 100).toFixed(3)) : null;
                 results[internalId] = {
-                    value: meta.regularMarketPrice ?? null,
+                    value: curr,
                     hi52:  meta.fiftyTwoWeekHigh  ?? null,
                     lo52:  meta.fiftyTwoWeekLow   ?? null,
+                    pctChange
                 };
             } else {
-                results[internalId] = { value: null, hi52: null, lo52: null };
+                results[internalId] = { value: null, hi52: null, lo52: null, pctChange: null };
             }
         }
 
         // Add specific fallbacks for things Yahoo might miss (crypto)
         if (!results["bitcoin"]?.value) {
             try {
-                const { data } = await axios.get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd", { timeout: 3000 });
-                if (data.bitcoin?.usd) results["bitcoin"] = { value: data.bitcoin.usd, hi52: null, lo52: null };
-                if (data.ethereum?.usd) results["ethereum"] = { value: data.ethereum.usd, hi52: null, lo52: null };
-                if (data.solana?.usd)   results["solana"]   = { value: data.solana.usd,   hi52: null, lo52: null };
+                const { data } = await axios.get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd&include_24hr_change=true", { timeout: 3000 });
+                if (data.bitcoin?.usd) results["bitcoin"] = { value: data.bitcoin.usd, hi52: null, lo52: null, pctChange: data.bitcoin.usd_24h_change ?? null };
+                if (data.ethereum?.usd) results["ethereum"] = { value: data.ethereum.usd, hi52: null, lo52: null, pctChange: data.ethereum.usd_24h_change ?? null };
+                if (data.solana?.usd)   results["solana"]   = { value: data.solana.usd, hi52: null, lo52: null, pctChange: data.solana.usd_24h_change ?? null };
             } catch(e) {}
         }
 
         // Fetch FRED Macro Data
         try {
             const gdp = await fredApiService.getGDPGrowth();
-            results["gdp"] = { value: gdp, hi52: null, lo52: null };
+            results["gdp"] = { value: gdp, hi52: null, lo52: null, pctChange: null };
         } catch(e) {
             console.error("FRED API Error:", e.message);
         }
 
-        // Update Cache
+        // Update Memory Cache
         globalCache = results;
         lastFetchTime = Date.now();
+
+        // Persist to SQLite so data survives backend restarts
+        try {
+            const persistAll = db.transaction((data) => {
+                for (const [symbolId, item] of Object.entries(data)) {
+                    if (item.value !== null && item.value !== undefined) {
+                        upsertGlobal.run(symbolId, item.value, item.hi52 ?? null, item.lo52 ?? null, item.pctChange ?? null, "yahoo");
+                    }
+                }
+            });
+            persistAll(results);
+        } catch (e) {
+            console.warn("⚠️ Could not persist global cache to SQLite:", e.message);
+        }
 
         res.json({ status: "success", cached: false, data: results });
     } catch (error) {
         console.error("Error fetching global data:", error.response?.data || error.message);
-        // If it fails, fallback to cache if we have it, even if expired
+        // Serve stale data (in-memory or SQLite) instead of 500
         if (globalCache) {
             return res.json({ status: "success", cached: "stale", data: globalCache });
         }
@@ -133,3 +181,4 @@ router.get("/global", async (req, res) => {
 
 
 export default router;
+

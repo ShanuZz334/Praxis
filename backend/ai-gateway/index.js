@@ -80,6 +80,11 @@ export const aiGateway = {
                 content: msg.content
             })));
         }
+        
+        // 3.5 Global Formatting Mandate
+        if (!jsonMode) {
+            messages.push({ role: 'system', content: `[GLOBAL FORMATTING MANDATE: If you output any structured data, lists, or pseudo-tables, you MUST use strict GitHub Flavored Markdown (GFM) table syntax with pipe characters (e.g., | Col | Col |). NEVER use spaces, tabs, or manual indentation for visual alignment. Use markdown for emphasis.]` });
+        }
 
         // 4. User prompt
         messages.push({ role: 'user', content: prompt });

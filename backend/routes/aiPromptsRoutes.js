@@ -19,20 +19,20 @@ router.use(protect);
 // Fallback when no custom prompt has been saved yet for a targetId.
 
 const PAGE_HEADER_DEFAULTS = {
-    [CARD_REGISTRY.fundamentals_index_header?.id || "fundamentals_index_header"]: `You are Praxis. Analyze the Fundamentals for {stockSymbol}. Generate a short, actionable summary of the market regime and valuation. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.fundamentals_company_header?.id || "fundamentals_company_header"]: `You are Praxis. Analyze the Fundamentals for {stockSymbol}. Generate a short, actionable summary of valuation and earnings quality. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.technical_index_header?.id || "technical_index_header"]: `You are Praxis. Analyze the Technicals for {stockSymbol}. Generate a short, actionable summary of the primary trend and key levels. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.technical_company_header?.id || "technical_company_header"]: `You are Praxis. Analyze the Technicals for {stockSymbol}. Generate a short summary of the primary trend and one specific trade setup. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.options_header?.id || "options_header"]: `You are Praxis. Analyze the Options data for {stockSymbol}. Generate a short summary of directional bias, volatility regime, and a strategy recommendation. No markdown, no bold text, no introductions.`,
-    [CARD_REGISTRY.praxis_composite_header?.id || "praxis_composite_header"]: `You are Praxis. Analyze the composite data for {stockSymbol}. Generate a short summary of the overall market posture and a tactical recommendation. No markdown, no bold text, no introductions.`,
-    foreign_header: `You are Praxis. Analyze the Global Macro data for {stockSymbol}. Generate a short summary of the most important global headwinds/tailwind and sector impact. No markdown, no bold text, no introductions.`,
-    events_header: `You are Praxis. Analyze the Events data for {stockSymbol}. Generate a short summary of key near-term event risks and expected impact. No markdown, no bold text, no introductions.`,
-    events_macro: `You are Praxis. Analyze the Macro Events data for {stockSymbol}. Generate a short summary of the primary macroeconomic drivers affecting this asset. No markdown, no bold text, no introductions.`,
-    events_earnings: `You are Praxis. Analyze the Earnings Events data for {stockSymbol}. Generate a short summary of recent earnings sentiment and expected impacts. No markdown, no bold text, no introductions.`,
-    events_policy: `You are Praxis. Analyze the Policy Events data for {stockSymbol}. Generate a short summary of how regulatory or central bank policies are driving momentum. No markdown, no bold text, no introductions.`,
-    events_corporate: `You are Praxis. Analyze the Corporate Events data for {stockSymbol}. Generate a short summary of corporate actions (M&A, management changes, dividends) impacting the stock. No markdown, no bold text, no introductions.`,
-    events_geopolitical: `You are Praxis. Analyze the Geopolitical Events data for {stockSymbol}. Generate a short summary of global geopolitical risks impacting this asset. No markdown, no bold text, no introductions.`,
-    events_commodities: `You are Praxis. Analyze the Commodities Events data for {stockSymbol}. Generate a short summary of how raw material or energy price shocks are impacting momentum. No markdown, no bold text, no introductions.`,
+    [CARD_REGISTRY.fundamentals_index_header?.id || "fundamentals_index_header"]: `You are Praxis. Analyze the Fundamentals for {stockSymbol}. Generate a short, actionable summary of the market regime and valuation. Use markdown for emphasis and tables. No generic introductions.`,
+    [CARD_REGISTRY.fundamentals_company_header?.id || "fundamentals_company_header"]: `You are Praxis. Analyze the Fundamentals for {stockSymbol}. Generate a short, actionable summary of valuation and earnings quality. Use markdown for emphasis and tables. No generic introductions.`,
+    [CARD_REGISTRY.technical_index_header?.id || "technical_index_header"]: `You are Praxis. Analyze the Technicals for {stockSymbol}. Generate a short, actionable summary of the primary trend and key levels. Use markdown for emphasis and tables. No generic introductions.`,
+    [CARD_REGISTRY.technical_company_header?.id || "technical_company_header"]: `You are Praxis. Analyze the Technicals for {stockSymbol}. Generate a short summary of the primary trend and one specific trade setup. Use markdown for emphasis and tables. No generic introductions.`,
+    [CARD_REGISTRY.options_header?.id || "options_header"]: `You are Praxis. Analyze the Options data for {stockSymbol}. Generate a short summary of directional bias, volatility regime, and a strategy recommendation. Use markdown for emphasis and tables. No generic introductions.`,
+    [CARD_REGISTRY.praxis_composite_header?.id || "praxis_composite_header"]: `You are Praxis. Analyze the composite data for {stockSymbol}. Generate a short summary of the overall market posture and a tactical recommendation. Use markdown for emphasis and tables. No generic introductions.`,
+    foreign_header: `You are Praxis. Analyze the Global Macro data for {stockSymbol}. Generate a short summary of the most important global headwinds/tailwind and sector impact. Use markdown for emphasis and tables. No generic introductions.`,
+    events_header: `You are Praxis. Analyze the Events data for {stockSymbol}. Generate a short summary of key near-term event risks and expected impact. Use markdown for emphasis and tables. No generic introductions.`,
+    events_macro: `You are Praxis. Analyze the Macro Events data for {stockSymbol}. Generate a short summary of the primary macroeconomic drivers affecting this asset. Use markdown for emphasis and tables. No generic introductions.`,
+    events_earnings: `You are Praxis. Analyze the Earnings Events data for {stockSymbol}. Generate a short summary of recent earnings sentiment and expected impacts. Use markdown for emphasis and tables. No generic introductions.`,
+    events_policy: `You are Praxis. Analyze the Policy Events data for {stockSymbol}. Generate a short summary of how regulatory or central bank policies are driving momentum. Use markdown for emphasis and tables. No generic introductions.`,
+    events_corporate: `You are Praxis. Analyze the Corporate Events data for {stockSymbol}. Generate a short summary of corporate actions (M&A, management changes, dividends) impacting the stock. Use markdown for emphasis and tables. No generic introductions.`,
+    events_geopolitical: `You are Praxis. Analyze the Geopolitical Events data for {stockSymbol}. Generate a short summary of global geopolitical risks impacting this asset. Use markdown for emphasis and tables. No generic introductions.`,
+    events_commodities: `You are Praxis. Analyze the Commodities Events data for {stockSymbol}. Generate a short summary of how raw material or energy price shocks are impacting momentum. Use markdown for emphasis and tables. No generic introductions.`,
 };
 
 const DEFAULT_SYSTEM_INSTRUCTION = (targetId, displayName) => {
@@ -517,17 +517,29 @@ router.post('/generate/:targetId', async (req, res) => {
         
         if (routing) {
             const isMasterDashboard = targetId === 'praxis_composite_header';
-            const verbosityLevel = isMasterDashboard ? routing.pageInsight?.verbosity : (isHeaderTarget ? routing.headerInsight?.verbosity : routing.cardInsight?.verbosity);
-            if (verbosityLevel === 'short') {
-                verbosityInstruction = "\n\n[CRITICAL REQUIREMENT: Generate EXACTLY 1 to 2 short sentences total. NO MORE. Be extremely concise and ensure you finish your thought completely without cutting off.]";
-                dynamicMaxTokens = routing.maxTokensShort || Math.max(dynamicMaxTokens, 500);
+            const isChatTarget = targetId.startsWith('qchat_') || targetId.includes('manual');
+            const verbosityLevel = isMasterDashboard ? routing.pageInsight?.verbosity : (isChatTarget ? routing.manualChat?.verbosity : (isHeaderTarget ? routing.headerInsight?.verbosity : routing.cardInsight?.verbosity));
+            
+            // Normalize legacy string values to numbers for comparison
+            let numVerbosity = 500;
+            if (typeof verbosityLevel === 'number') {
+                numVerbosity = verbosityLevel;
+            } else if (verbosityLevel === 'short') {
+                numVerbosity = 50;
             } else if (verbosityLevel === 'detailed') {
-                verbosityInstruction = "\n\n[CRITICAL REQUIREMENT: Provide a highly detailed, comprehensive analysis spanning multiple paragraphs. Break down the reasoning deeply. Do not stop midway, complete all thoughts.]";
-                dynamicMaxTokens = routing.maxTokensDetailed || Math.max(dynamicMaxTokens, 3000);
+                numVerbosity = 350;
+            }
+
+            if (numVerbosity <= 100) {
+                verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Generate EXACTLY 1 to 2 short sentences total (maximum ${numVerbosity} words). NO MORE. Be extremely concise and ensure you finish your thought completely without cutting off.]`;
+                dynamicMaxTokens = Math.max(800, numVerbosity * 4);
+            } else if (numVerbosity >= 350) {
+                verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Provide a detailed, comprehensive analysis spanning multiple paragraphs. You MUST strictly limit your entire response to approximately ${numVerbosity} words. To prevent being cut off, you MUST write a final, natural concluding paragraph well before reaching this word limit.]`;
+                dynamicMaxTokens = Math.max(2500, numVerbosity * 4);
             } else {
                 // Default / medium
-                verbosityInstruction = "\n\n[CRITICAL REQUIREMENT: You MUST generate EXACTLY ONE SINGLE PARAGRAPH. Do NOT use any line breaks, bullet points, or multiple paragraphs. The entire response must be a single block of text and must be a complete thought.]";
-                dynamicMaxTokens = routing.maxTokensMedium || Math.max(dynamicMaxTokens, 1000);
+                verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: You MUST generate EXACTLY ONE SINGLE PARAGRAPH (maximum ${numVerbosity} words). Do NOT use any line breaks or multiple paragraphs. The entire response must be a single block of text and must be a complete thought.]`;
+                dynamicMaxTokens = Math.max(1500, numVerbosity * 4);
             }
         }
         
@@ -603,9 +615,7 @@ router.post('/chat/:targetId', async (req, res) => {
         let { message, scope = 'card', contextData, cardSnapshots = [], explicitProvider, explicitModel } = req.body;
         
         // DEBUG LOGGING START
-        import('fs').then(fs => {
-            fs.appendFileSync('chat_debug.log', JSON.stringify({ time: new Date().toISOString(), targetId, body: req.body }) + '\\n');
-        }).catch(e => {});
+        console.log("[AI Prompts] Chat Request targetId=" + targetId);
         // DEBUG LOGGING END
         
         contextData = contextData || {};
@@ -688,22 +698,43 @@ router.post('/chat/:targetId', async (req, res) => {
         
         // Match the dynamic max tokens logic from /execute so multi-para prompts don't get cut off
         let dynamicMaxTokens = savedPrompt?.maxTokens || (isHeaderTarget ? 2000 : 800);
+        let verbosityInstruction = "";
+        
         if (routing) {
             const isMasterDashboard = targetId === 'praxis_composite_header';
-            const verbosityLevel = isMasterDashboard ? routing.pageInsight?.verbosity : (isHeaderTarget ? routing.headerInsight?.verbosity : routing.cardInsight?.verbosity);
-            if (verbosityLevel === 'short') {
-                dynamicMaxTokens = routing.maxTokensShort || Math.max(dynamicMaxTokens, 500);
+            const isChatTarget = targetId.startsWith('qchat_') || targetId.includes('manual');
+            const verbosityLevel = isMasterDashboard ? routing.pageInsight?.verbosity : (isChatTarget ? routing.manualChat?.verbosity : (isHeaderTarget ? routing.headerInsight?.verbosity : routing.cardInsight?.verbosity));
+            
+            // Normalize legacy string values to numbers for comparison
+            let numVerbosity = 500;
+            if (typeof verbosityLevel === 'number') {
+                numVerbosity = verbosityLevel;
+            } else if (verbosityLevel === 'short') {
+                numVerbosity = 50;
             } else if (verbosityLevel === 'detailed') {
-                dynamicMaxTokens = routing.maxTokensDetailed || Math.max(dynamicMaxTokens, 3000);
+                numVerbosity = 350;
+            }
+
+            if (numVerbosity <= 100) {
+                verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Generate EXACTLY 1 to 2 short sentences total (maximum ${numVerbosity} words). NO MORE. Be extremely concise and ensure you finish your thought completely without cutting off.]`;
+                dynamicMaxTokens = Math.max(800, numVerbosity * 4);
+            } else if (numVerbosity >= 350) {
+                verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Provide a detailed, comprehensive analysis spanning multiple paragraphs. You MUST strictly limit your entire response to approximately ${numVerbosity} words. To prevent being cut off, you MUST write a final, natural concluding paragraph well before reaching this word limit.]`;
+                dynamicMaxTokens = Math.max(2500, numVerbosity * 4);
             } else {
-                dynamicMaxTokens = routing.maxTokensMedium || Math.max(dynamicMaxTokens, 1000);
+                // Default / medium
+                verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: You MUST generate EXACTLY ONE SINGLE PARAGRAPH (maximum ${numVerbosity} words). Do NOT use any line breaks or multiple paragraphs. The entire response must be a single block of text and must be a complete thought.]`;
+                dynamicMaxTokens = Math.max(1500, numVerbosity * 4);
             }
         }
+        
+        // Ensure chat actually obeys the generated word limit constraint
+        const enforcedChatSystemInstruction = `${systemInstruction}${verbosityInstruction}`;
 
         const response = await aiGateway.process({
             taskType: 'chat_conversation',
             prompt: cardContextPrefix + message,  // #mention card data prepended
-            systemInstruction,
+            systemInstruction: enforcedChatSystemInstruction,
             history,
             data: Object.keys(contextData).length > 0 ? contextData : null,
             jsonMode: false,
@@ -758,7 +789,7 @@ router.post('/chat/:targetId', async (req, res) => {
 
     } catch (err) {
         console.error('POST /ai-prompts/chat/:targetId error:', err.message);
-        import('fs').then(fs => fs.appendFileSync('chat_debug.log', 'ERROR: ' + err.stack + '\\n')).catch(e=>{});
+        console.error(err.stack);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -790,3 +821,5 @@ router.post('/transcribe', upload.single('audio'), async (req, res) => {
 });
 
 export default router;
+
+

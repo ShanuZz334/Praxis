@@ -9,7 +9,7 @@
  * - Route: /dashboard/wallet
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { RefreshCw } from "lucide-react";
 
 // Existing wallet sub-components (unchanged, just wired)
@@ -50,7 +50,26 @@ export default function WalletPage() {
     const collateral = equity.collateral || 0;
     const totalCapital = available + usedMargin + collateral;
 
-    // ─── Derived: Today's P&L from positions ────────────────────────────────
+    // ─── Persist capital to localStorage for chart position sizing engine ────
+    // DrawingCanvas reads 'praxis_capital' to compute Fixed Fractional qty.
+    useEffect(() => {
+        if (totalCapital > 0) {
+            localStorage.setItem('praxis_capital', String(totalCapital));
+        }
+    }, [totalCapital]);
+
+    // Persist journal win rate for Kelly Criterion advisory in chart tools.
+    // Stored as decimal (0–1). If journalStats is unavailable, we leave the
+    // key unset so the engine falls back to the neutral 50% assumption.
+    useEffect(() => {
+        if (journalStats?.winRate != null) {
+            localStorage.setItem('praxis_win_rate', String(journalStats.winRate));
+        } else if (journalStats?.winRatePct != null) {
+            localStorage.setItem('praxis_win_rate', String(journalStats.winRatePct / 100));
+        }
+    }, [journalStats]);
+
+
     const { totalUnrealized, totalRealized, todayPnL } = useMemo(() => {
         const ur = positions.reduce((s, p) => s + (p.unrealised ?? p.unrealized_pnl ?? 0), 0);
         const re = positions.reduce((s, p) => s + (p.realised   ?? p.realized_pnl  ?? 0), 0);

@@ -2,17 +2,19 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreTrinCard } from '../engine/TechnicalCompositeEngine';
 
-export default function TrinCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function TrinCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.trin.id);
     
     // Resolve current value
     const isLiveData = false; 
     const currentValue = isLiveData ? null : (manualOverride ?? null);
 
-    const { score, bias, confidence, aiInsight } = scoreTrinCard(currentValue);
+    const rawScoreObj = scoreTrinCard(currentValue);
+    const { score, bias, confidence, aiInsight } = { ...rawScoreObj, ...applyModeAdjustment(rawScoreObj, 'trin', tradingMode) };
 
     const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) : '--';
     

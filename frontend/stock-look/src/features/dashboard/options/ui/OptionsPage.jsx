@@ -29,6 +29,8 @@ import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { useDataRegistry } from '@/shared/context/DataRegistryContext';
+import { useTheme } from '@/shared/context/ThemeContext';
+
 
 // Wrapper to automatically inject timer configs
 const TimerOverrideInput = ({ overrideKey, manualLastUpdated, expiryConfigs, info, ...props }) => (
@@ -46,6 +48,7 @@ export default function OptionsPage() {
     const [viewMode, setViewMode] = useState("sectioned");
     const [sortMode, setSortMode] = useState("score_desc");
     const [searchQuery, setSearchQuery] = useState("");
+    const { tradingMode } = useTheme();
     
     // Consume Global Dashboard Context
     const {
@@ -469,7 +472,7 @@ export default function OptionsPage() {
     };
 
     // Composite Live Engine Scores
-    const compositeData = useOptionsComposite(chainData, spotPrice, selectedInstrument?.value, selectedExpiry, manualOverrides, historicalSnapshots);
+    const compositeData = useOptionsComposite(chainData, spotPrice, selectedInstrument?.value, selectedExpiry, manualOverrides, historicalSnapshots, tradingMode);
 
     // Higher-order composite score (mirrors TechnicalPage pattern)
     const {

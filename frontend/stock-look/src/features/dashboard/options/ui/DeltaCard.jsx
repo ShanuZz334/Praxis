@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
-export default function DeltaCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
+export default function DeltaCard({ cardId, liveData = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.delta.id);
     
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
@@ -11,8 +12,9 @@ export default function DeltaCard({ cardId, liveData = null, manualOverride, las
 
     const optionType = isLiveData ? liveData.optionType : 'Call';
     const moneyness = isLiveData ? liveData.moneyness : 'ATM';
-    const score = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
-    const bias = isLiveData ? liveData.bias : "Neutral";
+    const rawScore = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
+    const rawBias  = isLiveData ? liveData.bias  : 'Neutral';
+    const { score, bias } = { ...{ score: rawScore, bias: rawBias }, ...applyModeAdjustment({ score: rawScore, bias: rawBias }, 'delta', tradingMode) };
     const confidence = isLiveData ? liveData.confidence : "0%";
     const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Waiting for market data...");
 

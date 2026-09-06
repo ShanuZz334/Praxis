@@ -14,6 +14,9 @@
  * @rule5_compliance All business logic is isolated here so React and Node can share it natively.
  */
 
+import { TRADING_MODES } from '../../../config/tradingModes.js';
+import { getEventCategoryWeights, getEventHorizonWeights } from '../../../config/weights/eventsSectionWeights.js';
+
 // ============================================================================================
 // SECTION 1: UI Color Constants & Definitions
 // ============================================================================================
@@ -788,8 +791,12 @@ export function extractInstitutionalImpacts(events) {
     return { tailwinds, headwinds };
 }
 
-export function computePortfolioMetrics(events) {
+export function computePortfolioMetrics(events, tradingMode = TRADING_MODES.SWING) {
     if (!events || !Array.isArray(events)) return { totalWeight: 0, netMomentum: 0, eventCount: 0, activeSources: 0 };
+
+    // Resolve mode-aware weight multipliers (SWING = all 1.0, no behavior change)
+    const horizonWeights  = getEventHorizonWeights(tradingMode);
+    const categoryWeights = getEventCategoryWeights(tradingMode);
 
     let totalWeight = 0;
     let netMomentum = 0;
@@ -808,7 +815,12 @@ export function computePortfolioMetrics(events) {
         const decayFactor = computeTimeDecay(ev.created_at, ev.published_time, ev.ttl_hours);
         if (decayFactor === 0) return; // Fully expired event: skip
 
-        const impact = rawScore * decayFactor;
+        // Apply horizon multiplier — events tagged with a horizon that matches the active
+        // trading mode are amplified; mismatched horizons are dampened.
+        // SWING mode keeps all horizon multipliers at 1.0 (no change from baseline).
+        const horizonMult = horizonWeights[ev.horizon] ?? 1.0;
+
+        const impact = rawScore * decayFactor * horizonMult;
         effectiveScores.push(Math.abs(impact));
         totalWeight += Math.abs(impact);
         netMomentum += impact;
@@ -852,6 +864,15 @@ export function computePortfolioMetrics(events) {
     // ─────────────────────────────────────────────────────────────────────────
     // SECTION / CATEGORY SCORES — Institutional Grade
     // ─────────────────────────────────────────────────────────────────────────
+    // Apply category weight multipliers before sorting — this shifts which categories
+    // surface at the top based on the active trading mode.
+    // SWING mode keeps all multipliers at 1.0 so section order is unchanged.
+    Object.keys(catMomentum).forEach(cat => {
+        const catMult = categoryWeights[cat] ?? 1.0;
+        catMomentum[cat].momentum *= catMult;
+        catMomentum[cat].weight   *= catMult;
+    });
+
     const sortedCats = Object.keys(catMomentum).sort((a, b) => Math.abs(catMomentum[b].momentum) - Math.abs(catMomentum[a].momentum));
     const topCats = sortedCats.slice(0, 6); // Top 6 fits the GlobalHeader perfectly
 

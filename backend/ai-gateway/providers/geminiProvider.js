@@ -1,8 +1,8 @@
 import { providerCache } from '../cache/providerCache.js';
 
-export async function call({ model, messages, maxTokens, temperature, jsonMode }) {
-    const p = await providerCache.getProvider('gemini');
-    if (!p || !p.apiKey) throw new Error('Gemini provider is not configured.');
+export async function call({ model, messages, maxTokens, temperature, jsonMode, providerId = 'gemini' }) {
+    const p = await providerCache.getProvider(providerId);
+    if (!p || !p.apiKey) throw new Error(`${providerId} provider is not configured.`);
 
     const url = p.baseUrl || 'https://generativelanguage.googleapis.com/v1beta/openai';
     const endpoint = url.endsWith('/chat/completions') ? url : `${url}/chat/completions`;
@@ -13,6 +13,7 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode }
     const startTime = Date.now();
     const response = await fetch(endpoint, {
         method: 'POST',
+        signal: AbortSignal.timeout(30000), // 30s timeout
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${p.apiKey}` },
         body: JSON.stringify(payload)
     });
@@ -31,3 +32,4 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode }
         latencyMs: Date.now() - startTime
     };
 }
+

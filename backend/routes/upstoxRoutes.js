@@ -1,10 +1,10 @@
 import express from "express";
 import axios from "axios";
 import UpstoxAuth from "../models/UpstoxAuth.js";
-import MarketTick from "../models/MarketTick.js";
 import { getCache, setCache } from "../services/cacheService.js";
 import db from "../config/localDb.js";
-import { getUpstoxLiveToken, getUpstoxAuthForMode } from "../utils/upstoxAuthHelper.js";
+import { NIFTY_50_MAPPING } from "../utils/nifty50.js";
+import { getUpstoxLiveToken, getUpstoxAuthForMode, setExecutionMode, getExecutionMode } from "../utils/upstoxAuthHelper.js";
 
 const router = express.Router();
 
@@ -31,6 +31,7 @@ router.get("/login", async (req, res) => {
             });
             await authRecord.save();
             
+            setExecutionMode('sandbox'); // Track manual selection
             const frontendUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0] : "http://localhost:5173";
             return res.redirect(`${frontendUrl}/dashboard/admin?upstox_auth=success&mode=sandbox`);
         } catch (err) {
@@ -117,6 +118,8 @@ router.get("/callback", async (req, res) => {
         });
         await authRecord.save();
 
+        setExecutionMode(mode); // Track manual selection
+
         // If we just connected Live mode, instantly reconnect websockets
         if (mode === 'live') {
             try {
@@ -161,19 +164,14 @@ router.get("/status", async (req, res) => {
         const isSandboxValid = Boolean(sandboxAuth && sandboxAuth.accessToken);
 
         if (isLiveValid || isSandboxValid) {
-            let activeAuth;
-            if (isLiveValid && isSandboxValid) {
-                activeAuth = liveAuth.updatedAt > sandboxAuth.updatedAt ? liveAuth : sandboxAuth;
-            } else {
-                activeAuth = isLiveValid ? liveAuth : sandboxAuth;
-            }
-            
+            // The app's core mode is ALWAYS 'live'. Sandbox is only an alternative execution environment.
+            // We never automatically fallback the global activeAuth to sandbox, as that breaks market data feeds.
             return res.json({ 
-                connected: true, 
+                connected: true, // The platform has at least one valid connection to Upstox
                 liveConnected: isLiveValid,
                 sandboxConnected: isSandboxValid,
-                lastUpdated: activeAuth.updatedAt, 
-                mode: activeAuth.mode 
+                lastUpdated: liveAuth ? liveAuth.updatedAt : (sandboxAuth ? sandboxAuth.updatedAt : null),
+                mode: getExecutionMode() // Use the tracked execution mode
             });
         }
 
@@ -239,7 +237,7 @@ router.get("/market-quote", async (req, res) => {
             headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` }
         });
 
-        setCache(cacheKey, response.data?.data, 1); // 1 second TTL
+        setCache(cacheKey, response.data?.data, 5); // 5 second TTL — prevents duplicate burst calls
 
         // Asynchronously save to database
         if (response.data?.data) {
@@ -292,13 +290,25 @@ router.get("/market-quote", async (req, res) => {
                 console.error("Failed to seed SQLite with initial REST data:", sqliteErr.message);
             }
 
-            // Save historical tracking to MongoDB
-            MarketTick.insertMany(ticksToSave).catch(err => {
-                console.error("Failed to save market ticks to DB:", err.message);
-            });
+            // Market tick data is now fully persisted in SQLite (market_ticks + quotes tables above).
+            // MongoDB MarketTick collection is retired as of Phase 7 of the local-DB migration.
         }
 
         let responseData = response.data?.data || {};
+        
+        // Map Upstox alias symbols (e.g. NSE_EQ:RELIANCE) back to their subscribed ISIN keys
+        Object.entries(responseData).forEach(([key, quote]) => {
+            const normKey = key.replace(':', '|');
+            if (normKey.startsWith('NSE_EQ|')) {
+                const shortSymbol = normKey.split('|')[1];
+                if (shortSymbol && NIFTY_50_MAPPING && NIFTY_50_MAPPING[shortSymbol]) {
+                    responseData[NIFTY_50_MAPPING[shortSymbol]] = {
+                        ...quote,
+                        instrument_token: NIFTY_50_MAPPING[shortSymbol]
+                    };
+                }
+            }
+        });
 
         // SQLite Fallback for missing keys (e.g. market closed)
         try {
@@ -455,7 +465,7 @@ router.get("/option-chain", async (req, res) => {
         
         setCache(cacheKey, data, 300); // 5 minutes TTL
 
-        // --- SQLITE DB WRITE ---
+        // --- SQLITE DB WRITE (Raw JSON fallback) ---
         try {
             db.prepare(`
                 INSERT INTO options_data (instrument_key, raw_json, updated_at) 
@@ -467,6 +477,61 @@ router.get("/option-chain", async (req, res) => {
         } catch (dbErr) {
             console.error("Failed to save option chain to SQLite:", dbErr.message);
         }
+
+        // --- SQLITE DB WRITE (Column-level for institutional dashboard queryability) ---
+        try {
+            if (Array.isArray(data) && data.length > 0) {
+                const spot = data[0]?.underlying_spot_price || 0;
+                let totalCeOi = 0; let totalPeOi = 0;
+                let totalCeOiChange = 0; let totalPeOiChange = 0;
+                let totalCeVol = 0; let totalPeVol = 0;
+                let atmStrike = 0;
+                let minDiff = Infinity;
+
+                for (const strike of data) {
+                    if (strike.call_options?.market_data) {
+                        totalCeOi += (strike.call_options.market_data.oi || 0);
+                        totalCeOiChange += (strike.call_options.market_data.oi_change || 0);
+                        totalCeVol += (strike.call_options.market_data.volume || 0);
+                    }
+                    if (strike.put_options?.market_data) {
+                        totalPeOi += (strike.put_options.market_data.oi || 0);
+                        totalPeOiChange += (strike.put_options.market_data.oi_change || 0);
+                        totalPeVol += (strike.put_options.market_data.volume || 0);
+                    }
+                    if (spot > 0) {
+                        const diff = Math.abs(strike.strike_price - spot);
+                        if (diff < minDiff) {
+                            minDiff = diff;
+                            atmStrike = strike.strike_price;
+                        }
+                    }
+                }
+
+                const pcrOi = totalCeOi > 0 ? parseFloat((totalPeOi / totalCeOi).toFixed(4)) : null;
+                const pcrVol = totalCeVol > 0 ? parseFloat((totalPeVol / totalCeVol).toFixed(4)) : null;
+
+                db.prepare(`
+                    INSERT INTO options_cache (
+                        instrument_key, expiry, spot_price, total_call_oi, total_put_oi,
+                        oi_change_call, oi_change_put, pcr_oi, pcr_volume, atm_strike, chain_json, updated_at
+                    ) VALUES (
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP
+                    ) ON CONFLICT(instrument_key) DO UPDATE SET
+                        expiry=excluded.expiry, spot_price=excluded.spot_price,
+                        total_call_oi=excluded.total_call_oi, total_put_oi=excluded.total_put_oi,
+                        oi_change_call=excluded.oi_change_call, oi_change_put=excluded.oi_change_put,
+                        pcr_oi=excluded.pcr_oi, pcr_volume=excluded.pcr_volume, atm_strike=excluded.atm_strike,
+                        chain_json=excluded.chain_json, updated_at=CURRENT_TIMESTAMP
+                `).run(
+                    instrument_key, expiry_date, spot, totalCeOi, totalPeOi,
+                    totalCeOiChange, totalPeOiChange, pcrOi, pcrVol, atmStrike, JSON.stringify(data)
+                );
+            }
+        } catch (dbErr) {
+            console.error("Failed to save options_cache to SQLite:", dbErr.message);
+        }
+
         
         res.json({ status: "success", data, cached: false });
     } catch (error) {
@@ -537,6 +602,41 @@ router.get("/inst-flow", async (req, res) => {
 // @route   GET /api/v1/upstox/fundamentals
 // @desc    Fetch combined fundamental data (ratios, income, balance sheet, cash flow, holdings) using Upstox V2 API
 router.get("/fundamentals", getFundamentals);
+
+// @route   GET /api/v1/upstox/fundamentals/cache
+// @desc    Read last-known fundamentals from SQLite fundamentals_data table (instant, no API call)
+//          Used by frontend to restore data on page load — replaces praxis_fundamentals_cache_v6 localStorage
+router.get("/fundamentals/cache", (req, res) => {
+    try {
+        const { instrument_key } = req.query;
+        if (!instrument_key) return res.status(400).json({ error: "instrument_key is required" });
+
+        // Try fundamentals_data (raw JSON blob) first — most complete
+        const row = db.prepare(
+            "SELECT raw_json, updated_at FROM fundamentals_data WHERE instrument_key = ?"
+        ).get(instrument_key);
+
+        if (row && row.raw_json) {
+            const data = JSON.parse(row.raw_json);
+            return res.json({ status: "success", data, cached: true, updated_at: row.updated_at });
+        }
+
+        // If no raw JSON, try the column-level table
+        const colRow = db.prepare(
+            "SELECT * FROM fundamentals_cache WHERE instrument_key = ?"
+        ).get(instrument_key);
+
+        if (colRow) {
+            return res.json({ status: "success", data: colRow, cached: true, column_level: true, updated_at: colRow.updated_at });
+        }
+
+        // No cache at all — frontend should fetch fresh
+        return res.json({ status: "miss", data: null, cached: false });
+    } catch (err) {
+        console.error("Fundamentals cache read error:", err.message);
+        res.status(500).json({ error: "Failed to read fundamentals cache" });
+    }
+});
 
 // @route   GET /api/v1/upstox/technicals
 // @desc    Fetch and calculate technical indicators from Upstox historical OHLC

@@ -181,8 +181,23 @@ export const syncCandlesIfStale = async (instrumentKey, timeframe = 'day') => {
         if (lastDateStr < todayStr || (timeframe !== 'day' && (nowTs - lastDateObj.getTime()) > 60000)) {
             // Need to update. If it's intraday, any gap > 1 minute might mean we need to fetch today's data again.
             if (lastDateStr < todayStr) {
-                console.log(`[Historical Sync] Data stale for ${instrumentKey} (${timeframe}). Fetching historical: ${lastDateStr} to ${todayStr}`);
-                await fetchHistoricalCandles(instrumentKey, timeframe, todayStr, lastDateStr, false);
+                // Cap from_date to Upstox's intraday data retention window to prevent UDAPI1148 errors.
+                // Upstox retains: ~30 days for minute candles, ~60 days for hourly candles.
+                let effectiveFromDate = lastDateStr;
+                const isMinute = timeframe.includes('minute');
+                const isHour   = timeframe.includes('hour');
+                if (isMinute || isHour) {
+                    const maxDaysBack = isMinute ? 28 : 58; // stay safely inside the retention window
+                    const retentionCutoff = new Date();
+                    retentionCutoff.setDate(retentionCutoff.getDate() - maxDaysBack);
+                    const cutoffStr = retentionCutoff.toISOString().split('T')[0];
+                    if (lastDateStr < cutoffStr) {
+                        console.warn(`[Historical Sync] ${instrumentKey} (${timeframe}): lastDate ${lastDateStr} is outside Upstox retention (${maxDaysBack}d). Capping from_date to ${cutoffStr}.`);
+                        effectiveFromDate = cutoffStr;
+                    }
+                }
+                console.log(`[Historical Sync] Data stale for ${instrumentKey} (${timeframe}). Fetching historical: ${effectiveFromDate} to ${todayStr}`);
+                await fetchHistoricalCandles(instrumentKey, timeframe, todayStr, effectiveFromDate, false);
             }
             if (timeframe !== 'day') {
                 console.log(`[Historical Sync] Fetching intraday for ${instrumentKey} (${timeframe})`);

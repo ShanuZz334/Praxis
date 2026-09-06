@@ -9,8 +9,8 @@ export const FUNDAMENTAL_SECTIONS = [
     { id: 'Macro',          label: 'Macro',             desc: 'Economic Indicators',    weight: 0.05 },
     { id: 'Liquidity',      label: 'Liquidity',         desc: 'Flows & Market Depth',   weight: 0.07 },
     { id: 'Sector',         label: 'Sector',            desc: 'Group Performance',      weight: 0.13 },
-    { id: 'Corporate',      label: 'Corporate',         desc: 'Balance Sheet Health',   weight: 0.17 },
-    { id: 'Global',         label: 'Global',            desc: 'Systemic Stress',        weight: 0.10 },
+    { id: 'Corporate',      label: 'Corporate',         desc: 'Profitability & Returns',weight: 0.17 },
+    { id: 'Balance Sheet',  label: 'Balance Sheet',     desc: 'Debt, Cash Flow & Solvency', weight: 0.10 },
     { id: 'Ownership',      label: 'Ownership & Flow',  desc: 'Shareholding Quality',   weight: 0.10 },
     { id: 'Peer Comparison', label: 'Peer Comparison', desc: 'Relative Valuation & Peer Analysis', weight: 0.0 },
 ];

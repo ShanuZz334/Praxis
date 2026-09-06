@@ -14,9 +14,17 @@ import {
     scoreDebtToEquity,
     scoreCurrentRatio,
     scoreInterestCoverage,
-    scoreDividendYield
+    scoreDividendYield,
+    scoreSystemLiquidity
 } from './scoringEngine';
 
+import {
+    scoreNiftyPE,
+    scoreNiftyPB,
+    scoreMarketCapGDP,
+    scoreVIX,
+    scoreADRatio
+} from './scoringEngine';
 import { CARD_REGISTRY } from '../../../../shared/config/cardRegistry';
 
 function parseHeadlessFundamentals(rawFundamentals, manualOverrides = {}) {
@@ -127,6 +135,42 @@ function parseHeadlessFundamentals(rawFundamentals, manualOverrides = {}) {
                 if (r.value !== null) return { success: true, value: r.value, score: scoreDividendYield(r.value, null).score };
                 break;
             }
+            case 'nifty_pe': {
+                if (useOverride) return { success: true, score: scoreNiftyPE(parseFloat(overrideVal)).score, value: overrideVal };
+                const r = getRatio('p/e', 'pe ratio');
+                if (r.value !== null) return { success: true, score: scoreNiftyPE(r.value).score, value: r.value };
+                break;
+            }
+            case 'nifty_pb': {
+                if (useOverride) return { success: true, score: scoreNiftyPB(parseFloat(overrideVal)).score, value: overrideVal };
+                const r = getRatio('p/b', 'pb ratio');
+                if (r.value !== null) return { success: true, score: scoreNiftyPB(r.value).score, value: r.value };
+                break;
+            }
+            case 'mcap_gdp': {
+                if (useOverride) return { success: true, score: scoreMarketCapGDP(parseFloat(overrideVal)).score, value: overrideVal };
+                break;
+            }
+            case 'india_vix': {
+                if (useOverride) return { success: true, score: scoreVIX(parseFloat(overrideVal)).score, value: overrideVal };
+                if (rawFundamentals.india_vix != null) return { success: true, score: scoreVIX(rawFundamentals.india_vix).score, value: rawFundamentals.india_vix };
+                break;
+            }
+            case 'advance_decline': {
+                if (useOverride) return { success: true, score: scoreADRatio(parseFloat(overrideVal)).score, value: overrideVal };
+                if (rawFundamentals.advance_decline?.advances != null && rawFundamentals.advance_decline?.declines != null) {
+                    const ratio = rawFundamentals.advance_decline.declines > 0 
+                        ? rawFundamentals.advance_decline.advances / rawFundamentals.advance_decline.declines 
+                        : 1;
+                    return { success: true, score: scoreADRatio(ratio).score, value: ratio };
+                }
+                break;
+            }
+            case 'system_liquidity': {
+                if (useOverride) return { success: true, score: scoreSystemLiquidity(parseFloat(overrideVal)).score, value: overrideVal };
+                if (rawFundamentals.global_liq != null) return { success: true, score: scoreSystemLiquidity(rawFundamentals.global_liq).score, value: rawFundamentals.global_liq };
+                break;
+            }
         }
         return { success: false, reason: "Data missing in Upstox response or calculation failed" };
     };
@@ -217,6 +261,28 @@ export class FundamentalEngine {
                 this.parse(this.lastRawData, this.manualOverrides);
                 this.register();
                 this.publish();
+
+                // Persist composite to header_data (fire & forget)
+                const isIndex = this.instrument?.startsWith?.('NSE_INDEX');
+                const { computeCompanyComposite, computeIndexComposite } = await import('./FundamentalCompositeEngine');
+                const composite = isIndex
+                    ? computeIndexComposite(this.cache.scores)
+                    : computeCompanyComposite(this.cache.scores);
+                if (composite?.compositeScore != null) {
+                    // L1: Write fresh score to localStorage so Master Dashboard reads it instantly
+                    const { saveIntelScore } = await import('../../../../shared/utils/intelCache');
+                    saveIntelScore('fund', this.instrument, composite.compositeScore, composite.regime?.label, 'live');
+
+                    // L2: Persist to SQLite via backend
+                    axiosInstance.post('/api/v1/snapshots/header', {
+                        instrument_key: this.instrument,
+                        category: 'fundamental',
+                        composite_score: composite.compositeScore,
+                        regime_json: composite.regime,
+                        counts_json: this.cache.scores,
+                        tree_payload_json: composite.nestedTreePayload
+                    }).catch(() => {});
+                }
             }
         } catch (e) {
             console.error("FundamentalEngine poll failed", e);
@@ -270,3 +336,4 @@ export class FundamentalEngine {
         return this.cache;
     }
 }
+

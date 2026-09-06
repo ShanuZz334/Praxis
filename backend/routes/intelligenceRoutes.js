@@ -1,6 +1,6 @@
 import express from "express";
 import { getLatestAiPageSnapshot, getAiPageHistory, upsertAiCardStore, insertCardScoreHistory } from "../config/localDb.js";
-import InstrumentOverride from "../models/InstrumentOverride.js";
+import db from "../config/localDb.js";
 import { protect } from "../middleware/authMiddleware.js";
 import aiGateway from "../ai-gateway/index.js";
 import AiRouting from "../models/AiRouting.js";
@@ -76,7 +76,7 @@ router.get("/latest", protect, async (req, res) => {
  * @desc    Stream finished AI Snapshots from Frontend natively into SQLite
  * @access  Private
  */
-router.post("/sync", protect, async (req, res) => {
+router.post("/sync", async (req, res) => {
     try {
         const { instrument_key, page_name, payload } = req.body;
         
@@ -148,6 +148,43 @@ router.post("/sync", protect, async (req, res) => {
             }
         }
 
+        // 4. Also write to header_data so Master Dashboard's GET /snapshots/header picks up
+        //    the correct page-computed scores (e.g. FUND=52, OPT=51) not the cron's simplified scores.
+        if (typeof payload.compositeScore === 'number' && payload.compositeScore > 0) {
+            const PAGE_TO_CATEGORY = {
+                'Fundamentals': 'fundamental',
+                'Technical':    'technical',
+                'Options':      'options',
+                'Foreign':      'global',
+                'Global':       'global',   // ForeignPage passes pageName='Global'
+                'Events':       'events',
+            };
+            const category = PAGE_TO_CATEGORY[page_name];
+            if (category) {
+                // Normalize instrument_key: global/events always stored under 'GLOBAL' key
+                // (ForeignPage uses 'GLOBAL_MACRO', master reads 'GLOBAL' via snapshotRoutes)
+                const hdKey = (category === 'global' || category === 'events') ? 'GLOBAL' : instrument_key;
+                try {
+                    db.prepare(`
+                        INSERT INTO header_data (instrument_key, category, composite_score, regime_json, updated_at)
+                        VALUES (?, ?, ?, ?, ?)
+                        ON CONFLICT(instrument_key, category) DO UPDATE SET
+                            composite_score = excluded.composite_score,
+                            regime_json     = COALESCE(excluded.regime_json, header_data.regime_json),
+                            updated_at      = excluded.updated_at
+                    `).run(
+                        hdKey,
+                        category,
+                        payload.compositeScore,
+                        payload.regime ? JSON.stringify(payload.regime) : null,
+                        nowIso
+                    );
+                } catch (hdErr) {
+                    console.error(`⚠️ header_data write failed for ${page_name}:`, hdErr.message);
+                }
+            }
+        }
+
         res.json({ status: "success", message: "Snapshot synced to SQLite successfully" });
     } catch (error) {
         console.error("❌ Error syncing intelligence:", error.message);
@@ -155,41 +192,59 @@ router.post("/sync", protect, async (req, res) => {
     }
 });
 
+
 /**
  * @route   GET /api/v1/intelligence/overrides
- * @desc    Get manual overrides for an instrument
+ * @desc    Get manual overrides for an instrument (now reads from SQLite user_overrides)
  * @access  Private
  */
 router.get("/overrides", protect, async (req, res) => {
     try {
-        const { instrument_key } = req.query;
+        const { instrument_key, module_key = 'fundamentals' } = req.query;
         if (!instrument_key) return res.status(400).json({ error: "instrument_key is required" });
 
-        const overrideDoc = await InstrumentOverride.findOne({ instrumentKey: instrument_key });
-        res.json({ status: "success", data: overrideDoc ? overrideDoc.overrides : {} });
+        const rows = db.prepare(`
+            SELECT field_key, value FROM user_overrides
+            WHERE module_key = ? AND instrument_key = ?
+        `).all(module_key, instrument_key);
+
+        const overrides = {};
+        for (const row of rows) overrides[row.field_key] = row.value;
+
+        res.json({ status: "success", data: overrides });
     } catch (error) {
         console.error("❌ Error fetching overrides:", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 });
 
+
 /**
  * @route   POST /api/v1/intelligence/overrides
- * @desc    Save manual overrides for an instrument
+ * @desc    Save manual overrides for an instrument (now stored in SQLite user_overrides)
  * @access  Private
  */
 router.post("/overrides", protect, async (req, res) => {
     try {
-        const { instrument_key, overrides } = req.body;
-        if (!instrument_key) return res.status(400).json({ error: "instrument_key is required" });
+        const { instrument_key, overrides, module_key = 'fundamentals' } = req.body;
+        if (!instrument_key || !overrides) return res.status(400).json({ error: "instrument_key and overrides are required" });
 
-        const overrideDoc = await InstrumentOverride.findOneAndUpdate(
-            { instrumentKey: instrument_key },
-            { $set: { overrides } },
-            { new: true, upsert: true }
-        );
+        // Batch-write each override field to SQLite user_overrides table
+        const upsert = db.prepare(`
+            INSERT INTO user_overrides (module_key, instrument_key, field_key, value, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(module_key, instrument_key, field_key) DO UPDATE SET
+                value = excluded.value,
+                updated_at = CURRENT_TIMESTAMP
+        `);
+        const batchWrite = db.transaction((entries) => {
+            for (const [fieldKey, value] of entries) {
+                upsert.run(module_key, instrument_key, fieldKey, String(value ?? ''));
+            }
+        });
+        batchWrite(Object.entries(overrides));
 
-        res.json({ status: "success", data: overrideDoc.overrides });
+        res.json({ status: "success", data: overrides });
     } catch (error) {
         console.error("❌ Error saving overrides:", error.message);
         res.status(500).json({ error: "Internal server error" });

@@ -1,23 +1,12 @@
 import express from "express";
 import axios from "axios";
-import UpstoxAuth from "../models/UpstoxAuth.js";
-import { getUpstoxAuthForMode } from "../utils/upstoxAuthHelper.js";
+import { getUpstoxAuthForMode, getExecutionMode } from "../utils/upstoxAuthHelper.js";
 
 const router = express.Router();
 
 /** Helper — determines active mode */
 const getActiveUpstoxAuth = async () => {
-    const liveAuth = await UpstoxAuth.findOne({ mode: 'live' }).sort({ createdAt: -1 });
-    const sandboxAuth = await UpstoxAuth.findOne({ mode: 'sandbox' }).sort({ createdAt: -1 });
-    
-    let activeAuth = liveAuth;
-    if (liveAuth && sandboxAuth) {
-        activeAuth = liveAuth.updatedAt > sandboxAuth.updatedAt ? liveAuth : sandboxAuth;
-    } else if (sandboxAuth && !liveAuth) {
-        activeAuth = sandboxAuth;
-    }
-    
-    return activeAuth;
+    return await getUpstoxAuthForMode(getExecutionMode());
 };
 
 const getUpstoxBaseUrl = (mode) => {

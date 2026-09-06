@@ -107,55 +107,31 @@ export const getFundamentals = async (req, res) => {
             }
 
             if (tradingSymbol) {
-                let analystConsensus = null;
-                try {
-                    analystConsensus = await yahooFinanceService.getAnalystConsensus(tradingSymbol);
-                } catch (e) {
-                    console.error("Failed to fetch Analyst Consensus:", e.message);
-                }
+                // Fetch Yahoo External Metrics Live in PARALLEL to prevent 120s ECONNABORTED timeouts
+                const [
+                    analystRes,
+                    divRes,
+                    capRes,
+                    bookRes,
+                    cccRes,
+                    covRes
+                ] = await Promise.allSettled([
+                    yahooFinanceService.getAnalystConsensus(tradingSymbol),
+                    yahooFinanceService.getDividendYield(tradingSymbol),
+                    yahooFinanceService.getMarketCap(tradingSymbol),
+                    yahooFinanceService.getBookValue(tradingSymbol),
+                    yahooFinanceService.getCashConversionCycle(tradingSymbol),
+                    yahooFinanceService.getInterestCoverage(tradingSymbol)
+                ]);
 
-
-                let dividendYield = null;
-                try {
-                    dividendYield = await yahooFinanceService.getDividendYield(tradingSymbol);
-                } catch (e) {
-                    console.error("Failed to fetch Dividend Yield live:", e.message);
-                }
+                payload.analystConsensus = analystRes.status === 'fulfilled' ? analystRes.value : null;
+                payload.dividendYield = divRes.status === 'fulfilled' ? divRes.value : null;
+                payload.marketCap = capRes.status === 'fulfilled' ? capRes.value : null;
+                payload.bookValue = bookRes.status === 'fulfilled' ? bookRes.value : null;
+                payload.cashConversionCycle = cccRes.status === 'fulfilled' ? cccRes.value : null;
+                payload.interestCoverage = covRes.status === 'fulfilled' ? covRes.value : null;
                 
-                let marketCap = null;
-                try {
-                    marketCap = await yahooFinanceService.getMarketCap(tradingSymbol);
-                } catch (e) {
-                    console.error("Failed to fetch Market Cap live:", e.message);
-                }
-
-                let bookValue = null;
-                try {
-                    bookValue = await yahooFinanceService.getBookValue(tradingSymbol);
-                } catch (e) {
-                    console.error("Failed to fetch Book Value live:", e.message);
-                }
-
-                let ccc = null;
-                try {
-                    ccc = await yahooFinanceService.getCashConversionCycle(tradingSymbol);
-                } catch (e) {
-                    console.error("Failed to fetch CCC live:", e.message);
-                }
-
-                let interestCoverage = null;
-                try {
-                    interestCoverage = await yahooFinanceService.getInterestCoverage(tradingSymbol);
-                } catch (e) {
-                    console.error("Failed to fetch Interest Coverage live:", e.message);
-                }
-
-                payload.analystConsensus = analystConsensus;
-                payload.dividendYield = dividendYield;
-                payload.marketCap = marketCap;
-                payload.bookValue = bookValue;
-                payload.cashConversionCycle = ccc;
-                payload.interestCoverage = interestCoverage;
+                if (analystRes.status === 'rejected') console.error("Failed to fetch Analyst Consensus:", analystRes.reason?.message);
             }
 
             // --- FETCH MACRO EXTERNAL METRICS LIVE ---
@@ -234,6 +210,93 @@ export const getFundamentals = async (req, res) => {
                 `).run(instrumentKey, JSON.stringify(payload));
             } catch (dbErr) {
                 console.error("Failed to save fundamental data to SQLite:", dbErr.message);
+            }
+
+            // --- SQLITE COLUMN-LEVEL WRITE (fundamentals_cache) ---
+            // Extract well-known scalar fields from payload for fast column queries
+            try {
+                const ratios = Array.isArray(payload.ratios) ? payload.ratios : [];
+                const getR = (name) => { const r = ratios.find(r => r.name?.toLowerCase().replace(/[^a-z0-9]/g,'').includes(name)); return r ? parseFloat(r.company_value) || null : null; };
+
+                // Sanitizer: coerce any object/array/NaN to null so better-sqlite3
+                // never sees a non-primitive in a positional ? parameter.
+                const toNum = (v) => {
+                    if (v === null || v === undefined) return null;
+                    if (typeof v === 'object') return null;
+                    const n = parseFloat(v);
+                    return isNaN(n) ? null : n;
+                };
+                const toStr = (v) => (v === null || v === undefined || typeof v === 'object') ? null : String(v);
+
+                const promoterHolding = (() => {
+                    const h = Array.isArray(payload.holdings) ? payload.holdings : [];
+                    const p = h.find(x => x.category?.toLowerCase().includes('promot'));
+                    return p ? toNum(p.holding_percentage) : null;
+                })();
+
+                localDb.prepare(`
+                    INSERT INTO fundamentals_cache (
+                        instrument_key,
+                        pe_ratio, forward_pe, pb_ratio, ev_ebitda, earnings_yield, dividend_yield,
+                        roe, roce, roa,
+                        debt_to_equity, current_ratio, interest_coverage, free_cash_flow, cash_conversion,
+                        promoter_holding,
+                        gdp_growth, cpi, repo_rate, fiscal_deficit,
+                        fii_flow, dii_flow, fii_trend,
+                        india_vix, crude, global_liq,
+                        analyst_consensus,
+                        yahoo_raw_json,
+                        updated_at
+                    ) VALUES (
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP
+                    )
+                    ON CONFLICT(instrument_key) DO UPDATE SET
+                        pe_ratio=excluded.pe_ratio, forward_pe=excluded.forward_pe,
+                        pb_ratio=excluded.pb_ratio, ev_ebitda=excluded.ev_ebitda,
+                        earnings_yield=excluded.earnings_yield, dividend_yield=excluded.dividend_yield,
+                        roe=excluded.roe, roce=excluded.roce, roa=excluded.roa,
+                        debt_to_equity=excluded.debt_to_equity, current_ratio=excluded.current_ratio,
+                        interest_coverage=excluded.interest_coverage, free_cash_flow=excluded.free_cash_flow,
+                        cash_conversion=excluded.cash_conversion, promoter_holding=excluded.promoter_holding,
+                        gdp_growth=excluded.gdp_growth, cpi=excluded.cpi, repo_rate=excluded.repo_rate,
+                        fiscal_deficit=excluded.fiscal_deficit,
+                        fii_flow=excluded.fii_flow, dii_flow=excluded.dii_flow, fii_trend=excluded.fii_trend,
+                        india_vix=excluded.india_vix, crude=excluded.crude, global_liq=excluded.global_liq,
+                        analyst_consensus=excluded.analyst_consensus,
+                        yahoo_raw_json=excluded.yahoo_raw_json,
+                        updated_at=CURRENT_TIMESTAMP
+                `).run(
+                    instrumentKey,
+                    toNum(getR('pe') ?? getR('priceearning')),
+                    toNum(getR('forwardpe') ?? getR('forward')),
+                    toNum(getR('pb') ?? getR('pricebook')),
+                    toNum(getR('evebitda')),
+                    toNum(getR('earningsyield')),
+                    toNum(payload.dividendYield),
+                    toNum(getR('roe') ?? getR('returnonequity')),
+                    toNum(getR('roce') ?? getR('returncapital')),
+                    toNum(getR('roa') ?? getR('returnasset')),
+                    toNum(getR('debtequity') ?? getR('debt')),
+                    toNum(getR('currentratio')),
+                    toNum(payload.interestCoverage),
+                    null, // free_cash_flow — extracted separately if needed
+                    toNum(payload.cashConversionCycle),
+                    promoterHolding,
+                    toNum(payload.gdpGrowth),
+                    toNum(payload.cpiInflation),
+                    toNum(payload.repoRate),
+                    toNum(payload.fiscalDeficit),
+                    toNum(payload.liquidity?.fii_net),
+                    toNum(payload.liquidity?.dii_net),
+                    toStr(payload.fiiTrend),
+                    toNum(payload.india_vix),
+                    null, // crude — fetched via globalData
+                    toNum(payload.global_liq),
+                    toStr(payload.analystConsensus),
+                    payload.yahoo_raw ? JSON.stringify(payload.yahoo_raw) : null
+                );
+            } catch (colErr) {
+                console.warn("Failed to write to fundamentals_cache:", colErr.message);
             }
         }
 

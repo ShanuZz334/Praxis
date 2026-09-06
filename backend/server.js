@@ -35,12 +35,15 @@ import catalystRoutes from "./routes/catalystRoutes.js";
 import technicalRoutes from "./routes/technicalRoutes.js";
 import aiSettingsRoutes from "./routes/aiSettingsRoutes.js";
 import aiPromptsRoutes from "./routes/aiPromptsRoutes.js";
+import futureVisionRoutes from "./routes/futureVisionRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
 import dataRoutes from "./routes/dataRoutes.js";
 import eventsRoutes from "./routes/eventsRoutes.js";
 import journalRoutes from "./routes/journalRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import portfolioRoutes from "./routes/portfolioRoutes.js";
+import overridesRoutes from "./routes/overridesRoutes.js";
+import preferencesRoutes from "./routes/preferencesRoutes.js";
 
 // =============================
 // Express App Setup
@@ -100,6 +103,7 @@ app.use("/api/v1/intelligence", intelligenceRoutes);
 app.use("/api/v1/catalysts", catalystRoutes);
 app.use("/api/v1/ai-settings", aiSettingsRoutes);
 app.use("/api/v1/ai-prompts", aiPromptsRoutes);
+app.use("/api/v1/future-vision", futureVisionRoutes);
 app.use("/api/v1/health", healthRoutes);
 app.use("/api/v1/data", dataRoutes);
 app.use("/api/v1/events", eventsRoutes);
@@ -107,6 +111,8 @@ app.use("/api/v1/technical", technicalRoutes);
 app.use("/api/v1/journal", journalRoutes);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/portfolio", portfolioRoutes);
+app.use("/api/v1/overrides", overridesRoutes);
+app.use("/api/v1/preferences", preferencesRoutes);
 
 app.use("/api/flow", flowRoutes);
 

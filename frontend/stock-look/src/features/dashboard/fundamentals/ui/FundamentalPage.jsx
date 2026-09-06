@@ -72,7 +72,7 @@ const DEFAULT_OVERRIDES = {
     // Corporate Health
     roe: null, roce: null, roa: null, net_margin: null, operating_margin: null,
     inventory_days: null, receivable_days: null, payable_days: null,
-    // Balance Sheet (Global)
+    // Balance Sheet
     debt_to_equity: null, interest_coverage: null, free_cash_flow: null, current_ratio: null,
 
     // ─── INDEX OVERRIDES ───
@@ -165,11 +165,11 @@ export default function FundamentalPage() {
     { id: "net_margin", category: "Corporate" },
     { id: "operating_margin", category: "Corporate" },
     { id: "cash_conversion", category: "Corporate" },
-    // Balance Sheet (Global map)
-    { id: "debt_to_equity", category: "Global" },
-    { id: "interest_coverage", category: "Global" },
-    { id: "free_cash_flow", category: "Global" },
-    { id: "current_ratio", category: "Global" },
+    // Balance Sheet
+    { id: "debt_to_equity", category: "Balance Sheet" },
+    { id: "interest_coverage", category: "Balance Sheet" },
+    { id: "free_cash_flow", category: "Balance Sheet" },
+    { id: "current_ratio", category: "Balance Sheet" },
     // Ownership
     { id: "promoter_holding", category: "Ownership" },
     { id: "smart_money_flow", category: "Ownership" },

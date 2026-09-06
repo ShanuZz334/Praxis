@@ -2,10 +2,11 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreMACDCard } from '../engine/TechnicalCompositeEngine';
 
-export default function MACDCard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings }) {
+export default function MACDCard({ cardId, data = null, lastUpdated, tradingMode = 'swing', indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.macd.id);
     
     const settingsConfig = [
@@ -17,7 +18,7 @@ export default function MACDCard({ cardId, data = null, lastUpdated, indicatorPa
     // Resolve current value
     const currentValueObj = data?.macd ?? null;
 
-    const { score, bias, confidence, aiInsight } = scoreMACDCard(currentValueObj);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreMACDCard(currentValueObj), 'macd', tradingMode);
 
     const histValue = currentValueObj?.histogram !== undefined && currentValueObj.histogram !== null ? parseFloat(currentValueObj.histogram).toFixed(2) : '--';
     const macdValue = currentValueObj?.MACD !== undefined && currentValueObj.MACD !== null ? parseFloat(currentValueObj.MACD).toFixed(2) : '--';

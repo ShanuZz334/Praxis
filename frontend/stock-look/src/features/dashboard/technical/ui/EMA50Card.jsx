@@ -2,17 +2,18 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreEMA50Card } from '../engine/TechnicalCompositeEngine';
 
-export default function EMA50Card({ cardId, data = null, lastUpdated }) {
+export default function EMA50Card({ cardId, data = null, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.ema_50.id);
     
     // Resolve current value
     const currentValue = data?.ema_50 ?? null;
     const currentPrice = data?.current_price ?? null;
 
-    const { score, bias, confidence, aiInsight } = scoreEMA50Card(currentValue, currentPrice);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreEMA50Card(currentValue, currentPrice), 'ema_50', tradingMode);
 
     const displayValue = currentValue !== null && !isNaN(currentValue) ? "₹" + parseFloat(currentValue).toFixed(2) : '--';
     

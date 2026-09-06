@@ -35,7 +35,7 @@ import logo2Bgless from "@/assets/icons/praxis logo 2 bgless.png"; // dark mode 
 import praxisBgless1 from "@/assets/icons/praxis bgless 1.png"; // light mode Praxis text (black)
 import praxisBgless2 from "@/assets/icons/praxis bgless 2.png"; // dark mode Praxis text (blue)
 import ThemeToggle from "@/shared/components/ui/ThemeToggle";
-import { Database, AlertTriangle, Headset } from 'lucide-react';
+import { Unplug, Headset } from 'lucide-react';
 import { upstoxService } from "@/shared/services/upstoxService";
 import { useVoice } from "@/shared/context/VoiceContext";
 import OrderTicket from "@/features/trading/ui/OrderTicket";
@@ -53,7 +53,11 @@ const Navbar = ({ onToggleSidebar }) => {
     let isMounted = true;
     const checkUpstox = async () => {
       const status = await upstoxService.checkStatus();
-      if (isMounted) setUpstoxConnected(status.connected);
+      if (isMounted) {
+          const currentMode = status.mode || 'live';
+          const isConnected = currentMode === 'live' ? status.liveConnected : status.sandboxConnected;
+          setUpstoxConnected(isConnected);
+      }
     };
     checkUpstox();
     const interval = setInterval(checkUpstox, 300000); // Check every 5 minutes
@@ -215,22 +219,21 @@ const Navbar = ({ onToggleSidebar }) => {
           className="h-16 object-contain scale-[1.3] cursor-pointer"
           onClick={() => navigate('/dashboard/home')}
         />
-        {!upstoxConnected && (
-            <button 
-                onClick={() => navigate('/dashboard/admin')}
-                className="absolute -right-10 text-rose-500 hover:text-rose-400 transition-colors flex items-center cursor-pointer"
-                title="Upstox API Disconnected. Go to Data Center to re-authenticate."
-            >
-                <div className="relative">
-                    <Database size={16} className="animate-pulse" />
-                    <AlertTriangle size={8} className="absolute -top-1 -right-1 text-rose-500 fill-rose-500/20" />
-                </div>
-            </button>
-        )}
       </div>
 
       {/* RIGHT */}
       <div className="ml-auto flex items-center gap-6 pr-5">
+
+        {/* API Status Indicator */}
+        {!upstoxConnected && (
+            <button 
+                onClick={() => navigate('/dashboard/admin')}
+                className="text-rose-500 hover:text-rose-400 transition-colors flex items-center justify-center cursor-pointer p-1.5 rounded-md hover:bg-rose-500/10"
+                title="Upstox API Disconnected. Go to Data Center to re-authenticate."
+            >
+                <Unplug size={20} className="animate-pulse" />
+            </button>
+        )}
 
         {/* NSE */}
         <button

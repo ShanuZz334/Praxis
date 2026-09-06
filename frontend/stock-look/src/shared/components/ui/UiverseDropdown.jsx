@@ -36,7 +36,8 @@ export default function UiverseDropdown({
 
     const filteredOptions = options.filter(opt => 
         (opt.label || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
-        (opt.value || "").toLowerCase().includes(searchTerm.toLowerCase())
+        (opt.value || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (opt.name || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -68,15 +69,20 @@ export default function UiverseDropdown({
                 <div className={`absolute z-50 ${matchWidth ? 'w-full' : (alignRight ? 'right-0' : 'w-full')} ${dropup ? 'bottom-full mb-1.5' : 'mt-1.5'} bg-background-tooltip border border-border-default rounded-lg shadow-xl overflow-hidden animate-in fade-in ${dropup ? 'slide-in-from-bottom-2' : 'slide-in-from-top-2'} duration-200 ${matchWidth ? 'min-w-full' : 'min-w-[200px]'}`}>
                     {!hideSearch && (
                         <div className="p-2 border-b border-border-default/50 sticky top-0 bg-background-tooltip z-10">
-                            <input
-                                type="text"
-                                className="w-full bg-background-surface/50 border border-border-default/50 rounded-md px-2.5 py-1 text-[10px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-blue-500/50"
-                                placeholder="Search..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                onClick={(e) => e.stopPropagation()}
-                                autoFocus
-                            />
+                            <div className="relative flex items-center">
+                                <input
+                                    type="text"
+                                    className="w-full bg-background-surface/50 border border-border-default/50 rounded-md pl-2.5 pr-10 py-1 text-[10px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-blue-500/50"
+                                    placeholder="Search..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    autoFocus
+                                />
+                                <div className="absolute right-2 text-[9px] text-text-tertiary font-medium">
+                                    {filteredOptions.length}
+                                </div>
+                            </div>
                         </div>
                     )}
                     <div className="max-h-60 overflow-y-auto no-scrollbar py-1">

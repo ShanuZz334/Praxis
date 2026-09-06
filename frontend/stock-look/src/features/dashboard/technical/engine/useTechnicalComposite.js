@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useRef, useState } from 'react';
+import { useTheme } from '@/shared/context/ThemeContext';
 import { 
     computeTechnicalComposite, 
     generateAiInsightTechnical, 
@@ -6,8 +7,12 @@ import {
     ID_TO_TITLE 
 } from './TechnicalCompositeEngine';
 import { getIndicatorColor } from '@/shared/config/scoreColors';
+import axiosInstance from '@/shared/utils/axiosInstance';
 
 export function useTechnicalComposite(isIndex = false, instrumentKey = null) {
+    const { tradingMode } = useTheme();
+    const tradingModeRef = useRef(tradingMode);
+
     const scoresRef = useRef({});
     const [compositeData, setCompositeData] = useState({
         compositeScore: 50,
@@ -22,8 +27,23 @@ export function useTechnicalComposite(isIndex = false, instrumentKey = null) {
     const scheduleRecompute = () => {
         if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = setTimeout(() => {
-            const engineResult = computeTechnicalComposite(scoresRef.current, isIndex);
+            tradingModeRef.current = tradingMode;
+            const engineResult = computeTechnicalComposite(scoresRef.current, isIndex, tradingMode);
             setCompositeData(engineResult);
+
+            // Persist to backend DB (fire & forget) — mirrors useFundamentalComposite
+            if (instrumentKey && engineResult.compositeScore != null) {
+                axiosInstance.post('/api/v1/snapshots/header', {
+                    instrument_key: instrumentKey,
+                    category: 'technical',
+                    composite_score: engineResult.compositeScore,
+                    regime_json: engineResult.regime,
+                    tailwinds_json: engineResult.tailwinds,
+                    risks_json: engineResult.risks,
+                    counts_json: engineResult.cardScores,
+                    tree_payload_json: engineResult.nestedTreePayload
+                }).catch(() => {});
+            }
         }, 50);
     };
 
@@ -54,8 +74,12 @@ export function useTechnicalComposite(isIndex = false, instrumentKey = null) {
         };
 
         window.addEventListener('ai-snapshot', handleSnapshot);
+        
+        // Recompute immediately when tradingMode changes
+        scheduleRecompute();
+
         return () => window.removeEventListener('ai-snapshot', handleSnapshot);
-    }, [isIndex, instrumentKey]);
+    }, [isIndex, instrumentKey, tradingMode]);
 
     return useMemo(() => {
         const engineResult = compositeData;
@@ -88,7 +112,8 @@ export function useTechnicalComposite(isIndex = false, instrumentKey = null) {
         const aiInsight = generateAiInsightTechnical(
             engineResult.compositeScore,
             engineResult.rawSections,
-            isIndex
+            isIndex,
+            tradingMode
         );
 
         const result = {
@@ -100,5 +125,5 @@ export function useTechnicalComposite(isIndex = false, instrumentKey = null) {
         };
 
         return result;
-    }, [compositeData, isIndex]);
+    }, [compositeData, isIndex, tradingMode]);
 }

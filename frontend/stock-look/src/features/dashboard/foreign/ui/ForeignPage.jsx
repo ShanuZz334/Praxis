@@ -25,6 +25,7 @@ import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/
 import { useGlobalApiData } from "../data/useGlobalApiData";
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import Loader from "@/shared/components/ui/Loader";
+import { useTheme } from '@/shared/context/ThemeContext';
 
 const DEFAULT_OVERRIDES = {
     dxy: null,
@@ -61,6 +62,7 @@ export default function ForeignPage() {
     const [selectedCard, setSelectedCard] = useState(null);
 
     const { livePrices } = useDashboardContext();
+    const { tradingMode } = useTheme();
     const { overrides: manualOverrides, lastUpdated: manualLastUpdated, handleChange: handleOverrideChange, handleClearAll } = useManualOverrides('global', 'global_macro', DEFAULT_OVERRIDES);
 
     // Extract Upstox live data
@@ -94,7 +96,7 @@ export default function ForeignPage() {
         };
     }, [liveApiData, liveData]);
 
-    const compositeData = useGlobalComposite(manualOverrides, mergedLiveData, liveRangeData);
+    const compositeData = useGlobalComposite(manualOverrides, mergedLiveData, liveRangeData, tradingMode);
 
     const getISTDateTime = () => {
         const date = new Date();

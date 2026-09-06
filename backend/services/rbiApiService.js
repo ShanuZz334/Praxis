@@ -29,7 +29,7 @@ export const rbiApiService = {
             const apiKey = process.env.FRED_API_KEY;
             if (apiKey) {
                 const url = `https://api.stlouisfed.org/fred/series/observations?series_id=QINPBM770A&api_key=${apiKey}&file_type=json&sort_order=desc&limit=5`;
-                const response = await axios.get(url, { timeout: 5000 });
+                const response = await axios.get(url, { timeout: 15000 }); // 15s — FRED is a US server, high latency from India
                 if (response.data && response.data.observations && response.data.observations.length >= 5) {
                     const current = parseFloat(response.data.observations[0].value);
                     const lastYear = parseFloat(response.data.observations[4].value);
@@ -62,7 +62,7 @@ export const rbiApiService = {
             if (apiKey) {
                 // QINNAM770A = Total Credit to Non-Financial Corporations, Adjusted for Breaks, for India (% of GDP)
                 const url = `https://api.stlouisfed.org/fred/series/observations?series_id=QINNAM770A&api_key=${apiKey}&file_type=json&sort_order=desc&limit=1`;
-                const response = await axios.get(url, { timeout: 5000 });
+                const response = await axios.get(url, { timeout: 15000 }); // 15s — FRED is a US server, high latency from India
                 if (response.data && response.data.observations && response.data.observations.length > 0) {
                     const value = parseFloat(response.data.observations[0].value);
                     if (!isNaN(value)) {

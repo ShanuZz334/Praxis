@@ -55,8 +55,8 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
                         regime_json: newRes.regime,
                         tailwinds_json: newRes.tailwinds,
                         risks_json: newRes.risks,
-                        counts_json: newRes.cardScores,
-                        breakdown: newRes.sections
+                        counts_json: newRes.rawScores,
+                        tree_payload_json: newRes.nestedTreePayload
                     }).catch(err => console.error("Failed to sync header:", err));
                 }
             }, 50);

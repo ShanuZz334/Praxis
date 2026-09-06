@@ -1,15 +1,38 @@
 import express from "express";
 import { NseIndia } from "stock-nse-india";
+import db from "../config/localDb.js";
 
 const router = express.Router();
 const nse = new NseIndia();
 
+const BREADTH_CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
+
+// Prepared statements for SQLite breadth persistence
+const upsertBreadthSql = db.prepare(`
+    INSERT INTO market_broadcast_cache (cache_key, payload_json, fetched_at)
+    VALUES ('breadth', ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(cache_key) DO UPDATE SET payload_json = excluded.payload_json, fetched_at = CURRENT_TIMESTAMP
+`);
+const getBreadthSql = db.prepare(`SELECT payload_json, fetched_at FROM market_broadcast_cache WHERE cache_key = 'breadth'`);
+
+// Seed in-memory cache from SQLite on startup — zero-restart-flash
 let breadthCache = null;
 let lastBreadthFetchTime = 0;
-const BREADTH_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+
+try {
+    const row = getBreadthSql.get();
+    if (row && row.payload_json) {
+        breadthCache = JSON.parse(row.payload_json);
+        lastBreadthFetchTime = new Date(row.fetched_at).getTime();
+        console.log("✅ Market breadth cache seeded from SQLite");
+    }
+} catch (e) {
+    console.warn("⚠️ Could not seed breadth cache from SQLite:", e.message);
+}
 
 router.get("/breadth", async (req, res) => {
-    if (breadthCache && (Date.now() - lastBreadthFetchTime < BREADTH_CACHE_TTL)) {
+    // Serve from memory cache if within TTL
+    if (breadthCache && (Date.now() - lastBreadthFetchTime < BREADTH_CACHE_TTL_MS)) {
         return res.json({ status: "success", cached: true, data: breadthCache });
     }
 
@@ -47,7 +70,7 @@ router.get("/breadth", async (req, res) => {
             newLows = (lows.dataLtpGreater20?.length || 0) + (lows.dataLtpLess20?.length || 0);
         }
 
-        breadthCache = {
+        const freshData = {
             advances,
             declines,
             netAdvances: advances - declines,
@@ -56,11 +79,31 @@ router.get("/breadth", async (req, res) => {
             newLows,
             nhnlRatio: newLows > 0 ? (newHighs / newLows) : null
         };
+
+        // Update memory cache
+        breadthCache = freshData;
         lastBreadthFetchTime = Date.now();
 
-        res.json({ status: "success", data: breadthCache });
+        // Persist to SQLite (survives server restarts)
+        try { upsertBreadthSql.run(JSON.stringify(freshData)); } catch (dbErr) {
+            console.warn("⚠️ Could not persist breadth cache to SQLite:", dbErr.message);
+        }
+
+        res.json({ status: "success", cached: false, data: freshData });
     } catch (e) {
-        console.error("Failed to fetch market breadth", e.message);
+        console.error("Failed to fetch market breadth:", e.message);
+
+        // Stale fallback — return whatever we have (in-memory or SQLite)
+        if (breadthCache) {
+            return res.json({ status: "success", cached: "stale", data: breadthCache });
+        }
+        try {
+            const row = getBreadthSql.get();
+            if (row && row.payload_json) {
+                return res.json({ status: "success", cached: "stale_db", data: JSON.parse(row.payload_json) });
+            }
+        } catch (dbErr) {}
+
         res.status(500).json({ status: "error", message: e.message });
     }
 });

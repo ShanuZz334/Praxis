@@ -1,6 +1,6 @@
 import axios from "axios";
 import UpstoxAuth from "../models/UpstoxAuth.js";
-import localDb, { upsertAiCardStore } from "../config/localDb.js";
+import localDb from "../config/localDb.js";
 import { processNewsItems } from "./newsAutoProcessor.js";
 import { getNifty50Keys } from "../utils/nifty50.js";
 
@@ -95,17 +95,27 @@ export const fetchFiiDiiFlow = async () => {
     }
 };
 
+const upsertFiiDiiHistory = localDb.prepare(`
+    INSERT INTO fii_dii_history (date, fii_json, dii_json, updated_at)
+    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(date) DO UPDATE SET
+        fii_json = excluded.fii_json,
+        dii_json = excluded.dii_json,
+        updated_at = CURRENT_TIMESTAMP
+`);
+
 const syncHistoricalFlows = async (fiiData, diiData) => {
     if (!fiiData && !diiData) return;
-    
+
     const flowMap = new Map();
-    
-    // Process FII
+
+    // Process FII — group by day
     if (fiiData) {
         for (const [segment, arr] of Object.entries(fiiData)) {
             for (const entry of arr) {
-                if (!flowMap.has(entry.time_stamp)) flowMap.set(entry.time_stamp, { fii: {}, dii: {} });
-                flowMap.get(entry.time_stamp).fii[segment] = {
+                const dateStr = new Date(entry.time_stamp).toISOString().slice(0, 10); // YYYY-MM-DD
+                if (!flowMap.has(dateStr)) flowMap.set(dateStr, { fii: {}, dii: {} });
+                flowMap.get(dateStr).fii[segment] = {
                     buy_amount: entry.buy_amount || 0,
                     sell_amount: entry.sell_amount || 0,
                     net: (entry.buy_amount || 0) - (entry.sell_amount || 0)
@@ -113,13 +123,14 @@ const syncHistoricalFlows = async (fiiData, diiData) => {
             }
         }
     }
-    
-    // Process DII
+
+    // Process DII — group by day
     if (diiData) {
         for (const [segment, arr] of Object.entries(diiData)) {
             for (const entry of arr) {
-                if (!flowMap.has(entry.time_stamp)) flowMap.set(entry.time_stamp, { fii: {}, dii: {} });
-                flowMap.get(entry.time_stamp).dii[segment] = {
+                const dateStr = new Date(entry.time_stamp).toISOString().slice(0, 10);
+                if (!flowMap.has(dateStr)) flowMap.set(dateStr, { fii: {}, dii: {} });
+                flowMap.get(dateStr).dii[segment] = {
                     buy_amount: entry.buy_amount || 0,
                     sell_amount: entry.sell_amount || 0,
                     net: (entry.buy_amount || 0) - (entry.sell_amount || 0)
@@ -127,20 +138,20 @@ const syncHistoricalFlows = async (fiiData, diiData) => {
             }
         }
     }
-    
-    // Upsert each day into SQLite
-    for (const [ts, data] of flowMap.entries()) {
-        const timestampIso = new Date(ts).toISOString();
-        upsertAiCardStore(
-            "GLOBAL", 
-            "Dashboard", 
-            "InstitutionalFlow", 
-            "FiiDiiSegmented", 
-            timestampIso, 
-            { fii: data.fii, dii: data.dii }
-        );
+
+    // Batch-upsert each day into fii_dii_history
+    const batchWrite = localDb.transaction((entries) => {
+        for (const [date, data] of entries) {
+            upsertFiiDiiHistory.run(date, JSON.stringify(data.fii), JSON.stringify(data.dii));
+        }
+    });
+    try {
+        batchWrite([...flowMap.entries()]);
+    } catch (e) {
+        console.error("Failed to persist FII/DII history to SQLite:", e.message);
     }
 };
+
 
 export const fetchSmartlist = async (assetType, category, type = "options") => {
     try {
@@ -162,10 +173,37 @@ export const fetchSmartlist = async (assetType, category, type = "options") => {
 
 import { broadcast } from "./socketBroadcast.js";
 
+// Prepared statement for market_broadcast_cache persistence
+const upsertBroadcastCache = localDb.prepare(`
+    INSERT INTO market_broadcast_cache (cache_key, payload_json, fetched_at)
+    VALUES (?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(cache_key) DO UPDATE SET payload_json = excluded.payload_json, fetched_at = CURRENT_TIMESTAMP
+`);
+const getBroadcastCache = localDb.prepare(`SELECT cache_key, payload_json FROM market_broadcast_cache WHERE cache_key = ?`);
+
 export let cachedFlowData = null;
 export let cachedSmartlists = null;
 export let cachedSectors = null;
 export let cachedNews = null;
+
+// Seed in-memory caches from SQLite on startup — so data is available immediately without waiting for next poll
+try {
+    const flowRow = getBroadcastCache.get("fii_dii_flow");
+    if (flowRow) cachedFlowData = JSON.parse(flowRow.payload_json);
+
+    const smartRow = getBroadcastCache.get("smartlists");
+    if (smartRow) cachedSmartlists = JSON.parse(smartRow.payload_json);
+
+    const sectorRow = getBroadcastCache.get("sectors");
+    if (sectorRow) cachedSectors = JSON.parse(sectorRow.payload_json);
+
+    const newsRow = getBroadcastCache.get("market_news");
+    if (newsRow) cachedNews = JSON.parse(newsRow.payload_json);
+
+    console.log("✅ Market broadcast caches seeded from SQLite");
+} catch (e) {
+    console.warn("⚠️ Could not seed broadcast caches from SQLite:", e.message);
+}
 
 export const getCachedMarketData = () => ({
     flow: cachedFlowData,
@@ -179,6 +217,8 @@ export const forceMarketDataPoll = async () => {
         const flowData = await fetchFiiDiiFlow();
             cachedFlowData = flowData || { fii: {}, dii: {}, timestamp: null };
             broadcast("market:fiidii", cachedFlowData);
+            // Persist to SQLite so data survives backend restarts
+            try { upsertBroadcastCache.run("fii_dii_flow", JSON.stringify(cachedFlowData)); } catch(e) {}
             
             const [optOiGainers, optIvSurge, futPremium, optMostActive] = await Promise.all([
                 fetchSmartlist("INDEX", "OI_GAINERS", "options"),
@@ -250,6 +290,8 @@ export const forceMarketDataPoll = async () => {
                 futures: futuresSmartlist
             };
             broadcast("market:smartlists", cachedSmartlists);
+            // Persist to SQLite
+            try { upsertBroadcastCache.run("smartlists", JSON.stringify(cachedSmartlists)); } catch(e) {}
 
             // Fetch Sector Indices
             try {
@@ -273,6 +315,8 @@ export const forceMarketDataPoll = async () => {
                     }));
                     cachedSectors = sectors;
                     broadcast("market:sectors", cachedSectors);
+                    // Persist to SQLite
+                    try { upsertBroadcastCache.run("sectors", JSON.stringify(cachedSectors)); } catch(e) {}
                 }
             } catch (err) {
                 console.error("Failed to fetch Sector indices:", err.message);
@@ -310,6 +354,8 @@ export const forceMarketDataPoll = async () => {
                     
                     // Broadcast will include both general news and instrument news, ensuring UI is never empty
                     broadcast("market:news", cachedNews);
+                    // Persist to SQLite (trim payload to top 50 to keep DB lean)
+                    try { upsertBroadcastCache.run("market_news", JSON.stringify(cachedNews.slice(0, 50))); } catch(e) {}
 
                     // ============================================================
                     // Auto-process news into Events pipeline (zero human input)

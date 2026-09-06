@@ -2,16 +2,17 @@ import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreVwapCard } from '../engine/TechnicalCompositeEngine';
 
-export default function VwapCard({ cardId, data = null, manualOverride, lastUpdated }) {
+export default function VwapCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.vwap.id);
     
     // Resolve current value from live backend data
     const currentValue = data?.vwap ?? null;
 
-    const { score, bias, confidence, aiInsight } = scoreVwapCard(currentValue, data?.current_price);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreVwapCard(currentValue, data?.current_price), 'vwap', tradingMode);
 
     const displayValue = currentValue !== null && !isNaN(currentValue) ? "₹" + parseFloat(currentValue).toFixed(2) : '--';
 return (

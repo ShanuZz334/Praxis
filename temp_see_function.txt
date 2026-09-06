@@ -1,0 +1,65 @@
+﻿
+> export async function runGlobalIntelligence() {
+      if (!shouldRun('global')) return; // mode-aware cadence gate
+      console.log('[BG Intel] Running Global Intelligence...');
+      try {
+          // global_cache has: symbol_id, value, hi_52, lo_52, pct_change
+          // NO 'score' column â€” score is derived from pct_change
+          const rows = db.prepare(
+              `SELECT symbol_id, value, pct_change FROM global_cache WHERE value IS NOT NULL`
+          ).all();
+  
+          if (!rows || rows.length === 0) {
+              console.warn('[BG Intel] No global_cache data found â€” skipping.');
+              return;
+          }
+  
+          // Convert pct_change to a 0-100 score bucket
+          const pctToScore = (pct) => {
+              if (pct == null || isNaN(pct)) return null;
+              const p = parseFloat(pct);
+              if (p >  3.0) return 90;
+              if (p >  1.5) return 75;
+              if (p >  0.5) return 62;
+              if (p >  0.0) return 53;
+              if (p > -0.5) return 47;
+              if (p > -1.5) return 38;
+              if (p > -3.0) return 25;
+              return 10;
+          };
+  
+          const globalScores = {};
+          for (const row of rows) {
+              const score = pctToScore(row.pct_change);
+              if (row.symbol_id && score != null) {
+                  globalScores[row.symbol_id] = { score };
+              }
+          }
+  
+          if (Object.keys(globalScores).length === 0) return;
+  
+          const result = computeGlobalCompositeBackend(globalScores);
+          if (!result || result.compositeScore == null) return;
+  
+          upsertHeader.run(
+              'GLOBAL', 'global',
+              result.compositeScore,
+              JSON.stringify({ label: result.regime?.label || 'Neutral' })
+          );
+  
+          broadcast('intelligence:snapshot', {
+              instrument_key: 'GLOBAL',
+              global: { composite_score: result.compositeScore, regime: result.regime?.label || 'Neutral' }
+          });
+  
+          console.log(`[BG Intel] GLOB: ${result.compositeScore} (${result.regime?.label})`);
+      } catch (err) {
+          console.error('[BG Intel] Global failed:', err.message);
+      }
+  }
+  
+  // â”€â”€ Events Intelligence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  /**
+
+

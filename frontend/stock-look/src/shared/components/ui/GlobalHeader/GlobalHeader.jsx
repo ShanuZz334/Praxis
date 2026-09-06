@@ -23,7 +23,7 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowUp, ArrowDown, HelpCircle, ArrowRight } from "lucide-react";
+import { ArrowUp, ArrowDown, HelpCircle, ArrowRight, Microscope, Telescope } from "lucide-react";
 import { FlipContainer, FlipTrigger } from "@/shared/components/common/FlipContainer";
 
 import AiInsightSection from "@/shared/components/ui/AiInsightSection";
@@ -173,29 +173,9 @@ export default function GlobalHeader({
         return counts;
     }, [cards]);
 
-    // DB Sync for Counts & Scores (used by MasterDashboard aggregator)
-    useEffect(() => {
-        if (syncId?.instrumentKey && syncId?.category && typeof window !== 'undefined') {
-            import('@/shared/utils/axiosInstance').then(({ default: axiosInstance }) => {
-                axiosInstance.post('/api/v1/snapshots/header', {
-                    instrument_key: syncId.instrumentKey,
-                    category: syncId.category,
-                    composite_score: score,
-                    regime_json: regime,
-                    tailwinds_json: tailwinds,
-                    risks_json: headwinds,
-                    counts_json: {
-                        totalCredits,
-                        bulls: signalCounts.bulls,
-                        bears: signalCounts.bears,
-                        neutrals: signalCounts.neutrals,
-                        breakdown: signalCounts.breakdown
-                    },
-                    ...(masterPayload ? { tree_payload_json: masterPayload } : {})
-                }).catch(err => console.error(`Failed to sync ${syncId.category} data:`, err));
-            });
-        }
-    }, [syncId?.instrumentKey, syncId?.category, totalCredits, signalCounts, score, regime, tailwinds, headwinds]);
+    // Removed the side-effect POST to /api/v1/snapshots/header.
+    // Persistence is handled by the dedicated composite engines (e.g., useFundamentalComposite, headlessTechnicalParser)
+    // which correctly save the raw scores mapping instead of the aggregated UI counts.
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
@@ -697,6 +677,44 @@ function HeaderControls({ controls }) {
                                 ]}
                             />
                         </div>
+                    )}
+
+                    {/* Instrument Focus Mode Toggle (Events page only) */}
+                    {controls.focusMode && (
+                        <CardSegmented
+                            value={controls.focusMode.enabled ? "focus" : "global"}
+                            onChange={() => controls.focusMode.onToggle()}
+                            options={[
+                                { 
+                                    value: "focus", 
+                                    label: (
+                                        <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider">
+                                            <Microscope size={11} strokeWidth={2.5} className={controls.focusMode.enabled ? "text-blue-400" : ""} />
+                                            {controls.focusMode.label || 'Instrument'}
+                                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                                controls.focusMode.enabled 
+                                                    ? (controls.focusMode.matchCount === 0 ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400')
+                                                    : 'bg-background-surface text-text-tertiary'
+                                            }`}>
+                                                {controls.focusMode.matchCount}
+                                            </span>
+                                        </div>
+                                    ) 
+                                },
+                                { 
+                                    value: "global", 
+                                    label: (
+                                        <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider">
+                                            <Telescope size={11} strokeWidth={2} />
+                                            Market Wide
+                                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-background-surface text-text-tertiary">
+                                                {controls.focusMode.totalCount}
+                                            </span>
+                                        </div>
+                                    ) 
+                                }
+                            ]}
+                        />
                     )}
 
                     {/* Sort Mode Toggle */}

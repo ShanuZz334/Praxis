@@ -292,7 +292,237 @@ export const initLocalDb = () => {
             exchange_timestamp DATETIME
         );
         CREATE INDEX IF NOT EXISTS idx_trade_history_date ON trade_history(date);
+
+        -- ============================================================
+        -- INSTITUTIONAL UPGRADE — LAYER 4 & 5 NEW TABLES
+        -- ============================================================
+
+        -- 21. User Manual Overrides (replaces praxis_manual_overrides_* localStorage)
+        CREATE TABLE IF NOT EXISTS user_overrides (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            module_key        TEXT NOT NULL,      -- 'fundamentals', 'technical', 'options', 'foreign'
+            instrument_key    TEXT NOT NULL,      -- 'NSE_INDEX|Nifty 50' or 'NSE_EQ|INE...'
+            field_key         TEXT NOT NULL,      -- 'pe_ratio', 'gdp_growth', 'iv_rank', etc.
+            value             TEXT,               -- Always TEXT (serialized) to handle any type
+            source            TEXT DEFAULT 'manual',
+            updated_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(module_key, instrument_key, field_key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_overrides_lookup ON user_overrides(module_key, instrument_key);
+
+        -- 22. User Preferences (replaces all stocky-*, pai-*, praxis_ai_sensitivity_* localStorage)
+        CREATE TABLE IF NOT EXISTS user_preferences (
+            pref_key          TEXT PRIMARY KEY,
+            pref_value        TEXT,
+            updated_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 23. Page State (replaces dash_category, dash_instrument, praxis_master_charts, etc.)
+        CREATE TABLE IF NOT EXISTS page_state (
+            page_name         TEXT NOT NULL,      -- 'master', 'fundamentals', 'technical', 'options', 'foreign', 'events'
+            state_json        TEXT,               -- JSON: { instrument_key, category, expiry, timeframe, extra_charts[] }
+            updated_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(page_name)
+        );
+
+        -- 24. Chart Drawings (replaces dynamic useDrawings localStorage keys)
+        CREATE TABLE IF NOT EXISTS chart_drawings (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            instrument_key    TEXT NOT NULL,
+            timeframe         TEXT NOT NULL,      -- '1D', '1W', '1M', etc.
+            drawings_json     TEXT,               -- Full annotation/drawing JSON array
+            updated_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(instrument_key, timeframe)
+        );
+
+        -- 25. Global Macro Cache (replaces in-memory globalCache in dataRoutes.js)
+        CREATE TABLE IF NOT EXISTS global_cache (
+            symbol_id         TEXT PRIMARY KEY,   -- 'crude', 'gold', 'dxy', 'usd_inr', 'bitcoin', etc.
+            value             REAL,
+            hi_52             REAL,
+            lo_52             REAL,
+            pct_change        REAL,
+            source            TEXT DEFAULT 'yahoo', -- 'yahoo', 'coingecko', 'fred'
+            fetched_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 26. Market Broadcast Cache (replaces in-memory cachedFlowData/Smartlists/Sectors/News)
+        CREATE TABLE IF NOT EXISTS market_broadcast_cache (
+            cache_key         TEXT PRIMARY KEY,   -- 'fii_dii_flow', 'smartlists', 'sectors', 'market_news'
+            payload_json      TEXT,
+            fetched_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 27. OI Base Snapshots (replaces praxis_oi_base_* localStorage entries)
+        CREATE TABLE IF NOT EXISTS oi_base_snapshots (
+            instrument_key    TEXT NOT NULL,
+            snapshot_date     TEXT NOT NULL,      -- YYYY-MM-DD (IST)
+            base_call_oi      REAL,
+            base_put_oi       REAL,
+            base_total_oi     REAL,
+            strike_breakdown  TEXT,               -- JSON: OI per strike at market open
+            created_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(instrument_key, snapshot_date)
+        );
+
+        -- 28. AI Insights Cache (replaces praxis_ai_insight_cache localStorage)
+        CREATE TABLE IF NOT EXISTS ai_insights_cache (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            instrument_key    TEXT NOT NULL,
+            page_name         TEXT NOT NULL,      -- 'fundamentals', 'technical', 'options', 'foreign', 'master'
+            card_id           TEXT NOT NULL,      -- Matches CARD_REGISTRY ids
+            score             REAL,
+            regime            TEXT,
+            insight_text      TEXT NOT NULL,
+            model             TEXT,
+            provider          TEXT,
+            generated_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(instrument_key, page_name, card_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_insights ON ai_insights_cache(instrument_key, page_name, generated_at DESC);
+
+        -- 29. Page Composite Snapshots (historical append log — header_data only stores latest)
+        CREATE TABLE IF NOT EXISTS page_composite_snapshots (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            instrument_key    TEXT NOT NULL,
+            page_name         TEXT NOT NULL,      -- 'fundamentals', 'technical', 'options', 'foreign', 'master'
+            composite_score   REAL,
+            regime            TEXT,
+            regime_color      TEXT,
+            bull_count        INTEGER,
+            bear_count        INTEGER,
+            neutral_count     INTEGER,
+            trading_mode      TEXT DEFAULT 'swing',
+            tailwinds_json    TEXT,
+            risks_json        TEXT,
+            sections_json     TEXT,
+            snapshot_at       DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_composites ON page_composite_snapshots(instrument_key, page_name, snapshot_at DESC);
+
+        -- 30. Foreign Page Cache (per-symbol Foreign Markets scores + AI insights)
+        CREATE TABLE IF NOT EXISTS foreign_page_cache (
+            symbol_id         TEXT PRIMARY KEY,   -- matches global_cache.symbol_id
+            category          TEXT,               -- 'fx', 'commodities', 'global_indices', 'bonds', 'crypto', 'volatility'
+            display_name      TEXT,
+            value             REAL,
+            pct_change        REAL,
+            score             REAL,
+            signal            INTEGER,            -- -1, 0, 1
+            bias              TEXT,
+            hi_52             REAL, lo_52 REAL,
+            ai_insight        TEXT,
+            insight_generated_at DATETIME,
+            updated_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 31. Fundamentals Cache — Column-level (replaces fundamentals_data raw_json blob)
+        CREATE TABLE IF NOT EXISTS fundamentals_cache (
+            instrument_key    TEXT PRIMARY KEY,
+            -- Valuation
+            pe_ratio          REAL, pe_ratio_src TEXT,
+            forward_pe        REAL, forward_pe_src TEXT,
+            pb_ratio          REAL, pb_ratio_src TEXT,
+            ev_ebitda         REAL, ev_ebitda_src TEXT,
+            earnings_yield    REAL,
+            dividend_yield    REAL,
+            -- Company Earnings/Growth
+            eps_growth        REAL, revenue_growth REAL, profit_growth REAL,
+            profit_margin     REAL, operating_margin REAL, net_margin REAL,
+            -- Profitability
+            roe               REAL, roce REAL, roa REAL,
+            -- Balance Sheet
+            debt_to_equity    REAL, current_ratio REAL,
+            interest_coverage REAL, free_cash_flow REAL, cash_conversion REAL,
+            -- Ownership
+            promoter_holding  REAL,
+            -- Index Valuation
+            nifty_pe          REAL, nifty_pb REAL, mcap_gdp REAL,
+            eps_yoy           REAL, forward_eps REAL,
+            -- Macro (shared)
+            gdp_growth        REAL, cpi REAL, repo_rate REAL, fiscal_deficit REAL,
+            -- Flow
+            fii_flow          REAL, dii_flow REAL, fii_trend TEXT,
+            advance_decline   REAL,
+            -- Risk
+            india_vix         REAL, crude REAL, credit_growth REAL, corp_debt REAL,
+            global_liq        REAL,
+            -- Peer/Analyst
+            analyst_consensus TEXT,
+            -- Full raw responses for fallback
+            yahoo_raw_json    TEXT,
+            nse_raw_json      TEXT,
+            -- Timestamps
+            yahoo_fetched_at  DATETIME,
+            nse_fetched_at    DATETIME,
+            updated_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 32. Technicals Cache — Column-level (replaces technicals_data raw_json blob)
+        CREATE TABLE IF NOT EXISTS technicals_cache (
+            instrument_key    TEXT PRIMARY KEY,
+            timeframe         TEXT DEFAULT '1d',
+            candles_count     INTEGER,
+            -- Trend
+            ema_20 REAL, ema_50 REAL, ema_200 REAL,
+            sma_50 REAL, sma_200 REAL,
+            adx REAL, adx_plus_di REAL, adx_minus_di REAL,
+            supertrend REAL, supertrend_direction INTEGER,
+            beta_correlation  REAL,
+            -- Momentum
+            rsi REAL,
+            macd_line REAL, macd_signal REAL, macd_histogram REAL,
+            stoch_rsi REAL, stoch_k REAL, stoch_d REAL,
+            williams_r REAL,
+            -- Volatility
+            bb_upper REAL, bb_middle REAL, bb_lower REAL, bb_pb REAL,
+            atr REAL,
+            kc_upper REAL, kc_middle REAL, kc_lower REAL,
+            -- Volume
+            volume_sma REAL, obv REAL, cmf REAL, vwap REAL,
+            -- Structure
+            support REAL, resistance REAL,
+            pivot_p REAL, pivot_r1 REAL, pivot_s1 REAL, pivot_r2 REAL, pivot_s2 REAL,
+            fib_0 REAL, fib_236 REAL, fib_382 REAL, fib_500 REAL, fib_618 REAL, fib_100 REAL,
+            trendline_slope REAL, trendline_r2 REAL, trendline_std_err REAL,
+            -- Breadth (index only — null for companies)
+            breadth_ratio REAL, ad_line REAL, mcclellan REAL, nh_nl REAL, trin REAL,
+            updated_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 33. Options Cache — Column-level (replaces options_data raw_json blob)
+        CREATE TABLE IF NOT EXISTS options_cache (
+            instrument_key    TEXT PRIMARY KEY,
+            expiry            TEXT,
+            spot_price        REAL,
+            -- OI
+            total_call_oi     REAL, total_put_oi REAL,
+            oi_change_call    REAL, oi_change_put REAL,
+            -- PCR
+            pcr_oi            REAL, pcr_volume REAL,
+            -- Greeks (ATM)
+            atm_strike        REAL,
+            atm_delta         REAL, atm_gamma REAL,
+            atm_theta         REAL, atm_vega REAL, atm_rho REAL,
+            atm_iv            REAL,
+            -- Derived
+            iv_rank           REAL, iv_percentile REAL,
+            max_pain          REAL,
+            -- Full snapshot JSONs (kept for chain table + charts)
+            chain_json        TEXT,
+            greeks_json       TEXT,
+            updated_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        -- 34. FII/DII Historical Flow (proper per-day append, replaces ai_card_store misuse)
+        CREATE TABLE IF NOT EXISTS fii_dii_history (
+            date        TEXT PRIMARY KEY,  -- YYYY-MM-DD (IST market date)
+            fii_json    TEXT,              -- JSON object: { segment_name: { buy_amount, sell_amount, net } }
+            dii_json    TEXT,              -- JSON object: { segment_name: { buy_amount, sell_amount, net } }
+            updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_fii_dii_history_date ON fii_dii_history(date DESC);
     `);
+
 
     try {
         db.exec(`ALTER TABLE header_data ADD COLUMN counts_json TEXT;`);

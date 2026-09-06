@@ -3,8 +3,9 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { formatIndianNumber } from '@/shared/utils/formatters';
+import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
-export default function OpenInterestChangeCard({ cardId, liveData = null, manualOverride, lastUpdated }) {
+export default function OpenInterestChangeCard({ cardId, liveData = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.oi_change.id);
     
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
@@ -12,8 +13,9 @@ export default function OpenInterestChangeCard({ cardId, liveData = null, manual
 
     const oiChangePct = isLiveData ? liveData.changePercentage : '--';
     const position = isLiveData ? liveData.position : "Neutral";
-    const score = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
-    const bias = isLiveData ? liveData.bias : "Neutral";
+    const rawScore = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
+    const rawBias  = isLiveData ? liveData.bias  : 'Neutral';
+    const { score, bias } = { ...{ score: rawScore, bias: rawBias }, ...applyModeAdjustment({ score: rawScore, bias: rawBias }, 'oi_change', tradingMode) };
     const confidence = isLiveData ? liveData.confidence : "0%";
     const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Waiting for market data...");
 

@@ -2,38 +2,43 @@
  * @file optionsWeights.js
  * @purpose Weight configurations for Options page indicators.
  * @responsibilities
- * - Defines weights for 12 options indicators (Open Interest, Greeks, Volatility)
- * - Provides mode-specific weight multipliers
+ * - Defines base weights for 13 options indicators
+ * - Provides POSITIONAL / SWING / INTRADAY mode-specific weight multipliers
  * @key_exports
  * - OPTIONS_WEIGHTS - Base weight configuration
  * - getOptionsWeights - Gets weights for specific mode
- * @date 2026-02-04
+ * @date 2026-08-14
  */
 
-import { TRADING_MODES, getCurrentMode } from '../tradingModes.js';
+import { TRADING_MODES } from '../tradingModes.js';
 
 // =============================
 // Base Options Indicator Weights
 // =============================
 
 export const OPTIONS_WEIGHTS = {
-    // Open Interest (4 indicators)
-    'max_pain': 0.12,
-    'pcr': 0.10,
-    'call_wall': 0.09,
-    'put_wall': 0.09,
+    // Open Interest (3 indicators)
+    'total_call_oi':  0.10,
+    'total_put_oi':   0.10,
+    'oi_change':      0.10,
+
+    // Put-Call Ratio (2 indicators)
+    'pcr_oi':         0.12,
+    'pcr_volume':     0.10,
 
     // Greeks (4 indicators)
-    'net_delta': 0.12,
-    'net_gamma': 0.10,
-    'theta_decay': 0.08,
-    'vega_risk': 0.08,
+    'delta':          0.12,
+    'gamma':          0.10,
+    'theta':          0.08,
+    'vega':           0.08,
 
-    // Volatility (4 indicators)
-    'atm_iv': 0.08,
-    'iv_rank': 0.10,
-    'iv_skew': 0.12,
-    'hv_iv_spread': 0.08
+    // Volatility (3 indicators)
+    'atm_iv':         0.08,
+    'iv_rank':        0.10,
+    'iv_percentile':  0.08,
+
+    // Market Positioning (1 indicator)
+    'max_pain':       0.12,
 };
 
 // =============================
@@ -41,33 +46,47 @@ export const OPTIONS_WEIGHTS = {
 // =============================
 
 export const MODE_WEIGHT_MULTIPLIERS = {
-    [TRADING_MODES.BALANCED]: {
-        // No multipliers - use base weights
+    // POSITIONAL: Focus on slow-moving positioning signals
+    [TRADING_MODES.POSITIONAL]: {
+        // OI walls matter — they show where big money is writing
+        total_call_oi:  1.15,
+        total_put_oi:   1.15,
+        // PCR OI more relevant than volume for positional
+        pcr_oi:         1.20,
+        pcr_volume:     0.80,
+        // Volatility metrics amplified — premium assessment for entry
+        iv_rank:        1.30,
+        iv_percentile:  1.25,
+        atm_iv:         1.20,
+        // Max Pain amplified — extremely relevant for expiry-week positional trades
+        max_pain:       1.25,
+        // Greeks dampened — short-dated Delta/Gamma less relevant for weekly holds
+        delta:          0.75,
+        gamma:          0.70,
+        theta:          0.80,
     },
 
-    [TRADING_MODES.AGGRESSIVE]: {
-        // Focus on directional indicators
-        net_delta: 1.4,
-        net_gamma: 1.3,
-        max_pain: 1.2,
-        pcr: 1.2,
-        // Reduce volatility focus
-        atm_iv: 0.8,
-        iv_rank: 0.8,
-        hv_iv_spread: 0.7
-    },
+    // SWING: Balanced — no multipliers needed
+    [TRADING_MODES.SWING]: {},
 
-    [TRADING_MODES.CONSERVATIVE]: {
-        // Focus on risk and volatility
-        iv_skew: 1.4,
-        iv_rank: 1.3,
-        atm_iv: 1.2,
-        theta_decay: 1.3,
-        vega_risk: 1.2,
-        // Reduce directional focus
-        net_delta: 0.7,
-        net_gamma: 0.8
-    }
+    // INTRADAY: Focus on real-time Greeks and volume PCR
+    [TRADING_MODES.INTRADAY]: {
+        // Greeks amplified — live delta/gamma drives P&L in real time
+        delta:          1.40,
+        gamma:          1.35,
+        theta:          1.20,
+        vega:           1.15,
+        // PCR volume > PCR OI for intraday tape reading
+        pcr_volume:     1.30,
+        pcr_oi:         0.90,
+        // OI change most actionable intraday signal
+        oi_change:      1.25,
+        // Volatility metrics dampened — IV Rank/Percentile are slow signals
+        iv_rank:        0.75,
+        iv_percentile:  0.70,
+        // Max Pain irrelevant for intraday
+        max_pain:       0.60,
+    },
 };
 
 // =============================
@@ -76,11 +95,11 @@ export const MODE_WEIGHT_MULTIPLIERS = {
 
 /**
  * Gets options weights for a specific trading mode
- * @param {string} mode - Trading mode (balanced, aggressive, conservative)
+ * @param {string} mode - Trading mode ('positional' | 'swing' | 'intraday')
  * @returns {Object} Weight configuration
  */
-export const getOptionsWeights = (mode = TRADING_MODES.BALANCED) => {
-    if (mode === TRADING_MODES.BALANCED) {
+export const getOptionsWeights = (mode = TRADING_MODES.SWING) => {
+    if (mode === TRADING_MODES.SWING) {
         return OPTIONS_WEIGHTS;
     }
 
