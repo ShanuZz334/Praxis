@@ -662,12 +662,12 @@ export default function FundamentalPage() {
           const credit = configData?.creditScore ?? 5;
           
           const isManual = manualOverrides && manualOverrides[id] !== undefined && manualOverrides[id] !== null && manualOverrides[id] !== '';
-          const cardMeta = {
-              hasLiveData: !isManual,
-              isManual: isManual,
-              lastUpdated: resolveTime(!isManual, isManual ? null : id) ? new Date(resolveTime(!isManual, isManual ? null : id)).getTime() : Date.now(),
-              sourcePipeline: isManual ? 'manual' : 'upstox'
-          };
+            const cardMeta = {
+                hasLiveData: !isManual,
+                isManual: isManual,
+                lastUpdated: isManual ? (manualLastUpdated ? manualLastUpdated[id] : Date.now()) : Date.now(),
+                sourcePipeline: isManual ? 'manual' : 'upstox'
+            };
           const cCard = computeCardConfidence(cardMeta, 'fundamentals');
 
           return { id, module: cardName, normalized, credit, creditAllocation: credit, score, cCard };

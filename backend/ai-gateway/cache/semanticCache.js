@@ -1,8 +1,9 @@
 import NodeCache from 'node-cache';
 import { AI_CONFIG } from '../config.js';
+import crypto from 'crypto';
 
-// Abstracted Cache Layer (Swap to Redis Client Later)
-const vectorCache = new NodeCache({ stdTTL: 86400 });
+// Bug 17 Fix: MaxKeys set to 1000 to prevent event loop blocking on huge O(N) array scans
+const vectorCache = new NodeCache({ stdTTL: 86400, maxKeys: 1000 });
 
 function cosineSimilarity(vecA, vecB) {
     let dotProduct = 0;
@@ -17,6 +18,18 @@ function cosineSimilarity(vecA, vecB) {
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
+// Helper for stable hashing
+function getStableHash(data) {
+    if (!data) return 'no_data';
+    let sortedData = data;
+    try {
+        if (typeof data === 'object') {
+            sortedData = JSON.stringify(data, Object.keys(data).sort());
+        }
+    } catch(e) {}
+    return crypto.createHash('sha256').update(String(sortedData)).digest('hex');
+}
+
 export const semanticCache = {
     async getEmbedding(text) {
         try {
@@ -28,13 +41,12 @@ export const semanticCache = {
                     model: AI_CONFIG.EMBEDDING_MODEL || 'nomic-embed-text',
                     prompt: text
                 }),
-                signal: AbortSignal.timeout(10000) // 10s max for embeddings
+                signal: AbortSignal.timeout(10000)
             });
             if (!response.ok) return null;
             const data = await response.json();
             return data.embedding;
         } catch (e) {
-            console.warn("[AI Gateway] Semantic cache embedding failed:", e.message);
             return null;
         }
     },
@@ -45,12 +57,19 @@ export const semanticCache = {
         const embedding = await this.getEmbedding(request.prompt);
         if (!embedding) return null;
 
+        const dataHash = getStableHash(request.data);
+
         const keys = vectorCache.keys();
         let bestMatch = null;
         let highestSim = -1;
 
         for (const key of keys) {
             const stored = vectorCache.get(key);
+            if (!stored) continue;
+
+            // Bug 16 Fix: Ensure semantic cache only matches identical chart grounding data!
+            if (stored.dataHash !== dataHash) continue;
+
             const sim = cosineSimilarity(embedding, stored.embedding);
             if (sim > threshold && sim > highestSim) {
                 highestSim = sim;
@@ -76,7 +95,13 @@ export const semanticCache = {
         const embedding = await this.getEmbedding(request.prompt);
         if (!embedding) return;
 
+        const dataHash = getStableHash(request.data);
+
+        // Manual maxKeys enforcement if node-cache doesn't natively support it perfectly
+        const keys = vectorCache.keys();
+        if (keys.length > 1000) vectorCache.del(keys[0]);
+
         const key = `semantic_${Date.now()}_${Math.random()}`;
-        vectorCache.set(key, { embedding, response });
+        vectorCache.set(key, { embedding, response, dataHash });
     }
 };

@@ -10,6 +10,7 @@
 import { config } from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
+import compression from "compression";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -79,7 +80,8 @@ app.use(cors({
 }));
 
 app.options(/.*/, cors());
-app.use(express.json());
+app.use(compression());
+app.use(express.json({ limit: "50mb" }));
 
 // =============================
 // Database Connection
@@ -155,6 +157,8 @@ io.on("connection", (socket) => {
     
     socket.on("subscribe:instruments", async ({ keys, mode }) => {
         if (keys && keys.length > 0) {
+            keys.forEach(k => socket.join(k));
+            
             const { subscribeToInstruments, getLatestQuotes } = await import("./services/upstoxWebsocket.js");
             
             // 1. Immediately send down any cached data we have for these keys so the UI populates instantly
@@ -164,8 +168,8 @@ io.on("connection", (socket) => {
             if (cachedQuotes.length > 0) {
                 // Send it to this specific socket
                 cachedQuotes.forEach(quote => {
+                    validKeys.add(quote.instrumentKey);
                     socket.emit("market:update", { instrumentKey: quote.instrumentKey, data: quote });
-                    if (quote.cp != null) validKeys.add(quote.instrumentKey);
                 });
             }
 
@@ -221,6 +225,14 @@ io.on("connection", (socket) => {
         }
     });
     
+    socket.on("unsubscribe:instruments", async ({ keys }) => {
+        if (keys && keys.length > 0) {
+            keys.forEach(k => socket.leave(k));
+            const { unsubscribeFromInstruments } = await import("./services/upstoxWebsocket.js");
+            unsubscribeFromInstruments(keys);
+        }
+    });
+
     // Hydrate frontend with cached data immediately upon connection
     const sendHydration = async () => {
         try {

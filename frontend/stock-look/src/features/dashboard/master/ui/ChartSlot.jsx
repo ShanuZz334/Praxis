@@ -84,6 +84,7 @@ export default function ChartSlot({
                         isBackfilling={isBackfilling}
                         instrumentKey={instrumentKey}
                         timeframe={timeframe}
+                        allowFutureVision={isPrimary}
                     />
                 )}
             </div>

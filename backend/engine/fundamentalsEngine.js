@@ -6,7 +6,7 @@
 
 import { extractFundamentalData } from './extractors.js';
 import * as scorers from '../../frontend/stock-look/src/features/dashboard/fundamentals/engine/scoringEngine.js';
-import { getScoreLabel } from '../../frontend/stock-look/src/features/dashboard/fundamentals/engine/FundamentalCompositeEngine.js';
+import { getScoreLabel, computeCompanyComposite, computeIndexComposite } from '../../frontend/stock-look/src/features/dashboard/fundamentals/engine/FundamentalCompositeEngine.js';
 
 export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType = 'Companies') {
     // 1. Extract variables from raw JSON
@@ -172,10 +172,22 @@ export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType 
         }
     ];
 
-    // 4. Compute Composite (Simplified version matching frontend)
-    // In the future, this can be expanded to match the EXACT convex weighting
-    const validScores = cards.map(c => c.score).filter(s => s !== null && !isNaN(s));
-    const compositeScore = validScores.length ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length) : 50;
+    // 4. Compute Composite using EXACT frontend convex weighting
+    const isIndex = instrumentKey?.startsWith('NSE_INDEX');
+    const formattedScores = {};
+    cards.forEach(c => {
+        formattedScores[c.id] = { score: c.score };
+    });
+    
+    let compositeScore = 50;
+    try {
+        const compositeResult = isIndex ? computeIndexComposite(formattedScores) : computeCompanyComposite(formattedScores);
+        compositeScore = compositeResult.compositeScore;
+    } catch (err) {
+        console.error("Failed to dynamically import FundamentalCompositeEngine", err);
+        const validScores = cards.map(c => c.score).filter(s => s !== null && !isNaN(s));
+        compositeScore = validScores.length ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length) : 50;
+    }
     
     // Fallback to our own label generator if frontend import fails in Node (React ES6 module resolution issue)
     let regimeLabel = { label: 'Neutral', cssColor: 'text-yellow-500', hexColor: '#eab308' };

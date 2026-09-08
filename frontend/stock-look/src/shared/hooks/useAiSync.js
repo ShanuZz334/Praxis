@@ -10,25 +10,31 @@ import axiosInstance from '@/shared/utils/axiosInstance';
  * @param {object} snapshot - The fully calculated AI composite snapshot object
  */
 export function useAiSync(instrumentKey, pageName, snapshot) {
-    const lastSyncedRef = useRef(null);
+    const lastSyncedRef  = useRef(null);
+    const failureCountRef = useRef(0);   // consecutive failure counter
+    const backoffTimerRef = useRef(null); // tracks active backoff timer
 
     useEffect(() => {
         if (!instrumentKey || !pageName || !snapshot) return;
         
         // Prevent spamming the backend with the exact same payload repeatedly
-        // We only want to sync when the actual underlying composite score or data changes
         const hashStr = `${instrumentKey}-${snapshot.compositeScore}-${JSON.stringify(snapshot.regime || {})}`;
         
-        if (lastSyncedRef.current === hashStr) {
-            return; // Already synced this exact snapshot
-        }
+        if (lastSyncedRef.current === hashStr) return; // already synced this exact snapshot
+
+        // ── Failure Circuit Breaker ───────────────────────────────────────────────
+        // If the endpoint has failed ≥3 times in a row, stop retrying automatically.
+        // The user must change the instrument or refresh to reset the counter.
+        // This prevents the infinite 500-error spam when the AI provider is down.
+        const MAX_CONSECUTIVE_FAILURES = 3;
+        if (failureCountRef.current >= MAX_CONSECUTIVE_FAILURES) return;
 
         const syncToBackend = async () => {
-            // Optimistically mark as synced to prevent infinite retry loops on network errors
+            // Optimistically mark as synced before the request so that if React
+            // re-renders during the await, we don't launch a duplicate call.
             lastSyncedRef.current = hashStr;
             
             try {
-                // Ensure we have the minimum required data to avoid DB errors
                 if (snapshot.compositeScore === undefined || snapshot.compositeScore === null) return;
                 
                 await axiosInstance.post(
@@ -40,15 +46,29 @@ export function useAiSync(instrumentKey, pageName, snapshot) {
                     }
                 );
                 
+                // Success — reset failure count
+                failureCountRef.current = 0;
                 console.log(`📡 Silently synced ${pageName} AI Snapshot for ${instrumentKey} to SQLite.`);
             } catch (err) {
-                console.error(`Failed to sync ${pageName} AI Snapshot to backend:`, err.message);
-                // On failure, revert the ref so it tries again when data actually changes
-                lastSyncedRef.current = null;
+                failureCountRef.current += 1;
+                const count = failureCountRef.current;
+                console.warn(`[useAiSync] Sync failed (${count}/${MAX_CONSECUTIVE_FAILURES}): ${err.message}`);
+
+                if (count < MAX_CONSECUTIVE_FAILURES) {
+                    // Revert hash so it retries when data next changes — but cap retries
+                    lastSyncedRef.current = null;
+                } else {
+                    // Circuit open: keep hash so the effect early-exits on next render.
+                    // Do NOT revert to null — we're done retrying until a reset condition.
+                    console.warn(`[useAiSync] Circuit breaker open for ${pageName}. Stopped auto-retry after ${count} failures.`);
+                }
             }
         };
 
         syncToBackend();
 
+        return () => {
+            if (backoffTimerRef.current) clearTimeout(backoffTimerRef.current);
+        };
     }, [instrumentKey, pageName, snapshot]);
 }

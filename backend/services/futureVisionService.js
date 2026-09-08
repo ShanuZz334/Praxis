@@ -161,7 +161,7 @@ export async function runFutureVisionPrediction(contextPayload, instrumentKey, h
         prompt:             contextPayload,
         jsonMode:           true,
         temperature:        0.2,
-        maxTokens:          3500,
+        maxTokens:          8192,
         // If user has explicitly selected a Future Vision model in PAI settings, use it
         ...(routeHint ? { explicitProvider: routeHint.providerId, explicitModel: routeHint.modelId } : {}),
     };

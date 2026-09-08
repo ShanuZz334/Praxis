@@ -182,6 +182,12 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
         stopTts();
     };
 
+    const mountedRef = useRef(true);
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => { mountedRef.current = false; };
+    }, []);
+
     const sendMessage = async (textToSubmit, fromVoice = false) => {
         if (isGenerating) { handleStop(); return; }
         if (!textToSubmit.trim() || !activeChatId) return;
@@ -236,6 +242,8 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                 timeout: 120000
             });
 
+            if (!mountedRef.current) return;
+
             if (res.data?.message) {
                 setMessages(prev => [...prev, {
                     id: Date.now(),
@@ -252,6 +260,7 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
             }
         } catch (err) {
             console.error("Failed to send message:", err);
+            if (!mountedRef.current) return;
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 role: 'ai',
@@ -262,7 +271,7 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                 synthesize("Sorry, I encountered an error.");
             }
         } finally {
-            setIsGenerating(false);
+            if (mountedRef.current) setIsGenerating(false);
         }
     };
 

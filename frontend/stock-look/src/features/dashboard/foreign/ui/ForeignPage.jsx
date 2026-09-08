@@ -246,7 +246,7 @@ export default function ForeignPage() {
             const cardMeta = {
                 hasLiveData: isLive,
                 isManual: isManual,
-                lastUpdated: resolveTime(isLive, isManual ? null : id) ? new Date(resolveTime(isLive, isManual ? null : id)).getTime() : Date.now(),
+                lastUpdated: isManual ? (manualLastUpdated ? manualLastUpdated[id] : Date.now()) : Date.now(),
                 sourcePipeline: isLive ? 'upstox' : (isManual ? 'manual' : 'fallback')
             };
             const cCard = computeCardConfidence(cardMeta, 'foreign');

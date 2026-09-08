@@ -8,26 +8,32 @@ export const DebouncedOverrideInput = ({ label, overrideKey, value, onChange, la
     const hasNotifiedRef = useRef(false);
     const { addNotification, setActiveOverrideRequest, removeNotification } = useNotificationStore();
 
-    // Sync local state when external value changes (e.g. clear all)
     useEffect(() => {
+        // Only update local state if we aren't actively typing
         setLocalValue(value ?? "");
-        // Reset notification state if data receives a fresh manual override
         if (value !== null && value !== undefined) {
             hasNotifiedRef.current = false;
         }
     }, [value]);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const valToPass = localValue !== "" ? localValue : null;
-            if (valToPass !== (value ?? null)) {
-                onChange(overrideKey, valToPass);
-            }
-        }, 400);
-        return () => clearTimeout(timer);
-    }, [localValue, overrideKey, onChange, value]);
+    // Bug 35 Fix: Eliminate 400ms debounce to prevent massive grid re-renders while typing.
+    // We only commit changes to the global context on 'Enter' or 'Blur'.
+    const commitChange = () => {
+        let valToPass = localValue !== "" ? localValue : null;
+        if (valToPass !== null && !isNaN(Number(valToPass))) {
+            valToPass = Number(valToPass);
+        }
+        if (valToPass !== (value ?? null)) {
+            onChange(overrideKey, valToPass);
+        }
+    };
 
-    // Timer Logic
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.target.blur(); // Triggers onBlur automatically
+        }
+    };
+
     useEffect(() => {
         if (!expiryDuration || !lastUpdatedTimestamp || (value ?? null) === null) {
             setProgress(null);
@@ -52,15 +58,11 @@ export const DebouncedOverrideInput = ({ label, overrideKey, value, onChange, la
                     actions: [
                         {
                             label: "Ignore",
-                            onClick: (id) => {
-                                removeNotification(id);
-                            }
+                            onClick: (id) => removeNotification(id)
                         },
                         { 
                             label: "Update", 
-                            onClick: (id) => {
-                                setActiveOverrideRequest({ overrideKey, moduleKey, instrument, label, info, notificationId: id });
-                            }
+                            onClick: (id) => setActiveOverrideRequest({ overrideKey, moduleKey, instrument, label, info, notificationId: id })
                         }
                     ]
                 });
@@ -68,9 +70,7 @@ export const DebouncedOverrideInput = ({ label, overrideKey, value, onChange, la
         };
 
         updateProgress();
-        // Update at a reasonable interval based on duration
         const intervalId = setInterval(updateProgress, Math.min(1000, expiryDuration / 100));
-
         return () => clearInterval(intervalId);
     }, [expiryDuration, lastUpdatedTimestamp, value, label, overrideKey, instrument, moduleKey, info, addNotification, setActiveOverrideRequest, removeNotification]);
 
@@ -101,19 +101,15 @@ export const DebouncedOverrideInput = ({ label, overrideKey, value, onChange, la
                     type="text"
                     value={localValue}
                     onChange={(e) => setLocalValue(e.target.value)}
+                    onBlur={commitChange}
+                    onKeyDown={handleKeyDown}
                     className="bg-background-surface border border-border-subtle rounded px-2 py-1 text-xs text-text-primary focus:outline-none focus:border-blue-500 w-full"
                 />
                 {progress !== null && (
-                    <div 
-                        className="absolute bottom-[1px] left-[1px] right-[1px] h-[2px] rounded-b-sm overflow-hidden pointer-events-none"
-                    >
-                        <div 
-                            className={`h-full ${getProgressColor(progress)} transition-all duration-1000 ease-linear`}
-                            style={{ width: `${progress}%` }} 
-                        />
+                    <div className="absolute bottom-[1px] left-[1px] right-[1px] h-[2px] rounded-b-sm overflow-hidden pointer-events-none">
+                        <div className={`h-full ${getProgressColor(progress)} transition-all duration-1000 ease-linear`} style={{ width: `${progress}%` }} />
                     </div>
                 )}
-                {/* Warning Icons outside box to the right */}
                 {progress !== null && progress <= 20 && progress > 0 && (
                     <div className="absolute top-1/2 -translate-y-1/2 -right-5 flex items-center justify-center" title="Data expiring soon">
                         <AlertTriangle className="w-[14px] h-[14px] text-yellow-500" />

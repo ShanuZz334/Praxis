@@ -386,6 +386,7 @@ export const getFundamentals = async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching fundamentals:", error?.response?.data || error.message);
+        import("fs").then(fs => fs.appendFileSync("c:/project/ALLBACKUP/Praxis/backend/real_errors.log", new Date().toISOString() + " FundError: " + (error.stack || error.message) + "\n"));
         
         // --- SQLITE FALLBACK ---
         try {
@@ -399,6 +400,6 @@ export const getFundamentals = async (req, res) => {
             console.error("SQLite Fallback failed for fundamentals:", dbErr.message);
         }
 
-        res.status(500).json({ error: "Internal server error while fetching fundamentals" });
+        res.status(500).json({ error: "Internal server error", details: error.message, stack: error.stack });
     }
 };

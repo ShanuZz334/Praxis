@@ -52,6 +52,36 @@ export const DashboardProvider = ({ children }) => {
             } catch (err) {}
         };
         fetchGlobal();
+
+        const fetchInitialQuotes = async () => {
+            try {
+                const keys = "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank,NSE_INDEX|India VIX";
+                const res = await axiosInstance.get(`/api/v1/upstox/market-quote?instruments=${encodeURIComponent(keys)}`);
+                if (isMounted && res.data?.status === "success" && res.data.data) {
+                    setLivePrices(prev => {
+                        const nextPrices = { ...prev };
+                        Object.keys(res.data.data).forEach(key => {
+                            const q = res.data.data[key];
+                            if (q && q.last_price) {
+                                nextPrices[key] = {
+                                    ltp: q.last_price || 0,
+                                    netChange: q.net_change || 0,
+                                    pctChange: (q.net_change && q.last_price && (q.last_price - q.net_change) !== 0) 
+                                        ? (q.net_change / (q.last_price - q.net_change)) * 100 
+                                        : 0,
+                                    status: q.net_change > 0 ? "up" : q.net_change < 0 ? "down" : "neutral",
+                                    close: q.close_price || 0
+                                };
+                            }
+                        });
+                        return nextPrices;
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to fetch initial market quotes", err);
+            }
+        };
+        fetchInitialQuotes();
         const interval = setInterval(fetchGlobal, 60000);
         return () => {
             isMounted = false;
@@ -207,7 +237,7 @@ export const DashboardProvider = ({ children }) => {
             }
         };
 
-        // Flush updates to state exactly once every 500ms
+        // Flush updates to state exactly once every 2000ms
         const flushInterval = setInterval(() => {
             if (Object.keys(pendingUpdatesRef.current).length === 0) return;
 
@@ -306,6 +336,7 @@ export const DashboardProvider = ({ children }) => {
 
         return () => {
             clearInterval(flushInterval);
+            socket.emit("unsubscribe:instruments", { keys: keysToFetch });
             socket.off("connect", handleConnect);
             socket.off("market:update", handleMarketUpdate);
             socket.off("market:fiidii", handleFiiDii);
@@ -333,6 +364,22 @@ export const DashboardProvider = ({ children }) => {
         socket.emit("subscribe:instruments", { keys, mode: "full" });
     };
 
+    /**
+     * Unsubscribe specific instrument keys to prevent global quota exhaustion
+     * when closing dynamic components like options chains or order tickets.
+     */
+    const unsubscribeInstrumentKey = (key) => {
+        if (!key || !socket) return;
+        subscribedKeysRef.current.delete(key);
+        socket.emit("unsubscribe:instruments", { keys: [key] });
+    };
+
+    const unsubscribeMultipleInstrumentKeys = (keys) => {
+        if (!keys || !keys.length || !socket) return;
+        keys.forEach(k => subscribedKeysRef.current.delete(k));
+        socket.emit("unsubscribe:instruments", { keys });
+    };
+
     const value = {
         selectedCategory,
         setSelectedCategory,
@@ -351,9 +398,13 @@ export const DashboardProvider = ({ children }) => {
         setAdditionalCharts,
         subscribeInstrumentKey,
         subscribeMultipleInstrumentKeys,
+        unsubscribeInstrumentKey,
+        unsubscribeMultipleInstrumentKeys,
         globalOrderTicket,
         setGlobalOrderTicket,
-        globalData
+        globalData,
+        setGlobalData,
+        openOrderTicket: (instrumentKey) => setGlobalOrderTicket({ instrumentKey, action: "BUY" })
     };
 
     return (

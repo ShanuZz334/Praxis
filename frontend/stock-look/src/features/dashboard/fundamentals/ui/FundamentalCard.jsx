@@ -77,6 +77,7 @@ export default function FundamentalCard({ card, onClick }) {
       color={color}
       multiplier={multiplier}
       isFocused={isFocused}
+      isManual={card.isManual}
     />
   );
 }

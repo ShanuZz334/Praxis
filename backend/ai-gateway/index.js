@@ -6,6 +6,7 @@ import * as ollama from './providers/ollamaProvider.js';
 import * as groq from './providers/groqProvider.js';
 import * as gemini from './providers/geminiProvider.js';
 import * as openrouter from './providers/openrouterProvider.js';
+import * as zai from './providers/zaiProvider.js';
 
 import { validateInput } from './guardrails/inputGuard.js';
 import { responseCache } from './cache/responseCache.js';
@@ -16,8 +17,15 @@ const providers = {
     ollama,
     groq,
     gemini,
-    openrouter
+    openrouter,
+    zai
 };
+
+// Bug 31 Fix: Sanitize user input to prevent prompt injection via control tokens
+function sanitizeInput(text) {
+    if (!text) return text;
+    return text.replace(/<\|.*?\|>/g, '').replace(/```system/g, '```');
+}
 
 export const aiGateway = {
     async process(request) {
@@ -28,11 +36,11 @@ export const aiGateway = {
         }
 
         const { taskType, prompt, data, jsonMode, schema, maxTokens, temperature } = request;
-        const tier = classifyTask(taskType);
+        const level = classifyTask(taskType);
         
-        request.tier = tier; 
+        request.level = level; 
 
-        let routePlan = await getRouteForTask(tier, taskType);
+        let routePlan = await getRouteForTask(level, taskType);
         
         // UI manual override for interactive chat
         if (request.explicitProvider && request.explicitModel) {
@@ -55,7 +63,7 @@ export const aiGateway = {
 
         let messages = [];
 
-        // 1. System instruction (custom per-card prompt from Prompts Studio, or default)
+        // 1. System instruction
         if (request.systemInstruction) {
             messages.push({ role: 'system', content: request.systemInstruction });
         }
@@ -73,11 +81,11 @@ export const aiGateway = {
             messages.push({ role: 'system', content: `Output strictly as JSON matching this schema:\n${JSON.stringify(schema)}` });
         }
 
-        // 3. Chat history
+        // 3. Chat history (Sanitized)
         if (request.history && Array.isArray(request.history)) {
             messages.push(...request.history.map(msg => ({
                 role: msg.role === 'ai' || msg.role === 'assistant' ? 'assistant' : 'user',
-                content: msg.content
+                content: sanitizeInput(msg.content)
             })));
         }
         
@@ -86,18 +94,19 @@ export const aiGateway = {
             messages.push({ role: 'system', content: `[GLOBAL FORMATTING MANDATE: If you output any structured data, lists, or pseudo-tables, you MUST use strict GitHub Flavored Markdown (GFM) table syntax with pipe characters (e.g., | Col | Col |). NEVER use spaces, tabs, or manual indentation for visual alignment. Use markdown for emphasis.]` });
         }
 
-        // 4. User prompt
-        messages.push({ role: 'user', content: prompt });
+        // 4. User prompt (Sanitized)
+        messages.push({ role: 'user', content: sanitizeInput(prompt) });
 
-
-        console.log(`[AI Gateway] Processing Tier ${tier} task '${taskType}'`);
+        console.log(`[AI Gateway] Processing ${level} task '${taskType}'`);
 
         const result = await executeWithFallback(routePlan, providers, {
+            level,
             messages,
             maxTokens,
             temperature,
             jsonMode,
-            schema 
+            schema,
+            enableWebSearch: request.enableWebSearch
         });
 
         if (result.error) {

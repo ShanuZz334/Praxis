@@ -22,6 +22,7 @@
 // =============================
 
 import React from "react";
+import { Edit2 } from "lucide-react";
 import Card from "@/shared/components/common/Card";
 import { cn } from "@/lib/utils";
 import { getReliabilityConfig, getSignalState } from "@/shared/global/logic/signals";
@@ -42,6 +43,7 @@ export function GlobalCard({
   creditAllocation,
   multiplier = 1,
   isFocused = false,
+  isManual = false,
 
   signal,
   color,
@@ -105,8 +107,9 @@ export function GlobalCard({
 
               {(raw !== undefined || unit || reason) && (
                 <div className="flex items-baseline gap-1.5 md:gap-2 mt-0.5 md:mt-1">
-                  <span className="text-[10px] md:text-xs text-text-secondary font-mono">
-                    {typeof raw === "number" ? raw.toFixed(2) : raw}
+                  <span className="flex items-center gap-1 text-[10px] md:text-xs text-text-secondary font-mono">
+                    {isManual && <Edit2 className="w-3 h-3 text-text-tertiary" />}
+                    <span>{typeof raw === "number" ? raw.toFixed(2) : raw}</span>
                     {unit && (
                       <span className="text-[9px] md:text-[10px] text-text-tertiary ml-0.5 md:ml-1">
                         {unit}

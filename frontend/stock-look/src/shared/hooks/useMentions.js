@@ -271,53 +271,35 @@ export function useMentions(scopePageId = null) {
     const parseAndResolveAll = useCallback((text) => {
         const cardSnapshots = [];
         const seenIds = new Set();
-
-        // Match @anything-without-newline patterns
-        const mentionPattern = /@([^@\n]+?)(?=\s@|\s*$|\n)/g;
-        let match;
-        const resolvedMentions = [];
-
-        while ((match = mentionPattern.exec(text)) !== null) {
-            const rawMention = match[1].trim();
-            const resolved = resolveAtMention(rawMention);
-
-            if (!resolved) {
-                console.warn(`[@ mention] Could not resolve mention "@${rawMention}" — no matching card in registry. Check cardRegistry.js displayName/id.`);
-                continue;
-            }
-
-            if (!seenIds.has(resolved.cardId)) {
-                seenIds.add(resolved.cardId);
-
-                const hasLiveData = resolved.value !== null && resolved.value !== undefined;
-                if (!hasLiveData) {
-                    console.warn(
-                        `[@ mention] Card "@${resolved.displayName}" (id: ${resolved.cardId}) resolved but has NO live data.`,
-                        `Reason: page "${resolved.pageId}" may not be mounted yet, or widget has no register() call.`,
-                        `The AI will receive "N/A" for this card's value.`
-                    );
-                }
-
-                cardSnapshots.push({
-                    ...resolved,
-                    hasLiveData
-                });
-                resolvedMentions.push({ raw: rawMention, resolved });
-            }
-        }
-
-        // Clean explicit @mentions from the text
         let finalCleanText = text;
-        resolvedMentions.forEach(({ raw, resolved }) => {
-            const regex = new RegExp(`@${raw}(?=\\s|$)`, 'g');
-            finalCleanText = finalCleanText.replace(regex, resolved.displayName);
+
+        const allCandidates = getAtMentionCandidates(scopePageId, '');
+        // Sort by length descending so longer explicit mentions match first
+        allCandidates.sort((a, b) => b.displayName.length - a.displayName.length);
+
+        // 1. Explicit @Mentions parsing
+        allCandidates.forEach(candidate => {
+            const mentionStr = `@${candidate.displayName}`;
+            if (finalCleanText.toLowerCase().includes(mentionStr.toLowerCase())) {
+                const resolved = resolveAtMention(candidate.displayName);
+                if (resolved && !seenIds.has(resolved.cardId)) {
+                    seenIds.add(resolved.cardId);
+                    
+                    const hasLiveData = resolved.value !== null && resolved.value !== undefined;
+                    if (!hasLiveData) {
+                        console.warn(`[@ mention] Card "${resolved.displayName}" resolved but has NO live data.`);
+                    }
+
+                    cardSnapshots.push({ ...resolved, hasLiveData });
+                }
+                
+                // Clean the explicit @ symbol from the text
+                const regex = new RegExp(`@${candidate.displayName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=\\s|$)`, 'gi');
+                finalCleanText = finalCleanText.replace(regex, candidate.displayName);
+            }
         });
 
         // 2. NLP Auto-Extraction for implicitly mentioned cards (especially useful for Voice Mode)
-        const allCandidates = getAtMentionCandidates(scopePageId, '');
-        // Sort by length descending to match longest phrases first (e.g. "Reliance Industries" before "Reliance")
-        allCandidates.sort((a, b) => b.displayName.length - a.displayName.length);
-
         const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         let trackingText = finalCleanText.toLowerCase();
 

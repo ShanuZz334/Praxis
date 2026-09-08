@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Settings } from "lucide-react";
 import GlobalHeader from "@/shared/components/ui/GlobalHeader/GlobalHeader";
 import OptionsModal from "./OptionsModal";
@@ -232,6 +232,8 @@ export default function OptionsPage() {
     // 5. Connect Pro Desk picks when Golden Zone is ready
     // 1. Fetch expiries is now handled globally by DashboardContext
 
+    const activeSubscriptionsRef = useRef([]);
+
     // 2. Fetch chain when instrument or expiry changes
     const fetchChain = useCallback(async () => {
         if (!selectedInstrument || !selectedExpiry) {
@@ -335,7 +337,11 @@ export default function OptionsPage() {
                         }
 
                         if (keysToFetch.length > 0) {
+                            if (activeSubscriptionsRef.current && activeSubscriptionsRef.current.length > 0) {
+                                socket.emit("unsubscribe:instruments", { keys: activeSubscriptionsRef.current });
+                            }
                             socket.emit("subscribe:instruments", { keys: keysToFetch, mode: "option_greeks" });
+                            activeSubscriptionsRef.current = keysToFetch;
                         }
                     }
                 } catch (greekErr) {
@@ -357,6 +363,14 @@ export default function OptionsPage() {
     useEffect(() => {
         fetchChain();
     }, [fetchChain]);
+
+    useEffect(() => {
+        return () => {
+            if (activeSubscriptionsRef.current && activeSubscriptionsRef.current.length > 0) {
+                socket.emit("unsubscribe:instruments", { keys: activeSubscriptionsRef.current });
+            }
+        };
+    }, []);
 
 
     // 3. Generate Pro Desk picks using the engine

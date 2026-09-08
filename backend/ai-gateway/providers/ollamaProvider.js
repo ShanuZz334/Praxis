@@ -1,6 +1,6 @@
 import { providerCache } from '../cache/providerCache.js';
 
-export async function call({ model, messages, maxTokens, temperature, jsonMode, providerId = 'ollama' }) {
+export async function call({ model, messages, maxTokens, temperature, jsonMode, providerId = 'ollama' , timeoutMs }) {
     const p = await providerCache.getProvider(providerId);
     if (!p) throw new Error(`${providerId} provider is not configured.`);
 
@@ -16,7 +16,8 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode, 
         keep_alive: model.includes('3b') ? -1 : undefined,
         options: {
             temperature: temperature ?? 0.2,
-            num_predict: maxTokens ?? 1024
+            num_predict: maxTokens ?? 1024,
+            num_ctx: 32768
         }
     };
 
@@ -27,7 +28,7 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode, 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(60000)
+        signal: AbortSignal.timeout(timeoutMs || 45000)
     });
 
     if (!response.ok) {

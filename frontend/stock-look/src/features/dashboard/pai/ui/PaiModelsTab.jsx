@@ -41,8 +41,8 @@ export default function PaiModelsTab() {
         baseUrl: '',
         apiKey: '',
         priority: 10,
-        supportedTiers: [],
-        models: { tier1_simple: '', tier2_medium: '', tier3_complex: '', tier4_vision: '' }
+        supportedLevels: [],
+        models: { level1_fast: '', level2_standard: '', level3_advanced: '', level4_expert: '', level5_reasoner: '', level6_vision: '', level7_audio: '' }
     });
 
     useEffect(() => {
@@ -128,10 +128,7 @@ export default function PaiModelsTab() {
                 displayName: tmpl.displayName,
                 baseUrl: tmpl.baseUrl,
                 models: {
-                    tier1_simple: tmpl.models?.tier1_simple || '',
-                    tier2_medium: tmpl.models?.tier2_medium || '',
-                    tier3_complex: tmpl.models?.tier3_complex || '',
-                    tier4_vision: tmpl.models?.tier4_vision || ''
+                    level1_fast: tmpl.models?.level1_fast || '', level2_standard: tmpl.models?.level2_standard || '', level3_advanced: tmpl.models?.level3_advanced || '', level4_expert: tmpl.models?.level4_expert || '', level5_reasoner: tmpl.models?.level5_reasoner || '', level6_vision: tmpl.models?.level6_vision || '', level7_audio: tmpl.models?.level7_audio || ''
                 }
             });
         }
@@ -141,11 +138,8 @@ export default function PaiModelsTab() {
         e.preventDefault();
         const url = editingProvider ? `/api/v1/ai-settings/providers/${editingProvider.providerId}` : '/api/v1/ai-settings/providers';
         
-        const supportedTiers = Object.keys(formData.models)
-            .filter(k => formData.models[k] && formData.models[k].trim() !== '')
-            .map(k => k.replace('tier', '').split('_')[0]);
-
-        const dataToSubmit = { ...formData, supportedTiers };
+        const supportedLevels = Object.keys(formData.models).filter(k => formData.models[k] && formData.models[k].trim() !== '');
+        const dataToSubmit = { ...formData, supportedLevels };
 
         try {
             if (editingProvider) {
@@ -232,7 +226,7 @@ export default function PaiModelsTab() {
                     <button 
                         onClick={() => {
                             setEditingProvider(null);
-                            setFormData({ providerId: '', displayName: '', purpose: '', baseUrl: '', apiKey: '', priority: 10, supportedTiers: [], models: { tier1_simple: '', tier2_medium: '', tier3_complex: '', tier4_vision: '' }});
+                            setFormData({ providerId: '', displayName: '', purpose: '', baseUrl: '', apiKey: '', priority: 10, supportedLevels: [], models: { level1_fast: '', level2_standard: '', level3_advanced: '', level4_expert: '', level5_reasoner: '', level6_vision: '', level7_audio: '' }});
                             setIsModalOpen(true);
                         }}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 rounded-lg text-[13px] font-medium transition-colors"
@@ -450,13 +444,20 @@ export default function PaiModelsTab() {
                         // Build full model list dynamically from ALL active providers, tiers 2-4
                         // Sorted: tier2 → tier3 → tier4, then by provider priority within each tier
                         const FUTURE_VISION_MODELS = [
-                            { value: '', label: 'Auto — Best Available (tier3_complex fallback)' },
+                            { value: '', label: 'Auto — Best Available (Level 5 Reasoner)' },
                         ];
 
-                        const tierOrder = [
-                            { key: 'tier2_medium',  label: 'T2 Medium' },
-                            { key: 'tier3_complex', label: 'T3 Complex' },
-                            { key: 'tier4_vision',  label: 'T4 Vision' },
+                        // Elite quantitative models curated specifically for Future Vision OHLCV generation
+                        const ELITE_WHITELIST = [
+                            'nvidia/nemotron-3-ultra-550b-a55b:free',
+                            'nvidia/nemotron-3-super-120b-a12b:free',
+                            'inclusionai/ling-3.0-flash-fin:free',
+                            'openai/gpt-oss-120b',
+                            'gemini-3.8-flash',
+                            'qwen/qwen3.8-27b',
+                            'glm-4-plus',
+                            'glm-5.2',
+                            'glm-5.3-flash'
                         ];
 
                         const seen = new Set();
@@ -464,17 +465,19 @@ export default function PaiModelsTab() {
                         // Sort providers by priority ascending
                         const sortedProviders = [...providers].filter(p => p.isActive).sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
 
-                        tierOrder.forEach(({ key, label: tierLabel }) => {
-                            sortedProviders.forEach(p => {
-                                const modelId = p.models?.[key];
-                                if (!modelId) return;
-                                const val = `${p.providerId}::${modelId}`;
-                                if (seen.has(val)) return;
-                                seen.add(val);
-                                FUTURE_VISION_MODELS.push({
-                                    value: val,
-                                    label: `${p.displayName}: ${modelId} [${tierLabel}]`
-                                });
+                        // Find any of the elite models across all active providers
+                        sortedProviders.forEach(p => {
+                            if (!p.models) return;
+                            Object.entries(p.models).forEach(([tier, modelId]) => {
+                                if (modelId && ELITE_WHITELIST.includes(modelId)) {
+                                    const val = `${p.providerId}::${modelId}`;
+                                    if (seen.has(val)) return;
+                                    seen.add(val);
+                                    FUTURE_VISION_MODELS.push({
+                                        value: val,
+                                        label: `[Elite] ${p.displayName}: ${modelId}`
+                                    });
+                                }
                             });
                         });
 
@@ -495,13 +498,13 @@ export default function PaiModelsTab() {
                                             handleRoutingChange('futureVision', { providerId: parts[0], modelId: parts.slice(1).join('::') });
                                         }
                                     }}
-                                    placeholder="Auto — Best Available (tier3_complex fallback)"
+                                    placeholder="Auto — Best Available (Level 5 Reasoner)"
                                     className="w-full text-[13px]"
                                     matchWidth={true}
                                     hideSearch={false}
                                 />
                                 <p className="text-[10px] text-text-tertiary">
-                                    Default (Auto): uses the highest-priority active tier3_complex model from your gateway with circuit-breaker fallback across all providers.
+                                    Default (Auto): Automatically routes to the highest priority Level 5 (Reasoner) model for maximum quantitative intelligence.
                                 </p>
                             </div>
                         );
@@ -754,12 +757,15 @@ export default function PaiModelsTab() {
                             </div>
 
                             <div>
-                                <label className="block text-[12px] font-medium text-text-secondary mb-2">Tier Models (Optional)</label>
+                                <label className="block text-[12px] font-medium text-text-secondary mb-2">Level Models (Optional)</label>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <input placeholder="Tier 1 (e.g. qwen2.5:3b)" value={formData.models.tier1_simple} onChange={e => setFormData({...formData, models: {...formData.models, tier1_simple: e.target.value}})} className="w-full bg-background-surface border border-border-default/50 rounded-lg px-3 py-1.5 text-[12px] text-text-primary outline-none font-mono" />
-                                    <input placeholder="Tier 2" value={formData.models.tier2_medium} onChange={e => setFormData({...formData, models: {...formData.models, tier2_medium: e.target.value}})} className="w-full bg-background-surface border border-border-default/50 rounded-lg px-3 py-1.5 text-[12px] text-text-primary outline-none font-mono" />
-                                    <input placeholder="Tier 3" value={formData.models.tier3_complex} onChange={e => setFormData({...formData, models: {...formData.models, tier3_complex: e.target.value}})} className="w-full bg-background-surface border border-border-default/50 rounded-lg px-3 py-1.5 text-[12px] text-text-primary outline-none font-mono" />
-                                    <input placeholder="Tier 4 (Vision)" value={formData.models.tier4_vision} onChange={e => setFormData({...formData, models: {...formData.models, tier4_vision: e.target.value}})} className="w-full bg-background-surface border border-border-default/50 rounded-lg px-3 py-1.5 text-[12px] text-text-primary outline-none font-mono" />
+                                    <input placeholder="Level 1 Fast" value={formData.models.level1_fast} onChange={e => setFormData({...formData, models: {...formData.models, level1_fast: e.target.value}})} className="w-full bg-background-surface border border-border-default/50 rounded-lg px-3 py-1.5 text-[12px] text-text-primary outline-none font-mono" />
+                                    <input placeholder="Level 2 Standard" value={formData.models.level2_standard} onChange={e => setFormData({...formData, models: {...formData.models, level2_standard: e.target.value}})} className="w-full bg-background-surface border border-border-default/50 rounded-lg px-3 py-1.5 text-[12px] text-text-primary outline-none font-mono" />
+                                    <input placeholder="Level 3 Advanced" value={formData.models.level3_advanced} onChange={e => setFormData({...formData, models: {...formData.models, level3_advanced: e.target.value}})} className="w-full bg-background-surface border border-border-default/50 rounded-lg px-3 py-1.5 text-[12px] text-text-primary outline-none font-mono" />
+                                    <input placeholder="Level 4 Expert" value={formData.models.level4_expert} onChange={e => setFormData({...formData, models: {...formData.models, level4_expert: e.target.value}})} className="w-full bg-background-surface border border-border-default/50 rounded-lg px-3 py-1.5 text-[12px] text-text-primary outline-none font-mono" />
+                                    <input placeholder="Level 5 Reasoner" value={formData.models.level5_reasoner} onChange={e => setFormData({...formData, models: {...formData.models, level5_reasoner: e.target.value}})} className="w-full bg-background-surface border border-border-default/50 rounded-lg px-3 py-1.5 text-[12px] text-text-primary outline-none font-mono" />
+                                    <input placeholder="Level 6 Vision" value={formData.models.level6_vision} onChange={e => setFormData({...formData, models: {...formData.models, level6_vision: e.target.value}})} className="w-full bg-background-surface border border-border-default/50 rounded-lg px-3 py-1.5 text-[12px] text-text-primary outline-none font-mono" />
+                                    <input placeholder="Level 7 Audio" value={formData.models.level7_audio} onChange={e => setFormData({...formData, models: {...formData.models, level7_audio: e.target.value}})} className="col-span-2 w-full bg-background-surface border border-border-default/50 rounded-lg px-3 py-1.5 text-[12px] text-text-primary outline-none font-mono" />
                                 </div>
                             </div>
 

@@ -12,7 +12,7 @@ export const AI_CONFIG = {
     EMBEDDING_MODEL: 'nomic-embed-text',
 
     CIRCUIT_BREAKER: {
-        MAX_FAILURES: 3,       
-        RESET_TIMEOUT: 60000,  
+        MAX_FAILURES: 2,       // trip faster on bad models (was 3)
+        RESET_TIMEOUT: 30000,  // recover sooner — 30s instead of 60s
     }
 };

@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, useDragControls, useMotionValue, useAnimation } from 'framer-motion';
 import { usePaiWidget } from '@/shared/context/PaiWidgetContext';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from "react-router-dom";
+import { usePaiCommands } from "../hooks/usePaiCommands";
 import { useTheme } from '@/shared/context/ThemeContext';
 import paiIcon from "@/assets/icons/pai-round-bgless.png";
 import paiLabelImg from "@/assets/icons/pai-label-bgless.png";
@@ -54,7 +55,9 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
         sidebarRect
     } = usePaiWidget();
     
-    const { useOrbNav } = useTheme();
+    const themeContext = useTheme();
+    const { useOrbNav } = themeContext;
+    const navigate = useNavigate();
     const { setProfile } = useProfile();
     const location = useLocation();
     const [chatMode, setChatMode] = useState('contextual'); // 'contextual' or 'global'
@@ -78,7 +81,8 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     
     // Hooks for auto context injection
     const { getPageSnapshot, getMasterSnapshot } = useDataRegistry();
-    const { selectedInstrument, livePrices, globalData } = useDashboardContext();
+    const dashboardContext = useDashboardContext();
+    const { selectedInstrument, livePrices, globalData } = dashboardContext;
     const [isDragging, setIsDragging] = useState(false);
     const [hasDragged, setHasDragged] = useState(false);
     const [message, setMessage] = useState("");
@@ -106,8 +110,10 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
     const [isFetchingHistory, setIsFetchingHistory] = useState(true);
     const [isPanelExpanded, setIsPanelExpanded] = useState(false);
 
-    const { isVoiceMode, toggleVoiceMode, status: voiceStatus, synthesize, skipTts, registerListener, unregisterListener, isHearingSpeech } = useVoice();
+    const voiceContext = useVoice();
+    const { isVoiceMode, toggleVoiceMode, status: voiceStatus, synthesize, skipTts, registerListener, unregisterListener, isHearingSpeech } = voiceContext;
 
+    
     const handleSendDirectRef = useRef(null);
     const abortControllerRef = useRef(null);
     
@@ -152,29 +158,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                 return; // Stop propagation
             }
             
-            // Voice Command Interception for AI Level selection
-            const levelMatch = cleanText.match(/(?:choose|select|set|use)\s*(?:level|lvl)\s*(\d+)/i);
-            if (levelMatch && availableModelsRef.current) {
-                const targetLevel = parseInt(levelMatch[1]);
-                const modelToSelect = availableModelsRef.current.find(m => m.level === targetLevel);
-                if (modelToSelect) {
-                    setTempModel(modelToSelect.modelId);
-                    synthesize(`Upgrading cognitive engine to Level ${targetLevel}.`);
-                    return; // Stop propagation, do not send chat
-                } else {
-                    synthesize(`I do not have a Level ${targetLevel} model available.`);
-                    return;
-                }
-            }
-
-            // Voice Command Interception for Trading Horizon / Mode selection
-            const modeMatch = cleanText.match(/(?:change|set|switch)\s*(?:the\s*)?(?:trade\s*mode|trading\s*horizon|trading\s*mode|mode|horizon|profile)\s*(?:to\s*)?(intraday|swing|positional)/i);
-            if (modeMatch) {
-                const targetMode = modeMatch[1].toLowerCase();
-                setProfile(targetMode);
-                synthesize(`Trading horizon changed to ${targetMode}. Presets synchronized.`);
-                return; // Stop propagation
-            }
+            
 
             // Normal Message Handling (processes headlessly if panel is closed)
             if (handleSendDirectRef.current) handleSendDirectRef.current(text, true);
@@ -400,10 +384,36 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
         handleSendDirect(message);
     };
 
+    
+    
+    const interceptCommand = usePaiCommands({
+        setIsChatOpen, setIsDocked, setChatMode, setTempModel, 
+        setMessages, setMessage, 
+        availableModels: availableModelsRef.current,
+        setProfile, themeContext, dashboardContext, voiceContext, navigate
+    });
+
     const handleSendDirect = async (textToSubmit, fromVoice = false) => {
         if (!textToSubmit.trim() || isGenerating) return;
 
         const reqTargetId = activeTargetId;
+
+        const commandReply = interceptCommand(textToSubmit, fromVoice);
+        if (commandReply === "UI_CONTROL_NO_REPLY") {
+            setMessage("");
+            return;
+        }
+        if (commandReply) {
+            if (fromVoice && voiceContext?.synthesize) voiceContext.synthesize(commandReply);
+            const reply = {
+                id: Date.now() + 1, role: "ai",
+                content: commandReply,
+                timestamp: new Date().toISOString()
+            };
+            setMessages(prev => [...prev, { id: Date.now(), role: "user", content: textToSubmit }, reply]);
+            setMessage("");
+            return;
+        }
 
         // Parse and resolve all @mentions from the message
         const { cleanText, cardSnapshots } = mentions.parseAndResolveAll(textToSubmit);
@@ -431,7 +441,7 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
             indiaVix: livePrices?.['NSE_INDEX|India VIX']?.ltp || null,
             globalData: globalData || {},
             pageSnapshot: mentionScopePageId ? getPageSnapshot(mentionScopePageId) : getMasterSnapshot(),
-            maxAiLevel: availableModelsRef.current.filter(m => m.level).length || 1
+            maxAiLevel: availableModelsRef.current.filter(m => m.level).length || 1, currentAiLevel: tempModel ? availableModelsRef.current.find(m => m.modelId === tempModel)?.level || 'Default' : 'Default'
         };
 
         if (abortControllerRef.current) {

@@ -532,14 +532,14 @@ router.post('/generate/:targetId', async (req, res) => {
 
             if (numVerbosity <= 100) {
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Generate EXACTLY 1 to 2 short sentences total (maximum ${numVerbosity} words). NO MORE. Be extremely concise and ensure you finish your thought completely without cutting off.]`;
-                dynamicMaxTokens = Math.max(800, numVerbosity * 4);
+                dynamicMaxTokens = 2048; // Generous buffer, let the AI finish rather than hard cut
             } else if (numVerbosity >= 350) {
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Provide a detailed, comprehensive analysis spanning multiple paragraphs. You MUST strictly limit your entire response to approximately ${numVerbosity} words. To prevent being cut off, you MUST write a final, natural concluding paragraph well before reaching this word limit.]`;
-                dynamicMaxTokens = Math.max(2500, numVerbosity * 4);
+                dynamicMaxTokens = 4096;
             } else {
                 // Default / medium
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: You MUST generate EXACTLY ONE SINGLE PARAGRAPH (maximum ${numVerbosity} words). Do NOT use any line breaks or multiple paragraphs. The entire response must be a single block of text and must be a complete thought.]`;
-                dynamicMaxTokens = Math.max(1500, numVerbosity * 4);
+                dynamicMaxTokens = 3072;
             }
         }
         
@@ -612,7 +612,7 @@ router.post('/generate/:targetId', async (req, res) => {
 router.post('/chat/:targetId', async (req, res) => {
     try {
         const { targetId } = req.params;
-        let { message, scope = 'card', contextData, cardSnapshots = [], explicitProvider, explicitModel } = req.body;
+        let { message, scope = 'card', contextData, cardSnapshots = [], explicitProvider, explicitModel, enableWebSearch } = req.body;
         
         // DEBUG LOGGING START
         console.log("[AI Prompts] Chat Request targetId=" + targetId);
@@ -682,8 +682,12 @@ router.post('/chat/:targetId', async (req, res) => {
 
         // Engine Power Levels
         if (contextData?.maxAiLevel) {
-            systemInstruction += `\n\nINTELLIGENCE LEVEL: You are part of a multi-model cognitive engine. The models are ranked by power from Level 1 up to Level ${contextData.maxAiLevel} (Max Level). If the user asks what the max level is, tell them it is Level ${contextData.maxAiLevel}. The user can change levels by saying 'choose level X for this conversation'.`;
+            systemInstruction += `\n\nINTELLIGENCE LEVEL: You are part of a multi-model cognitive engine. The models are ranked by power from Level 1 up to Level ${contextData.maxAiLevel} (Max Level). Your CURRENT intelligence level is ${contextData.currentAiLevel || 'Default'}. If the user asks what the max level is, tell them it is Level ${contextData.maxAiLevel}. The user can change levels by saying 'choose level X for this conversation'.`;
         }
+
+
+        // Available Commands Directory
+        systemInstruction += `\n\nSYSTEM COMMANDS DIRECTORY: You are equipped with a real-time command interception engine in the frontend UI. If the user asks what you can do, tell them they can instantly control the platform using the following commands. IMPORTANT: The frontend UI intercepts these commands automatically. DO NOT output XML tool calls, JSON, or code to execute these commands. Just reply naturally to the user or tell them what to type:\n- Theme Control: "switch to dark mode", "light theme", "toggle theme"\n- Navigation: "go to fundamentals", "open technicals", "go to options", "open global markets", "go to events"\n- Instrument Switching: "switch to Nifty 50", "load Reliance"\n- AI Control: "choose level X", "switch to global mode", "clear chat", "reset model"\n- Voice Control: "mute voice", "stop speaking", "enable voice"\n- Trading Horizon: "switch to intraday/swing/positional"`;
 
         // 2. Fetch thread history
         const thread = await AiChatThread.findOne({ targetId, scope, userId }).lean();
@@ -717,14 +721,14 @@ router.post('/chat/:targetId', async (req, res) => {
 
             if (numVerbosity <= 100) {
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Generate EXACTLY 1 to 2 short sentences total (maximum ${numVerbosity} words). NO MORE. Be extremely concise and ensure you finish your thought completely without cutting off.]`;
-                dynamicMaxTokens = Math.max(800, numVerbosity * 4);
+                dynamicMaxTokens = 2048; // Generous buffer, let the AI finish rather than hard cut
             } else if (numVerbosity >= 350) {
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Provide a detailed, comprehensive analysis spanning multiple paragraphs. You MUST strictly limit your entire response to approximately ${numVerbosity} words. To prevent being cut off, you MUST write a final, natural concluding paragraph well before reaching this word limit.]`;
-                dynamicMaxTokens = Math.max(2500, numVerbosity * 4);
+                dynamicMaxTokens = 4096;
             } else {
                 // Default / medium
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: You MUST generate EXACTLY ONE SINGLE PARAGRAPH (maximum ${numVerbosity} words). Do NOT use any line breaks or multiple paragraphs. The entire response must be a single block of text and must be a complete thought.]`;
-                dynamicMaxTokens = Math.max(1500, numVerbosity * 4);
+                dynamicMaxTokens = 3072;
             }
         }
         
@@ -741,7 +745,8 @@ router.post('/chat/:targetId', async (req, res) => {
             maxTokens: dynamicMaxTokens,
             temperature: routing?.temperature !== undefined ? routing.temperature : 0.7,
             explicitProvider,
-            explicitModel
+            explicitModel,
+            enableWebSearch
         });
 
         if (response.error) {

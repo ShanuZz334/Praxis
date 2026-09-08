@@ -100,14 +100,26 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             const cached = loadAllIntelScores(selectedInstrument);
             setDbFallbackData(prev => {
                 const next = { ...prev };
-                // TECH: master engine is authoritative — localStorage value is correct
+                const nowIso = new Date().toISOString();
+                
+                // The backend background intelligence cron computes authoritative scores 
+                // for all 5 modules independently of any page being open, and broadcasts 
+                // them via socket. We accept them all here for a 100% lively dashboard.
                 if (cached.technical?.score != null && !cached.technical.stale)
-                    next.technical = { ...prev.technical, composite_score: cached.technical.score };
-                // EVT: cron's market_events AI score is authoritative — accept from socket
+                    next.technical = { ...prev.technical, composite_score: cached.technical.score, regime_json: cached.technical.regime, updated_at: nowIso };
+                
                 if (cached.events?.score != null && !cached.events.stale)
-                    next.events = { ...prev.events, composite_score: cached.events.score };
-                // FUND, OPT, GLOB: NOT updated from localStorage — stale cron/master values
-                // live there. These are updated exclusively via the 10s DB poll in fetchMasterData.
+                    next.events = { ...prev.events, composite_score: cached.events.score, updated_at: nowIso };
+                
+                if (cached.fundamental?.score != null && !cached.fundamental.stale)
+                    next.fundamental = { ...prev.fundamental, composite_score: cached.fundamental.score, regime_json: cached.fundamental.regime, updated_at: nowIso };
+                
+                if (cached.options?.score != null && !cached.options.stale)
+                    next.options = { ...prev.options, composite_score: cached.options.score, updated_at: nowIso };
+                
+                if (cached.global?.score != null && !cached.global.stale)
+                    next.global = { ...prev.global, composite_score: cached.global.score, regime_json: cached.global.regime, updated_at: nowIso };
+                
                 return next;
             });
         };
@@ -138,11 +150,12 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
         // and clear the old raw data, preventing the UI from showing the previous instrument.
         const cached = loadAllIntelScores(selectedInstrument);
         const instantResult = {};
-        if (cached.fundamental?.score != null && !cached.fundamental.stale) instantResult.fundamental = { composite_score: cached.fundamental.score, regime_json: cached.fundamental.regime };
-        if (cached.technical?.score != null && !cached.technical.stale)     instantResult.technical   = { composite_score: cached.technical.score,   regime_json: cached.technical.regime };
-        if (cached.options?.score != null && !cached.options.stale)         instantResult.options      = { composite_score: cached.options.score };
-        if (cached.global?.score != null && !cached.global.stale)           instantResult.global       = { composite_score: cached.global.score };
-        if (cached.events?.score != null && !cached.events.stale)           instantResult.events       = { composite_score: cached.events.score };
+        const nowIso = new Date().toISOString();
+        if (cached.fundamental?.score != null && !cached.fundamental.stale) instantResult.fundamental = { composite_score: cached.fundamental.score, regime_json: cached.fundamental.regime, updated_at: nowIso };
+        if (cached.technical?.score != null && !cached.technical.stale)     instantResult.technical   = { composite_score: cached.technical.score,   regime_json: cached.technical.regime, updated_at: nowIso };
+        if (cached.options?.score != null && !cached.options.stale)         instantResult.options      = { composite_score: cached.options.score, updated_at: nowIso };
+        if (cached.global?.score != null && !cached.global.stale)           instantResult.global       = { composite_score: cached.global.score, updated_at: nowIso };
+        if (cached.events?.score != null && !cached.events.stale)           instantResult.events       = { composite_score: cached.events.score, updated_at: nowIso };
         
         setDbFallbackData(instantResult);
         setRawFundamentals(null);
@@ -396,11 +409,8 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
         // FUND: Headless parser is incomplete (37 vs 52), but live 37 is better than a stale DB 20 from weeks ago.
         const fundScore = getBestScore(dbFallbackData?.fundamental, fundEngine?.compositeScore);
 
-        // TECH: ENGINE-FIRST always (parser is 100% complete)
-        const rawTechScore = techEngine?.compositeScore;
-        const techScore = (rawTechScore != null && rawTechScore > 0)
-            ? rawTechScore
-            : validScore(dbFallbackData?.technical?.composite_score) ?? null;
+        // TECH: DB-FIRST if fresh (backend cron is now 100% authoritative and live via socket), otherwise live engine
+        const techScore = getBestScore(dbFallbackData?.technical, techEngine?.compositeScore);
 
         // OPT: DB-FIRST if fresh (51 vs 38 due to expiry differences), otherwise live engine
         const optScore = getBestScore(dbFallbackData?.options, optionsEngine?.compositeScore);

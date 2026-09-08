@@ -6,27 +6,19 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure .env is loaded
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 16; // For AES, this is always 16
-const SALT_LENGTH = 64;
-const TAG_LENGTH = 16;
-const KEY_LENGTH = 32;
-const ITERATIONS = 100000;
+const IV_LENGTH = 16; 
 
-const secretKey = process.env.ENCRYPTION_KEY;
+// Bug 26 Fix: Unify encryption secrets. Previously the AI Gateway used ENCRYPTION_SECRET 
+// while core used ENCRYPTION_KEY, creating chaos. We prioritize SECRET to preserve DB keys.
+const secretKey = process.env.ENCRYPTION_SECRET || process.env.ENCRYPTION_KEY;
 
 if (!secretKey || secretKey.length < 32) {
-    console.warn("WARNING: ENCRYPTION_KEY is missing or too short. Credential encryption will fail.");
+    console.warn("WARNING: Encryption secret is missing or <32 bytes. Credential encryption will fail.");
 }
 
-/**
- * Encrypts a text string using AES-256-GCM
- * @param {string} text - The text to encrypt
- * @returns {string} - The encrypted string format: iv:authTag:encryptedData
- */
 export const encrypt = (text) => {
     if (!text) return null;
     if (!secretKey) throw new Error("Encryption key not configured");
@@ -42,11 +34,6 @@ export const encrypt = (text) => {
     return `${iv.toString('hex')}:${authTag}:${encrypted}`;
 };
 
-/**
- * Decrypts an encrypted string
- * @param {string} text - The encrypted string
- * @returns {string} - The decrypted text
- */
 export const decrypt = (text) => {
     if (!text) return null;
     if (!secretKey) throw new Error("Encryption key not configured");

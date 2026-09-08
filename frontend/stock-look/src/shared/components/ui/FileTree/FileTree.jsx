@@ -93,27 +93,27 @@ const FolderTree = ({ item, level, onFileClick, activeId, renderActions }) => {
         <span className="truncate">{item.name}</span>
       </div>
 
-      {/* Content — pure CSS max-height transition, zero JS overhead */}
+      {/* Content — pure CSS grid transition, perfectly smooth regardless of content size */}
       <div
         style={{
-          maxHeight: open ? '9999px' : '0px',
-          overflow: 'hidden',
-          transition: open
-            ? 'max-height 0.25s ease-in'
-            : 'max-height 0.18s ease-out',
+          display: 'grid',
+          gridTemplateRows: open ? '1fr' : '0fr',
+          transition: open ? 'grid-template-rows 0.25s ease-in' : 'grid-template-rows 0.18s ease-out',
         }}
       >
-        <div className="flex flex-col gap-0.5 mt-0.5">
-          {item.children?.map((child, idx) => (
-            <FileTree
-              key={`${child.id || child.name}-${idx}`}
-              item={child}
-              level={level + 1}
-              onFileClick={onFileClick}
-              activeId={activeId}
-              renderActions={renderActions}
-            />
-          ))}
+        <div style={{ overflow: 'hidden' }}>
+          <div className="flex flex-col gap-0.5 mt-0.5">
+            {item.children?.map((child, idx) => (
+              <FileTree
+                key={`${child.id || child.name}-${idx}`}
+                item={child}
+                level={level + 1}
+                onFileClick={onFileClick}
+                activeId={activeId}
+                renderActions={renderActions}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>

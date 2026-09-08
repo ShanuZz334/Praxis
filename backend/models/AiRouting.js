@@ -32,6 +32,14 @@ const aiRoutingSchema = new mongoose.Schema({
         // Defaults to the best tier3_complex model available if not explicitly set.
         providerId: { type: String, default: null },
         modelId:    { type: String, default: null },
+    },
+    permissions: {
+        readPortfolio: { type: Boolean, default: true },
+        readWatchlists: { type: Boolean, default: true },
+        readWallet: { type: Boolean, default: false },
+        writeTrades: { type: Boolean, default: false },
+        writeJournal: { type: Boolean, default: true },
+        networkAccess: { type: Boolean, default: true }
     }
 }, { timestamps: true });
 

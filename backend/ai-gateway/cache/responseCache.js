@@ -4,7 +4,14 @@ import crypto from 'crypto';
 const cache = new NodeCache({ stdTTL: 900, checkperiod: 120 });
 
 function generateHash(request) {
-    const hashData = JSON.stringify({
+    // Bug 18 Fix: Stable stringify function to sort keys before hashing
+    const stableStringify = (obj) => {
+        if (obj === null || typeof obj !== 'object') return JSON.stringify(obj);
+        if (Array.isArray(obj)) return `[${obj.map(stableStringify).join(',')}]`;
+        return `{${Object.keys(obj).sort().map(k => `"${k}":${stableStringify(obj[k])}`).join(',')}}`;
+    };
+
+    const hashData = stableStringify({
         taskType: request.taskType,
         prompt: request.prompt,
         data: request.data,
@@ -15,7 +22,8 @@ function generateHash(request) {
 }
 
 function getTTL(taskType) {
-    if (taskType === 'event_classification') return 0; // effectively infinite
+    // Bug 22 Fix: Change from 0 (infinite) to 3600 (1 hour) so hallucinations eventually clear
+    if (taskType === 'event_classification') return 3600; 
     if (taskType === 'chat_conversation') return -1; // do not cache exact match
     if (taskType === 'chart_qa') return -1; // handle via semantic instead
     return 900; // 15 mins default

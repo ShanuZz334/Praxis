@@ -12,12 +12,15 @@ const aiProviderSchema = new mongoose.Schema({
     baseUrl: { type: String },
     isActive: { type: Boolean, default: true },
     priority: { type: Number, default: 10 },
-    supportedTiers: [{ type: String }],
+    supportedLevels: [{ type: String }],
     models: {
-        tier1_simple: String,
-        tier2_medium: String,
-        tier3_complex: String,
-        tier4_vision: String
+        level1_fast: String,
+        level2_standard: String,
+        level3_advanced: String,
+        level4_expert: String,
+        level5_reasoner: String,
+        level6_vision: String,
+        level7_audio: String
     },
     rateLimitedUntil: { type: Date, default: null },
     lastUsed: { type: Date, default: null }

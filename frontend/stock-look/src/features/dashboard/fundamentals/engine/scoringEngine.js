@@ -798,7 +798,7 @@ export function scoreOperatingMargin(currentMargin, sectorMargin) {
 
 export function scorePBRatio(currentPB, historicalPB, sectorPB) {
     if (!currentPB) {
-        return { score: null, bias: "Unknown", confidence: "0%" };
+        return { score: null, bias: "Unknown", confidence: 0 };
     }
 
     const T = FUNDAMENTAL_THRESHOLDS.pb_ratio;
@@ -1140,10 +1140,16 @@ export function generateAiInsightDebtToEquityCard(currentDE, sectorDE, leverageZ
     let base = `D/E ratio of ${currentDE.toFixed(2)}x places the company in the "${leverageZone}" zone.`;
 
     if (sectorDE !== null && !isNaN(sectorDE)) {
-        const vsStr = currentDE < sectorDE
-            ? `${((1 - currentDE / sectorDE) * 100).toFixed(1)}% below the sector average of ${sectorDE.toFixed(2)}x`
-            : `${((currentDE / sectorDE - 1) * 100).toFixed(1)}% above the sector average of ${sectorDE.toFixed(2)}x`;
-        base += ` This is ${vsStr}.`;
+        if (sectorDE === 0) {
+            base += currentDE === 0 
+                ? ` This matches the zero-debt sector average.` 
+                : ` The sector average is debt-free (0.00x), making any leverage notable.`;
+        } else {
+            const vsStr = currentDE < sectorDE
+                ? `${((1 - currentDE / sectorDE) * 100).toFixed(1)}% below the sector average of ${sectorDE.toFixed(2)}x`
+                : `${((currentDE / sectorDE - 1) * 100).toFixed(1)}% above the sector average of ${sectorDE.toFixed(2)}x`;
+            base += ` This is ${vsStr}.`;
+        }
     }
 
     if (currentDE < 0.3) {
@@ -1517,16 +1523,20 @@ export function generateAiInsightPBRatioCard(currentPB, historicalPB, sectorPB) 
 export function generateAiInsightPERatioCard(currentPE, historicalAvg, sectorPE, bias) {
     if (!currentPE) return 'Waiting for P/E data to generate an insight.';
 
-    const vsHist = historicalAvg
-        ? currentPE < historicalAvg
-            ? `trading at a ${((1 - currentPE / historicalAvg) * 100).toFixed(1)}% discount to its historical average of ${historicalAvg}x`
-            : `trading at a ${((currentPE / historicalAvg - 1) * 100).toFixed(1)}% premium to its historical average of ${historicalAvg}x`
+    const vsHist = historicalAvg !== null && historicalAvg !== undefined
+        ? historicalAvg === 0 
+            ? `trading with a P/E of ${currentPE}x against a zero historical average`
+            : currentPE < historicalAvg
+                ? `trading at a ${((1 - currentPE / historicalAvg) * 100).toFixed(1)}% discount to its historical average of ${historicalAvg}x`
+                : `trading at a ${((currentPE / historicalAvg - 1) * 100).toFixed(1)}% premium to its historical average of ${historicalAvg}x`
         : null;
 
-    const vsSector = sectorPE
-        ? currentPE < sectorPE
-            ? `cheaper than its sector peers at ${sectorPE}x`
-            : `richer than sector peers at ${sectorPE}x`
+    const vsSector = sectorPE !== null && sectorPE !== undefined
+        ? sectorPE === 0 
+            ? `compared to a zero-PE sector average`
+            : currentPE < sectorPE
+                ? `cheaper than its sector peers at ${sectorPE}x`
+                : `richer than sector peers at ${sectorPE}x`
         : null;
 
     const contextParts = [vsHist, vsSector].filter(Boolean).join(', and ');
@@ -2342,7 +2352,30 @@ export function generateAiInsightDIIFlow(scoreObj, val) {
     if (scoreObj.score <= 25) return `DII selling of ₹${val} Cr removes a key pillar of domestic market support.`;
     return `DII flows of ₹${val} Cr are relatively neutral, providing stable but unaggressive support.`;
 }
-export function generateAiInsightSectorDashboard(score, adv, val, growth, cyc) { return 'Sector breadth and concentration metrics indicate underlying health. Broad participation supports longer-term uptrends.'; }
+export function generateAiInsightSectorDashboard(score, adv, val, growth, cyc) { 
+    if (score === null || isNaN(score)) return 'Awaiting sector correlation data to generate composite insights.';
+    
+    let parts = [];
+    
+    if (adv !== null && !isNaN(adv)) {
+        if (adv > 70) parts.push('Broad market participation is exceptionally strong.');
+        else if (adv > 50) parts.push('Breadth remains positive, supporting the uptrend.');
+        else if (adv < 30) parts.push('Severe negative breadth indicates widespread distribution.');
+        else parts.push('Sector breadth is weakening, signaling potential rotational vulnerability.');
+    }
+    
+    if (growth !== null && !isNaN(growth) && val !== null && !isNaN(val)) {
+        if (growth > val) parts.push('Growth sectors are outperforming value, confirming a risk-on regime.');
+        else if (val > growth) parts.push('Value is outperforming growth, typical of defensive rotations or late-cycle dynamics.');
+    }
+
+    if (cyc !== null && !isNaN(cyc)) {
+        if (cyc > 55) parts.push('Capital is actively flowing into cyclical names, confirming economic expansion confidence.');
+        else if (cyc < 45) parts.push('Capital is seeking refuge in defensive sectors, hinting at macro uncertainty.');
+    }
+
+    return parts.length > 0 ? parts.join(' ') : 'Sector metrics indicate normalized rotational behavior.';
+}
 
 export function scoreCurrentRatio(currentRatio) {
     if (currentRatio === null || isNaN(currentRatio)) {

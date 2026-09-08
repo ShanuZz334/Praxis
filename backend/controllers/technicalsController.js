@@ -272,7 +272,7 @@ export const getTechnicalIndicators = async (req, res) => {
             console.error("SQLite Fallback failed for technicals:", dbErr.message);
         }
 
-        res.status(500).json({ success: false, error: "Internal server error" });
+        res.status(500).json({ success: false, error: "Internal server error", details: error.message, stack: error.stack });
     }
 };
 
@@ -333,6 +333,7 @@ export const getCandles = async (req, res) => {
         triggerBackfillIfNeeded(instrument, timeframe);
     } catch (error) {
         console.error("Candles endpoint error:", error);
+        import("fs").then(fs => fs.appendFileSync("c:/project/ALLBACKUP/Praxis/backend/real_errors.log", new Date().toISOString() + " TechError: " + (error.stack || error.message) + "\n"));
         res.status(500).json({ success: false, error: "Internal server error" });
     }
 };

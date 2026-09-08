@@ -149,9 +149,25 @@ export const syncCandlesIfStale = async (instrumentKey, timeframe = 'day') => {
     const lastCheck = cooldownCache.get(cacheKey);
     const nowTs = Date.now();
     if (lastCheck) {
-        if (timeframe.includes('minute') && nowTs - lastCheck < 60000) return; // 1m cooldown
-        if (timeframe.includes('hour') && nowTs - lastCheck < 300000) return; // 5m cooldown
-        if (timeframe === 'day' && nowTs - lastCheck < 3600000) return; // 1hr cooldown
+        // Per-timeframe cooldowns — sync happens ~1 candle-duration before the next bar,
+        // not every 60 seconds regardless of interval (the old flat-60s caused stale charts).
+        const COOLDOWNS = {
+            '1minute':  45 * 1000,          // 45 s  — 1-min bars
+            '3minute':  2  * 60 * 1000,     // 2 min
+            '5minute':  4  * 60 * 1000,     // 4 min
+            '10minute': 9  * 60 * 1000,     // 9 min
+            '15minute': 13 * 60 * 1000,     // 13 min — key fix: was 60s (flat)
+            '30minute': 28 * 60 * 1000,     // 28 min
+            '1hour':    58 * 60 * 1000,     // 58 min
+            'day':      60 * 60 * 1000,     // 1 hr
+            'week':     6  * 60 * 60 * 1000,// 6 hr
+            'month':    24 * 60 * 60 * 1000,// 24 hr
+        };
+        const cooldown = COOLDOWNS[timeframe]
+            ?? (timeframe.includes('minute') ? 45 * 1000
+                : timeframe.includes('hour') ? 58 * 60 * 1000
+                : 60 * 60 * 1000);
+        if (nowTs - lastCheck < cooldown) return;
     }
     
     const syncWork = async () => {

@@ -23,9 +23,17 @@ const ALPHA = 0.1; // significance level for WIS
 
 export function storePrediction(instrumentKey, timeframe, tradingMode, candles, bias, risk, times, modelUsed) {
     const db = _load();
-    db[_key(instrumentKey, timeframe)] = {
+    const key = _key(instrumentKey, timeframe);
+    let arr = db[key];
+    if (!Array.isArray(arr)) {
+        arr = arr ? [arr] : [];
+        db[key] = arr;
+    }
+    
+    const session = {
+        id: Date.now().toString(),
         instrumentKey, timeframe, tradingMode,
-        candles,   // predicted
+        candles,
         bias,
         risk,
         times,
@@ -33,12 +41,25 @@ export function storePrediction(instrumentKey, timeframe, tradingMode, candles, 
         scores: [],
         storedAt: Date.now(),
     };
+    
+    arr.push(session);
+    if (arr.length > 10) arr.shift();
     _save(db);
+    return session;
+}
+
+export function getAllPAESessions(instrumentKey, timeframe) {
+    const db = _load();
+    const arr = db[_key(instrumentKey, timeframe)];
+    return Array.isArray(arr) ? arr : (arr ? [arr] : []);
 }
 
 export function scoreClosedCandle(instrumentKey, timeframe, barIndex, realCandle) {
     const db = _load();
-    const session = db[_key(instrumentKey, timeframe)];
+    const key = _key(instrumentKey, timeframe);
+    let arr = db[key];
+    if (!Array.isArray(arr)) return null;
+    const session = arr[arr.length - 1];
     if (!session || !session.candles[barIndex]) return null;
 
     const pred = session.candles[barIndex];
@@ -61,6 +82,15 @@ export function scoreClosedCandle(instrumentKey, timeframe, barIndex, realCandle
     const overshoot     = Math.max(0, real.close - pred.high);
     const wis = intervalWidth + (2 / ALPHA) * undershoot + (2 / ALPHA) * overshoot;
 
+    // Institutional composite accuracy score (0-100)
+    // 1. Directional alignment (weight: 40%)
+    // 2. Close price proximity to predicted close relative to the predicted volatility range (weight: 60%)
+    const range = Math.max(pred.high - pred.low, real.high - real.low, 0.01);
+    const closeError = Math.abs(real.close - pred.close);
+    // If close error is 0, precision is 60. If close error is equal to the full range, precision is 0.
+    const precisionScore = Math.max(0, 60 - (closeError / range) * 60);
+    const compositeScore = (da === 1 ? 40 : 0) + precisionScore;
+
     const barScore = {
         barIndex,
         da,
@@ -68,6 +98,7 @@ export function scoreClosedCandle(instrumentKey, timeframe, barIndex, realCandle
         hlError:   hlError   * 100,
         closeBias,
         wis,
+        compositeScore,
         realCandle: { open: real.open, high: real.high, low: real.low, close: real.close },
         predCandle: { open: pred.open, high: pred.high, low: pred.low, close: pred.close },
         scoredAt: Date.now(),
@@ -81,7 +112,9 @@ export function scoreClosedCandle(instrumentKey, timeframe, barIndex, realCandle
 
 export function getPAEReport(instrumentKey, timeframe) {
     const db = _load();
-    const session = db[_key(instrumentKey, timeframe)];
+    const key = _key(instrumentKey, timeframe);
+    let arr = db[key];
+    const session = Array.isArray(arr) ? arr[arr.length - 1] : arr;
     if (!session || session.scores.length === 0) {
         return 'No prior prediction history — first prediction for this instrument/timeframe.';
     }
@@ -135,14 +168,13 @@ export function computeConfidence(predictedCandle, atrValue, instrumentKey, time
 }
 
 export function clearPAESession(instrumentKey, timeframe) {
-    const db = _load();
-    delete db[_key(instrumentKey, timeframe)];
-    _save(db);
+    // We intentionally do not delete from DB anymore to preserve history
 }
 
 export function getPAESession(instrumentKey, timeframe) {
     const db = _load();
-    return db[_key(instrumentKey, timeframe)] || null;
+    const arr = db[_key(instrumentKey, timeframe)];
+    return Array.isArray(arr) ? arr[arr.length - 1] : arr;
 }
 
 // ─────────────────────────────────────────────────────────────────────

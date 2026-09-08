@@ -126,6 +126,12 @@ export function useCardThread(targetId, scope = 'card') {
     const [entries, setEntries] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const mountedRef = useRef(true);
+
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => { mountedRef.current = false; };
+    }, []);
 
     const fetchThread = useCallback(async () => {
         if (!targetId) return;
@@ -135,11 +141,11 @@ export function useCardThread(targetId, scope = 'card') {
                 `/api/v1/ai-prompts/thread/${targetId}`,
                 { params: { scope } }
             );
-            setEntries(res.data?.entries || []);
+            if (mountedRef.current) setEntries(res.data?.entries || []);
         } catch (err) {
             console.error(`[useCardThread] Error for ${targetId}:`, err.message);
         } finally {
-            setIsLoading(false);
+            if (mountedRef.current) setIsLoading(false);
         }
     }, [targetId, scope]);
 
@@ -149,14 +155,14 @@ export function useCardThread(targetId, scope = 'card') {
             await axiosInstance.delete(`/api/v1/ai-prompts/thread/${targetId}`, {
                 params: { scope }
             });
-            setEntries([]);
+            if (mountedRef.current) setEntries([]);
         } catch (err) {
             console.error(`[useCardThread] Clear error for ${targetId}:`, err.message);
         }
     }, [targetId, scope]);
 
     /**
-     * sendMessage — send a chat message, optionally with resolved #mention card snapshots.
+     * sendMessage - send a chat message, optionally with resolved #mention card snapshots.
      *
      * @param {string}   message       - The user's message text
      * @param {object}   contextData   - Optional additional context (legacy, always {})
@@ -177,7 +183,7 @@ export function useCardThread(targetId, scope = 'card') {
             console.error(`[useCardThread] Send error for ${targetId}:`, err.message);
             return null;
         } finally {
-            setIsGenerating(false);
+            if (mountedRef.current) setIsGenerating(false);
         }
     }, [targetId, scope, fetchThread]);
 

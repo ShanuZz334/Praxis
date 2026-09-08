@@ -102,6 +102,29 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
         };
     }, [instrumentKey, timeframe]);
 
+    // ─── Helpers for intraday candle boundary detection ───────────────────────
+    // Returns the interval length in seconds for a given timeframe string,
+    // or null for daily/weekly/monthly (which don't need live boundary tracking).
+    const _getTimeframeSec = (tf) => {
+        const map = { '1minute': 60, '3minute': 180, '5minute': 300, '10minute': 600,
+                      '15minute': 900, '30minute': 1800, '1hour': 3600 };
+        return map[tf] ?? null;
+    };
+
+    // Returns the Unix-seconds start of the candle that contains `nowMs`,
+    // aligned to IST market open (09:15 = 03:45 UTC).
+    const _alignedCandleStart = (nowMs, tfSec) => {
+        const dateStr = new Date(nowMs).toISOString().split('T')[0];
+        const marketOpenMs = new Date(`${dateStr}T03:45:00.000Z`).getTime();
+        const marketCloseMs = new Date(`${dateStr}T10:00:00.000Z`).getTime();
+        
+        if (nowMs < marketOpenMs) return null; // pre-market
+        if (nowMs >= marketCloseMs) return null; // post-market (prevent rogue after-hours candles!)
+        
+        const windowIndex = Math.floor((nowMs - marketOpenMs) / (tfSec * 1000));
+        return Math.floor((marketOpenMs + windowIndex * tfSec * 1000) / 1000);
+    };
+
     // Real-time live update of the latest candle using websocket data
     const lastLiveUpdateRef = useRef(0);
     useEffect(() => {
@@ -117,24 +140,59 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
         }
 
         const lastHistorical = data[data.length - 1];
-        
+
         setLiveCandle(prevLive => {
+            // ── BUG 1 FIX: Candle boundary detection ─────────────────────────
+            // For intraday timeframes, check whether wall-clock has crossed into
+            // a new bar. If so, open a brand-new candle instead of patching the old one.
+            const tfSec = _getTimeframeSec(timeframe);
+            if (tfSec) {
+                const currentCandleStartSec = _alignedCandleStart(now, tfSec);
+                const lastHistoricalTimeSec = typeof lastHistorical.time === 'number'
+                    ? lastHistorical.time
+                    : Math.floor(new Date(lastHistorical.time).getTime() / 1000);
+
+                if (currentCandleStartSec && currentCandleStartSec > lastHistoricalTimeSec) {
+                    // GUARD: Only spawn a fresh candle on the VERY FIRST tick of this new
+                    // boundary. If prevLive already has this timestamp, the bar is already
+                    // open — fall through to the normal OHLC-accumulation logic below.
+                    // Without this guard, every tick would reset O/H/L to a single price
+                    // and the live candle would render as a flat zero-range line.
+                    if (!prevLive || prevLive.time !== currentCandleStartSec) {
+                        // First tick of a genuinely new bar — spawn a fresh OHLCV candle
+                        lastLiveUpdateRef.current = now;
+                        return {
+                            time:   currentCandleStartSec,
+                            open:   tick.ltp,
+                            high:   tick.ltp,
+                            low:    tick.ltp,
+                            close:  tick.ltp,
+                            volume: tick.volume || 0,
+                        };
+                    }
+                    // else: prevLive is already at this boundary — accumulate below
+                }
+            }
+
+            // ── Same bar — update the running candle ──────────────────────────
             const base = prevLive || lastHistorical;
-            
-            // If the tick doesn't stretch the candle or change the close, do nothing to avoid extra renders
+
+            // Skip re-render if nothing changed
             if (base.close === tick.ltp && base.high >= tick.ltp && base.low <= tick.ltp) {
                 return prevLive;
             }
-            
+
             lastLiveUpdateRef.current = now;
             return {
                 ...base,
-                close: tick.ltp,
-                high: Math.max(base.high, tick.ltp),
-                low: Math.min(base.low, tick.ltp)
+                close:  tick.ltp,
+                high:   Math.max(base.high, tick.ltp),
+                low:    Math.min(base.low,  tick.ltp),
+                // BUG 6 FIX: carry live tick volume so the volume bar stays current
+                volume: tick.volume || base.volume,
             };
         });
-    }, [livePrices, instrumentKey, data]);
+    }, [livePrices, instrumentKey, data, timeframe]);
 
     return { data, loading, error, isBackfilling, backfillInfo, liveCandle };
 }

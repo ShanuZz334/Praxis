@@ -1,4 +1,4 @@
-import axiosInstance from '@/shared/utils/axiosInstance';
+
 
 import {
     scoreADXCard,
@@ -30,11 +30,11 @@ import {
     scoreTrinCard,
     scoreTrendlineCard,
     scoreBetaCorrelationCard
-} from './TechnicalCompositeEngine';
+} from './TechnicalCompositeEngine.js';
 
-import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { CARD_REGISTRY } from '../../../../shared/config/cardRegistry.js';
 
-function parseHeadlessTechnicals(rawTechnicals, currentPrice, manualOverrides = {}) {
+export function parseHeadlessTechnicals(rawTechnicals, currentPrice, manualOverrides = {}) {
     const scores = {};
     const cards = [];
     const t = rawTechnicals || {};
@@ -252,6 +252,8 @@ export class TechnicalEngine {
         const savedTimeframe = typeof window !== 'undefined' ? (localStorage.getItem('praxis_technical_timeframe') || 'day') : 'day';
         
         try {
+            const module = await import('../../../../shared/utils/axiosInstance.js');
+            const axiosInstance = module.default || module;
             const res = await axiosInstance.get(`/api/v1/upstox/technicals?instrument=${this.instrument}&timeframe=${savedTimeframe}&ltp=${currentLtp}`);
             if (res.data?.success && res.data?.data) {
                 this.lastRawData = res.data.data;

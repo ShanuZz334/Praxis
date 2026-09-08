@@ -1,33 +1,61 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { AI_CONFIG } from './config.js';
 import { providerCache } from './cache/providerCache.js';
 import AiRouting from '../models/AiRouting.js';
 
-const circuitBreakerState = {};
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const CB_STATE_FILE = path.join(__dirname, 'cache', 'cbState.json');
 
-export function checkProviderHealth(providerId) {
-    const state = circuitBreakerState[providerId];
+let circuitBreakerState = {};
+try {
+    if (fs.existsSync(CB_STATE_FILE)) {
+        circuitBreakerState = JSON.parse(fs.readFileSync(CB_STATE_FILE, 'utf8'));
+    }
+} catch (e) {
+    console.warn("[AI Gateway] Failed to load circuit breaker state:", e.message);
+}
+
+function saveCBState() {
+    try {
+        fs.writeFileSync(CB_STATE_FILE, JSON.stringify(circuitBreakerState));
+    } catch (e) {
+        // ignore write errors to prevent blocking
+    }
+}
+
+export function checkProviderHealth(providerId, modelId) {
+    const key = `${providerId}::${modelId}`;
+    const state = circuitBreakerState[key];
     if (!state) return true;
     if (state.failures >= AI_CONFIG.CIRCUIT_BREAKER.MAX_FAILURES) {
         if (Date.now() - state.lastFailedAt > AI_CONFIG.CIRCUIT_BREAKER.RESET_TIMEOUT) {
-            return true;
+            return true; // Wait period over
         }
-        return false;
+        return false; // Circuit open
     }
-    return true;
+    return true; // Circuit closed (healthy)
 }
-export function recordProviderFailure(providerId) {
-    if (!circuitBreakerState[providerId]) circuitBreakerState[providerId] = { failures: 0, lastFailedAt: null };
-    circuitBreakerState[providerId].failures += 1;
-    circuitBreakerState[providerId].lastFailedAt = Date.now();
+
+export function recordProviderFailure(providerId, modelId) {
+    const key = `${providerId}::${modelId}`;
+    if (!circuitBreakerState[key]) circuitBreakerState[key] = { failures: 0, lastFailedAt: null };
+    circuitBreakerState[key].failures += 1;
+    circuitBreakerState[key].lastFailedAt = Date.now();
+    saveCBState();
 }
-export function recordProviderSuccess(providerId) {
-    if (circuitBreakerState[providerId]) {
-        circuitBreakerState[providerId].failures = 0;
-        circuitBreakerState[providerId].lastFailedAt = null;
+
+export function recordProviderSuccess(providerId, modelId) {
+    const key = `${providerId}::${modelId}`;
+    if (circuitBreakerState[key]) {
+        delete circuitBreakerState[key];
+        saveCBState();
     }
 }
 
-export async function getRouteForTask(tier, taskType) {
+export async function getRouteForTask(level, taskType) {
     const providers = await providerCache.getProviders();
     const routePlan = [];
     
@@ -40,7 +68,7 @@ export async function getRouteForTask(tier, taskType) {
             else if (taskType === 'page_header_insight') explicitPref = routing.headerInsight;
             else if (taskType === 'chat_conversation') explicitPref = routing.manualChat;
             else if (taskType === 'future_vision_prediction') explicitPref = routing.futureVision;
-            else explicitPref = routing.pageInsight; // Default map for others or actual pageInsight
+            else explicitPref = routing.pageInsight;
             
             if (explicitPref && explicitPref.providerId && explicitPref.modelId) {
                 const explicitProvider = providers.find(p => p.providerId === explicitPref.providerId && p.isActive);
@@ -54,82 +82,33 @@ export async function getRouteForTask(tier, taskType) {
     }
     
     const sorted = [...providers].sort((a, b) => a.priority - b.priority);
-    const available = sorted.filter(p => p.supportedTiers.includes(tier.toString()) && p.isActive);
+    const explicitProviders = new Set(routePlan.map(r => `${r.provider}::${r.model}`));
 
-    if (tier === 1) {
-        // If an explicit route was added, we don't need to add the default tier 1 ollama unless they are different
-        const ollama = available.find(p => p.providerId === 'ollama');
-        if (ollama && ollama.models.tier1_simple) {
-            const hasOllamaT1 = routePlan.some(r => r.provider === 'ollama' && r.model === ollama.models.tier1_simple);
-            if (!hasOllamaT1) {
-                routePlan.push({ provider: 'ollama', model: ollama.models.tier1_simple });
-            }
-        }
-        available.filter(p => p.providerId !== 'ollama').forEach(p => {
-            if (p.models.tier1_simple) {
-                const hasModel = routePlan.some(r => r.provider === p.providerId && r.model === p.models.tier1_simple);
-                if (!hasModel) routePlan.push({ provider: p.providerId, model: p.models.tier1_simple });
-            }
-        });
-        return routePlan;
-    }
-
-    if (tier === 3) {
-        const ollamaSpecific = ['journal_behavioral_patterns'];
-        const cloudSpecific = ['stock_narrative', 'report_generation', 'strategy_suggestion', 'macro_cycle_assessment', 'future_vision_prediction'];
-        
-        if (ollamaSpecific.includes(taskType)) {
-            const ollama = available.find(p => p.providerId === 'ollama');
-            if (ollama && ollama.models.tier3_complex) {
-                routePlan.push({ provider: 'ollama', model: ollama.models.tier3_complex });
-            }
-            available.filter(p => p.providerId !== 'ollama').forEach(p => {
-                if (p.models.tier3_complex) routePlan.push({ provider: p.providerId, model: p.models.tier3_complex });
-            });
-            return routePlan;
-        } else if (cloudSpecific.includes(taskType)) {
-            // Robust multi-tier fallback:
-            // 1. Explicit user-selected model is already at position 0 in routePlan
-            // 2. Fill with tier3_complex from other providers (not duplicating the same provider)
-            // 3. Then tier2_medium as lighter fallbacks
-            // 4. Then tier4_vision if available
-            // This ensures maximum coverage even if 2-3 providers are rate-limited
-            const explicitProviders = new Set(routePlan.map(r => r.provider));
-
-            // Tier 3 fallbacks (same tier, different providers)
-            available.filter(p => p.providerId !== 'ollama').forEach(p => {
-                if (p.models.tier3_complex && !explicitProviders.has(p.providerId)) {
-                    routePlan.push({ provider: p.providerId, model: p.models.tier3_complex });
-                    explicitProviders.add(p.providerId); // prevent duplicating same provider in next loop
-                }
-            });
-
-            // Tier 2 fallbacks (lighter models, but still structured JSON capable)
-            const allProviders = [...providers].sort((a, b) => a.priority - b.priority);
-            allProviders.filter(p => p.isActive && p.providerId !== 'ollama').forEach(p => {
-                if (p.models.tier2_medium && !explicitProviders.has(`${p.providerId}_t2`)) {
-                    routePlan.push({ provider: p.providerId, model: p.models.tier2_medium });
-                    explicitProviders.add(`${p.providerId}_t2`);
-                }
-            });
-
-            return routePlan;
-        }
-        
-        available.forEach(p => {
-            if (p.models.tier3_complex) routePlan.push({ provider: p.providerId, model: p.models.tier3_complex });
-        });
-        return routePlan;
-    }
-
-    available.forEach(p => {
-        if (tier === 2 && p.models.tier2_medium && p.providerId !== 'ollama') {
-            routePlan.push({ provider: p.providerId, model: p.models.tier2_medium });
-        }
-        if (tier === 4 && p.models.tier4_vision && p.providerId !== 'ollama') {
-            routePlan.push({ provider: p.providerId, model: p.models.tier4_vision });
+    // Primary requested level
+    sorted.filter(p => p.supportedLevels && p.supportedLevels.includes(level) && p.isActive).forEach(p => {
+        if (p.models[level] && !explicitProviders.has(`${p.providerId}::${p.models[level]}`)) {
+            routePlan.push({ provider: p.providerId, model: p.models[level] });
+            explicitProviders.add(`${p.providerId}::${p.models[level]}`);
         }
     });
 
-    return routePlan;
+    // Fallbacks to lower levels if this is a high-level task
+    if (['level5_reasoner', 'level4_expert', 'level3_advanced', 'level2_standard'].includes(level)) {
+        let fallbackLevels = [];
+        if (level === 'level5_reasoner' || level === 'level4_expert') fallbackLevels = ['level3_advanced', 'level2_standard'];
+        if (level === 'level3_advanced') fallbackLevels = ['level2_standard', 'level1_fast'];
+        if (level === 'level2_standard') fallbackLevels = ['level1_fast'];
+
+        for (const fbLevel of fallbackLevels) {
+            sorted.filter(p => p.supportedLevels && p.supportedLevels.includes(fbLevel) && p.isActive).forEach(p => {
+                if (p.models[fbLevel] && !explicitProviders.has(`${p.providerId}::${p.models[fbLevel]}`)) {
+                    routePlan.push({ provider: p.providerId, model: p.models[fbLevel] });
+                    explicitProviders.add(`${p.providerId}::${p.models[fbLevel]}`);
+                }
+            });
+        }
+    }
+
+    // Limit fallback fan-out to max 3 total routes to prevent extreme timeouts
+    return routePlan.slice(0, 3);
 }

@@ -1,7 +1,7 @@
-import { TECHNICAL_RELIABILITY, TOTAL_TECHNICAL_CREDITS as _TOTAL_CREDITS } from '@/config/reliability';
-import { getCreditFromReliability } from '@/shared/global/logic/signals';
-import { getTechnicalWeights } from '@/config/weights/technicalWeights';
-import { TRADING_MODES } from '@/config/tradingModes';
+import { TECHNICAL_RELIABILITY, TOTAL_TECHNICAL_CREDITS as _TOTAL_CREDITS } from '../../../../../config/reliability.js';
+import { getCreditFromReliability } from '../../../../shared/global/logic/signals.js';
+import { getTechnicalWeights } from '../../../../../config/weights/technicalWeights.js';
+import { TRADING_MODES } from '../../../../../config/tradingModes.js';
 
 const _baseIndicators = [
     // --- SECTION A: TREND (Mapped to Trend) ---

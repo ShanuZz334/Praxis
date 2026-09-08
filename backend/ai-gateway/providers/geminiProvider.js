@@ -1,6 +1,6 @@
 import { providerCache } from '../cache/providerCache.js';
 
-export async function call({ model, messages, maxTokens, temperature, jsonMode, providerId = 'gemini' }) {
+export async function call({ model, messages, maxTokens, temperature, jsonMode, providerId = 'gemini' , timeoutMs }) {
     const p = await providerCache.getProvider(providerId);
     if (!p || !p.apiKey) throw new Error(`${providerId} provider is not configured.`);
 
@@ -13,7 +13,7 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode, 
     const startTime = Date.now();
     const response = await fetch(endpoint, {
         method: 'POST',
-        signal: AbortSignal.timeout(30000), // 30s timeout
+        signal: AbortSignal.timeout(timeoutMs || 45000), // 30s timeout
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${p.apiKey}` },
         body: JSON.stringify(payload)
     });

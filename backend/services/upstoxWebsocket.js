@@ -5,7 +5,7 @@ import axios from "axios";
 import { fileURLToPath } from "url";
 import UpstoxAuth from "../models/UpstoxAuth.js";
 import db from "../config/localDb.js";
-import { broadcast } from "./socketBroadcast.js";
+import { broadcast, broadcastToRoom } from "./socketBroadcast.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -207,7 +207,7 @@ const handleMarketData = (dataBuffer) => {
             
             // Broadcast if we have LTP OR Option Greeks
             if ((tickObj.ltp !== null && tickObj.ltp !== undefined) || tickObj.optionGreeks) {
-                broadcast("market:update", { instrumentKey, data: tickObj });
+                broadcastToRoom(instrumentKey, "market:update", { instrumentKey, data: tickObj });
             }
         }
 
@@ -336,4 +336,24 @@ export const subscribeToInstruments = (instrumentKeys, mode = "full") => {
 
     upstoxWs.send(Buffer.from(JSON.stringify(request)));
     console.log(`📡 Sent subscription for ${upstoxKeys.length} instruments [${mode}]`);
+};
+
+export const unsubscribeFromInstruments = (instrumentKeys) => {
+    if (!instrumentKeys || instrumentKeys.length === 0) return;
+    
+    // Remove from tracking set
+    instrumentKeys.forEach(k => pendingSubscriptions.delete(k));
+
+    if (!upstoxWs || upstoxWs.readyState !== WebSocket.OPEN) return;
+
+    const request = {
+        guid: "praxis_unsub_" + Date.now().toString(),
+        method: "unsub",
+        data: {
+            instrumentKeys: instrumentKeys
+        }
+    };
+
+    upstoxWs.send(Buffer.from(JSON.stringify(request)));
+    console.log(`📡 Upstox WebSockets Unsubscribed: ${instrumentKeys.length} instruments`);
 };

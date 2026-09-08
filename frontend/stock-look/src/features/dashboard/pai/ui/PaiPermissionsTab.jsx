@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Database, Globe, Briefcase, Key } from 'lucide-react';
 import { UniversalToggle } from '@/components/ui/universal-toggle';
+import axiosInstance from '@/shared/utils/axiosInstance';
+import { useNotificationStore } from '@/shared/context/NotificationContext';
 
 export default function PaiPermissionsTab() {
+    const { addNotification } = useNotificationStore();
     const [permissions, setPermissions] = useState({
         readPortfolio: true,
         readWatchlists: true,
@@ -12,8 +15,37 @@ export default function PaiPermissionsTab() {
         networkAccess: true,
     });
 
-    const togglePermission = (key) => {
-        setPermissions(prev => ({ ...prev, [key]: !prev[key] }));
+    useEffect(() => {
+        axiosInstance.get('/api/v1/ai-settings/routing').then(res => {
+            if (res.data?.permissions) {
+                setPermissions(res.data.permissions);
+            }
+        }).catch(console.error);
+    }, []);
+
+    const togglePermission = async (key) => {
+        const newValue = !permissions[key];
+        const newPerms = { ...permissions, [key]: newValue };
+        setPermissions(newPerms);
+        
+        try {
+            await axiosInstance.put('/api/v1/ai-settings/routing', { permissions: newPerms });
+            addNotification({
+                id: Date.now().toString(),
+                category: 'system',
+                title: 'Permissions Saved',
+                description: 'AI Guardrail configurations updated successfully.'
+            });
+        } catch (e) {
+            console.error(e);
+            setPermissions(permissions); // revert on failure
+            addNotification({
+                id: Date.now().toString(),
+                category: 'error',
+                title: 'Failed to Save',
+                description: 'Could not sync AI permissions with the server.'
+            });
+        }
     };
 
     const ToggleRow = ({ title, desc, icon: Icon, stateKey, colorClass }) => (

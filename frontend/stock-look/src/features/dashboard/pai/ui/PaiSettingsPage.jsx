@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Cpu, Shield, MessageSquareText } from 'lucide-react';
 
 import PaiModelsTab from './PaiModelsTab';
@@ -8,7 +8,22 @@ import PaiPromptsTab from './PaiPromptsTab';
 
 export default function PaiSettingsPage() {
     const navigate = useNavigate();
+    const location = useLocation();
+    
     const [activeTab, setActiveTab] = useState('models');
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const tab = params.get('tab');
+        if (tab && ['models', 'permissions', 'prompts'].includes(tab)) {
+            setActiveTab(tab);
+        }
+    }, [location.search]);
+
+    const handleTabChange = (tabId) => {
+        setActiveTab(tabId);
+        navigate(`/dashboard/pai/settings?tab=${tabId}`, { replace: true });
+    };
 
     const TABS = [
         { id: 'models', label: 'Models & API', icon: Cpu },
@@ -41,7 +56,7 @@ export default function PaiSettingsPage() {
                     {TABS.map(tab => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
+                            onClick={() => handleTabChange(tab.id)}
                             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[14px] font-medium transition-all whitespace-nowrap ${
                                 activeTab === tab.id 
                                     ? 'bg-blue-600/10 text-blue-500 shadow-sm border border-blue-500/20' 

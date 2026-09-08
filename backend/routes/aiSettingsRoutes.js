@@ -7,6 +7,24 @@ import { providerCache } from '../ai-gateway/cache/providerCache.js';
 
 const router = express.Router();
 
+async function verifyProviderKey(providerId, baseUrl, apiKey) {
+    if (providerId === 'ollama' || !apiKey) return true;
+    const url = baseUrl || (providerId === 'groq' ? 'https://api.groq.com/openai/v1' : 'https://openrouter.ai/api/v1');
+    const endpoint = url.endsWith('/models') ? url : url.replace('/chat/completions', '') + '/models';
+    try {
+        const res = await fetch(endpoint, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${apiKey}` },
+            signal: AbortSignal.timeout(5000)
+        });
+        if (res.status === 401 || res.status === 403) throw new Error(`Invalid API Key for ${providerId}`);
+        return true;
+    } catch(e) {
+        if (e.message.includes('Invalid API Key')) throw e;
+        return true;
+    }
+}
+
 router.use(protect);
 
 router.get('/providers', async (req, res) => {
@@ -35,23 +53,27 @@ router.get('/providers/templates', (req, res) => {
     res.json([
         {
             providerId: 'groq', displayName: 'Groq', purpose: 'Fast Tasks - Cloud', baseUrl: 'https://api.groq.com/openai/v1',
-            models: { tier1_simple: 'llama-3.1-8b-instant', tier2_medium: 'llama-3.3-70b-versatile' }
+            models: { level1_fast: 'llama-3.1-8b-instant', level2_standard: 'llama-3.3-70b-versatile', level3_advanced: 'llama-3.1-70b-versatile', level7_audio: 'whisper-large-v3-turbo' }
         },
         {
             providerId: 'gemini', displayName: 'Google Gemini', purpose: 'Vision / General', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-            models: { tier1_simple: 'gemini-3.1-flash-lite', tier2_medium: 'gemini-3.5-flash', tier3_complex: 'gemini-3.5-flash', tier4_vision: 'gemini-3.5-flash' }
+            models: { level1_fast: 'gemini-2.5-flash-lite', level2_standard: 'gemini-2.5-flash', level6_vision: 'gemini-2.5-flash' }
         },
         {
             providerId: 'openrouter', displayName: 'OpenRouter', purpose: 'Deep Reasoning - Fallback', baseUrl: 'https://openrouter.ai/api/v1',
-            models: { tier2_medium: 'meta-llama/llama-3.3-70b-instruct', tier3_complex: 'deepseek/deepseek-r1-distill-llama-70b' }
+            models: { level2_standard: 'google/gemini-2.5-flash:free', level3_advanced: 'deepseek/deepseek-r1-distill-llama-70b:free', level4_expert: 'deepseek/deepseek-r1:free' }
         },
         {
-            providerId: 'deepseek', displayName: 'DeepSeek (Native)', purpose: 'Deep Reasoning - Fallback', baseUrl: 'https://api.deepseek.com',
-            models: { tier2_medium: 'deepseek-chat', tier3_complex: 'deepseek-reasoner' }
+            providerId: 'openrouter_2', displayName: 'OpenRouter (Secondary)', purpose: 'Deep Reasoning - Backup', baseUrl: 'https://openrouter.ai/api/v1',
+            models: { level2_standard: 'minimax/minimax-m2.7:free', level3_advanced: 'meta-llama/llama-3.3-70b-instruct:free', level5_reasoner: 'deepseek/deepseek-r1:free' }
         },
         {
             providerId: 'ollama', displayName: 'Local Ollama', purpose: 'Fast Tasks / Personal', baseUrl: 'http://localhost:11434',
-            models: { tier1_simple: 'qwen2.5:3b', tier3_complex: 'qwen2.5:7b' }
+            models: { level1_fast: 'qwen2.5:3b', level2_standard: 'qwen2.5:7b' }
+        },
+        {
+            providerId: 'zai', displayName: 'Z.AI (Zhipu)', purpose: 'High concurrency and cost-effective multi-modal models', baseUrl: 'https://api.z.ai/api/paas/v4',
+            models: { level1_fast: 'glm-4.5-flash', level2_standard: 'glm-5.3-flash', level3_advanced: 'glm-5.1', level4_expert: 'glm-5.2', level5_reasoner: 'glm-4-plus', level6_vision: 'glm-4.6v' }
         }
     ]);
 });
@@ -59,7 +81,10 @@ router.get('/providers/templates', (req, res) => {
 router.post('/providers', async (req, res) => {
     try {
         const body = req.body;
-        if (body.apiKey) body.apiKey = encrypt(body.apiKey);
+        if (body.apiKey) {
+            await verifyProviderKey(body.providerId, body.baseUrl, body.apiKey);
+            body.apiKey = encrypt(body.apiKey);
+        }
         
         const newProvider = new AiProvider(body);
         await newProvider.save();
@@ -73,10 +98,15 @@ router.post('/providers', async (req, res) => {
 router.put('/providers/:providerId', async (req, res) => {
     try {
         const body = req.body;
-        if (body.apiKey && !body.apiKey.includes('...')) {
-            body.apiKey = encrypt(body.apiKey);
+        
+        if (!body.apiKey || body.apiKey === "" || body.apiKey.includes('...')) {
+            // If empty, user left it blank to keep existing.
+            // If it has '...', it's the masked string from frontend.
+            delete body.apiKey;
         } else {
-            delete body.apiKey; 
+            // A new, actual key was provided
+            await verifyProviderKey(body.providerId, body.baseUrl, body.apiKey);
+            body.apiKey = encrypt(body.apiKey);
         }
         
         const updated = await AiProvider.findOneAndUpdate(
@@ -140,7 +170,7 @@ router.post('/providers/:providerId/test', async (req, res) => {
         const url = provider.baseUrl || '';
 
         const startTime = Date.now();
-        const modelToTest = provider.models.tier1_simple || provider.models.tier2_medium || provider.models.tier3_complex || 'qwen2.5:3b';
+        const modelToTest = provider.models.level1_fast || provider.models.level2_standard || provider.models.level3_advanced || provider.models.level4_expert || provider.models.level5_reasoner || provider.models.level6_vision || provider.models.level7_audio || 'qwen2.5:3b';
         
         const payload = {
             model: modelToTest,
@@ -205,7 +235,9 @@ router.get('/providers/ollama/models', async (req, res) => {
         if (!ollama || !ollama.baseUrl) return res.json([]);
         
         // Fetch from Ollama tags API
-        const response = await fetch(`${ollama.baseUrl}/api/tags`);
+        const response = await fetch(`${ollama.baseUrl}/api/tags`, {
+            signal: AbortSignal.timeout(3000)
+        });
         if (!response.ok) return res.json([]);
         
         const data = await response.json();

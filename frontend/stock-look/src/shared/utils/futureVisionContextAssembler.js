@@ -91,7 +91,8 @@ export function assembleContext({
     // ─── Block 1B: Derived Price Analytics ───────────────────────────
     const priceAnalytics = _computePriceAnalytics(windowMain, window20, window5, last, prev, indicators);
 
-    const _trim = (s, n = 800) => s && s.length > n ? s.substring(0, n) + '...' : (s || 'N/A');
+    // If it's a JSON payload from the DB fallback, do NOT trim it or it will break the JSON structure.
+    const _trim = (s) => s || 'N/A';
     const technicalBlock   = _trim(aiNarratives['Technical']);
     const fundamentalBlock = _trim(aiNarratives['Fundamentals']);
     const eventBlock       = _trim(aiNarratives['Events']);
