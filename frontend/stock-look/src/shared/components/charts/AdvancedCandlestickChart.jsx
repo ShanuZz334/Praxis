@@ -14,6 +14,7 @@ import { useDrawings } from './drawing/useDrawings';
 import { calculateSupertrend, calculateVWAP, calculateEMA, calculateCPR } from '../../utils/chartUtils';
 import { calculateMACD, calculatePSAR, calculateIchimoku, calculateAnchoredVWAP, calculateAutoFib, calculateRSIDivergence } from '../../utils/advancedIndicators';
 import { computeAdaptiveBands } from '../../utils/adaptiveBandsEngine';
+import { analyzeChartPatterns } from '../../utils/patternEngine';
 
 import { useTheme } from '../../context/ThemeContext';
 import { FO_INDICES, FO_EQUITIES } from '../../utils/foInstruments';
@@ -22,7 +23,7 @@ import { storePrediction, scoreClosedCandle, getPAESession, clearPAESession, com
 import { blendRollingForecasts } from '../../utils/FutureVisionBlender';
 import axiosInstance from '../../utils/axiosInstance';
 import { useDataRegistry } from '../../context/DataRegistryContext';
-import { Telescope, Info, Eye, EyeOff } from 'lucide-react';
+import { Telescope, Info, Eye, EyeOff, Microscope } from 'lucide-react';
 import Loader from '../ui/Loader';
 import OHLCLegend from './OHLCLegend';
 import { getGlobalInsightCache } from '../ui/AiInsightSection';
@@ -43,6 +44,8 @@ export default React.memo(function AdvancedCandlestickChart({
     isBackfilling = false,
     instrumentKey = 'default',
     timeframe = 'day',
+    allowFutureVision = true,
+    isMultiMode = false,
 }) {
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
@@ -54,6 +57,7 @@ export default React.memo(function AdvancedCandlestickChart({
     const { drawings, addDrawing, deleteDrawing, undo, clearAll } = useDrawings(instrumentKey, timeframe);
 
     const [crosshairData, setCrosshairData] = useState(null);
+    const [ghostTooltip, setGhostTooltip] = useState(null);
 
     const candleSeriesRef = useRef(null);
     const volumeSeriesRef = useRef(null);
@@ -133,6 +137,9 @@ export default React.memo(function AdvancedCandlestickChart({
     const [demoRealCandles, setDemoRealCandles] = useState([]);
     const [demoLiveCandle, setDemoLiveCandle] = useState(null);
 
+    const [patternScore, setPatternScore] = useState(null);
+    const [hoveredPattern, setHoveredPattern] = useState(null);
+
     const fvClickTimerRef = useRef(null);
     const fvIgnoreStaleRef = useRef(false); // useRef so it's instantly readable in the same closure
 
@@ -145,12 +152,15 @@ export default React.memo(function AdvancedCandlestickChart({
     const ghostMarkersPluginRef = useRef(null); // Fix setMarkers is not a function
     const hoveredTimeRef = useRef(null); // Track hovered time for specific candle deletion
     const paceProfileRef = useRef(null); // PACE: permanent calibration profile
+    const analystBriefRef = useRef(null); // Analyst: daily strategic brief
 
     const liveIndicatorSnapshotRef = useRef({});
 
-    // ── PACE: Fetch calibration profile on instrument/timeframe change ──────
+    // 🎯 PACE & Analyst: Fetch calibration profile & brief on instrument/timeframe change 🎯
     useEffect(() => {
         if (!instrumentKey || !timeframe) return;
+        
+        // Fetch PACE
         axiosInstance.get('/api/v1/pace/profile', { params: { instrumentKey, timeframe } })
             .then(res => {
                 paceProfileRef.current = res.data?.hasData ? { profile: res.data.profile, promptBlock: res.data.promptBlock } : null;
@@ -158,10 +168,19 @@ export default React.memo(function AdvancedCandlestickChart({
                     console.log(`[PACE] Loaded profile for ${instrumentKey}/${timeframe}: ${res.data.profile?.barsScored} bars scored, correction strength ${(res.data.profile?.correctionStrength * 100).toFixed(0)}%`);
                 }
             })
-            .catch(() => { /* silent — no profile yet is fine */ });
+            .catch(() => { /* silent */ });
+
+        // Fetch Analyst Brief
+        axiosInstance.get('/api/v1/pace/analyst', { params: { instrumentKey, timeframe } })
+            .then(res => {
+                analystBriefRef.current = res.data?.brief || null;
+                if (res.data?.brief) console.log(`[OvernightAnalyst] Loaded brief for ${instrumentKey}/${timeframe}`);
+            })
+            .catch(() => { /* silent */ });
+
     }, [instrumentKey, timeframe]);
 
-    // ── PACE: After bar close, post score to backend to update permanent profile ──
+    // 🎯 PACE: After bar close, post score to backend to update permanent profile 🎯──
     const postPACEScore = (barScore, liveCandle) => {
         if (!barScore || !instrumentKey || !timeframe) return;
         // Detect regime from recent ATR proxy: compare last candle range to avg
@@ -233,18 +252,6 @@ export default React.memo(function AdvancedCandlestickChart({
                     else if (typeof time === 'string') date = new Date(time);
                     else return '';
                     if (isNaN(date)) return '';
-
-                    if (lastDataTimeRef.current) {
-                        let lastDate;
-                        const lt = lastDataTimeRef.current;
-                        if (typeof lt === 'number') lastDate = new Date(lt * 1000);
-                        else if (lt.year) lastDate = new Date(lt.year, lt.month - 1, lt.day);
-                        else if (typeof lt === 'string') lastDate = new Date(lt);
-                        
-                        if (lastDate && date > lastDate) {
-                            return ''; // Hide labels for future grid lines
-                        }
-                    }
 
                     if (tickMarkType === 0) return date.getFullYear().toString();
                     if (tickMarkType === 1) return date.toLocaleString('en-US', { month: 'short' });
@@ -398,11 +405,34 @@ export default React.memo(function AdvancedCandlestickChart({
             } else {
                 hoveredTimeRef.current = null;
             }
+            
+            // Native OHLC
             if (param.time && param.point && param.seriesData.get(candleSeriesRef.current)) {
                 const d = param.seriesData.get(candleSeriesRef.current);
                 setCrosshairData({ open: d.open, high: d.high, low: d.low, close: d.close });
             } else {
                 setCrosshairData(null);
+            }
+            
+            // Ghost PAE Tooltip
+            if (param.time && param.point && ghostCandleSeriesRef.current && param.seriesData.get(ghostCandleSeriesRef.current)) {
+                const gMarker = ghostMarkersRef.current.find(m => {
+                    if (typeof m.time === 'number' && typeof param.time === 'number') return m.time === param.time;
+                    if (m.time?.year) return (m.time.year === param.time.year && m.time.month === param.time.month && m.time.day === param.time.day);
+                    return m.time === param.time;
+                });
+                if (gMarker) {
+                    setGhostTooltip({
+                        x: param.point.x,
+                        y: param.point.y,
+                        text: gMarker.text,
+                        color: gMarker.color
+                    });
+                } else {
+                    setGhostTooltip(null);
+                }
+            } else {
+                setGhostTooltip(null);
             }
         };
         chart.subscribeCrosshairMove(handleCrosshairMove);
@@ -454,6 +484,21 @@ export default React.memo(function AdvancedCandlestickChart({
                     color: liveCandle.close >= liveCandle.open ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)'
                 });
             }
+
+            // Also keep Pattern Engine strictly in sync with the live tick
+            if (data && data.length > 0) {
+                const latestData = [...data];
+                const liveMatchIdx = latestData.findIndex(c => c.time === liveCandle.time);
+                if (liveMatchIdx !== -1) latestData[liveMatchIdx] = liveCandle;
+                else latestData.push(liveCandle);
+
+                const newPScore = analyzeChartPatterns(latestData, bandsModeTheme);
+                setPatternScore(prev => {
+                    const isSame = prev && prev.activePatterns?.length === newPScore.activePatterns?.length &&
+                                   prev.activePatterns.every((p, i) => p.id === newPScore.activePatterns[i].id && p.age === newPScore.activePatterns[i].age);
+                    return isSame ? prev : newPScore;
+                });
+            }
         } catch (e) {
             // Ignore error if live tick is older than our latest historical candle
         }
@@ -485,10 +530,10 @@ export default React.memo(function AdvancedCandlestickChart({
                 const markerTime = session.times[barIdx];
                 const liveMarker = {
                     time: markerTime,
-                    position: 'belowBar',
+                    position: 'aboveBar',
                     color: mape < 1 ? '#10b981' : mape < 2 ? '#f59e0b' : '#ef4444',
-                    shape: 'arrowUp',
-                    text: `ERR: ${mape.toFixed(2)}%`,
+                    shape: 'arrowDown',
+                    text: `${mape.toFixed(1)}%`,
                     size: 1
                 };
 
@@ -500,11 +545,16 @@ export default React.memo(function AdvancedCandlestickChart({
                 });
                 ghostMarkersRef.current = [...filtered, liveMarker];
 
-                if (!ghostMarkersPluginRef.current && ghostCandleSeriesRef.current) {
-                    ghostMarkersPluginRef.current = createSeriesMarkers(ghostCandleSeriesRef.current, ghostMarkersRef.current);
-                } else if (ghostMarkersPluginRef.current) {
-                    ghostMarkersPluginRef.current.setMarkers(ghostMarkersRef.current);
-                }
+                // Disable native overlapping arrows; we now use the custom clean hover tooltip
+                // if (!ghostMarkersPluginRef.current && ghostCandleSeriesRef.current) {
+                //     const plugin = createSeriesMarkers(ghostCandleSeriesRef.current, ghostMarkersRef.current);
+                //     ghostMarkersPluginRef.current = plugin;
+                //     if (typeof ghostCandleSeriesRef.current.attachPrimitive === 'function') {
+                //         ghostCandleSeriesRef.current.attachPrimitive(plugin);
+                //     }
+                // } else if (ghostMarkersPluginRef.current) {
+                //     ghostMarkersPluginRef.current.setMarkers(ghostMarkersRef.current);
+                // }
                 
                 // Persist live errors into PAE DB so auto-mode next generation gets real feedback
                 storeLiveErrors(
@@ -551,6 +601,11 @@ export default React.memo(function AdvancedCandlestickChart({
                 // Dim the ghost candle that was just scored
                 if (ghostCandleSeriesRef.current && session.candles[barIdx]) {
                     _renderGhostCandles(session.candles, session.times, true);
+                }
+                
+                // If auto mode is enabled, trigger a fresh prediction upon bar close
+                if (fvAutoMode) {
+                    triggerFutureVision();
                 }
             }
         }
@@ -756,7 +811,9 @@ export default React.memo(function AdvancedCandlestickChart({
                 ohlcvBars,
                 aiNarratives,
                 isAutoRefresh: fvActive && fvAutoMode,
-                calibrationProfile: paceProfileRef.current
+                calibrationProfile: paceProfileRef.current,
+                analystBrief: analystBriefRef.current,
+                patternScore: patternScore
             });
 
 
@@ -990,16 +1047,20 @@ export default React.memo(function AdvancedCandlestickChart({
                 ghostMarkersRef.current = [];
             }
             
-            // Render ALL ghosts (do not slice) so they stay visible underneath the real candles for comparison
-            _renderGhostCandles(continuousCandles, continuousTimes, true);
-            // Apply restored markers
-            if (ghostCandleSeriesRef.current && ghostMarkersRef.current.length > 0) {
-                if (!ghostMarkersPluginRef.current) {
-                    ghostMarkersPluginRef.current = createSeriesMarkers(ghostCandleSeriesRef.current, ghostMarkersRef.current);
-                } else {
-                    ghostMarkersPluginRef.current.setMarkers(ghostMarkersRef.current);
-                }
-            }
+            // Only render strictly future ghost candles so they don't visually overlap and clash with historical real candles
+            _renderGhostCandles(
+                continuousCandles.slice(newIdx), 
+                continuousTimes.slice(newIdx), 
+                true
+            );
+            // Disable native overlapping arrows on restore
+            // if (ghostCandleSeriesRef.current && ghostMarkersRef.current.length > 0) {
+            //     if (!ghostMarkersPluginRef.current) {
+            //         ghostMarkersPluginRef.current = createSeriesMarkers(ghostCandleSeriesRef.current, ghostMarkersRef.current);
+            //     } else {
+            //         ghostMarkersPluginRef.current.setMarkers(ghostMarkersRef.current);
+            //     }
+            // }
             
             setFvPAE(getPAESession(instrumentKey, timeframe));
         } else {
@@ -1016,16 +1077,17 @@ export default React.memo(function AdvancedCandlestickChart({
 
     // Handle Hide/Unhide toggle
     useEffect(() => {
+        const isVisible = fvVisible && !isMultiMode;
         if (ghostCandleSeriesRef.current) {
-            ghostCandleSeriesRef.current.applyOptions({ visible: fvVisible });
+            ghostCandleSeriesRef.current.applyOptions({ visible: isVisible });
         }
         if (ghostUpperConeRef.current) {
-            ghostUpperConeRef.current.applyOptions({ visible: fvVisible });
+            ghostUpperConeRef.current.applyOptions({ visible: isVisible });
         }
         if (ghostLowerConeRef.current) {
-            ghostLowerConeRef.current.applyOptions({ visible: fvVisible });
+            ghostLowerConeRef.current.applyOptions({ visible: isVisible });
         }
-    }, [fvVisible]);
+    }, [fvVisible, isMultiMode]);
 
     useEffect(() => {
         if (!candleSeriesRef.current || !volumeSeriesRef.current || !data || data.length === 0) return;
@@ -1034,6 +1096,11 @@ export default React.memo(function AdvancedCandlestickChart({
         lastDataTimeRef.current = effectiveData[effectiveData.length - 1].time;
         
         candleSeriesRef.current.setData(effectiveData);
+        
+        // Analyze Patterns
+        const pScore = analyzeChartPatterns(effectiveData, bandsModeTheme);
+        setPatternScore(pScore);
+
         const volumeData = effectiveData.map(item => ({
             time: item.time, value: item.volume || 0,
             color: item.close >= item.open ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)'
@@ -1107,6 +1174,9 @@ export default React.memo(function AdvancedCandlestickChart({
                 const vol20 = d.slice(-20).reduce((a, c) => a + (c.volume || 0), 0) / 20;
                 snap.recentVolAvg5  = vol5;
                 snap.recentVolAvg20 = vol20;
+
+                // Pattern Score
+                snap.patternScore = pScore;
 
                 // Pass horizonBars for ATR-scaling note in assembler
                 snap._horizonBars = getFVSettings().horizonBars;
@@ -1275,20 +1345,101 @@ export default React.memo(function AdvancedCandlestickChart({
     useEffect(() => {
         if (!candleSeriesRef.current) return;
         let markers = [];
+        
+        // 1. Fundamental Events
         if (showEvents && events && events.length > 0) {
-            markers = events.map(event => ({
+            const eventMarkers = events.map(event => ({
                 time: event.time,
                 position: event.impact > 0 ? 'aboveBar' : 'belowBar',
                 color: event.type === 'gdp' ? '#3b82f6' : event.type === 'cpi' ? '#f97316' : event.type === 'rbi' ? '#8b5cf6' : event.type === 'budget' ? '#22c55e' : '#fbbf24',
                 shape: 'circle', text: event.label,
             }));
+            markers.push(...eventMarkers);
         }
-        if (!markersPluginRef.current) {
-            markersPluginRef.current = createSeriesMarkers(candleSeriesRef.current, markers);
-        } else {
-            markersPluginRef.current.setMarkers(markers);
+        
+        // Clean up markers plugin if it exists
+        if (markersPluginRef.current && typeof candleSeriesRef.current.detachPrimitive === 'function') {
+            try { candleSeriesRef.current.detachPrimitive(markersPluginRef.current); } catch(e) {}
         }
     }, [events, showEvents]);
+
+    // Track original candles for restoring colors when a pattern is un-hovered
+    const patternColoredCandlesRef = useRef([]);
+    const patternMarkersPluginRef = useRef(null);
+
+    // Dynamically color multi-candle patterns
+    useEffect(() => {
+        if (!candleSeriesRef.current || !data) return;
+
+        // 1. We must use setData() to safely update historical candles in v5
+        let needReset = patternColoredCandlesRef.current.length > 0;
+        let nextData = [...data, ...demoRealCandles];
+
+        if (liveCandle) {
+            const liveMatchIdx = nextData.findIndex(c => c.time === liveCandle.time);
+            if (liveMatchIdx !== -1) nextData[liveMatchIdx] = liveCandle;
+            else nextData.push(liveCandle);
+        }
+
+        let isPainting = false;
+
+        // 2. If hovering over a pattern, paint its involved candles blue
+        if (hoveredPattern && hoveredPattern.len >= 1) {
+            const endIdx = nextData.findIndex(c => c.time === hoveredPattern.time);
+            if (endIdx !== -1) {
+                const startIdx = Math.max(0, endIdx - hoveredPattern.len + 1);
+                
+                nextData = nextData.map((c, i) => {
+                    if (i >= startIdx && i <= endIdx) {
+                        return {
+                            ...c,
+                            color: 'rgba(59, 130, 246, 0.9)', // Solid blue body
+                            borderColor: '#3b82f6',
+                            wickColor: '#3b82f6'
+                        };
+                    }
+                    return c;
+                });
+                isPainting = true;
+                patternColoredCandlesRef.current = [true]; // flag that we have painted
+            }
+            
+            // Add native thin blue arrow ONLY for single-candle patterns
+            if (hoveredPattern.len === 1) {
+                const marker = {
+                    time: hoveredPattern.time,
+                    position: hoveredPattern.dir > 0 ? 'belowBar' : 'aboveBar',
+                    color: '#3b82f6',
+                    shape: hoveredPattern.dir > 0 ? 'arrowUp' : 'arrowDown',
+                };
+                
+                if (!patternMarkersPluginRef.current) {
+                    patternMarkersPluginRef.current = createSeriesMarkers(candleSeriesRef.current, [marker]);
+                    if (typeof candleSeriesRef.current.attachPrimitive === 'function') {
+                        candleSeriesRef.current.attachPrimitive(patternMarkersPluginRef.current);
+                    }
+                } else {
+                    patternMarkersPluginRef.current.setMarkers([marker]);
+                }
+            } else {
+                // Multi-candle pattern: NO arrow needed, blue colored bodies are enough
+                if (patternMarkersPluginRef.current) {
+                    patternMarkersPluginRef.current.setMarkers([]);
+                }
+            }
+        } else {
+            patternColoredCandlesRef.current = [];
+            if (patternMarkersPluginRef.current) {
+                patternMarkersPluginRef.current.setMarkers([]);
+            }
+        }
+
+        if (isPainting || needReset) {
+            try { candleSeriesRef.current.setData(nextData); } catch (e) {}
+        }
+    }, [hoveredPattern, data, demoRealCandles, liveCandle]);
+
+    
 
     const getRegimeBackground = () => {
         if (!fundamentalData || !fundamentalData.regime) return 'transparent';
@@ -1304,69 +1455,7 @@ export default React.memo(function AdvancedCandlestickChart({
     };
 
     
-    // --- Live Candle Sync & Institutional Error Markers ---
-    useEffect(() => {
-        const handler = (e) => {
-            const tick = e.detail;
-            if (candleSeriesRef.current) candleSeriesRef.current.update(tick);
-
-            // Future Vision Error Calculation
-            if (fvActive && fvVisible && fvSessionRef.current && fvSessionRef.current.candles) {
-                const session = fvSessionRef.current;
-                
-                // Match the live tick's time to the corresponding predicted candle
-                let newIndex = fvLiveBarIndexRef.current;
-                for (let i = 0; i < session.times.length; i++) {
-                    const st = session.times[i];
-                    if (st === tick.time || (st && tick.time && st.year === tick.time.year && st.month === tick.time.month && st.day === tick.time.day)) {
-                        newIndex = i;
-                        break;
-                    }
-                }
-                if (newIndex > fvLiveBarIndexRef.current) {
-                    fvLiveBarIndexRef.current = newIndex;
-                    if (fvAutoMode) triggerFutureVision();
-                }
-
-                // Calculate Institutional MAPE Error for the currently forming bar
-                const currentGhost = session.candles[fvLiveBarIndexRef.current];
-                if (currentGhost && ghostCandleSeriesRef.current) {
-                    // Vector Error Calculation (MAPE)
-                    const errOpen = Math.abs(currentGhost.open - tick.open) / Math.max(tick.open, 0.001);
-                    const errHigh = Math.abs(currentGhost.high - tick.high) / Math.max(tick.high, 0.001);
-                    const errLow = Math.abs(currentGhost.low - tick.low) / Math.max(tick.low, 0.001);
-                    const errClose = Math.abs(currentGhost.close - tick.close) / Math.max(tick.close, 0.001);
-                    const mape = ((errOpen + errHigh + errLow + errClose) / 4) * 100;
-                    
-                    // Maintain existing markers and append/update the current one
-                    const markerTime = session.times[fvLiveBarIndexRef.current];
-                    
-                    const newMarker = {
-                        time: markerTime,
-                        position: 'aboveBar',
-                        color: mape < 1 ? '#10b981' : mape < 2 ? '#f59e0b' : '#ef4444',
-                        shape: 'arrowDown',
-                        text: `${mape.toFixed(1)}%`,
-                        size: 1
-                    };
-                    
-                    // Replace or append using persistent ref
-                    const filtered = ghostMarkersRef.current.filter(m => m.time !== markerTime);
-                    ghostMarkersRef.current = [...filtered, newMarker];
-                    
-                    if (!ghostMarkersPluginRef.current) {
-                        ghostMarkersPluginRef.current = createSeriesMarkers(ghostCandleSeriesRef.current, ghostMarkersRef.current);
-                    } else {
-                        ghostMarkersPluginRef.current.setMarkers(ghostMarkersRef.current);
-                    }
-                }
-            }
-        };
-
-        const eventName = `liveCandleUpdate_${instrumentKey}`;
-        window.addEventListener(eventName, handler);
-        return () => window.removeEventListener(eventName, handler);
-    }, [instrumentKey, fvActive, fvVisible, fvAutoMode]);
+    // Live Candle Sync & Institutional Error Markers are handled via the `liveCandle` prop.
 
     return (
         <div className="advanced-candlestick-chart relative w-full h-full flex flex-col">
@@ -1427,57 +1516,86 @@ export default React.memo(function AdvancedCandlestickChart({
                 </button>
 
                 {/* ── Future Vision Button ─────────────────────────────────── */}
-                <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
-                <button
-                    onMouseEnter={(e) => {
-                        const isExpired = fvSessionRef.current && fvSessionRef.current.candles && fvLiveBarIndexRef.current >= fvSessionRef.current.candles.length;
-                        const label = fvAutoMode ? 'Auto Mode Active (Double click to disable)' : 
-                                      (fvActive && isExpired) ? 'Generate New Prediction (Old expired)' :
-                                      fvActive ? 'Refine Prediction (Right-click to delete)' : 
-                                      (fvStaleMsg || 'Future Vision - AI Candle Prediction');
-                        handleMouseEnter(e, label);
-                    }}
-                    onMouseLeave={() => setHoveredIndicator(null)}
-                    onClick={(e) => {
-                        if (fvClickTimerRef.current) {
-                            clearTimeout(fvClickTimerRef.current);
-                            fvClickTimerRef.current = null;
-                            setFvAutoMode(p => {
-                                const next = !p;
-                                updatePAEAutoMode(instrumentKey, timeframe, next);
-                                if (next && !fvActive) triggerFutureVision();
-                                return next;
-                            });
-                        } else {
-                            fvClickTimerRef.current = setTimeout(() => {
-                                fvClickTimerRef.current = null;
-                                if (fvActive) {
-                                    if (!fvVisible) setFvVisible(true);
-                                    else triggerFutureVision();
+                {!isMultiMode && (
+                    <>
+                        <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+                        <button
+                            onMouseEnter={(e) => {
+                                const isExpired = fvSessionRef.current && fvSessionRef.current.candles && fvLiveBarIndexRef.current >= fvSessionRef.current.candles.length;
+                                const label = fvAutoMode ? 'Auto Mode Active (Double click to disable)' : 
+                                              (fvActive && isExpired) ? 'Generate New Prediction (Old expired)' :
+                                              fvActive ? 'Refine Prediction (Right-click to delete)' : 
+                                              (fvStaleMsg || 'Future Vision - AI Candle Prediction');
+                                handleMouseEnter(e, label);
+                            }}
+                            onMouseLeave={() => setHoveredIndicator(null)}
+                            onClick={(e) => {
+                                if (fvClickTimerRef.current) {
+                                    clearTimeout(fvClickTimerRef.current);
+                                    fvClickTimerRef.current = null;
+                                    setFvAutoMode(p => {
+                                        const next = !p;
+                                        updatePAEAutoMode(instrumentKey, timeframe, next);
+                                        if (next && !fvActive) triggerFutureVision();
+                                        return next;
+                                    });
                                 } else {
-                                    triggerFutureVision();
+                                    fvClickTimerRef.current = setTimeout(() => {
+                                        fvClickTimerRef.current = null;
+                                        if (fvActive) {
+                                            if (!fvVisible) setFvVisible(true);
+                                            else triggerFutureVision();
+                                        } else {
+                                            triggerFutureVision();
+                                        }
+                                    }, 250);
                                 }
-                            }, 250);
-                        }
-                    }}
-                    disabled={fvLoading}
-                    className={`pointer-events-auto relative flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200
-                        ${fvLoading ? 'text-violet-400 animate-pulse' : ''}
-                        ${!fvLoading && fvAutoMode ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : ''}
-                        ${!fvLoading && !fvAutoMode && fvActive ? 'text-violet-400' : ''}
-                        ${!fvLoading && !fvActive ? 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5' : ''}`}
-                >
-                    {fvAutoMode && !fvLoading && (
-                        <span className="absolute inset-0 rounded-md ring-2 ring-blue-400/50 animate-ping" />
-                    )}
-                    {fvLoading
-                        ? <Loader size="tiny" />
-                        : <Telescope size={13} strokeWidth={2} />
-                    }
-                </button>
+                            }}
+                            disabled={fvLoading}
+                            className={`pointer-events-auto relative flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200
+                                ${fvLoading ? 'text-violet-400 animate-pulse' : ''}
+                                ${!fvLoading && fvAutoMode ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : ''}
+                                ${!fvLoading && !fvAutoMode && fvActive ? 'text-violet-400' : ''}
+                                ${!fvLoading && !fvActive ? 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5' : ''}`}
+                        >
+                            {fvAutoMode && !fvLoading && (
+                                <span className="absolute inset-0 rounded-md ring-2 ring-blue-400/50 animate-ping" />
+                            )}
+                            {fvLoading
+                                ? <Loader size="tiny" />
+                                : <Telescope size={13} strokeWidth={2} />
+                            }
+                        </button>
 
+                        <button
+                            onClick={async () => {
+                                if (!instrumentKey || !timeframe) return;
+                                import('sonner').then(({ toast }) => toast.loading('Running deep overnight analysis...', { id: 'analyst' }));
+                                try {
+                                    const res = await axiosInstance.post('/api/v1/pace/analyst/run', { instrumentKey, timeframe });
+                                    if (res.data?.success) {
+                                        analystBriefRef.current = res.data.brief;
+                                        import('sonner').then(({ toast }) => toast.success('Analyst Brief Generated', { 
+                                            id: 'analyst',
+                                            description: res.data.brief 
+                                        }));
+                                    }
+                                } catch (err) {
+                                    import('sonner').then(({ toast }) => toast.error('Analysis Failed', { id: 'analyst', description: err.message }));
+                                }
+                            }}
+                            onMouseEnter={(e) => handleMouseEnter(e, `Run Overnight Deep Analysis`)}
+                            onMouseLeave={() => setHoveredIndicator(null)}
+                            className="pointer-events-auto flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 text-fuchsia-500/60 dark:text-fuchsia-400/50 hover:text-fuchsia-600 dark:hover:text-fuchsia-400 hover:bg-black/5 dark:hover:bg-white/5"
+                        >
+                            <Microscope size={13} strokeWidth={2} />
+                        </button>
+                    </>
+                )}
                 {/* ── DEV: Demo Ghost Candle Button (Testing Only) ─── */}
-                {(() => {
+                {!isMultiMode && (
+                    <div className="absolute bottom-6 left-3 z-[60]">
+                    {(() => {
                     // Only render in dev/localhost to keep production clean
                     if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) return null;
                     const addDemoRealCandle = () => {
@@ -1590,9 +1708,10 @@ export default React.memo(function AdvancedCandlestickChart({
                         </div>
                     );
                 })()}
+                    </div>
+                )}
 
-
-                {fvActive && (
+                {fvActive && !isMultiMode && (
                     <button
                         onMouseEnter={(e) => handleMouseEnter(e, fvVisible ? 'Hide Ghost Candles' : 'Show Ghost Candles')}
                         onMouseLeave={() => setHoveredIndicator(null)}
@@ -1604,12 +1723,10 @@ export default React.memo(function AdvancedCandlestickChart({
                 )}
 
                 {/* ── Future Vision Bias HUD ─────────────────────────── */}
-                {fvActive && fvBias && (() => {
+                {fvActive && fvBias && !isMultiMode && (() => {
                     const isBull = fvBias === 'bullish';
                     const isBear = fvBias === 'bearish';
                     const biasColor   = isBull ? 'text-emerald-400' : isBear ? 'text-red-400' : 'text-slate-400';
-                    const biasBg      = isBull ? 'bg-emerald-500/10 border-emerald-500/30' : isBear ? 'bg-red-500/10 border-red-500/30' : 'bg-slate-500/10 border-slate-500/30';
-                    const dotColor    = isBull ? 'bg-emerald-400' : isBear ? 'bg-red-400' : 'bg-slate-400';
                     const confidence  = fvSessionRef.current?.candles
                         ? Math.round(fvSessionRef.current.candles.reduce((a, c) => a + c.confidence, 0) / fvSessionRef.current.candles.length)
                         : null;
@@ -1618,38 +1735,38 @@ export default React.memo(function AdvancedCandlestickChart({
 
                     const tooltipContent = (
                         <div className="flex flex-col gap-2 min-w-[180px] p-0.5">
-                            <div className="flex items-center gap-2 pb-2 border-b border-white/10">
-                                <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">Future Vision</span>
+                            <div className="flex items-center gap-2 pb-2 border-b border-border-subtle">
+                                <span className={`w-2 h-2 rounded-full shrink-0 ${isBull ? 'bg-emerald-400' : isBear ? 'bg-red-400' : 'bg-slate-400'}`} />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Future Vision</span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-white/40 text-[9px] uppercase font-semibold tracking-wider">Bias</span>
+                                <span className="text-text-tertiary text-[9px] uppercase font-semibold tracking-wider">Bias</span>
                                 <span className={`text-[11px] font-bold ${biasColor}`}>AI {fvBias.toUpperCase()}</span>
                             </div>
                             {confidence !== null && (
                                 <div className="flex flex-col gap-1">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-white/40 text-[9px] uppercase font-semibold tracking-wider">Confidence</span>
-                                        <span className="text-violet-300 text-[10px] font-bold font-mono">{confidence}%</span>
+                                        <span className="text-text-tertiary text-[9px] uppercase font-semibold tracking-wider">Confidence</span>
+                                        <span className="text-violet-500 dark:text-violet-300 text-[10px] font-bold font-mono">{confidence}%</span>
                                     </div>
-                                    <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+                                    <div className="h-1 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
                                         <div className={`h-full rounded-full ${confBarColor} transition-all duration-500`} style={{ width: `${confidence}%` }} />
                                     </div>
                                 </div>
                             )}
                             {fvPAE?.scores?.length > 0 && (
                                 <div className="flex justify-between items-center">
-                                    <span className="text-white/40 text-[9px] uppercase font-semibold tracking-wider">Dir. Accuracy</span>
-                                    <span className="text-blue-300 text-[10px] font-bold font-mono">
+                                    <span className="text-text-tertiary text-[9px] uppercase font-semibold tracking-wider">Dir. Accuracy</span>
+                                    <span className="text-blue-500 dark:text-blue-300 text-[10px] font-bold font-mono">
                                         {Math.round(fvPAE.scores.reduce((a, b) => a + b.da, 0) / fvPAE.scores.length * 100)}%
-                                        <span className="text-white/30 font-normal ml-1">({fvPAE.scores.length}/{fvSessionRef.current?.candles?.length})</span>
+                                        <span className="text-text-tertiary font-normal ml-1">({fvPAE.scores.length} bars)</span>
                                     </span>
                                 </div>
                             )}
                             {modelShort && (
-                                <div className="flex justify-between items-center pt-1.5 border-t border-white/10">
-                                    <span className="text-white/40 text-[9px] uppercase font-semibold tracking-wider">Model</span>
-                                    <span className="text-slate-400 text-[9px] font-mono">{modelShort}</span>
+                                <div className="flex justify-between items-center pt-1.5 border-t border-border-subtle">
+                                    <span className="text-text-tertiary text-[9px] uppercase font-semibold tracking-wider">Model</span>
+                                    <span className="text-text-tertiary text-[9px] font-mono">{modelShort}</span>
                                 </div>
                             )}
                         </div>
@@ -1666,20 +1783,82 @@ export default React.memo(function AdvancedCandlestickChart({
                             <button
                                 onMouseEnter={(e) => handleMouseEnter(e, tooltipContent)}
                                 onMouseLeave={() => setHoveredIndicator(null)}
-                                className={`pointer-events-auto flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-bold tracking-wide transition-all duration-150 hover:brightness-110 ${biasBg} ${biasColor}`}
+                                className="pointer-events-auto flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-border-subtle bg-transparent cursor-default hover:brightness-110 transition-all duration-150"
                             >
-                                <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${dotColor}`} />
-                                AI {fvBias.toUpperCase()}
+                                <span className="text-[10px] font-bold uppercase tracking-wide text-text-primary">AI Bias</span>
+                                <span className={`text-[10px] font-bold ${biasColor}`}>
+                                    {fvBias.toUpperCase()}
+                                </span>
                                 {confidence !== null && (
-                                    <span className="text-[9px] font-mono text-white/50 ml-0.5">{confidence}%</span>
+                                    <span className={`text-[9px] font-semibold px-1 rounded-sm ml-0.5 ${
+                                        isBull ? 'bg-emerald-500/10 text-emerald-400' : 
+                                        isBear ? 'bg-red-500/10 text-red-400' : 
+                                        'bg-slate-500/10 text-slate-400'
+                                    }`}>
+                                        {confidence}%
+                                    </span>
                                 )}
                             </button>
                         </motion.div>
                     );
                 })()}
 
+                {/* Pattern Recognition & Scoring Engine Badge */}
+                {patternScore && !isMultiMode && (
+                    <div className="flex items-center pointer-events-auto ml-1 group relative">
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-border-subtle bg-transparent cursor-default hover:brightness-110 transition-all duration-150">
+                            <span className="text-[10px] font-bold uppercase tracking-wide text-text-primary">Pattern Score</span>
+                            <span className={`text-[10px] font-bold ${
+                                patternScore.score > 2 ? 'text-emerald-500' :
+                                patternScore.score < -2 ? 'text-rose-500' :
+                                'text-amber-500'
+                            }`}>
+                                {patternScore.score > 0 ? '+' : ''}{patternScore.score}
+                            </span>
+                            <span className={`text-[9px] font-semibold px-1 rounded-sm ml-0.5 ${
+                                patternScore.score > 2 ? 'bg-emerald-500/10 text-emerald-400' :
+                                patternScore.score < -2 ? 'bg-rose-500/10 text-rose-400' :
+                                'bg-amber-500/10 text-amber-400'
+                            }`}>
+                                {patternScore.label}
+                            </span>
+                        </div>
 
-
+                        {/* Active Patterns Dropdown (Visible on Hover) */}
+                        {patternScore.activePatterns.length > 0 && (
+                            <div 
+                                className="absolute top-full left-0 mt-1 hidden group-hover:flex flex-col gap-0 w-64 bg-background-surface/95 backdrop-blur-xl border border-border-subtle rounded-md p-1.5 shadow-2xl z-[100]"
+                            >
+                                <div className="flex items-center justify-between border-b border-white/5 pb-1.5 mb-1 px-1.5 pt-0.5">
+                                    <span className="text-[10px] font-semibold text-text-secondary">Active Formations</span>
+                                    <span className="text-[9px] text-text-tertiary uppercase tracking-wider">Click to view</span>
+                                </div>
+                                {patternScore.activePatterns.map((p, i) => {
+                                    const isSelected = hoveredPattern?.id === p.id && hoveredPattern?.time === p.time;
+                                    return (
+                                        <div 
+                                            key={i} 
+                                            onClick={() => setHoveredPattern(isSelected ? null : p)}
+                                            className={`flex items-center justify-between text-[11px] px-2 py-1.5 rounded cursor-pointer transition-colors ${isSelected ? 'bg-white/10 shadow-inner' : 'hover:bg-white/5'}`}
+                                        >
+                                            <span className={`font-medium ${p.dir > 0 ? 'text-emerald-400' : p.dir < 0 ? 'text-rose-400' : 'text-text-tertiary'}`}>
+                                                {p.name}
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`font-mono text-[10px] ${p.contribution > 0 ? 'text-emerald-500' : p.contribution < 0 ? 'text-rose-500' : 'text-slate-500'}`}>
+                                                    {p.contribution > 0 ? '+' : ''}{p.contribution}
+                                                </span>
+                                                <span className="text-text-tertiary text-[10px]">
+                                                    ({p.age} bar{p.age !== 1 ? 's' : ''} ago)
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
                 {/* OHLC Legend inline in top toolbar */}
                 <OHLCLegend chartRef={chartRef} candleSeriesRef={candleSeriesRef} data={data} />
 
@@ -2019,6 +2198,23 @@ export default React.memo(function AdvancedCandlestickChart({
                     addDrawing={addDrawing}
                     deleteDrawing={deleteDrawing}
                 />
+                
+                {/* Ghost PAE Clean Hover Tooltip */}
+                {ghostTooltip && (
+                    <div 
+                        className="absolute pointer-events-none z-50 text-[11px] font-mono px-2 py-1 rounded bg-black/80 border backdrop-blur-md whitespace-nowrap shadow-xl"
+                        style={{
+                            left: ghostTooltip.x,
+                            top: ghostTooltip.y - 30,
+                            transform: 'translateX(-50%)',
+                            borderColor: ghostTooltip.color,
+                            color: ghostTooltip.color,
+                            textShadow: '0 0 10px rgba(0,0,0,0.8)'
+                        }}
+                    >
+                        Error: {ghostTooltip.text}
+                    </div>
+                )}
             </div>
 
             <AnimatePresence>
@@ -2042,6 +2238,7 @@ export default React.memo(function AdvancedCandlestickChart({
                 <FundamentalTimeline data={fundamentalData.scoreTimeline} height={80} />
             )}
 
+            
             {/* Custom Fixed Tooltip for Indicators */}
             <AnimatePresence>
                 {hoveredIndicator && (
@@ -2050,7 +2247,7 @@ export default React.memo(function AdvancedCandlestickChart({
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.15 }}
-                        className="fixed z-[100] bg-[#1a1f2e] border border-white/10 text-white/90 text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-xl pointer-events-none whitespace-nowrap"
+                        className="fixed z-[100] bg-background-surface/95 backdrop-blur-xl border border-border-subtle text-text-primary text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-2xl pointer-events-none whitespace-nowrap"
                         style={{
                             top: hoveredIndicator.top,
                             left: hoveredIndicator.left,

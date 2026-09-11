@@ -99,9 +99,31 @@ export function DayJournalEditor({ date, isOffDay }) {
         ))}
       </div>
 
-      <div className="flex-1 p-5 bg-background-surface/30">
+      <div className="flex-1 p-5 bg-background-surface/30 relative flex flex-col gap-3">
+        {activeTab === 'aiInsights' && !isPast && (
+          <div className="flex justify-end">
+             <button 
+               onClick={async () => {
+                 import('sonner').then(({ toast }) => toast.loading('Analyzing global PACE metrics...', { id: 'journal-analyst' }));
+                 try {
+                   const { default: axiosInstance } = await import('@/shared/utils/axiosInstance');
+                   const res = await axiosInstance.post('/api/v1/pace/analyst/journal');
+                   if (res.data?.success) {
+                      setLocalNotes(prev => ({ ...prev, [activeTab]: (prev[activeTab] || '') + '\n\n' + res.data.brief }));
+                      import('sonner').then(({ toast }) => toast.success('Global Insights Generated', { id: 'journal-analyst' }));
+                   }
+                 } catch (err) {
+                   import('sonner').then(({ toast }) => toast.error('Analysis Failed', { id: 'journal-analyst', description: err.message }));
+                 }
+               }}
+               className="flex items-center gap-2 px-3 py-1.5 bg-fuchsia-500/10 text-fuchsia-500 hover:bg-fuchsia-500/20 border border-fuchsia-500/20 rounded-md text-xs font-bold uppercase tracking-wider transition-colors"
+             >
+               🧠 Generate Global AI Insights
+             </button>
+          </div>
+        )}
         <RichTextEditor
-          className="w-full h-full custom-scrollbar"
+          className="w-full h-full custom-scrollbar flex-1"
           value={localNotes[activeTab] || ''}
           onChange={(val) => setLocalNotes(prev => ({ ...prev, [activeTab]: val }))}
           readOnly={isPast}

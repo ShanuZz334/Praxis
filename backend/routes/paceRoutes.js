@@ -2,8 +2,8 @@
  * @file paceRoutes.js
  * @purpose Express routes for the Praxis Adaptive Calibration Engine (PACE).
  *
- * GET  /api/v1/pace/profile  — fetch calibration profile for an instrument/timeframe
- * POST /api/v1/pace/score    — submit a bar score to update the profile
+ * GET  /api/v1/pace/profile  - fetch calibration profile for an instrument/timeframe
+ * POST /api/v1/pace/score    - submit a bar score to update the profile
  */
 
 import express from 'express';
@@ -13,6 +13,7 @@ import {
     getCalibrationProfile,
     formatProfileForPrompt,
 } from '../engine/paceEngine.js';
+import { runOvernightAnalyst, getLatestAnalystBrief, runJournalAnalyst } from '../engine/overnightAnalyst.js';
 
 const router = express.Router();
 
@@ -61,6 +62,48 @@ router.post('/score', protect, (req, res) => {
     } catch (err) {
         console.error('[PACE] score error:', err.message);
         return res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * GET /api/v1/pace/analyst?instrumentKey=...&timeframe=...
+ */
+router.get('/analyst', protect, (req, res) => {
+    try {
+        const { instrumentKey, timeframe } = req.query;
+        if (!instrumentKey || !timeframe) return res.status(400).json({ error: 'Missing params' });
+        
+        const brief = getLatestAnalystBrief(instrumentKey, timeframe);
+        res.json({ brief });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch brief' });
+    }
+});
+
+/**
+ * POST /api/v1/pace/analyst/run
+ */
+router.post('/analyst/run', protect, async (req, res) => {
+    try {
+        const { instrumentKey, timeframe } = req.body;
+        if (!instrumentKey || !timeframe) return res.status(400).json({ error: 'Missing params' });
+        
+        const brief = await runOvernightAnalyst(instrumentKey, timeframe);
+        res.json({ success: true, brief });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to run Analyst', details: error.message });
+    }
+});
+
+/**
+ * POST /api/v1/pace/analyst/journal
+ */
+router.post('/analyst/journal', protect, async (req, res) => {
+    try {
+        const brief = await runJournalAnalyst();
+        res.json({ success: true, brief });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to run Journal Analyst', details: error.message });
     }
 });
 

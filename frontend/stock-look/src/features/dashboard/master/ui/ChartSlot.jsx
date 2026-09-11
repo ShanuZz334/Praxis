@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import AdvancedCandlestickChart from "@/shared/components/charts/AdvancedCandlestickChart";
 import { useHistoricalCandles } from "@/shared/hooks/useHistoricalCandles";
 import Loader from "@/shared/components/ui/Loader";
-import { X } from 'lucide-react';
+import { X, Maximize2, Minimize2 } from 'lucide-react';
 import { FO_INDICES, FO_EQUITIES } from "@/shared/utils/foInstruments";
 
 export default function ChartSlot({ 
@@ -17,6 +17,7 @@ export default function ChartSlot({
     className = ""
 }) {
     const { data: candleData, loading: candlesLoading, isBackfilling, liveCandle } = useHistoricalCandles(instrumentKey, timeframe);
+    const [isMaximized, setIsMaximized] = useState(false);
 
     const getReadableName = (val) => {
         if (!val) return 'NO INSTRUMENT';
@@ -25,8 +26,10 @@ export default function ChartSlot({
         return found ? found.label : val.split('|').pop().replace('NSE_EQ:', '').replace('NSE_INDEX:', '');
     };
 
+    const isMultiMode = !isSingle && !isMaximized;
+
     return (
-        <div className={`relative flex flex-col w-full h-full min-h-0 ${isSingle ? 'bg-transparent border-transparent' : 'border border-border-default bg-background-card'} rounded-xl overflow-hidden ${className}`}>
+        <div className={`flex flex-col w-full h-full min-h-0 ${isSingle ? 'bg-transparent border-transparent' : 'border border-border-default bg-background-card'} rounded-xl overflow-hidden ${isMaximized ? 'absolute inset-0 z-[100]' : `relative ${className}`}`}>
             {/* Header / Top Bar */}
             {!isSingle && (
                 <div className="absolute top-0 left-0 right-0 h-8 flex items-center justify-between px-2 z-10 pointer-events-none mt-1">
@@ -55,15 +58,25 @@ export default function ChartSlot({
                             S
                         </button>
                     </div>
-                    {!isPrimary && (
+                    
+                    <div className="flex items-center gap-1">
                         <button 
-                            onClick={(e) => { e.stopPropagation(); onClose?.(); }}
-                            className="pointer-events-auto p-1 bg-background-surface/80 backdrop-blur-md rounded-md border border-border-subtle text-text-tertiary hover:text-red-400 hover:bg-white/10 transition-colors"
-                            title="Close Chart"
+                            onClick={(e) => { e.stopPropagation(); setIsMaximized(!isMaximized); }}
+                            className="pointer-events-auto p-1 bg-background-surface/80 backdrop-blur-md rounded-md border border-border-subtle text-text-tertiary hover:text-blue-400 hover:bg-white/10 transition-colors"
+                            title={isMaximized ? "Restore Chart" : "Maximize Chart"}
                         >
-                            <X size={12} />
+                            {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
                         </button>
-                    )}
+                        {!isPrimary && (
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onClose?.(); }}
+                                className="pointer-events-auto p-1 bg-background-surface/80 backdrop-blur-md rounded-md border border-border-subtle text-text-tertiary hover:text-red-400 hover:bg-white/10 transition-colors"
+                                title="Close Chart"
+                            >
+                                <X size={12} />
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -85,6 +98,7 @@ export default function ChartSlot({
                         instrumentKey={instrumentKey}
                         timeframe={timeframe}
                         allowFutureVision={isPrimary}
+                        isMultiMode={isMultiMode}
                     />
                 )}
             </div>

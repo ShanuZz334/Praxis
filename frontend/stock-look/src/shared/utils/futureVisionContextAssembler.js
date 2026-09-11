@@ -74,7 +74,9 @@ export function assembleContext({
     ohlcvBars = 50,
     aiNarratives = {},
     isAutoRefresh = false,
-    calibrationProfile = null
+    calibrationProfile = null,
+    analystBrief = null,
+    patternScore = null
 }) {
     // ─── Pre-process OHLCV ──────────────────────────────────────────────────
     const clampedBars = Math.max(10, Math.min(ohlcvBars, 200));
@@ -105,6 +107,17 @@ export function assembleContext({
 
     let basePayload = '';
     
+    if (analystBrief) {
+        basePayload += `
+  ================================================================================
+  BLOCK 0 - OVERNIGHT ANALYST STRATEGIC BRIEF
+  ================================================================================
+  ${analystBrief}
+  (CRITICAL INSTRUCTION: Apply this analyst advice rigorously to your predictions.)
+  
+`;
+    }
+
     if (calibrationProfile?.promptBlock) {
         basePayload += `\n${calibrationProfile.promptBlock}\n\n`;
     }
@@ -145,6 +158,7 @@ export function assembleContext({
   
   ${technicalBlock}
   ${_computeTechnicalBlock(indicators, lastClose, tradingMode)}
+  ${_computePatternScoreBlock(patternScore)}
   
   ================================================================================
   BLOCK 3 - FUNDAMENTAL VALUATION
@@ -236,16 +250,29 @@ function _computePriceAnalytics(w96, w20, w5, last, prev, indicators) {
     // Volume trend
     const vol5avg  = w5.length  ? w5.reduce((a, c)  => a + (c.volume ?? 0), 0) / w5.length  : null;
     const vol20avg = w20.length ? w20.reduce((a, c) => a + (c.volume ?? 0), 0) / w20.length : null;
-    if (vol5avg && vol20avg) {
-        const volRatio = vol5avg / vol20avg;
-        const volLabel = volRatio > 1.3 ? 'ABOVE AVERAGE (strong conviction)' : volRatio < 0.7 ? 'BELOW AVERAGE (weak conviction)' : 'AVERAGE';
-        lines.push(`Volume (5-bar vs 20)  : ${_f2(vol5avg / 1000)}K vs ${_f2(vol20avg / 1000)}K — ${volLabel}`);
+    if (vol5avg != null && vol20avg != null && vol20avg > 0) {
+        const vRatio = vol5avg / vol20avg;
+        let vClass = vRatio > 1.5 ? 'CLIMACTIC' : vRatio > 1.1 ? 'ELEVATED' : vRatio < 0.7 ? 'DRYING UP' : 'AVERAGE';
+        lines.push(`Volume profile        : ${vClass} (recent=${Math.round(vol5avg)}, baseline=${Math.round(vol20avg)})`);
     }
 
-    // Candlestick pattern detection (last 5 bars)
-    const patterns = _detectCandlePatterns(w5);
-    if (patterns.length) lines.push(`Candle patterns (L5)  : ${patterns.join(', ')}`);
-    else lines.push(`Candle patterns (L5)  : No classic pattern — price in equilibrium`);
+    // Pattern Scoring Engine
+    if (indicators && indicators.patternScore) {
+        const ps = indicators.patternScore;
+        lines.push(`\n[PATTERN RECOGNITION ENGINE]`);
+        lines.push(`Composite Score       : ${ps.score > 0 ? '+' : ''}${ps.score} (${ps.label})`);
+        if (ps.activePatterns && ps.activePatterns.length > 0) {
+            lines.push(`Active Formations     :`);
+            ps.activePatterns.forEach(p => {
+                lines.push(`  - ${p.name} (${p.dir > 0 ? 'Bullish' : 'Bearish'}) formed ${p.age} bar(s) ago`);
+            });
+        } else {
+            lines.push(`Active Formations     : None`);
+        }
+        lines.push(`  → Consider these structural patterns heavily when modeling the next trajectory.`);
+    }
+
+
 
     // Last candle anatomy
     const lastRange = (last.high ?? 0) - (last.low ?? 0);
@@ -496,40 +523,7 @@ function _computeATR(bars) {
     return n ? total / n : null;
 }
 
-function _detectCandlePatterns(bars) {
-    if (!bars || bars.length < 2) return [];
-    const patterns = [];
-    const last2 = bars.slice(-2);
-    const last1 = bars.at(-1) ?? {};
-    const prev1 = bars.at(-2) ?? {};
 
-    const body1 = Math.abs(last1.close - last1.open);
-    const range1 = (last1.high - last1.low) || 1;
-    const upperWick1 = last1.high - Math.max(last1.close, last1.open);
-    const lowerWick1 = Math.min(last1.close, last1.open) - last1.low;
-    const isBullish1 = last1.close > last1.open;
-    const isBearish1 = last1.close < last1.open;
-
-    // Doji
-    if (body1 / range1 < 0.1) patterns.push('Doji (indecision)');
-    // Hammer
-    if (lowerWick1 > body1 * 2 && upperWick1 < body1 * 0.5 && isBullish1) patterns.push('Hammer (bullish reversal)');
-    // Shooting Star
-    if (upperWick1 > body1 * 2 && lowerWick1 < body1 * 0.5 && isBearish1) patterns.push('Shooting Star (bearish reversal)');
-    // Marubozu (strong candle, minimal wicks)
-    if (body1 / range1 > 0.85 && isBullish1) patterns.push('Bullish Marubozu (strong buying)');
-    if (body1 / range1 > 0.85 && isBearish1) patterns.push('Bearish Marubozu (strong selling)');
-    // Engulfing
-    if (prev1.open && prev1.close) {
-        const prevBody = Math.abs(prev1.close - prev1.open);
-        if (isBullish1 && prev1.close < prev1.open && last1.open <= prev1.close && last1.close >= prev1.open) patterns.push('Bullish Engulfing');
-        if (isBearish1 && prev1.close > prev1.open && last1.open >= prev1.close && last1.close <= prev1.open) patterns.push('Bearish Engulfing');
-    }
-    // Inside Bar
-    if (last1.high < prev1.high && last1.low > prev1.low) patterns.push('Inside Bar (consolidation/compression)');
-
-    return patterns;
-}
 
 function _barsToDays(n, tf) {
     const m = { '1m':1,'3m':3,'5m':5,'15m':15,'30m':30,'1h':60,'2h':120,'4h':240,'daily':390,'1D':390,'weekly':1950,'1W':1950 };
@@ -549,4 +543,18 @@ function _formatTime(t) {
     if (typeof t === 'string') return t.slice(0, 16).replace('T', ' ');
     if (t.year) return `${t.year}-${String(t.month).padStart(2,'0')}-${String(t.day).padStart(2,'0')} 00:00`;
     return String(t);
+}
+function _computePatternScoreBlock(patternScore) {
+    if (!patternScore) return '';
+    const lines = [];
+    lines.push(`\n[PATTERN RECOGNITION ENGINE]`);
+    lines.push(`Overall Score: ${patternScore.score > 0 ? '+' : ''}${patternScore.score} (${patternScore.label})`);
+    
+    if (patternScore.activePatterns && patternScore.activePatterns.length > 0) {
+        lines.push(`Active Formations:`);
+        patternScore.activePatterns.forEach(p => {
+            lines.push(`- ${p.name} (${p.dir > 0 ? 'BULLISH' : 'BEARISH'})`);
+        });
+    }
+    return lines.join('\n');
 }
