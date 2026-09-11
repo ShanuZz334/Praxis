@@ -244,14 +244,20 @@ export function calculateIchimoku(data, conversionPeriod = 9, basePeriod = 26, s
     return { tenkan, kijun, spanA: finalSpanA, spanB: finalSpanB };
 }
 
-export function calculateAnchoredVWAP(data) {
-    if (data.length === 0) return [];
+export function calculateAnchoredVWAP(data, lookback = null) {
+    if (!data || data.length === 0) return [];
     
-    let maxVol = 0;
-    let anchorIdx = 0;
-    for(let i=0; i<data.length; i++) {
-        if (data[i].volume > maxVol) {
-            maxVol = data[i].volume;
+    let startIndex = 0;
+    if (lookback && lookback > 0 && data.length > lookback) {
+        startIndex = data.length - lookback;
+    }
+    
+    let maxVol = -1;
+    let anchorIdx = startIndex;
+    for (let i = startIndex; i < data.length; i++) {
+        const vol = data[i].volume || 0;
+        if (vol > maxVol) {
+            maxVol = vol;
             anchorIdx = i;
         }
     }
@@ -260,9 +266,9 @@ export function calculateAnchoredVWAP(data) {
     let cumVol = 0;
     let cumVolPrice = 0;
     
-    for(let i = anchorIdx; i < data.length; i++) {
+    for (let i = anchorIdx; i < data.length; i++) {
         const typicalPrice = (data[i].high + data[i].low + data[i].close) / 3;
-        const vol = data[i].volume || 1;
+        const vol = data[i].volume && data[i].volume > 0 ? data[i].volume : 1;
         cumVol += vol;
         cumVolPrice += typicalPrice * vol;
         vwap.push({ time: data[i].time, value: cumVolPrice / cumVol });
@@ -270,17 +276,24 @@ export function calculateAnchoredVWAP(data) {
     return vwap;
 }
 
-export function calculateAutoFib(data) {
-    if (data.length === 0) return null;
+export function calculateAutoFib(data, lookback = null) {
+    if (!data || data.length === 0) return null;
+    
+    const subset = (lookback && lookback > 0 && data.length > lookback)
+        ? data.slice(-lookback)
+        : data;
+
     let high = -Infinity;
     let low = Infinity;
     
-    for (const d of data) {
+    for (const d of subset) {
         if (d.high > high) high = d.high;
         if (d.low < low) low = d.low;
     }
     
     const diff = high - low;
+    if (diff <= 0) return null;
+
     return {
         levels: [
             { price: high, label: '0%' },
@@ -296,7 +309,7 @@ export function calculateAutoFib(data) {
 
 export function calculateRSIDivergence(data, period = 14) {
     const rsiSeries = [];
-    if (data.length < period + 1) return { rsi: [], markers: [] };
+    if (!data || data.length < period + 1) return { rsi: [], markers: [] };
     
     let gains = 0;
     let losses = 0;
@@ -309,14 +322,15 @@ export function calculateRSIDivergence(data, period = 14) {
     
     let avgGain = gains / period;
     let avgLoss = losses / period;
+    const pMinus1 = period - 1;
     
     for (let i = period + 1; i < data.length; i++) {
         const diff = data[i].close - data[i-1].close;
         let gain = diff >= 0 ? diff : 0;
         let loss = diff < 0 ? -diff : 0;
         
-        avgGain = (avgGain * 13 + gain) / 14;
-        avgLoss = (avgLoss * 13 + loss) / 14;
+        avgGain = (avgGain * pMinus1 + gain) / period;
+        avgLoss = (avgLoss * pMinus1 + loss) / period;
         
         let rs = avgGain / (avgLoss === 0 ? 1 : avgLoss);
         let rsi = 100 - (100 / (1 + rs));

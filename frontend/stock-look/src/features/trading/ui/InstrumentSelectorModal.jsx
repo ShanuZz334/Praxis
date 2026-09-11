@@ -1,11 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCheck, ChevronDown, Layers, Building2, Sparkles, AlertCircle, CheckCircle2, Loader2, Filter } from 'lucide-react';
+import { X, CheckCheck, ChevronDown, Layers, Building2, Sparkles, AlertCircle, CheckCircle2, Loader2, Filter, TrendingUp, Zap } from 'lucide-react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { FO_INDICES, FO_EQUITIES } from '@/shared/utils/foInstruments';
 import { API_PATHS } from '@/shared/utils/apiPaths';
 import { useDashboardContext } from '@/shared/context/DashboardContext';
 import UiverseDropdown from '@/shared/components/ui/UiverseDropdown';
 import { toast } from 'sonner';
+
+const QUICK_INDICES = [
+  { label: 'Nifty 50', query: 'Nifty 50' },
+  { label: 'Bank Nifty', query: 'Nifty Bank' },
+  { label: 'Fin Nifty', query: 'FINNIFTY' },
+  { label: 'Midcap', query: 'MIDCPNIFTY' },
+];
+
+const QUICK_EQUITIES = [
+  { label: 'RELIANCE', symbol: 'RELIANCE' },
+  { label: 'HDFCBANK', symbol: 'HDFCBANK' },
+  { label: 'TCS', symbol: 'TCS' },
+  { label: 'INFY', symbol: 'INFY' },
+  { label: 'ICICIBANK', symbol: 'ICICIBANK' },
+];
 
 export default function InstrumentSelectorModal({
   isOpen,
@@ -207,33 +222,39 @@ export default function InstrumentSelectorModal({
   };
 
   return (
-    <div className="absolute inset-0 bg-background-tooltip border border-border-default rounded-xl p-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.2)] w-full h-full flex flex-col justify-between gap-3 z-[99999] animate-in fade-in zoom-in-95 duration-200">
+    <div className="relative w-full bg-background-surface/95 dark:bg-[#0c1017]/95 backdrop-blur-xl border border-border-default/80 dark:border-white/10 rounded-2xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.6)] flex flex-col justify-between gap-3 z-[99999] animate-in fade-in zoom-in-95 duration-200 font-sans">
       {/* MODAL HEADER */}
-      <div className="flex justify-between items-center border-b border-border-subtle/60 pb-2.5">
-        <div className="flex items-center gap-1.5">
-          <Sparkles size={14} className="text-blue-400" />
-          <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Select Instrument</span>
+      <div className="flex justify-between items-center border-b border-border-subtle/70 dark:border-white/[0.08] pb-2.5">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-blue-500/15 border border-blue-500/30 flex items-center justify-center shadow-sm">
+            <Sparkles size={13} className="text-blue-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-mono font-bold text-text-primary uppercase tracking-wider">Select Instrument</span>
+              <span className="px-1.5 py-0.2 rounded text-[8px] font-mono font-bold bg-white/5 text-text-tertiary border border-white/10 uppercase tracking-widest">
+                NSE · NFO
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-
-          <button 
-            onClick={onClose} 
-            className="p-1 rounded-md text-text-tertiary hover:text-rose-400 hover:bg-white/5 transition-colors cursor-pointer"
-            title="Cancel"
-          >
-            <X size={15} />
-          </button>
-        </div>
+        <button 
+          onClick={onClose} 
+          className="p-1 rounded-md text-text-tertiary hover:text-rose-400 hover:bg-white/5 transition-colors cursor-pointer"
+          title="Close"
+        >
+          <X size={15} />
+        </button>
       </div>
 
-      {/* TOP CATEGORY SEGMENT */}
-      <div className="flex bg-background-surface rounded-lg p-1 border border-border-default shadow-inner w-full">
+      {/* TOP CATEGORY SEGMENTED PILL */}
+      <div className="flex bg-black/20 dark:bg-white/[0.03] rounded-xl p-1 border border-border-subtle/70 dark:border-white/[0.06] shadow-inner w-full gap-1">
         <button
           onClick={() => { setCategory('Indices'); setSelectedOptionKey(null); }}
-          className={`flex-1 flex items-center justify-center gap-1.5 text-[10px] py-1 rounded-md font-bold transition-all cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-1.5 text-[11px] py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
             category === 'Indices'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-text-secondary hover:text-text-primary'
+              ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30 shadow-sm'
+              : 'text-text-secondary hover:text-text-primary hover:bg-white/5 border border-transparent'
           }`}
         >
           <Layers size={13} />
@@ -241,15 +262,69 @@ export default function InstrumentSelectorModal({
         </button>
         <button
           onClick={() => { setCategory('Companies'); setSelectedOptionKey(null); }}
-          className={`flex-1 flex items-center justify-center gap-1.5 text-[10px] py-1 rounded-md font-bold transition-all cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-1.5 text-[11px] py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
             category === 'Companies'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-text-secondary hover:text-text-primary'
+              ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30 shadow-sm'
+              : 'text-text-secondary hover:text-text-primary hover:bg-white/5 border border-transparent'
           }`}
         >
           <Building2 size={13} />
           Companies
         </button>
+      </div>
+
+      {/* QUICK SELECTION CHIPS */}
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        <span className="text-[8px] font-mono font-bold text-text-tertiary uppercase tracking-wider shrink-0">Quick:</span>
+        {category === 'Indices' ? (
+          QUICK_INDICES.map(item => {
+            const match = FO_INDICES.find(i => i.label?.toLowerCase().includes(item.query.toLowerCase()) || i.name?.toLowerCase().includes(item.query.toLowerCase()));
+            const isSelected = match && selectedIndexKey === match.value;
+            return (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => {
+                  if (match) {
+                    setSelectedIndexKey(match.value);
+                    setSelectedOptionKey(null);
+                  }
+                }}
+                className={`px-2 py-0.5 rounded-md text-[9px] font-mono font-bold transition-all whitespace-nowrap cursor-pointer border ${
+                  isSelected 
+                    ? 'bg-blue-500/20 text-blue-300 border-blue-500/50 shadow-sm' 
+                    : 'bg-white/[0.03] text-text-secondary hover:text-text-primary hover:bg-white/[0.08] border-border-subtle/60 dark:border-white/[0.06]'
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })
+        ) : (
+          QUICK_EQUITIES.map(item => {
+            const match = FO_EQUITIES.find(e => e.label === item.symbol || e.name?.includes(item.symbol));
+            const isSelected = match && selectedCompanyKey === match.value;
+            return (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => {
+                  if (match) {
+                    setSelectedCompanyKey(match.value);
+                    setSelectedOptionKey(null);
+                  }
+                }}
+                className={`px-2 py-0.5 rounded-md text-[9px] font-mono font-bold transition-all whitespace-nowrap cursor-pointer border ${
+                  isSelected 
+                    ? 'bg-blue-500/20 text-blue-300 border-blue-500/50 shadow-sm' 
+                    : 'bg-white/[0.03] text-text-secondary hover:text-text-primary hover:bg-white/[0.08] border-border-subtle/60 dark:border-white/[0.06]'
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })
+        )}
       </div>
 
       {/* CATEGORY BODY */}
@@ -258,7 +333,9 @@ export default function InstrumentSelectorModal({
           <>
             {/* 1. SELECT INDEX */}
             <div>
-              <label className="text-[9px] text-text-secondary font-bold uppercase tracking-wider block mb-0.5">1. Choose Index</label>
+              <label className="text-[9px] text-text-secondary font-mono font-bold uppercase tracking-wider block mb-1">
+                1. Underlying Index
+              </label>
               <UiverseDropdown
                 value={selectedIndexKey}
                 onChange={(val) => {
@@ -272,42 +349,48 @@ export default function InstrumentSelectorModal({
             </div>
 
             {/* 2. SELECT OPTION CONTRACT */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between items-center">
-                <label className="text-[9px] text-text-secondary font-bold uppercase tracking-wider">
-                  2. Select Option Contract <span className="text-rose-400">*</span>
-                </label>
-                {contracts.length > 0 && (
-                  <div className="flex bg-background-surface p-0.5 rounded border border-border-subtle text-[9px] font-bold">
-                    {['ALL', 'CE', 'PE'].map(type => (
-                      <button
-                        key={type}
-                        onClick={() => setOptionTypeFilter(type)}
-                        className={`px-1.5 py-0.5 rounded transition-colors ${
-                          optionTypeFilter === type ? 'bg-blue-500/20 text-blue-400' : 'text-text-tertiary hover:text-text-primary'
-                        }`}
-                      >
-                        {type}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {mode === 'trade' && (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between items-center">
+                  <label className="text-[9px] text-text-secondary font-mono font-bold uppercase tracking-wider">
+                    2. Option Contract <span className="text-rose-400">*</span>
+                  </label>
+                  {contracts.length > 0 && (
+                    <div className="flex bg-black/20 p-0.5 rounded-md border border-border-subtle/60 dark:border-white/[0.06] text-[9px] font-mono font-bold gap-0.5">
+                      {['ALL', 'CE', 'PE'].map(type => (
+                        <button
+                          key={type}
+                          onClick={() => setOptionTypeFilter(type)}
+                          className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+                            optionTypeFilter === type 
+                              ? (type === 'CE' ? 'bg-emerald-500/20 text-emerald-400' : type === 'PE' ? 'bg-rose-500/20 text-rose-400' : 'bg-blue-500/20 text-blue-400') 
+                              : 'text-text-tertiary hover:text-text-primary'
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-              <UiverseDropdown
-                value={selectedOptionKey}
-                onChange={(val) => setSelectedOptionKey(val)}
-                options={filteredContracts}
-                placeholder={contractsLoading ? "Fetching option contracts..." : `Select Option Contract (${filteredContracts.length} available)...`}
-                searchPlaceholder="Search Strike, Expiry, CE/PE..."
-              />
-            </div>
+                <UiverseDropdown
+                  value={selectedOptionKey}
+                  onChange={(val) => setSelectedOptionKey(val)}
+                  options={filteredContracts}
+                  placeholder={contractsLoading ? "Fetching option contracts..." : `Select Option Contract (${filteredContracts.length} available)...`}
+                  searchPlaceholder="Search Strike, Expiry, CE/PE..."
+                />
+              </div>
+            )}
           </>
         ) : (
           <>
             {/* 1. SELECT COMPANY */}
             <div>
-              <label className="text-[9px] text-text-secondary font-bold uppercase tracking-wider block mb-0.5">1. Choose Company</label>
+              <label className="text-[9px] text-text-secondary font-mono font-bold uppercase tracking-wider block mb-1">
+                1. Underlying Company
+              </label>
               <UiverseDropdown
                 value={selectedCompanyKey}
                 onChange={(val) => {
@@ -322,29 +405,33 @@ export default function InstrumentSelectorModal({
 
             {/* 2. COMPANY TRADE MODE (STOCK OR OPTION) */}
             <div>
-              <label className="text-[9px] text-text-secondary font-bold uppercase tracking-wider block mb-0.5">2. Trade Type</label>
+              <label className="text-[9px] text-text-secondary font-mono font-bold uppercase tracking-wider block mb-1">
+                2. Instrument Type
+              </label>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setCompanyTradeMode('EQUITY')}
-                  className={`flex-1 py-1 px-2 rounded-md text-[10px] font-bold transition-all border cursor-pointer ${
+                  className={`flex-1 py-1.5 px-2.5 rounded-xl text-[10px] font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
                     companyTradeMode === 'EQUITY'
-                      ? 'bg-blue-600/20 text-blue-400 border-blue-500/40 shadow-sm'
-                      : 'bg-background-surface text-text-secondary border-border-subtle hover:text-text-primary'
+                      ? 'bg-blue-500/15 text-blue-400 border-blue-500/30 shadow-sm'
+                      : 'bg-white/[0.03] text-text-secondary border-border-subtle/60 dark:border-white/[0.06] hover:text-text-primary hover:bg-white/[0.06]'
                   }`}
                 >
-                  Stock (Equity)
+                  <TrendingUp size={12} className="text-emerald-400" />
+                  <span>Stock (Equity)</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setCompanyTradeMode('OPTIONS')}
-                  className={`flex-1 py-1 px-2 rounded-md text-[10px] font-bold transition-all border cursor-pointer ${
+                  className={`flex-1 py-1.5 px-2.5 rounded-xl text-[10px] font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
                     companyTradeMode === 'OPTIONS'
-                      ? 'bg-blue-600/20 text-blue-400 border-blue-500/40 shadow-sm'
-                      : 'bg-background-surface text-text-secondary border-border-subtle hover:text-text-primary'
+                      ? 'bg-blue-500/15 text-blue-400 border-blue-500/30 shadow-sm'
+                      : 'bg-white/[0.03] text-text-secondary border-border-subtle/60 dark:border-white/[0.06] hover:text-text-primary hover:bg-white/[0.06]'
                   }`}
                 >
-                  Company Options
+                  <Zap size={12} className="text-amber-400" />
+                  <span>Company Options</span>
                 </button>
               </div>
             </div>
@@ -353,17 +440,19 @@ export default function InstrumentSelectorModal({
             {companyTradeMode === 'OPTIONS' && (
               <div className="flex flex-col gap-1.5 animate-in fade-in duration-200">
                 <div className="flex justify-between items-center">
-                  <label className="text-[9px] text-text-secondary font-bold uppercase tracking-wider">
-                    3. Select Option Contract <span className="text-rose-400">*</span>
+                  <label className="text-[9px] text-text-secondary font-mono font-bold uppercase tracking-wider">
+                    3. Option Contract <span className="text-rose-400">*</span>
                   </label>
                   {contracts.length > 0 && (
-                    <div className="flex bg-background-surface p-0.5 rounded border border-border-subtle text-[9px] font-bold">
+                    <div className="flex bg-black/20 p-0.5 rounded-md border border-border-subtle/60 dark:border-white/[0.06] text-[9px] font-mono font-bold gap-0.5">
                       {['ALL', 'CE', 'PE'].map(type => (
                         <button
                           key={type}
                           onClick={() => setOptionTypeFilter(type)}
-                          className={`px-1.5 py-0.5 rounded transition-colors ${
-                            optionTypeFilter === type ? 'bg-blue-500/20 text-blue-400' : 'text-text-tertiary hover:text-text-primary'
+                          className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+                            optionTypeFilter === type 
+                              ? (type === 'CE' ? 'bg-emerald-500/20 text-emerald-400' : type === 'PE' ? 'bg-rose-500/20 text-rose-400' : 'bg-blue-500/20 text-blue-400') 
+                              : 'text-text-tertiary hover:text-text-primary'
                           }`}
                         >
                           {type}
@@ -387,37 +476,35 @@ export default function InstrumentSelectorModal({
       </div>
 
       {/* VALIDATION STATUS NOTICE */}
-      {mode === 'trade' && (
-        <div className={`p-2 rounded-lg text-[11px] flex items-start gap-2 border transition-all ${
-          isSelectionValid 
-            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' 
-            : 'bg-amber-500/10 border-amber-500/20 text-amber-300'
-        }`}>
-          {isSelectionValid ? (
-            <CheckCircle2 size={15} className="text-emerald-400 shrink-0 mt-0.5" />
-          ) : (
-            <AlertCircle size={15} className="text-amber-400 shrink-0 mt-0.5" />
-          )}
-          <span className="leading-tight font-medium">{validationMessage}</span>
-        </div>
-      )}
+      <div className={`px-3 py-1.5 rounded-xl text-[10px] font-mono flex items-center gap-2 border transition-all ${
+        isSelectionValid 
+          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+          : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+      }`}>
+        {isSelectionValid ? (
+          <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
+        ) : (
+          <AlertCircle size={13} className="text-amber-400 shrink-0" />
+        )}
+        <span className="leading-tight font-medium truncate">{validationMessage}</span>
+      </div>
 
       {/* CONFIRM FOOTER BUTTON */}
       <button
         type="button"
         disabled={!isSelectionValid}
         onClick={handleApply}
-        className={`w-full py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+        className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
           isSelectionValid
-            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/25 active:scale-[0.99]'
-            : 'bg-background-surface text-text-tertiary border border-border-subtle cursor-not-allowed opacity-50'
+            ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:via-indigo-500 hover:to-blue-500 text-white shadow-lg shadow-blue-500/25 active:scale-[0.99]'
+            : 'bg-white/[0.03] text-text-tertiary border border-border-subtle/60 dark:border-white/[0.06] cursor-not-allowed opacity-40'
         }`}
       >
-        <CheckCheck size={15} />
-        <span>
+        <CheckCheck size={14} strokeWidth={2.5} />
+        <span className="truncate">
           {isSelectionValid
             ? `Confirm & Apply (${selectedTradable?.tradingsymbol || selectedTradable?.label})`
-            : 'Select Tradable Option to Continue'}
+            : 'Select Asset to Continue'}
         </span>
       </button>
     </div>

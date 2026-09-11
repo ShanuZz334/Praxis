@@ -7,11 +7,18 @@ import React from "react";
 
 import { motion } from "framer-motion";
 
-export function FlipContainer({ isFlipped, front, back, className = "" }) {
+export function FlipContainer({ isFlipped, front, back, className = "", style = {} }) {
+    const customHeight = style?.height;
+    const customMinHeight = style?.minHeight || customHeight;
+
     return (
         <motion.div 
             className={`relative w-full ${className}`} 
-            style={{ perspective: "1000px" }}
+            style={{ 
+                perspective: "1000px", 
+                ...style,
+                ...(customHeight ? { height: customHeight, minHeight: customMinHeight } : {})
+            }}
             transition={{ duration: 0.5, type: "spring", bounce: 0 }}
         >
             <motion.div
@@ -21,6 +28,8 @@ export function FlipContainer({ isFlipped, front, back, className = "" }) {
                 transition={{ duration: 0.5, type: "spring", bounce: 0 }}
                 style={{
                     transformStyle: "preserve-3d",
+                    height: customHeight || "auto",
+                    minHeight: customMinHeight || undefined
                 }}
             >
                 {/* FRONT */}
@@ -29,7 +38,10 @@ export function FlipContainer({ isFlipped, front, back, className = "" }) {
                     style={{ 
                         backfaceVisibility: "hidden",
                         WebkitBackfaceVisibility: "hidden",
-                        position: "relative", // Always relative to hold height
+                        position: isFlipped ? "absolute" : "relative",
+                        top: 0,
+                        left: 0,
+                        pointerEvents: isFlipped ? "none" : "auto",
                         zIndex: isFlipped ? 0 : 50
                     }}
                 >
@@ -43,9 +55,11 @@ export function FlipContainer({ isFlipped, front, back, className = "" }) {
                         backfaceVisibility: "hidden",
                         WebkitBackfaceVisibility: "hidden",
                         transform: "rotateY(180deg)",
-                        position: "absolute", // Always absolute to match front's height
+                        position: isFlipped ? "relative" : "absolute",
                         top: 0,
                         left: 0,
+                        height: customHeight || "100%",
+                        minHeight: customMinHeight || undefined,
                         zIndex: isFlipped ? 50 : 0
                     }}
                 >

@@ -29,7 +29,7 @@ import { getCompositeColor } from "@/shared/config/scoreColors";
 import { FO_INDICES, FO_EQUITIES } from "@/shared/utils/foInstruments";
 import { useTheme } from "@/shared/context/ThemeContext";
 import { getNifty50Keys, NIFTY_50_SYMBOLS } from "../data/nifty50";
-import { RefreshCw, PlusCircle, X, PlusSquare } from 'lucide-react';
+import { RefreshCw, PlusCircle, X, PlusSquare, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import UiverseDropdown from "@/shared/components/ui/UiverseDropdown";
 import InstrumentSelectorModal from "@/features/trading/ui/InstrumentSelectorModal";
 import axiosInstance from '@/shared/utils/axiosInstance';
@@ -226,7 +226,7 @@ export default function MasterDashboard() {
     };
 
     const chartBackside = (
-        <div className="w-full h-full min-h-[500px] bg-background-card rounded-2xl flex flex-col p-2 relative">
+        <div className="w-full h-full min-h-full bg-background-card rounded-2xl flex flex-col p-2 relative">
             {!instKey ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-text-muted">
                     <Frame className="w-12 h-12 mb-3 opacity-20" />
@@ -234,41 +234,64 @@ export default function MasterDashboard() {
                 </div>
             ) : (
                 <>
-                    <div className="flex justify-between items-center mb-2 px-2 pt-2 z-50 relative pointer-events-none">
-                        <div className="text-[15px] font-black text-text-primary uppercase tracking-widest drop-shadow-sm flex items-center gap-4 pointer-events-auto">
+                    {/* Institutional Command Header */}
+                    <div className="flex justify-between items-center mb-1.5 px-2.5 pt-1.5 z-50 relative pointer-events-none">
+                        <div className="flex items-center gap-3 pointer-events-auto">
                             {combinedCharts.length === 1 ? (
-                                <div className="flex items-center gap-2">
-                                    <span>{getReadableName(selectedInstrument)}</span>
-                                    <button 
-                                        onClick={() => setGlobalOrderTicket({ type: 'QUICK', data: { instrument_token: selectedInstrument?.value || selectedInstrument, tradingsymbol: getReadableName(selectedInstrument), side: 'BUY' }})} 
-                                        className="px-2 py-[2px] bg-blue-600/15 text-blue-500 hover:bg-blue-600 hover:text-white border border-blue-500/30 rounded-[4px] text-[10px] font-bold transition-all cursor-pointer shadow-sm"
-                                        title="Quick Buy"
-                                    >
-                                        B
-                                    </button>
-                                    <button 
-                                        onClick={() => setGlobalOrderTicket({ type: 'QUICK', data: { instrument_token: selectedInstrument?.value || selectedInstrument, tradingsymbol: getReadableName(selectedInstrument), side: 'SELL' }})} 
-                                        className="px-2 py-[2px] bg-red-500/15 text-[#eb4b4b] hover:bg-[#eb4b4b] hover:text-white border border-red-500/30 rounded-[4px] text-[10px] font-bold transition-all cursor-pointer shadow-sm"
-                                        title="Quick Sell"
-                                    >
-                                        S
-                                    </button>
+                                <div className="flex items-center gap-2.5">
+                                    {/* Ticker & Market Tag */}
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-sm font-black text-text-primary uppercase tracking-wider drop-shadow-sm font-mono">
+                                            {getReadableName(selectedInstrument)}
+                                        </span>
+                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold tracking-widest bg-background-surface text-text-tertiary border border-border-subtle uppercase">
+                                            {instKey?.startsWith('NSE_INDEX') ? 'INDEX' : instKey?.startsWith('NSE_EQ') ? 'NSE · EQ' : 'NFO'}
+                                        </span>
+                                    </div>
+
+                                    {/* Tactile Quick Execution Pills */}
+                                    <div className="flex items-center gap-1.5 pl-1 border-l border-border-subtle/60">
+                                        <button 
+                                            onClick={() => setGlobalOrderTicket({ type: 'QUICK', data: { instrument_token: selectedInstrument?.value || selectedInstrument, tradingsymbol: getReadableName(selectedInstrument), side: 'BUY' }})} 
+                                            className="group flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-white border border-emerald-500/30 hover:border-emerald-500 rounded-md text-[10px] font-bold tracking-wider transition-all duration-200 shadow-sm cursor-pointer active:scale-95"
+                                            title="Instant Quick Buy"
+                                        >
+                                            <ArrowUpRight size={13} strokeWidth={2.5} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                                            <span>BUY</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => setGlobalOrderTicket({ type: 'QUICK', data: { instrument_token: selectedInstrument?.value || selectedInstrument, tradingsymbol: getReadableName(selectedInstrument), side: 'SELL' }})} 
+                                            className="group flex items-center gap-1.5 px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/30 hover:border-rose-500 rounded-md text-[10px] font-bold tracking-wider transition-all duration-200 shadow-sm cursor-pointer active:scale-95"
+                                            title="Instant Quick Sell"
+                                        >
+                                            <ArrowDownRight size={13} strokeWidth={2.5} className="transition-transform group-hover:translate-y-0.5 group-hover:translate-x-0.5" />
+                                            <span>SELL</span>
+                                        </button>
+                                    </div>
                                 </div>
-                            ) : 'MULTI-CHART VIEW'}
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-black text-text-primary uppercase tracking-wider font-mono">MULTI-CHART WORKSPACE</span>
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                                        {combinedCharts.length} TILES
+                                    </span>
+                                </div>
+                            )}
                             
-                            {/* Add Chart UI */}
+                            {/* Compare / Add Multi-Chart Trigger */}
                             {combinedCharts.length < 4 && (
-                                <div className="relative flex items-center gap-2">
+                                <div className="relative flex items-center">
                                     <button 
                                         onClick={() => setIsAddChartOpen(!isAddChartOpen)}
-                                        className="p-1.5 rounded-md text-text-tertiary hover:text-text-primary hover:bg-white/5 transition-colors border border-transparent hover:border-border-subtle"
-                                        title="Compare Instrument"
+                                        className="flex items-center gap-1 px-2 py-1 rounded-md text-text-tertiary hover:text-text-primary bg-background-surface/50 hover:bg-background-surface border border-border-subtle/60 hover:border-border-default text-[10px] font-medium transition-all"
+                                        title="Compare / Add Multi-Chart"
                                     >
-                                        <PlusSquare size={15} />
+                                        <PlusSquare size={12} />
+                                        <span className="hidden sm:inline">Compare</span>
                                     </button>
                                     
                                     {isAddChartOpen && (
-                                        <div className="absolute top-full left-0 mt-2 w-[300px] h-[380px] z-[99999]">
+                                        <div className="absolute top-full left-0 mt-2 w-[350px] min-h-[420px] z-[99999]">
                                             <InstrumentSelectorModal
                                                 isOpen={isAddChartOpen}
                                                 onClose={() => setIsAddChartOpen(false)}
@@ -281,16 +304,18 @@ export default function MasterDashboard() {
                                 </div>
                             )}
                         </div>
-                        <div className="flex bg-transparent rounded-lg p-[2px] mr-12 md:mr-14 border border-border-subtle shadow-sm pointer-events-auto">
+
+                        {/* Segmented Timeframe Switcher */}
+                        <div className="flex bg-background-surface/60 backdrop-blur-md rounded-lg p-0.5 mr-11 md:mr-12 border border-border-subtle/80 shadow-sm pointer-events-auto gap-0.5">
                             {['1minute', '5minute', '15minute', '30minute', '1hour', 'day', 'week'].map((tf) => (
                                 <button
                                     key={tf}
                                     onPointerDown={(e) => e.stopPropagation()} 
                                     onClick={(e) => { e.stopPropagation(); setSelectedTimeframe(tf); }}
-                                    className={`px-2 py-0.5 text-[10px] font-medium rounded-md transition-all ${
+                                    className={`px-2 py-0.5 text-[10px] font-medium rounded transition-all ${
                                         selectedTimeframe === tf 
-                                            ? 'bg-background-card border border-border-default shadow-sm text-text-primary' 
-                                            : 'text-text-secondary border border-transparent hover:text-text-primary hover:bg-background-subtle'
+                                            ? 'bg-background-card border border-border-default/90 shadow-sm text-text-primary font-bold' 
+                                            : 'text-text-secondary border border-transparent hover:text-text-primary hover:bg-background-subtle/50'
                                     }`}
                                 >
                                     {tf.replace('minute', 'm').replace('hour', 'h').replace('day', 'Daily').replace('week', '1W')}

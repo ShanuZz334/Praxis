@@ -341,40 +341,52 @@ export function calculateSupertrend(data, period = 10, multiplier = 3) {
 }
 
 // =============================
-// VWAP Calculation
+// VWAP Calculation (Institutional Multi-Mode: Daily, Weekly, Monthly)
 // =============================
-export function calculateVWAP(data) {
+export function calculateVWAP(data, anchor = 'daily') {
     if (!data || data.length === 0) return [];
     
     const vwapSeries = [];
     let cumulativeVolume = 0;
     let cumulativeVolumePrice = 0;
-    let currentDay = null;
+    let currentAnchorKey = null;
+
+    const getAnchorKey = (time) => {
+        let d = null;
+        if (typeof time === 'number') {
+            d = new Date(time * 1000);
+        } else if (time && typeof time === 'object' && time.year) {
+            d = new Date(Date.UTC(time.year, time.month - 1, time.day));
+        } else if (typeof time === 'string') {
+            d = new Date(time);
+        }
+        if (!d || isNaN(d.getTime())) return null;
+
+        if (anchor === 'monthly') {
+            return `${d.getUTCFullYear()}-${d.getUTCMonth()}`;
+        }
+        if (anchor === 'weekly') {
+            const dayOfWeek = (d.getUTCDay() + 6) % 7; // Monday = 0
+            const monday = new Date(d);
+            monday.setUTCDate(d.getUTCDate() - dayOfWeek);
+            return `${monday.getUTCFullYear()}-W${monday.getUTCMonth()}-${monday.getUTCDate()}`;
+        }
+        return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
+    };
     
     for (let i = 0; i < data.length; i++) {
         const item = data[i];
+        const anchorKey = getAnchorKey(item.time);
         
-        // Extract day from unix timestamp or time object to handle intraday resets
-        let itemDay = null;
-        if (typeof item.time === 'number') {
-            const date = new Date(item.time * 1000); // lightweight charts unix is usually seconds
-            itemDay = date.getUTCFullYear() + '-' + date.getUTCMonth() + '-' + date.getUTCDate();
-        } else if (item.time && typeof item.time === 'object' && item.time.year) {
-            itemDay = `${item.time.year}-${item.time.month}-${item.time.day}`;
-        } else if (typeof item.time === 'string') {
-            const date = new Date(item.time);
-            itemDay = date.getUTCFullYear() + '-' + date.getUTCMonth() + '-' + date.getUTCDate();
-        }
-        
-        // Reset at start of new day
-        if (itemDay !== currentDay) {
+        // Reset at start of new period (Day, Week, or Month)
+        if (anchorKey && anchorKey !== currentAnchorKey) {
             cumulativeVolume = 0;
             cumulativeVolumePrice = 0;
-            currentDay = itemDay;
+            currentAnchorKey = anchorKey;
         }
         
         const typicalPrice = (item.high + item.low + item.close) / 3;
-        const volume = item.volume || 0;
+        const volume = item.volume && item.volume > 0 ? item.volume : 1;
         
         cumulativeVolume += volume;
         cumulativeVolumePrice += (typicalPrice * volume);
@@ -416,60 +428,73 @@ export function calculateEMA(data, period) {
 }
 
 // =============================
-// CPR Calculation (Central Pivot Range)
+// CPR Calculation (Central Pivot Range - Daily, Weekly, Monthly)
 // =============================
-export function calculateCPR(data) {
+export function calculateCPR(data, periodType = 'daily') {
     if (!data || data.length === 0) return { tc: [], p: [], bc: [] };
     
-    const dailyData = {};
+    const periodGroups = {};
+
+    const getPeriodKey = (time) => {
+        let d = null;
+        if (typeof time === 'number') {
+            d = new Date(time * 1000);
+        } else if (time && typeof time === 'object' && time.year) {
+            d = new Date(Date.UTC(time.year, time.month - 1, time.day));
+        } else if (typeof time === 'string') {
+            d = new Date(time);
+        }
+        if (!d || isNaN(d.getTime())) return null;
+
+        if (periodType === 'monthly') {
+            return `${d.getUTCFullYear()}-${d.getUTCMonth()}`;
+        }
+        if (periodType === 'weekly') {
+            const dayOfWeek = (d.getUTCDay() + 6) % 7;
+            const monday = new Date(d);
+            monday.setUTCDate(d.getUTCDate() - dayOfWeek);
+            return `${monday.getUTCFullYear()}-W${monday.getUTCMonth()}-${monday.getUTCDate()}`;
+        }
+        return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
+    };
     
-    // 1. Group data by day to find daily High, Low, Close
+    // 1. Group data by period to find period High, Low, Close
     for (let i = 0; i < data.length; i++) {
         const item = data[i];
-        let itemDay = null;
-        if (typeof item.time === 'number') {
-            const date = new Date(item.time * 1000);
-            itemDay = date.getUTCFullYear() + '-' + date.getUTCMonth() + '-' + date.getUTCDate();
-        } else if (item.time && typeof item.time === 'object' && item.time.year) {
-            itemDay = `${item.time.year}-${item.time.month}-${item.time.day}`;
-        } else if (typeof item.time === 'string') {
-            const date = new Date(item.time);
-            itemDay = date.getUTCFullYear() + '-' + date.getUTCMonth() + '-' + date.getUTCDate();
-        }
+        const pKey = getPeriodKey(item.time);
+        if (!pKey) continue;
         
-        if (!itemDay) continue;
-        
-        if (!dailyData[itemDay]) {
-            dailyData[itemDay] = { high: item.high, low: item.low, close: item.close, items: [] };
+        if (!periodGroups[pKey]) {
+            periodGroups[pKey] = { high: item.high, low: item.low, close: item.close, items: [] };
         } else {
-            dailyData[itemDay].high = Math.max(dailyData[itemDay].high, item.high);
-            dailyData[itemDay].low = Math.min(dailyData[itemDay].low, item.low);
-            dailyData[itemDay].close = item.close; // Will end up being the last close of the day
+            periodGroups[pKey].high = Math.max(periodGroups[pKey].high, item.high);
+            periodGroups[pKey].low = Math.min(periodGroups[pKey].low, item.low);
+            periodGroups[pKey].close = item.close;
         }
-        dailyData[itemDay].items.push(item);
+        periodGroups[pKey].items.push(item);
     }
     
     const tcSeries = [];
     const pSeries = [];
     const bcSeries = [];
     
-    const days = Object.keys(dailyData);
+    const periods = Object.keys(periodGroups);
     
-    // 2. Calculate CPR for each day using PREVIOUS day's HLC
-    for (let i = 1; i < days.length; i++) {
-        const prevDay = dailyData[days[i - 1]];
-        const currentDay = dailyData[days[i]];
+    // 2. Calculate CPR for each period using PREVIOUS period's HLC
+    for (let i = 1; i < periods.length; i++) {
+        const prevPeriod = periodGroups[periods[i - 1]];
+        const currentPeriod = periodGroups[periods[i]];
         
-        const pivot = (prevDay.high + prevDay.low + prevDay.close) / 3;
-        const bc = (prevDay.high + prevDay.low) / 2;
+        const pivot = (prevPeriod.high + prevPeriod.low + prevPeriod.close) / 3;
+        const bc = (prevPeriod.high + prevPeriod.low) / 2;
         const tc = (pivot - bc) + pivot;
         
         // Ensure TC is always the higher value and BC is lower (Standard CPR convention)
         const topCentral = Math.max(tc, bc);
         const bottomCentral = Math.min(tc, bc);
         
-        // Project across all intraday bars of the current day
-        for (const item of currentDay.items) {
+        // Project across all bars of the current period
+        for (const item of currentPeriod.items) {
             tcSeries.push({ time: item.time, value: topCentral });
             pSeries.push({ time: item.time, value: pivot });
             bcSeries.push({ time: item.time, value: bottomCentral });

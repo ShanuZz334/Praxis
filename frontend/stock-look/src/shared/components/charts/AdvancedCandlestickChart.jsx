@@ -4,10 +4,10 @@
  * @date 2026-07-20
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createChart, CandlestickSeries, LineSeries, HistogramSeries, createSeriesMarkers } from 'lightweight-charts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PencilRuler, Activity, TrendingUp, BarChart2, Layers, Plus, Waves, TrendingUpDown, Anchor, AlignJustify, MoreHorizontal, Cloud, Frame, SlidersHorizontal, Spline } from 'lucide-react';
+import { PencilRuler, Activity, TrendingUp, BarChart2, Layers, Plus, Waves, TrendingUpDown, Anchor, AlignJustify, MoreHorizontal, Cloud, Frame, SlidersHorizontal, Spline, Zap, ChevronDown, Check, Sparkles, X } from 'lucide-react';
 import DrawingToolbar, { COLORS } from './drawing/DrawingToolbar';
 import DrawingCanvas from './drawing/DrawingCanvas';
 import { useDrawings } from './drawing/useDrawings';
@@ -17,6 +17,7 @@ import { computeAdaptiveBands } from '../../utils/adaptiveBandsEngine';
 import { analyzeChartPatterns } from '../../utils/patternEngine';
 
 import { useTheme } from '../../context/ThemeContext';
+import { getIndicatorProfiles } from '../../utils/indicatorModeProfiles';
 import { FO_INDICES, FO_EQUITIES } from '../../utils/foInstruments';
 import { assembleContext, getFVSettings } from '../../utils/futureVisionContextAssembler';
 import { storePrediction, scoreClosedCandle, getPAESession, clearPAESession, computeConfidence, getAllPAESessions, updatePAEAutoMode, deletePAECandleByTime, deletePAESessionByTime, storeLiveErrors } from '../../utils/predictionAccuracyEngine';
@@ -93,6 +94,8 @@ export default React.memo(function AdvancedCandlestickChart({
     const anchoredVwapRef = useRef(null);
     const autoFibLinesRef = useRef([]);
     const rsiRef = useRef(null);
+    const rsiOverboughtLineRef = useRef(null);
+    const rsiOversoldLineRef = useRef(null);
     const lastDataTimeRef = useRef(null);
 
     const volumeDataRef = useRef([]);
@@ -116,11 +119,21 @@ export default React.memo(function AdvancedCandlestickChart({
     const [showRSI, setShowRSI] = useState(false);
     
     const [hoveredIndicator, setHoveredIndicator] = useState(null);
+    const [panePositions, setPanePositions] = useState({});
+    const updatePaneTopsRef = useRef(null);
 
     const { theme, tradingMode } = useTheme();
+    const activeIndicatorConfig = getIndicatorProfiles(tradingMode);
     // Derive bandsMode from global tradingMode (intraday -> scalp)
-    const bandsModeTheme = tradingMode === 'intraday' ? 'scalp' : (tradingMode || 'swing');
+    const bandsModeTheme = activeIndicatorConfig.adaptiveBands.mode;
     const isLight = theme === 'light';
+
+    // Auto-sync bandsMode to current trading mode profile
+    useEffect(() => {
+        if (activeIndicatorConfig?.adaptiveBands?.mode) {
+            setBandsMode(activeIndicatorConfig.adaptiveBands.mode);
+        }
+    }, [tradingMode]);
 
     const { getMasterSnapshot } = useDataRegistry();
 
@@ -139,6 +152,8 @@ export default React.memo(function AdvancedCandlestickChart({
 
     const [patternScore, setPatternScore] = useState(null);
     const [hoveredPattern, setHoveredPattern] = useState(null);
+    const [confluenceData, setConfluenceData] = useState(null);
+    const [showAiFlyout, setShowAiFlyout] = useState(false);
 
     const fvClickTimerRef = useRef(null);
     const fvIgnoreStaleRef = useRef(false); // useRef so it's instantly readable in the same closure
@@ -155,6 +170,10 @@ export default React.memo(function AdvancedCandlestickChart({
     const analystBriefRef = useRef(null); // Analyst: daily strategic brief
 
     const liveIndicatorSnapshotRef = useRef({});
+
+    // Dynamic Sub-Pane Oscillator hover & latest value tracking
+    const [oscillatorHover, setOscillatorHover] = useState({ rsi: null, macd: null, signal: null, hist: null });
+    const latestOscillatorsRef = useRef({ rsi: null, macd: null, signal: null, hist: null });
 
     // 🎯 PACE & Analyst: Fetch calibration profile & brief on instrument/timeframe change 🎯
     useEffect(() => {
@@ -236,9 +255,20 @@ export default React.memo(function AdvancedCandlestickChart({
                 vertLine: { color: isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)', width: 1, style: 2 },
                 horzLine: { color: isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)', width: 1, style: 2 },
             },
+            panes: {
+                enableResize: true,
+                separatorColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)',
+                separatorHoverColor: 'rgba(59, 130, 246, 0.6)',
+            },
             rightPriceScale: {
                 borderColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
-                scaleMargins: { top: 0.1, bottom: 0.2 },
+                scaleMargins: { top: 0.08, bottom: 0.08 },
+            },
+            leftPriceScale: {
+                visible: true,
+                minimumWidth: 50,
+                borderColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+                scaleMargins: { top: 0.70, bottom: 0.00 },
             },
             timeScale: {
                 rightOffset: 20,
@@ -266,21 +296,27 @@ export default React.memo(function AdvancedCandlestickChart({
 
         // ── Future Vision Ghost Candle Series (Inserted here so it draws under main candles) ──
         ghostCandleSeriesRef.current = chart.addSeries(CandlestickSeries, {
-            upColor:         'rgba(167,139,250,0.25)', 
-            downColor:       'transparent',            
+            upColor:         'rgba(139, 92, 246, 0.40)', 
+            downColor:       'rgba(244, 63, 94, 0.40)',            
             borderVisible:   true,
-            borderUpColor:   'rgba(167,139,250,0.7)',
-            borderDownColor: 'rgba(167,139,250,0.4)',
-            wickUpColor:     'rgba(167,139,250,0.6)',
-            wickDownColor:   'rgba(167,139,250,0.3)',
+            borderUpColor:   '#c084fc',
+            borderDownColor: '#f43f5e',
+            wickUpColor:     '#c084fc',
+            wickDownColor:   '#f472b6',
             priceLineVisible:      false,
             lastValueVisible:      false,
             crosshairMarkerVisible: false,
         });
 
         candleSeriesRef.current = chart.addSeries(CandlestickSeries, {
-            upColor: '#26a69a', downColor: '#ef5350', borderVisible: false,
-            wickUpColor: '#26a69a', wickDownColor: '#ef5350', priceLineVisible: true,
+            upColor: 'rgba(38, 166, 154, 0.92)', 
+            downColor: 'rgba(239, 83, 80, 0.92)', 
+            borderVisible: true,
+            borderUpColor: '#26a69a',
+            borderDownColor: '#ef5350',
+            wickUpColor: '#26a69a', 
+            wickDownColor: '#ef5350', 
+            priceLineVisible: true,
         });
 
         volumeSeriesRef.current = chart.addSeries(HistogramSeries, {
@@ -314,6 +350,7 @@ export default React.memo(function AdvancedCandlestickChart({
         });
         chart.priceScale('left').applyOptions({ 
             scaleMargins: { top: 0.65, bottom: 0 },
+            minimumWidth: 50,
             visible: true,
         });
 
@@ -367,13 +404,7 @@ export default React.memo(function AdvancedCandlestickChart({
         bandInnerUpperRef.current = chart.addSeries(LineSeries, { color: '#fbbf2466', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
         bandInnerLowerRef.current = chart.addSeries(LineSeries, { color: '#fbbf2466', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
 
-        macdHistRef.current = chart.addSeries(HistogramSeries, { priceScaleId: 'macd', priceFormat: { type: 'volume' } });
-        macdLineRef.current = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: '#2962FF', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-        signalLineRef.current = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: '#FF6D00', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-        chart.priceScale('macd').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
-
         psarRef.current = chart.addSeries(LineSeries, { color: '#06b6d4', lineWidth: 2, lineStyle: 3, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-
 
         ichimokuTenkanRef.current = chart.addSeries(LineSeries, { color: '#0ea5e9', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
         ichimokuKijunRef.current = chart.addSeries(LineSeries, { color: '#ef4444', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
@@ -381,11 +412,6 @@ export default React.memo(function AdvancedCandlestickChart({
         ichimokuSpanBRef.current = chart.addSeries(LineSeries, { color: '#ef4444', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
 
         anchoredVwapRef.current = chart.addSeries(LineSeries, { color: '#fb923c', lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-        
-        rsiRef.current = chart.addSeries(LineSeries, { priceScaleId: 'rsi', color: '#a78bfa', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-        chart.priceScale('rsi').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
-
-
 
         const handleResize = () => {
             if (chartContainerRef.current) {
@@ -393,6 +419,7 @@ export default React.memo(function AdvancedCandlestickChart({
                     width: chartContainerRef.current.clientWidth || 600,
                     height: chartContainerRef.current.clientHeight || 350,
                 });
+                updatePaneTopsRef.current?.();
             }
         };
         const observer = new ResizeObserver(handleResize);
@@ -407,15 +434,39 @@ export default React.memo(function AdvancedCandlestickChart({
             }
             
             // Native OHLC
-            if (param.time && param.point && param.seriesData.get(candleSeriesRef.current)) {
+            if (param.time && param.point && candleSeriesRef.current && param.seriesData.get(candleSeriesRef.current)) {
                 const d = param.seriesData.get(candleSeriesRef.current);
-                setCrosshairData({ open: d.open, high: d.high, low: d.low, close: d.close });
+                const volData = volumeSeriesRef?.current ? param.seriesData.get(volumeSeriesRef.current) : null;
+                setCrosshairData({ 
+                    open: d.open, 
+                    high: d.high, 
+                    low: d.low, 
+                    close: d.close,
+                    volume: volData?.value ?? null
+                });
             } else {
                 setCrosshairData(null);
             }
+
+            // Sub-pane oscillator crosshair readouts
+            if (param.time && param.point) {
+                const rVal = rsiRef.current ? param.seriesData.get(rsiRef.current)?.value : null;
+                const mVal = macdLineRef.current ? param.seriesData.get(macdLineRef.current)?.value : null;
+                const sVal = signalLineRef.current ? param.seriesData.get(signalLineRef.current)?.value : null;
+                const hVal = macdHistRef.current ? param.seriesData.get(macdHistRef.current)?.value : null;
+                setOscillatorHover({
+                    rsi: rVal ?? null,
+                    macd: mVal ?? null,
+                    signal: sVal ?? null,
+                    hist: hVal ?? null
+                });
+            } else {
+                setOscillatorHover({ rsi: null, macd: null, signal: null, hist: null });
+            }
             
-            // Ghost PAE Tooltip
+            // Ghost PAE / AI Reference Tooltip
             if (param.time && param.point && ghostCandleSeriesRef.current && param.seriesData.get(ghostCandleSeriesRef.current)) {
+                const gData = param.seriesData.get(ghostCandleSeriesRef.current);
                 const gMarker = ghostMarkersRef.current.find(m => {
                     if (typeof m.time === 'number' && typeof param.time === 'number') return m.time === param.time;
                     if (m.time?.year) return (m.time.year === param.time.year && m.time.month === param.time.month && m.time.day === param.time.day);
@@ -425,8 +476,18 @@ export default React.memo(function AdvancedCandlestickChart({
                     setGhostTooltip({
                         x: param.point.x,
                         y: param.point.y,
+                        title: 'AI Prediction Error',
                         text: gMarker.text,
                         color: gMarker.color
+                    });
+                } else if (gData && gData.open !== undefined) {
+                    const isUp = gData.close >= gData.open;
+                    setGhostTooltip({
+                        x: param.point.x,
+                        y: param.point.y,
+                        title: isUp ? 'AI Forecast (Bullish)' : 'AI Forecast (Bearish)',
+                        text: `O: ${Number(gData.open).toFixed(2)}  C: ${Number(gData.close).toFixed(2)}`,
+                        color: isUp ? '#c084fc' : '#f472b6'
                     });
                 } else {
                     setGhostTooltip(null);
@@ -467,7 +528,12 @@ export default React.memo(function AdvancedCandlestickChart({
                     labelBackgroundColor: _isLight ? '#4b5563' : '#4b5563'
                 },
             },
+            panes: {
+                separatorColor: _isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)',
+                separatorHoverColor: 'rgba(59, 130, 246, 0.6)',
+            },
             rightPriceScale: { borderColor: _isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
+            leftPriceScale: { borderColor: _isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
             timeScale: { borderColor: _isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
         });
     }, [theme]);
@@ -481,7 +547,7 @@ export default React.memo(function AdvancedCandlestickChart({
                 volumeSeriesRef.current.update({
                     time: liveCandle.time,
                     value: liveCandle.volume || 0,
-                    color: liveCandle.close >= liveCandle.open ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)'
+                    color: liveCandle.close >= liveCandle.open ? 'rgba(38,166,154,0.22)' : 'rgba(239,83,80,0.22)'
                 });
             }
 
@@ -616,17 +682,115 @@ export default React.memo(function AdvancedCandlestickChart({
         if (!ghostCandleSeriesRef.current) return;
         if (!candles?.length || !times?.length) return;
 
-        // The time of the very last REAL candle in the chart
+        // Calculate average candle range and body from recent real candles to guarantee authentic size & shape
+        const recentCandles = data && data.length > 0 ? data.slice(-20) : [];
+        const avgRange = recentCandles.length > 0
+            ? recentCandles.reduce((acc, bar) => acc + Math.max(bar.high - bar.low, 0.01), 0) / recentCandles.length
+            : (data?.[data.length - 1]?.close * 0.004) || 2;
+        const avgBody = recentCandles.length > 0
+            ? recentCandles.reduce((acc, bar) => acc + Math.abs(bar.close - bar.open), 0) / recentCandles.length
+            : avgRange * 0.6;
+        
+        // Realistic minimums so predicted candles never collapse into flat "+" signs or distorted shapes
+        const minBody = Math.max(avgBody * 0.4, 0.2);
+        const minWick = Math.max(avgRange * 0.15, 0.1);
+
+        // Normalize time representation helper
+        const getNormalizedTimeKey = (t) => {
+            if (!t) return '';
+            if (typeof t === 'number') return String(t);
+            if (typeof t === 'string') return t;
+            if (t?.year) return `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`;
+            return String(t);
+        };
+
+        const getMs = (t) => {
+            if (!t) return 0;
+            if (typeof t === 'number') return t < 10000000000 ? t * 1000 : t;
+            if (typeof t === 'string') return new Date(t).getTime();
+            if (t?.year) return new Date(t.year, t.month - 1, t.day).getTime();
+            return 0;
+        };
+
+        // Build set of all real candle timestamps (including demo candles and live streaming candle)
+        const realCandles = [...(data || []), ...(demoRealCandles || [])];
+        if (liveCandle) realCandles.push(liveCandle);
+
+        const realTimeSet = new Set(realCandles.map(c => getNormalizedTimeKey(c.time)));
+        const lastRealMs = realCandles.length > 0 ? getMs(realCandles[realCandles.length - 1].time) : 0;
+
         let lastValidTime = 0;
 
         let ghostData = candles
             .map((c, i) => {
+                let open  = Number(c.open)  || 0;
+                let close = Number(c.close) || 0;
+                let high  = Number(c.high)  || 0;
+                let low   = Number(c.low)   || 0;
+
+                if (open <= 0 && close <= 0) return null;
+
+                // Ensure authentic body height matching real candles (prevents flat horizontal plus marks)
+                if (Math.abs(close - open) < minBody) {
+                    const isBull = c.direction === 'bullish' || close >= open;
+                    if (isBull) {
+                        close = Number((open + minBody).toFixed(2));
+                    } else {
+                        close = Number((open - minBody).toFixed(2));
+                    }
+                }
+
+                // Ensure authentic upper and lower wicks matching real candles
+                const bodyMax = Math.max(open, close);
+                const bodyMin = Math.min(open, close);
+                high = Math.max(high, Number((bodyMax + minWick).toFixed(2)));
+                low  = Math.min(low,  Number((bodyMin - minWick).toFixed(2)));
+
+                const candleTime = times[i];
+                const timeKey = getNormalizedTimeKey(candleTime);
+                const candleMs = getMs(candleTime);
+
+                // Detect if a real candle is rendering above this ghost candle
+                const isOverlappedByReal = realTimeSet.has(timeKey) || (lastRealMs > 0 && candleMs <= lastRealMs);
+                const isUp = close >= open;
+
+                let candleColor, borderColor, wickColor;
+
+                if (isOverlappedByReal) {
+                    // ── BACKGROUND REFERENCE CANDLE MODE ──
+                    // Real market candle renders on top. Predicted candle acts as an underlying reference watermark.
+                    if (isUp) {
+                        candleColor = 'rgba(139, 92, 246, 0.16)'; // Soft translucent violet watermark
+                        borderColor = 'rgba(192, 132, 252, 0.45)'; // Subtle neon lavender outline
+                        wickColor   = 'rgba(192, 132, 252, 0.45)'; // Subtle neon lavender wick
+                    } else {
+                        candleColor = 'rgba(244, 63, 94, 0.16)';  // Soft translucent rose watermark
+                        borderColor = 'rgba(244, 114, 182, 0.45)'; // Subtle neon rose outline
+                        wickColor   = 'rgba(244, 114, 182, 0.45)'; // Subtle neon rose wick
+                    }
+                } else {
+                    // ── ACTIVE FUTURE FORECAST CANDLE MODE ──
+                    // Distinct institutional AI palette: high clarity, glowing neon border, zero green/red confusion.
+                    if (isUp) {
+                        candleColor = 'rgba(139, 92, 246, 0.40)'; // Luminous translucent violet body
+                        borderColor = '#c084fc';                  // Crisp neon lavender border
+                        wickColor   = '#c084fc';                  // Crisp neon lavender wick
+                    } else {
+                        candleColor = 'rgba(244, 63, 94, 0.40)';  // Luminous translucent neon rose body
+                        borderColor = '#f43f5e';                  // Crisp electric rose border
+                        wickColor   = '#f472b6';                  // Crisp electric rose wick
+                    }
+                }
+
                 const base = {
-                    time:  times[i],
-                    open:  Number(c.open)  || 0,
-                    high:  Number(c.high)  || 0,
-                    low:   Number(c.low)   || 0,
-                    close: Number(c.close) || 0,
+                    time:  candleTime,
+                    open,
+                    high,
+                    low,
+                    close,
+                    color: candleColor,
+                    borderColor: borderColor,
+                    wickColor: wickColor,
                 };
                 
                 if (c.deleted) {
@@ -635,40 +799,25 @@ export default React.memo(function AdvancedCandlestickChart({
                         color: 'transparent',
                         borderColor: 'transparent',
                         wickColor: 'transparent',
-                        // Also explicitly override up/down colors just in case
-                        upColor: 'transparent',
-                        downColor: 'transparent',
-                        borderUpColor: 'transparent',
-                        borderDownColor: 'transparent',
-                        wickUpColor: 'transparent',
-                        wickDownColor: 'transparent'
                     };
                 }
                 
                 return base;
             })
+            .filter(Boolean)
             .filter(c => c.time != null && c.open > 0);
 
         // Lightweight Charts FATAL ERROR FIX:
-        // Times MUST be strictly increasing and must be > the last real candle's time.
-        // If times duplicate or go backward, LWC throws "Cannot read properties of undefined (reading 'startTime')"
+        // Times MUST be strictly increasing
         ghostData = ghostData.filter(c => {
-            // Helper to compare times (handles both UNIX seconds and YYYY-MM-DD string)
-            const getMs = (t) => {
-                if (typeof t === 'number') return t; // UNIX timestamp
-                if (typeof t === 'string') return new Date(t).getTime();
-                if (t?.year) return new Date(t.year, t.month - 1, t.day).getTime();
-                return 0;
-            };
-            
             const currMs = getMs(c.time);
             const prevMs = getMs(lastValidTime);
 
             if (currMs > prevMs) {
-                lastValidTime = c.time; // Update running last valid time
+                lastValidTime = c.time;
                 return true;
             }
-            return false; // Skip if not strictly increasing
+            return false;
         });
 
         if (!ghostData.length) {
@@ -1103,10 +1252,15 @@ export default React.memo(function AdvancedCandlestickChart({
 
         const volumeData = effectiveData.map(item => ({
             time: item.time, value: item.volume || 0,
-            color: item.close >= item.open ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)'
+            color: item.close >= item.open ? 'rgba(38,166,154,0.22)' : 'rgba(239,83,80,0.22)'
         }));
         volumeDataRef.current = volumeData;
         volumeSeriesRef.current.setData(volumeData);
+
+        // Dynamically re-render ghost candles to update background reference vs future forecast status
+        if (fvActive && fvSessionRef.current?.candles?.length && fvSessionRef.current?.times?.length) {
+            _renderGhostCandles(fvSessionRef.current.candles, fvSessionRef.current.times);
+        }
 
         // ── Always compute full indicator snapshot for Future Vision ──────────────────
         // These run unconditionally (not gated on showXxx) so the AI always gets fresh data.
@@ -1114,36 +1268,38 @@ export default React.memo(function AdvancedCandlestickChart({
             const snap = {};
             const d = data;
             if (d.length >= 14) {
-                // Supertrend
-                const stData = calculateSupertrend(d, 10, 3);
+                // Supertrend (Mode-aware parameters)
+                const stData = calculateSupertrend(d, activeIndicatorConfig.supertrend.period, activeIndicatorConfig.supertrend.multiplier);
                 const lastST = stData.up.at(-1) || stData.down.at(-1);
                 snap.supertrendDir = stData.up.at(-1)?.value != null ? 'bullish' : 'bearish';
                 snap.supertrendLevel = lastST?.value ?? null;
 
-                // VWAP
-                const vwapData = calculateVWAP(d);
+                // VWAP (Mode-aware anchor: daily, weekly, monthly)
+                const vwapData = calculateVWAP(d, activeIndicatorConfig.vwap.anchor);
                 snap.vwap = vwapData.at(-1)?.value ?? null;
 
-                // EMA 9 / 21 / 50
-                const ema9Data  = calculateEMA(d, 9);
-                const ema21Data = calculateEMA(d, 21);
-                const ema50Data = calculateEMA(d, 50);
-                snap.ema9  = ema9Data.at(-1)?.value  ?? null;
-                snap.ema21 = ema21Data.at(-1)?.value ?? null;
-                snap.ema50 = ema50Data.at(-1)?.value ?? null;
+                // EMA (Mode-aware fast / slow + institutional 50 benchmark)
+                const emaFastData = calculateEMA(d, activeIndicatorConfig.ema.fast);
+                const emaSlowData = calculateEMA(d, activeIndicatorConfig.ema.slow);
+                const ema50Data   = calculateEMA(d, 50);
+                snap.emaFast = emaFastData.at(-1)?.value ?? null;
+                snap.emaSlow = emaSlowData.at(-1)?.value ?? null;
+                snap.ema9    = snap.emaFast; // Backwards compatible proxy for AI
+                snap.ema21   = snap.emaSlow;
+                snap.ema50   = ema50Data.at(-1)?.value  ?? null;
 
-                // MACD
-                const macd = calculateMACD(d);
+                // MACD (Mode-aware fast, slow, signal)
+                const macd = calculateMACD(d, activeIndicatorConfig.macd.fast, activeIndicatorConfig.macd.slow, activeIndicatorConfig.macd.signal);
                 snap.macdLine   = macd.macd.at(-1)?.value      ?? null;
                 snap.macdSignal = macd.signal.at(-1)?.value    ?? null;
                 snap.macdHist   = macd.histogram.at(-1)?.value ?? null;
 
-                // RSI
-                const rsiResult = calculateRSIDivergence(d, 14);
+                // RSI (Mode-aware period & dynamic overbought/oversold boundaries)
+                const rsiResult = calculateRSIDivergence(d, activeIndicatorConfig.rsi.period);
                 const lastRsi   = rsiResult.rsi.at(-1)?.value ?? null;
                 snap.rsi = lastRsi;
                 snap.rsiSignal = lastRsi != null
-                    ? (lastRsi > 70 ? 'OVERBOUGHT' : lastRsi < 30 ? 'OVERSOLD' : lastRsi > 55 ? 'Bullish' : lastRsi < 45 ? 'Bearish' : 'Neutral')
+                    ? (lastRsi > activeIndicatorConfig.rsi.overbought ? 'OVERBOUGHT' : lastRsi < activeIndicatorConfig.rsi.oversold ? 'OVERSOLD' : lastRsi > 55 ? 'Bullish' : lastRsi < 45 ? 'Bearish' : 'Neutral')
                     : 'N/A';
 
                 // Adaptive Bands (always compute in current bandsMode for ATR proxy)
@@ -1182,6 +1338,33 @@ export default React.memo(function AdvancedCandlestickChart({
                 snap._horizonBars = getFVSettings().horizonBars;
             }
             liveIndicatorSnapshotRef.current = snap;
+
+            // Compute Institutional 4-Pillar Confluence Matrix & Key Levels
+            if (snap && d && d.length >= 14) {
+                const lastClose = d[d.length - 1]?.close;
+                const p1_ema = (snap.emaFast != null && snap.emaSlow != null) ? (snap.emaFast >= snap.emaSlow ? 1 : -1) : 0;
+                const p2_vwap = (snap.vwap != null && lastClose != null) ? (lastClose >= snap.vwap ? 1 : -1) : 0;
+                const p3_st = snap.supertrendDir === 'bullish' ? 1 : snap.supertrendDir === 'bearish' ? -1 : 0;
+                const p4_mom = (snap.rsi != null) ? (snap.rsi >= 50 ? 1 : -1) : 0;
+
+                const bullCount = [p1_ema === 1, p2_vwap === 1, p3_st === 1, p4_mom === 1].filter(Boolean).length;
+                const vwapDelta = (snap.vwap && lastClose) ? ((lastClose - snap.vwap) / snap.vwap * 100) : null;
+
+                setConfluenceData({
+                    bullCount,
+                    totalPillars: 4,
+                    p1_ema,
+                    p2_vwap,
+                    p3_st,
+                    p4_mom,
+                    vwap: snap.vwap,
+                    vwapDelta,
+                    ema9: snap.emaFast,
+                    ema21: snap.emaSlow,
+                    rsi: snap.rsi,
+                    supertrendDir: snap.supertrendDir
+                });
+            }
         } catch (e) {
             // Never crash the chart if snapshot computation fails
             console.warn('[FV] Indicator snapshot error:', e);
@@ -1189,7 +1372,7 @@ export default React.memo(function AdvancedCandlestickChart({
 
 
         if (showSupertrend && supertrendUpSeriesRef.current && supertrendDownSeriesRef.current) {
-            const stData = calculateSupertrend(data, 10, 3);
+            const stData = calculateSupertrend(data, activeIndicatorConfig.supertrend.period, activeIndicatorConfig.supertrend.multiplier);
             supertrendUpSeriesRef.current.setData(stData.up);
             supertrendDownSeriesRef.current.setData(stData.down);
         } else if (supertrendUpSeriesRef.current && supertrendDownSeriesRef.current) {
@@ -1198,21 +1381,21 @@ export default React.memo(function AdvancedCandlestickChart({
         }
 
         if (showVWAP && vwapSeriesRef.current) {
-            vwapSeriesRef.current.setData(calculateVWAP(data));
+            vwapSeriesRef.current.setData(calculateVWAP(data, activeIndicatorConfig.vwap.anchor));
         } else if (vwapSeriesRef.current) {
             vwapSeriesRef.current.setData([]);
         }
 
         if (showEMA && ema9SeriesRef.current && ema21SeriesRef.current) {
-            ema9SeriesRef.current.setData(calculateEMA(data, 9));
-            ema21SeriesRef.current.setData(calculateEMA(data, 21));
+            ema9SeriesRef.current.setData(calculateEMA(data, activeIndicatorConfig.ema.fast));
+            ema21SeriesRef.current.setData(calculateEMA(data, activeIndicatorConfig.ema.slow));
         } else if (ema9SeriesRef.current && ema21SeriesRef.current) {
             ema9SeriesRef.current.setData([]);
             ema21SeriesRef.current.setData([]);
         }
 
         if (showCPR && cprTcSeriesRef.current && cprPivotSeriesRef.current && cprBcSeriesRef.current) {
-            const cprData = calculateCPR(data);
+            const cprData = calculateCPR(data, activeIndicatorConfig.cpr.period);
             cprTcSeriesRef.current.setData(cprData.tc);
             cprPivotSeriesRef.current.setData(cprData.p);
             cprBcSeriesRef.current.setData(cprData.bc);
@@ -1257,25 +1440,31 @@ export default React.memo(function AdvancedCandlestickChart({
 
 
         if (showMACD && macdLineRef.current && signalLineRef.current && macdHistRef.current) {
-            const macd = calculateMACD(data);
+            const macd = calculateMACD(data, activeIndicatorConfig.macd.fast, activeIndicatorConfig.macd.slow, activeIndicatorConfig.macd.signal);
             macdLineRef.current.setData(macd.macd);
             signalLineRef.current.setData(macd.signal);
             macdHistRef.current.setData(macd.histogram);
+            latestOscillatorsRef.current.macd = macd.macd.at(-1)?.value ?? null;
+            latestOscillatorsRef.current.signal = macd.signal.at(-1)?.value ?? null;
+            latestOscillatorsRef.current.hist = macd.histogram.at(-1)?.value ?? null;
         } else if (macdLineRef.current) {
             macdLineRef.current.setData([]);
             signalLineRef.current.setData([]);
             macdHistRef.current.setData([]);
+            latestOscillatorsRef.current.macd = null;
+            latestOscillatorsRef.current.signal = null;
+            latestOscillatorsRef.current.hist = null;
         }
 
         if (showPSAR && psarRef.current) {
-            psarRef.current.setData(calculatePSAR(data));
+            psarRef.current.setData(calculatePSAR(data, activeIndicatorConfig.psar.step, activeIndicatorConfig.psar.maxStep));
         } else if (psarRef.current) {
             psarRef.current.setData([]);
         }
 
 
         if (showIchimoku && ichimokuTenkanRef.current && ichimokuKijunRef.current && ichimokuSpanARef.current && ichimokuSpanBRef.current) {
-            const ichi = calculateIchimoku(data);
+            const ichi = calculateIchimoku(data, activeIndicatorConfig.ichimoku.conversion, activeIndicatorConfig.ichimoku.base, activeIndicatorConfig.ichimoku.span, activeIndicatorConfig.ichimoku.displacement);
             ichimokuTenkanRef.current.setData(ichi.tenkan);
             ichimokuKijunRef.current.setData(ichi.kijun);
             ichimokuSpanARef.current.setData(ichi.spanA);
@@ -1288,7 +1477,7 @@ export default React.memo(function AdvancedCandlestickChart({
         }
 
         if (showAnchoredVWAP && anchoredVwapRef.current) {
-            anchoredVwapRef.current.setData(calculateAnchoredVWAP(data));
+            anchoredVwapRef.current.setData(calculateAnchoredVWAP(data, activeIndicatorConfig.anchoredVwap.lookback));
         } else if (anchoredVwapRef.current) {
             anchoredVwapRef.current.setData([]);
         }
@@ -1298,7 +1487,7 @@ export default React.memo(function AdvancedCandlestickChart({
             autoFibLinesRef.current.forEach(line => candleSeriesRef.current.removePriceLine(line));
             autoFibLinesRef.current = [];
             
-            const fib = calculateAutoFib(data);
+            const fib = calculateAutoFib(data, activeIndicatorConfig.autoFib.lookback);
             if (fib) {
                 const fibColors = ['#f87171', '#fb923c', '#facc15', '#a3e635', '#4ade80', '#2dd4bf', '#38bdf8'];
                 fib.levels.forEach((lvl, idx) => {
@@ -1319,14 +1508,261 @@ export default React.memo(function AdvancedCandlestickChart({
         }
 
         if (showRSI && rsiRef.current) {
-            const r = calculateRSIDivergence(data, 14);
+            const r = calculateRSIDivergence(data, activeIndicatorConfig.rsi.period);
             rsiRef.current.setData(r.rsi);
-            // Ignore markers for now to keep it clean
+            latestOscillatorsRef.current.rsi = r.rsi.at(-1)?.value ?? null;
         } else if (rsiRef.current) {
             rsiRef.current.setData([]);
+            latestOscillatorsRef.current.rsi = null;
         }
 
-    }, [data, demoRealCandles, showSupertrend, showVWAP, showEMA, showCPR, showAdaptiveBands, bandsMode, showMACD, showPSAR, showIchimoku, showAnchoredVWAP, showAutoFib, showRSI]);
+    }, [data, demoRealCandles, showSupertrend, showVWAP, showEMA, showCPR, showAdaptiveBands, bandsMode, showMACD, showPSAR, showIchimoku, showAnchoredVWAP, showAutoFib, showRSI, tradingMode, activeIndicatorConfig]);
+
+    // ── Dynamic Native Multi-Pane Layout Manager (Lightweight Charts v5) ────────
+    // Isolates Candlesticks, MACD, and RSI into native independent vertical panes with their own scales.
+    const updatePaneTops = useCallback(() => {
+        if (!chartRef.current) return;
+        const chart = chartRef.current;
+        const panes = chart.panes();
+        if (!panes || panes.length <= 1) {
+            setPanePositions({});
+            return;
+        }
+        const positions = {};
+        const p0Height = panes[0]?.getHeight() || 0;
+        let currentY = p0Height;
+
+        if (showMACD && showRSI) {
+            positions.macd = currentY;
+            const p1Height = panes[1]?.getHeight() || 0;
+            currentY += p1Height;
+            positions.rsi = currentY;
+        } else if (showMACD) {
+            positions.macd = currentY;
+        } else if (showRSI) {
+            positions.rsi = currentY;
+        }
+        setPanePositions(positions);
+    }, [showMACD, showRSI]);
+
+    useEffect(() => {
+        updatePaneTopsRef.current = updatePaneTops;
+    }, [updatePaneTops]);
+
+    // Track pane resize updates smoothly when multiple panes exist
+    useEffect(() => {
+        if (!showMACD && !showRSI) return;
+        const interval = setInterval(updatePaneTops, 250);
+        return () => clearInterval(interval);
+    }, [showMACD, showRSI, updatePaneTops]);
+
+    useEffect(() => {
+        if (!chartRef.current) return;
+        const chart = chartRef.current;
+
+        let targetMacdPane = null;
+        let targetRsiPane = null;
+
+        if (showMACD && showRSI) {
+            targetMacdPane = 1;
+            targetRsiPane = 2;
+        } else if (showMACD) {
+            targetMacdPane = 1;
+        } else if (showRSI) {
+            targetRsiPane = 1;
+        }
+
+        // 1. MACD Sub-Pane Management
+        if (targetMacdPane !== null) {
+            if (!macdLineRef.current) {
+                macdHistRef.current = chart.addSeries(HistogramSeries, {
+                    priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
+                    lastValueVisible: false,
+                    priceLineVisible: false,
+                }, targetMacdPane);
+
+                macdLineRef.current = chart.addSeries(LineSeries, {
+                    color: '#2962FF',
+                    lineWidth: 1.5,
+                    priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
+                    lastValueVisible: true,
+                    priceLineVisible: false,
+                    crosshairMarkerVisible: true,
+                    title: 'MACD',
+                }, targetMacdPane);
+
+                signalLineRef.current = chart.addSeries(LineSeries, {
+                    color: '#FF6D00',
+                    lineWidth: 1.5,
+                    priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
+                    lastValueVisible: true,
+                    priceLineVisible: false,
+                    crosshairMarkerVisible: true,
+                    title: 'Signal',
+                }, targetMacdPane);
+
+                macdLineRef.current.createPriceLine({
+                    price: 0,
+                    color: isLight ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255, 255, 255, 0.25)',
+                    lineWidth: 1,
+                    lineStyle: 2,
+                    axisLabelVisible: true,
+                    title: '0.00',
+                });
+
+                chart.priceScale('right', targetMacdPane).applyOptions({
+                    visible: true,
+                    borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)',
+                    scaleMargins: { top: 0.12, bottom: 0.12 },
+                });
+            } else {
+                macdHistRef.current?.moveToPane(targetMacdPane);
+                macdLineRef.current?.moveToPane(targetMacdPane);
+                signalLineRef.current?.moveToPane(targetMacdPane);
+            }
+
+            if (data && data.length > 0) {
+                const macd = calculateMACD(data, activeIndicatorConfig.macd.fast, activeIndicatorConfig.macd.slow, activeIndicatorConfig.macd.signal);
+                macdLineRef.current.setData(macd.macd);
+                signalLineRef.current.setData(macd.signal);
+                macdHistRef.current.setData(macd.histogram);
+                latestOscillatorsRef.current.macd = macd.macd.at(-1)?.value ?? null;
+                latestOscillatorsRef.current.signal = macd.signal.at(-1)?.value ?? null;
+                latestOscillatorsRef.current.hist = macd.histogram.at(-1)?.value ?? null;
+            }
+        } else {
+            if (macdLineRef.current) {
+                if (macdHistRef.current) {
+                    chart.removeSeries(macdHistRef.current);
+                    macdHistRef.current = null;
+                }
+                if (macdLineRef.current) {
+                    chart.removeSeries(macdLineRef.current);
+                    macdLineRef.current = null;
+                }
+                if (signalLineRef.current) {
+                    chart.removeSeries(signalLineRef.current);
+                    signalLineRef.current = null;
+                }
+                latestOscillatorsRef.current.macd = null;
+                latestOscillatorsRef.current.signal = null;
+                latestOscillatorsRef.current.hist = null;
+            }
+        }
+
+        // 2. RSI Sub-Pane Management
+        if (targetRsiPane !== null) {
+            if (!rsiRef.current) {
+                rsiRef.current = chart.addSeries(LineSeries, {
+                    color: '#a78bfa',
+                    lineWidth: 1.5,
+                    priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
+                    lastValueVisible: true,
+                    priceLineVisible: false,
+                    crosshairMarkerVisible: true,
+                    title: 'RSI',
+                    autoscaleInfoProvider: (original) => {
+                        const res = original();
+                        return {
+                            priceRange: {
+                                minValue: Math.min(20, res?.priceRange?.minValue ?? 20),
+                                maxValue: Math.max(80, res?.priceRange?.maxValue ?? 80),
+                            },
+                        };
+                    },
+                }, targetRsiPane);
+
+                chart.priceScale('right', targetRsiPane).applyOptions({
+                    visible: true,
+                    borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)',
+                    scaleMargins: { top: 0.12, bottom: 0.12 },
+                });
+            } else {
+                rsiRef.current?.moveToPane(targetRsiPane);
+            }
+
+            // Dynamically manage mode-aware RSI reference price lines
+            if (rsiRef.current) {
+                if (rsiOverboughtLineRef.current) {
+                    try { rsiRef.current.removePriceLine(rsiOverboughtLineRef.current); } catch (_) {}
+                    rsiOverboughtLineRef.current = null;
+                }
+                if (rsiOversoldLineRef.current) {
+                    try { rsiRef.current.removePriceLine(rsiOversoldLineRef.current); } catch (_) {}
+                    rsiOversoldLineRef.current = null;
+                }
+
+                rsiOverboughtLineRef.current = rsiRef.current.createPriceLine({
+                    price: activeIndicatorConfig.rsi.overbought,
+                    color: 'rgba(239, 68, 68, 0.6)',
+                    lineWidth: 1,
+                    lineStyle: 2,
+                    axisLabelVisible: true,
+                    title: `${activeIndicatorConfig.rsi.overbought}`,
+                });
+
+                rsiOversoldLineRef.current = rsiRef.current.createPriceLine({
+                    price: activeIndicatorConfig.rsi.oversold,
+                    color: 'rgba(34, 197, 94, 0.6)',
+                    lineWidth: 1,
+                    lineStyle: 2,
+                    axisLabelVisible: true,
+                    title: `${activeIndicatorConfig.rsi.oversold}`,
+                });
+            }
+
+            if (data && data.length > 0) {
+                const r = calculateRSIDivergence(data, activeIndicatorConfig.rsi.period);
+                rsiRef.current.setData(r.rsi);
+                latestOscillatorsRef.current.rsi = r.rsi.at(-1)?.value ?? null;
+            }
+        } else {
+            if (rsiRef.current) {
+                if (rsiOverboughtLineRef.current) {
+                    try { rsiRef.current.removePriceLine(rsiOverboughtLineRef.current); } catch (_) {}
+                    rsiOverboughtLineRef.current = null;
+                }
+                if (rsiOversoldLineRef.current) {
+                    try { rsiRef.current.removePriceLine(rsiOversoldLineRef.current); } catch (_) {}
+                    rsiOversoldLineRef.current = null;
+                }
+                chart.removeSeries(rsiRef.current);
+                rsiRef.current = null;
+                latestOscillatorsRef.current.rsi = null;
+            }
+        }
+
+        // 3. Dynamic Stretch Factor Distribution
+        const panes = chart.panes();
+        if (targetMacdPane !== null && targetRsiPane !== null) {
+            // 3 Panes: Price (60%), MACD (20%), RSI (20%)
+            if (panes[0]) panes[0].setStretchFactor(600);
+            if (panes[1]) panes[1].setStretchFactor(200);
+            if (panes[2]) panes[2].setStretchFactor(200);
+        } else if (targetMacdPane !== null || targetRsiPane !== null) {
+            // 2 Panes: Price (75%), Sub-pane (25%)
+            if (panes[0]) panes[0].setStretchFactor(750);
+            if (panes[1]) panes[1].setStretchFactor(250);
+        } else {
+            // 1 Pane: Price (100%)
+            if (panes[0]) panes[0].setStretchFactor(1000);
+        }
+
+        // 4. Pane 0 Scale Calibration (Main Price & Left Volume)
+        chart.priceScale('right', 0).applyOptions({
+            visible: true,
+            scaleMargins: { top: 0.08, bottom: 0.08 },
+            borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)',
+        });
+        chart.priceScale('left', 0).applyOptions({
+            visible: true,
+            minimumWidth: 50,
+            scaleMargins: { top: 0.70, bottom: 0.00 },
+            borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)',
+        });
+
+        requestAnimationFrame(updatePaneTops);
+    }, [showMACD, showRSI, isLight, data, updatePaneTops, tradingMode, activeIndicatorConfig]);
 
 
     useEffect(() => {
@@ -1461,528 +1897,620 @@ export default React.memo(function AdvancedCandlestickChart({
         <div className="advanced-candlestick-chart relative w-full h-full flex flex-col">
             <div className="absolute inset-0 pointer-events-none transition-colors duration-1000" style={{ backgroundColor: getRegimeBackground() }} />
 
-            {/* Top Left Toolbar */}
-            <div className="absolute top-1.5 left-3 z-20 flex items-center gap-2">
-                <button
-                    onMouseEnter={(e) => handleMouseEnter(e, showDrawing ? 'Close Drawing Tools' : 'Open Drawing Tools')}
-                    onMouseLeave={() => setHoveredIndicator(null)}
-                    onClick={() => { setShowDrawing(p => !p); if (showDrawing) setActiveTool('cursor'); }}
-                    className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showDrawing ? 'text-blue-500' : 'text-text-secondary hover:text-text-primary'}`}
-                >
-                    <PencilRuler size={13} strokeWidth={2} />
-                </button>
-                <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5"></div>
-                <button
-                    onMouseEnter={(e) => handleMouseEnter(e, showSupertrend ? 'Hide Supertrend' : 'Show Supertrend (10, 3)')}
-                    onMouseLeave={() => setHoveredIndicator(null)}
-                    onClick={() => setShowSupertrend(p => !p)}
-                    className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showSupertrend ? 'text-emerald-500' : 'text-text-secondary hover:text-text-primary'}`}
-                >
-                    <Activity size={13} strokeWidth={2} />
-                </button>
-                <button
-                    onMouseEnter={(e) => handleMouseEnter(e, showVWAP ? 'Hide VWAP' : 'Show VWAP (Daily)')}
-                    onMouseLeave={() => setHoveredIndicator(null)}
-                    onClick={() => setShowVWAP(p => !p)}
-                    className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showVWAP ? 'text-amber-500' : 'text-text-secondary hover:text-text-primary'}`}
-                >
-                    <BarChart2 size={13} strokeWidth={2} />
-                </button>
-                <button
-                    onMouseEnter={(e) => handleMouseEnter(e, showEMA ? 'Hide 9/21 EMA' : 'Show 9/21 EMA Crossover')}
-                    onMouseLeave={() => setHoveredIndicator(null)}
-                    onClick={() => setShowEMA(p => !p)}
-                    className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showEMA ? 'text-blue-500' : 'text-text-secondary hover:text-text-primary'}`}
-                >
-                    <TrendingUp size={13} strokeWidth={2} />
-                </button>
-                <button
-                    onMouseEnter={(e) => handleMouseEnter(e, showCPR ? 'Hide CPR' : 'Show CPR (Central Pivot Range)')}
-                    onMouseLeave={() => setHoveredIndicator(null)}
-                    onClick={() => setShowCPR(p => !p)}
-                    className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showCPR ? 'text-slate-400' : 'text-text-secondary hover:text-text-primary'}`}
-                >
-                    <Layers size={13} strokeWidth={2} />
-                </button>
-                <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5"></div>
-                
-                <button
-                    onMouseEnter={(e) => handleMouseEnter(e, showMenu ? 'Hide Extra Indicators' : 'More Indicators')}
-                    onMouseLeave={() => setHoveredIndicator(null)}
-                    onClick={() => setShowMenu(p => !p)}
-                    className={`pointer-events-auto flex items-center justify-center transition-all duration-150 ${showMenu ? 'text-blue-500 rotate-45' : 'text-text-secondary hover:text-text-primary'}`}
-                >
-                    <Plus size={14} strokeWidth={2.5} />
-                </button>
-
-                {/* ── Future Vision Button ─────────────────────────────────── */}
-                {!isMultiMode && (
-                    <>
-                        <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+            {/* Institutional Chart Workspace Ribbon */}
+            <div className="absolute top-1.5 left-1.5 right-20 md:right-24 z-20 flex items-center justify-between gap-1.5 pointer-events-none">
+                {/* Left Controls: Standalone Draw Block (strictly on left side of line) + Indicators Block (inside chart) */}
+                <div className="flex items-center pointer-events-none">
+                    {/* Block 1: Standalone Draw Tool (Strictly left of the line, fits within 36px so it never cuts the line) */}
+                    <div className="pointer-events-auto w-9 h-7 flex items-center justify-center bg-background-surface/90 dark:bg-[#111622]/90 backdrop-blur-md rounded-lg border border-border-subtle/90 shadow-sm">
                         <button
-                            onMouseEnter={(e) => {
-                                const isExpired = fvSessionRef.current && fvSessionRef.current.candles && fvLiveBarIndexRef.current >= fvSessionRef.current.candles.length;
-                                const label = fvAutoMode ? 'Auto Mode Active (Double click to disable)' : 
-                                              (fvActive && isExpired) ? 'Generate New Prediction (Old expired)' :
-                                              fvActive ? 'Refine Prediction (Right-click to delete)' : 
-                                              (fvStaleMsg || 'Future Vision - AI Candle Prediction');
-                                handleMouseEnter(e, label);
-                            }}
+                            onMouseEnter={(e) => handleMouseEnter(e, showDrawing ? 'Close Drawing Suite' : 'Open Drawing Suite')}
                             onMouseLeave={() => setHoveredIndicator(null)}
-                            onClick={(e) => {
-                                if (fvClickTimerRef.current) {
-                                    clearTimeout(fvClickTimerRef.current);
-                                    fvClickTimerRef.current = null;
-                                    setFvAutoMode(p => {
-                                        const next = !p;
-                                        updatePAEAutoMode(instrumentKey, timeframe, next);
-                                        if (next && !fvActive) triggerFutureVision();
-                                        return next;
-                                    });
-                                } else {
-                                    fvClickTimerRef.current = setTimeout(() => {
-                                        fvClickTimerRef.current = null;
-                                        if (fvActive) {
-                                            if (!fvVisible) setFvVisible(true);
-                                            else triggerFutureVision();
-                                        } else {
-                                            triggerFutureVision();
-                                        }
-                                    }, 250);
-                                }
-                            }}
-                            disabled={fvLoading}
-                            className={`pointer-events-auto relative flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200
-                                ${fvLoading ? 'text-violet-400 animate-pulse' : ''}
-                                ${!fvLoading && fvAutoMode ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : ''}
-                                ${!fvLoading && !fvAutoMode && fvActive ? 'text-violet-400' : ''}
-                                ${!fvLoading && !fvActive ? 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5' : ''}`}
+                            onClick={() => { setShowDrawing(p => !p); if (showDrawing) setActiveTool('cursor'); setHoveredIndicator(null); }}
+                            className={`flex items-center justify-center w-full h-full text-[10px] font-bold transition-all ${
+                                showDrawing 
+                                    ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.6)]' 
+                                    : 'text-text-secondary hover:text-text-primary'
+                            }`}
+                            title="Drawing Tools"
                         >
-                            {fvAutoMode && !fvLoading && (
-                                <span className="absolute inset-0 rounded-md ring-2 ring-blue-400/50 animate-ping" />
-                            )}
-                            {fvLoading
-                                ? <Loader size="tiny" />
-                                : <Telescope size={13} strokeWidth={2} />
-                            }
+                            <PencilRuler size={13} strokeWidth={2} />
                         </button>
-
-                        <button
-                            onClick={async () => {
-                                if (!instrumentKey || !timeframe) return;
-                                import('sonner').then(({ toast }) => toast.loading('Running deep overnight analysis...', { id: 'analyst' }));
-                                try {
-                                    const res = await axiosInstance.post('/api/v1/pace/analyst/run', { instrumentKey, timeframe });
-                                    if (res.data?.success) {
-                                        analystBriefRef.current = res.data.brief;
-                                        import('sonner').then(({ toast }) => toast.success('Analyst Brief Generated', { 
-                                            id: 'analyst',
-                                            description: res.data.brief 
-                                        }));
-                                    }
-                                } catch (err) {
-                                    import('sonner').then(({ toast }) => toast.error('Analysis Failed', { id: 'analyst', description: err.message }));
-                                }
-                            }}
-                            onMouseEnter={(e) => handleMouseEnter(e, `Run Overnight Deep Analysis`)}
-                            onMouseLeave={() => setHoveredIndicator(null)}
-                            className="pointer-events-auto flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 text-fuchsia-500/60 dark:text-fuchsia-400/50 hover:text-fuchsia-600 dark:hover:text-fuchsia-400 hover:bg-black/5 dark:hover:bg-white/5"
-                        >
-                            <Microscope size={13} strokeWidth={2} />
-                        </button>
-                    </>
-                )}
-                {/* ── DEV: Demo Ghost Candle Button (Testing Only) ─── */}
-                {!isMultiMode && (
-                    <div className="absolute bottom-6 left-3 z-[60]">
-                    {(() => {
-                    // Only render in dev/localhost to keep production clean
-                    if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) return null;
-                    const addDemoRealCandle = () => {
-                        const effectiveData = [...data, ...demoRealCandles];
-                        const lastReal = effectiveData?.[effectiveData.length - 1];
-                        if (!lastReal) return;
-
-                        // Random-walk ±0.8%
-                        const drift = (Math.random() - 0.48) * 0.008;
-                        const open  = lastReal.close;
-                        const close = parseFloat((open * (1 + drift)).toFixed(2));
-                        const high  = parseFloat((Math.max(open, close) * (1 + Math.random() * 0.004)).toFixed(2));
-                        const low   = parseFloat((Math.min(open, close) * (1 - Math.random() * 0.004)).toFixed(2));
-
-                        // Compute next timestamp with dynamic market bounds
-                        let nextTime;
-                        const isDailyOrAbove = typeof lastReal.time !== 'number';
-
-                        if (isDailyOrAbove) {
-                            let currentMs = typeof lastReal.time === 'string'
-                                ? new Date(lastReal.time).getTime()
-                                : new Date(lastReal.time.year, lastReal.time.month - 1, lastReal.time.day).getTime();
-                            
-                            currentMs += 86400000;
-                            let date = new Date(currentMs);
-                            while (date.getDay() === 0 || date.getDay() === 6) {
-                                currentMs += 86400000;
-                                date = new Date(currentMs);
-                            }
-                            if (typeof lastReal.time === 'string') {
-                                nextTime = date.toISOString().split('T')[0];
-                            } else {
-                                nextTime = { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() };
-                            }
-                        } else {
-                            let minUtcMins = 1440;
-                            let maxUtcMins = 0;
-                            let barSize = 86400;
-                            const lookback = Math.min(effectiveData.length, 500);
-                            for (let i = effectiveData.length - lookback; i < effectiveData.length; i++) {
-                                const cTime = effectiveData[i].time;
-                                if (i > 0) {
-                                    const diff = cTime - effectiveData[i-1].time;
-                                    if (diff > 0 && diff < barSize) barSize = diff;
-                                }
-                                const d = new Date(cTime * 1000);
-                                const tm = d.getUTCHours() * 60 + d.getUTCMinutes();
-                                if (tm < minUtcMins) minUtcMins = tm;
-                                if (tm > maxUtcMins) maxUtcMins = tm;
-                            }
-                            maxUtcMins += Math.floor(barSize / 60);
-                            if (minUtcMins >= maxUtcMins || maxUtcMins > 1440) {
-                                minUtcMins = 225; maxUtcMins = 600; // fallback
-                            }
-
-                            let currentTime = lastReal.time + barSize;
-                            let date = new Date(currentTime * 1000);
-                            let tm = date.getUTCHours() * 60 + date.getUTCMinutes();
-
-                            if (tm >= maxUtcMins || tm < minUtcMins) {
-                                if (tm >= maxUtcMins) date.setUTCDate(date.getUTCDate() + 1);
-                                if (maxUtcMins < 1400) {
-                                    if (date.getUTCDay() === 6) date.setUTCDate(date.getUTCDate() + 2);
-                                    if (date.getUTCDay() === 0) date.setUTCDate(date.getUTCDate() + 1);
-                                }
-                                date.setUTCHours(Math.floor(minUtcMins / 60), minUtcMins % 60, 0, 0);
-                                currentTime = Math.floor(date.getTime() / 1000);
-                            }
-                            nextTime = currentTime;
-                        }
-                        const newCandle = { time: nextTime, open, high, low, close, volume: lastReal.volume || 1000 };
-
-                        setDemoRealCandles(prev => {
-                            const updated = [...prev, newCandle];
-                            setDemoLiveCandle(newCandle);
-                            return updated;
-                        });
-
-                        import('sonner').then(({ toast }) =>
-                            toast.success(`Demo REAL candle added at ${nextTime}`, { duration: 1500 })
-                        );
-                    };
-
-                    const clearDemoData = () => {
-                        setDemoRealCandles([]);
-                        setDemoLiveCandle(null);
-                        import('sonner').then(({ toast }) => toast.info('Demo data cleared'));
-                    };
-
-                    return (
-                        <div className="flex gap-1">
-                            <button
-                                onClick={addDemoRealCandle}
-                                onMouseEnter={(e) => handleMouseEnter(e, `DEV: Fast-forward time (+1 real candle)`)}
-                                onMouseLeave={() => setHoveredIndicator(null)}
-                                className="pointer-events-auto flex items-center justify-center px-1.5 h-5 rounded text-[9px] font-bold tracking-wider bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 hover:bg-indigo-500/30 transition-colors"
-                            >
-                                +🕯
-                            </button>
-                            {demoRealCandles.length > 0 && (
-                                <button
-                                    onClick={clearDemoData}
-                                    onMouseEnter={(e) => handleMouseEnter(e, `DEV: Clear demo data`)}
-                                    onMouseLeave={() => setHoveredIndicator(null)}
-                                    className="pointer-events-auto flex items-center justify-center px-1.5 h-5 rounded text-[9px] font-bold tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30 transition-colors"
-                                >
-                                    ✕
-                                </button>
-                            )}
-                        </div>
-                    );
-                })()}
                     </div>
-                )}
 
-                {fvActive && !isMultiMode && (
+                    {/* Scale boundary gap: ensures the vertical scale boundary line at ~65px passes cleanly in this open channel */}
+                    {!isMultiMode && <div className="w-12" />}
+
+                    {/* Block 2: Technical Indicators & Overlays (Inside the line - moved safely to the right so it never cuts the line) */}
+                    {!isMultiMode && (
+                    <div className="pointer-events-auto h-7 flex items-center gap-2 bg-background-surface/90 dark:bg-[#111622]/90 backdrop-blur-md px-2.5 rounded-lg border border-border-subtle/90 shadow-sm">
+
+                    {/* Pinned 1-Click Toggles - Text Glow Only, Zero Box/Dots */}
                     <button
-                        onMouseEnter={(e) => handleMouseEnter(e, fvVisible ? 'Hide Ghost Candles' : 'Show Ghost Candles')}
+                        onMouseEnter={(e) => handleMouseEnter(e, showVWAP ? 'Hide VWAP' : `Show ${activeIndicatorConfig.vwap.label}`)}
                         onMouseLeave={() => setHoveredIndicator(null)}
-                        onClick={() => setFvVisible(!fvVisible)}
-                        className={`pointer-events-auto flex items-center justify-center w-6 h-6 rounded-md transition-all duration-150 ${fvVisible ? 'text-text-secondary hover:text-text-primary' : 'text-slate-500'}`}
+                        onClick={() => setShowVWAP(p => !p)}
+                        className={`px-1 py-0.5 text-[10px] font-bold transition-all ${
+                            showVWAP 
+                                ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]' 
+                                : 'text-text-secondary hover:text-text-primary'
+                        }`}
                     >
-                        {fvVisible ? <Eye size={13} strokeWidth={2} /> : <EyeOff size={13} strokeWidth={2} />}
+                        VWAP
                     </button>
-                )}
 
-                {/* ── Future Vision Bias HUD ─────────────────────────── */}
-                {fvActive && fvBias && !isMultiMode && (() => {
-                    const isBull = fvBias === 'bullish';
-                    const isBear = fvBias === 'bearish';
-                    const biasColor   = isBull ? 'text-emerald-400' : isBear ? 'text-red-400' : 'text-slate-400';
-                    const confidence  = fvSessionRef.current?.candles
-                        ? Math.round(fvSessionRef.current.candles.reduce((a, c) => a + c.confidence, 0) / fvSessionRef.current.candles.length)
-                        : null;
-                    const confBarColor = confidence >= 70 ? 'bg-emerald-400' : confidence >= 50 ? 'bg-amber-400' : 'bg-red-400';
-                    const modelShort  = fvModel ? fvModel.split('/').pop().split('-').slice(0, 2).join('-') : null;
+                    <button
+                        onMouseEnter={(e) => handleMouseEnter(e, showEMA ? `Hide ${activeIndicatorConfig.ema.fast}/${activeIndicatorConfig.ema.slow} EMA` : `Show ${activeIndicatorConfig.ema.label} Crossover`)}
+                        onMouseLeave={() => setHoveredIndicator(null)}
+                        onClick={() => setShowEMA(p => !p)}
+                        className={`px-1 py-0.5 text-[10px] font-bold transition-all ${
+                            showEMA 
+                                ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.6)]' 
+                                : 'text-text-secondary hover:text-text-primary'
+                        }`}
+                    >
+                        EMA
+                    </button>
 
-                    const tooltipContent = (
-                        <div className="flex flex-col gap-2 min-w-[180px] p-0.5">
-                            <div className="flex items-center gap-2 pb-2 border-b border-border-subtle">
-                                <span className={`w-2 h-2 rounded-full shrink-0 ${isBull ? 'bg-emerald-400' : isBear ? 'bg-red-400' : 'bg-slate-400'}`} />
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Future Vision</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-text-tertiary text-[9px] uppercase font-semibold tracking-wider">Bias</span>
-                                <span className={`text-[11px] font-bold ${biasColor}`}>AI {fvBias.toUpperCase()}</span>
-                            </div>
-                            {confidence !== null && (
-                                <div className="flex flex-col gap-1">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-text-tertiary text-[9px] uppercase font-semibold tracking-wider">Confidence</span>
-                                        <span className="text-violet-500 dark:text-violet-300 text-[10px] font-bold font-mono">{confidence}%</span>
+                    <button
+                        onMouseEnter={(e) => handleMouseEnter(e, showSupertrend ? 'Hide Supertrend' : `Show ${activeIndicatorConfig.supertrend.label}`)}
+                        onMouseLeave={() => setHoveredIndicator(null)}
+                        onClick={() => setShowSupertrend(p => !p)}
+                        className={`px-1 py-0.5 text-[10px] font-bold transition-all ${
+                            showSupertrend 
+                                ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]' 
+                                : 'text-text-secondary hover:text-text-primary'
+                        }`}
+                    >
+                        ST
+                    </button>
+
+                    <div className="w-px h-3 bg-border-subtle/80 mx-0.5" />
+
+                    {/* Master Indicator Arsenal Trigger & Popover - Text & Icon Only, Zero Box */}
+                    <div className="relative">
+                        {(() => {
+                            const activeCount = [showSupertrend, showVWAP, showEMA, showCPR, showAdaptiveBands, showMACD, showPSAR, showIchimoku, showAnchoredVWAP, showAutoFib, showRSI].filter(Boolean).length;
+                            return (
+                                <button
+                                    onClick={() => setShowMenu(p => !p)}
+                                    className={`flex items-center gap-1 px-1 py-0.5 text-[10px] font-bold transition-all ${
+                                        showMenu || activeCount > 0
+                                            ? 'text-text-primary' 
+                                            : 'text-text-secondary hover:text-text-primary'
+                                    }`}
+                                    title="Open Indicator Arsenal"
+                                >
+                                    <Zap size={11} className={activeCount > 0 ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]' : 'text-text-muted'} />
+                                    <span className="hidden sm:inline">Indicators</span>
+                                    {activeCount > 0 && (
+                                        <span className="text-[9px] font-mono text-amber-400 font-bold">
+                                            {activeCount}
+                                        </span>
+                                    )}
+                                    <ChevronDown size={10} className={`transition-transform duration-150 ${showMenu ? 'rotate-180' : ''}`} />
+                                </button>
+                            );
+                        })()}
+
+                        {/* Indicator Arsenal Popover */}
+                        <AnimatePresence>
+                            {showMenu && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute top-full left-0 mt-1.5 w-72 bg-background-surface/95 dark:bg-[#121622]/95 backdrop-blur-xl border border-border-default rounded-xl shadow-2xl p-2.5 z-50 pointer-events-auto"
+                                    onClick={e => e.stopPropagation()}
+                                >
+                                    <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-border-subtle">
+                                        <div className="flex items-center gap-1.5">
+                                            <Zap size={13} className="text-amber-400" />
+                                            <span className="text-xs font-bold text-text-primary uppercase tracking-wide">Indicator Arsenal</span>
+                                        </div>
+                                        <span className="text-[9px] font-mono text-text-tertiary uppercase">
+                                            {[showSupertrend, showVWAP, showEMA, showCPR, showAdaptiveBands, showMACD, showPSAR, showIchimoku, showAnchoredVWAP, showAutoFib, showRSI].filter(Boolean).length} Active
+                                        </span>
                                     </div>
-                                    <div className="h-1 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
-                                        <div className={`h-full rounded-full ${confBarColor} transition-all duration-500`} style={{ width: `${confidence}%` }} />
-                                    </div>
-                                </div>
-                            )}
-                            {fvPAE?.scores?.length > 0 && (
-                                <div className="flex justify-between items-center">
-                                    <span className="text-text-tertiary text-[9px] uppercase font-semibold tracking-wider">Dir. Accuracy</span>
-                                    <span className="text-blue-500 dark:text-blue-300 text-[10px] font-bold font-mono">
-                                        {Math.round(fvPAE.scores.reduce((a, b) => a + b.da, 0) / fvPAE.scores.length * 100)}%
-                                        <span className="text-text-tertiary font-normal ml-1">({fvPAE.scores.length} bars)</span>
-                                    </span>
-                                </div>
-                            )}
-                            {modelShort && (
-                                <div className="flex justify-between items-center pt-1.5 border-t border-border-subtle">
-                                    <span className="text-text-tertiary text-[9px] uppercase font-semibold tracking-wider">Model</span>
-                                    <span className="text-text-tertiary text-[9px] font-mono">{modelShort}</span>
-                                </div>
-                            )}
-                        </div>
-                    );
 
-                    return (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, x: -4 }}
-                            animate={{ opacity: 1, scale: 1, x: 0 }}
-                            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                            className="flex items-center ml-1.5 gap-1"
-                        >
-                            {/* Pill badge */}
-                            <button
-                                onMouseEnter={(e) => handleMouseEnter(e, tooltipContent)}
-                                onMouseLeave={() => setHoveredIndicator(null)}
-                                className="pointer-events-auto flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-border-subtle bg-transparent cursor-default hover:brightness-110 transition-all duration-150"
-                            >
-                                <span className="text-[10px] font-bold uppercase tracking-wide text-text-primary">AI Bias</span>
-                                <span className={`text-[10px] font-bold ${biasColor}`}>
-                                    {fvBias.toUpperCase()}
-                                </span>
-                                {confidence !== null && (
-                                    <span className={`text-[9px] font-semibold px-1 rounded-sm ml-0.5 ${
-                                        isBull ? 'bg-emerald-500/10 text-emerald-400' : 
-                                        isBear ? 'bg-red-500/10 text-red-400' : 
-                                        'bg-slate-500/10 text-slate-400'
-                                    }`}>
-                                        {confidence}%
-                                    </span>
-                                )}
-                            </button>
-                        </motion.div>
-                    );
-                })()}
+                                    {/* Categorized Indicator List */}
+                                    <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-0.5 custom-scrollbar">
+                                        {/* Group 1: Overlays */}
+                                        <div>
+                                            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Price Overlays</span>
+                                            <div className="grid grid-cols-2 gap-1">
+                                                <button onClick={() => setShowSupertrend(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showSupertrend ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                    <span>{activeIndicatorConfig.supertrend.label}</span>
+                                                    {showSupertrend && <Check size={11} />}
+                                                </button>
+                                                <button onClick={() => setShowVWAP(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showVWAP ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                    <span>{activeIndicatorConfig.vwap.label}</span>
+                                                    {showVWAP && <Check size={11} />}
+                                                </button>
+                                                <button onClick={() => setShowEMA(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showEMA ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                    <span>{activeIndicatorConfig.ema.label}</span>
+                                                    {showEMA && <Check size={11} />}
+                                                </button>
+                                                <button onClick={() => setShowCPR(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showCPR ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                    <span>{activeIndicatorConfig.cpr.label}</span>
+                                                    {showCPR && <Check size={11} />}
+                                                </button>
+                                                <button onClick={() => setShowAdaptiveBands(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showAdaptiveBands ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                    <span>{activeIndicatorConfig.adaptiveBands.label}</span>
+                                                    {showAdaptiveBands && <Check size={11} />}
+                                                </button>
+                                                <button onClick={() => setShowPSAR(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showPSAR ? 'bg-teal-500/15 text-teal-400 border border-teal-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                    <span>{activeIndicatorConfig.psar.label}</span>
+                                                    {showPSAR && <Check size={11} />}
+                                                </button>
+                                                <button onClick={() => setShowIchimoku(p => !p)} className={`col-span-2 flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showIchimoku ? 'bg-pink-500/15 text-pink-400 border border-pink-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                    <span>{activeIndicatorConfig.ichimoku.label}</span>
+                                                    {showIchimoku && <Check size={11} />}
+                                                </button>
+                                            </div>
 
-                {/* Pattern Recognition & Scoring Engine Badge */}
-                {patternScore && !isMultiMode && (
-                    <div className="flex items-center pointer-events-auto ml-1 group relative">
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-border-subtle bg-transparent cursor-default hover:brightness-110 transition-all duration-150">
-                            <span className="text-[10px] font-bold uppercase tracking-wide text-text-primary">Pattern Score</span>
-                            <span className={`text-[10px] font-bold ${
-                                patternScore.score > 2 ? 'text-emerald-500' :
-                                patternScore.score < -2 ? 'text-rose-500' :
-                                'text-amber-500'
-                            }`}>
-                                {patternScore.score > 0 ? '+' : ''}{patternScore.score}
-                            </span>
-                            <span className={`text-[9px] font-semibold px-1 rounded-sm ml-0.5 ${
-                                patternScore.score > 2 ? 'bg-emerald-500/10 text-emerald-400' :
-                                patternScore.score < -2 ? 'bg-rose-500/10 text-rose-400' :
-                                'bg-amber-500/10 text-amber-400'
-                            }`}>
-                                {patternScore.label}
-                            </span>
-                        </div>
+                                            {/* Mode selector if Adaptive Bands active */}
+                                            {showAdaptiveBands && (
+                                                <div className="flex items-center gap-1 mt-1.5 p-1 bg-background-surface/80 rounded border border-border-subtle">
+                                                    <span className="text-[9px] text-text-tertiary uppercase font-bold pl-1">Bands:</span>
+                                                    {[
+                                                        { id: 'scalp', label: 'BB Scalp' },
+                                                        { id: 'swing', label: 'KC Swing' },
+                                                        { id: 'positional', label: 'DC Pos' },
+                                                    ].map(m => (
+                                                        <button
+                                                            key={m.id}
+                                                            onClick={() => setBandsMode(m.id)}
+                                                            className={`flex-1 py-0.5 rounded text-[9px] font-bold ${bandsMode === m.id ? 'bg-blue-600 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                                                        >
+                                                            {m.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
 
-                        {/* Active Patterns Dropdown (Visible on Hover) */}
-                        {patternScore.activePatterns.length > 0 && (
-                            <div 
-                                className="absolute top-full left-0 mt-1 hidden group-hover:flex flex-col gap-0 w-64 bg-background-surface/95 backdrop-blur-xl border border-border-subtle rounded-md p-1.5 shadow-2xl z-[100]"
-                            >
-                                <div className="flex items-center justify-between border-b border-white/5 pb-1.5 mb-1 px-1.5 pt-0.5">
-                                    <span className="text-[10px] font-semibold text-text-secondary">Active Formations</span>
-                                    <span className="text-[9px] text-text-tertiary uppercase tracking-wider">Click to view</span>
-                                </div>
-                                {patternScore.activePatterns.map((p, i) => {
-                                    const isSelected = hoveredPattern?.id === p.id && hoveredPattern?.time === p.time;
-                                    return (
-                                        <div 
-                                            key={i} 
-                                            onClick={() => setHoveredPattern(isSelected ? null : p)}
-                                            className={`flex items-center justify-between text-[11px] px-2 py-1.5 rounded cursor-pointer transition-colors ${isSelected ? 'bg-white/10 shadow-inner' : 'hover:bg-white/5'}`}
-                                        >
-                                            <span className={`font-medium ${p.dir > 0 ? 'text-emerald-400' : p.dir < 0 ? 'text-rose-400' : 'text-text-tertiary'}`}>
-                                                {p.name}
-                                            </span>
-                                            <div className="flex items-center gap-2">
-                                                <span className={`font-mono text-[10px] ${p.contribution > 0 ? 'text-emerald-500' : p.contribution < 0 ? 'text-rose-500' : 'text-slate-500'}`}>
-                                                    {p.contribution > 0 ? '+' : ''}{p.contribution}
-                                                </span>
-                                                <span className="text-text-tertiary text-[10px]">
-                                                    ({p.age} bar{p.age !== 1 ? 's' : ''} ago)
-                                                </span>
+                                        {/* Group 2: Sub-chart Oscillators */}
+                                        <div className="pt-1.5 border-t border-border-subtle">
+                                            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Oscillators & Studies</span>
+                                            <div className="grid grid-cols-2 gap-1">
+                                                <button onClick={() => setShowMACD(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showMACD ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                    <span>{activeIndicatorConfig.macd.label}</span>
+                                                    {showMACD && <Check size={11} />}
+                                                </button>
+                                                <button onClick={() => setShowRSI(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showRSI ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                    <span>{activeIndicatorConfig.rsi.label}</span>
+                                                    {showRSI && <Check size={11} />}
+                                                </button>
+                                                <button onClick={() => setShowAnchoredVWAP(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showAnchoredVWAP ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                    <span>{activeIndicatorConfig.anchoredVwap.label}</span>
+                                                    {showAnchoredVWAP && <Check size={11} />}
+                                                </button>
+                                                <button onClick={() => setShowAutoFib(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showAutoFib ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                    <span>{activeIndicatorConfig.autoFib.label}</span>
+                                                    {showAutoFib && <Check size={11} />}
+                                                </button>
                                             </div>
                                         </div>
-                                    );
-                                })}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    <div className="w-px h-3 bg-border-subtle/80 mx-0.5" />
+
+                    {/* Future Vision Ghost Candles Visibility Toggle (Icon Only, Glowing Violet) */}
+                    <button
+                        onClick={() => setFvVisible(p => !p)}
+                        className={`flex items-center justify-center p-0.5 transition-colors ${
+                            fvVisible 
+                                ? 'text-violet-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]' 
+                                : 'text-text-muted hover:text-text-primary'
+                        }`}
+                        title={fvVisible ? "Hide Ghost Candles" : "Show Ghost Candles"}
+                    >
+                        {fvVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+                    </button>
+
+                    {/* Overnight Analyst Insight Generator (Icon Only) */}
+                    <button
+                        onClick={async () => {
+                            if (!instrumentKey || !timeframe) return;
+                            const { toast } = await import('sonner');
+                            toast.loading('Running deep overnight analysis...', { id: 'analyst' });
+                            try {
+                                const res = await axiosInstance.post('/api/v1/pace/analyst/run', { instrumentKey, timeframe });
+                                if (res.data?.success) {
+                                    analystBriefRef.current = res.data.brief;
+                                    toast.success('Analyst Brief Generated', { 
+                                        id: 'analyst',
+                                        description: res.data.brief 
+                                    });
+                                }
+                            } catch (err) {
+                                toast.error('Analysis Failed', { id: 'analyst', description: err.message });
+                            }
+                        }}
+                        className="flex items-center justify-center p-0.5 text-text-muted hover:text-fuchsia-400 transition-colors"
+                        title="Run Deep Overnight Analysis"
+                    >
+                        <Microscope size={12} />
+                    </button>
+                    </div>
+                    )}
+                </div>
+
+                {/* Center Section: 4-Pillar Confluence Matrix + Key Levels (hidden in multi-chart tile mode, visible in maximized/single mode) */}
+                {!isMultiMode && confluenceData && (
+                    <div className="pointer-events-auto h-7 hidden 2xl:flex items-center gap-2 bg-background-surface/90 dark:bg-[#111622]/90 backdrop-blur-md px-2.5 rounded-lg border border-border-subtle/90 shadow-sm select-none">
+                        <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1">
+                                <span className={`w-1.5 h-1.5 rounded-full ${confluenceData.p1_ema === 1 ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-rose-400'}`} title="EMA 9/21 Trend" />
+                                <span className={`w-1.5 h-1.5 rounded-full ${confluenceData.p2_vwap === 1 ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-rose-400'}`} title="VWAP Alignment" />
+                                <span className={`w-1.5 h-1.5 rounded-full ${confluenceData.p3_st === 1 ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-rose-400'}`} title="Supertrend Regime" />
+                                <span className={`w-1.5 h-1.5 rounded-full ${confluenceData.p4_mom === 1 ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-rose-400'}`} title="RSI Momentum" />
+                            </div>
+                            <span className="text-[9px] uppercase font-bold text-text-tertiary tracking-wider">Confluence:</span>
+                            <span className={`text-[10px] font-bold font-mono ${
+                                confluenceData.bullCount >= 3 ? 'text-emerald-400' :
+                                confluenceData.bullCount <= 1 ? 'text-rose-400' : 'text-amber-400'
+                            }`}>
+                                {confluenceData.bullCount}/4 {confluenceData.bullCount >= 3 ? 'BULL' : confluenceData.bullCount <= 1 ? 'BEAR' : 'NEUTRAL'}
+                            </span>
+                        </div>
+
+                        {/* VWAP Delta */}
+                        {confluenceData.vwapDelta !== null && (
+                            <div className="flex items-center gap-1 pl-2 border-l border-border-subtle/80 font-mono text-[10px]">
+                                <span className="text-text-tertiary text-[9px] font-sans uppercase font-bold">VWAP Δ</span>
+                                <span className={`font-semibold ${confluenceData.vwapDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    {confluenceData.vwapDelta >= 0 ? '+' : ''}{confluenceData.vwapDelta.toFixed(2)}%
+                                </span>
                             </div>
                         )}
                     </div>
                 )}
-                {/* OHLC Legend inline in top toolbar */}
-                <OHLCLegend chartRef={chartRef} candleSeriesRef={candleSeriesRef} data={data} />
 
-                <AnimatePresence>
-                    {showMenu && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                            transition={{ duration: 0.15, ease: 'easeOut' }}
-                            className="absolute top-full left-0 mt-2 bg-white/80 dark:bg-[#1e222d]/80 border border-black/5 dark:border-white/5 rounded-xl backdrop-blur-md shadow-2xl p-2 z-30"
-                        >
-                            <div className="flex flex-col gap-2">
-                                <div className="grid grid-cols-4 gap-2">
-                                    {/* ── Adaptive Bands ── */}
-                                    <button
-                                        onMouseEnter={(e) => handleMouseEnter(e, `Adaptive Bands — ${bandsMode === 'scalp' ? 'BB Scalp' : bandsMode === 'swing' ? 'KC Swing' : 'DC Positional'}`)}
-                                        onMouseLeave={() => setHoveredIndicator(null)}
-                                        onClick={() => setShowAdaptiveBands(p => !p)}
-                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAdaptiveBands
-                                            ? bandsMode === 'scalp'      ? 'bg-indigo-500/15 text-indigo-400'
-                                            : bandsMode === 'positional' ? 'bg-emerald-500/15 text-emerald-400'
-                                            :                              'bg-amber-500/15 text-amber-400'
-                                            : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                    >
-                                        <Waves size={13} strokeWidth={2} />
-                                    </button>
+                {/* Right Group: Consolidated AI Intelligence Capsule + OHLC */}
+                <div className="pointer-events-auto flex items-center gap-1.5 shrink-0">
+                    {/* Consolidated AI Intelligence Capsule */}
+                    {!isMultiMode && (
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowAiFlyout(p => !p)}
+                                className={`h-7 flex items-center gap-1.5 px-2.5 rounded-lg border text-[10px] font-bold transition-all backdrop-blur-md shadow-sm ${
+                                    showAiFlyout 
+                                        ? 'bg-violet-600/20 text-violet-300 border-violet-500/50 ring-1 ring-violet-500/30' 
+                                        : 'bg-background-surface/90 dark:bg-[#111622]/90 text-text-primary border-border-subtle/90 hover:border-violet-500/30'
+                                }`}
+                                title="Praxis AI Intelligence Hub"
+                            >
+                                <Sparkles size={11} className={fvLoading ? 'text-violet-400 animate-spin' : 'text-violet-400'} />
+                                <span className="text-text-secondary uppercase tracking-wider text-[9px]">AI</span>
+                                {fvBias && (
+                                    <span className={`px-1 py-0.2 rounded text-[9px] font-mono font-bold ${
+                                        fvBias === 'bullish' ? 'bg-emerald-500/15 text-emerald-400' :
+                                        fvBias === 'bearish' ? 'bg-rose-500/15 text-rose-400' :
+                                        'bg-slate-500/15 text-slate-400'
+                                    }`}>
+                                        {fvBias.toUpperCase()}
+                                    </span>
+                                )}
+                                {patternScore && (
+                                    <span className={`px-1 py-0.2 rounded text-[9px] font-mono font-bold ${
+                                        patternScore.score > 2 ? 'bg-emerald-500/15 text-emerald-400' :
+                                        patternScore.score < -2 ? 'bg-rose-500/15 text-rose-400' :
+                                        'bg-amber-500/15 text-amber-400'
+                                    }`}>
+                                        {patternScore.score > 0 ? '+' : ''}{patternScore.score}
+                                    </span>
+                                )}
+                                <ChevronDown size={10} className={`text-text-tertiary transition-transform ${showAiFlyout ? 'rotate-180' : ''}`} />
+                            </button>
 
-                                    {/* Remaining indicators */}
-                                    <button
-                                        onMouseEnter={(e) => handleMouseEnter(e, 'MACD (12, 26, 9)')}
-                                        onMouseLeave={() => setHoveredIndicator(null)}
-                                        onClick={() => setShowMACD(p => !p)}
-                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showMACD ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                            {/* Rich AI Flyout */}
+                            <AnimatePresence>
+                                {showAiFlyout && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="absolute top-full right-0 mt-1.5 w-80 bg-background-surface/95 dark:bg-[#121622]/95 backdrop-blur-xl border border-border-default rounded-xl shadow-2xl p-3 z-50 pointer-events-auto"
+                                        onClick={e => e.stopPropagation()}
                                     >
-                                        <TrendingUpDown size={13} strokeWidth={2} />
-                                    </button>
-                                    <button
-                                        onMouseEnter={(e) => handleMouseEnter(e, 'Anchored VWAP')}
-                                        onMouseLeave={() => setHoveredIndicator(null)}
-                                        onClick={() => setShowAnchoredVWAP(p => !p)}
-                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAnchoredVWAP ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                    >
-                                        <Anchor size={13} strokeWidth={2} />
-                                    </button>
-                                    <button
-                                        onMouseEnter={(e) => handleMouseEnter(e, 'Auto Fibonacci')}
-                                        onMouseLeave={() => setHoveredIndicator(null)}
-                                        onClick={() => setShowAutoFib(p => !p)}
-                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showAutoFib ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                    >
-                                        <AlignJustify size={13} strokeWidth={2} />
-                                    </button>
-                                    <button
-                                        onMouseEnter={(e) => handleMouseEnter(e, 'Parabolic SAR')}
-                                        onMouseLeave={() => setHoveredIndicator(null)}
-                                        onClick={() => setShowPSAR(p => !p)}
-                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showPSAR ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                    >
-                                        <MoreHorizontal size={13} strokeWidth={2} />
-                                    </button>
-                                    <button
-                                        onMouseEnter={(e) => handleMouseEnter(e, 'Ichimoku Cloud')}
-                                        onMouseLeave={() => setHoveredIndicator(null)}
-                                        onClick={() => setShowIchimoku(p => !p)}
-                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showIchimoku ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                    >
-                                        <Cloud size={13} strokeWidth={2} />
-                                    </button>
-                                    <button
-                                        onMouseEnter={(e) => handleMouseEnter(e, 'RSI Divergence')}
-                                        onMouseLeave={() => setHoveredIndicator(null)}
-                                        onClick={() => setShowRSI(p => !p)}
-                                        className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 ${showRSI ? 'bg-pink-500/15 text-pink-600 dark:text-pink-400' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5'}`}
-                                    >
-                                        <Spline size={13} strokeWidth={2} />
-                                    </button>
-                                </div>
+                                        <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-border-subtle">
+                                            <div className="flex items-center gap-1.5">
+                                                <Sparkles size={13} className="text-violet-400" />
+                                                <span className="text-xs font-bold text-text-primary uppercase tracking-wide">Praxis AI Intelligence</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => setShowAiFlyout(false)} 
+                                                className="text-text-tertiary hover:text-text-primary p-0.5 rounded"
+                                            >
+                                                <X size={12} />
+                                            </button>
+                                        </div>
 
-                                {/* Mode toggle pills — visible only when bands are on */}
-                                <AnimatePresence>
-                                    {showAdaptiveBands && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: -6, height: 0 }}
-                                            animate={{ opacity: 1, y: 0, height: 'auto' }}
-                                            exit={{ opacity: 0, y: -6, height: 0 }}
-                                            transition={{ duration: 0.15 }}
-                                            className="flex items-center justify-between bg-black/5 dark:bg-white/5 p-1 rounded-md"
-                                        >
-                                            {[
-                                                { id: 'scalp',      label: 'SCP', color: 'indigo' },
-                                                { id: 'swing',      label: 'SWG', color: 'amber'  },
-                                                { id: 'positional', label: 'POS', color: 'emerald'},
-                                            ].map(m => (
-                                                <button
-                                                    key={m.id}
-                                                    onMouseEnter={(e) => handleMouseEnter(e,
-                                                        m.id === 'scalp'      ? 'Scalp — Bollinger Bands (20, 2σ sample)'
-                                                        : m.id === 'swing'    ? 'Swing — Keltner Channels (EMA20, ATR14)'
-                                                        :                       'Positional — Donchian Dual Channel (50+20)'
+                                        {/* Section 1: Directional Bias */}
+                                        {fvBias && (() => {
+                                            const isBull = fvBias === 'bullish';
+                                            const isBear = fvBias === 'bearish';
+                                            const biasColor = isBull ? 'text-emerald-400' : isBear ? 'text-rose-400' : 'text-slate-400';
+                                            const confidence = fvSessionRef.current?.candles
+                                                ? Math.round(fvSessionRef.current.candles.reduce((a, c) => a + c.confidence, 0) / fvSessionRef.current.candles.length)
+                                                : null;
+                                            const confBarColor = confidence >= 70 ? 'bg-emerald-400' : confidence >= 50 ? 'bg-amber-400' : 'bg-rose-400';
+
+                                            return (
+                                                <div className="mb-3 p-2 rounded-lg bg-background-surface/80 border border-border-subtle">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-[9px] uppercase font-bold text-text-tertiary">Directional Bias</span>
+                                                        <span className={`text-[11px] font-bold font-mono ${biasColor}`}>
+                                                            AI {fvBias.toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                    {confidence !== null && (
+                                                        <div className="flex flex-col gap-1 mt-1.5">
+                                                            <div className="flex justify-between items-center text-[10px] font-mono">
+                                                                <span className="text-text-tertiary text-[9px]">Confidence</span>
+                                                                <span className="text-violet-300 font-bold">{confidence}%</span>
+                                                            </div>
+                                                            <div className="h-1 rounded-full bg-black/20 dark:bg-white/10 overflow-hidden">
+                                                                <div className={`h-full rounded-full ${confBarColor} transition-all duration-500`} style={{ width: `${confidence}%` }} />
+                                                            </div>
+                                                        </div>
                                                     )}
-                                                    onMouseLeave={() => setHoveredIndicator(null)}
-                                                    onClick={() => setBandsMode(m.id)}
-                                                    className={`flex-1 px-1 py-1 rounded text-[10px] font-bold tracking-wide transition-all duration-150 mx-0.5
-                                                        ${bandsMode === m.id
-                                                            ? m.color === 'indigo'  ? 'bg-indigo-500/20  text-indigo-400  border border-indigo-500/30 shadow-sm'
-                                                            : m.color === 'amber'   ? 'bg-amber-500/20   text-amber-400   border border-amber-500/30 shadow-sm'
-                                                            :                         'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
-                                                            : 'bg-transparent text-slate-500 dark:text-white/40 border border-transparent hover:text-slate-800 dark:hover:text-white/80 hover:bg-black/5 dark:hover:bg-white/10'
-                                                        }`}
+                                                    {fvPAE?.scores?.length > 0 && (
+                                                        <div className="flex justify-between items-center mt-1.5 pt-1 border-t border-border-subtle/60 text-[10px] font-mono">
+                                                            <span className="text-text-tertiary text-[9px]">Directional Accuracy</span>
+                                                            <span className="text-blue-400 font-bold">
+                                                                {Math.round(fvPAE.scores.reduce((a, b) => a + b.da, 0) / fvPAE.scores.length * 100)}%
+                                                                <span className="text-text-tertiary font-normal ml-1">({fvPAE.scores.length} bars)</span>
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* Section 2: Pattern Recognition Formations */}
+                                        {patternScore && (
+                                            <div className="mb-3 p-2 rounded-lg bg-background-surface/80 border border-border-subtle">
+                                                <div className="flex justify-between items-center mb-1.5">
+                                                    <span className="text-[9px] uppercase font-bold text-text-tertiary">Active Formations</span>
+                                                    <span className={`text-[10px] font-bold font-mono ${
+                                                        patternScore.score > 2 ? 'text-emerald-400' :
+                                                        patternScore.score < -2 ? 'text-rose-400' : 'text-amber-400'
+                                                    }`}>
+                                                        {patternScore.score > 0 ? '+' : ''}{patternScore.score} ({patternScore.label})
+                                                    </span>
+                                                </div>
+                                                {patternScore.activePatterns.length > 0 ? (
+                                                    <div className="flex flex-col gap-1 max-h-32 overflow-y-auto custom-scrollbar pr-0.5">
+                                                        {patternScore.activePatterns.map((p, i) => {
+                                                            const isSelected = hoveredPattern?.id === p.id && hoveredPattern?.time === p.time;
+                                                            return (
+                                                                <div 
+                                                                    key={i} 
+                                                                    onClick={() => setHoveredPattern(isSelected ? null : p)}
+                                                                    className={`flex items-center justify-between text-[10px] px-1.5 py-1 rounded cursor-pointer transition-colors ${isSelected ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                                                                >
+                                                                    <span className={`font-medium ${p.dir > 0 ? 'text-emerald-400' : p.dir < 0 ? 'text-rose-400' : 'text-text-tertiary'}`}>
+                                                                        {p.name}
+                                                                    </span>
+                                                                    <div className="flex items-center gap-1.5 font-mono text-[9px]">
+                                                                        <span className={p.contribution > 0 ? 'text-emerald-400' : p.contribution < 0 ? 'text-rose-400' : 'text-slate-400'}>
+                                                                            {p.contribution > 0 ? '+' : ''}{p.contribution}
+                                                                        </span>
+                                                                        <span className="text-text-tertiary">({p.age}b)</span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-[10px] text-text-tertiary italic">No active structural patterns detected.</div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Section 3: Future Vision Predictive Engine (Manual Single-Time + Continuous Auto Mode) */}
+                                        <div className="pt-2 border-t border-border-subtle flex flex-col gap-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[9px] uppercase font-bold text-text-tertiary tracking-wider flex items-center gap-1">
+                                                    <Telescope size={11} className="text-violet-400" />
+                                                    Future Vision AI Engine
+                                                </span>
+                                                {fvActive && (
+                                                    <span className="text-[9px] font-mono font-bold text-violet-400 bg-violet-500/10 px-1.5 py-0.2 rounded border border-violet-500/20">
+                                                        7 BARS PREDICTED
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Dual Controls: Manual Single-Time Generate + Auto-Mode Toggle */}
+                                            <div className="grid grid-cols-2 gap-1.5">
+                                                {/* Manual Single-Time Predict Button */}
+                                                <button
+                                                    onClick={() => triggerFutureVision()}
+                                                    disabled={fvLoading}
+                                                    className={`py-1.5 px-2 rounded-lg text-[10px] font-bold tracking-wide transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer ${
+                                                        fvLoading 
+                                                            ? 'bg-violet-600/30 text-violet-300 cursor-wait border border-violet-500/30' 
+                                                            : 'bg-violet-600 hover:bg-violet-500 text-white border border-violet-500/50 hover:shadow-[0_0_12px_rgba(139,92,246,0.4)]'
+                                                    }`}
+                                                    title="Generate a single 7-bar AI predictive forecast on demand"
                                                 >
-                                                    {m.label}
+                                                    {fvLoading ? (
+                                                        <>
+                                                            <Loader size="tiny" />
+                                                            <span>Predicting...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Sparkles size={11} />
+                                                            <span>{fvActive ? 'Regenerate' : 'Manual Predict'}</span>
+                                                        </>
+                                                    )}
                                                 </button>
-                                            ))}
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </div>
 
-
-                        </motion.div>
+                                                {/* Continuous Auto Mode Toggle Button */}
+                                                <button
+                                                    onClick={() => {
+                                                        setFvAutoMode(p => {
+                                                            const next = !p;
+                                                            updatePAEAutoMode(instrumentKey, timeframe, next);
+                                                            if (next && !fvActive) triggerFutureVision();
+                                                            return next;
+                                                        });
+                                                    }}
+                                                    className={`py-1.5 px-2 rounded-lg text-[10px] font-bold tracking-wide transition-all flex items-center justify-center gap-1.5 border cursor-pointer ${
+                                                        fvAutoMode 
+                                                            ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.5)]' 
+                                                            : 'bg-background-surface/80 hover:bg-background-surface text-text-secondary hover:text-text-primary border-border-subtle'
+                                                    }`}
+                                                    title="Automatically generates new predictions on every candle close"
+                                                >
+                                                    <Telescope size={11} />
+                                                    <span>Auto: {fvAutoMode ? 'ON' : 'OFF'}</span>
+                                                    {fvAutoMode && <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     )}
-                </AnimatePresence>
+
+                    {/* Institutional High-Density Tabular OHLCV Status Bar */}
+                    <OHLCLegend crosshairData={crosshairData} chartRef={chartRef} candleSeriesRef={candleSeriesRef} volumeSeriesRef={volumeSeriesRef} data={data} />
+                </div>
             </div>
+
+            {/* Developer Testing Bar (Cleanly anchored to bottom left, shifted when drawing toolbar is active) */}
+            {!isMultiMode && (
+                <div className={`absolute bottom-6 transition-all duration-200 z-20 ${showDrawing ? 'left-[76px]' : 'left-3'}`}>
+                    {(() => {
+                        if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) return null;
+                        const addDemoRealCandle = () => {
+                            const effectiveData = [...data, ...demoRealCandles];
+                            const lastReal = effectiveData?.[effectiveData.length - 1];
+                            if (!lastReal) return;
+
+                            const drift = (Math.random() - 0.48) * 0.008;
+                            const open  = lastReal.close;
+                            const close = parseFloat((open * (1 + drift)).toFixed(2));
+                            const high  = parseFloat((Math.max(open, close) * (1 + Math.random() * 0.004)).toFixed(2));
+                            const low   = parseFloat((Math.min(open, close) * (1 - Math.random() * 0.004)).toFixed(2));
+
+                            let nextTime;
+                            const isDailyOrAbove = typeof lastReal.time !== 'number';
+
+                            if (isDailyOrAbove) {
+                                let currentMs = typeof lastReal.time === 'string'
+                                    ? new Date(lastReal.time).getTime()
+                                    : new Date(lastReal.time.year, lastReal.time.month - 1, lastReal.time.day).getTime();
+                                
+                                currentMs += 86400000;
+                                let date = new Date(currentMs);
+                                while (date.getDay() === 0 || date.getDay() === 6) {
+                                    currentMs += 86400000;
+                                    date = new Date(currentMs);
+                                }
+                                if (typeof lastReal.time === 'string') {
+                                    nextTime = date.toISOString().split('T')[0];
+                                } else {
+                                    nextTime = { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() };
+                                }
+                            } else {
+                                let minUtcMins = 1440;
+                                let maxUtcMins = 0;
+                                let barSize = 86400;
+                                const lookback = Math.min(effectiveData.length, 500);
+                                for (let i = effectiveData.length - lookback; i < effectiveData.length; i++) {
+                                    const cTime = effectiveData[i].time;
+                                    if (i > 0) {
+                                        const diff = cTime - effectiveData[i-1].time;
+                                        if (diff > 0 && diff < barSize) barSize = diff;
+                                    }
+                                    const d = new Date(cTime * 1000);
+                                    const tm = d.getUTCHours() * 60 + d.getUTCMinutes();
+                                    if (tm < minUtcMins) minUtcMins = tm;
+                                    if (tm > maxUtcMins) maxUtcMins = tm;
+                                }
+                                maxUtcMins += Math.floor(barSize / 60);
+                                if (minUtcMins >= maxUtcMins || maxUtcMins > 1440) {
+                                    minUtcMins = 225; maxUtcMins = 600;
+                                }
+
+                                let currentTime = lastReal.time + barSize;
+                                let date = new Date(currentTime * 1000);
+                                let tm = date.getUTCHours() * 60 + date.getUTCMinutes();
+
+                                if (tm >= maxUtcMins || tm < minUtcMins) {
+                                    if (tm >= maxUtcMins) date.setUTCDate(date.getUTCDate() + 1);
+                                    if (maxUtcMins < 1400) {
+                                        if (date.getUTCDay() === 6) date.setUTCDate(date.getUTCDate() + 2);
+                                        if (date.getUTCDay() === 0) date.setUTCDate(date.getUTCDate() + 1);
+                                    }
+                                    date.setUTCHours(Math.floor(minUtcMins / 60), minUtcMins % 60, 0, 0);
+                                    currentTime = Math.floor(date.getTime() / 1000);
+                                }
+                                nextTime = currentTime;
+                            }
+                            const newCandle = { time: nextTime, open, high, low, close, volume: lastReal.volume || 1000 };
+
+                            setDemoRealCandles(prev => {
+                                const updated = [...prev, newCandle];
+                                setDemoLiveCandle(newCandle);
+                                return updated;
+                            });
+
+                            import('sonner').then(({ toast }) =>
+                                toast.success(`Demo REAL candle added at ${nextTime}`, { duration: 1500 })
+                            );
+                        };
+
+                        const clearDemoData = () => {
+                            setDemoRealCandles([]);
+                            setDemoLiveCandle(null);
+                            ghostMarkersRef.current = [];
+                            if (fvSessionRef.current?.candles?.length && fvSessionRef.current?.times?.length) {
+                                fvLiveBarIndexRef.current = 0;
+                                _renderGhostCandles(fvSessionRef.current.candles, fvSessionRef.current.times);
+                            }
+                            import('sonner').then(({ toast }) => toast.info('Demo data cleared'));
+                        };
+
+                        return (
+                            <div className="flex gap-1">
+                                <button
+                                    onClick={addDemoRealCandle}
+                                    onMouseEnter={(e) => handleMouseEnter(e, `DEV: Fast-forward time (+1 real candle)`)}
+                                    onMouseLeave={() => setHoveredIndicator(null)}
+                                    className="pointer-events-auto flex items-center justify-center px-1.5 h-5 rounded text-[9px] font-bold tracking-wider bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 hover:bg-indigo-500/30 transition-colors"
+                                >
+                                    +🕯
+                                </button>
+                                {demoRealCandles.length > 0 && (
+                                    <button
+                                        onClick={clearDemoData}
+                                        onMouseEnter={(e) => handleMouseEnter(e, `DEV: Clear demo data`)}
+                                        onMouseLeave={() => setHoveredIndicator(null)}
+                                        className="pointer-events-auto flex items-center justify-center px-1.5 h-5 rounded text-[9px] font-bold tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30 transition-colors"
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })()}
+                </div>
+            )}
 
             <DrawingToolbar
                 visible={showDrawing}
@@ -2202,17 +2730,87 @@ export default React.memo(function AdvancedCandlestickChart({
                 {/* Ghost PAE Clean Hover Tooltip */}
                 {ghostTooltip && (
                     <div 
-                        className="absolute pointer-events-none z-50 text-[11px] font-mono px-2 py-1 rounded bg-black/80 border backdrop-blur-md whitespace-nowrap shadow-xl"
+                        className="absolute pointer-events-none z-50 text-[10px] font-mono px-2 py-1 rounded-md bg-[#0a0e17]/90 border backdrop-blur-md whitespace-nowrap shadow-xl flex items-center gap-1.5"
                         style={{
                             left: ghostTooltip.x,
                             top: ghostTooltip.y - 30,
                             transform: 'translateX(-50%)',
                             borderColor: ghostTooltip.color,
-                            color: ghostTooltip.color,
-                            textShadow: '0 0 10px rgba(0,0,0,0.8)'
+                            boxShadow: `0 0 14px ${ghostTooltip.color}33`,
                         }}
                     >
-                        Error: {ghostTooltip.text}
+                        <Sparkles size={11} style={{ color: ghostTooltip.color }} />
+                        <span className="text-text-tertiary text-[9px] uppercase font-sans font-bold">{ghostTooltip.title || 'AI Forecast'}:</span>
+                        <span className="font-bold" style={{ color: ghostTooltip.color }}>{ghostTooltip.text}</span>
+                    </div>
+                )}
+                {/* Sub-Pane Institutional Readout Headers (dynamically anchored to native pane coordinates) */}
+                {showRSI && (
+                    <div 
+                        className="absolute left-0 right-0 pointer-events-none z-10 select-none transition-all duration-150"
+                        style={{ top: panePositions.rsi != null ? `${panePositions.rsi + 4}px` : (showMACD ? '80%' : '75%') }}
+                    >
+                        {/* RSI Header & Live Readout */}
+                        <div className="flex items-center gap-2 px-3 py-0.5 text-[11px] font-mono">
+                            <span className="font-semibold text-violet-400">RSI ({activeIndicatorConfig.rsi.period})</span>
+                            <span className="font-bold text-violet-300">
+                                {(oscillatorHover.rsi ?? latestOscillatorsRef.current.rsi) != null 
+                                    ? Number(oscillatorHover.rsi ?? latestOscillatorsRef.current.rsi).toFixed(2) 
+                                    : '--'}
+                            </span>
+                            <span className="text-[9px] text-text-tertiary">{activeIndicatorConfig.rsi.oversold} / {activeIndicatorConfig.rsi.overbought}</span>
+                            <button
+                                onClick={() => setShowRSI(false)}
+                                className="pointer-events-auto p-0.5 rounded text-text-tertiary hover:text-rose-400 hover:bg-white/10 transition-colors ml-1 cursor-pointer"
+                                title="Close RSI"
+                            >
+                                <X size={11} />
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {showMACD && (
+                    <div 
+                        className="absolute left-0 right-0 pointer-events-none z-10 select-none transition-all duration-150"
+                        style={{ top: panePositions.macd != null ? `${panePositions.macd + 4}px` : (showRSI ? '60%' : '75%') }}
+                    >
+                        {/* MACD Header & Live Readout */}
+                        <div className="flex items-center gap-2.5 px-3 py-0.5 text-[11px] font-mono">
+                            <span className="font-semibold text-blue-400">MACD ({activeIndicatorConfig.macd.fast}, {activeIndicatorConfig.macd.slow}, {activeIndicatorConfig.macd.signal})</span>
+                            <div className="flex items-center gap-2 text-[10px]">
+                                <span className="text-text-tertiary">MACD:</span>
+                                <span className="text-blue-400 font-semibold">
+                                    {(oscillatorHover.macd ?? latestOscillatorsRef.current.macd) != null 
+                                        ? Number(oscillatorHover.macd ?? latestOscillatorsRef.current.macd).toFixed(2) 
+                                        : '--'}
+                                </span>
+                                <span className="text-text-tertiary">Signal:</span>
+                                <span className="text-amber-400 font-semibold">
+                                    {(oscillatorHover.signal ?? latestOscillatorsRef.current.signal) != null 
+                                        ? Number(oscillatorHover.signal ?? latestOscillatorsRef.current.signal).toFixed(2) 
+                                        : '--'}
+                                </span>
+                                <span className="text-text-tertiary">Hist:</span>
+                                {(() => {
+                                    const h = oscillatorHover.hist ?? latestOscillatorsRef.current.hist;
+                                    if (h == null) return <span className="text-text-tertiary">--</span>;
+                                    const isPos = h >= 0;
+                                    return (
+                                        <span className={`font-semibold ${isPos ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                            {isPos ? `+${Number(h).toFixed(2)}` : Number(h).toFixed(2)}
+                                        </span>
+                                    );
+                                })()}
+                            </div>
+                            <button
+                                onClick={() => setShowMACD(false)}
+                                className="pointer-events-auto p-0.5 rounded text-text-tertiary hover:text-rose-400 hover:bg-white/10 transition-colors ml-1 cursor-pointer"
+                                title="Close MACD"
+                            >
+                                <X size={11} />
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

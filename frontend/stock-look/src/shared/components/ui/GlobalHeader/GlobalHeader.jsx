@@ -23,7 +23,7 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowUp, ArrowDown, HelpCircle, ArrowRight, Microscope, Telescope } from "lucide-react";
+import { ArrowUp, ArrowDown, HelpCircle, ArrowRight, Microscope, Telescope, ArrowUpDown } from "lucide-react";
 import { FlipContainer, FlipTrigger } from "@/shared/components/common/FlipContainer";
 
 import AiInsightSection from "@/shared/components/ui/AiInsightSection";
@@ -116,6 +116,67 @@ export default function GlobalHeader({
     const [searchQuery, setSearchQuery] = useState("");
     const [isFlipped, setIsFlipped] = useState(false);
     const [lastFullCoverageTime, setLastFullCoverageTime] = useState(null);
+    const [backHeight, setBackHeight] = useState(null);
+    const [frontHeight, setFrontHeight] = useState(560);
+    const [isDragging, setIsDragging] = useState(false);
+    const frontContainerRef = React.useRef(null);
+    const backContainerRef = React.useRef(null);
+
+    // Measure front header rendered height dynamically so back side matches it exactly
+    useEffect(() => {
+        if (!frontContainerRef.current) return;
+        const el = frontContainerRef.current;
+        const updateH = () => {
+            if (el) {
+                const h = el.offsetHeight || el.getBoundingClientRect().height;
+                if (h > 150) {
+                    setFrontHeight(Math.round(h));
+                }
+            }
+        };
+        updateH();
+        const ro = new ResizeObserver(updateH);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+
+    // Auto-reset expanded height to normal whenever user flips back or navigates away
+    useEffect(() => {
+        if (!isFlipped) {
+            setBackHeight(null);
+        }
+    }, [isFlipped]);
+
+    const handleResizePointerDown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+
+        const startY = e.clientY;
+        const minH = frontHeight; // Strict law: Flipped backside can never be smaller than the front header
+        const currentHeight = backHeight ? Math.max(minH, backHeight) : frontHeight;
+        const maxCap = Math.min(950, window.innerHeight - 80);
+
+        document.body.style.cursor = 'ns-resize';
+        document.body.style.userSelect = 'none';
+
+        const onPointerMove = (moveEvent) => {
+            const deltaY = moveEvent.clientY - startY;
+            const newHeight = Math.max(minH, Math.min(maxCap, Math.round(currentHeight + deltaY)));
+            setBackHeight(newHeight);
+        };
+
+        const onPointerUp = () => {
+            setIsDragging(false);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('pointerup', onPointerUp);
+        };
+
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+    };
 
     useEffect(() => {
         if (integrity?.coveragePercent === 100) {
@@ -177,13 +238,19 @@ export default function GlobalHeader({
     // Persistence is handled by the dedicated composite engines (e.g., useFundamentalComposite, headlessTechnicalParser)
     // which correctly save the raw scores mapping instead of the aggregated UI counts.
 
+    const effectiveBackHeight = backHeight ? Math.max(frontHeight, backHeight) : frontHeight;
+
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
+        <div 
+            className="animate-in fade-in slide-in-from-bottom-4 duration-500 relative transition-[height] duration-75 ease-out"
+            style={isFlipped ? { height: `${effectiveBackHeight}px`, minHeight: `${frontHeight}px` } : undefined}
+        >
             <FlipContainer
                 isFlipped={isFlipped}
                 className="w-full h-full"
+                style={isFlipped ? { height: `${effectiveBackHeight}px`, minHeight: `${frontHeight}px` } : undefined}
                 front={
-                    <div className="relative md:rounded-2xl md:border md:border-[var(--border-default)] md:dark:border-[var(--border-default)] md:shadow-[0_8px_24px_rgba(0,0,0,0.45)] md:overflow-visible md:bg-background-card flex flex-col md:block">
+                    <div ref={frontContainerRef} className="relative md:rounded-2xl md:border md:border-[var(--border-default)] md:dark:border-[var(--border-default)] md:shadow-[0_8px_24px_rgba(0,0,0,0.45)] md:overflow-visible md:bg-background-card flex flex-col md:block">
                         {/* FLIP BUTTON FRONT */}
                         <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20">
                             <FlipTrigger 
@@ -394,19 +461,45 @@ export default function GlobalHeader({
             </div>
             }
             back={
-                <div className="relative w-full h-full min-h-[300px] md:rounded-2xl md:border md:border-[var(--border-default)] md:shadow-[0_8px_24px_rgba(0,0,0,0.45)] md:overflow-hidden md:bg-background-card flex flex-col items-center justify-center">
+                <div 
+                    ref={backContainerRef}
+                    className="relative w-full h-full md:rounded-2xl md:border md:border-[var(--border-default)] md:shadow-[0_8px_24px_rgba(0,0,0,0.45)] md:overflow-visible md:bg-background-card flex flex-col items-center justify-center"
+                    style={isFlipped ? { height: `${effectiveBackHeight}px`, minHeight: `${frontHeight}px` } : undefined}
+                >
                     <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20">
                         <FlipTrigger 
                             onClick={() => setIsFlipped(false)} 
                         />
                     </div>
-                    <div className="w-full h-full p-0 md:p-0 overflow-hidden relative">
+                    <div className="w-full h-full p-0 md:p-0 overflow-hidden rounded-2xl relative flex flex-col">
                         {customBackContent || (
                             <div className="w-full h-full p-4 md:p-6 overflow-y-auto custom-scrollbar">
                                 {infoContent}
                             </div>
                         )}
                     </div>
+
+                    {/* Expandable Bottom Border Drag Handle (Active when chart backside is flipped) */}
+                    {customBackContent && isFlipped && (
+                        <div 
+                            className="absolute -bottom-3.5 left-0 right-0 h-7 flex items-center justify-center cursor-ns-resize z-50 group select-none"
+                            onPointerDown={handleResizePointerDown}
+                            title="Click and drag down to increase vertical height"
+                        >
+                            {/* Glow / Hairline Indicator */}
+                            <div className={`w-full h-0.5 transition-colors ${isDragging ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]' : 'bg-transparent group-hover:bg-blue-500/40'}`} />
+                            
+                            {/* Floating Tactile Handle Pill with Up-to-Down Arrows Icon */}
+                            <div className={`absolute flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-background-surface/95 dark:bg-[#121622]/95 border shadow-xl backdrop-blur-md transition-all duration-200 pointer-events-auto ${
+                                isDragging 
+                                    ? 'border-blue-500 text-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.5)] scale-105 opacity-100' 
+                                    : 'border-border-subtle/90 text-text-muted group-hover:border-blue-500/60 group-hover:text-blue-400 opacity-0 group-hover:opacity-100'
+                            }`}>
+                                <ArrowUpDown size={13} strokeWidth={2.5} className={isDragging ? 'text-blue-400 animate-pulse' : 'text-blue-400'} />
+                                <span className="text-[9px] font-mono font-bold tracking-wider uppercase">RESIZE</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             }
         />

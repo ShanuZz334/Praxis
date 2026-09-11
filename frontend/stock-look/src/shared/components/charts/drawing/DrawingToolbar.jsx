@@ -64,10 +64,10 @@ export default function DrawingToolbar({
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     exit={{ opacity: 0, x: -10, scale: 0.97 }}
                     transition={{ duration: 0.18, ease: 'easeOut' }}
-                    className="absolute left-0 top-8 z-30 flex flex-col gap-1 
-                               bg-white/80 dark:bg-[#1e222d]/80 border border-black/5 dark:border-white/5 rounded-xl 
-                               backdrop-blur-md shadow-2xl p-1.5 w-[68px]
-                               max-h-[calc(100%-2rem)] overflow-visible"
+                    className="absolute left-2 top-[38px] z-30 flex flex-col gap-1 
+                               bg-background-surface/95 dark:bg-[#111622]/95 border border-border-subtle/90 rounded-xl 
+                               backdrop-blur-md shadow-xl p-1.5 w-[68px]
+                               max-h-[calc(100%-3rem)] overflow-visible"
                     onPointerDown={e => e.stopPropagation()}
                     onClick={e => e.stopPropagation()}
                 >
