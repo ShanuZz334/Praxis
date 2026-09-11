@@ -15,15 +15,15 @@ code = code.replace(/import DrawingCanvas from '\.\/drawing\/DrawingCanvas';/, "
 const legendRegex = /<div className="pointer-events-none flex items-center gap-1\.5 text-\[11px\] font-mono drop-shadow-md bg-black\/5 dark:bg-black\/20 border border-black\/5 dark:border-white\/5 px-1\.5 py-0\.5 rounded backdrop-blur-sm ml-1">[\s\S]*?<\/div>/;
 code = code.replace(legendRegex, '<OHLCLegend chartRef={chartRef} candleSeriesRef={candleSeriesRef} data={data} />');
 
-// 5. Add custom React.memo equality function
-// First find the end: `});` followed by `\r\n\r\nfunction FundamentalTimeline` or `\n\nfunction FundamentalTimeline`
-code = code.replace(/\}\);\s*function FundamentalTimeline/g, `}, (prev, next) => {
+// 5. Add custom React.memo equality function to ignore liveCandle changes
+const endRegex = /\}\);\n\nfunction FundamentalTimeline/;
+const customEquality = `}, (prev, next) => {
     return prev.data === next.data && prev.timeframe === next.timeframe && prev.instrumentKey === next.instrumentKey && prev.theme === next.theme;
-});\n\nfunction FundamentalTimeline`);
+});\n\nfunction FundamentalTimeline`;
+code = code.replace(endRegex, customEquality);
 
 // 6. Inject the CustomEvent listener for liveCandle directly inside AdvancedCandlestickChart
-// Replace the exact useEffect for candleSeriesRef update
-const effectMatch = /useEffect\(\(\) => \{\n\s*if \(!candleSeriesRef\.current \|\| !liveCandle\) return;\n\s*try \{\n\s*candleSeriesRef\.current\.update\(liveCandle\);[\s\S]*?\}, \[liveCandle, data, showEvents, fvActive\]\);/g;
+const candleSeriesEffectRegex = /candleSeriesRef\.current\.update\(liveCandle\);\n[\s\S]*?\}\n    \}, \[liveCandle, data, showEvents, fvActive\]\);/;
 
 const liveCandleEventEffect = `// Listen to live ticks without re-rendering the component
     useEffect(() => {
@@ -67,14 +67,10 @@ const liveCandleEventEffect = `// Listen to live ticks without re-rendering the 
         const eventName = \`liveCandleUpdate_\${instrumentKey}\`;
         window.addEventListener(eventName, handler);
         return () => window.removeEventListener(eventName, handler);
-    }, [instrumentKey, fvActive]);`;
+    }, [instrumentKey, fvActive]);
+`;
 
-code = code.replace(effectMatch, liveCandleEventEffect);
-
-// Wait, the PAE scoring effect ALSO depends on liveCandle!
-// We need to remove the separate PAE scoring effect since we merged it into the listener above.
-const paeEffectMatch = /\/\/ "?"? Future Vision: PAE Scoring on live bar close[\s\S]*?useEffect\(\(\) => \{[\s\S]*?if \(!fvActive \|\| !liveCandle \|\| !fvSessionRef\.current\) return;[\s\S]*?\}, \[liveCandle, fvActive\]\);/g;
-code = code.replace(paeEffectMatch, '');
+code = code.replace(candleSeriesEffectRegex, liveCandleEventEffect);
 
 fs.writeFileSync('c:/project/ALLBACKUP/Praxis/frontend/stock-look/src/shared/components/charts/AdvancedCandlestickChart.jsx', code);
-console.log('Phase 1 chart patched successfully');
+console.log('Phase 1 patched successfully');

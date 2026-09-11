@@ -220,8 +220,6 @@ const handleMarketData = (dataBuffer) => {
         if (!global.tickInterval) {
             global.tickInterval = setInterval(persistTicksLocally, 1000);
         }
-
-        broadcast("upstox-market-data", decoded);
     }
 };
 

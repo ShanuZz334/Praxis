@@ -30,7 +30,7 @@ import { BASE_URL } from "@/shared/utils/apiPaths";
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 120000, // Increased to 2 minutes for local LLMs
+  timeout: 420000, // 7 minutes to accommodate heavy AI reasoning and multi-model fallback chains
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",

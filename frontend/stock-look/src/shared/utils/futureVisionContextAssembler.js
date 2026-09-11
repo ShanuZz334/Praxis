@@ -72,9 +72,11 @@ export function assembleContext({
     events = [],
     horizonBars = 7,
     ohlcvBars = 50,
-    aiNarratives = {}
+    aiNarratives = {},
+    isAutoRefresh = false,
+    calibrationProfile = null
 }) {
-    // ─── Pre-process OHLCV ────────────────────────────────────────────
+    // ─── Pre-process OHLCV ──────────────────────────────────────────────────
     const clampedBars = Math.max(10, Math.min(ohlcvBars, 200));
     const windowMain = ohlcv.slice(-clampedBars);
     const window20 = ohlcv.slice(-Math.min(20, clampedBars));
@@ -83,12 +85,12 @@ export function assembleContext({
     const prev     = windowMain.at(-2) ?? {};
     const lastClose = last.close ?? 0;
 
-    // ─── Block 1A: Raw OHLCV CSV ──────────────────────────────────────
+    // ─── Block 1A: Raw OHLCV CSV ──────────────────────────────────────────
     const ohlcvCsv = windowMain
         .map(c => `${_formatTime(c.time)},${_f2(c.open)},${_f2(c.high)},${_f2(c.low)},${_f2(c.close)},${Math.round(c.volume ?? 0)}`)
         .join('\n');
 
-    // ─── Block 1B: Derived Price Analytics ───────────────────────────
+    // ─── Block 1B: Derived Price Analytics ──────────────────────────────
     const priceAnalytics = _computePriceAnalytics(windowMain, window20, window5, last, prev, indicators);
 
     // If it's a JSON payload from the DB fallback, do NOT trim it or it will break the JSON structure.
@@ -101,7 +103,13 @@ export function assembleContext({
     const sessionBlock = _computeSessionBlock(tradingMode, timeframe, horizonBars);
     const paeReport = getPAEReport(instrumentKey, timeframe);
 
-    return `
+    let basePayload = '';
+    
+    if (calibrationProfile?.promptBlock) {
+        basePayload += `\n${calibrationProfile.promptBlock}\n\n`;
+    }
+
+    basePayload += `
   ================================================================================
   PRAXIS FUTURE VISION - PREDICTION BRIEF
   ================================================================================
@@ -113,64 +121,74 @@ export function assembleContext({
   LAST_CLOSE : ${_f2(lastClose)}
   HORIZON    : ${horizonBars} candles forward
   REQUESTED  : ${new Date().toISOString()} (UTC)
+  AUTO_MODE  : ${isAutoRefresh ? 'ACTIVE (LITE PAYLOAD)' : 'OFF'}
+  
+  ${sessionBlock}
   
   ================================================================================
   BLOCK 1 - PRICE ACTION
   ================================================================================
   
-  A 1.1 RAW OHLCV - Last ${windowMain.length} bars (format: time,O,H,L,C,V)
-  Note: Most recent bar at the bottom. Analyse recency-weighted.
+  [CSV DATA - LAST ${clampedBars} BARS]
+  Date,Open,High,Low,Close,Volume
   ${ohlcvCsv}
   
-  A 1.2 DERIVED PRICE ANALYTICS (pre-computed for you)
+  [DERIVED ANALYTICS]
   ${priceAnalytics}
+`;
+
+    if (!isAutoRefresh) {
+        basePayload += `
+  ================================================================================
+  BLOCK 2 - TECHNICAL CONFLUENCE
+  ================================================================================
   
-  ================================================================================
-  BLOCK 2 - TECHNICAL NARRATIVE
-  ================================================================================
   ${technicalBlock}
+  ${_computeTechnicalBlock(indicators, lastClose, tradingMode)}
   
   ================================================================================
-  BLOCK 3 - FUNDAMENTAL NARRATIVE
+  BLOCK 3 - FUNDAMENTAL VALUATION
   ================================================================================
+  
   ${fundamentalBlock}
+  ${_computeFundamentalBlock(fundamentals)}
   
   ================================================================================
-  BLOCK 4 - EVENTS NARRATIVE
+  BLOCK 4 - EVENTS & CATALYSTS
   ================================================================================
+  
   ${eventBlock}
+  ${_computeEventBlock(events, horizonBars, timeframe)}
   
   ================================================================================
-  BLOCK 4.1 - OPTIONS NARRATIVE
+  BLOCK 5 - OPTIONS & GLOBAL SENTIMENT
   ================================================================================
+  
+  [OPTIONS STRUCTURE]
   ${optionsBlock}
   
-  ================================================================================
-  BLOCK 4.2 - GLOBAL MACRO NARRATIVE
-  ================================================================================
+  [GLOBAL CUES]
   ${globalBlock}
-  
-  ================================================================================
-  BLOCK 5 - SESSION & MODE CONTEXT
-  ================================================================================
-  ${sessionBlock}
-  
+`;
+    }
+
+    basePayload += `
   ================================================================================
   BLOCK 6 - PREDICTION ACCURACY ENGINE (PAE) REPORT
   ================================================================================
   
   ${paeReport}
 
-════════════════════════════════════════════════════════
-YOUR TASK
-════════════════════════════════════════════════════════
+  YOUR TASK
+  
+  1. Follow the 3-pass Reasoning Protocol from your system instructions.
+  2. Identify the most probable price path for the next ${horizonBars} candles.
+  3. First bar open MUST equal ₹${_f2(lastClose)} exactly.
+  4. Apply any PAE correction stated in Block 6 before generating close prices.
+  5. Output exactly ${horizonBars} candle objects in the JSON schema.
+  6. All guardrails G1-G10 are enforced server-side - violations will be rejected.`;
 
-1. Follow the 3-pass Reasoning Protocol from your system instructions.
-2. Identify the most probable price path for the next ${horizonBars} candles.
-3. First bar open MUST equal ₹${_f2(lastClose)} exactly.
-4. Apply any PAE correction stated in Block 6 before generating close prices.
-5. Output exactly ${horizonBars} candle objects in the JSON schema.
-6. All guardrails G1–G10 are enforced server-side — violations will be rejected.`;
+    return basePayload;
 }
 
 // ─────────────────────────────────────────────────────────────────────

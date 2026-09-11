@@ -131,11 +131,12 @@ export function usePaiCommands({
         // Group 5: Instrument Switching
         // --------------------------------------------------------------------
         if (dashboardContext?.setSelectedInstrument) {
-            // Looking for short intent: "switch to reliance", "load bank nifty", "nifty 50" (if very short)
+            // Looking for short intent: "switch to reliance", "chart for bank nifty"
             const instMatch = strippedText.match(new RegExp(`(?:${actionVerbs}|chart\\s*for)\\s+(?:to\\s*)?(.+)`, "i"));
             
-            if ((instMatch || strippedText.length < 20) && dashboardContext.filteredInstruments) {
-                let query = instMatch ? instMatch[1].toLowerCase() : strippedText;
+            // IF THERE IS NO EXPLICIT COMMAND, WE DO NOT SWITCH.
+            if (instMatch && dashboardContext.filteredInstruments) {
+                let query = instMatch[1].toLowerCase();
                 // clean up potential trailing words
                 query = query.replace(/(?:please|now|thanks)/gi, '').trim();
                 
@@ -151,25 +152,34 @@ export function usePaiCommands({
                     return "Switched instrument to Bank Nifty.";
                 }
 
-                                                // Fuzzy search in all instruments
+                // Fuzzy search in all instruments
                 const found = dashboardContext.filteredInstruments.find(inst => {
                     const labelStr = inst.label.toLowerCase();
                     const valStr = inst.value.toLowerCase();
                     const cleanQuery = query.replace(/\s/g, "");
                     const cleanLabel = labelStr.replace(/\s/g, "");
-                    if (labelStr === query || labelStr.includes(query) || valStr.includes(query) || cleanLabel === cleanQuery || cleanLabel.includes(cleanQuery)) return true;
-
                     
-                    // Allow up to 2 typos for medium-length words, check against the first word of the instrument
-                    if (query.length >= 4) {
-                        const firstWord = labelStr.split(" ")[0];
-                        if (getEditDistance(query, firstWord) <= 2) return true;
-                        // Or if the query is a substring with typos
-                        if (getEditDistance(query, labelStr.substring(0, query.length)) <= 2) return true;
+                    // 1. Exact match always allowed
+                    if (labelStr === query || cleanLabel === cleanQuery) return true;
+                    if (valStr.endsWith(`|${cleanQuery}`)) return true;
+
+                    // 2. If it was an explicit command ("switch to X"), allow substring and fuzzy match
+                    if (instMatch) {
+                        if (labelStr.includes(query) || valStr.includes(query) || cleanLabel.includes(cleanQuery)) return true;
+                        if (query.length >= 4) {
+                            const firstWord = labelStr.split(" ")[0];
+                            if (getEditDistance(query, firstWord) <= 2) return true;
+                            if (getEditDistance(query, labelStr.substring(0, query.length)) <= 2) return true;
+                        }
                     }
                     return false;
                 });
+
                 if (found && (instMatch || strippedText.length < 20)) {
+                    // Prevent normal conversational words from accidentally switching instruments if there was no explicit command
+                    const ignoreWords = ['hi', 'hello', 'hey', 'ok', 'yes', 'no', 'thanks', 'bye', 'help', 'what', 'who', 'how', 'why', 'can', 'you'];
+                    if (!instMatch && ignoreWords.includes(query)) return null;
+
                     dashboardContext.setSelectedInstrument(found.value);
                     return `Switched instrument to ${found.label}.`;
                 }

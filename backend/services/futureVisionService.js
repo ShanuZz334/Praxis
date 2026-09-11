@@ -8,6 +8,7 @@
 
 import aiGateway from '../ai-gateway/index.js';
 import AiRouting from '../models/AiRouting.js';
+import { getCalibrationProfile, applyBiasCorrection } from '../engine/paceEngine.js';
 
 // ─────────────────────────────────────────────────────────────────────
 // SYSTEM INSTRUCTION
@@ -152,7 +153,7 @@ const RESPONSE_SCHEMA = {
 // PUBLIC API
 // ─────────────────────────────────────────────────────────────────────
 
-export async function runFutureVisionPrediction(contextPayload, instrumentKey, horizonBars = 7) {
+export async function runFutureVisionPrediction(contextPayload, instrumentKey, timeframe, horizonBars = 7) {
     const routeHint = await _getRoutingHint();
 
     const gatewayRequest = {
@@ -182,6 +183,14 @@ export async function runFutureVisionPrediction(contextPayload, instrumentKey, h
     console.log(`[FutureVision] Response received | model=${result.model} | latency=${result.latencyMs}ms | chars=${rawText.length}`);
 
     const parsed = _parseAndValidate(rawText, horizonBars);
+    
+    // ── PACE Mathematical Bias Correction Layer ──
+    const profile = getCalibrationProfile(instrumentKey, timeframe);
+    if (profile) {
+        parsed.candles = applyBiasCorrection(parsed.candles, profile);
+        console.log(`[PACE] Applied Math Correction | Strength: ${(profile.correctionStrength*100).toFixed(0)}%`);
+    }
+
     return { 
         ...parsed, 
         modelUsed: result.model || 'unknown', 

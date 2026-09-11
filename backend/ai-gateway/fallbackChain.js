@@ -10,7 +10,7 @@ export async function executeWithFallback(routePlan, providers, requestConfig) {
     // Determine dynamic timeout based on task level (Bug 5 fix)
     let timeoutMs = 45000; 
     if (['level4_expert', 'level5_reasoner'].includes(requestConfig.level)) {
-        timeoutMs = 90000; // 90s for deep CoT models
+        timeoutMs = 180000; // 180s for massive CoT context payloads (e.g., Future Vision)
     } else if (['level1_fast'].includes(requestConfig.level)) {
         timeoutMs = 15000; // 15s for fast tasks
     }

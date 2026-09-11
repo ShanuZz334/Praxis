@@ -45,6 +45,7 @@ import orderRoutes from "./routes/orderRoutes.js";
 import portfolioRoutes from "./routes/portfolioRoutes.js";
 import overridesRoutes from "./routes/overridesRoutes.js";
 import preferencesRoutes from "./routes/preferencesRoutes.js";
+import paceRoutes from "./routes/paceRoutes.js";
 
 // =============================
 // Express App Setup
@@ -115,6 +116,7 @@ app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/portfolio", portfolioRoutes);
 app.use("/api/v1/overrides", overridesRoutes);
 app.use("/api/v1/preferences", preferencesRoutes);
+app.use("/api/v1/pace", paceRoutes);
 
 app.use("/api/flow", flowRoutes);
 

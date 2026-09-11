@@ -98,9 +98,11 @@ export default function DrawingCanvas({
         const H = canvas.offsetHeight;
         const rightEdge = chart ? (W - chart.priceScale('right').width()) : W - 60;
 
-        if (canvas.width !== W * dpr || canvas.height !== H * dpr) {
-            canvas.width = W * dpr;
-            canvas.height = H * dpr;
+        const targetW = Math.floor(W * dpr);
+        const targetH = Math.floor(H * dpr);
+        if (canvas.width !== targetW || canvas.height !== targetH) {
+            canvas.width = targetW;
+            canvas.height = targetH;
         }
 
         const ctx = canvas.getContext('2d');
@@ -779,12 +781,23 @@ export default function DrawingCanvas({
         });
     }, [drawings, activeTool, activeColor, chartRef, candleSeriesRef]);
 
-    // Animate render on scroll/zoom via RAF
+    // Render efficiently only when the chart moves or mouse interacts, eliminating idle CPU drain
     useEffect(() => {
-        const loop = () => { render(); animFrameRef.current = requestAnimationFrame(loop); };
-        animFrameRef.current = requestAnimationFrame(loop);
-        return () => cancelAnimationFrame(animFrameRef.current);
-    }, [render]);
+        const chart = chartRef.current;
+        if (!chart) return;
+        
+        const handleUpdate = () => render();
+        
+        chart.timeScale().subscribeVisibleTimeRangeChange(handleUpdate);
+        chart.timeScale().subscribeVisibleLogicalRangeChange(handleUpdate);
+        chart.subscribeCrosshairMove(handleUpdate);
+        
+        return () => {
+            chart.timeScale().unsubscribeVisibleTimeRangeChange(handleUpdate);
+            chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleUpdate);
+            chart.unsubscribeCrosshairMove(handleUpdate);
+        };
+    }, [render, chartRef]);
 
     // Hover detection
     const getHoveredId = useCallback((cx, cy) => {

@@ -10,12 +10,18 @@ export const DashboardContext = createContext();
 
 export const useDashboardContext = () => useContext(DashboardContext);
 
-export const DashboardProvider = ({ children }) => {
+// Pre-initialize global variable so initial renders of IndicatorCard have the correct value
+const initialDashInstrument = localStorage.getItem('dash_instrument') || "NSE_INDEX|Nifty 50";
+if (typeof window !== 'undefined' && !window.PRAXIS_GLOBAL_INSTRUMENT) {
+    window.PRAXIS_GLOBAL_INSTRUMENT = initialDashInstrument;
+}
+
+export function DashboardProvider({ children }) {
     // ─── Page State — now backed by SQLite via /api/v1/preferences/page-state ──
     // Still use localStorage as the INSTANT read (so no flash on first render),
     // then sync to SQLite in the background. On next load, SQLite is the source of truth.
     const [selectedCategory, setSelectedCategory] = useState(() => localStorage.getItem('dash_category') || "Indices");
-    const [selectedInstrument, setSelectedInstrument] = useState(() => localStorage.getItem('dash_instrument') || "NSE_INDEX|Nifty 50");
+    const [selectedInstrument, setSelectedInstrument] = useState(() => initialDashInstrument);
     const [selectedExpiry, setSelectedExpiry] = useState(() => localStorage.getItem('dash_expiry') || "");
     const [expiries, setExpiries] = useState([]);
     const [globalOrderTicket, setGlobalOrderTicket] = useState(null);
@@ -24,6 +30,7 @@ export const DashboardProvider = ({ children }) => {
     // Persist page state to BOTH localStorage (instant) AND SQLite (durable)
     const persistPageState = useRef(null);
     useEffect(() => {
+        window.PRAXIS_GLOBAL_INSTRUMENT = selectedInstrument;
         localStorage.setItem('dash_category', selectedCategory);
         localStorage.setItem('dash_instrument', selectedInstrument);
         localStorage.setItem('dash_expiry', selectedExpiry);
@@ -274,7 +281,7 @@ export const DashboardProvider = ({ children }) => {
 
                 return hasChanges ? nextPrices : prev;
             });
-        }, 500);
+        }, 2000);
 
         const handleFiiDii = (data) => setFiiDiiFlow(data);
         const handleSmartlists = (data) => {

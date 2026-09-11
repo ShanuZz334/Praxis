@@ -142,6 +142,11 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
         const lastHistorical = data[data.length - 1];
 
         setLiveCandle(prevLive => {
+            const emitTick = (tick) => {
+                window.dispatchEvent(new CustomEvent(`liveCandleUpdate_${instrumentKey}`, { detail: tick }));
+                return tick;
+            };
+
             // ── BUG 1 FIX: Candle boundary detection ─────────────────────────
             // For intraday timeframes, check whether wall-clock has crossed into
             // a new bar. If so, open a brand-new candle instead of patching the old one.

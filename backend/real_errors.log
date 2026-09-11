@@ -1,0 +1,84 @@
+2026-09-10T18:31:20.447Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:31:20.613Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:31:20.672Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:31:20.711Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:34:11.057Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:34:11.068Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:34:11.545Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:34:11.557Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:35:15.607Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:35:15.917Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:35:16.245Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:35:16.275Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:35:53.886Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:35:53.915Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:35:54.334Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:35:54.349Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:40:43.957Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:40:44.040Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:40:44.056Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:40:44.213Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:43:33.054Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:43:33.112Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:43:33.689Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:43:34.650Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:44:44.352Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:44:44.469Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:44:44.487Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-09-10T18:44:44.540Z FundError: Error: Upstox API critical fundamental endpoints failed. Triggering fallback.
+    at getFundamentals (file:///C:/project/ALLBACKUP/Praxis/backend/controllers/fundamentalsController.js:85:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)

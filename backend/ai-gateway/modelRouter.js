@@ -109,6 +109,6 @@ export async function getRouteForTask(level, taskType) {
         }
     }
 
-    // Limit fallback fan-out to max 3 total routes to prevent extreme timeouts
-    return routePlan.slice(0, 3);
+    // Limit fallback fan-out to max 5 total routes to ensure we hit stable cloud providers if local/free ones fail
+    return routePlan.slice(0, 5);
 }

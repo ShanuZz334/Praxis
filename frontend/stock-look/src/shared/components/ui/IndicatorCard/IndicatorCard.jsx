@@ -6,7 +6,7 @@ import { Star, Lightbulb, Plus, BarChart2, Edit2, Check, Settings, Volume2 } fro
 import axiosInstance from "@/shared/utils/axiosInstance";
 import { useCardInsight } from "@/shared/hooks/useCardInsight";
 import { useDataRegistry } from "@/shared/context/DataRegistryContext";
-import { useDashboardContext } from "@/shared/context/DashboardContext";
+// removed useDashboardContext
 import { useVoice } from "@/shared/context/VoiceContext";
 import { CARD_REGISTRY } from "@/shared/config/cardRegistry";
 import { FO_EQUITIES, FO_INDICES } from "@/shared/utils/foInstruments";
@@ -291,7 +291,7 @@ function resolveReadableSymbol(instrumentKey) {
 // Main Component
 // =============================
 
-export function IndicatorCard({
+export const IndicatorCard = React.memo(function IndicatorCard({
   config,      // { title, category, mode, creditScore, updateTime, source, aiModel, settingsConfig, onSettingsClick }
   settings,    // { hasSettings, onOpenSettings }
   data,        // { currentValueObj, details, score, bias, confidence, impactWeight }
@@ -299,6 +299,7 @@ export function IndicatorCard({
   insights,    // { aiInsight, whyItMatters }
   onSave,      // callback for manual input
   cardId,      // explicitly passed cardId (optional)
+  instrumentKey, // Used for snapshot routing
   className
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -382,23 +383,24 @@ export function IndicatorCard({
   }, [resolvedPage, baseCardId, data?.currentValueObj?.value, data?.score, data?.bias,
       data?.confidence, data?.impactWeight, config.title, config.creditScore, config.mode, register]);
 
-    const dashboardContext = useDashboardContext() || {};
-    const globalSelectedInstrument = dashboardContext.selectedInstrument;
-    const livePrices = dashboardContext.livePrices;
+    // Removed useDashboardContext() to prevent 50+ cards from re-rendering every 500ms!
+    // We now receive instrumentKey directly as a primitive prop from the parent Grid, or fall back to the global tracker.
+    const resolvedInstrument = instrumentKey || window.PRAXIS_GLOBAL_INSTRUMENT || context?.instrumentKey || "NSE_INDEX|Nifty 50";
+    const livePrices = null; // Fallback
 
     useEffect(() => {
         const currentScore = data?.score !== undefined ? data.score : null;
-        if (currentScore !== lastDispatchedScoreRef.current || globalSelectedInstrument !== lastDispatchedInstrumentRef.current) {
+        if (currentScore !== lastDispatchedScoreRef.current || resolvedInstrument !== lastDispatchedInstrumentRef.current) {
             lastDispatchedScoreRef.current = currentScore;
-            lastDispatchedInstrumentRef.current = globalSelectedInstrument;
+            lastDispatchedInstrumentRef.current = resolvedInstrument;
             setTimeout(() => {
               window.dispatchEvent(new CustomEvent('ai-snapshot', {
-                detail: { card_id: baseCardId, score: currentScore, instrumentKey: globalSelectedInstrument }
+                detail: { card_id: baseCardId, score: currentScore, instrumentKey: resolvedInstrument }
               }));
             }, 0);
           }
       }, [resolvedPage, baseCardId, data?.currentValueObj?.value, data?.score, data?.bias,
-          data?.confidence, data?.impactWeight, config.title, config.creditScore, config.mode, register, globalSelectedInstrument]);
+          data?.confidence, data?.impactWeight, config.title, config.creditScore, config.mode, register, resolvedInstrument]);
 
   // ── useCardInsight: the single hook powering all AI calls ──────────────────
   const {
@@ -430,7 +432,7 @@ export function IndicatorCard({
       });
     }
 
-    const liveData = livePrices?.[globalSelectedInstrument];
+    const liveData = livePrices?.[resolvedInstrument];
     if (liveData) {
       const pct = liveData.ltp ? ((liveData.netChange / (liveData.ltp - liveData.netChange)) * 100).toFixed(2) : 0;
       contextLines.push(`Live Ticker: ₹${liveData.ltp || 'N/A'} (${liveData.netChange || 0}, ${pct}%)`);
@@ -439,7 +441,7 @@ export function IndicatorCard({
     generate({
       value: rawVal,
       displayName: config.title,
-      stockSymbol: resolveReadableSymbol(context?.instrumentKey) || context?.selectedInstrument?.symbol || resolveReadableSymbol(globalSelectedInstrument) || 'Unknown',
+      stockSymbol: resolveReadableSymbol(context?.instrumentKey) || context?.selectedInstrument?.symbol || resolveReadableSymbol(resolvedInstrument) || 'Unknown',
       scope: 'card',
       additionalContext: contextLines.length ? contextLines.join(' | ') : null
     });
@@ -613,4 +615,4 @@ export function IndicatorCard({
         </AnimatePresence>
     </Card>
   );
-}
+});

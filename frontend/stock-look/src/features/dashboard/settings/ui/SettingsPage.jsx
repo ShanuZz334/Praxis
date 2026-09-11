@@ -1291,8 +1291,7 @@ const SettingsPage = () => {
                                         { id: 'forest', label: 'Neon Forest', colors: 'from-emerald-500 via-teal-500 to-lime-500', desc: 'Calm Growth' },
                                         { id: 'ocean', label: 'Deep Ocean', colors: 'from-blue-800 via-blue-600 to-cyan-600', desc: 'Icy Focus' },
                                         { id: 'royal', label: 'Royal Nebula', colors: 'from-indigo-600 via-violet-600 to-blue-500', desc: 'Premium Depth' },
-                                        { id: 'cosmos', label: 'Cosmos', colors: '', desc: 'Starry Night' },
-                                        { id: 'meteors', label: 'Meteor Shower', colors: '', desc: 'Falling Stars' }
+                                        { id: 'cosmos', label: 'Cosmos', colors: '', desc: 'Starry Night' }
                                     ].map((preset) => (
                                         <button
                                             key={preset.id}
@@ -1310,8 +1309,6 @@ const SettingsPage = () => {
                                                         <div id="stars2"></div>
                                                         <div id="stars3"></div>
                                                     </div>
-                                                ) : preset.id === 'meteors' ? (
-                                                    <div className="meteors-container absolute inset-0"></div>
                                                 ) : (
                                                     <div className={`absolute inset-0 bg-gradient-to-br ${preset.colors}`} />
                                                 )}

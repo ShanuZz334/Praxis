@@ -43,7 +43,12 @@ export function storePrediction(instrumentKey, timeframe, tradingMode, candles, 
     };
     
     arr.push(session);
-    if (arr.length > 10) arr.shift();
+    // 90-day retention policy (auto-delete older predictions)
+    const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    arr = arr.filter(s => (now - s.storedAt) < NINETY_DAYS);
+    db[key] = arr;
+    
     _save(db);
     return session;
 }
@@ -60,7 +65,7 @@ export function scoreClosedCandle(instrumentKey, timeframe, barIndex, realCandle
     let arr = db[key];
     if (!Array.isArray(arr)) return null;
     const session = arr[arr.length - 1];
-    if (!session || !session.candles[barIndex]) return null;
+    if (!session || !session.candles[barIndex] || session.candles[barIndex].deleted) return null;
 
     const pred = session.candles[barIndex];
     const real = realCandle;
@@ -105,9 +110,51 @@ export function scoreClosedCandle(instrumentKey, timeframe, barIndex, realCandle
     };
 
     session.scores.push(barScore);
-    db[_key(instrumentKey, timeframe)] = session;
+    session.candles[barIndex].score = barScore; // Mark it scored!
+    arr[arr.length - 1] = session;
+    db[key] = arr;
     _save(db);
     return barScore;
+}
+
+/**
+ * storeLiveErrors — Persists the live in-progress per-candle MAPE into the active session.
+ * Called on every real market tick so the next auto-generation can read accurate error context.
+ * @param {string} instrumentKey
+ * @param {string} timeframe
+ * @param {number} barIndex      - which predicted candle is forming right now
+ * @param {number} mape          - current MAPE % for that bar
+ * @param {object} liveCandle    - the live candle tick
+ * @param {object} predictedCandle - the ghost candle prediction at that bar
+ */
+export function storeLiveErrors(instrumentKey, timeframe, barIndex, mape, liveCandle, predictedCandle) {
+    const db = _load();
+    const key = _key(instrumentKey, timeframe);
+    let arr = db[key];
+    if (!Array.isArray(arr) || arr.length === 0) return;
+    const session = arr[arr.length - 1];
+    if (!session) return;
+
+    if (!session.liveErrors) session.liveErrors = [];
+
+    // Overwrite existing entry for this bar so we only keep latest tick
+    const existingIdx = session.liveErrors.findIndex(e => e.barIndex === barIndex);
+    const entry = {
+        barIndex,
+        mape: parseFloat(mape.toFixed(3)),
+        closeDrift: parseFloat((liveCandle.close - predictedCandle.close).toFixed(2)),
+        directionMatch: Math.sign(liveCandle.close - liveCandle.open) === Math.sign(predictedCandle.close - predictedCandle.open),
+        updatedAt: Date.now()
+    };
+
+    if (existingIdx >= 0) {
+        session.liveErrors[existingIdx] = entry;
+    } else {
+        session.liveErrors.push(entry);
+    }
+
+    db[key] = arr;
+    _save(db);
 }
 
 export function getPAEReport(instrumentKey, timeframe) {
@@ -137,6 +184,18 @@ export function getPAEReport(instrumentKey, timeframe) {
         correction += ` Candle body sizes also inaccurate by ${hlErr}% avg — ${parseFloat(mape) > 2 ? 'narrow' : 'widen'} your High-Low range.`;
     }
 
+    // Build live errors section (in-progress candles being tracked in real-time)
+    let liveErrorsBlock = '';
+    if (session.liveErrors && session.liveErrors.length > 0) {
+        const sorted = [...session.liveErrors].sort((a, b) => a.barIndex - b.barIndex);
+        const liveLines = sorted.map(e => {
+            const dirStr = e.directionMatch ? '✓ MATCH' : '✗ MISMATCH';
+            const driftStr = e.closeDrift >= 0 ? `+₹${e.closeDrift}` : `-₹${Math.abs(e.closeDrift)}`;
+            return `  Bar ${e.barIndex + 1}: MAPE=${e.mape.toFixed(2)}% | Close Drift=${driftStr} | Direction=${dirStr}`;
+        }).join('\n');
+        liveErrorsBlock = `\n\nLIVE IN-PROGRESS CANDLE ERRORS (use these for immediate self-correction):\n${liveLines}\nINSTRUCTION: The live errors above show where your LAST prediction is currently drifting from reality RIGHT NOW. When generating the NEXT set, self-correct by adjusting close prices in the OPPOSITE direction of the drift shown above.`;
+    }
+
     return `=== PREVIOUS PREDICTION ACCURACY REPORT (PAE) ===
 Bars Scored: ${n}
 Directional Accuracy: ${daRate}%
@@ -145,7 +204,7 @@ HL Range Error: ${hlErr}%
 Systematic Close Bias: ${avgBias > 0 ? '+' : ''}${avgBias.toFixed(2)} (${biasDir})
 Weighted Interval Score: ${avgWIS}
 Trading Mode: ${session.tradingMode}
-${correction ? `\nCORRECTION: ${correction}` : 'No systematic bias detected.'}
+${correction ? `\nCORRECTION: ${correction}` : 'No systematic bias detected.'}${liveErrorsBlock}
 ===`;
 }
 
@@ -168,7 +227,106 @@ export function computeConfidence(predictedCandle, atrValue, instrumentKey, time
 }
 
 export function clearPAESession(instrumentKey, timeframe) {
-    // We intentionally do not delete from DB anymore to preserve history
+    const db = _load();
+    const k = _key(instrumentKey, timeframe);
+    if (db[k]) {
+        // Purge ALL sessions for this instrument/timeframe to ensure permanent deletion
+        delete db[k];
+        _save(db);
+    }
+}
+
+export function deletePAECandleByTime(instrumentKey, timeframe, targetTime) {
+    const db = _load();
+    const k = _key(instrumentKey, timeframe);
+    if (!db[k]) return;
+    
+    let arr = Array.isArray(db[k]) ? db[k] : [db[k]];
+    let modified = false;
+    
+    for (let s = 0; s < arr.length; s++) {
+        const session = arr[s];
+        if (!session.times || !session.candles) continue;
+        
+        for (let i = session.times.length - 1; i >= 0; i--) {
+            const st = session.times[i];
+            const isMatch = (st === targetTime) || 
+                            (st && targetTime && typeof st === 'object' && typeof targetTime === 'object' && st.year === targetTime.year && st.month === targetTime.month && st.day === targetTime.day) ||
+                            (st != null && targetTime != null && !isNaN(Number(st)) && !isNaN(Number(targetTime)) && Number(st) === Number(targetTime));
+                            
+            if (isMatch) {
+                session.candles[i].deleted = true;
+                modified = true;
+            }
+        }
+    }
+    
+    // Filter out completely empty sessions
+    arr = arr.filter(s => s.candles && s.candles.some(c => !c.deleted));
+    
+    if (arr.length === 0) {
+        delete db[k];
+    } else {
+        db[k] = arr;
+    }
+    
+    if (modified) _save(db);
+}
+
+export function deletePAESessionByTime(instrumentKey, timeframe, targetTime) {
+    const db = _load();
+    const k = _key(instrumentKey, timeframe);
+    if (!db[k]) return;
+    
+    let arr = Array.isArray(db[k]) ? db[k] : [db[k]];
+    let modified = false;
+    
+    for (let s = arr.length - 1; s >= 0; s--) {
+        const session = arr[s];
+        if (!session.times || !session.candles) continue;
+        
+        let found = false;
+        for (let i = 0; i < session.times.length; i++) {
+            const st = session.times[i];
+            
+            // Intraday timestamps (numbers) or Daily BusinessDay objects
+            const isMatch = (st === targetTime) || 
+                            (st && targetTime && typeof st === 'object' && typeof targetTime === 'object' && st.year === targetTime.year && st.month === targetTime.month && st.day === targetTime.day) ||
+                            (st != null && targetTime != null && !isNaN(Number(st)) && !isNaN(Number(targetTime)) && Number(st) === Number(targetTime));
+                            
+            if (isMatch) {
+                found = true;
+                break;
+            }
+        }
+        
+        if (found) {
+            arr.splice(s, 1);
+            modified = true;
+            break;
+        }
+    }
+    
+    if (arr.length === 0) {
+        delete db[k];
+    } else {
+        db[k] = arr;
+    }
+    
+    if (modified) _save(db);
+}
+
+export function updatePAEAutoMode(instrumentKey, timeframe, autoMode) {
+    const db = _load();
+    const k = _key(instrumentKey, timeframe);
+    if (db[k]) {
+        if (Array.isArray(db[k]) && db[k].length > 0) {
+            db[k][db[k].length - 1].autoMode = autoMode;
+        } else if (!Array.isArray(db[k])) {
+            db[k].autoMode = autoMode;
+        }
+        _save(db);
+    }
 }
 
 export function getPAESession(instrumentKey, timeframe) {
@@ -189,13 +347,28 @@ function _load() {
 }
 
 function _save(db) {
-    try { localStorage.setItem(PAE_STORAGE_KEY, JSON.stringify(db)); }
-    catch {
-        const keys = Object.keys(db);
-        if (keys.length > 0) {
-            let oldest = keys.reduce((a, b) => (db[a].storedAt || 0) < (db[b].storedAt || 0) ? a : b);
-            delete db[oldest];
-            try { localStorage.setItem(PAE_STORAGE_KEY, JSON.stringify(db)); } catch {}
+    try { 
+        localStorage.setItem(PAE_STORAGE_KEY, JSON.stringify(db)); 
+    } catch (e) {
+        // If quota exceeded, iteratively delete the oldest sessions
+        console.warn('PAE Storage Quota Exceeded. Purging oldest sessions...');
+        let keys = Object.keys(db);
+        while (keys.length > 0) {
+            let oldestKey = keys.reduce((a, b) => {
+                const arrA = db[a] || [];
+                const arrB = db[b] || [];
+                const timeA = arrA.length > 0 ? arrA[0].storedAt : Infinity;
+                const timeB = arrB.length > 0 ? arrB[0].storedAt : Infinity;
+                return timeA < timeB ? a : b;
+            });
+            delete db[oldestKey];
+            keys = Object.keys(db);
+            try { 
+                localStorage.setItem(PAE_STORAGE_KEY, JSON.stringify(db)); 
+                break; // successfully saved
+            } catch (err) {
+                // keep looping
+            }
         }
     }
 }

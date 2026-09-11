@@ -17,10 +17,10 @@ const router = express.Router();
  */
 router.post('/predict', protect, async (req, res) => {
     try {
-        const { contextPayload, instrumentKey, horizonBars = 7 } = req.body;
+        const { contextPayload, instrumentKey, timeframe, horizonBars = 7 } = req.body;
 
-        if (!contextPayload || !instrumentKey) {
-            return res.status(400).json({ error: 'contextPayload and instrumentKey are required' });
+        if (!contextPayload || !instrumentKey || !timeframe) {
+            return res.status(400).json({ error: 'contextPayload, instrumentKey, and timeframe are required' });
         }
         if (typeof contextPayload !== 'string' || contextPayload.length > 80000) {
             return res.status(400).json({ error: 'contextPayload must be a string under 80KB' });
@@ -29,7 +29,7 @@ router.post('/predict', protect, async (req, res) => {
             return res.status(400).json({ error: 'horizonBars must be between 1 and 20' });
         }
 
-        const result = await runFutureVisionPrediction(contextPayload, instrumentKey, horizonBars);
+        const result = await runFutureVisionPrediction(contextPayload, instrumentKey, timeframe, horizonBars);
 
         // Fire-and-forget: log to the new PAI Sidebar readonly trace chat
         const userId = req.user._id;
