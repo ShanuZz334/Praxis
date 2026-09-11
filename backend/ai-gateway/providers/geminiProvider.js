@@ -1,4 +1,5 @@
 import { providerCache } from '../cache/providerCache.js';
+import { aiQuotaTracker } from '../aiQuotaTracker.js';
 
 export async function call({ model, messages, maxTokens, temperature, jsonMode, providerId = 'gemini' , timeoutMs }) {
     const p = await providerCache.getProvider(providerId);
@@ -17,6 +18,9 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode, 
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${p.apiKey}` },
         body: JSON.stringify(payload)
     });
+
+    // Intercept live Gemini rate-limit and quota headers
+    aiQuotaTracker.recordGeminiHeaders(response.headers);
 
     if (!response.ok) {
         const errorText = await response.text();

@@ -281,7 +281,7 @@ export default function MasterDashboard() {
                                 </div>
                             )}
                         </div>
-                        <div className="flex bg-transparent rounded-lg p-[2px] mr-12 border border-border-subtle shadow-sm pointer-events-auto">
+                        <div className="flex bg-transparent rounded-lg p-[2px] mr-12 md:mr-14 border border-border-subtle shadow-sm pointer-events-auto">
                             {['1minute', '5minute', '15minute', '30minute', '1hour', 'day', 'week'].map((tf) => (
                                 <button
                                     key={tf}
@@ -347,15 +347,17 @@ export default function MasterDashboard() {
                 masterPayload={masterPayload}
                 controls={{ 
                     customComponent: (
-                        <div className="flex w-full items-center justify-between">
-                            <LiveMarketTicker livePrices={livePrices} />
+                        <div className="flex w-full items-center justify-between gap-3 flex-nowrap min-w-0">
+                            <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar">
+                                <LiveMarketTicker livePrices={livePrices} />
+                            </div>
                             <button 
                                 onClick={handleForceSync}
                                 disabled={isSyncing}
                                 className={`
                                     px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg
                                     border border-[var(--border-subtle)] hover:border-blue-500/30 hover:bg-blue-500/10
-                                    transition-all duration-300 flex items-center gap-2 shadow-sm
+                                    transition-all duration-300 flex items-center gap-2 shadow-sm shrink-0
                                     ${isSyncing ? 'opacity-50 cursor-not-allowed text-blue-400' : 'text-text-secondary hover:text-blue-400'}
                                 `}
                             >

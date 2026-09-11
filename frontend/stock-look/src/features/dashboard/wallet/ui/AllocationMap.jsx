@@ -18,10 +18,13 @@ import { GlobalCard } from "@/shared/components/ui/GlobalCard";
 
 export default function AllocationMap({ allocation }) {
     return (
-        <div className="bg-background-card-primary border border-border-subtle-faint rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
-            <div className="flex items-center justify-between mb-6">
-                <div className="text-xs font-bold text-white/40 uppercase tracking-widest">Capital Allocation Strategy</div>
-                <div className="text-[10px] font-mono text-white/30">Auto-Rebalance: ON</div>
+        <div className="bg-background-card/60 backdrop-blur-xl border border-border-default/40 rounded-2xl p-5 md:p-6 shadow-sm hover:border-border-default/60 transition-all">
+            <div className="flex items-center justify-between mb-5 pb-3 border-b border-border-default/30">
+                <div className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Capital Allocation Strategy</div>
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-background-surface/60 border border-border-subtle/50 text-text-tertiary">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                    <span>Auto-Rebalance: ON</span>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">

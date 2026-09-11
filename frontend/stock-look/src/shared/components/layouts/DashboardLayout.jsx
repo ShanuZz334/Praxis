@@ -97,7 +97,9 @@ const DashboardLayout = () => {
     // Desktop only layout
   }, [location.pathname]);
 
-  const isPaiPage = location.pathname.includes('/pai');
+  const isPaiChat = location.pathname === '/dashboard/pai';
+  const isPaiSettings = location.pathname.startsWith('/dashboard/pai/settings');
+  const isPaiPage = isPaiChat || isPaiSettings;
   const activeSidebarWidth = isPaiPage ? 0 : (collapsed ? (useOrbNav ? 0 : COLLAPSED_WIDTH) : EXPANDED_WIDTH);
 
   return (
@@ -188,7 +190,7 @@ const DashboardLayout = () => {
       <main
         className={`
           min-h-screen relative z-10
-          ${isPaiPage ? '!m-0 !p-0 w-full h-screen' : 'pt-[73px] pb-0'}
+          ${isPaiChat ? '!m-0 !p-0 w-full h-screen overflow-hidden' : isPaiSettings ? '!m-0 !p-0 w-full min-h-screen' : 'pt-[73px] pb-0 pr-10 sm:pr-11 md:pr-12'}
         `}
         style={isPaiPage ? {} : {
           marginLeft: activeSidebarWidth,

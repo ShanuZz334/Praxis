@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import GhostLogo from '../../../../shared/components/ui/GhostLogo';
+import PaiCodeBlock, { PaiInlineCode } from './PaiCodeBlock';
 
 const PaiMessageBubble = memo(function PaiMessageBubble({ role, content, onRegenerate, provider, model, latencyMs, timestamp }) {
     const isUser = role === 'user';
@@ -89,18 +90,15 @@ const PaiMessageBubble = memo(function PaiMessageBubble({ role, content, onRegen
                                     remarkPlugins={[remarkGfm]}
                                     components={{
                                         strong: ({node, children}) => <strong className="text-blue-600 dark:text-blue-400 font-bold">{children}</strong>,
-                                        pre: ({node, children}) => (
-                                            <div className="w-full max-w-full overflow-hidden my-2 rounded-lg border border-border-subtle bg-black/40">
-                                                <pre className="overflow-x-auto p-3 m-0 text-xs text-slate-300">
-                                                    {children}
-                                                </pre>
-                                            </div>
-                                        ),
-                                        code: ({node, inline, children}) => (
-                                            inline 
-                                                ? <code className="bg-black/20 text-pink-400 px-1 py-0.5 rounded text-[11px] font-mono break-words">{children}</code>
-                                                : <code className="font-mono text-[11px] bg-transparent">{children}</code>
-                                        )
+                                        pre: ({ children }) => <>{children}</>,
+                                        code: ({ className, children }) => {
+                                            const codeStr = String(children || '').replace(/\n$/, '');
+                                            const isBlock = Boolean(className?.startsWith('language-') || codeStr.includes('\n'));
+                                            if (isBlock) {
+                                                return <PaiCodeBlock className={className}>{children}</PaiCodeBlock>;
+                                            }
+                                            return <PaiInlineCode>{children}</PaiInlineCode>;
+                                        }
                                     }}
                                 >
                                     {content?.replace(/<think>[\s\S]*?(<\/think>|$)/gi, '').trim().replace(/\n/g, '  \n')}

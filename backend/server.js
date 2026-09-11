@@ -105,6 +105,7 @@ app.use("/api/v1/snapshots", snapshotRoutes);
 app.use("/api/v1/intelligence", intelligenceRoutes);
 app.use("/api/v1/catalysts", catalystRoutes);
 app.use("/api/v1/ai-settings", aiSettingsRoutes);
+app.use("/api/v1/gateway", aiSettingsRoutes);
 app.use("/api/v1/ai-prompts", aiPromptsRoutes);
 app.use("/api/v1/future-vision", futureVisionRoutes);
 app.use("/api/v1/health", healthRoutes);

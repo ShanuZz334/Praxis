@@ -199,7 +199,7 @@ const AdminDashboard = () => {
     };
 
     // Calculate stats based on active tab
-    const currentMeta = activeTab === "api" ? PROVIDER_META : SCRAPER_META;
+    const currentMeta = activeTab === "api" ? PROVIDER_META : activeTab === "scraper" ? SCRAPER_META : {};
     const totalCurrent = Object.keys(currentMeta).length;
     
     // We filter health data based on the current active list
@@ -218,7 +218,7 @@ const AdminDashboard = () => {
                     </h1>
                     <h2 className="text-gray-400 text-sm font-medium tracking-wide uppercase flex items-center gap-2">
                         <Database size={14} className="text-blue-500" />
-                        Securely manage APIs and Scrapers
+                        Securely manage your market data APIs and scrapers
                     </h2>
                 </div>
 
@@ -232,7 +232,7 @@ const AdminDashboard = () => {
                     <div className="flex bg-background-floor p-1 rounded-xl border border-border-subtle">
                         <button
                             onClick={() => setActiveTab("api")}
-                            className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
                                 activeTab === "api" 
                                 ? "bg-blue-500/20 text-blue-400 shadow-md" 
                                 : "text-text-muted hover:text-text-primary"
@@ -242,7 +242,7 @@ const AdminDashboard = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab("scraper")}
-                            className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
                                 activeTab === "scraper" 
                                 ? "bg-emerald-500/20 text-emerald-400 shadow-md" 
                                 : "text-text-muted hover:text-text-primary"
@@ -255,124 +255,124 @@ const AdminDashboard = () => {
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {/* Total Configured */}
-                <div className="p-6 rounded-2xl bg-background-surface border border-border-subtle relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Settings size={64} />
-                    </div>
-                    <div className="flex items-center gap-4 mb-2">
-                        <div className="p-3 rounded-xl bg-blue-500/10 text-blue-500">
-                            <Settings size={20} />
-                        </div>
-                        <span className="text-xs font-bold text-text-muted tracking-wider uppercase">Total {activeTab === 'api' ? 'Providers' : 'Scrapers'}</span>
-                    </div>
-                    <div className="text-3xl font-bold ml-1">{totalCurrent}</div>
-                </div>
-
-                {/* Active Feeds */}
-                <div className="p-6 rounded-2xl bg-background-surface border border-border-subtle relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Wifi size={64} />
-                    </div>
-                    <div className="flex items-center gap-4 mb-2">
-                        <div className="p-3 rounded-xl bg-green-500/10 text-green-500">
-                            <Wifi size={20} />
-                        </div>
-                        <span className="text-xs font-bold text-text-muted tracking-wider uppercase">Active Feeds</span>
-                    </div>
-                    <div className="text-3xl font-bold ml-1">{activeFeeds}</div>
-                </div>
-
-                {/* Avg Latency */}
-                <div className="p-6 rounded-2xl bg-background-surface border border-border-subtle relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Activity size={64} />
-                    </div>
-                    <div className="flex items-center gap-4 mb-2">
-                        <div className="p-3 rounded-xl bg-purple-500/10 text-purple-500">
-                            <Activity size={20} />
-                        </div>
-                        <span className="text-xs font-bold text-text-muted tracking-wider uppercase">Avg. Latency</span>
-                    </div>
-                    <div className="text-3xl font-bold ml-1">{avgLatency}</div>
-                </div>
-
-                {/* Failover Ready */}
-                <div className="p-6 rounded-2xl bg-background-surface border border-border-subtle relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <ShieldCheck size={64} />
-                    </div>
-                    <div className="flex items-center gap-4 mb-2">
-                        <div className="p-3 rounded-xl bg-amber-500/10 text-amber-500">
-                            <ShieldCheck size={20} />
-                        </div>
-                        <span className="text-xs font-bold text-text-muted tracking-wider uppercase">Failover Ready</span>
-                    </div>
-                    <div className="text-xl font-bold ml-1 mt-1 text-emerald-400">Enabled</div>
-                </div>
-            </div>
-
-            {/* Grid Divider */}
-            <div className="flex items-center gap-4 pt-6">
-                <div className="h-px bg-border-subtle flex-1" />
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
-                    {activeTab === 'api' ? 'Available Integrations' : 'Configured Scrapers'}
-                </span>
-                <div className="h-px bg-border-subtle flex-1" />
-            </div>
-
-            {/* Providers Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 pb-20">
-                {Object.entries(currentMeta).length === 0 ? (
-                    <div className="col-span-full py-12 text-center text-text-muted border border-dashed border-border-subtle rounded-2xl">
-                        No {activeTab === 'api' ? 'APIs' : 'Scrapers'} configured.
-                    </div>
-                ) : (
-                    Object.entries(currentMeta).map(([key, meta]) => {
-                        const healthData = providers.find(p => p.provider === key);
-                        
-                        if (key === 'upstox') {
-                            meta.customToggle = () => (
-                                <div className="flex items-center gap-2 mt-1 bg-background-surface/50 px-2 py-1 rounded-md border border-border-default shadow-inner">
-                                    <span className={`text-[9px] font-bold uppercase transition-colors ${upstoxMode === 'live' ? 'text-accent-primary' : 'text-text-muted'}`}>Live</span>
-                                    <button 
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            const newMode = upstoxMode === 'live' ? 'sandbox' : 'live';
-                                            upstoxService.login(newMode);
-                                        }}
-                                        className={`relative w-7 h-3.5 rounded-full transition-colors duration-300 ${upstoxMode === 'sandbox' ? 'bg-amber-500' : 'bg-accent-primary'}`}
-                                    >
-                                        <div className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all duration-300 ${upstoxMode === 'sandbox' ? 'left-[16px]' : 'left-[2px]'}`} />
-                                    </button>
-                                    <span className={`text-[9px] font-bold uppercase transition-colors ${upstoxMode === 'sandbox' ? 'text-amber-500' : 'text-text-muted'}`}>Sandbox</span>
-                                </div>
-                            );
-                        }
-
-                        return (
-                            <div key={key} className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" style={{ animationDelay: `${Math.random() * 200}ms` }}>
-                                <CredentialCard
-                                    providerKey={key}
-                                    meta={meta}
-                                    healthData={healthData}
-                                    onCheckConnection={() => handleCheckConnection(key)}
-                                    checking={checkingProvider === key}
-                                    onConfigure={() => {
-                                        if (key === "upstox") {
-                                            upstoxService.login();
-                                        } else {
-                                            setSelectedProvider(key);
-                                            setIsModalOpen(true);
-                                        }
-                                    }}
-                                />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {/* Total Configured */}
+                        <div className="p-6 rounded-2xl bg-background-surface border border-border-subtle relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <Settings size={64} />
                             </div>
-                        );
-                    })
-                )}
-            </div>
+                            <div className="flex items-center gap-4 mb-2">
+                                <div className="p-3 rounded-xl bg-blue-500/10 text-blue-500">
+                                    <Settings size={20} />
+                                </div>
+                                <span className="text-xs font-bold text-text-muted tracking-wider uppercase">Total {activeTab === 'api' ? 'Providers' : 'Scrapers'}</span>
+                            </div>
+                            <div className="text-3xl font-bold ml-1">{totalCurrent}</div>
+                        </div>
+
+                        {/* Active Feeds */}
+                        <div className="p-6 rounded-2xl bg-background-surface border border-border-subtle relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <Wifi size={64} />
+                            </div>
+                            <div className="flex items-center gap-4 mb-2">
+                                <div className="p-3 rounded-xl bg-green-500/10 text-green-500">
+                                    <Wifi size={20} />
+                                </div>
+                                <span className="text-xs font-bold text-text-muted tracking-wider uppercase">Active Feeds</span>
+                            </div>
+                            <div className="text-3xl font-bold ml-1">{activeFeeds}</div>
+                        </div>
+
+                        {/* Avg Latency */}
+                        <div className="p-6 rounded-2xl bg-background-surface border border-border-subtle relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <Activity size={64} />
+                            </div>
+                            <div className="flex items-center gap-4 mb-2">
+                                <div className="p-3 rounded-xl bg-purple-500/10 text-purple-500">
+                                    <Activity size={20} />
+                                </div>
+                                <span className="text-xs font-bold text-text-muted tracking-wider uppercase">Avg. Latency</span>
+                            </div>
+                            <div className="text-3xl font-bold ml-1">{avgLatency}</div>
+                        </div>
+
+                        {/* Failover Ready */}
+                        <div className="p-6 rounded-2xl bg-background-surface border border-border-subtle relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <ShieldCheck size={64} />
+                            </div>
+                            <div className="flex items-center gap-4 mb-2">
+                                <div className="p-3 rounded-xl bg-amber-500/10 text-amber-500">
+                                    <ShieldCheck size={20} />
+                                </div>
+                                <span className="text-xs font-bold text-text-muted tracking-wider uppercase">Failover Ready</span>
+                            </div>
+                            <div className="text-xl font-bold ml-1 mt-1 text-emerald-400">Enabled</div>
+                        </div>
+                    </div>
+
+                    {/* Grid Divider */}
+                    <div className="flex items-center gap-4 pt-6">
+                        <div className="h-px bg-border-subtle flex-1" />
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
+                            {activeTab === 'api' ? 'Available Integrations' : 'Configured Scrapers'}
+                        </span>
+                        <div className="h-px bg-border-subtle flex-1" />
+                    </div>
+
+                    {/* Providers Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 pb-20">
+                        {Object.entries(currentMeta).length === 0 ? (
+                            <div className="col-span-full py-12 text-center text-text-muted border border-dashed border-border-subtle rounded-2xl">
+                                No {activeTab === 'api' ? 'APIs' : 'Scrapers'} configured.
+                            </div>
+                        ) : (
+                            Object.entries(currentMeta).map(([key, meta]) => {
+                                const healthData = providers.find(p => p.provider === key);
+                                
+                                if (key === 'upstox') {
+                                    meta.customToggle = () => (
+                                        <div className="flex items-center gap-2 mt-1 bg-background-surface/50 px-2 py-1 rounded-md border border-border-default shadow-inner">
+                                            <span className={`text-[9px] font-bold uppercase transition-colors ${upstoxMode === 'live' ? 'text-accent-primary' : 'text-text-muted'}`}>Live</span>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const newMode = upstoxMode === 'live' ? 'sandbox' : 'live';
+                                                    upstoxService.login(newMode);
+                                                }}
+                                                className={`relative w-7 h-3.5 rounded-full transition-colors duration-300 ${upstoxMode === 'sandbox' ? 'bg-amber-500' : 'bg-accent-primary'}`}
+                                            >
+                                                <div className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all duration-300 ${upstoxMode === 'sandbox' ? 'left-[16px]' : 'left-[2px]'}`} />
+                                            </button>
+                                            <span className={`text-[9px] font-bold uppercase transition-colors ${upstoxMode === 'sandbox' ? 'text-amber-500' : 'text-text-muted'}`}>Sandbox</span>
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <div key={key} className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" style={{ animationDelay: `${Math.random() * 200}ms` }}>
+                                        <CredentialCard
+                                            providerKey={key}
+                                            meta={meta}
+                                            healthData={healthData}
+                                            onCheckConnection={() => handleCheckConnection(key)}
+                                            checking={checkingProvider === key}
+                                            onConfigure={() => {
+                                                if (key === "upstox") {
+                                                    upstoxService.login();
+                                                } else {
+                                                    setSelectedProvider(key);
+                                                    setIsModalOpen(true);
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
             
             <AddCredentialModal 
                 isOpen={isModalOpen}

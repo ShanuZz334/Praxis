@@ -121,14 +121,16 @@ router.get("/global", async (req, res) => {
                 const prev = meta.chartPreviousClose || meta.previousClose || null;
                 const curr = meta.regularMarketPrice ?? null;
                 const pctChange = (prev && curr && prev > 0) ? parseFloat(((curr - prev) / prev * 100).toFixed(3)) : null;
+                const netChange = (prev && curr) ? parseFloat((curr - prev).toFixed(3)) : null;
                 results[internalId] = {
                     value: curr,
                     hi52:  meta.fiftyTwoWeekHigh  ?? null,
                     lo52:  meta.fiftyTwoWeekLow   ?? null,
-                    pctChange
+                    pctChange,
+                    netChange
                 };
             } else {
-                results[internalId] = { value: null, hi52: null, lo52: null, pctChange: null };
+                results[internalId] = { value: null, hi52: null, lo52: null, pctChange: null, netChange: null };
             }
         }
 

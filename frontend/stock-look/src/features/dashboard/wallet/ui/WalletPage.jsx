@@ -10,7 +10,7 @@
  */
 
 import React, { useMemo, useEffect } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Wallet } from "lucide-react";
 
 // Existing wallet sub-components (unchanged, just wired)
 import WalletHeader        from "./WalletHeader";
@@ -215,7 +215,7 @@ export default function WalletPage() {
     const isInitialLoading = loading.funds && loading.positions;
     if (isInitialLoading) {
         return (
-            <div className="w-full min-h-[80vh] flex flex-col items-center justify-center">
+            <div className="w-full min-h-[80vh] flex flex-col items-center justify-center animate-in fade-in duration-500">
                 <Loader size="lg" color="indigo" />
                 <p className="text-text-secondary mt-8 font-mono text-[11px] tracking-[0.2em] animate-pulse uppercase">
                     Loading Wallet Intelligence...
@@ -226,69 +226,88 @@ export default function WalletPage() {
 
     // ─── Render ───────────────────────────────────────────────────────────────
     return (
-        <div className="px-4 md:px-6 pt-2 pb-28 space-y-5 md:space-y-6 w-full mx-auto animate-in fade-in duration-500">
+        <div className="w-full min-h-screen bg-background-app p-4 md:p-6 animate-in fade-in duration-300">
+            <div className="max-w-[1400px] mx-auto space-y-6 pb-24">
 
-            {/* Refresh bar */}
-            <div className="flex items-center justify-between">
-                <div />
-                <div className="flex items-center gap-3">
-                    {lastUpdated && (
-                        <span className="text-[10px] text-text-tertiary font-mono">
-                            Positions updated {new Date(lastUpdated).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                        </span>
-                    )}
-                    <button
-                        onClick={refetch.all}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-text-tertiary hover:text-text-primary bg-background-surface hover:bg-background-card border border-border-subtle rounded-lg transition-all"
-                    >
-                        <RefreshCw size={11} />
-                        Refresh All
-                    </button>
+                {/* Page Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-default/40 pb-5">
+                    <div className="flex items-center gap-3.5">
+                        <div className="w-11 h-11 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center shadow-sm">
+                            <Wallet size={22} />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2.5">
+                                <h1 className="text-2xl font-bold tracking-tight text-text-primary">Wallet & Risk Intelligence</h1>
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    Live Feed
+                                </span>
+                            </div>
+                            <p className="text-xs md:text-sm text-text-tertiary mt-0.5">
+                                Real-time capital balance, risk guardrails, live open positions & order execution.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 self-end sm:self-center">
+                        {lastUpdated && (
+                            <span className="text-[11px] text-text-tertiary font-mono hidden md:inline">
+                                Synced: {new Date(lastUpdated).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true })}
+                            </span>
+                        )}
+                        <button
+                            onClick={refetch.all}
+                            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-text-secondary hover:text-text-primary bg-background-surface hover:bg-background-elevated border border-border-subtle hover:border-border-default rounded-xl transition-all shadow-sm active:scale-95"
+                        >
+                            <RefreshCw size={12} className="hover:rotate-180 transition-transform duration-500" />
+                            Refresh All
+                        </button>
+                    </div>
                 </div>
+
+                {/* 1. Trade Permission Banner */}
+                <TradePermissionBanner permission={permission} />
+
+                {/* 2. Funds & Risk Summary Header */}
+                <WalletHeader summary={summary} />
+
+                {/* 3. Live Open Positions */}
+                <PositionsTable
+                    positions={positions}
+                    loading={loading.positions}
+                    onClose={handleExitPosition}
+                />
+
+                {/* 4. Long-Term Holdings */}
+                <HoldingsTable
+                    holdings={holdings}
+                    loading={loading.holdings}
+                />
+
+                {/* 5. P&L Equity Curve */}
+                {(pnlData.net !== 0 || pnlData.equityCurve.length > 1) && (
+                    <LivePnLCard pnl={pnlData} />
+                )}
+
+                {/* 6. Capital Allocation Map */}
+                {allocationData.length > 0 && (
+                    <AllocationMap allocation={allocationData} />
+                )}
+
+                {/* 7. Drawdown + Risk Protocols */}
+                <RiskDrawdownPanel drawdown={drawdown} riskRules={riskRules} />
+
+                {/* 8. YTD Performance Stats */}
+                <PerformanceStats stats={perfStats} />
+
+                {/* 9. Order Book + Trade Book */}
+                <OrderBookTable
+                    orderBook={orderBook}
+                    tradeBook={tradeBook}
+                    loading={loading.orderBook}
+                />
+
             </div>
-
-            {/* 1. Trade Permission Banner */}
-            <TradePermissionBanner permission={permission} />
-
-            {/* 2. Funds & Risk Summary Header */}
-            <WalletHeader summary={summary} />
-
-            {/* 3. Live Open Positions */}
-            <PositionsTable
-                positions={positions}
-                loading={loading.positions}
-                onClose={handleExitPosition}
-            />
-
-            {/* 4. Long-Term Holdings */}
-            <HoldingsTable
-                holdings={holdings}
-                loading={loading.holdings}
-            />
-
-            {/* 5. P&L Equity Curve */}
-            {(pnlData.net !== 0 || pnlData.equityCurve.length > 1) && (
-                <LivePnLCard pnl={pnlData} />
-            )}
-
-            {/* 6. Capital Allocation Map */}
-            {allocationData.length > 0 && (
-                <AllocationMap allocation={allocationData} />
-            )}
-
-            {/* 7. Drawdown + Risk Protocols */}
-            <RiskDrawdownPanel drawdown={drawdown} riskRules={riskRules} />
-
-            {/* 8. YTD Performance Stats */}
-            <PerformanceStats stats={perfStats} />
-
-            {/* 9. Order Book + Trade Book */}
-            <OrderBookTable
-                orderBook={orderBook}
-                tradeBook={tradeBook}
-                loading={loading.orderBook}
-            />
-
         </div>
     );
 }

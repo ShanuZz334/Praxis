@@ -4,6 +4,8 @@ import axiosInstance from '@/shared/utils/axiosInstance';
 import UiverseDropdown from '@/shared/components/ui/UiverseDropdown';
 import { UniversalSlider } from '@/shared/components/ui/UniversalSlider';
 import { toast } from 'sonner';
+import PaiModelInventory from './PaiModelInventory';
+import GatewayLimitsCard from './GatewayLimitsCard';
 
 export default function PaiModelsTab() {
     const [temperature, setTemperature] = useState(0.2);
@@ -512,6 +514,11 @@ export default function PaiModelsTab() {
                 </div>
             </div>
 
+            {/* ── AI Gateway Live Provider Limits Card (Requests & Tokens) ── */}
+            <GatewayLimitsCard className="mt-6" />
+
+            {/* ── Models & Quotas Directory (5-in-a-row Architecture) ─────────────── */}
+            <PaiModelInventory providers={providers} localModels={localModels} />
 
             <div className="bg-background-card border border-border-default/40 rounded-2xl p-6 shadow-sm mt-6">
                 <div className="flex items-center gap-2 mb-4">

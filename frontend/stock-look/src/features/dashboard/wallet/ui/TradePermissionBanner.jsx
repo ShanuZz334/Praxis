@@ -7,45 +7,83 @@
  * @key_exports
  * - TradePermissionBanner (Default)
  * @dependencies
- * - None (Pure UI)
+ * - Lucide React
  * @lifecycle
- * - Rendered by WalletPage (Future/Expanded).
+ * - Rendered by WalletPage.
  * @date 2026-02-03
  */
 
 import React from "react";
-import { CheckCircle, AlertTriangle, ShieldAlert } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ShieldAlert, ShieldCheck } from "lucide-react";
 
 export default function TradePermissionBanner({ permission }) {
     if (!permission) return null;
 
-    const bg = permission.status === "BLOCKED" ? "bg-red-500/5 border border-red-500/20"
-        : permission.status === "REDUCED_SIZE" ? "bg-amber-500/5 border border-amber-500/20"
-            : "bg-emerald-500/5 border border-emerald-500/20";
+    const isBlocked = permission.status === "BLOCKED";
+    const isReduced = permission.status === "REDUCED_SIZE";
 
-    const msgColor = permission.status === "BLOCKED" ? "text-red-400"
-        : permission.status === "REDUCED_SIZE" ? "text-amber-400"
-            : "text-emerald-400";
-    
-    const iconColor = permission.status === "BLOCKED" ? "text-red-500"
-        : permission.status === "REDUCED_SIZE" ? "text-amber-500"
-            : "text-emerald-500";
-    
-    const Icon = permission.status === "BLOCKED" ? ShieldAlert : permission.status === "REDUCED_SIZE" ? AlertTriangle : CheckCircle;
+    const config = isBlocked
+        ? {
+            container: "bg-rose-500/10 border-rose-500/30 text-rose-400 shadow-rose-500/5",
+            iconBg: "bg-rose-500/20 border-rose-500/30 text-rose-400",
+            dotBg: "bg-rose-500",
+            badge: "bg-rose-500/15 text-rose-300 border-rose-500/30",
+            Icon: ShieldAlert,
+            title: "Trading Blocked",
+            label: "BLOCKED"
+        }
+        : isReduced
+            ? {
+                container: "bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-amber-500/5",
+                iconBg: "bg-amber-500/20 border-amber-500/30 text-amber-400",
+                dotBg: "bg-amber-500",
+                badge: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+                Icon: AlertTriangle,
+                title: "Reduced Position Sizing",
+                label: "REDUCED SIZE"
+            }
+            : {
+                container: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-emerald-500/5",
+                iconBg: "bg-emerald-500/20 border-emerald-500/30 text-emerald-400",
+                dotBg: "bg-emerald-500",
+                badge: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+                Icon: CheckCircle2,
+                title: "Trade Execution Permitted",
+                label: "ALLOWED"
+            };
+
+    const { Icon } = config;
 
     return (
-        <div className={`w-full ${bg} px-5 py-3 mb-6 rounded-xl shadow-lg backdrop-blur-md animate-in slide-in-from-top-2 duration-500 flex items-center justify-between transition-all hover:bg-opacity-10`}>
-            <div className="flex items-center gap-4">
-                <span className={`drop-shadow-md ${iconColor}`}>
-                    <Icon size={24} strokeWidth={2.5} />
-                </span>
-                <div className="flex flex-col justify-center">
-                    <div className="text-[9px] text-text-tertiary uppercase font-bold tracking-widest mb-0.5">Trade Permission Status</div>
-                    <div className={`text-sm font-bold ${msgColor} tracking-wide uppercase`}>{permission.status.replace("_", " ")}</div>
+        <div className={`w-full ${config.container} border backdrop-blur-xl rounded-2xl p-4 md:p-5 shadow-sm transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-4`}>
+            <div className="flex items-center gap-3.5">
+                <div className={`w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 ${config.iconBg} shadow-sm`}>
+                    <Icon size={22} strokeWidth={2.2} />
+                </div>
+                <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[10px] text-text-tertiary uppercase font-bold tracking-widest">
+                            Trade Permission Status
+                        </span>
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${config.badge}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${config.dotBg} animate-pulse`} />
+                            {config.label}
+                        </span>
+                    </div>
+                    <div className="text-sm md:text-base font-bold text-text-primary tracking-tight">
+                        {config.title}
+                    </div>
                 </div>
             </div>
-            <div className={`text-xs font-medium ${msgColor} opacity-80 text-right hidden md:block max-w-md`}>
-                {permission.reason}
+
+            <div className="flex items-center justify-between md:justify-end gap-4 border-t md:border-t-0 pt-3 md:pt-0 border-border-subtle/30">
+                <div className="text-xs text-text-secondary md:text-right max-w-md font-medium leading-relaxed">
+                    {permission.reason}
+                </div>
+                <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background-surface/60 border border-border-subtle/50 text-[10px] font-mono text-text-tertiary shrink-0">
+                    <ShieldCheck size={13} className="text-emerald-400" />
+                    <span>Risk Guard Active</span>
+                </div>
             </div>
         </div>
     );

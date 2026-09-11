@@ -1,4 +1,5 @@
 import { providerCache } from '../cache/providerCache.js';
+import { aiQuotaTracker } from '../aiQuotaTracker.js';
 
 export async function call({ model, messages, maxTokens, temperature, jsonMode, providerId = 'groq' , timeoutMs }) {
     const p = await providerCache.getProvider(providerId);
@@ -18,6 +19,9 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode, 
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${p.apiKey}` },
         body: JSON.stringify(payload)
     });
+    
+    // Capture live Groq rate-limit headers directly from LPU cluster response (supports groq and groq_2)
+    aiQuotaTracker.recordGroqHeaders(response.headers, providerId);
 
     if (!response.ok) {
         const errorText = await response.text();

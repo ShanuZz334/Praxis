@@ -12,7 +12,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, RefreshCw, Volume2 } from "lucide-react";
+import { Sparkles, RefreshCw, Volume2, Clock } from "lucide-react";
 import { useCardInsight } from "@/shared/hooks/useCardInsight";
 import { useDataRegistry } from "@/shared/context/DataRegistryContext";
 import { useVoice } from "@/shared/context/VoiceContext";
@@ -27,6 +27,13 @@ function resolveReadableSymbol(instrumentKey) {
     if (match) return match.label;
     const parts = instrumentKey.split('|');
     return parts.length > 1 ? parts[1] : instrumentKey;
+}
+
+function formatInsightTime(ts) {
+    if (!ts) return null;
+    const date = new Date(ts);
+    if (isNaN(date.getTime())) return null;
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
 }
 
 // ─── Resolve targetId from URL path + instrument mode ─────────────────────────
@@ -101,6 +108,24 @@ export default function AiInsightSection({
     const hasGeneratedRef = useRef(false);
     const [displayedText, setDisplayedText] = useState("");
     const [isRestoredFromCache, setIsRestoredFromCache] = useState(false);
+    const [lastGeneratedAt, setLastGeneratedAt] = useState(null);
+
+    // AI Generation Mode (Auto vs Manual) - loaded from localStorage with live sync
+    const [generationMode, setGenerationMode] = useState(() => {
+        return localStorage.getItem('praxis_ai_insight_generation_mode') || 'auto';
+    });
+
+    useEffect(() => {
+        const handleModeUpdate = () => {
+            setGenerationMode(localStorage.getItem('praxis_ai_insight_generation_mode') || 'auto');
+        };
+        window.addEventListener('storage', handleModeUpdate);
+        window.addEventListener('praxis_ai_mode_change', handleModeUpdate);
+        return () => {
+            window.removeEventListener('storage', handleModeUpdate);
+            window.removeEventListener('praxis_ai_mode_change', handleModeUpdate);
+        };
+    }, []);
 
     // Sensitivity thresholds — loaded from SQLite preferences on mount
     const sensitivityRef = useRef({});
@@ -126,12 +151,14 @@ export default function AiInsightSection({
             hasGeneratedRef.current = true;
             lastStateRef.current = { score: cached.score, symbol: cached.symbol, regime: cached.regime };
             setDisplayedText(cached.insightText);
+            setLastGeneratedAt(cached.timestamp || null);
             setIsRestoredFromCache(true);
         } else {
             // Reset state for new cache key so it can correctly generate
             hasGeneratedRef.current = false;
             lastStateRef.current = { score: null, symbol: null, regime: null };
             setDisplayedText("");
+            setLastGeneratedAt(null);
             setIsRestoredFromCache(false);
         }
     }, [cacheKey]);
@@ -141,6 +168,12 @@ export default function AiInsightSection({
         if (coveragePercent < 75) return;
 
         const isForce = forceOrEvent === true || (forceOrEvent && forceOrEvent.type === 'click');
+
+        // In manual mode, strictly block auto-generation; only proceed if user clicked/forced
+        if (generationMode === 'manual' && !isForce) {
+            return;
+        }
+
         const currentScore = typeof score === 'number' ? score : parseFloat(score) || 0;
         
         const { score: lastScore, symbol: lastSymbol, regime: lastRegime } = lastStateRef.current;
@@ -222,7 +255,7 @@ export default function AiInsightSection({
             pageData: pageData
         });
     }, [targetId, score, actionType, confidence, bulls, bears, neutrals, stockSymbol, generate,
-        coveragePercent, cards, sections, masterPayload, getPageStructuredData, resolvedPageId, currentSymbol]);
+        coveragePercent, cards, sections, masterPayload, getPageStructuredData, resolvedPageId, currentSymbol, generationMode]);
 
     const [isReadyToGenerate, setIsReadyToGenerate] = useState(false);
 
@@ -239,9 +272,10 @@ export default function AiInsightSection({
         triggerGenerateRef.current = triggerGenerate;
     }, [triggerGenerate]);
 
-    // Auto-trigger when score becomes available
+    // Auto-trigger when score becomes available (Auto mode only)
     // Re-run on score or coverage changes
     useEffect(() => {
+        if (generationMode === 'manual') return; // Strict manual mode: never auto-trigger
         if (isReadyToGenerate && coveragePercent >= 75) {
             // Debounce generation by 1.5s so we don't double-fire while
             // complex multi-part websockets (like the Master Dashboard) are still loading in.
@@ -252,7 +286,7 @@ export default function AiInsightSection({
             }, 1500);
             return () => clearTimeout(timer);
         }
-    }, [score, stockSymbol, actionType, coveragePercent, isReadyToGenerate]);
+    }, [score, stockSymbol, actionType, coveragePercent, isReadyToGenerate, generationMode]);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
@@ -267,6 +301,9 @@ export default function AiInsightSection({
     useEffect(() => {
         if (!cleanInsight || cleanInsight === prevInsightRef.current) return;
         prevInsightRef.current = cleanInsight;
+
+        // Record timestamp for newly generated response
+        setLastGeneratedAt(Date.now());
 
         // Clear previous interval
         if (intervalRef.current) clearInterval(intervalRef.current);
@@ -293,14 +330,15 @@ export default function AiInsightSection({
         if (!cleanInsight || isRestoredFromCache) return;
         
         const currentScore = typeof score === 'number' ? score : parseFloat(score) || 0;
+        const genTime = lastGeneratedAt || Date.now();
         updateGlobalInsightCache(cacheKey, {
             score: currentScore,
             symbol: currentSymbol,
             regime: actionType,
             insightText: cleanInsight,
-            timestamp: Date.now()
+            timestamp: genTime
         });
-    }, [cleanInsight, score, currentSymbol, actionType, cacheKey, isRestoredFromCache]);
+    }, [cleanInsight, score, currentSymbol, actionType, cacheKey, isRestoredFromCache, lastGeneratedAt]);
 
     // Safety measure: if the currently displayed insight was generated for a wildly different score 
     // (e.g. before the rest of the Master Dashboard finished loading), instantly hide the outdated text 
@@ -367,6 +405,16 @@ export default function AiInsightSection({
                         )}
                     </div>
                     <div className="flex items-center gap-2">
+                        {/* Time of response generated */}
+                        {lastGeneratedAt && (
+                            <PortalTooltip content={<div className="text-xs text-text-secondary">Insight generated at {new Date(lastGeneratedAt).toLocaleString()}</div>}>
+                                <div className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-background-surface border border-border-subtle text-text-secondary font-mono cursor-help">
+                                    <Clock className="w-2.5 h-2.5 text-text-tertiary" />
+                                    <span>{formatInsightTime(lastGeneratedAt)}</span>
+                                </div>
+                            </PortalTooltip>
+                        )}
+
                         {confidence && (
                             <PortalTooltip content={<div className="text-xs text-text-secondary">Model Confidence Level</div>}>
                                 <div className="text-[10px] px-2 py-0.5 rounded bg-background-surface border border-border-subtle text-text-secondary font-mono cursor-help">
@@ -374,12 +422,24 @@ export default function AiInsightSection({
                                 </div>
                             </PortalTooltip>
                         )}
+
+                        {/* Generation Mode Badge */}
+                        <PortalTooltip content={<div className="text-xs text-text-secondary">AI Insight Mode: {generationMode === 'auto' ? 'Auto (updates with live data)' : 'Manual (only generates when you click refresh)'} — change in App Settings</div>}>
+                            <div className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-semibold uppercase cursor-help ${
+                                generationMode === 'auto' 
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            }`}>
+                                {generationMode}
+                            </div>
+                        </PortalTooltip>
+
                         {/* Manual refresh button */}
-                        {!isLoading && coveragePercent >= 90 && (
+                        {!isLoading && coveragePercent >= 75 && (
                             <PortalTooltip content={<div className="text-xs text-text-secondary">Regenerate insight</div>}>
                                 <button
                                     onClick={triggerGenerate}
-                                    className="text-text-tertiary hover:text-text-primary transition-colors p-1 rounded hover:bg-background-surface"
+                                    className="text-text-tertiary hover:text-text-primary transition-colors p-1 rounded hover:bg-background-surface cursor-pointer"
                                 >
                                     <RefreshCw className="w-3 h-3" />
                                 </button>
@@ -458,6 +518,24 @@ export default function AiInsightSection({
                                 className="text-xs text-text-tertiary italic mt-2"
                             >
                                 Insight temporarily unavailable. Check AI provider settings.
+                            </motion.div>
+                        ) : !displayedText && generationMode === 'manual' ? (
+                            <motion.div
+                                key="manual-ready"
+                                initial={{ opacity: 0, y: 4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex flex-col items-start gap-2.5 py-2 w-full"
+                            >
+                                <span className="text-[12px] text-text-tertiary italic">
+                                    Manual generation mode active. Click below or use the refresh button to synthesize the market insight.
+                                </span>
+                                <button
+                                    onClick={triggerGenerate}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs font-semibold transition-all shadow-sm group cursor-pointer"
+                                >
+                                    <Sparkles className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" />
+                                    <span>Generate Insight</span>
+                                </button>
                             </motion.div>
                         ) : (
                             <motion.div

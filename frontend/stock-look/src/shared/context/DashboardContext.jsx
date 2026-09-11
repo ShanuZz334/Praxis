@@ -62,7 +62,7 @@ export function DashboardProvider({ children }) {
 
         const fetchInitialQuotes = async () => {
             try {
-                const keys = "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank,NSE_INDEX|India VIX";
+                const keys = "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank,NSE_INDEX|India VIX,GLOBAL_INDEX|SGX NIFTY";
                 const res = await axiosInstance.get(`/api/v1/upstox/market-quote?instruments=${encodeURIComponent(keys)}`);
                 if (isMounted && res.data?.status === "success" && res.data.data) {
                     setLivePrices(prev => {
@@ -212,6 +212,7 @@ export function DashboardProvider({ children }) {
             "NSE_INDEX|India VIX",
             "GLOBAL_INDICATOR|USDINR",
             "GLOBAL_INDICATOR|BZUSD",
+            "GLOBAL_INDEX|SGX NIFTY",
             selectedInstrument,
             ...additionalCharts.map(c => typeof c === 'string' ? c : c.value),
             ...getNifty50Keys()

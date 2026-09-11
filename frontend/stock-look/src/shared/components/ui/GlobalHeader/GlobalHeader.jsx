@@ -657,7 +657,7 @@ function HeaderControls({ controls }) {
 
             {/* MIDDLE: Custom Injected Controls (Options/Fundamentals Specific) */}
             {controls.customComponent && (
-                <div className="flex-1 md:px-4 flex items-center justify-start gap-3 flex-wrap">
+                <div className="flex-1 min-w-0 md:px-4 flex items-center justify-start gap-3">
                     {controls.customComponent}
                 </div>
             )}

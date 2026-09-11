@@ -20,6 +20,7 @@ import { useDashboardContext } from '@/shared/context/DashboardContext';
 import { useProfile } from '@/shared/hooks/useProfile';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import PaiCodeBlock, { PaiInlineCode } from './PaiCodeBlock';
 
 const getPowerScore = (modelId) => {
     const id = modelId.toLowerCase();
@@ -210,6 +211,30 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
         availableModelsRef.current = availableModels;
     }, [availableModels]);
 
+    const isChatModel = (modelStr, tierKey = '') => {
+        if (!modelStr || typeof modelStr !== 'string') return false;
+        const lower = modelStr.toLowerCase().trim();
+        const tierLower = String(tierKey).toLowerCase();
+
+        // Explicit non-chat tiers (audio transcription, speech synthesis, embeddings)
+        if (tierLower.includes('audio') || tierLower === 'level7_audio' || tierLower === 'l7 audio') return false;
+        if (tierLower.includes('embed') || tierLower.includes('tts')) return false;
+
+        // Speech-to-text / Audio transcription models (Whisper, etc.)
+        if (lower.includes('whisper')) return false;
+
+        // Text-to-speech / Voice models
+        if (lower.includes('tts') || lower.includes('flux-tts') || lower.includes('fish-audio')) return false;
+
+        // Embedding / Vector models
+        if (lower.includes('embed') || lower.includes('embedding')) return false;
+
+        // Moderation / Reranking models
+        if (lower.includes('moderation') || lower.includes('rerank')) return false;
+
+        return true;
+    };
+
     useEffect(() => {
         let isMounted = true;
         const fetchModels = async () => {
@@ -222,43 +247,83 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                 const providersRes = await axiosInstance.get('/api/v1/ai-settings/providers').catch(() => ({ data: [] }));
                 const cloudProviders = providersRes.data || [];
                 
-                // 3. Extract unique cloud models
-                const cloudModelsSet = new Set();
+                // 3. Extract configured conversational cloud model slots (excluding audio & embeddings)
                 const cloudModels = [];
                 
                 cloudProviders.forEach(p => {
-                    if (p.providerId === 'ollama') return; // Skip local models mapping
+                    if (p.providerId === 'ollama') return; // Handled in local models
                     if (p.models) {
-                        Object.values(p.models).forEach(modelStr => {
-                            if (modelStr && !cloudModelsSet.has(modelStr)) {
-                                cloudModelsSet.add(modelStr);
+                        Object.entries(p.models).forEach(([tierKey, modelStr]) => {
+                            if (modelStr && typeof modelStr === 'string' && modelStr.trim()) {
+                                const cleanModel = modelStr.trim();
+                                if (!isChatModel(cleanModel, tierKey)) return;
+
+                                const tierClean = tierKey.replace('level', 'L').replace('_', ' ');
                                 cloudModels.push({
-                                    modelId: `${p.providerId}|${modelStr}`,
-                                    rawModelStr: modelStr,
-                                    displayName: `${p.displayName}: ${modelStr}`
+                                    uniqueKey: `${p.providerId}::${tierKey}::${cleanModel.toLowerCase()}`,
+                                    modelId: `${p.providerId}|${cleanModel}|${tierKey}`,
+                                    providerId: p.providerId,
+                                    providerName: p.displayName || p.providerId,
+                                    rawModelStr: cleanModel,
+                                    tierName: tierClean,
+                                    displayName: `${p.displayName} (${tierClean}): ${cleanModel.split('/').pop().replace(':free', '')}`
                                 });
                             }
                         });
                     }
                 });
                 
-                // Format local models
-                const formattedLocalModels = localModels
-                    .filter(m => !m.modelId.toLowerCase().includes('embed')) // Skip embedding models
-                    .map(m => ({
-                        modelId: `ollama|${m.modelId}`,
-                        rawModelStr: m.modelId,
-                        displayName: `Local: ${m.displayName}`
-                    }));
+                // 4. Format local models (filtering for chat-capable LLMs only)
+                let formattedLocalModels = [];
+                if (localModels && localModels.length > 0) {
+                    formattedLocalModels = localModels
+                        .filter(m => isChatModel(m.modelId || m.name, 'local'))
+                        .map((m, idx) => ({
+                            uniqueKey: `ollama::local::${(m.modelId || m.name).toLowerCase()}`,
+                            modelId: `ollama|${m.modelId || m.name}|local${idx}`,
+                            providerId: 'ollama',
+                            providerName: 'Local Ollama',
+                            rawModelStr: m.modelId || m.name,
+                            tierName: 'Local',
+                            displayName: `Local: ${m.displayName || m.modelId || m.name}`
+                        }));
+                } else {
+                    const ollamaProv = cloudProviders.find(p => p.providerId === 'ollama');
+                    if (ollamaProv && ollamaProv.models) {
+                        Object.entries(ollamaProv.models).forEach(([tierKey, modelStr]) => {
+                            if (modelStr && typeof modelStr === 'string' && modelStr.trim()) {
+                                const cleanModel = modelStr.trim();
+                                if (!isChatModel(cleanModel, tierKey)) return;
+
+                                const tierClean = tierKey.replace('level', 'L').replace('_', ' ');
+                                formattedLocalModels.push({
+                                    uniqueKey: `ollama::${tierKey}::${cleanModel.toLowerCase()}`,
+                                    modelId: `ollama|${cleanModel}|${tierKey}`,
+                                    providerId: 'ollama',
+                                    providerName: ollamaProv.displayName || 'Local Ollama',
+                                    rawModelStr: cleanModel,
+                                    tierName: tierClean,
+                                    displayName: `Local (${tierClean}): ${cleanModel}`
+                                });
+                            }
+                        });
+                    }
+                }
                 
-                // Combine ALL models
+                // Combine ALL conversational chat models
                 const allModels = [...cloudModels, ...formattedLocalModels];
                 
-                // Sort by Power Score and assign levels
-                allModels.sort((a, b) => getPowerScore(a.rawModelStr) - getPowerScore(b.rawModelStr));
+                // Sort by Power Score, then provider/name, and assign sequential levels
+                allModels.sort((a, b) => {
+                    const scoreA = getPowerScore(a.rawModelStr);
+                    const scoreB = getPowerScore(b.rawModelStr);
+                    if (scoreA !== scoreB) return scoreA - scoreB;
+                    return a.displayName.localeCompare(b.displayName);
+                });
+
                 allModels.forEach((m, idx) => {
                     m.level = idx + 1;
-                    m.displayName = `Lvl ${m.level} - ${m.displayName}`;
+                    m.displayName = `Lvl ${m.level} • ${m.displayName}`;
                 });
 
                 if (isMounted) {
@@ -454,7 +519,11 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
             let explicitProvider = null;
             let explicitModel = null;
             const modelToUse = tempModel;
-            if (modelToUse && modelToUse.includes('|')) {
+            const selectedObj = availableModelsRef.current.find(m => m.modelId === modelToUse || m.uniqueKey === modelToUse);
+            if (selectedObj) {
+                explicitProvider = selectedObj.providerId;
+                explicitModel = selectedObj.rawModelStr;
+            } else if (modelToUse && modelToUse.includes('|')) {
                 const parts = modelToUse.split('|');
                 explicitProvider = parts[0];
                 explicitModel = parts[1];
@@ -948,7 +1017,16 @@ export default function PaiFloatingWidget({ sidebarCollapsed = true, isPaiPage =
                                                             <ReactMarkdown 
                                                                 remarkPlugins={[remarkGfm]}
                                                                 components={{
-                                                                    strong: ({node, children}) => <strong className="text-blue-600 dark:text-blue-400 font-bold">{children}</strong>
+                                                                    strong: ({node, children}) => <strong className="text-blue-600 dark:text-blue-400 font-bold">{children}</strong>,
+                                                                    pre: ({ children }) => <>{children}</>,
+                                                                    code: ({ className, children }) => {
+                                                                        const codeStr = String(children || '').replace(/\n$/, '');
+                                                                        const isBlock = Boolean(className?.startsWith('language-') || codeStr.includes('\n'));
+                                                                        if (isBlock) {
+                                                                            return <PaiCodeBlock className={className}>{children}</PaiCodeBlock>;
+                                                                        }
+                                                                        return <PaiInlineCode>{children}</PaiInlineCode>;
+                                                                    }
                                                                 }}
                                                             >
                                                                 {msg.content?.replace(/<think>[\s\S]*?(<\/think>|$)/gi, '').trim()}

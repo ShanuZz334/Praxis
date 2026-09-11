@@ -15,7 +15,8 @@ export function useDayTrades(date) {
         setLoading(true);
         const res = await axiosInstance.get(`/api/v1/journal/trades?date=${date}`);
         if (isMounted) {
-          setTrades(res.data?.trades || res.data || []);
+          const raw = res.data?.data ?? res.data?.trades ?? res.data ?? [];
+          setTrades(Array.isArray(raw) ? raw : []);
           setLoading(false);
         }
       } catch (err) {

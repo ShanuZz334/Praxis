@@ -188,6 +188,7 @@ const SettingsPage = () => {
     const [initialFormData, setInitialFormData] = useState({});
     const [initialSettings, setInitialSettings] = useState({});
     const [legacyVoiceContext, setLegacyVoiceContext] = useState(() => localStorage.getItem('paiLegacyVoiceContext') === 'true');
+    const [aiInsightMode, setAiInsightMode] = useState(() => localStorage.getItem('praxis_ai_insight_generation_mode') || 'auto');
 
     // Manual Timers State
     const [manualExpiryConfigs, setManualExpiryConfigs] = useState(() => {
@@ -1448,6 +1449,42 @@ const SettingsPage = () => {
                                     toast.success(newValue ? 'Legacy Mention Method Enabled' : 'Auto-Context Engine Enabled');
                                 }} 
                             />
+                        </div>
+
+                        {/* Page Header AI Insights Generation Mode (Auto vs Manual) */}
+                        <div className="mt-3 flex items-center justify-between rounded-lg border border-border-default bg-transparent p-4">
+                            <div className="space-y-1 pr-4">
+                                <div className="flex items-center gap-2">
+                                    <p className="font-medium text-text-primary">Header AI Insights Mode</p>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-semibold uppercase ${
+                                        aiInsightMode === 'auto' 
+                                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                    }`}>
+                                        {aiInsightMode === 'auto' ? 'Auto' : 'Manual'}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-text-secondary">
+                                    {aiInsightMode === 'auto'
+                                        ? 'Header insights generate automatically as market data loads across Master, Technical, Fundamentals, Options, Events, and Foreign pages.'
+                                        : 'Header insights will strictly only generate when you explicitly click the regenerate button on each page.'}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                                <span className="text-xs text-text-tertiary font-mono">
+                                    {aiInsightMode === 'auto' ? 'Auto Generate' : 'Manual Click'}
+                                </span>
+                                <UniversalToggle 
+                                    checked={aiInsightMode === 'auto'} 
+                                    onChange={() => {
+                                        const nextMode = aiInsightMode === 'auto' ? 'manual' : 'auto';
+                                        setAiInsightMode(nextMode);
+                                        localStorage.setItem('praxis_ai_insight_generation_mode', nextMode);
+                                        window.dispatchEvent(new CustomEvent('praxis_ai_mode_change', { detail: { mode: nextMode } }));
+                                        toast.success(nextMode === 'auto' ? 'Header AI Insights: Auto Mode Enabled' : 'Header AI Insights: Manual Mode Enabled (click regenerate to generate)');
+                                    }} 
+                                />
+                            </div>
                         </div>
                     </div>
 

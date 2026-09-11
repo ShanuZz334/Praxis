@@ -232,6 +232,7 @@ let pendingSubscriptions = new Set([
     "NSE_INDEX|India VIX",
     "GLOBAL_INDICATOR|USDINR",
     "GLOBAL_INDICATOR|BZUSD",
+    "GLOBAL_INDEX|SGX NIFTY",
     ...getNifty50Keys()
 ]);
 

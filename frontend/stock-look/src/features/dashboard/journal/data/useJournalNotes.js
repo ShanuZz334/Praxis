@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 
 export function useJournalNotes(date) {
@@ -6,47 +6,41 @@ export function useJournalNotes(date) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const fetchNotes = useCallback(async () => {
     if (!date) return;
-
-    async function fetchNotes() {
-      try {
-        setLoading(true);
-        const res = await axiosInstance.get(`/api/v1/journal/notes?date=${date}`);
-        if (isMounted) {
-          setNotes(res.data);
-          setLoading(false);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err);
-          setLoading(false);
-        }
-      }
+    try {
+      setLoading(true);
+      const res = await axiosInstance.get(`/api/v1/journal/notes?date=${date}`);
+      const data = res.data?.data ?? res.data ?? null;
+      setNotes(data);
+      setLoading(false);
+    } catch (err) {
+      setError(err);
+      setLoading(false);
     }
-
-    fetchNotes();
-
-    return () => {
-      isMounted = false;
-    };
   }, [date]);
 
-  const saveNotes = async (saveDate, sections) => {
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
+
+  const saveNotes = async (saveData, sectionsParam) => {
     try {
-      const res = await axiosInstance.post('/api/v1/journal/notes', {
-        date: saveDate,
-        sections
-      });
-      if (saveDate === date) {
-        setNotes(res.data);
+      let payload = {};
+      if (typeof saveData === 'string') {
+        payload = { date: saveData, ...(sectionsParam || {}) };
+      } else {
+        payload = { date, ...(saveData || {}) };
       }
+
+      const res = await axiosInstance.post('/api/v1/journal/notes', payload);
+      // Immediately refresh or update state
+      await fetchNotes();
       return res.data;
     } catch (err) {
       throw err;
     }
   };
 
-  return { notes, loading, error, saveNotes };
+  return { notes, loading, error, saveNotes, refetch: fetchNotes };
 }

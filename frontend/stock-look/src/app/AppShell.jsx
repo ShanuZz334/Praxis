@@ -29,19 +29,10 @@ const AppShell = ({ children }) => {
   useHighImpactEventNotifier();
 
   return (
-    <main
-      className="
-                flex-1
-                px-4 sm:px-6 lg:px-8
-                py-6
-                w-full
-                mx-auto
-                w-full
-            "
-    >
+    <div className="w-full min-h-screen">
       {children}
       <OverrideUpdateModal />
-    </main>
+    </div>
   );
 };
 

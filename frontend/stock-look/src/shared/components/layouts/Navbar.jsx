@@ -309,24 +309,28 @@ const Navbar = ({ onToggleSidebar }) => {
         <button
           onClick={() => navigate("/dashboard/settings")}
           className="
+            w-[18px] h-[18px] flex items-center justify-center
             text-text-tertiary
             transition-colors
             hover:text-accent-primary
           "
         >
-          <FiSettings className="text-lg transition-transform hover:scale-110" />
+          <FiSettings className="w-[18px] h-[18px] transition-transform hover:scale-110" />
         </button>
 
       </div>
 
       {/* Floating Utilities Column (Below Settings) */}
-      <div className="fixed top-[85px] right-[20px] flex flex-col items-center justify-center gap-4 z-40">
+      <div className="fixed top-[85px] right-[14px] w-[30px] flex flex-col items-center justify-center gap-3 z-40">
         <button
           onClick={() => setIsCalculatorOpen(true)}
           className="
+            w-[30px] h-[30px] flex items-center justify-center rounded-xl
             text-text-tertiary
-            transition-colors
+            transition-all
             hover:text-accent-primary
+            hover:bg-background-surface/80
+            active:scale-95
           "
           title="Calculator"
         >
@@ -355,7 +359,10 @@ const Navbar = ({ onToggleSidebar }) => {
           }}
           className={`
             relative
-            transition-colors
+            w-[30px] h-[30px] flex items-center justify-center rounded-xl
+            transition-all
+            hover:bg-background-surface/80
+            active:scale-95
             ${globalOrderTicket ? 'text-accent-primary' : 'text-text-tertiary hover:text-accent-primary'}
           `}
           title="Order Ticket (T)"

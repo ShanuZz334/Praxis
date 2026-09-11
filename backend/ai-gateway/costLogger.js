@@ -1,3 +1,5 @@
+import { aiQuotaTracker } from './aiQuotaTracker.js';
+
 export const costLogger = {
     log(request, response) {
         // Bug 28 Fix: Mask request details to prevent PII or API Keys bleeding into server logs
@@ -19,5 +21,19 @@ export const costLogger = {
         };
         
         console.log(JSON.stringify({ type: "AI_GATEWAY_LOG", ...logEntry }));
+
+        // Track live request consumption for real quota tracking (0 mock data)
+        if (!response.cached && response.provider && response.model && !response.error) {
+            try {
+                aiQuotaTracker.recordUsage({
+                    provider: response.provider,
+                    model: response.model,
+                    tokensIn: response.tokensIn || 0,
+                    tokensOut: response.tokensOut || 0
+                });
+            } catch (e) {
+                console.error('[costLogger] Failed to record usage in aiQuotaTracker:', e.message);
+            }
+        }
     }
 };

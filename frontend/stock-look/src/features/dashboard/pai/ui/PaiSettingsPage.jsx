@@ -32,8 +32,8 @@ export default function PaiSettingsPage() {
     ];
 
     return (
-        <div className="h-full w-full overflow-y-auto bg-background-app p-4 md:p-6 animate-in fade-in duration-300">
-            <div className="max-w-[1400px] mx-auto space-y-4">
+        <div className="w-full min-h-screen bg-background-app p-4 md:p-6 animate-in fade-in duration-300">
+            <div className="max-w-[1400px] mx-auto space-y-4 pb-24">
                 
                 {/* Header Section */}
                 <div className="flex items-center gap-4 border-b border-border-default/40 pb-4">

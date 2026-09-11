@@ -1,4 +1,5 @@
 import { providerCache } from '../cache/providerCache.js';
+import { aiQuotaTracker } from '../aiQuotaTracker.js';
 
 export async function call({ model, messages, maxTokens, temperature, jsonMode, providerId = 'openrouter', timeoutMs, enableWebSearch }) {
     const p = await providerCache.getProvider(providerId);
@@ -28,6 +29,9 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode, 
         },
         body: JSON.stringify(payload)
     });
+
+    // Intercept live OpenRouter rate-limit headers (supports openrouter and openrouter_2)
+    aiQuotaTracker.recordOpenRouterHeaders(response.headers, providerId);
 
     if (!response.ok) {
         const errorText = await response.text();

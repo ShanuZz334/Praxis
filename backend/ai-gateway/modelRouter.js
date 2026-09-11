@@ -26,6 +26,12 @@ function saveCBState() {
     }
 }
 
+export function clearCircuitBreakerState() {
+    circuitBreakerState = {};
+    saveCBState();
+    console.log("[AI Gateway] Cleared all circuit breaker states.");
+}
+
 export function checkProviderHealth(providerId, modelId) {
     const key = `${providerId}::${modelId}`;
     const state = circuitBreakerState[key];
@@ -109,6 +115,18 @@ export async function getRouteForTask(level, taskType) {
         }
     }
 
-    // Limit fallback fan-out to max 5 total routes to ensure we hit stable cloud providers if local/free ones fail
-    return routePlan.slice(0, 5);
+    // Smart route ordering: prioritize healthy routes (circuit-breaker closed) over tripped ones.
+    // This prevents circuit-open models from consuming all fallback slots and choking out working providers.
+    const healthyRoutes = [];
+    const trippedRoutes = [];
+    for (const r of routePlan) {
+        if (checkProviderHealth(r.provider, r.model)) {
+            healthyRoutes.push(r);
+        } else {
+            trippedRoutes.push(r);
+        }
+    }
+
+    const prioritizedPlan = [...healthyRoutes, ...trippedRoutes];
+    return prioritizedPlan.slice(0, 8);
 }

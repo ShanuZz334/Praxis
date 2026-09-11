@@ -27,8 +27,8 @@ export default function CalendarDay({ date, dayData, dayNum, onClick }) {
     textStyles = 'text-[10px] font-mono font-bold text-red-400 group-hover/day:text-red-300 transition-colors duration-300';
     tooltipText = `Loss`;
   } else if (state === 'holiday') {
-    styles     = 'rounded-full bg-amber-500/10 border border-amber-500/20 cursor-default shadow-[0_0_8px_rgba(245,158,11,0.1)] hover:bg-amber-500/20 hover:border-amber-500/40';
-    textStyles = 'text-[9px] font-mono font-bold text-amber-500/70 group-hover/day:text-amber-400 transition-colors duration-300';
+    styles     = 'rounded-full bg-amber-500/10 border border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.1)]';
+    textStyles = 'text-[9px] font-mono font-bold text-amber-500/70';
     tooltipText = `Holiday: ${holidayReason}`;
   } else if (state === 'weekend') {
     styles     = 'rounded-full bg-transparent cursor-default';
@@ -41,11 +41,11 @@ export default function CalendarDay({ date, dayData, dayNum, onClick }) {
     tooltipText = 'No Trades Recorded';
   }
 
-  const isClickable = true;
+  const isClickable = state !== 'holiday';
 
   return (
     <div
-      className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center relative group/day transition-all duration-300 ${styles} ${isClickable ? 'cursor-pointer hover:scale-110 active:scale-95' : ''}`}
+      className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center relative group/day transition-all duration-300 ${styles} ${isClickable ? 'cursor-pointer hover:scale-110 active:scale-95' : 'cursor-default select-none'}`}
       onClick={() => isClickable && onClick && onClick()}
     >
       <span className={textStyles}>{dayNum}</span>

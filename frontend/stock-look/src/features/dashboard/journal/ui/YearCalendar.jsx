@@ -25,7 +25,12 @@ function MonthCalendar({ year, month, dayMap, onDayClick }) {
 
     return (
       <div key={dateStr} className="flex justify-center items-center">
-        <CalendarDay date={dateStr} dayData={dayData} dayNum={day} onClick={() => onDayClick && onDayClick(dateStr, dayData)} />
+        <CalendarDay 
+          date={dateStr} 
+          dayData={dayData} 
+          dayNum={day} 
+          onClick={dayData?.state === 'holiday' ? undefined : () => onDayClick && onDayClick(dateStr, dayData)} 
+        />
       </div>
     );
   });
@@ -62,21 +67,6 @@ function MonthCalendar({ year, month, dayMap, onDayClick }) {
 
 export default function YearCalendar({ year, dayMap, loading, error, onDayClick, onYearChange }) {
   const targetYear = year || new Date().getFullYear();
-  const [mockOverrides, setMockOverrides] = React.useState({});
-
-  const injectMock = (type) => {
-    const today = new Date();
-    // Pick the 15th for profit and 16th for loss
-    const dateStr = `${targetYear}-${String(today.getMonth() + 1).padStart(2, '0')}-${type === 'profit' ? '15' : '16'}`;
-    setMockOverrides(prev => ({
-      ...prev,
-      [dateStr]: { 
-        state: type, 
-        pnl: type === 'profit' ? 450.50 : -125.00,
-        tradesCount: 3
-      }
-    }));
-  };
 
   if (loading) {
     return (
@@ -96,8 +86,6 @@ export default function YearCalendar({ year, dayMap, loading, error, onDayClick,
     );
   }
 
-  const mergedDayMap = { ...dayMap, ...mockOverrides };
-
   return (
     <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center justify-between mb-6">
@@ -105,26 +93,12 @@ export default function YearCalendar({ year, dayMap, loading, error, onDayClick,
           <h2 className="text-2xl font-black text-text-primary tracking-tight">Trading Journal</h2>
           <p className="text-text-secondary text-sm mt-1">Select any highlighted day to review your execution.</p>
         </div>
-        <div className="flex items-center space-x-3">
-          {/* Debug Buttons */}
-          <button 
-            onClick={() => injectMock('profit')}
-            className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded text-xs font-bold hover:bg-emerald-500/30 transition-colors"
-          >
-            Mock Profit
-          </button>
-          <button 
-            onClick={() => injectMock('loss')}
-            className="px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded text-xs font-bold hover:bg-red-500/30 transition-colors"
-          >
-            Mock Loss
-          </button>
-          
+        <div className="flex items-center">
           {/* Year Controller */}
-          <div className="flex items-center bg-background-card border border-border-default rounded-full shadow-sm ml-4 overflow-hidden">
+          <div className="flex items-center bg-background-card border border-border-default rounded-full shadow-sm overflow-hidden">
             <button 
               onClick={() => onYearChange && onYearChange(targetYear - 1)}
-              className="px-2 py-1.5 hover:bg-white/5 transition-colors text-text-secondary hover:text-text-primary"
+              className="px-2 py-1.5 hover:bg-white/5 transition-colors text-text-secondary hover:text-text-primary cursor-pointer"
             >
               <ChevronLeft size={16} />
             </button>
@@ -133,7 +107,7 @@ export default function YearCalendar({ year, dayMap, loading, error, onDayClick,
             </div>
             <button 
               onClick={() => onYearChange && onYearChange(targetYear + 1)}
-              className="px-2 py-1.5 hover:bg-white/5 transition-colors text-text-secondary hover:text-text-primary"
+              className="px-2 py-1.5 hover:bg-white/5 transition-colors text-text-secondary hover:text-text-primary cursor-pointer"
             >
               <ChevronRight size={16} />
             </button>
@@ -147,7 +121,7 @@ export default function YearCalendar({ year, dayMap, loading, error, onDayClick,
             key={`month-${monthIndex}`} 
             year={targetYear} 
             month={monthIndex} 
-            dayMap={mergedDayMap} 
+            dayMap={dayMap || {}} 
             onDayClick={onDayClick}
           />
         ))}

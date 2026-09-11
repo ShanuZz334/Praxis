@@ -14,8 +14,16 @@ export default function JournalPage() {
     const { dayMap, loading, error } = useJournalCalendar(selectedYear);
 
     const handleDayClick = (dateStr, dayData) => {
+        if (dayData?.state === 'holiday') return;
         setSelectedDate(dateStr);
         setSelectedDayData(dayData);
+    };
+
+    const handleNavigateDate = (newDateStr) => {
+        if (!newDateStr) return;
+        const newDayData = dayMap[newDateStr] || { state: 'no-trade', pnl: 0, tradesCount: 0 };
+        setSelectedDate(newDateStr);
+        setSelectedDayData(newDayData);
     };
 
     const handleClosePanel = () => {
@@ -48,16 +56,17 @@ export default function JournalPage() {
                 <div className="fixed inset-0 z-[100] isolate">
                     {/* Backdrop */}
                     <div 
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity"
                         onClick={handleClosePanel}
                     />
                     
                     {/* Panel */}
-                    <div className="fixed top-0 right-0 h-full w-full md:w-[600px] lg:w-[800px] bg-background-surface shadow-2xl border-l border-border-default overflow-y-auto animate-in slide-in-from-right duration-300">
+                    <div className="fixed top-0 right-0 h-full w-full md:w-[680px] lg:w-[840px] xl:w-[920px] bg-background-surface shadow-2xl border-l border-border-default/60 overflow-hidden animate-in slide-in-from-right duration-300">
                         <DayPanel 
                             date={selectedDate} 
                             dayData={selectedDayData} 
                             onClose={handleClosePanel} 
+                            onNavigateDate={handleNavigateDate}
                         />
                     </div>
                 </div>,

@@ -95,6 +95,45 @@ export async function executeWithFallback(routePlan, providers, requestConfig) {
         }
     }
 
+    // Safety Net Emergency Fallback:
+    // If all planned routes were circuit-open or failed, attempt a clean call to high-availability providers (Gemini or Groq)
+    const emergencyCandidates = [
+        { provider: 'gemini', model: 'gemini-3.5-flash-lite' },
+        { provider: 'gemini', model: 'gemini-3.5-flash' },
+        { provider: 'groq', model: 'groq/compound-mini' }
+    ];
+
+    for (const emer of emergencyCandidates) {
+        if (providerErrors.some(e => e.includes(`${emer.provider}/${emer.model}`))) continue;
+        const mod = providers[emer.provider];
+        if (!mod) continue;
+
+        try {
+            console.log(`[AI Gateway] Attempting Emergency Resilience Fallback with ${emer.provider} (${emer.model})...`);
+            const result = await mod.call({
+                providerId: emer.provider,
+                model: emer.model,
+                ...requestConfig,
+                timeoutMs: 15000
+            });
+            const { parsed, raw } = validateOutput(result.text, requestConfig.jsonMode, requestConfig.schema);
+            recordProviderSuccess(emer.provider, emer.model);
+            return {
+                ...result,
+                text: raw,
+                structured: parsed,
+                provider: emer.provider,
+                model: emer.model,
+                cached: false,
+                fallbackTriggered: true,
+                fallbackReason: 'Primary routes failed - Emergency resilience fallback activated'
+            };
+        } catch (emerErr) {
+            console.error(`[AI Gateway] Emergency fallback ${emer.provider}/${emer.model} failed:`, emerErr.message);
+            providerErrors.push(`${emer.provider}/${emer.model}: ${emerErr.message}`);
+        }
+    }
+
     const sanitize = (msg) => {
         const clean = msg.replace(/[\r\n]/g, ' ').replace(/\s+/g, ' ').trim();
         let extracted = clean;

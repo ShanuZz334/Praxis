@@ -31,7 +31,17 @@ router.get("/notes", (req, res) => {
         const note = stmt.get(date);
 
         if (note) {
-            res.json({ status: "success", data: note });
+            const normalized = {
+                ...note,
+                preMarket: note.premarket || '',
+                inMarket: note.inmarket || '',
+                postMarket: note.postmarket || '',
+                lessonsLearned: note.lessons || '',
+                aiInsights: note.ai_insights || '',
+                weeklyReview: note.premarket || '',
+                marketAnalysis: note.inmarket || ''
+            };
+            res.json({ status: "success", data: normalized });
         } else {
             res.json({ status: "success", data: null });
         }
@@ -47,9 +57,18 @@ router.get("/notes", (req, res) => {
  */
 router.post("/notes", (req, res) => {
     try {
-        const { date, premarket, inmarket, postmarket, lessons, mood, tags, compliance_score, ai_insights, images } = req.body;
-        
+        const date = req.body.date;
         if (!date) return res.status(400).json({ error: "Date is required in body" });
+
+        const premarket = req.body.premarket ?? req.body.preMarket ?? req.body.weeklyReview ?? '';
+        const inmarket = req.body.inmarket ?? req.body.inMarket ?? req.body.marketAnalysis ?? '';
+        const postmarket = req.body.postmarket ?? req.body.postMarket ?? '';
+        const lessons = req.body.lessons ?? req.body.lessonsLearned ?? '';
+        const mood = req.body.mood ?? '';
+        const tags = typeof req.body.tags === 'string' ? req.body.tags : JSON.stringify(req.body.tags || []);
+        const compliance_score = req.body.compliance_score ?? '';
+        const ai_insights = req.body.ai_insights ?? req.body.aiInsights ?? '';
+        const images = typeof req.body.images === 'string' ? req.body.images : JSON.stringify(req.body.images || []);
 
         const stmt = db.prepare(`
             INSERT INTO journal_notes (date, premarket, inmarket, postmarket, lessons, mood, tags, compliance_score, ai_insights, images)
@@ -69,15 +88,15 @@ router.post("/notes", (req, res) => {
 
         stmt.run(
             date, 
-            premarket || '', 
-            inmarket || '', 
-            postmarket || '', 
-            lessons || '', 
-            mood || '', 
-            tags || '[]', 
-            compliance_score || '', 
-            ai_insights || '', 
-            images || '[]'
+            premarket, 
+            inmarket, 
+            postmarket, 
+            lessons, 
+            mood, 
+            tags, 
+            compliance_score, 
+            ai_insights, 
+            images
         );
 
         res.json({ status: "success", message: "Journal saved successfully" });
