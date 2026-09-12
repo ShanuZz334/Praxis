@@ -64,7 +64,7 @@ export default function StockyGaugeSection({ score, regime, risk, readiness }) {
                 <div className="relative h-full bg-[#0b1220] border border-white/5 rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.45)] flex flex-col items-center justify-center overflow-hidden">
                     <div className="flex items-center gap-2 mb-6">
                         <Activity size={14} className="text-slate-500" />
-                        <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Stocky Score</div>
+                        <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Praxis Score</div>
                     </div>
 
                     <div className="relative w-40 h-40 flex items-center justify-center mb-2">

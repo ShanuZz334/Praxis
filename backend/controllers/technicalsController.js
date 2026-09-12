@@ -306,22 +306,27 @@ export const getCandles = async (req, res) => {
         rows.reverse();
 
         // Format for lightweight-charts: { time: 'YYYY-MM-DD' or unix timestamp, open, high, low, close }
-        const formattedData = rows.map(row => {
+        const seenTimes = new Set();
+        const formattedData = [];
+        for (const row of rows) {
             // lightweight-charts requires time in seconds for intraday, or string for daily
             const dateObj = new Date(row.timestamp);
             const time = timeframe === 'day' || timeframe === 'week' || timeframe === 'month' 
                 ? dateObj.toISOString().split('T')[0] 
                 : Math.floor(dateObj.getTime() / 1000);
             
-            return {
-                time,
-                open: row.open,
-                high: row.high,
-                low: row.low,
-                close: row.close,
-                volume: row.volume
-            };
-        });
+            if (!seenTimes.has(time)) {
+                seenTimes.add(time);
+                formattedData.push({
+                    time,
+                    open: row.open,
+                    high: row.high,
+                    low: row.low,
+                    close: row.close,
+                    volume: row.volume
+                });
+            }
+        }
 
         // Send response immediately — don't block on backfill
         res.status(200).json({

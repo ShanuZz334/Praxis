@@ -185,7 +185,12 @@ export default function JournalHeader({ dayMap }) {
                 value={pfDisplay}
                 sub="Gross Profit / Gross Loss"
                 subValue={profitFactor > 0 && profitFactor < 99
-                    ? (profitFactor >= 2 ? '🟢 Institutional' : profitFactor >= 1 ? '🟡 Profitable' : '🔴 Negative')
+                    ? (
+                        <span className="inline-flex items-center gap-1">
+                            <span className={`w-1.5 h-1.5 rounded-full ${profitFactor >= 2 ? 'bg-emerald-400' : profitFactor >= 1 ? 'bg-amber-400' : 'bg-rose-400'}`} />
+                            {profitFactor >= 2 ? 'Institutional' : profitFactor >= 1 ? 'Profitable' : 'Negative'}
+                        </span>
+                    )
                     : null}
                 colorTheme="blue"
                 chartData={charts.pfCurve}

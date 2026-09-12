@@ -18,6 +18,7 @@
 // =============================
 import React from 'react';
 import { motion } from 'framer-motion';
+import { TrendingUp, AlertTriangle } from 'lucide-react';
 import { staggerContainer, slideUp } from '@/shared/utils/chartAnimations';
 
 // =============================
@@ -41,7 +42,7 @@ export default function IntelligenceDashboard({ intelligence }) {
                 {/* 1. TAILWINDS */}
                 <motion.div variants={slideUp}>
                     <div className="flex items-center gap-2 mb-3">
-                        <span className="text-green-400 text-lg">🚀</span>
+                        <TrendingUp size={18} className="text-green-400 shrink-0" />
                         <div className="text-sm font-medium text-white/80">Top 3 Tailwinds</div>
                     </div>
                     <div className="space-y-2">
@@ -55,7 +56,7 @@ export default function IntelligenceDashboard({ intelligence }) {
                                     transition={{ delay: i * 0.1 }}
                                 >
                                     <div className="flex items-center gap-2">
-                                        <span>{tw.icon}</span>
+                                        <TrendingUp size={14} className="text-green-400/70" />
                                         <span className="text-sm text-white/90">{tw.label}</span>
                                     </div>
                                     <div className="text-sm font-semibold text-green-400">
@@ -72,7 +73,7 @@ export default function IntelligenceDashboard({ intelligence }) {
                 {/* 2. RISKS */}
                 <motion.div variants={slideUp}>
                     <div className="flex items-center gap-2 mb-3">
-                        <span className="text-red-400 text-lg">⚠️</span>
+                        <AlertTriangle size={18} className="text-red-400 shrink-0" />
                         <div className="text-sm font-medium text-white/80">Top 3 Risks</div>
                     </div>
                     <div className="space-y-2">
@@ -86,7 +87,7 @@ export default function IntelligenceDashboard({ intelligence }) {
                                     transition={{ delay: i * 0.1 }}
                                 >
                                     <div className="flex items-center gap-2">
-                                        <span>{risk.icon}</span>
+                                        <AlertTriangle size={14} className="text-red-400/70" />
                                         <span className="text-sm text-white/90">{risk.label}</span>
                                     </div>
                                     <div className="text-sm font-semibold text-red-400">

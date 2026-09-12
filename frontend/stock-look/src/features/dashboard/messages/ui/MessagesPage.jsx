@@ -17,6 +17,7 @@ import {
     FiAlertTriangle,
     FiCheckCircle,
     FiSearch,
+    FiTrash2,
 } from "react-icons/fi";
 import MessageCard from "./MessageCard";
 import MessageDetailModal from "./MessageDetailModal";
@@ -71,7 +72,7 @@ export default function MessagesPage() {
     const [selectedMessage, setSelectedMessage] = useState(null);
     const [pinnedIds, setPinnedIds] = useState([]);
 
-    const { notifications, removeNotification, markAsRead } = useNotificationStore();
+    const { notifications, removeNotification, markAsRead, markAllAsRead, clearAll, unreadCount } = useNotificationStore();
 
     // Map notifications to the format expected by the page
     const messages = notifications.map(n => ({
@@ -92,7 +93,7 @@ export default function MessagesPage() {
         if (activeCategory !== "all" && msg.category !== activeCategory) return false;
         if (activeFilter === "unread" && msg.read) return false;
         if (activeFilter === "pinned" && !pinnedIds.includes(msg.id)) return false;
-        if (searchQuery && !msg.title.toLowerCase().includes(searchQuery.toLowerCase()) && !msg.description.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        if (searchQuery && !msg.title?.toLowerCase().includes(searchQuery.toLowerCase()) && !msg.description?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
         return true;
     });
 
@@ -105,11 +106,53 @@ export default function MessagesPage() {
         <div className="flex flex-col h-[calc(100vh-4rem)] px-4 md:px-6 pt-4 animate-in fade-in duration-500 w-full text-text-primary">
             {/* 1. Header & Global Actions */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 shrink-0">
-                <div>
-                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-text-primary to-text-secondary tracking-tight">
-                        Inbox &amp; Alerts
-                    </h1>
-                    <p className="text-sm text-text-tertiary mt-1">Real-time system notifications and AI insights</p>
+                <div className="flex items-center gap-3.5">
+                    {/* Bell Icon with live notification badge */}
+                    <div className="relative p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center shrink-0">
+                        <FiBell className="w-6 h-6" />
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1.5 flex items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white shadow-sm ring-2 ring-background-app tabular-nums animate-in zoom-in-50 duration-200">
+                                {unreadCount > 99 ? '99+' : unreadCount}
+                            </span>
+                        )}
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2.5">
+                            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-text-primary to-text-secondary tracking-tight">
+                                Inbox &amp; Alerts
+                            </h1>
+                            {unreadCount > 0 && (
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                                    {unreadCount} Unread
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-sm text-text-tertiary mt-0.5">Real-time system notifications and AI telemetry insights</p>
+                    </div>
+                </div>
+
+                {/* Quick actions: Mark all read / Clear all */}
+                <div className="flex items-center gap-2">
+                    {unreadCount > 0 && (
+                        <button
+                            onClick={markAllAsRead}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-blue-500 hover:bg-blue-500/10 border border-blue-500/20 transition-all active:scale-95 cursor-pointer"
+                            title="Mark all notifications as read"
+                        >
+                            <FiCheckCircle size={13} />
+                            Mark all read
+                        </button>
+                    )}
+                    {messages.length > 0 && (
+                        <button
+                            onClick={clearAll}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-text-tertiary hover:text-rose-400 hover:bg-rose-500/10 border border-border-default/40 transition-all active:scale-95 cursor-pointer"
+                            title="Clear all notifications"
+                        >
+                            <FiTrash2 size={13} />
+                            Clear all
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -131,11 +174,16 @@ export default function MessagesPage() {
                                 <div className="flex items-center gap-2.5">
                                     <span>{cat.label}</span>
                                 </div>
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold hidden lg:block
-                                    ${activeCategory === cat.id ? 'bg-blue-500/20 text-blue-500' : 'bg-background-elevated text-text-tertiary'}
-                                `}>
-                                    {cat.count}
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                    {cat.id === 'alerts' && messages.some(m => m.category === 'alerts' && !m.read) && (
+                                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse hidden lg:block" />
+                                    )}
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold hidden lg:block
+                                        ${activeCategory === cat.id ? 'bg-blue-500/20 text-blue-500' : 'bg-background-elevated text-text-tertiary'}
+                                    `}>
+                                        {cat.count}
+                                    </span>
+                                </div>
                             </button>
                         ))}
                     </div>

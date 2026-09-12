@@ -21,6 +21,7 @@
 // =============================
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { useTheme } from "@/shared/context/ThemeContext";
 import FundamentalInterpretationDesk from "./FundamentalInterpretationDesk";
 import FundamentalMetricsDesk from "./FundamentalMetricsDesk";
@@ -69,7 +70,7 @@ export default function FundamentalModal({ open, onClose, card }) {
           <FundamentalInterpretationDesk card={card} />
         </div>
 
-        {/* 🧱 CENTER PANEL */}
+        {/* CENTER PANEL */}
         <div className="
           flex-1 min-w-0 max-w-3xl pointer-events-auto
           flex flex-col
@@ -102,7 +103,7 @@ export default function FundamentalModal({ open, onClose, card }) {
                 border border-border-subtle hover:border-border-default
               "
             >
-              <span className="group-hover:rotate-90 transition-transform duration-300">✕</span>
+              <X size={16} className="group-hover:rotate-90 transition-transform duration-300" />
             </button>
           </div>
 
@@ -160,7 +161,7 @@ export default function FundamentalModal({ open, onClose, card }) {
           </div>
         </div>
 
-        {/* ➡ RIGHT PANEL */}
+        {/* RIGHT PANEL */}
         <div className="hidden lg:block w-[240px] pointer-events-auto">
           <FundamentalMetricsDesk card={card} />
         </div>

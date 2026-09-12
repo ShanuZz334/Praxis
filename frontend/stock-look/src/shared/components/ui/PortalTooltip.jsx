@@ -166,7 +166,7 @@ export default function PortalTooltip({
                     }}
                 >
                     {variant === 'minimal' ? (
-                        <div className="bg-[#1a1f2e] border border-white/10 text-white/90 text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-xl pointer-events-none whitespace-nowrap">
+                        <div className="bg-white dark:bg-[#1a1f2e] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white/90 text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-xl pointer-events-none whitespace-nowrap">
                             {content}
                         </div>
                     ) : (

@@ -29,11 +29,11 @@ export const upstoxService = {
             socket = io(SOCKET_URL);
             
             socket.on("connect", () => {
-                console.log("🟢 Connected to Praxis Realtime Feed");
+                console.log("[UpstoxFeed] Connected to Praxis Realtime Feed");
             });
 
             socket.on("disconnect", () => {
-                console.log("🔴 Disconnected from Praxis Realtime Feed");
+                console.log("[UpstoxFeed] Disconnected from Praxis Realtime Feed");
             });
         }
 

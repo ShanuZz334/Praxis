@@ -16,6 +16,7 @@
 
 import React, { useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { useTheme } from "@/shared/context/ThemeContext";
 import TechnicalInterpretationDesk from "./TechnicalInterpretationDesk";
 import TechnicalMetricsDesk from "./TechnicalMetricsDesk";
@@ -73,7 +74,7 @@ export default function TechnicalModal({ open, onClose, children, card }) {
                     <TechnicalInterpretationDesk card={card} />
                 </div>
 
-                {/* 🧱 CENTER: POPUP CARD */}
+                {/* CENTER: POPUP CARD */}
                 <div
                     className="
             flex-1 min-w-0 max-w-3xl pointer-events-auto
@@ -115,7 +116,7 @@ export default function TechnicalModal({ open, onClose, children, card }) {
                                 border border-border-subtle hover:border-border-default
                               "
                         >
-                            <span className="group-hover:rotate-90 transition-transform duration-300">✕</span>
+                            <X size={16} className="group-hover:rotate-90 transition-transform duration-300" />
                         </button>
                     </div>
 
@@ -183,7 +184,7 @@ export default function TechnicalModal({ open, onClose, children, card }) {
                     </div>
                 </div>
 
-                {/* ➡ RIGHT FLOAT: METRICS DESK (ACTION SIGNAL) */}
+                {/* RIGHT FLOAT: METRICS DESK (ACTION SIGNAL) */}
                 <div className="hidden lg:block w-[240px] pointer-events-auto">
                     <TechnicalMetricsDesk card={card} />
                 </div>

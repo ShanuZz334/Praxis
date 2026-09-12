@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { Sparkles } from 'lucide-react';
 import { FundamentalContext } from '@/features/dashboard/fundamentals/ui/FundamentalContext';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { cn, cleanNum } from '@/lib/utils';
@@ -185,8 +186,8 @@ export default function PeerComparisonTable({ data, selectedInstrument }) {
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }} className="overflow-hidden">
                         <div className="mt-3 mb-2 border-t border-border-subtle" />
                         <div className="pt-2 pb-2">
-                            <h4 className="text-[10px] uppercase tracking-wider text-text-tertiary mb-2 flex items-center gap-2">
-                                <span className="text-blue-400">✧</span> Praxis Intelligence
+                            <h4 className="text-[10px] uppercase tracking-wider text-text-tertiary mb-2 flex items-center gap-1.5">
+                                <Sparkles size={11} className="text-blue-400" /> Praxis Intelligence
                             </h4>
                             {insightData.isLoading ? (
                                 <div className="space-y-2">

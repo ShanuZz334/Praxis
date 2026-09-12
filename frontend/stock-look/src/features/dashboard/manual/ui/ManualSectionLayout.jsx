@@ -26,6 +26,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Search, ArrowLeft, ChevronRight } from "lucide-react";
 import { MANUAL_CONTENT, MANUAL_SECTIONS } from "../data/manualData";
 import TopicDetail from "./TopicDetail";
+import GhostLogo from "@/shared/components/ui/GhostLogo";
 
 // =============================
 // Main Component
@@ -50,7 +51,8 @@ export default function ManualSectionLayout() {
         );
     }, [sectionData, searchQuery]);
 
-    const activeTopic = sectionData?.topics.find(t => t.id === selectedTopicId);
+    const activeTopicId = selectedTopicId || filteredTopics[0]?.id;
+    const activeTopic = sectionData?.topics.find(t => t.id === activeTopicId) || filteredTopics[0] || null;
 
     // --- Render Guard ---
     if (!sectionData) {
@@ -70,7 +72,13 @@ export default function ManualSectionLayout() {
                 </button>
                 <div>
                     <h1 className="text-xl font-bold text-text-primary flex items-center gap-3">
-                        {sectionMeta?.icon && <sectionMeta.icon className="w-6 h-6 text-blue-500" />}
+                        {sectionMeta?.customIcon === 'pai' ? (
+                            <div className="w-6 h-6 flex items-center justify-center shrink-0 overflow-visible">
+                                <GhostLogo style={{ transform: 'scale(0.25)' }} />
+                            </div>
+                        ) : (
+                            sectionMeta?.icon && <sectionMeta.icon className="w-6 h-6 text-blue-500" />
+                        )}
                         <span className="hidden md:inline opacity-50 font-normal">Manual /</span>
                         <div className="flex items-center gap-2">
                             {sectionData.title}
@@ -107,7 +115,7 @@ export default function ManualSectionLayout() {
                                 onClick={() => setSelectedTopicId(topic.id)}
                                 className={`
                                     relative h-20 p-3 rounded-2xl border cursor-pointer group transition-all duration-300 overflow-hidden shrink-0
-                                    ${selectedTopicId === topic.id
+                                    ${activeTopic?.id === topic.id
                                         ? 'bg-blue-500/5 border-blue-500/30 shadow-[0_4px_20px_rgba(59,130,246,0.05)]'
                                         : 'bg-transparent border-border-default hover:border-border-subtle hover:bg-background-elevated'}
                                 `}
@@ -117,10 +125,10 @@ export default function ManualSectionLayout() {
 
                                 <div className="relative z-10 flex flex-col justify-between h-full">
                                     <div className="flex items-center justify-between">
-                                        <span className={`text-[13px] font-bold ${selectedTopicId === topic.id ? 'text-blue-500' : 'text-text-secondary group-hover:text-text-primary'}`}>
+                                        <span className={`text-[13px] font-bold ${activeTopic?.id === topic.id ? 'text-blue-500' : 'text-text-secondary group-hover:text-text-primary'}`}>
                                             {topic.title}
                                         </span>
-                                        {selectedTopicId === topic.id && <ChevronRight size={14} className="text-blue-500" />}
+                                        {activeTopic?.id === topic.id && <ChevronRight size={14} className="text-blue-500" />}
                                     </div>
                                     <p className="text-[10px] text-text-tertiary line-clamp-2 leading-relaxed">
                                         {topic.description}

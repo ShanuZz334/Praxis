@@ -2,10 +2,34 @@
   "date": "2026-09-12",
   "usage": {
     "groq::openai/gpt-oss-120b": {
+      "requests": 3,
+      "tokensIn": 14161,
+      "tokensOut": 10896,
+      "lastCalled": "2026-09-12T14:47:48.063Z"
+    },
+    "gemini::gemini-3.5-flash": {
+      "requests": 3,
+      "tokensIn": 1690,
+      "tokensOut": 729,
+      "lastCalled": "2026-09-12T14:52:37.615Z"
+    },
+    "gemini::gemini-3.8-flash": {
+      "requests": 2,
+      "tokensIn": 1549,
+      "tokensOut": 987,
+      "lastCalled": "2026-09-12T14:53:06.375Z"
+    },
+    "groq::qwen/qwen3.8-27b": {
+      "requests": 2,
+      "tokensIn": 5247,
+      "tokensOut": 1723,
+      "lastCalled": "2026-09-12T15:50:17.688Z"
+    },
+    "ollama::qwen2.5:7b": {
       "requests": 1,
-      "tokensIn": 5602,
-      "tokensOut": 2100,
-      "lastCalled": "2026-09-12T00:15:26.167Z"
+      "tokensIn": 123,
+      "tokensOut": 9,
+      "lastCalled": "2026-09-12T14:33:18.002Z"
     }
   },
   "groqLiveHeaders": {
@@ -13,9 +37,9 @@
     "remainingRequests": 999,
     "resetRequests": "1m26.4s",
     "limitTokens": 8000,
-    "remainingTokens": 1876,
-    "resetTokens": "45.93s",
-    "updatedAt": 1789172126160
+    "remainingTokens": 5013,
+    "resetTokens": "22.402s",
+    "updatedAt": 1789228217666
   },
   "openrouterLiveHeaders": {
     "limitRequests": 50,

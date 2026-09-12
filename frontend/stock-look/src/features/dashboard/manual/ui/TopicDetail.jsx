@@ -15,7 +15,55 @@
  */
 
 import React from "react";
-import { Calculator, Scale, BookOpen, Lightbulb, Activity, Database, Clock, ShieldAlert } from "lucide-react";
+import {
+    Calculator,
+    Scale,
+    BookOpen,
+    Lightbulb,
+    Activity,
+    Database,
+    Clock,
+    ShieldAlert,
+    BrainCircuit,
+    Cpu,
+    Layers,
+    Shield,
+    ShieldCheck,
+    AlertTriangle,
+    Target,
+    Lock,
+    Terminal,
+    CheckCircle2,
+    Zap
+} from "lucide-react";
+
+const ICON_MAP = {
+    Scale,
+    Database,
+    Clock,
+    ShieldAlert,
+    BrainCircuit,
+    Cpu,
+    Layers,
+    Shield,
+    ShieldCheck,
+    AlertTriangle,
+    Target,
+    Lock,
+    Terminal,
+    CheckCircle2,
+    Zap,
+    BookOpen,
+    Calculator,
+    Activity,
+    Lightbulb
+};
+
+function getMetadataIcon(iconName) {
+    if (!iconName) return Database;
+    if (typeof iconName !== 'string') return iconName;
+    return ICON_MAP[iconName] || Database;
+}
 
 export default function TopicDetail({ topic }) {
     if (!topic) {
@@ -26,6 +74,11 @@ export default function TopicDetail({ topic }) {
             </div>
         );
     }
+
+    const whereDelimiter = topic.calculation?.includes("Where:") ? "Where:" :
+        topic.calculation?.includes("Parameters:") ? "Parameters:" :
+        topic.calculation?.includes("Key Rules:") ? "Key Rules:" :
+        topic.calculation?.includes("Implementation Steps:") ? "Implementation Steps:" : null;
 
     return (
         <div className="h-full overflow-y-auto pr-4 custom-scrollbar animate-in slide-in-from-right-8 duration-500 fade-in pb-12">
@@ -50,7 +103,9 @@ export default function TopicDetail({ topic }) {
                         <div className="p-1 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400">
                             <Activity size={14} />
                         </div>
-                        <h3 className="text-[10px] font-bold text-text-primary uppercase tracking-widest">Interpretation Framework</h3>
+                        <h3 className="text-[10px] font-bold text-text-primary uppercase tracking-widest">
+                            {topic.frameworkScaleTitle || "Interpretation Framework"}
+                        </h3>
                     </div>
                     
                     {topic.interpretationVisual ? (
@@ -91,7 +146,9 @@ export default function TopicDetail({ topic }) {
                             <Lightbulb size={14} />
                         </div>
                         <div>
-                            <h4 className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest mb-2">Market Alpha Insight</h4>
+                            <h4 className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest mb-2">
+                                {topic.insightTitle || "Market Alpha Insight"}
+                            </h4>
                             <p className="text-[12px] text-text-secondary font-serif italic leading-relaxed whitespace-pre-wrap">
                                 "{topic.proTip}"
                             </p>
@@ -106,22 +163,26 @@ export default function TopicDetail({ topic }) {
                     <div className="lg:col-span-2 bg-background-card border border-border-default rounded-xl p-5">
                         <div className="flex items-center gap-2 mb-4">
                             <div className="p-1 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400">
-                                {topic.isBehavioral ? <BookOpen size={14} /> : <Calculator size={14} />}
+                                {topic.frameworkIcon === 'brain' ? <BrainCircuit size={14} /> :
+                                 topic.frameworkIcon === 'shield' ? <Shield size={14} /> :
+                                 topic.frameworkIcon === 'layers' ? <Layers size={14} /> :
+                                 topic.frameworkIcon === 'terminal' ? <Terminal size={14} /> :
+                                 topic.isBehavioral ? <BookOpen size={14} /> : <Calculator size={14} />}
                             </div>
                             <span className="text-[10px] font-bold text-text-primary uppercase tracking-widest">
-                                {topic.isBehavioral ? "Behavioral Framework" : "How It's Calculated"}
+                                {topic.frameworkTitle || (topic.isBehavioral ? "Behavioral Framework" : "How It's Calculated")}
                             </span>
                         </div>
                         
-                        <div className="text-xs text-text-secondary leading-relaxed mb-4">
-                            {topic.calculation ? topic.calculation.split("Where:")[0] : ""}
+                        <div className="text-xs text-text-secondary leading-relaxed mb-4 whitespace-pre-wrap">
+                            {topic.calculation ? (whereDelimiter ? topic.calculation.split(whereDelimiter)[0].trim() : topic.calculation) : ""}
                         </div>
 
-                        {topic.calculation && topic.calculation.includes("Where:") && (
+                        {topic.calculation && whereDelimiter && (
                             <div className="text-xs text-text-secondary leading-relaxed">
-                                <div className="mb-2">Where:</div>
-                                <div className="pl-4 space-y-1">
-                                    {topic.calculation.split("Where:")[1].trim().split('\n').map((line, i) => (
+                                <div className="mb-2 font-bold text-text-primary">{whereDelimiter}</div>
+                                <div className="pl-4 space-y-1.5">
+                                    {topic.calculation.split(whereDelimiter)[1].trim().split('\n').map((line, i) => (
                                         <div key={i} className="flex items-start">
                                             <span className="mr-2 opacity-50">•</span>
                                             <span>{line.replace(/^•\s*/, '')}</span>
@@ -137,46 +198,101 @@ export default function TopicDetail({ topic }) {
 
                     {/* Right Col: Metadata Stack */}
                     <div className="lg:col-span-1 space-y-3">
-                        {topic.dataSources && (
-                            <div className="bg-background-card border border-border-default rounded-xl p-4 flex items-start gap-3">
-                                <div className="mt-0.5 text-blue-600/70 dark:text-blue-400/70"><Database size={14} /></div>
-                                <div>
-                                    <div className="text-[9px] font-bold text-text-primary uppercase tracking-widest mb-1">Data Sources</div>
-                                    <div className="text-[11px] text-text-secondary leading-relaxed">{topic.dataSources}</div>
-                                </div>
-                            </div>
-                        )}
-                        {topic.updateFrequency && (
-                            <div className="bg-background-card border border-border-default rounded-xl p-4 flex items-start gap-3">
-                                <div className="mt-0.5 text-emerald-600/70 dark:text-emerald-400/70"><Clock size={14} /></div>
-                                <div>
-                                    <div className="text-[9px] font-bold text-text-primary uppercase tracking-widest mb-1">Update Frequency</div>
-                                    <div className="text-[11px] text-text-secondary leading-relaxed whitespace-pre-wrap">{topic.updateFrequency}</div>
-                                </div>
-                            </div>
-                        )}
-                        {topic.confidenceImpact && (
-                            <div className="bg-background-card border border-border-default rounded-xl p-4 flex items-start gap-3">
-                                <div className="mt-0.5 text-amber-600/70 dark:text-amber-400/70"><ShieldAlert size={14} /></div>
-                                <div>
-                                    <div className="text-[9px] font-bold text-text-primary uppercase tracking-widest mb-1">Confidence Impact</div>
-                                    <div className="text-[11px] text-text-secondary leading-relaxed">{topic.confidenceImpact}</div>
-                                </div>
-                            </div>
-                        )}
-                        {!topic.dataSources && !topic.updateFrequency && !topic.confidenceImpact && (
-                            <div className="bg-background-card border border-border-default rounded-xl p-4 h-full flex flex-col justify-center">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Scale size={14} className="text-purple-600 dark:text-purple-400" />
-                                    <span className="text-[10px] font-bold text-text-primary uppercase tracking-widest">Model Weighting</span>
-                                </div>
-                                <div className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500 tracking-tighter">
-                                    {topic.weight}
-                                </div>
-                            </div>
+                        {topic.metadata && topic.metadata.length > 0 ? (
+                            topic.metadata.map((item, idx) => {
+                                const ItemIcon = getMetadataIcon(item.icon);
+                                return (
+                                    <div key={idx} className="bg-background-card border border-border-default rounded-xl p-4 flex items-start gap-3">
+                                        <div className={`mt-0.5 ${item.color || 'text-blue-500'}`}>
+                                            <ItemIcon size={14} />
+                                        </div>
+                                        <div>
+                                            <div className="text-[9px] font-bold text-text-primary uppercase tracking-widest mb-1">
+                                                {item.label}
+                                            </div>
+                                            <div className="text-[11px] text-text-secondary leading-relaxed whitespace-pre-wrap">
+                                                {item.value}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <>
+                                {topic.weight && (
+                                    <div className="bg-background-card border border-border-default rounded-xl p-4 flex items-start gap-3">
+                                        <div className="mt-0.5 text-purple-600/70 dark:text-purple-400/70"><Scale size={14} /></div>
+                                        <div>
+                                            <div className="text-[9px] font-bold text-text-primary uppercase tracking-widest mb-1">Model Weighting</div>
+                                            <div className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500 tracking-tight">{topic.weight}</div>
+                                        </div>
+                                    </div>
+                                )}
+                                {topic.dataSources && (
+                                    <div className="bg-background-card border border-border-default rounded-xl p-4 flex items-start gap-3">
+                                        <div className="mt-0.5 text-blue-600/70 dark:text-blue-400/70"><Database size={14} /></div>
+                                        <div>
+                                            <div className="text-[9px] font-bold text-text-primary uppercase tracking-widest mb-1">Data Sources</div>
+                                            <div className="text-[11px] text-text-secondary leading-relaxed">{topic.dataSources}</div>
+                                        </div>
+                                    </div>
+                                )}
+                                {topic.updateFrequency && (
+                                    <div className="bg-background-card border border-border-default rounded-xl p-4 flex items-start gap-3">
+                                        <div className="mt-0.5 text-emerald-600/70 dark:text-emerald-400/70"><Clock size={14} /></div>
+                                        <div>
+                                            <div className="text-[9px] font-bold text-text-primary uppercase tracking-widest mb-1">Update Frequency</div>
+                                            <div className="text-[11px] text-text-secondary leading-relaxed whitespace-pre-wrap">{topic.updateFrequency}</div>
+                                        </div>
+                                    </div>
+                                )}
+                                {topic.confidenceImpact && (
+                                    <div className="bg-background-card border border-border-default rounded-xl p-4 flex items-start gap-3">
+                                        <div className="mt-0.5 text-amber-600/70 dark:text-amber-400/70"><ShieldAlert size={14} /></div>
+                                        <div>
+                                            <div className="text-[9px] font-bold text-text-primary uppercase tracking-widest mb-1">Confidence Impact</div>
+                                            <div className="text-[11px] text-text-secondary leading-relaxed">{topic.confidenceImpact}</div>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>
+
+                {/* 5. INSTITUTIONAL EXECUTION PLAYBOOK */}
+                {topic.executionPlaybook && (
+                    <div className="bg-background-card border border-border-default rounded-xl p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="p-1.5 rounded bg-blue-500/20 text-blue-500">
+                                <Target size={14} />
+                            </div>
+                            <h4 className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">
+                                Institutional Execution Playbook
+                            </h4>
+                        </div>
+                        <div className="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">
+                            {topic.executionPlaybook}
+                        </div>
+                    </div>
+                )}
+
+                {/* 6. CRITICAL TRAPS & FAILURE MODES */}
+                {topic.failureModes && (
+                    <div className="bg-background-card border border-rose-500/20 bg-rose-500/[0.02] rounded-xl p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="p-1.5 rounded bg-rose-500/20 text-rose-500">
+                                <ShieldAlert size={14} />
+                            </div>
+                            <h4 className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">
+                                Critical Traps & Failure Modes
+                            </h4>
+                        </div>
+                        <div className="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">
+                            {topic.failureModes}
+                        </div>
+                    </div>
+                )}
 
             </div>
         </div>

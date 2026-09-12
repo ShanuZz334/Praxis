@@ -20,6 +20,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { AlertTriangle, CheckCircle2, Flame, Lightbulb } from 'lucide-react';
 
 // =============================
 // Component
@@ -100,20 +101,33 @@ export default function CPIInflationGauge({ value = 5.5, target = 4.0, height = 
 
             {/* Status */}
             <div className="mt-4 px-4 py-2 rounded-lg bg-white/5">
-                <div className={`text-xs font-medium ${value > 6 ? 'text-red-400' :
+                <div className={`text-xs font-medium flex items-center justify-center gap-1.5 ${value > 6 ? 'text-red-400' :
                     value > 4.5 ? 'text-yellow-400' :
                         'text-green-400'
                     }`}>
-                    {value > 6 ? '🔥 High Inflation Risk' :
-                        value > 4.5 ? '⚠️ Above Target' :
-                            '✅ Within Range'}
+                    {value > 6 ? (
+                        <>
+                            <Flame size={13} />
+                            <span>High Inflation Risk</span>
+                        </>
+                    ) : value > 4.5 ? (
+                        <>
+                            <AlertTriangle size={13} />
+                            <span>Above Target</span>
+                        </>
+                    ) : (
+                        <>
+                            <CheckCircle2 size={13} />
+                            <span>Within Range</span>
+                        </>
+                    )}
                 </div>
             </div>
 
             {/* AI Interpretation */}
             <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg w-full max-w-md">
                 <div className="flex items-start gap-2">
-                    <span className="text-blue-400 text-sm">💡</span>
+                    <Lightbulb size={14} className="text-blue-400 shrink-0 mt-0.5" />
                     <p className="text-xs text-white/70 leading-relaxed">
                         {getCPIInterpretation(value, target)}
                     </p>

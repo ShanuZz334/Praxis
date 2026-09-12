@@ -17,10 +17,10 @@ import { TRADING_MODES } from '../tradingModes.js';
 // =============================
 
 export const globalSections = [
-    { id: "currency",    label: "FX",        w: 0.25, icon: "💱" },
-    { id: "indices",     label: "Indices",   w: 0.30, icon: "📊" },
-    { id: "commodities", label: "Commod",    w: 0.20, icon: "🛢️" },
-    { id: "rates",       label: "Rates",     w: 0.25, icon: "📈" }
+    { id: "currency",    label: "FX",        w: 0.25, icon: "CircleDollarSign" },
+    { id: "indices",     label: "Indices",   w: 0.30, icon: "BarChart2" },
+    { id: "commodities", label: "Commod",    w: 0.20, icon: "Fuel" },
+    { id: "rates",       label: "Rates",     w: 0.25, icon: "TrendingUp" }
 ];
 
 // =============================

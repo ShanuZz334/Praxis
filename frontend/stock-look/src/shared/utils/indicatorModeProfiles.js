@@ -9,7 +9,7 @@ export const INDICATOR_PROFILES = {
     intraday: {
         modeKey: 'intraday',
         label: 'Intraday',
-        badge: '⚡ INTRADAY',
+        badge: 'INTRADAY',
         description: 'Optimized for high-frequency day scalping and session momentum',
         supertrend: {
             period: 7,
@@ -70,7 +70,7 @@ export const INDICATOR_PROFILES = {
     swing: {
         modeKey: 'swing',
         label: 'Swing',
-        badge: '⚖️ SWING',
+        badge: 'SWING',
         description: 'Benchmark institutional parameters for multi-day swing holding',
         supertrend: {
             period: 10,
@@ -131,7 +131,7 @@ export const INDICATOR_PROFILES = {
     positional: {
         modeKey: 'positional',
         label: 'Positional',
-        badge: '📐 POSITIONAL',
+        badge: 'POSITIONAL',
         description: 'Macro trend following with wide buffers for multi-week holding',
         supertrend: {
             period: 20,

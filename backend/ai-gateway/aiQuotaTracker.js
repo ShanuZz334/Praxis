@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { decrypt } from './utils/encryption.js';
 import { clearProviderCircuitBreaker } from './modelRouter.js';
+import { broadcast } from '../services/socketBroadcast.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -256,6 +257,16 @@ class AiQuotaTracker {
             lastError: errorMsg || 'Rate limit reached (429)',
             timestamp: now
         };
+
+        try {
+            broadcast("ai:limit_alert", {
+                type: 'reached',
+                providerId: pId,
+                name: pId === 'groq' ? 'Groq' : pId === 'openrouter' ? 'OpenRouter' : pId === 'gemini' ? 'Gemini' : pId,
+                message: errorMsg || `Rate limit reached (429) for ${pId}`,
+                timestamp: now
+            });
+        } catch (_) {}
 
         if (pId === 'openrouter') {
             const resetTs = now + utcReset.diffMs;

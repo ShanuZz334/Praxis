@@ -48,7 +48,7 @@ export function useAiSync(instrumentKey, pageName, snapshot) {
                 
                 // Success — reset failure count
                 failureCountRef.current = 0;
-                console.log(`📡 Silently synced ${pageName} AI Snapshot for ${instrumentKey} to SQLite.`);
+                console.log(`[useAiSync] Silently synced ${pageName} AI Snapshot for ${instrumentKey} to SQLite.`);
             } catch (err) {
                 failureCountRef.current += 1;
                 const count = failureCountRef.current;

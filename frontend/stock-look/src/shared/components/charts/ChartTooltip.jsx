@@ -22,6 +22,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Lightbulb, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 import { tooltipVariants } from '@/shared/utils/chartAnimations';
 import { formatNumber, formatChartDate, getZoneColor } from '@/shared/utils/chartUtils';
 
@@ -80,8 +81,8 @@ export default function ChartTooltip({
 
                         {/* Delta */}
                         {showDelta && deltaValue && (
-                            <span className={`text-xs ${deltaValue.direction === 'up' ? 'text-green-400' : deltaValue.direction === 'down' ? 'text-red-400' : 'text-white/60'}`}>
-                                {deltaValue.direction === 'up' ? '↑' : deltaValue.direction === 'down' ? '↓' : '→'}
+                            <span className={`text-xs inline-flex items-center gap-0.5 ${deltaValue.direction === 'up' ? 'text-green-400' : deltaValue.direction === 'down' ? 'text-red-400' : 'text-white/60'}`}>
+                                {deltaValue.direction === 'up' ? <TrendingUp size={12} /> : deltaValue.direction === 'down' ? <TrendingDown size={12} /> : <ArrowRight size={12} />}
                                 {Math.abs(deltaValue.percent).toFixed(1)}%
                             </span>
                         )}
@@ -89,8 +90,9 @@ export default function ChartTooltip({
 
                     {/* Context */}
                     {context && (
-                        <div className="text-xs text-white/70 leading-relaxed border-t border-white/10 pt-2">
-                            💡 {context}
+                        <div className="text-xs text-white/70 leading-relaxed border-t border-white/10 pt-2 flex items-start gap-1.5">
+                            <Lightbulb size={12} className="text-amber-400 shrink-0 mt-0.5" />
+                            <span>{context}</span>
                         </div>
                     )}
 
@@ -135,8 +137,9 @@ export function RechartsTooltipWrapper({ active, payload, label, metricId, metri
             <div className="text-lg font-semibold text-white mb-1">
                 {formatNumber(value, { decimals: 2, suffix: metricUnit })}
             </div>
-            <div className="text-xs text-white/70">
-                💡 {getContext(metricId, normalized)}
+            <div className="text-xs text-white/70 flex items-start gap-1.5">
+                <Lightbulb size={12} className="text-amber-400 shrink-0 mt-0.5" />
+                <span>{getContext(metricId, normalized)}</span>
             </div>
         </div>
     );

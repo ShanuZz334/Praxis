@@ -19,6 +19,7 @@
 // Imports
 // =============================
 import React from "react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
 // =============================
 // Main Component
@@ -94,8 +95,18 @@ export default function VolatilityRatesPanel({ volatility, rates }) {
                     <div className="mt-auto pt-4 border-t border-slate-800/50">
                         <div className="flex flex-col gap-2">
                             <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Implication</div>
-                            <div className="text-sm font-bold text-slate-200 break-words leading-snug">
-                                {rates.us10y.value > 4.2 ? "⚠️ Tech & Private Banks Headwind" : "✅ Supportive for Equity Valuations"}
+                            <div className="text-sm font-bold text-slate-200 break-words leading-snug flex items-center gap-1.5">
+                                {rates.us10y.value > 4.2 ? (
+                                    <>
+                                        <AlertTriangle size={14} className="text-amber-400 shrink-0" />
+                                        <span>Tech & Private Banks Headwind</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                                        <span>Supportive for Equity Valuations</span>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

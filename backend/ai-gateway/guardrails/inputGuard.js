@@ -16,7 +16,7 @@ export function validateInput(request) {
 
     // Bug 24 Fix: Removed 'chart_qa' from grounding exemptions. 
     // chart_qa MUST have grounding data to prevent hallucination/injection.
-    const needsGrounding = !['chat_conversation', 'MARKET_EVENT_EXTRACTION', 'future_vision_prediction'].includes(request.taskType);
+    const needsGrounding = !['chat_conversation', 'MARKET_EVENT_EXTRACTION', 'future_vision_prediction', 'analyst_brief', 'journal_insight'].includes(request.taskType);
     if (needsGrounding && (!request.data || Object.keys(request.data).length === 0)) {
         throw new Error(`Task type '${request.taskType}' requires grounding data (request.data) to prevent hallucination.`);
     }

@@ -113,15 +113,15 @@ export function getTechnicalSignal(normalized) {
 // Icons map for tech categories
 function getIconForTechCategory(cat) {
     switch (cat) {
-        case 'Trend': return '📈';
-        case 'Momentum': return '🚀';
-        case 'Volatility': return '⚡';
-        case 'Volume': return '📊';
-        case 'Breadth': return '🌍';
-        case 'Structure': return '🏗️';
-        case 'Statistical Edge': return '🎲';
-        case 'Forecasting': return '🔮';
-        default: return '📌';
+        case 'Trend': return 'TrendingUp';
+        case 'Momentum': return 'Zap';
+        case 'Volatility': return 'Activity';
+        case 'Volume': return 'BarChart2';
+        case 'Breadth': return 'Globe';
+        case 'Structure': return 'Layers';
+        case 'Statistical Edge': return 'Dices';
+        case 'Forecasting': return 'Sparkles';
+        default: return 'Pin';
     }
 }
 

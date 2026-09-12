@@ -47,17 +47,7 @@ function getEffectiveScore(card) {
 }
 
 function getIconForMetric(metricId) {
-    const iconMap = {
-        nifty_pe: '📊', nifty_pb: '📈', earnings_yield: '💰', mcap_gdp: '🏦',
-        eps_yoy: '📈', forward_eps: '🔮', earnings_revision: '📝', sector_earnings: '🏭',
-        gdp: '🇮🇳', cpi: '🌡️', repo: '🏛️', fiscal_deficit: '💵',
-        fii: '🌍', dii: '🏠', system_liquidity: '💧', mf_flows: '👥',
-        sector_valuation: '🎯', sector_growth: '🚀', cyc_def: '⚖️',
-        corp_debt: '💳', credit_growth: '📊', policy_tailwinds: '🏛️',
-        global_growth: '🌐', crude: '🛢️', usdinr: '💱', global_liq: '🌊',
-        sovereign_risk: '⚠️', npa: '🏦', reform_momentum: '⚡',
-    };
-    return iconMap[metricId] || '📌';
+    return '';
 }
 
 // =============================
@@ -82,13 +72,13 @@ export function determineMarketRegime(cards) {
 
     const avg = factorCount > 0 ? regimeScore / factorCount : 0;
 
-    if (avg > 0.3) return { regime: 'risk-on', label: 'Risk-On', color: '#22c55e', icon: '🚀', description: 'Strong bullish momentum - favorable for equities' };
-    if (avg < -0.3) return { regime: 'risk-off', label: 'Risk-Off', color: '#ef4444', icon: '⚠️', description: 'Defensive positioning - caution advised' };
+    if (avg > 0.3) return { regime: 'risk-on', label: 'Risk-On', color: '#22c55e', icon: 'TrendingUp', description: 'Strong bullish momentum - favorable for equities' };
+    if (avg < -0.3) return { regime: 'risk-off', label: 'Risk-Off', color: '#ef4444', icon: 'AlertTriangle', description: 'Defensive positioning - caution advised' };
     return createNeutralRegime();
 }
 
 function createNeutralRegime() {
-    return { regime: 'neutral', label: 'Neutral', color: '#fbbf24', icon: '⚖️', description: 'Mixed signals - stock-specific opportunities' };
+    return { regime: 'neutral', label: 'Neutral', color: '#fbbf24', icon: 'Scale', description: 'Mixed signals - stock-specific opportunities' };
 }
 
 // =============================

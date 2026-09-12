@@ -73,8 +73,12 @@ router.get('/analyst', protect, (req, res) => {
         const { instrumentKey, timeframe } = req.query;
         if (!instrumentKey || !timeframe) return res.status(400).json({ error: 'Missing params' });
         
-        const brief = getLatestAnalystBrief(instrumentKey, timeframe);
-        res.json({ brief });
+        const result = getLatestAnalystBrief(instrumentKey, timeframe);
+        if (result && typeof result === 'object') {
+            res.json({ brief: result.brief, createdAt: result.createdAt });
+        } else {
+            res.json({ brief: result, createdAt: null });
+        }
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch brief' });
     }
@@ -85,12 +89,13 @@ router.get('/analyst', protect, (req, res) => {
  */
 router.post('/analyst/run', protect, async (req, res) => {
     try {
-        const { instrumentKey, timeframe } = req.body;
+        const { instrumentKey, timeframe, candles, confluence, stats, symbol } = req.body;
         if (!instrumentKey || !timeframe) return res.status(400).json({ error: 'Missing params' });
         
-        const brief = await runOvernightAnalyst(instrumentKey, timeframe);
-        res.json({ success: true, brief });
+        const brief = await runOvernightAnalyst(instrumentKey, timeframe, { candles, confluence, stats, symbol });
+        res.json({ success: true, brief, createdAt: Date.now() });
     } catch (error) {
+        console.error('[PACE] /analyst/run error:', error.message);
         res.status(500).json({ error: 'Failed to run Analyst', details: error.message });
     }
 });

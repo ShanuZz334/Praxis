@@ -18,6 +18,7 @@
 // =============================
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { SECTION_WEIGHTS } from "../engine/sections.config";
 
 // =============================
@@ -94,7 +95,7 @@ export default function SectionBreakdownModal({ open, onClose, sections }) {
                         onClick={onClose}
                         className="w-8 h-8 rounded-full flex items-center justify-center bg-background-elevated text-text-tertiary hover:text-text-primary hover:bg-background-subtle transition border border-border-subtle"
                     >
-                        ✕
+                        <X size={16} />
                     </button>
                 </div>
 

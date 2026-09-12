@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { useTheme } from "@/shared/context/ThemeContext";
 import PaiChatArea from "@/features/dashboard/pai/ui/PaiChatArea";
 
@@ -53,7 +54,7 @@ export default function AiInsightModal({ open, onClose, targetId }) {
                         border border-border-subtle hover:border-border-default
                     "
                 >
-                    <span className="group-hover:rotate-90 transition-transform duration-300">✕</span>
+                    <X size={16} className="group-hover:rotate-90 transition-transform duration-300" />
                 </button>
                 <PaiChatArea 
                     activeChatId={targetId} 

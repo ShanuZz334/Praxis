@@ -1,10 +1,10 @@
-import { useTheme } from "next-themes"
+import { useTheme } from "@/shared/context/ThemeContext"
 import { Toaster as Sonner } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const { theme = "dark" } = useTheme()
 
   return (
     <Sonner
@@ -21,7 +21,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
         },
       }}
-      visibleToasts={1}
+      position="top-right"
+      visibleToasts={4}
       {...props}
     />
   )

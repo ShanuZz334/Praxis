@@ -1,6 +1,6 @@
 /**
  * @file ManualDashboard.jsx
- * @purpose The index page for the Stocky Manual (Knowledge Base).
+ * @purpose The index page for the Praxis Manual (Knowledge Base).
  * @responsibilities
  * - Displays a grid of all available knowledge modules (Dashboard, Technical, Fundamental, etc.).
  * - Provides navigation to specific section layouts.
@@ -23,6 +23,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { HelpCircle } from "lucide-react";
 import { MANUAL_SECTIONS, MANUAL_CONTENT } from "../data/manualData";
+import GhostLogo from "@/shared/components/ui/GhostLogo";
 
 // =============================
 // Main Component
@@ -38,13 +39,13 @@ export default function ManualDashboard() {
             <div className="mb-10 border-b border-border-default pb-6 flex items-start gap-2.5 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <HelpCircle className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
                 <p className="text-sm text-text-secondary font-medium leading-relaxed">
-                    The comprehensive knowledge base for Stocky's intelligence engines, metrics, and risk frameworks.
+                    The comprehensive knowledge base for Praxis's intelligence engines, metrics, and risk frameworks.
                     Reference each module to understand the underlying logic and system behavior.
                 </p>
             </div>
 
-            {/* 8 Sections Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* 9 Sections Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {MANUAL_SECTIONS.map((section) => (
                     <div
                         key={section.id}
@@ -73,7 +74,13 @@ export default function ManualDashboard() {
                             {/* Part 1 & 2: Heading & Overview (Fixed Height to Sync Footers) */}
                             <div className="h-[125px]">
                                 <div className="flex items-center gap-3 mb-3">
-                                    <section.icon className="w-6 h-6 text-blue-500/80 group-hover:text-blue-400 group-hover:scale-110 transition-all duration-300" />
+                                    {section.customIcon === 'pai' ? (
+                                        <div className="w-6 h-6 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 overflow-visible">
+                                            <GhostLogo style={{ transform: 'scale(0.25)' }} />
+                                        </div>
+                                    ) : (
+                                        <section.icon className="w-6 h-6 text-blue-500/80 group-hover:text-blue-400 group-hover:scale-110 transition-all duration-300" />
+                                    )}
                                     <div className="flex flex-wrap items-center gap-2">
                                         <h2 className="text-lg font-bold text-text-primary group-hover:text-blue-400 transition-colors tracking-tight">
                                             {section.label}

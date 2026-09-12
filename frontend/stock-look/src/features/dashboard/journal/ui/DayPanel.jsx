@@ -55,18 +55,18 @@ export function DayPanel({ date, dayData, onClose, onNavigateDate }) {
   const tradeCount = dayData?.tradesCount ?? 0;
 
   return (
-    <div className="h-full flex flex-col bg-[#050811] text-text-primary select-text">
+    <div className="h-full flex flex-col bg-background-app dark:bg-[#050811] text-text-primary select-text">
       {/* ── Institutional Frosted Header ─────────────────────────── */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border-default/50 bg-background-card/90 backdrop-blur-2xl shrink-0 z-20 shadow-lg relative">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border-default/50 bg-white/90 dark:bg-background-card/90 backdrop-blur-2xl shrink-0 z-20 shadow-xs relative">
         {/* Ambient Top Glow */}
-        <div className={`absolute top-0 right-1/4 w-72 h-12 rounded-full blur-3xl pointer-events-none opacity-20 ${
+        <div className={`absolute top-0 right-1/4 w-72 h-12 rounded-full blur-3xl pointer-events-none opacity-10 dark:opacity-20 ${
           isPositive ? 'bg-emerald-500' : isNegative ? 'bg-rose-500' : 'bg-blue-500'
         }`} />
 
         <div className="flex items-center gap-4 min-w-0">
           {/* Calendar Badge */}
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-background-elevated to-background-surface border border-border-default flex flex-col items-center justify-center shrink-0 shadow-sm">
-            <span className="text-[9px] font-black text-blue-400 tracking-wider leading-none uppercase">{monthAbbr}</span>
+          <div className="w-12 h-12 rounded-2xl bg-white dark:bg-gradient-to-br dark:from-background-elevated dark:to-background-surface border border-border-default flex flex-col items-center justify-center shrink-0 shadow-sm">
+            <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 tracking-wider leading-none uppercase">{monthAbbr}</span>
             <span className="text-base font-black text-text-primary leading-tight font-mono">{dayNum}</span>
           </div>
 
@@ -79,17 +79,17 @@ export function DayPanel({ date, dayData, onClose, onNavigateDate }) {
 
               {/* Day Paging Controls */}
               {onNavigateDate && (
-                <div className="flex items-center gap-0.5 ml-1 bg-background-elevated/80 border border-border-default/60 rounded-lg p-0.5 shrink-0">
+                <div className="flex items-center gap-0.5 ml-1 bg-white/80 dark:bg-background-elevated/80 border border-border-default/60 rounded-lg p-0.5 shrink-0 shadow-xs">
                   <button
                     onClick={handlePrevDay}
-                    className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-white/5 transition-colors cursor-pointer"
+                    className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
                     title="Previous Day (←)"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={handleNextDay}
-                    className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-white/5 transition-colors cursor-pointer"
+                    className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
                     title="Next Day (→)"
                   >
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -101,29 +101,29 @@ export function DayPanel({ date, dayData, onClose, onNavigateDate }) {
             {/* Micro Session Badges */}
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {isHoliday ? (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-wider">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 uppercase tracking-wider">
                   Market Holiday
                 </span>
               ) : isOffDay ? (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-wider">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 uppercase tracking-wider">
                   Weekend Review
                 </span>
               ) : (
                 <>
                   <span className={`text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1.5 ${
                     isPositive
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 shadow-[0_0_10px_rgba(16,185,129,0.15)]'
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 shadow-[0_0_10px_rgba(16,185,129,0.15)]'
                       : isNegative
-                        ? 'bg-rose-500/15 text-rose-400 border border-rose-500/25 shadow-[0_0_10px_rgba(244,63,94,0.15)]'
-                        : 'bg-background-elevated text-text-secondary border border-border-default'
+                        ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25 shadow-[0_0_10px_rgba(244,63,94,0.15)]'
+                        : 'bg-white dark:bg-background-elevated text-text-secondary border border-border-default'
                   }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${
-                      isPositive ? 'bg-emerald-400 animate-pulse' : isNegative ? 'bg-rose-400' : 'bg-text-tertiary'
+                      isPositive ? 'bg-emerald-500 dark:bg-emerald-400 animate-pulse' : isNegative ? 'bg-rose-500 dark:bg-rose-400' : 'bg-text-tertiary'
                     }`} />
                     {pnl >= 0 ? '+' : '-'}₹{Math.abs(pnl).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </span>
 
-                  <span className="text-[10px] font-semibold text-text-secondary bg-background-elevated/60 border border-border-default px-2 py-0.5 rounded-md flex items-center gap-1">
+                  <span className="text-[10px] font-semibold text-text-secondary bg-white/80 dark:bg-background-elevated/60 border border-border-default px-2 py-0.5 rounded-md flex items-center gap-1">
                     <Activity className="w-3 h-3 text-text-tertiary" />
                     {tradeCount} {tradeCount === 1 ? 'Execution' : 'Executions'}
                   </span>
@@ -133,10 +133,10 @@ export function DayPanel({ date, dayData, onClose, onNavigateDate }) {
           </div>
         </div>
 
-        {/* ✕ Close Button */}
+        {/* Close Button */}
         <button
           onClick={onClose}
-          className="p-2 rounded-xl text-text-tertiary hover:text-text-primary hover:bg-white/8 border border-transparent hover:border-border-default transition-all duration-200 cursor-pointer shrink-0 ml-2"
+          className="p-2 rounded-xl text-text-tertiary hover:text-text-primary hover:bg-slate-100 dark:hover:bg-white/8 border border-transparent hover:border-border-default transition-all duration-200 cursor-pointer shrink-0 ml-2"
           aria-label="Close panel"
         >
           <X className="w-5 h-5" />

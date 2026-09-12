@@ -13,12 +13,16 @@ export default function UiverseDropdown({
     className = "",
     dropup = false,
     hideSearch = false,
+    showSearch = false,
     alignRight = false,
     matchWidth = false
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const containerRef = useRef(null);
+
+    // Auto-hide search when options list is small (<= 7 options) unless explicitly requested
+    const shouldShowSearch = !hideSearch && (showSearch || options.length > 7);
 
     // Close on click outside
     useEffect(() => {
@@ -34,11 +38,13 @@ export default function UiverseDropdown({
 
     const selectedOption = options.find(opt => opt.value === value);
 
-    const filteredOptions = options.filter(opt => 
-        (opt.label || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
-        (opt.value || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (opt.name || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredOptions = shouldShowSearch && searchTerm
+        ? options.filter(opt => 
+            String(opt.label || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+            String(opt.value ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            String(opt.name || "").toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        : options;
 
     return (
         <div ref={containerRef} className={`relative w-full md:w-auto min-w-[120px] ${className}`}>
@@ -67,7 +73,7 @@ export default function UiverseDropdown({
 
             {isOpen && (
                 <div className={`absolute z-50 ${matchWidth ? 'w-full' : (alignRight ? 'right-0' : 'w-full')} ${dropup ? 'bottom-full mb-1.5' : 'mt-1.5'} bg-background-tooltip border border-border-default rounded-lg shadow-xl overflow-hidden animate-in fade-in ${dropup ? 'slide-in-from-bottom-2' : 'slide-in-from-top-2'} duration-200 ${matchWidth ? 'min-w-full' : 'min-w-[200px]'}`}>
-                    {!hideSearch && (
+                    {shouldShowSearch && (
                         <div className="p-2 border-b border-border-default/50 sticky top-0 bg-background-tooltip z-10">
                             <div className="relative flex items-center">
                                 <input

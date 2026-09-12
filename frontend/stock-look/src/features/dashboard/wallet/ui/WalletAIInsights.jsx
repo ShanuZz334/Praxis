@@ -14,6 +14,7 @@
  */
 
 import React from "react";
+import { Brain } from "lucide-react";
 import { generateWalletInsights } from "../engine/riskEngine";
 
 export default function WalletAIInsights({ walletData }) {
@@ -24,7 +25,9 @@ export default function WalletAIInsights({ walletData }) {
 
             {/* 1. ANALYST VIEW */}
             <div className="lg:col-span-2 bg-background-card/85 backdrop-blur-xl border border-border-default rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
-                <div className="opacity-5 absolute top-0 right-0 p-4 text-9xl transition-transform group-hover:scale-110 duration-1000">🧠</div>
+                <div className="opacity-5 absolute top-0 right-0 p-4 transition-transform group-hover:scale-110 duration-1000">
+                    <Brain size={120} />
+                </div>
 
                 <div className="relative z-10">
                     <div className="text-[10px] font-black text-accent-primary uppercase tracking-[0.2em] mb-6 flex items-center gap-3">

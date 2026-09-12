@@ -121,12 +121,44 @@ export const changePassword = async (passwordData) => {
     }
 };
 
-export const deleteUserProfile = async () => {
+export const deleteUserProfile = async (credentials) => {
     try {
-        const response = await axiosInstance.delete("/api/v1/user/profile");
+        const response = await axiosInstance.delete("/api/v1/user/profile", {
+            data: credentials || {}
+        });
         return response.data;
     } catch (error) {
         console.error('Error deleting account:', error);
+        throw error;
+    }
+};
+
+export const resetAiChatsApi = async (credentials) => {
+    try {
+        const response = await axiosInstance.post("/api/v1/user/danger/reset-chats", credentials);
+        return response.data;
+    } catch (error) {
+        console.error('Error resetting AI chats:', error);
+        throw error;
+    }
+};
+
+export const clearMarketCacheApi = async (credentials) => {
+    try {
+        const response = await axiosInstance.post("/api/v1/user/danger/clear-market-cache", credentials);
+        return response.data;
+    } catch (error) {
+        console.error('Error clearing market cache:', error);
+        throw error;
+    }
+};
+
+export const factoryResetApi = async (credentials) => {
+    try {
+        const response = await axiosInstance.post("/api/v1/user/danger/factory-reset", credentials);
+        return response.data;
+    } catch (error) {
+        console.error('Error executing factory reset:', error);
         throw error;
     }
 };

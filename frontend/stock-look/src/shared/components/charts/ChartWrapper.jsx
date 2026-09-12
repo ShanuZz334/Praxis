@@ -22,6 +22,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { AlertTriangle } from 'lucide-react';
 import { chartVariants } from '@/shared/utils/chartAnimations';
 import ChartSkeleton from './ChartSkeleton';
 
@@ -63,8 +64,9 @@ export default function ChartWrapper({
                 className={`chart-wrapper chart-error ${className}`}
                 style={{ height }}
             >
-                <div className="flex items-center justify-center h-full text-red-400 text-sm">
-                    <span>⚠ {error}</span>
+                <div className="flex items-center justify-center gap-1.5 h-full text-red-400 text-sm">
+                    <AlertTriangle size={15} />
+                    <span>{error}</span>
                 </div>
             </div>
         );

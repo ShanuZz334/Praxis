@@ -20,6 +20,7 @@
 
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
+import { Lightbulb } from 'lucide-react';
 import { RechartsTooltipWrapper } from '../ChartTooltip';
 
 // =============================
@@ -121,13 +122,16 @@ export default function EarningsRevisionFlow({
 
             {/* Interpretation */}
             <div className="mt-3 p-3 bg-white/5 rounded-lg">
-                <div className="text-xs text-white/70">
-                    <span className="font-medium">💡 Insight:</span>{' '}
-                    {latestNet > 5
-                        ? 'Strong upgrade momentum - positive earnings outlook'
-                        : latestNet < -5
-                            ? 'Downgrade pressure - earnings expectations declining'
-                            : 'Balanced revisions - neutral earnings outlook'}
+                <div className="text-xs text-white/70 flex items-start gap-1.5">
+                    <Lightbulb size={13} className="text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                        <span className="font-medium text-white/90">Insight:</span>{' '}
+                        {latestNet > 5
+                            ? 'Strong upgrade momentum - positive earnings outlook'
+                            : latestNet < -5
+                                ? 'Downgrade pressure - earnings expectations declining'
+                                : 'Balanced revisions - neutral earnings outlook'}
+                    </div>
                 </div>
             </div>
         </div>

@@ -36,6 +36,11 @@ try {
 const CACHE_TTL_MS = 1 * 60 * 1000; // 1 minute
 const STALE_FALLBACK_MS = 24 * 60 * 60 * 1000; // 24 hours — serve stale rather than failing
 
+export const invalidateGlobalCache = () => {
+    globalCache = null;
+    lastFetchTime = 0;
+};
+
 
 // Map of our internal IDs to Yahoo Finance symbols
 const SYMBOL_MAP = {

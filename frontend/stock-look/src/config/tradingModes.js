@@ -28,7 +28,7 @@ export const MODE_METADATA = {
         description: 'Heavy weight on valuation quality, earnings compounding, and balance sheet strength. Holding period: weeks to months.',
         riskLevel: 'Low-Medium',
         focus: 'Fundamental Quality & Entry Point',
-        icon: '📐',
+        icon: 'Compass',
         horizon: 'Weeks – Months',
     },
     [TRADING_MODES.SWING]: {
@@ -36,7 +36,7 @@ export const MODE_METADATA = {
         description: 'Balanced weight across all indicators. Equal focus on fundamentals, flows, and breadth. Holding period: days to weeks.',
         riskLevel: 'Medium',
         focus: 'Balanced Analysis',
-        icon: '⚖️',
+        icon: 'Scale',
         horizon: 'Days – Weeks',
     },
     [TRADING_MODES.INTRADAY]: {
@@ -44,7 +44,7 @@ export const MODE_METADATA = {
         description: 'Heavy weight on institutional flows, market breadth, and VIX. Trailing valuation metrics are locked to neutral. Holding period: same day.',
         riskLevel: 'High',
         focus: 'Flows, Breadth & Risk Environment',
-        icon: '⚡',
+        icon: 'Zap',
         horizon: 'Same Day',
     },
 };

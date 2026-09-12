@@ -41,7 +41,7 @@ const PAGE_CATEGORIES = [
 
 /**
  * Header & Manual Chat prompt entries per page.
- * ⚠  targetIds MUST exactly match AiInsightSection.jsx resolveTargetId() output.
+ * Note: targetIds MUST exactly match AiInsightSection.jsx resolveTargetId() output.
  */
 const PAGE_HEADERS = {
     Master: [

@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
 import { computePositionSize, getSwingTP1R, getSwingTP2R, getScalpPartialFraction, getScalpTP } from '@/shared/utils/positionSizingEngine';
 
 const FIB_LEVELS = [-0.618, -0.382, 0, 0.236, 0.382, 0.5, 0.618, 0.786, 1, 1.382, 1.618];
@@ -546,7 +547,7 @@ export default function DrawingCanvas({
                     if (sizing) {
                         ctx.font = '8.5px Inter, sans-serif';
                         ctx.fillStyle = 'rgba(255,255,255,0.30)';
-                        const cappedWarn = sizing.isCapped ? '  ⚠ Exp.Cap' : '';
+                        const cappedWarn = sizing.isCapped ? '  [Exp.Cap]' : '';
                         ctx.fillText(
                             `Capital: ${sizing.capLabel}  |  ${sizing.riskPctDisplay}% risk  |  ½Kelly: ${sizing.halfKellyPct}%  |  WR: ${sizing.winRatePct}%${cappedWarn}`,
                             boxLeft + 5, entryY + 23
@@ -709,7 +710,7 @@ export default function DrawingCanvas({
                     if (sizing) {
                         ctx.font = '8.5px Inter, sans-serif';
                         ctx.fillStyle = 'rgba(255,255,255,0.30)';
-                        const cappedWarn = sizing.isCapped ? '  ⚠ Exp.Cap' : '';
+                        const cappedWarn = sizing.isCapped ? '  [Exp.Cap]' : '';
                         ctx.fillText(
                             `Capital: ${sizing.capLabel}  |  ${sizing.riskPctDisplay}% risk  |  ½Kelly: ${sizing.halfKellyPct}%  |  WR: ${sizing.winRatePct}%${cappedWarn}`,
                             boxLeft + 5, entryY + 23
@@ -718,7 +719,7 @@ export default function DrawingCanvas({
                     // Break-even annotation — after booking 50% at 1R, remaining position is at zero cost
                     ctx.font = '8.5px Inter, sans-serif';
                     ctx.fillStyle = 'rgba(255,255,255,0.22)';
-                    ctx.fillText(`↑ BE after partial: ₹${entryPrice.toFixed(2)}`, boxRight + 5, entryY + 4);
+                    ctx.fillText(`BE after partial: ₹${entryPrice.toFixed(2)}`, boxRight + 5, entryY + 4);
                 }
                 
                 // SL label — shows -1R and max loss consistent with swing tool
@@ -735,7 +736,7 @@ export default function DrawingCanvas({
                 ctx.font = 'bold 10px Inter, sans-serif';
                 ctx.textAlign = 'right';
                 ctx.fillStyle = amberText;
-                ctx.fillText(`⚡ SCALP ${isLong ? '▲' : '▼'}`, boxRight - 5, Math.min(entryY, targetY, stopY) + 12);
+                ctx.fillText(`SCALP ${isLong ? '▲' : '▼'}`, boxRight - 5, Math.min(entryY, targetY, stopY) + 12);
                 
                 ctx.restore();
             }
@@ -1183,7 +1184,7 @@ export default function DrawingCanvas({
                     >
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-white/90 text-sm font-medium">Edit Drawing</h3>
-                            <button onClick={() => setEditPrompt(null)} className="text-white/40 hover:text-white">✕</button>
+                            <button onClick={() => setEditPrompt(null)} className="text-white/40 hover:text-white"><X size={14} /></button>
                         </div>
                         
                         <div className="mb-4">

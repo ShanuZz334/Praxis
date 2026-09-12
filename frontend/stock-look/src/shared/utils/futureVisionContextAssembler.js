@@ -465,7 +465,7 @@ function _computeEventBlock(events, horizonBars, timeframe) {
 
     if (hasHighImpact) {
         lines.push('');
-        lines.push('⚠ HIGH-IMPACT event detected: Widen your predicted High-Low range by 20-40%, reduce confidence by 10-20 points, and note the event in key_risk.');
+        lines.push('[HIGH-IMPACT] event detected: Widen your predicted High-Low range by 20-40%, reduce confidence by 10-20 points, and note the event in key_risk.');
     }
 
     return lines.join('\n');
@@ -539,7 +539,10 @@ function _f1(v) { return v != null && !isNaN(v) ? parseFloat(v).toFixed(1) : 'N/
 function _fmtCr(v) { return v != null ? (v / 1e7).toLocaleString('en-IN', { maximumFractionDigits: 0 }) : 'N/A'; }
 function _formatTime(t) {
     if (!t) return '';
-    if (typeof t === 'number') return new Date(t * 1000).toISOString().slice(0, 16).replace('T', ' ');
+    if (typeof t === 'number') {
+        const istMs = (t < 10000000000 ? t * 1000 : t) + 5.5 * 3600 * 1000;
+        return new Date(istMs).toISOString().slice(0, 16).replace('T', ' ') + ' IST';
+    }
     if (typeof t === 'string') return t.slice(0, 16).replace('T', ' ');
     if (t.year) return `${t.year}-${String(t.month).padStart(2,'0')}-${String(t.day).padStart(2,'0')} 00:00`;
     return String(t);

@@ -21,6 +21,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Calendar, BarChart2 } from 'lucide-react';
 
 // =============================
 // Component
@@ -43,7 +44,7 @@ export default function ChartControls({
                     active={showEvents}
                     onClick={onToggleEvents}
                     label="Events"
-                    icon="📅"
+                    icon={<Calendar size={14} />}
                 />
 
                 {/* Fair Value Toggle */}
@@ -51,7 +52,7 @@ export default function ChartControls({
                     active={showFairValue}
                     onClick={onToggleFairValue}
                     label="Fair Value"
-                    icon="📊"
+                    icon={<BarChart2 size={14} />}
                 />
             </div>
 

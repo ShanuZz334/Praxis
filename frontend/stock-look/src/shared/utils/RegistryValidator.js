@@ -87,9 +87,9 @@ export function validateRegistry(liveRegistry, isIndex) {
     };
 
     if (coveragePct < 100 || missing.length > 0 || duplicates.length > 0 || invalid.length > 0) {
-        console.warn('⚠️ Registry Validation Warning:', report);
+        console.warn('[RegistryValidator] Warning:', report);
     } else {
-        console.log('✅ Registry Validation Passed: 100% Coverage', report);
+        console.log('[RegistryValidator] Passed: 100% Coverage', report);
     }
 
     return report;

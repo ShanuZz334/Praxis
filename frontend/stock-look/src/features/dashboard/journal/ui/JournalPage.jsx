@@ -56,12 +56,12 @@ export default function JournalPage() {
                 <div className="fixed inset-0 z-[100] isolate">
                     {/* Backdrop */}
                     <div 
-                        className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity"
+                        className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm transition-opacity"
                         onClick={handleClosePanel}
                     />
                     
                     {/* Panel */}
-                    <div className="fixed top-0 right-0 h-full w-full md:w-[680px] lg:w-[840px] xl:w-[920px] bg-background-surface shadow-2xl border-l border-border-default/60 overflow-hidden animate-in slide-in-from-right duration-300">
+                    <div className="fixed top-0 right-0 h-full w-full md:w-[680px] lg:w-[840px] xl:w-[920px] bg-background-app dark:bg-background-surface shadow-2xl border-l border-border-default/60 overflow-hidden animate-in slide-in-from-right duration-300">
                         <DayPanel 
                             date={selectedDate} 
                             dayData={selectedDayData} 

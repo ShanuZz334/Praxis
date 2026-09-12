@@ -29,7 +29,7 @@ function ProgressBar({ percent = 100, label, current, total, color = 'emerald' }
         ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]' 
         : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]';
 
-    const textClass = clamped > 50 ? 'text-emerald-400' : clamped > 20 ? 'text-amber-400' : 'text-rose-400';
+    const textClass = clamped > 50 ? 'text-emerald-600 dark:text-emerald-400' : clamped > 20 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400';
 
     return (
         <div className="space-y-1.5">
@@ -40,7 +40,7 @@ function ProgressBar({ percent = 100, label, current, total, color = 'emerald' }
                     <span className={`font-bold ${textClass}`}>({displayPct}%)</span>
                 </div>
             </div>
-            <div className="w-full h-1.5 bg-neutral-800/80 rounded-full overflow-hidden p-0.5 border border-white/[0.04]">
+            <div className="w-full h-1.5 bg-slate-200 dark:bg-neutral-800/80 rounded-full overflow-hidden p-0.5 border border-slate-300/60 dark:border-white/[0.04]">
                 <div 
                     className={`h-full rounded-full transition-all duration-500 ${barColor}`}
                     style={{ width: `${clamped}%` }}
@@ -192,7 +192,7 @@ export default function GatewayLimitsCard({ className = "" }) {
                     return (
                         <div
                             key={prov.id}
-                            className="bg-background-surface/30 hover:bg-background-surface/60 border border-white/[0.04] hover:border-white/[0.1] rounded-xl p-3.5 flex flex-col justify-between transition-all duration-150"
+                            className="bg-white dark:bg-background-surface/30 hover:bg-slate-50 dark:hover:bg-background-surface/60 border border-slate-200/80 dark:border-white/[0.04] hover:border-slate-300 dark:hover:border-white/[0.1] rounded-xl p-3.5 flex flex-col justify-between transition-all duration-150"
                         >
                             {/* Top row */}
                             <div>
@@ -214,10 +214,10 @@ export default function GatewayLimitsCard({ className = "" }) {
                                 {/* Progress Bars */}
                                 <div className="space-y-3">
                                     {isOllama ? (
-                                        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.03] space-y-1">
+                                        <div className="p-2.5 rounded-lg bg-slate-100/70 dark:bg-white/[0.02] border border-slate-200/60 dark:border-white/[0.03] space-y-1">
                                             <div className="flex justify-between items-center text-[11px] font-mono">
                                                 <span className="text-text-tertiary">Local Compute:</span>
-                                                <span className="text-emerald-400 font-bold">Unlimited</span>
+                                                <span className="text-emerald-600 dark:text-emerald-400 font-bold">Unlimited</span>
                                             </div>
                                             <div className="flex justify-between items-center text-[10px] font-mono text-text-tertiary">
                                                 <span>Active Models:</span>
@@ -246,11 +246,11 @@ export default function GatewayLimitsCard({ className = "" }) {
                             </div>
 
                             {/* Bottom row: Reset timer */}
-                            <div className="mt-4 pt-2.5 border-t border-white/[0.04] flex items-center justify-between text-[10px] font-mono">
+                            <div className="mt-4 pt-2.5 border-t border-slate-200/80 dark:border-white/[0.04] flex items-center justify-between text-[10px] font-mono">
                                 <span className="text-text-tertiary truncate">
                                     {prov.resetSchedule?.split('@')[0] || 'Reset'}
                                 </span>
-                                <span className="text-blue-400 font-medium shrink-0 ml-1">
+                                <span className="text-blue-500 dark:text-blue-400 font-medium shrink-0 ml-1">
                                     {resetText}
                                 </span>
                             </div>

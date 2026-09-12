@@ -64,7 +64,7 @@ const AuthLayout = ({ children }) => {
 
   return (
     <div className="fixed inset-0 w-full bg-black overflow-hidden sm:overflow-auto md:overflow-hidden">
-      {/* 🌈 BACKGROUND */}
+      {/* BACKGROUND */}
       <AuthBackground />
 
       {/* Dark overlay */}

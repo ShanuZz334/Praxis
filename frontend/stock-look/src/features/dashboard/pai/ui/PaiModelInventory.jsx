@@ -22,7 +22,7 @@ function ModelGauge({ percent = 100, size = 32, strokeWidth = 3.2 }) {
             <div className="relative shrink-0 flex items-center justify-center" style={{ width: size, height: size }}>
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                     <path
-                        className="text-neutral-800 dark:text-neutral-800"
+                        className="text-slate-200 dark:text-neutral-800"
                         strokeWidth={strokeWidth}
                         stroke="currentColor"
                         fill="none"
@@ -333,12 +333,12 @@ export default function PaiModelInventory({ providers = [], localModels = [] }) 
                             onClick={() => setSelectedProvider(opt.id)}
                             className={`px-3 py-1 rounded-md text-[11px] font-medium transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap focus:outline-none ${
                                 isSelected
-                                    ? 'bg-blue-600/15 text-blue-400 border border-blue-500/30 shadow-sm font-semibold'
-                                    : 'text-text-tertiary hover:text-text-primary hover:bg-white/[0.04] border border-transparent'
+                                    ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-sm font-semibold'
+                                    : 'text-slate-500 dark:text-text-tertiary hover:text-slate-900 dark:hover:text-text-primary hover:bg-slate-100 dark:hover:bg-white/[0.04] border border-transparent'
                             }`}
                         >
                             <span>{opt.label}</span>
-                            <span className={`text-[9px] font-mono ${isSelected ? 'text-blue-300/90 font-bold' : 'opacity-60'}`}>
+                            <span className={`text-[9px] font-mono ${isSelected ? 'text-blue-600 dark:text-blue-300/90 font-bold' : 'opacity-60'}`}>
                                 ({opt.count})
                             </span>
                         </button>
@@ -349,12 +349,8 @@ export default function PaiModelInventory({ providers = [], localModels = [] }) 
             {/* ── Minimal 5 in a Row Grid ────────────────────────────────────────── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5 gap-3">
                 {filteredModels.map(model => {
-                    let refreshText = 'Active';
-                    if (model.resetType === 'continuous') {
-                        refreshText = model.status === 'Offline' ? 'Offline' : 'Local';
-                    } else if (model.resetType === 'rolling') {
-                        refreshText = model.resetTimeStr || 'Rolling';
-                    } else if (model.resetTimestamp) {
+                    let refreshText = 'Live';
+                    if (model.resetTimestamp) {
                         refreshText = formatCountdown(model.resetTimestamp, nowTimestamp, model.resetTimeStr || 'Daily');
                     } else {
                         refreshText = model.resetTimeStr || 'Daily';
@@ -363,7 +359,7 @@ export default function PaiModelInventory({ providers = [], localModels = [] }) 
                     return (
                         <div 
                             key={model.slotKey || model.id}
-                            className="group bg-background-surface/30 hover:bg-background-surface/70 border border-white/[0.04] hover:border-white/[0.12] rounded-xl p-3 flex flex-col justify-between transition-all duration-150"
+                            className="group bg-white dark:bg-background-surface/30 hover:bg-slate-50 dark:hover:bg-background-surface/70 border border-slate-200/80 dark:border-white/[0.04] hover:border-slate-300 dark:hover:border-white/[0.12] rounded-xl p-3 flex flex-col justify-between transition-all duration-150"
                         >
                             {/* Top row: Muted Provider Tag & (i) info button */}
                             <div>
@@ -382,16 +378,16 @@ export default function PaiModelInventory({ providers = [], localModels = [] }) 
                                 </div>
 
                                 {/* Model Name & Brief Context Specs */}
-                                <h4 className="text-[12px] font-medium text-text-primary truncate mt-1 group-hover:text-blue-400 transition-colors" title={model.name}>
+                                <h4 className="text-[12px] font-medium text-text-primary truncate mt-1 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" title={model.name}>
                                     {model.name}
                                 </h4>
                                 <p className="text-[10px] text-text-tertiary font-mono truncate mt-0.5">
-                                    <span className="text-blue-400/80 font-medium">{model.assignedTier || model.recommendedTier}</span> • {model.contextWindow?.split(' ')[0] || '128K'}
+                                    <span className="text-blue-600 dark:text-blue-400/80 font-medium">{model.assignedTier || model.recommendedTier}</span> • {model.contextWindow?.split(' ')[0] || '128K'}
                                 </p>
                             </div>
 
                             {/* Bottom row: Reset Interval & Circular Gauge */}
-                            <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-white/[0.04]">
+                            <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200/80 dark:border-white/[0.04]">
                                 <div className="flex flex-col text-[10px] font-mono text-text-tertiary">
                                     <span className="opacity-60 text-[9px] uppercase">Reset</span>
                                     <span className="text-text-secondary">{refreshText}</span>

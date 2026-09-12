@@ -290,16 +290,17 @@ const Navbar = ({ onToggleSidebar }) => {
         <button
           onClick={() => navigate("/dashboard/messages")}
           className="
-            relative
+            relative p-1 rounded-lg
             text-text-tertiary
             transition-colors
-            hover:text-accent-primary
+            hover:text-accent-primary hover:bg-slate-100 dark:hover:bg-white/5
           "
+          title={`Inbox & Alerts${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
         >
           <FiBell className="text-lg transition-transform hover:scale-110" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-1 ring-background-app">
-              {unreadCount > 9 ? '9+' : unreadCount}
+            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white shadow-sm ring-2 ring-background-app tabular-nums animate-in zoom-in-50 duration-200">
+              {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
         </button>

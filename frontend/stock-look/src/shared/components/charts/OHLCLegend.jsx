@@ -54,43 +54,46 @@ const OHLCLegend = ({ crosshairData: propCrosshairData, chartRef, candleSeriesRe
     const rangePct = d.open > 0 ? (range / d.open) * 100 : 0;
     const volume = d.volume ?? latest?.volume;
 
-    const valColor = isUp ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400';
+    const valColor = isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
     const badgeColor = isUp 
-        ? 'bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border-emerald-500/20' 
-        : 'bg-rose-500/10 text-rose-500 dark:text-rose-400 border-rose-500/20';
+        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25' 
+        : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25';
     const sign = isUp ? '+' : '';
 
     return (
-        <div className="h-7 pointer-events-none flex items-center gap-2 text-[10px] font-mono select-none bg-background-surface/90 dark:bg-[#111622]/90 border border-border-subtle/90 px-2.5 rounded-lg backdrop-blur-md shadow-sm">
+        <div 
+            style={{ fontVariantNumeric: 'tabular-nums' }}
+            className="h-7 pointer-events-none flex items-center gap-2 text-[10px] font-mono select-none bg-white/90 dark:bg-[#111622]/90 border border-slate-200/90 dark:border-border-subtle/90 px-2.5 rounded-lg backdrop-blur-md shadow-sm tabular-nums shrink-0 min-w-[388px] lg:min-w-[464px]"
+        >
             {/* Metric values */}
-            <div className="flex items-center gap-1 text-text-secondary">
-                <span className="text-text-tertiary text-[9px] font-sans font-bold">O</span>
-                <span className={`font-semibold ${valColor}`}>{formatPrice(d.open)}</span>
+            <div className="flex items-center gap-1 text-text-secondary shrink-0">
+                <span className="text-text-tertiary text-[9px] font-sans font-bold shrink-0">O</span>
+                <span className={`font-semibold tabular-nums min-w-[46px] text-left inline-block ${valColor}`}>{formatPrice(d.open)}</span>
             </div>
-            <div className="flex items-center gap-1 text-text-secondary">
-                <span className="text-text-tertiary text-[9px] font-sans font-bold">H</span>
-                <span className={`font-semibold ${valColor}`}>{formatPrice(d.high)}</span>
+            <div className="flex items-center gap-1 text-text-secondary shrink-0">
+                <span className="text-text-tertiary text-[9px] font-sans font-bold shrink-0">H</span>
+                <span className={`font-semibold tabular-nums min-w-[46px] text-left inline-block ${valColor}`}>{formatPrice(d.high)}</span>
             </div>
-            <div className="flex items-center gap-1 text-text-secondary">
-                <span className="text-text-tertiary text-[9px] font-sans font-bold">L</span>
-                <span className={`font-semibold ${valColor}`}>{formatPrice(d.low)}</span>
+            <div className="flex items-center gap-1 text-text-secondary shrink-0">
+                <span className="text-text-tertiary text-[9px] font-sans font-bold shrink-0">L</span>
+                <span className={`font-semibold tabular-nums min-w-[46px] text-left inline-block ${valColor}`}>{formatPrice(d.low)}</span>
             </div>
-            <div className="flex items-center gap-1 text-text-secondary">
-                <span className="text-text-tertiary text-[9px] font-sans font-bold">C</span>
-                <span className={`font-semibold ${valColor}`}>{formatPrice(d.close)}</span>
+            <div className="flex items-center gap-1 text-text-secondary shrink-0">
+                <span className="text-text-tertiary text-[9px] font-sans font-bold shrink-0">C</span>
+                <span className={`font-semibold tabular-nums min-w-[46px] text-left inline-block ${valColor}`}>{formatPrice(d.close)}</span>
             </div>
 
             {/* Change Badge */}
-            <div className={`px-1 py-0.2 rounded border text-[9px] font-bold ${badgeColor} flex items-center gap-0.5`}>
-                <span>{sign}{chg.toFixed(2)}</span>
-                <span className="opacity-75">({sign}{pct.toFixed(2)}%)</span>
+            <div className={`px-1.5 py-0.5 rounded border text-[9px] font-bold tabular-nums ${badgeColor} flex items-center justify-center min-w-[104px] shrink-0`}>
+                <span className="tabular-nums">{sign}{chg.toFixed(2)}</span>
+                <span className="opacity-75 tabular-nums ml-0.5">({sign}{pct.toFixed(2)}%)</span>
             </div>
 
             {/* Volume readout */}
             {volume !== null && volume !== undefined && (
-                <div className="hidden lg:flex items-center gap-1 text-text-secondary border-l border-border-subtle/60 pl-1.5">
-                    <span className="text-text-tertiary text-[9px] font-sans font-bold">V</span>
-                    <span className="font-semibold text-text-primary">{formatVol(volume)}</span>
+                <div className="hidden lg:flex items-center gap-1 text-text-secondary border-l border-slate-200 dark:border-border-subtle/60 pl-1.5 min-w-[68px] shrink-0">
+                    <span className="text-text-tertiary text-[9px] font-sans font-bold shrink-0">V</span>
+                    <span className="font-semibold text-text-primary tabular-nums min-w-[52px] text-left inline-block">{formatVol(volume)}</span>
                 </div>
             )}
         </div>

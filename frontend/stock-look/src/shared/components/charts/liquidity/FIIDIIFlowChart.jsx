@@ -21,6 +21,7 @@
 
 import React from 'react';
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Lightbulb } from 'lucide-react';
 import { RechartsTooltipWrapper } from '../ChartTooltip';
 import { formatChartDate } from '@/shared/utils/chartUtils';
 
@@ -187,15 +188,18 @@ export default function FIIDIIFlowChart({
 
             {/* Interpretation */}
             <div className="mt-3 p-3 bg-white/5 rounded-lg">
-                <div className="text-xs text-white/70">
-                    <span className="font-medium">💡 Flow Dynamics:</span>{' '}
-                    {latestData.fii > 0 && latestData.dii > 0
-                        ? 'Both FII & DII buying - strong positive momentum'
-                        : latestData.fii < 0 && latestData.dii > 0
-                            ? 'DII supporting despite FII outflows - domestic strength'
-                            : latestData.fii > 0 && latestData.dii < 0
-                                ? 'FII inflows offsetting DII outflows'
-                                : 'Both selling - near-term pressure'}
+                <div className="text-xs text-white/70 flex items-start gap-1.5">
+                    <Lightbulb size={13} className="text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                        <span className="font-medium text-white/90">Flow Dynamics:</span>{' '}
+                        {latestData.fii > 0 && latestData.dii > 0
+                            ? 'Both FII & DII buying - strong positive momentum'
+                            : latestData.fii < 0 && latestData.dii > 0
+                                ? 'DII supporting despite FII outflows - domestic strength'
+                                : latestData.fii > 0 && latestData.dii < 0
+                                    ? 'FII inflows offsetting DII outflows'
+                                    : 'Both selling - near-term pressure'}
+                    </div>
                 </div>
             </div>
         </div>

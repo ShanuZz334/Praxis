@@ -1,6 +1,7 @@
 import express from "express";
 import db from "../config/localDb.js";
 import { aiGateway } from "../ai-gateway/index.js";
+import { broadcast } from "../services/socketBroadcast.js";
 import {
     resolvePromptByInstrumentType,
     buildEventExtractionPrompt,
@@ -125,6 +126,34 @@ router.post("/preview", async (req, res) => {
 });
 
 /**
+ * Broadcasts the updated list of market events to all connected WebSocket clients.
+ */
+function broadcastEventsUpdated() {
+    try {
+        const stmt = db.prepare(`SELECT * FROM market_events ORDER BY created_at DESC LIMIT 500`);
+        const rows = stmt.all();
+        
+        const formatted = rows.map(r => {
+            let assets = [];
+            let keyPoints = [];
+            if (r.affected_assets) { try { assets = JSON.parse(r.affected_assets); } catch (e) { assets = []; } }
+            if (r.key_data_points)  { try { keyPoints = JSON.parse(r.key_data_points); } catch (e) { keyPoints = []; } }
+            return {
+                ...r,
+                created_at:     r.created_at ? (r.created_at.includes('Z') ? r.created_at : r.created_at.replace(' ', 'T') + 'Z') : new Date().toISOString(),
+                affected_assets: assets,
+                key_data_points: keyPoints
+            };
+        });
+
+        broadcast("events:updated", formatted);
+        console.log(`[EventsRoutes] Broadcasted events:updated (${formatted.length} events) to all clients`);
+    } catch (err) {
+        console.error("[EventsRoutes] Broadcast error:", err.message);
+    }
+}
+
+/**
  * POST /api/v1/events/confirm
  * Saves the confirmed (pre-validated, pre-scored) event to SQLite.
  */
@@ -165,6 +194,9 @@ router.post("/confirm", (req, res) => {
             sanitized.ttl_hours     || 72
         );
 
+        // Broadcast to all connected clients immediately so toasts fire on all open pages
+        broadcastEventsUpdated();
+
         res.json({ success: true, id: info.lastInsertRowid });
     } catch (e) {
         console.error("POST /events/confirm error:", e);
@@ -180,6 +212,11 @@ router.delete("/:id", (req, res) => {
     try {
         const stmt = db.prepare(`DELETE FROM market_events WHERE id = ?`);
         const info = stmt.run(req.params.id);
+
+        if (info.changes > 0) {
+            broadcastEventsUpdated();
+        }
+
         res.json({ success: true, deleted: info.changes });
     } catch (e) {
         console.error("DELETE /events/:id error:", e);

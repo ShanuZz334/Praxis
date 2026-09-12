@@ -65,15 +65,43 @@ export function getAllPAESessions(instrumentKey, timeframe) {
     });
 }
 
-export function scoreClosedCandle(instrumentKey, timeframe, barIndex, realCandle) {
+export function scoreClosedCandle(instrumentKey, timeframe, barIndexOrTime, realCandle) {
     const db = _load();
     const key = _key(instrumentKey, timeframe);
     let arr = db[key];
-    if (!Array.isArray(arr)) return null;
-    const session = arr[arr.length - 1];
-    if (!session || !session.candles[barIndex] || session.candles[barIndex].deleted) return null;
+    if (!Array.isArray(arr) || arr.length === 0) return null;
 
-    const pred = session.candles[barIndex];
+    const realKey = normalizeTimeKey(realCandle?.time);
+    let session = null;
+    let pred = null;
+    let targetIdx = -1;
+
+    // Search by exact timestamp across sessions (most recent session first)
+    for (let s = arr.length - 1; s >= 0; s--) {
+        const sess = arr[s];
+        if (sess.times && sess.candles) {
+            const idx = sess.times.findIndex(t => normalizeTimeKey(t) === realKey);
+            if (idx !== -1 && sess.candles[idx] && !sess.candles[idx].deleted) {
+                session = sess;
+                pred = sess.candles[idx];
+                targetIdx = idx;
+                break;
+            }
+        }
+    }
+
+    // Fallback to barIndex in the latest session if timestamp search didn't locate candle
+    if (!pred && typeof barIndexOrTime === 'number') {
+        const lastSess = arr[arr.length - 1];
+        if (lastSess && lastSess.candles[barIndexOrTime] && !lastSess.candles[barIndexOrTime].deleted) {
+            session = lastSess;
+            pred = lastSess.candles[barIndexOrTime];
+            targetIdx = barIndexOrTime;
+        }
+    }
+
+    if (!session || !pred) return null;
+
     const real = realCandle;
 
     const realDir = Math.sign(real.close - real.open);
@@ -98,12 +126,12 @@ export function scoreClosedCandle(instrumentKey, timeframe, barIndex, realCandle
     // 2. Close price proximity to predicted close relative to the predicted volatility range (weight: 60%)
     const range = Math.max(pred.high - pred.low, real.high - real.low, 0.01);
     const closeError = Math.abs(real.close - pred.close);
-    // If close error is 0, precision is 60. If close error is equal to the full range, precision is 0.
     const precisionScore = Math.max(0, 60 - (closeError / range) * 60);
     const compositeScore = (da === 1 ? 40 : 0) + precisionScore;
 
     const barScore = {
-        barIndex,
+        barIndex: targetIdx,
+        time: realCandle?.time || (session.times && session.times[targetIdx]),
         da,
         mapeClose: mapeClose * 100,
         hlError:   hlError   * 100,
@@ -115,9 +143,19 @@ export function scoreClosedCandle(instrumentKey, timeframe, barIndex, realCandle
         scoredAt: Date.now(),
     };
 
-    session.scores.push(barScore);
-    session.candles[barIndex].score = barScore; // Mark it scored!
-    arr[arr.length - 1] = session;
+    if (!session.scores) session.scores = [];
+    // Guard against duplicate scoring of the same bar
+    const existingScoreIdx = session.scores.findIndex(sc => 
+        sc.barIndex === targetIdx || 
+        (sc.time && normalizeTimeKey(sc.time) === realKey)
+    );
+    if (existingScoreIdx >= 0) {
+        session.scores[existingScoreIdx] = barScore;
+    } else {
+        session.scores.push(barScore);
+    }
+
+    session.candles[targetIdx].score = barScore;
     db[key] = arr;
     _save(db);
     return barScore;
@@ -143,10 +181,13 @@ export function storeLiveErrors(instrumentKey, timeframe, barIndex, mape, liveCa
 
     if (!session.liveErrors) session.liveErrors = [];
 
-    // Overwrite existing entry for this bar so we only keep latest tick
-    const existingIdx = session.liveErrors.findIndex(e => e.barIndex === barIndex);
+    const targetKey = normalizeTimeKey(predictedCandle?.time || liveCandle?.time);
+    const existingIdx = session.liveErrors.findIndex(e => 
+        e.barIndex === barIndex || (e.time && normalizeTimeKey(e.time) === targetKey)
+    );
     const entry = {
         barIndex,
+        time: predictedCandle?.time || liveCandle?.time,
         mape: parseFloat(mape.toFixed(3)),
         closeDrift: parseFloat((liveCandle.close - predictedCandle.close).toFixed(2)),
         directionMatch: Math.sign(liveCandle.close - liveCandle.open) === Math.sign(predictedCandle.close - predictedCandle.open),
@@ -195,8 +236,8 @@ export function getPAEReport(instrumentKey, timeframe) {
     if (session.liveErrors && session.liveErrors.length > 0) {
         const sorted = [...session.liveErrors].sort((a, b) => a.barIndex - b.barIndex);
         const liveLines = sorted.map(e => {
-            const dirStr = e.directionMatch ? '✓ MATCH' : '✗ MISMATCH';
-            const driftStr = e.closeDrift >= 0 ? `+₹${e.closeDrift}` : `-₹${Math.abs(e.closeDrift)}`;
+            const dirStr = e.directionMatch ? 'MATCH' : 'MISMATCH';
+            const driftStr = e.closeDrift >= 0 ? `+Rs.${e.closeDrift}` : `-Rs.${Math.abs(e.closeDrift)}`;
             return `  Bar ${e.barIndex + 1}: MAPE=${e.mape.toFixed(2)}% | Close Drift=${driftStr} | Direction=${dirStr}`;
         }).join('\n');
         liveErrorsBlock = `\n\nLIVE IN-PROGRESS CANDLE ERRORS (use these for immediate self-correction):\n${liveLines}\nINSTRUCTION: The live errors above show where your LAST prediction is currently drifting from reality RIGHT NOW. When generating the NEXT set, self-correct by adjusting close prices in the OPPOSITE direction of the drift shown above.`;
@@ -239,7 +280,11 @@ export function computeConfidence(predictedCandle, atrValue, instrumentKey, time
 export function normalizeTimeKey(t) {
     if (!t) return '';
     if (typeof t === 'number') return String(t < 10000000000 ? t * 1000 : t);
-    if (typeof t === 'string') return t.split('T')[0];
+    if (typeof t === 'string') {
+        if (!t.includes('T') && !t.includes(' ') && !t.includes(':')) return t;
+        const ms = new Date(t).getTime();
+        return !isNaN(ms) ? String(ms) : t.split('T')[0];
+    }
     if (t && typeof t === 'object' && t.year) {
         const m = String(t.month).padStart(2, '0');
         const d = String(t.day).padStart(2, '0');
@@ -393,6 +438,50 @@ export function getPAESession(instrumentKey, timeframe) {
     const db = _load();
     const arr = db[_key(instrumentKey, timeframe)];
     return Array.isArray(arr) ? arr[arr.length - 1] : arr;
+}
+
+export function sanitizePAESession(instrumentKey, timeframe, lastRealMs) {
+    if (!lastRealMs) return;
+    const db = _load();
+    const k = _key(instrumentKey, timeframe);
+    if (!db[k]) return;
+
+    let arr = Array.isArray(db[k]) ? db[k] : [db[k]];
+    let modified = false;
+
+    const getMs = (t) => {
+        if (!t) return 0;
+        if (typeof t === 'number') return t < 10000000000 ? t * 1000 : t;
+        if (typeof t === 'string') return new Date(t).getTime();
+        if (t?.year) return new Date(t.year, t.month - 1, t.day).getTime();
+        return 0;
+    };
+
+    for (const session of arr) {
+        if (session.scores && Array.isArray(session.scores)) {
+            const beforeLen = session.scores.length;
+            session.scores = session.scores.filter(sc => {
+                const scMs = getMs(sc.time);
+                return !scMs || scMs <= lastRealMs;
+            });
+            if (session.scores.length !== beforeLen) modified = true;
+        }
+
+        if (session.liveErrors && Array.isArray(session.liveErrors)) {
+            const beforeLen = session.liveErrors.length;
+            session.liveErrors = session.liveErrors.filter(le => {
+                const barTime = le.time || (session.times && session.times[le.barIndex]);
+                const leMs = getMs(barTime);
+                return leMs && leMs <= lastRealMs;
+            });
+            if (session.liveErrors.length !== beforeLen) modified = true;
+        }
+    }
+
+    if (modified) {
+        db[k] = arr;
+        _save(db);
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────

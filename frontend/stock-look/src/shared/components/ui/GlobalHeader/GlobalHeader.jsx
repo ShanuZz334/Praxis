@@ -73,7 +73,7 @@ export default function GlobalHeader({
                 <span className="text-xs font-bold text-text-primary uppercase tracking-wider">System Composite</span>
             </div>
             <p className="text-xs text-text-secondary leading-relaxed">
-                The Stocky Composite Score aggregates real-time data from Technical (30%), Options (25%), Fundamental (20%), Global Macro (15%), and Events (10%) engines into a single directional signal.
+                The Praxis Composite Score aggregates real-time data from Technical (30%), Options (25%), Fundamental (20%), Global Macro (15%), and Events (10%) engines into a single directional signal.
             </p>
             <div className="mt-3 pt-2 border-t border-border-default flex items-center gap-1.5 text-[10px] text-blue-400 font-bold uppercase tracking-wide">
                 <span>Click to read full manual</span>
@@ -298,7 +298,7 @@ export default function GlobalHeader({
                                 </div>
 
                                 {/* Middle Metrics Row - Only for main dashboard */}
-                                {title?.toUpperCase() === "STOCKY COMPOSITE" && (
+                                {(title?.toUpperCase() === "STOCKY COMPOSITE" || title?.toUpperCase() === "PRAXIS COMPOSITE") && (
                                     <div className="hidden md:flex items-center justify-between mt-0 mb-2 border border-border-default bg-background-surface/50 rounded-lg py-1 px-1.5 divide-x divide-border-default max-w-[280px]">
                                         <div className="flex items-center gap-1 px-1.5 first:pl-0 last:pr-0">
                                             <span className="text-text-secondary text-[9px] uppercase font-bold tracking-wider">Trend</span>

@@ -36,6 +36,8 @@
 @import "tw-animate-css";
 @import "./stars.css";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, .dark, .dark *));
+
 @theme {
   --color-border-subtle: var(--border-subtle);
   --color-border-default: var(--border-default);
@@ -500,80 +502,138 @@ a[href*='tradingview'] { display: none !important; }
    Universal Toggle Switch
    ============================= */
 .praxis-switch {
-  --input-focus: var(--color-praxis-blue);
-  --font-color: #323232;
-  --font-color-sub: #666;
-  --bg-color: #fff;
-  --bg-color-alt: #666;
-  --main-color: #323232;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  display: inline-flex;
   align-items: center;
-  gap: 30px;
-  width: 40px;
-  height: 16px;
-}
-
-/* Dark mode overrides */
-.dark .praxis-switch,
-[data-theme="dark"] .praxis-switch {
-  --input-focus: var(--color-praxis-blue); 
-  --font-color: #f1f5f9;
-  --font-color-sub: #94a3b8;
-  --bg-color: #0b1220; 
-  --bg-color-alt: #94a3b8;
-  --main-color: #64748B;
-}
-
-.dark .praxis-slider, [data-theme="dark"] .praxis-slider,
-.dark .praxis-slider:before, [data-theme="dark"] .praxis-slider:before {
-  box-shadow: none;
+  width: 38px;
+  height: 20px;
+  cursor: pointer;
+  user-select: none;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 .praxis-toggle {
+  position: absolute;
   opacity: 0;
   width: 0;
   height: 0;
+  margin: 0;
+  pointer-events: none;
 }
 
+/* Base Slider Track (Light Mode Default) */
 .praxis-slider {
   box-sizing: border-box;
-  border-radius: 5px;
-  border: 2px solid var(--main-color);
-  box-shadow: 4px 4px var(--main-color);
   position: absolute;
-  cursor: pointer;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: var(--bg-color);
-  transition: 0.3s;
+  border-radius: 9999px;
+  background-color: #E2E8F0;
+  border: 1px solid #CBD5E1;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.2s ease;
+  box-shadow: none;
 }
 
+/* Slider Thumb (Light Mode Default) */
 .praxis-slider:before {
   box-sizing: border-box;
   position: absolute;
   content: "";
   height: 16px;
   width: 16px;
-  border: 2px solid var(--main-color);
-  border-radius: 5px;
-  left: -2px;
-  bottom: -2px;
-  background-color: var(--bg-color);
-  box-shadow: 0 3px 0 var(--main-color);
-  transition: 0.3s;
+  border-radius: 9999px;
+  left: 1px;
+  top: 1px;
+  background-color: #FFFFFF;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16), 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              background-color 0.2s ease,
+              box-shadow 0.2s ease;
 }
 
+/* Hover State - Light Mode */
+.praxis-switch:hover .praxis-slider {
+  border-color: #94A3B8;
+  background-color: #DDE3EA;
+}
+
+/* Checked State - Light Mode */
 .praxis-toggle:checked + .praxis-slider {
-  background-color: var(--input-focus);
+  background-color: #2563EB;
+  border-color: #2563EB;
 }
 
 .praxis-toggle:checked + .praxis-slider:before {
-  transform: translateX(24px);
+  transform: translateX(18px);
+  background-color: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.praxis-switch:hover .praxis-toggle:checked + .praxis-slider {
+  background-color: #1D4ED8;
+  border-color: #1D4ED8;
+}
+
+/* Focus Ring for Accessibility */
+.praxis-toggle:focus-visible + .praxis-slider {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Disabled State */
+.praxis-toggle:disabled + .praxis-slider {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.praxis-switch:has(.praxis-toggle:disabled) {
+  cursor: not-allowed;
+}
+
+/* =============================
+   Dark Mode Overrides
+   ============================= */
+.dark .praxis-slider,
+[data-theme="dark"] .praxis-slider {
+  background-color: #1E293B;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: none;
+}
+
+.dark .praxis-slider:before,
+[data-theme="dark"] .praxis-slider:before {
+  background-color: #CBD5E1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.dark .praxis-switch:hover .praxis-slider,
+[data-theme="dark"] .praxis-switch:hover .praxis-slider {
+  background-color: #334155;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.dark .praxis-toggle:checked + .praxis-slider,
+[data-theme="dark"] .praxis-toggle:checked + .praxis-slider {
+  background-color: #3B82F6;
+  border-color: #3B82F6;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.45);
+}
+
+.dark .praxis-toggle:checked + .praxis-slider:before,
+[data-theme="dark"] .praxis-toggle:checked + .praxis-slider:before {
+  background-color: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.dark .praxis-switch:hover .praxis-toggle:checked + .praxis-slider,
+[data-theme="dark"] .praxis-switch:hover .praxis-toggle:checked + .praxis-slider {
+  background-color: #60A5FA;
+  border-color: #60A5FA;
 }
 
 /* =============================

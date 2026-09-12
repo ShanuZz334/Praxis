@@ -20,6 +20,7 @@
 // =============================
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 
 // =============================
 // Helper Components
@@ -133,7 +134,7 @@ export default function NewsModal({ open, onClose, news }) {
                             onClick={onClose}
                             className="p-3 rounded-xl bg-background-elevated text-text-tertiary hover:text-accent-primary hover:bg-background-subtle transition-all border border-border-default active:scale-95 shadow-sm"
                         >
-                            ✕
+                            <X size={16} />
                         </button>
                     </div>
 

@@ -14,7 +14,7 @@
  */
 
 import React from "react";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, AlertTriangle } from "lucide-react";
 
 export default function OptionsMarginCard({ optionsStats, scenarios }) {
     if (!scenarios) return null;
@@ -62,7 +62,7 @@ export default function OptionsMarginCard({ optionsStats, scenarios }) {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-white/5 text-[10px] text-white/40 flex items-center gap-2">
-                    <span className="text-amber-400">⚠</span>
+                    <AlertTriangle size={12} className="text-amber-400 shrink-0" />
                     <span>Volatility expansion increases margin requirements by ~15%</span>
                 </div>
             </div>

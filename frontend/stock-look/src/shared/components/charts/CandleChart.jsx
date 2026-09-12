@@ -38,7 +38,7 @@ const CandleChart = ({ candles = [], height = 120 }) => {
 
   const total = candles.length;
 
-  // 🔽 NEW: spacing config
+  // NEW: spacing config
   const candleGap = 0.8;        // space between candles
   const candleBodyWidth = 0.9;  // body thickness
 

@@ -155,7 +155,7 @@ export default function MasterDashboard() {
                 detail: { timestamp: Date.now(), instrumentKey: instKeyForEngine }
             }));
         } catch (err) {
-            console.error("❌ Force sync error:", err);
+            console.error("[ForceSync] Error:", err);
         } finally {
             setIsSyncing(false);
         }

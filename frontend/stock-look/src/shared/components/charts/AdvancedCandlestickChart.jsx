@@ -7,7 +7,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createChart, CandlestickSeries, LineSeries, HistogramSeries, createSeriesMarkers } from 'lightweight-charts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PencilRuler, Activity, TrendingUp, BarChart2, Layers, Plus, Waves, TrendingUpDown, Anchor, AlignJustify, MoreHorizontal, Cloud, Frame, SlidersHorizontal, Spline, Zap, ChevronDown, Check, Sparkles, X } from 'lucide-react';
+import { PencilRuler, Activity, TrendingUp, BarChart2, Layers, Plus, Waves, TrendingUpDown, Anchor, AlignJustify, MoreHorizontal, Cloud, Frame, SlidersHorizontal, Spline, Zap, ChevronDown, Check, Sparkles, X, Trash2, Lightbulb, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import DrawingToolbar, { COLORS } from './drawing/DrawingToolbar';
 import DrawingCanvas from './drawing/DrawingCanvas';
 import { useDrawings } from './drawing/useDrawings';
@@ -20,11 +20,11 @@ import { useTheme } from '../../context/ThemeContext';
 import { getIndicatorProfiles } from '../../utils/indicatorModeProfiles';
 import { FO_INDICES, FO_EQUITIES } from '../../utils/foInstruments';
 import { assembleContext, getFVSettings } from '../../utils/futureVisionContextAssembler';
-import { storePrediction, scoreClosedCandle, getPAESession, clearPAESession, computeConfidence, getAllPAESessions, updatePAEAutoMode, deletePAECandleByTime, deletePAESessionByTime, storeLiveErrors, buildContinuousTimeline, normalizeTimeKey } from '../../utils/predictionAccuracyEngine';
+import { storePrediction, scoreClosedCandle, getPAESession, clearPAESession, computeConfidence, getAllPAESessions, updatePAEAutoMode, deletePAECandleByTime, deletePAESessionByTime, storeLiveErrors, buildContinuousTimeline, normalizeTimeKey, sanitizePAESession } from '../../utils/predictionAccuracyEngine';
 import { blendRollingForecasts } from '../../utils/FutureVisionBlender';
 import axiosInstance from '../../utils/axiosInstance';
 import { useDataRegistry } from '../../context/DataRegistryContext';
-import { Telescope, Info, Eye, EyeOff, Microscope } from 'lucide-react';
+import { Telescope, Info, Eye, EyeOff, Microscope, RotateCw } from 'lucide-react';
 import Loader from '../ui/Loader';
 import OHLCLegend from './OHLCLegend';
 import { getGlobalInsightCache } from '../ui/AiInsightSection';
@@ -168,14 +168,21 @@ export default React.memo(function AdvancedCandlestickChart({
     const hoveredTimeRef = useRef(null); // Track hovered time for specific candle deletion
     const paceProfileRef = useRef(null); // PACE: permanent calibration profile
     const analystBriefRef = useRef(null); // Analyst: daily strategic brief
+    const lastLiveCandleRef = useRef(null); // Tracks last closed tick before boundary change
 
     const liveIndicatorSnapshotRef = useRef({});
+
+    // Overnight Analyst Strategic Brief States
+    const [analystBrief, setAnalystBrief] = useState(null);
+    const [analystBriefCreatedAt, setAnalystBriefCreatedAt] = useState(null);
+    const [showAnalystPopover, setShowAnalystPopover] = useState(false);
+    const [isAnalyzingBrief, setIsAnalyzingBrief] = useState(false);
 
     // Dynamic Sub-Pane Oscillator hover & latest value tracking
     const [oscillatorHover, setOscillatorHover] = useState({ rsi: null, macd: null, signal: null, hist: null });
     const latestOscillatorsRef = useRef({ rsi: null, macd: null, signal: null, hist: null });
 
-    // 🎯 PACE & Analyst: Fetch calibration profile & brief on instrument/timeframe change 🎯
+    // PACE & Analyst: Fetch calibration profile & brief on instrument/timeframe change
     useEffect(() => {
         if (!instrumentKey || !timeframe) return;
         
@@ -192,14 +199,52 @@ export default React.memo(function AdvancedCandlestickChart({
         // Fetch Analyst Brief
         axiosInstance.get('/api/v1/pace/analyst', { params: { instrumentKey, timeframe } })
             .then(res => {
-                analystBriefRef.current = res.data?.brief || null;
-                if (res.data?.brief) console.log(`[OvernightAnalyst] Loaded brief for ${instrumentKey}/${timeframe}`);
+                const rawBrief = res.data?.brief;
+                const text = typeof rawBrief === 'string' ? rawBrief : (rawBrief?.brief_text || rawBrief?.brief || null);
+                const createdAt = res.data?.createdAt || rawBrief?.created_at || null;
+                analystBriefRef.current = text;
+                setAnalystBrief(text);
+                setAnalystBriefCreatedAt(createdAt);
+                if (text) console.log(`[OvernightAnalyst] Loaded brief for ${instrumentKey}/${timeframe}`);
             })
-            .catch(() => { /* silent */ });
+            .catch(() => {
+                analystBriefRef.current = null;
+                setAnalystBrief(null);
+                setAnalystBriefCreatedAt(null);
+            });
 
     }, [instrumentKey, timeframe]);
 
-    // 🎯 PACE: After bar close, post score to backend to update permanent profile 🎯──
+    // Handler to run fresh deep overnight analysis without closing or vanishing
+    const handleRunAnalystBrief = async () => {
+        if (!instrumentKey || !timeframe) return;
+        setIsAnalyzingBrief(true);
+        try {
+            const res = await axiosInstance.post('/api/v1/pace/analyst/run', { 
+                instrumentKey, 
+                timeframe,
+                candles: data?.slice(-50),
+                confluence: confluenceData
+            });
+            if (res.data?.success) {
+                const newBrief = typeof res.data.brief === 'string' ? res.data.brief : res.data.brief?.brief_text;
+                const newCreated = res.data.createdAt || Date.now();
+                analystBriefRef.current = newBrief;
+                setAnalystBrief(newBrief);
+                setAnalystBriefCreatedAt(newCreated);
+                const { toast } = await import('sonner');
+                toast.success('Overnight Analyst Brief Generated');
+            }
+        } catch (err) {
+            const detail = err.response?.data?.details || err.response?.data?.error || err.message;
+            const { toast } = await import('sonner');
+            toast.error('Analysis Failed', { description: detail });
+        } finally {
+            setIsAnalyzingBrief(false);
+        }
+    };
+
+    // PACE: After bar close, post score to backend to update permanent profile
     const postPACEScore = (barScore, liveCandle) => {
         if (!barScore || !instrumentKey || !timeframe) return;
         // Detect regime from recent ATR proxy: compare last candle range to avg
@@ -305,6 +350,24 @@ export default React.memo(function AdvancedCandlestickChart({
             wickDownColor:   '#f472b6',
             priceLineVisible:      false,
             lastValueVisible:      false,
+            crosshairMarkerVisible: false,
+        });
+
+        ghostUpperConeRef.current = chart.addSeries(LineSeries, {
+            color: 'rgba(192, 132, 252, 0.35)',
+            lineWidth: 1,
+            lineStyle: 2,
+            priceLineVisible: false,
+            lastValueVisible: false,
+            crosshairMarkerVisible: false,
+        });
+
+        ghostLowerConeRef.current = chart.addSeries(LineSeries, {
+            color: 'rgba(244, 114, 182, 0.35)',
+            lineWidth: 1,
+            lineStyle: 2,
+            priceLineVisible: false,
+            lastValueVisible: false,
             crosshairMarkerVisible: false,
         });
 
@@ -468,13 +531,24 @@ export default React.memo(function AdvancedCandlestickChart({
             if (param.time && param.point && ghostCandleSeriesRef.current && param.seriesData.get(ghostCandleSeriesRef.current)) {
                 const gData = param.seriesData.get(ghostCandleSeriesRef.current);
                 const paramKey = normalizeTimeKey(param.time);
-                const gMarker = ghostMarkersRef.current.find(m => normalizeTimeKey(m.time) === paramKey);
+                const effectiveLive = demoLiveCandle || liveCandle;
+                const isLiveBar = effectiveLive && normalizeTimeKey(effectiveLive.time) === paramKey;
+                const allReal = [...(data || []), ...(demoRealCandles || [])];
+                const realCandle = allReal.find(c => normalizeTimeKey(c.time) === paramKey);
+
+                // A marker is ONLY valid if a real candle exists or is forming right now
+                const gMarker = (realCandle || isLiveBar)
+                    ? ghostMarkersRef.current.find(m => normalizeTimeKey(m.time) === paramKey)
+                    : null;
+
                 if (gMarker) {
                     setGhostTooltip({
                         x: param.point.x,
                         y: param.point.y,
-                        title: 'AI Prediction Error',
-                        text: gMarker.text,
+                        title: isLiveBar ? `Live Tracking (${gMarker.text} drift)` : `PAE Accuracy (${gMarker.text} error)`,
+                        text: realCandle
+                            ? `Forecast C: ${Number(gData.close).toFixed(2)} | Real C: ${Number(realCandle.close).toFixed(2)}`
+                            : `Forecast O: ${Number(gData.open).toFixed(2)}  C: ${Number(gData.close).toFixed(2)}`,
                         color: gMarker.color
                     });
                 } else if (gData && gData.open !== undefined) {
@@ -483,7 +557,7 @@ export default React.memo(function AdvancedCandlestickChart({
                         x: param.point.x,
                         y: param.point.y,
                         title: isUp ? 'AI Forecast (Bullish)' : 'AI Forecast (Bearish)',
-                        text: `O: ${Number(gData.open).toFixed(2)}  C: ${Number(gData.close).toFixed(2)}`,
+                        text: `O: ${Number(gData.open).toFixed(2)}  H: ${Number(gData.high).toFixed(2)}  L: ${Number(gData.low).toFixed(2)}  C: ${Number(gData.close).toFixed(2)}`,
                         color: isUp ? '#c084fc' : '#f472b6'
                     });
                 } else {
@@ -568,111 +642,139 @@ export default React.memo(function AdvancedCandlestickChart({
     }, [liveCandle]);
 
     // ── Future Vision: PAE Scoring on live bar close ────────────────────────────
-    // When FV is active and a new live tick arrives, check if a new bar has closed
-    // and score it against the stored prediction.
+    // When FV is active and a new live tick arrives, score closed bars and show live drift
+    // ONLY on the candle that is currently forming right now.
     useEffect(() => {
         const effectiveLiveCandle = demoLiveCandle || liveCandle;
         if (!fvActive || !effectiveLiveCandle || !fvSessionRef.current) return;
 
         const session = fvSessionRef.current;
-        const barIdx  = fvLiveBarIndexRef.current;
+        let barIdx  = fvLiveBarIndexRef.current;
 
-        if (barIdx < session.candles.length) {
-            // -----------------------------------------------------------------
-            // REAL-TIME ERR% MARKER: Show live error % on the currently-forming bar
-            // This runs on every tick so the marker updates in real time.
-            // -----------------------------------------------------------------
-            const currentGhost = session.candles[barIdx];
-            if (currentGhost && !currentGhost.deleted && ghostCandleSeriesRef.current) {
-                const errOpen  = Math.abs(currentGhost.open  - effectiveLiveCandle.open)  / Math.max(effectiveLiveCandle.open,  0.001);
-                const errHigh  = Math.abs(currentGhost.high  - effectiveLiveCandle.high)  / Math.max(effectiveLiveCandle.high,  0.001);
-                const errLow   = Math.abs(currentGhost.low   - effectiveLiveCandle.low)   / Math.max(effectiveLiveCandle.low,   0.001);
-                const errClose = Math.abs(currentGhost.close - effectiveLiveCandle.close) / Math.max(effectiveLiveCandle.close, 0.001);
-                const mape = ((errOpen + errHigh + errLow + errClose) / 4) * 100;
-                
-                const markerTime = session.times[barIdx];
-                const liveMarker = {
-                    time: markerTime,
-                    position: 'aboveBar',
-                    color: mape < 1 ? '#10b981' : mape < 2 ? '#f59e0b' : '#ef4444',
-                    shape: 'arrowDown',
-                    text: `${mape.toFixed(1)}%`,
-                    size: 1
-                };
+        const getMs = (t) => {
+            if (!t) return 0;
+            if (typeof t === 'number') return t < 10000000000 ? t * 1000 : t;
+            if (typeof t === 'string') return new Date(t).getTime();
+            if (t?.year) return new Date(t.year, t.month - 1, t.day).getTime();
+            return 0;
+        };
 
-                // Replace any existing marker at this time slot and re-apply
-                const filtered = ghostMarkersRef.current.filter(m => {
-                    if (typeof m.time === 'number' && typeof markerTime === 'number') return m.time !== markerTime;
-                    if (m.time?.year) return !(m.time.year === markerTime?.year && m.time.month === markerTime?.month && m.time.day === markerTime?.day);
-                    return m.time !== markerTime;
-                });
-                ghostMarkersRef.current = [...filtered, liveMarker];
+        const liveMs = getMs(effectiveLiveCandle.time);
+        const liveKey = normalizeTimeKey(effectiveLiveCandle.time);
 
-                // Disable native overlapping arrows; we now use the custom clean hover tooltip
-                // if (!ghostMarkersPluginRef.current && ghostCandleSeriesRef.current) {
-                //     const plugin = createSeriesMarkers(ghostCandleSeriesRef.current, ghostMarkersRef.current);
-                //     ghostMarkersPluginRef.current = plugin;
-                //     if (typeof ghostCandleSeriesRef.current.attachPrimitive === 'function') {
-                //         ghostCandleSeriesRef.current.attachPrimitive(plugin);
-                //     }
-                // } else if (ghostMarkersPluginRef.current) {
-                //     ghostMarkersPluginRef.current.setMarkers(ghostMarkersRef.current);
-                // }
-                
-                // Persist live errors into PAE DB so auto-mode next generation gets real feedback
-                storeLiveErrors(
-                    session.instrumentKey || instrumentKey,
-                    session.timeframe || timeframe,
-                    barIdx,
-                    mape,
-                    effectiveLiveCandle,
-                    currentGhost
-                );
-            }
-
-            // -----------------------------------------------------------------
-            // BAR-CLOSE SCORING: Only runs when live time has PASSED the predicted bar's time
-            // -----------------------------------------------------------------
+        // 1. Process all bars whose time has PASSED (bar has closed)
+        while (barIdx < session.candles.length) {
             const expectedTime = session.times[barIdx];
-            
-            let isTimePassed = false;
-            if (typeof effectiveLiveCandle.time === 'number' && typeof expectedTime === 'number') {
-                isTimePassed = effectiveLiveCandle.time > expectedTime;
-            } else {
-                const liveT = new Date(effectiveLiveCandle.time).getTime();
-                const expT = new Date(expectedTime).getTime();
-                isTimePassed = liveT > expT;
+            const expMs = getMs(expectedTime);
+            const expKey = normalizeTimeKey(expectedTime);
+
+            // The bar has closed if live time is strictly after this bar's expected time
+            const isClosed = (liveMs > expMs && liveKey !== expKey);
+            if (!isClosed) break;
+
+            // Find the actual closed real candle that traded during this bar
+            let realClosed = null;
+            if (data && data.length > 0) {
+                realClosed = data.find(c => normalizeTimeKey(c.time) === expKey);
             }
-        
-            if (!isTimePassed) return;
+            if (!realClosed && demoRealCandles && demoRealCandles.length > 0) {
+                realClosed = demoRealCandles.find(c => normalizeTimeKey(c.time) === expKey);
+            }
+            if (!realClosed && lastLiveCandleRef.current && normalizeTimeKey(lastLiveCandleRef.current.time) === expKey) {
+                realClosed = lastLiveCandleRef.current;
+            }
 
-            const barScore = scoreClosedCandle(
-                session.instrumentKey,
-                session.timeframe,
-                barIdx,
-                effectiveLiveCandle
-            );
-            if (barScore) {
-                fvLiveBarIndexRef.current = barIdx + 1;
-                // Update PAE HUD
-                const paeSession = getPAESession(session.instrumentKey, session.timeframe);
-                setFvPAE(paeSession);
+            if (realClosed) {
+                const currentGhost = session.candles[barIdx];
+                const barScore = scoreClosedCandle(
+                    session.instrumentKey,
+                    session.timeframe,
+                    barIdx,
+                    realClosed
+                );
 
-                // ── PACE: push bar score to permanent backend calibration ──
-                postPACEScore(barScore, effectiveLiveCandle);
+                if (barScore && currentGhost) {
+                    const errOpen  = Math.abs(currentGhost.open  - realClosed.open)  / Math.max(realClosed.open,  0.001);
+                    const errHigh  = Math.abs(currentGhost.high  - realClosed.high)  / Math.max(realClosed.high,  0.001);
+                    const errLow   = Math.abs(currentGhost.low   - realClosed.low)   / Math.max(realClosed.low,   0.001);
+                    const errClose = Math.abs(currentGhost.close - realClosed.close) / Math.max(realClosed.close, 0.001);
+                    const mape = ((errOpen + errHigh + errLow + errClose) / 4) * 100;
 
-                // Dim the ghost candle that was just scored
-                if (ghostCandleSeriesRef.current && session.candles[barIdx]) {
-                    _renderGhostCandles(session.candles, session.times, true);
+                    const finalMarker = {
+                        time: expectedTime,
+                        position: 'aboveBar',
+                        color: mape < 1 ? '#10b981' : mape < 2 ? '#f59e0b' : '#ef4444',
+                        shape: 'arrowDown',
+                        text: `${mape.toFixed(1)}%`,
+                        size: 1
+                    };
+                    const filtered = ghostMarkersRef.current.filter(m => normalizeTimeKey(m.time) !== expKey);
+                    ghostMarkersRef.current = [...filtered, finalMarker];
+
+                    const paeSession = getPAESession(session.instrumentKey, session.timeframe);
+                    setFvPAE(paeSession);
+
+                    postPACEScore(barScore, realClosed);
+
+                    if (ghostCandleSeriesRef.current && session.candles[barIdx]) {
+                        _renderGhostCandles(session.candles, session.times, true);
+                    }
+
+                    if (fvAutoMode) {
+                        triggerFutureVision();
+                    }
                 }
-                
-                // If auto mode is enabled, trigger a fresh prediction upon bar close
-                if (fvAutoMode) {
-                    triggerFutureVision();
+            }
+
+            barIdx++;
+            fvLiveBarIndexRef.current = barIdx;
+        }
+
+        // 2. REAL-TIME ERR% MARKER: ONLY for the candle forming right now
+        if (barIdx < session.candles.length) {
+            const expectedTime = session.times[barIdx];
+            const expKey = normalizeTimeKey(expectedTime);
+
+            // Strictly guard: live candle MUST match the expected bar's timestamp
+            if (liveKey === expKey) {
+                const currentGhost = session.candles[barIdx];
+                if (currentGhost && !currentGhost.deleted && ghostCandleSeriesRef.current) {
+                    const errOpen  = Math.abs(currentGhost.open  - effectiveLiveCandle.open)  / Math.max(effectiveLiveCandle.open,  0.001);
+                    const errHigh  = Math.abs(currentGhost.high  - effectiveLiveCandle.high)  / Math.max(effectiveLiveCandle.high,  0.001);
+                    const errLow   = Math.abs(currentGhost.low   - effectiveLiveCandle.low)   / Math.max(effectiveLiveCandle.low,   0.001);
+                    const errClose = Math.abs(currentGhost.close - effectiveLiveCandle.close) / Math.max(effectiveLiveCandle.close, 0.001);
+                    const mape = ((errOpen + errHigh + errLow + errClose) / 4) * 100;
+
+                    const liveMarker = {
+                        time: expectedTime,
+                        position: 'aboveBar',
+                        color: mape < 1 ? '#10b981' : mape < 2 ? '#f59e0b' : '#ef4444',
+                        shape: 'arrowDown',
+                        text: `${mape.toFixed(1)}%`,
+                        size: 1
+                    };
+
+                    const filtered = ghostMarkersRef.current.filter(m => normalizeTimeKey(m.time) !== expKey);
+                    ghostMarkersRef.current = [...filtered, liveMarker];
+
+                    storeLiveErrors(
+                        session.instrumentKey || instrumentKey,
+                        session.timeframe || timeframe,
+                        barIdx,
+                        mape,
+                        effectiveLiveCandle,
+                        currentGhost
+                    );
                 }
+            } else {
+                // If live candle has NOT reached this expectedTime (future bar),
+                // remove any stale marker from this future slot!
+                ghostMarkersRef.current = ghostMarkersRef.current.filter(m => normalizeTimeKey(m.time) !== expKey);
             }
         }
-    }, [liveCandle, demoLiveCandle, fvActive]);
+
+        lastLiveCandleRef.current = effectiveLiveCandle;
+    }, [liveCandle, demoLiveCandle, fvActive, data, demoRealCandles]);
 
     // ── Ghost Candle Renderer ────────────────────────────────────────────────────
     const _renderGhostCandles = (candles, times, withPAEDimming) => {
@@ -805,11 +907,21 @@ export default React.memo(function AdvancedCandlestickChart({
         if (!ghostData.length) {
             console.warn('[FutureVision] No valid ghost candles to render after strictly increasing filter. Clearing ghost series.');
             ghostCandleSeriesRef.current.setData([]);
+            if (ghostUpperConeRef.current) ghostUpperConeRef.current.setData([]);
+            if (ghostLowerConeRef.current) ghostLowerConeRef.current.setData([]);
             return;
         }
 
         console.log('[FutureVision] Rendering ghost candles:', ghostData.length, 'candles. First time:', ghostData[0]?.time);
         ghostCandleSeriesRef.current.setData(ghostData);
+        if (ghostUpperConeRef.current) {
+            const upperCone = ghostData.map(c => ({ time: c.time, value: c.high }));
+            ghostUpperConeRef.current.setData(upperCone);
+        }
+        if (ghostLowerConeRef.current) {
+            const lowerCone = ghostData.map(c => ({ time: c.time, value: c.low }));
+            ghostLowerConeRef.current.setData(lowerCone);
+        }
     };
 
     // ──────────────── Hierarchical AI Prerequisite Check ────────────────────────────────
@@ -888,7 +1000,7 @@ export default React.memo(function AdvancedCandlestickChart({
     };
 
     const fvStaleMsg = fvIssues.length > 0
-        ? `⚠️ AI summaries need attention:\n${fvIssues.join('\n')}`
+        ? `AI summaries need attention:\n${fvIssues.join('\n')}`
         : null;
 
 
@@ -1013,38 +1125,38 @@ export default React.memo(function AdvancedCandlestickChart({
                     }
                 }
             } else {
-                let minUtcMins = 1440;
-                let maxUtcMins = 0;
-                let barSize = 86400;
-                const lookback = Math.min(data.length, 500);
-                for (let i = data.length - lookback; i < data.length; i++) {
-                    const cTime = data[i].time;
-                    if (i > 0) {
-                        const diff = cTime - data[i-1].time;
-                        if (diff > 0 && diff < barSize) barSize = diff;
-                    }
-                    const d = new Date(cTime * 1000);
-                    const tm = d.getUTCHours() * 60 + d.getUTCMinutes();
-                    if (tm < minUtcMins) minUtcMins = tm;
-                    if (tm > maxUtcMins) maxUtcMins = tm;
-                }
-                maxUtcMins += Math.floor(barSize / 60);
-                if (minUtcMins >= maxUtcMins || maxUtcMins > 1440) {
-                    minUtcMins = 225; maxUtcMins = 600;
-                }
+                const TF_SECONDS = {
+                    '1m': 60, '1minute': 60,
+                    '3m': 180, '3minute': 180,
+                    '5m': 300, '5minute': 300,
+                    '10m': 600, '10minute': 600,
+                    '15m': 900, '15minute': 900,
+                    '30m': 1800, '30minute': 1800,
+                    '1h': 3600, '60m': 3600, '1hour': 3600,
+                };
+                let barSize = TF_SECONDS[timeframe] || 900;
                 
-                let currentTime = lastCandle.time;
+                // Strict NSE Trading Hours in UTC:
+                // Market opens 09:15 IST = 03:45 UTC = 225 UTC mins
+                // Market closes 15:30 IST = 10:00 UTC = 600 UTC mins
+                const minUtcMins = 225;
+                const maxUtcMins = 600;
+                
+                let currentTime = typeof lastCandle.time === 'number'
+                    ? lastCandle.time
+                    : Math.floor(new Date(lastCandle.time).getTime() / 1000);
+
                 for (let i = 0; i < candles.length; i++) {
                     currentTime += barSize;
                     let date = new Date(currentTime * 1000);
                     let tm = date.getUTCHours() * 60 + date.getUTCMinutes();
                     
+                    // If the candle time is at or beyond market close (15:30 IST / 10:00 UTC),
+                    // or before market open (09:15 IST / 03:45 UTC), roll to next trading day 09:15 IST
                     if (tm >= maxUtcMins || tm < minUtcMins) {
-                        if (tm >= maxUtcMins) date.setUTCDate(date.getUTCDate() + 1);
-                        if (maxUtcMins < 1400) {
-                            if (date.getUTCDay() === 6) date.setUTCDate(date.getUTCDate() + 2);
-                            if (date.getUTCDay() === 0) date.setUTCDate(date.getUTCDate() + 1);
-                        }
+                        date.setUTCDate(date.getUTCDate() + 1);
+                        if (date.getUTCDay() === 6) date.setUTCDate(date.getUTCDate() + 2); // Sat -> Mon
+                        if (date.getUTCDay() === 0) date.setUTCDate(date.getUTCDate() + 1); // Sun -> Mon
                         date.setUTCHours(Math.floor(minUtcMins / 60), minUtcMins % 60, 0, 0);
                         currentTime = Math.floor(date.getTime() / 1000);
                     }
@@ -1137,6 +1249,64 @@ export default React.memo(function AdvancedCandlestickChart({
         }
     };
 
+    // ── Unified Future Vision Synchronization Helper ────────────────────────────
+    const syncFutureVisionWithData = useCallback((realCandles, session) => {
+        if (!realCandles || realCandles.length === 0 || !session?.times?.length) return;
+
+        const getMs = (timeObj) => {
+            if (!timeObj) return 0;
+            if (typeof timeObj === 'number') return timeObj < 10000000000 ? timeObj * 1000 : timeObj;
+            if (typeof timeObj === 'string') return new Date(timeObj).getTime();
+            if (timeObj && timeObj.year) return new Date(timeObj.year, timeObj.month - 1, timeObj.day).getTime();
+            return 0;
+        };
+
+        const lastRealMs = getMs(realCandles[realCandles.length - 1].time);
+
+        // Sanitize stored scores to prune any phantom future scores from past runs
+        sanitizePAESession(session.instrumentKey || instrumentKey, session.timeframe || timeframe, lastRealMs);
+
+        let newIdx = 0;
+        const restoredMarkers = [];
+
+        for (let i = 0; i < session.times.length; i++) {
+            const gTime = session.times[i];
+            const gMs = getMs(gTime);
+            const gKey = normalizeTimeKey(gTime);
+
+            if (gMs <= lastRealMs) {
+                newIdx = i + 1;
+                const realCandle = realCandles.find(d => normalizeTimeKey(d.time) === gKey);
+                const ghost = session.candles[i];
+                if (realCandle && ghost && !ghost.deleted) {
+                    const errOpen  = Math.abs(ghost.open  - realCandle.open)  / Math.max(realCandle.open,  0.001);
+                    const errHigh  = Math.abs(ghost.high  - realCandle.high)  / Math.max(realCandle.high,  0.001);
+                    const errLow   = Math.abs(ghost.low   - realCandle.low)   / Math.max(realCandle.low,   0.001);
+                    const errClose = Math.abs(ghost.close - realCandle.close) / Math.max(realCandle.close, 0.001);
+                    const mape = ((errOpen + errHigh + errLow + errClose) / 4) * 100;
+
+                    restoredMarkers.push({
+                        time: gTime,
+                        position: 'aboveBar',
+                        color: mape < 1 ? '#10b981' : mape < 2 ? '#f59e0b' : '#ef4444',
+                        shape: 'arrowDown',
+                        text: `${mape.toFixed(1)}%`,
+                        size: 1
+                    });
+                }
+            }
+        }
+
+        fvLiveBarIndexRef.current = newIdx;
+        ghostMarkersRef.current = restoredMarkers;
+
+        _renderGhostCandles(
+            session.candles, 
+            session.times, 
+            false
+        );
+    }, [instrumentKey, timeframe]);
+
     // Check for stored PAE session on mount or instrument/timeframe change
     useEffect(() => {
         if (!chartRef.current) return;
@@ -1167,73 +1337,18 @@ export default React.memo(function AdvancedCandlestickChart({
                 times: continuousTimes 
             };
             
-            // Fast-forward fvLiveBarIndexRef to match the current real time
-            let newIdx = 0;
-            if (data && data.length > 0) {
-                const getMs = (timeObj) => {
-                    if (!timeObj) return 0;
-                    if (typeof timeObj === 'number') return timeObj < 10000000000 ? timeObj * 1000 : timeObj;
-                    if (typeof timeObj === 'string') return new Date(timeObj).getTime();
-                    if (timeObj && timeObj.year) return new Date(timeObj.year, timeObj.month - 1, timeObj.day).getTime();
-                    return 0;
-                };
-
-                const lastRealMs = getMs(data[data.length - 1].time);
-                for (let i = 0; i < continuousTimes.length; i++) {
-                    if (getMs(continuousTimes[i]) <= lastRealMs) {
-                        newIdx = i + 1;
-                    }
-                }
-            }
-            fvLiveBarIndexRef.current = newIdx;
-            
             setFvBias(latestSession.bias);
             setFvRisk(latestSession.risk || '');
             setFvModel(latestSession.modelUsed);
             setFvActive(true);
             setFvAutoMode(latestSession.autoMode || false);
             
-            // Recompute historical MAPE markers for any ghost candles that have already been overtaken by real candles
-            if (data && data.length > 0 && newIdx > 0) {
-                const restoredMarkers = [];
-                for (let i = 0; i < newIdx; i++) {
-                    const ghost = continuousCandles[i];
-                    const gTime = continuousTimes[i];
-                    const gKey = normalizeTimeKey(gTime);
-                    
-                    // Find the exact real candle that matched this time
-                    const realCandle = data.find(d => normalizeTimeKey(d.time) === gKey);
-                    
-                    if (realCandle && ghost) {
-                        const errOpen = Math.abs(ghost.open - realCandle.open) / Math.max(realCandle.open, 0.001);
-                        const errHigh = Math.abs(ghost.high - realCandle.high) / Math.max(realCandle.high, 0.001);
-                        const errLow = Math.abs(ghost.low - realCandle.low) / Math.max(realCandle.low, 0.001);
-                        const errClose = Math.abs(ghost.close - realCandle.close) / Math.max(realCandle.close, 0.001);
-                        const mape = ((errOpen + errHigh + errLow + errClose) / 4) * 100;
-                        
-                        restoredMarkers.push({
-                            time: gTime,
-                            position: 'aboveBar',
-                            color: mape < 1 ? '#10b981' : mape < 2 ? '#f59e0b' : '#ef4444',
-                            shape: 'arrowDown',
-                            text: `${mape.toFixed(1)}%`,
-                            size: 1
-                        });
-                    }
-                }
-                ghostMarkersRef.current = restoredMarkers;
+            const effectiveData = [...(data || []), ...demoRealCandles];
+            if (effectiveData.length > 0) {
+                syncFutureVisionWithData(effectiveData, fvSessionRef.current);
             } else {
-                ghostMarkersRef.current = [];
+                _renderGhostCandles(continuousCandles, continuousTimes, false);
             }
-            
-            // Render the full continuous 3-month timeline!
-            // Undeleted historical predictions appear as Background Reference Watermarks under real candles,
-            // while upcoming forecasts glow actively into the future.
-            _renderGhostCandles(
-                continuousCandles, 
-                continuousTimes, 
-                false
-            );
             
             setFvPAE(getPAESession(instrumentKey, timeframe));
         } else {
@@ -1246,7 +1361,7 @@ export default React.memo(function AdvancedCandlestickChart({
             fvSessionRef.current = null;
             if (ghostCandleSeriesRef.current) ghostCandleSeriesRef.current.setData([]);
         }
-    }, [instrumentKey, timeframe]);
+    }, [instrumentKey, timeframe, syncFutureVisionWithData]);
 
     // Handle Hide/Unhide toggle
     useEffect(() => {
@@ -1281,9 +1396,9 @@ export default React.memo(function AdvancedCandlestickChart({
         volumeDataRef.current = volumeData;
         volumeSeriesRef.current.setData(volumeData);
 
-        // Dynamically re-render ghost candles to update background reference vs future forecast status
+        // Dynamically sync ghost candles and PAE tracking with fresh historical data
         if (fvActive && fvSessionRef.current?.candles?.length && fvSessionRef.current?.times?.length) {
-            _renderGhostCandles(fvSessionRef.current.candles, fvSessionRef.current.times);
+            syncFutureVisionWithData(effectiveData, fvSessionRef.current);
         }
 
         // ── Always compute full indicator snapshot for Future Vision ──────────────────
@@ -1926,14 +2041,14 @@ export default React.memo(function AdvancedCandlestickChart({
                 {/* Left Controls: Standalone Draw Block (strictly on left side of line) + Indicators Block (inside chart) */}
                 <div className="flex items-center pointer-events-none">
                     {/* Block 1: Standalone Draw Tool (Strictly left of the line, fits within 36px so it never cuts the line) */}
-                    <div className="pointer-events-auto w-9 h-7 flex items-center justify-center bg-background-surface/90 dark:bg-[#111622]/90 backdrop-blur-md rounded-lg border border-border-subtle/90 shadow-sm">
+                    <div className="pointer-events-auto w-9 h-7 flex items-center justify-center bg-white/90 dark:bg-[#111622]/90 backdrop-blur-md rounded-lg border border-slate-200/90 dark:border-border-subtle/90 shadow-sm">
                         <button
                             onMouseEnter={(e) => handleMouseEnter(e, showDrawing ? 'Close Drawing Suite' : 'Open Drawing Suite')}
                             onMouseLeave={() => setHoveredIndicator(null)}
                             onClick={() => { setShowDrawing(p => !p); if (showDrawing) setActiveTool('cursor'); setHoveredIndicator(null); }}
                             className={`flex items-center justify-center w-full h-full text-[10px] font-bold transition-all ${
                                 showDrawing 
-                                    ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.6)]' 
+                                    ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.6)]' 
                                     : 'text-text-secondary hover:text-text-primary'
                             }`}
                             title="Drawing Tools"
@@ -1947,7 +2062,7 @@ export default React.memo(function AdvancedCandlestickChart({
 
                     {/* Block 2: Technical Indicators & Overlays (Inside the line - moved safely to the right so it never cuts the line) */}
                     {!isMultiMode && (
-                    <div className="pointer-events-auto h-7 flex items-center gap-2 bg-background-surface/90 dark:bg-[#111622]/90 backdrop-blur-md px-2.5 rounded-lg border border-border-subtle/90 shadow-sm">
+                    <div className="pointer-events-auto h-7 flex items-center gap-2 bg-white/90 dark:bg-[#111622]/90 backdrop-blur-md px-2.5 rounded-lg border border-slate-200/90 dark:border-border-subtle/90 shadow-sm">
 
                     {/* Pinned 1-Click Toggles - Text Glow Only, Zero Box/Dots */}
                     <button
@@ -1956,7 +2071,7 @@ export default React.memo(function AdvancedCandlestickChart({
                         onClick={() => setShowVWAP(p => !p)}
                         className={`px-1 py-0.5 text-[10px] font-bold transition-all ${
                             showVWAP 
-                                ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]' 
+                                ? 'text-amber-600 dark:text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]' 
                                 : 'text-text-secondary hover:text-text-primary'
                         }`}
                     >
@@ -1969,7 +2084,7 @@ export default React.memo(function AdvancedCandlestickChart({
                         onClick={() => setShowEMA(p => !p)}
                         className={`px-1 py-0.5 text-[10px] font-bold transition-all ${
                             showEMA 
-                                ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.6)]' 
+                                ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.6)]' 
                                 : 'text-text-secondary hover:text-text-primary'
                         }`}
                     >
@@ -1982,7 +2097,7 @@ export default React.memo(function AdvancedCandlestickChart({
                         onClick={() => setShowSupertrend(p => !p)}
                         className={`px-1 py-0.5 text-[10px] font-bold transition-all ${
                             showSupertrend 
-                                ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]' 
+                                ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]' 
                                 : 'text-text-secondary hover:text-text-primary'
                         }`}
                     >
@@ -2005,10 +2120,10 @@ export default React.memo(function AdvancedCandlestickChart({
                                     }`}
                                     title="Open Indicator Arsenal"
                                 >
-                                    <Zap size={11} className={activeCount > 0 ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]' : 'text-text-muted'} />
+                                    <Zap size={11} className={activeCount > 0 ? 'text-amber-500 dark:text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]' : 'text-text-tertiary'} />
                                     <span className="hidden sm:inline">Indicators</span>
                                     {activeCount > 0 && (
-                                        <span className="text-[9px] font-mono text-amber-400 font-bold">
+                                        <span className="text-[9px] font-mono text-amber-600 dark:text-amber-400 font-bold">
                                             {activeCount}
                                         </span>
                                     )}
@@ -2025,12 +2140,12 @@ export default React.memo(function AdvancedCandlestickChart({
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: -6, scale: 0.96 }}
                                     transition={{ duration: 0.15 }}
-                                    className="absolute top-full left-0 mt-1.5 w-72 bg-background-surface/95 dark:bg-[#121622]/95 backdrop-blur-xl border border-border-default rounded-xl shadow-2xl p-2.5 z-50 pointer-events-auto"
+                                    className="absolute top-full left-0 mt-1.5 w-72 bg-white/95 dark:bg-[#121622]/95 backdrop-blur-xl border border-slate-200 dark:border-border-default rounded-xl shadow-2xl p-2.5 z-50 pointer-events-auto"
                                     onClick={e => e.stopPropagation()}
                                 >
-                                    <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-border-subtle">
+                                    <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-200 dark:border-border-subtle">
                                         <div className="flex items-center gap-1.5">
-                                            <Zap size={13} className="text-amber-400" />
+                                            <Zap size={13} className="text-amber-500 dark:text-amber-400" />
                                             <span className="text-xs font-bold text-text-primary uppercase tracking-wide">Indicator Arsenal</span>
                                         </div>
                                         <span className="text-[9px] font-mono text-text-tertiary uppercase">
@@ -2044,31 +2159,31 @@ export default React.memo(function AdvancedCandlestickChart({
                                         <div>
                                             <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Price Overlays</span>
                                             <div className="grid grid-cols-2 gap-1">
-                                                <button onClick={() => setShowSupertrend(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showSupertrend ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                <button onClick={() => setShowSupertrend(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showSupertrend ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'}`}>
                                                     <span>{activeIndicatorConfig.supertrend.label}</span>
                                                     {showSupertrend && <Check size={11} />}
                                                 </button>
-                                                <button onClick={() => setShowVWAP(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showVWAP ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                <button onClick={() => setShowVWAP(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showVWAP ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30' : 'text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'}`}>
                                                     <span>{activeIndicatorConfig.vwap.label}</span>
                                                     {showVWAP && <Check size={11} />}
                                                 </button>
-                                                <button onClick={() => setShowEMA(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showEMA ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                <button onClick={() => setShowEMA(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showEMA ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30' : 'text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'}`}>
                                                     <span>{activeIndicatorConfig.ema.label}</span>
                                                     {showEMA && <Check size={11} />}
                                                 </button>
-                                                <button onClick={() => setShowCPR(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showCPR ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                <button onClick={() => setShowCPR(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showCPR ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30' : 'text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'}`}>
                                                     <span>{activeIndicatorConfig.cpr.label}</span>
                                                     {showCPR && <Check size={11} />}
                                                 </button>
-                                                <button onClick={() => setShowAdaptiveBands(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showAdaptiveBands ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                <button onClick={() => setShowAdaptiveBands(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showAdaptiveBands ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30' : 'text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'}`}>
                                                     <span>{activeIndicatorConfig.adaptiveBands.label}</span>
                                                     {showAdaptiveBands && <Check size={11} />}
                                                 </button>
-                                                <button onClick={() => setShowPSAR(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showPSAR ? 'bg-teal-500/15 text-teal-400 border border-teal-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                <button onClick={() => setShowPSAR(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showPSAR ? 'bg-teal-500/15 text-teal-600 dark:text-teal-400 border border-teal-500/30' : 'text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'}`}>
                                                     <span>{activeIndicatorConfig.psar.label}</span>
                                                     {showPSAR && <Check size={11} />}
                                                 </button>
-                                                <button onClick={() => setShowIchimoku(p => !p)} className={`col-span-2 flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showIchimoku ? 'bg-pink-500/15 text-pink-400 border border-pink-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                <button onClick={() => setShowIchimoku(p => !p)} className={`col-span-2 flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showIchimoku ? 'bg-pink-500/15 text-pink-600 dark:text-pink-400 border border-pink-500/30' : 'text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'}`}>
                                                     <span>{activeIndicatorConfig.ichimoku.label}</span>
                                                     {showIchimoku && <Check size={11} />}
                                                 </button>
@@ -2076,7 +2191,7 @@ export default React.memo(function AdvancedCandlestickChart({
 
                                             {/* Mode selector if Adaptive Bands active */}
                                             {showAdaptiveBands && (
-                                                <div className="flex items-center gap-1 mt-1.5 p-1 bg-background-surface/80 rounded border border-border-subtle">
+                                                <div className="flex items-center gap-1 mt-1.5 p-1 bg-slate-100 dark:bg-background-surface/80 rounded border border-slate-200 dark:border-border-subtle">
                                                     <span className="text-[9px] text-text-tertiary uppercase font-bold pl-1">Bands:</span>
                                                     {[
                                                         { id: 'scalp', label: 'BB Scalp' },
@@ -2096,22 +2211,22 @@ export default React.memo(function AdvancedCandlestickChart({
                                         </div>
 
                                         {/* Group 2: Sub-chart Oscillators */}
-                                        <div className="pt-1.5 border-t border-border-subtle">
+                                        <div className="pt-1.5 border-t border-slate-200 dark:border-border-subtle">
                                             <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider block mb-1">Oscillators & Studies</span>
                                             <div className="grid grid-cols-2 gap-1">
-                                                <button onClick={() => setShowMACD(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showMACD ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                <button onClick={() => setShowMACD(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showMACD ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30' : 'text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'}`}>
                                                     <span>{activeIndicatorConfig.macd.label}</span>
                                                     {showMACD && <Check size={11} />}
                                                 </button>
-                                                <button onClick={() => setShowRSI(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showRSI ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                <button onClick={() => setShowRSI(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showRSI ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/30' : 'text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'}`}>
                                                     <span>{activeIndicatorConfig.rsi.label}</span>
                                                     {showRSI && <Check size={11} />}
                                                 </button>
-                                                <button onClick={() => setShowAnchoredVWAP(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showAnchoredVWAP ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                <button onClick={() => setShowAnchoredVWAP(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showAnchoredVWAP ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30' : 'text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'}`}>
                                                     <span>{activeIndicatorConfig.anchoredVwap.label}</span>
                                                     {showAnchoredVWAP && <Check size={11} />}
                                                 </button>
-                                                <button onClick={() => setShowAutoFib(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showAutoFib ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30' : 'text-text-secondary hover:bg-white/5 border border-transparent'}`}>
+                                                <button onClick={() => setShowAutoFib(p => !p)} className={`flex items-center justify-between px-2 py-1 rounded text-[10px] font-medium transition-colors ${showAutoFib ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30' : 'text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'}`}>
                                                     <span>{activeIndicatorConfig.autoFib.label}</span>
                                                     {showAutoFib && <Check size={11} />}
                                                 </button>
@@ -2123,7 +2238,7 @@ export default React.memo(function AdvancedCandlestickChart({
                         </AnimatePresence>
                     </div>
 
-                    <div className="w-px h-3 bg-border-subtle/80 mx-0.5" />
+                    <div className="w-px h-3 bg-slate-200 dark:bg-border-subtle/80 mx-0.5" />
 
                     {/* 1. Future Vision Engine: Single-Click Predict/Optimize, Double-Click Auto Mode */}
                     <button
@@ -2133,10 +2248,10 @@ export default React.memo(function AdvancedCandlestickChart({
                             fvLoading 
                                 ? 'cursor-wait opacity-80' 
                                 : fvAutoMode 
-                                ? 'text-violet-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.7)]' 
+                                ? 'text-violet-600 dark:text-violet-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.7)]' 
                                 : fvActive 
-                                ? 'text-violet-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.5)] hover:text-violet-300' 
-                                : 'text-text-muted hover:text-text-primary'
+                                ? 'text-violet-600 dark:text-violet-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.5)] hover:text-violet-700 dark:hover:text-violet-300' 
+                                : 'text-text-tertiary hover:text-text-primary'
                         }`}
                         title={
                             fvLoading 
@@ -2165,56 +2280,124 @@ export default React.memo(function AdvancedCandlestickChart({
                         onClick={() => setFvVisible(p => !p)}
                         className={`flex items-center justify-center p-0.5 transition-colors ${
                             fvVisible 
-                                ? 'text-violet-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]' 
-                                : 'text-text-muted hover:text-text-primary'
+                                ? 'text-violet-600 dark:text-violet-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]' 
+                                : 'text-text-tertiary hover:text-text-primary'
                         }`}
                         title={fvVisible ? "Hide Ghost Candles" : "Show Ghost Candles"}
                     >
                         {fvVisible ? <Eye size={12} /> : <EyeOff size={12} />}
                     </button>
 
-                    {/* Overnight Analyst Insight Generator (Icon Only) */}
-                    <button
-                        onClick={async () => {
-                            if (!instrumentKey || !timeframe) return;
-                            const { toast } = await import('sonner');
-                            toast.loading('Running deep overnight analysis...', { id: 'analyst' });
-                            try {
-                                const res = await axiosInstance.post('/api/v1/pace/analyst/run', { instrumentKey, timeframe });
-                                if (res.data?.success) {
-                                    analystBriefRef.current = res.data.brief;
-                                    toast.success('Analyst Brief Generated', { 
-                                        id: 'analyst',
-                                        description: res.data.brief 
-                                    });
-                                }
-                            } catch (err) {
-                                toast.error('Analysis Failed', { id: 'analyst', description: err.message });
-                            }
-                        }}
-                        className="flex items-center justify-center p-0.5 text-text-muted hover:text-fuchsia-400 transition-colors"
-                        title="Run Deep Overnight Analysis"
-                    >
-                        <Microscope size={12} />
-                    </button>
+                    {/* Overnight Strategic Brief Trigger & Popover */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowAnalystPopover(p => !p)}
+                            className={`relative flex items-center justify-center p-0.5 rounded transition-colors ${
+                                showAnalystPopover
+                                    ? 'text-purple-600 dark:text-purple-400'
+                                    : analystBrief
+                                    ? 'text-purple-500 hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300'
+                                    : 'text-text-tertiary hover:text-purple-600 dark:hover:text-purple-400'
+                            }`}
+                            title={analystBrief ? "Overnight Strategic Brief (Active in Future Vision Block 0)" : "Overnight Strategic Brief"}
+                        >
+                            <Microscope size={12} />
+                            {Boolean(analystBrief) && (
+                                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.8)]" />
+                            )}
+                        </button>
+
+                        <AnimatePresence>
+                            {showAnalystPopover && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-white/95 dark:bg-[#111622]/95 backdrop-blur-xl border border-slate-200 dark:border-border-default rounded-xl shadow-2xl p-3.5 z-50 pointer-events-auto select-text text-left"
+                                    onClick={e => e.stopPropagation()}
+                                >
+                                    {/* Header */}
+                                    <div className="flex items-start justify-between gap-2 pb-2 mb-2.5 border-b border-slate-200 dark:border-border-subtle">
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <Microscope size={13} className="text-purple-500 dark:text-purple-400" />
+                                                <span className="text-xs font-bold text-text-primary tracking-wide">Overnight Strategic Brief</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-semibold rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                                                    Active in Future Vision Block 0
+                                                </span>
+                                                <span className="text-[10px] font-mono text-text-tertiary">
+                                                    {timeframe?.toUpperCase()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowAnalystPopover(false)}
+                                            className="text-text-tertiary hover:text-text-primary p-0.5 rounded transition-colors"
+                                            title="Close"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+
+                                    {/* Body */}
+                                    <div className="text-xs leading-relaxed text-slate-700 dark:text-slate-300 min-h-[50px] max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                                        {isAnalyzingBrief ? (
+                                            <div className="flex flex-col items-center justify-center py-6 gap-2 text-text-secondary">
+                                                <Loader size="tiny" color="purple" />
+                                                <span className="text-xs font-medium">Running quantitative overnight analysis...</span>
+                                            </div>
+                                        ) : analystBrief ? (
+                                            <p className="whitespace-pre-wrap font-normal">{analystBrief}</p>
+                                        ) : (
+                                            <p className="text-text-tertiary italic text-[11px]">
+                                                No overnight brief generated yet for this symbol and timeframe. Run analysis to create an institutional calibration brief.
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Footer */}
+                                    <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-slate-200 dark:border-border-subtle text-[10px] text-text-tertiary">
+                                        <div>
+                                            {analystBriefCreatedAt ? (
+                                                <span>Generated: {new Date(analystBriefCreatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                            ) : (
+                                                <span>Not yet generated</span>
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={handleRunAnalystBrief}
+                                            disabled={isAnalyzingBrief || !instrumentKey || !timeframe}
+                                            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-50 transition-all shadow-sm shadow-purple-600/20"
+                                        >
+                                            <RotateCw size={11} className={isAnalyzingBrief ? 'animate-spin' : ''} />
+                                            <span>{isAnalyzingBrief ? 'Analyzing...' : (analystBrief ? 'Re-analyze' : 'Run Analysis')}</span>
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                     </div>
                     )}
                 </div>
 
                 {/* Center Section: 4-Pillar Confluence Matrix + Key Levels (hidden in multi-chart tile mode, visible in maximized/single mode) */}
                 {!isMultiMode && confluenceData && (
-                    <div className="pointer-events-auto h-7 hidden 2xl:flex items-center gap-2 bg-background-surface/90 dark:bg-[#111622]/90 backdrop-blur-md px-2.5 rounded-lg border border-border-subtle/90 shadow-sm select-none">
+                    <div className="pointer-events-auto h-7 hidden 2xl:flex items-center gap-2 bg-white/90 dark:bg-[#111622]/90 backdrop-blur-md px-2.5 rounded-lg border border-slate-200/90 dark:border-border-subtle/90 shadow-sm select-none">
                         <div className="flex items-center gap-1.5">
                             <div className="flex items-center gap-1">
-                                <span className={`w-1.5 h-1.5 rounded-full ${confluenceData.p1_ema === 1 ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-rose-400'}`} title="EMA 9/21 Trend" />
-                                <span className={`w-1.5 h-1.5 rounded-full ${confluenceData.p2_vwap === 1 ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-rose-400'}`} title="VWAP Alignment" />
-                                <span className={`w-1.5 h-1.5 rounded-full ${confluenceData.p3_st === 1 ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-rose-400'}`} title="Supertrend Regime" />
-                                <span className={`w-1.5 h-1.5 rounded-full ${confluenceData.p4_mom === 1 ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-rose-400'}`} title="RSI Momentum" />
+                                <span className={`w-1.5 h-1.5 rounded-full ${confluenceData.p1_ema === 1 ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`} title="EMA 9/21 Trend" />
+                                <span className={`w-1.5 h-1.5 rounded-full ${confluenceData.p2_vwap === 1 ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`} title="VWAP Alignment" />
+                                <span className={`w-1.5 h-1.5 rounded-full ${confluenceData.p3_st === 1 ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`} title="Supertrend Regime" />
+                                <span className={`w-1.5 h-1.5 rounded-full ${confluenceData.p4_mom === 1 ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`} title="RSI Momentum" />
                             </div>
                             <span className="text-[9px] uppercase font-bold text-text-tertiary tracking-wider">Confluence:</span>
                             <span className={`text-[10px] font-bold font-mono ${
-                                confluenceData.bullCount >= 3 ? 'text-emerald-400' :
-                                confluenceData.bullCount <= 1 ? 'text-rose-400' : 'text-amber-400'
+                                confluenceData.bullCount >= 3 ? 'text-emerald-600 dark:text-emerald-400' :
+                                confluenceData.bullCount <= 1 ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'
                             }`}>
                                 {confluenceData.bullCount}/4 {confluenceData.bullCount >= 3 ? 'BULL' : confluenceData.bullCount <= 1 ? 'BEAR' : 'NEUTRAL'}
                             </span>
@@ -2222,9 +2405,9 @@ export default React.memo(function AdvancedCandlestickChart({
 
                         {/* VWAP Delta */}
                         {confluenceData.vwapDelta !== null && (
-                            <div className="flex items-center gap-1 pl-2 border-l border-border-subtle/80 font-mono text-[10px]">
+                            <div className="flex items-center gap-1 pl-2 border-l border-slate-200 dark:border-border-subtle/80 font-mono text-[10px]">
                                 <span className="text-text-tertiary text-[9px] font-sans uppercase font-bold">VWAP Δ</span>
-                                <span className={`font-semibold ${confluenceData.vwapDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                <span className={`font-semibold tabular-nums min-w-[42px] text-right inline-block ${confluenceData.vwapDelta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                                     {confluenceData.vwapDelta >= 0 ? '+' : ''}{confluenceData.vwapDelta.toFixed(2)}%
                                 </span>
                             </div>
@@ -2239,29 +2422,29 @@ export default React.memo(function AdvancedCandlestickChart({
                         <div className="relative">
                             <button
                                 onClick={() => setShowAiFlyout(p => !p)}
-                                className={`h-7 flex items-center gap-1.5 px-2.5 rounded-lg border text-[10px] font-bold transition-all backdrop-blur-md shadow-sm ${
+                                className={`h-7 flex items-center gap-1.5 px-2.5 rounded-lg border text-[10px] font-bold transition-all backdrop-blur-md shadow-sm shrink-0 ${
                                     showAiFlyout 
-                                        ? 'bg-violet-600/20 text-violet-300 border-violet-500/50 ring-1 ring-violet-500/30' 
-                                        : 'bg-background-surface/90 dark:bg-[#111622]/90 text-text-primary border-border-subtle/90 hover:border-violet-500/30'
+                                        ? 'bg-violet-500/15 dark:bg-violet-600/20 text-violet-700 dark:text-violet-300 border-violet-500/50 ring-1 ring-violet-500/30' 
+                                        : 'bg-white/90 dark:bg-[#111622]/90 text-text-primary border-slate-200/90 dark:border-border-subtle/90 hover:border-violet-500/40'
                                 }`}
                                 title="Praxis AI Intelligence Hub"
                             >
-                                <Sparkles size={11} className={fvLoading ? 'text-violet-400 animate-spin' : 'text-violet-400'} />
+                                <Sparkles size={11} className={fvLoading ? 'text-violet-500 dark:text-violet-400 animate-spin' : 'text-violet-500 dark:text-violet-400'} />
                                 <span className="text-text-secondary uppercase tracking-wider text-[9px]">AI</span>
                                 {fvBias && (
                                     <span className={`px-1 py-0.2 rounded text-[9px] font-mono font-bold ${
-                                        fvBias === 'bullish' ? 'bg-emerald-500/15 text-emerald-400' :
-                                        fvBias === 'bearish' ? 'bg-rose-500/15 text-rose-400' :
-                                        'bg-slate-500/15 text-slate-400'
+                                        fvBias === 'bullish' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
+                                        fvBias === 'bearish' ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20' :
+                                        'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20'
                                     }`}>
                                         {fvBias.toUpperCase()}
                                     </span>
                                 )}
                                 {patternScore && (
-                                    <span className={`px-1 py-0.2 rounded text-[9px] font-mono font-bold ${
-                                        patternScore.score > 2 ? 'bg-emerald-500/15 text-emerald-400' :
-                                        patternScore.score < -2 ? 'bg-rose-500/15 text-rose-400' :
-                                        'bg-amber-500/15 text-amber-400'
+                                    <span className={`px-1 py-0.2 rounded text-[9px] font-mono font-bold tabular-nums ${
+                                        patternScore.score > 2 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
+                                        patternScore.score < -2 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20' :
+                                        'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
                                     }`}>
                                         {patternScore.score > 0 ? '+' : ''}{patternScore.score}
                                     </span>
@@ -2277,12 +2460,12 @@ export default React.memo(function AdvancedCandlestickChart({
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: -6, scale: 0.96 }}
                                         transition={{ duration: 0.15 }}
-                                        className="absolute top-full right-0 mt-1.5 w-80 bg-background-surface/95 dark:bg-[#121622]/95 backdrop-blur-xl border border-border-default rounded-xl shadow-2xl p-3 z-50 pointer-events-auto"
+                                        className="absolute top-full right-0 mt-1.5 w-80 bg-white/95 dark:bg-[#121622]/95 backdrop-blur-xl border border-slate-200 dark:border-border-default rounded-xl shadow-2xl p-3 z-50 pointer-events-auto"
                                         onClick={e => e.stopPropagation()}
                                     >
-                                        <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-border-subtle">
+                                        <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-slate-200 dark:border-border-subtle">
                                             <div className="flex items-center gap-1.5">
-                                                <Sparkles size={13} className="text-violet-400" />
+                                                <Sparkles size={13} className="text-violet-500 dark:text-violet-400" />
                                                 <span className="text-xs font-bold text-text-primary uppercase tracking-wide">Praxis AI Intelligence</span>
                                             </div>
                                             <button 
@@ -2297,14 +2480,14 @@ export default React.memo(function AdvancedCandlestickChart({
                                         {fvBias && (() => {
                                             const isBull = fvBias === 'bullish';
                                             const isBear = fvBias === 'bearish';
-                                            const biasColor = isBull ? 'text-emerald-400' : isBear ? 'text-rose-400' : 'text-slate-400';
+                                            const biasColor = isBull ? 'text-emerald-600 dark:text-emerald-400' : isBear ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400';
                                             const confidence = fvSessionRef.current?.candles
                                                 ? Math.round(fvSessionRef.current.candles.reduce((a, c) => a + c.confidence, 0) / fvSessionRef.current.candles.length)
                                                 : null;
-                                            const confBarColor = confidence >= 70 ? 'bg-emerald-400' : confidence >= 50 ? 'bg-amber-400' : 'bg-rose-400';
+                                            const confBarColor = confidence >= 70 ? 'bg-emerald-500 dark:bg-emerald-400' : confidence >= 50 ? 'bg-amber-500 dark:bg-amber-400' : 'bg-rose-500 dark:bg-rose-400';
 
                                             return (
-                                                <div className="mb-3 p-2 rounded-lg bg-background-surface/80 border border-border-subtle">
+                                                <div className="mb-3 p-2 rounded-lg bg-slate-50 dark:bg-background-surface/80 border border-slate-200 dark:border-border-subtle">
                                                     <div className="flex justify-between items-center mb-1">
                                                         <span className="text-[9px] uppercase font-bold text-text-tertiary">Directional Bias</span>
                                                         <span className={`text-[11px] font-bold font-mono ${biasColor}`}>
@@ -2315,17 +2498,17 @@ export default React.memo(function AdvancedCandlestickChart({
                                                         <div className="flex flex-col gap-1 mt-1.5">
                                                             <div className="flex justify-between items-center text-[10px] font-mono">
                                                                 <span className="text-text-tertiary text-[9px]">Confidence</span>
-                                                                <span className="text-violet-300 font-bold">{confidence}%</span>
+                                                                <span className="text-violet-600 dark:text-violet-300 font-bold">{confidence}%</span>
                                                             </div>
-                                                            <div className="h-1 rounded-full bg-black/20 dark:bg-white/10 overflow-hidden">
+                                                            <div className="h-1 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
                                                                 <div className={`h-full rounded-full ${confBarColor} transition-all duration-500`} style={{ width: `${confidence}%` }} />
                                                             </div>
                                                         </div>
                                                     )}
                                                     {fvPAE?.scores?.length > 0 && (
-                                                        <div className="flex justify-between items-center mt-1.5 pt-1 border-t border-border-subtle/60 text-[10px] font-mono">
+                                                        <div className="flex justify-between items-center mt-1.5 pt-1 border-t border-slate-200 dark:border-border-subtle/60 text-[10px] font-mono">
                                                             <span className="text-text-tertiary text-[9px]">Directional Accuracy</span>
-                                                            <span className="text-blue-400 font-bold">
+                                                            <span className="text-blue-600 dark:text-blue-400 font-bold">
                                                                 {Math.round(fvPAE.scores.reduce((a, b) => a + b.da, 0) / fvPAE.scores.length * 100)}%
                                                                 <span className="text-text-tertiary font-normal ml-1">({fvPAE.scores.length} bars)</span>
                                                             </span>
@@ -2337,12 +2520,12 @@ export default React.memo(function AdvancedCandlestickChart({
 
                                         {/* Section 2: Pattern Recognition Formations */}
                                         {patternScore && (
-                                            <div className="mb-3 p-2 rounded-lg bg-background-surface/80 border border-border-subtle">
+                                            <div className="mb-3 p-2 rounded-lg bg-slate-50 dark:bg-background-surface/80 border border-slate-200 dark:border-border-subtle">
                                                 <div className="flex justify-between items-center mb-1.5">
                                                     <span className="text-[9px] uppercase font-bold text-text-tertiary">Active Formations</span>
                                                     <span className={`text-[10px] font-bold font-mono ${
-                                                        patternScore.score > 2 ? 'text-emerald-400' :
-                                                        patternScore.score < -2 ? 'text-rose-400' : 'text-amber-400'
+                                                        patternScore.score > 2 ? 'text-emerald-600 dark:text-emerald-400' :
+                                                        patternScore.score < -2 ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'
                                                     }`}>
                                                         {patternScore.score > 0 ? '+' : ''}{patternScore.score} ({patternScore.label})
                                                     </span>
@@ -2355,13 +2538,13 @@ export default React.memo(function AdvancedCandlestickChart({
                                                                 <div 
                                                                     key={i} 
                                                                     onClick={() => setHoveredPattern(isSelected ? null : p)}
-                                                                    className={`flex items-center justify-between text-[10px] px-1.5 py-1 rounded cursor-pointer transition-colors ${isSelected ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                                                                    className={`flex items-center justify-between text-[10px] px-1.5 py-1 rounded cursor-pointer transition-colors ${isSelected ? 'bg-slate-200/70 dark:bg-white/10' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`}
                                                                 >
-                                                                    <span className={`font-medium ${p.dir > 0 ? 'text-emerald-400' : p.dir < 0 ? 'text-rose-400' : 'text-text-tertiary'}`}>
+                                                                    <span className={`font-medium ${p.dir > 0 ? 'text-emerald-600 dark:text-emerald-400' : p.dir < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-text-tertiary'}`}>
                                                                         {p.name}
                                                                     </span>
                                                                     <div className="flex items-center gap-1.5 font-mono text-[9px]">
-                                                                        <span className={p.contribution > 0 ? 'text-emerald-400' : p.contribution < 0 ? 'text-rose-400' : 'text-slate-400'}>
+                                                                        <span className={p.contribution > 0 ? 'text-emerald-600 dark:text-emerald-400' : p.contribution < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'}>
                                                                             {p.contribution > 0 ? '+' : ''}{p.contribution}
                                                                         </span>
                                                                         <span className="text-text-tertiary">({p.age}b)</span>
@@ -2377,14 +2560,14 @@ export default React.memo(function AdvancedCandlestickChart({
                                         )}
 
                                         {/* Section 3: Future Vision Predictive Engine (Manual Single-Time + Continuous Auto Mode) */}
-                                        <div className="pt-2 border-t border-border-subtle flex flex-col gap-2">
+                                        <div className="pt-2 border-t border-slate-200 dark:border-border-subtle flex flex-col gap-2">
                                             <div className="flex items-center justify-between">
                                                 <span className="text-[9px] uppercase font-bold text-text-tertiary tracking-wider flex items-center gap-1">
-                                                    <Telescope size={11} className="text-violet-400" />
+                                                    <Telescope size={11} className="text-violet-500 dark:text-violet-400" />
                                                     Future Vision AI Engine
                                                 </span>
                                                 {fvActive && (
-                                                    <span className="text-[9px] font-mono font-bold text-violet-400 bg-violet-500/10 px-1.5 py-0.2 rounded border border-violet-500/20">
+                                                    <span className="text-[9px] font-mono font-bold text-violet-600 dark:text-violet-400 bg-violet-500/10 px-1.5 py-0.2 rounded border border-violet-500/20">
                                                         {fvSessionRef.current?.candles?.length || 7} BARS PREDICTED
                                                     </span>
                                                 )}
@@ -2429,7 +2612,7 @@ export default React.memo(function AdvancedCandlestickChart({
                                                     className={`py-1.5 px-2 rounded-lg text-[10px] font-bold tracking-wide transition-all flex items-center justify-center gap-1.5 border cursor-pointer ${
                                                         fvAutoMode 
                                                             ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.5)]' 
-                                                            : 'bg-background-surface/80 hover:bg-background-surface text-text-secondary hover:text-text-primary border-border-subtle'
+                                                            : 'bg-slate-100 dark:bg-background-surface/80 hover:bg-slate-200 dark:hover:bg-background-surface text-text-secondary hover:text-text-primary border-slate-200 dark:border-border-subtle'
                                                     }`}
                                                     title="Automatically generates new predictions on every candle close"
                                                 >
@@ -2521,7 +2704,7 @@ export default React.memo(function AdvancedCandlestickChart({
                                 }
                                 nextTime = currentTime;
                             }
-                            const newCandle = { time: nextTime, open, high, low, close, volume: lastReal.volume || 1000 };
+                            const newCandle = { time: nextTime, open, high, low, close, volume: Math.min(lastReal.volume || 1000, 50000) };
 
                             setDemoRealCandles(prev => {
                                 const updated = [...prev, newCandle];
@@ -2551,9 +2734,9 @@ export default React.memo(function AdvancedCandlestickChart({
                                     onClick={addDemoRealCandle}
                                     onMouseEnter={(e) => handleMouseEnter(e, `DEV: Fast-forward time (+1 real candle)`)}
                                     onMouseLeave={() => setHoveredIndicator(null)}
-                                    className="pointer-events-auto flex items-center justify-center px-1.5 h-5 rounded text-[9px] font-bold tracking-wider bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 hover:bg-indigo-500/30 transition-colors"
+                                    className="pointer-events-auto flex items-center justify-center gap-0.5 px-1.5 h-5 rounded text-[9px] font-bold tracking-wider bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 hover:bg-indigo-500/30 transition-colors"
                                 >
-                                    +🕯
+                                    <Plus size={10} />
                                 </button>
                                 {demoRealCandles.length > 0 && (
                                     <button
@@ -2562,7 +2745,7 @@ export default React.memo(function AdvancedCandlestickChart({
                                         onMouseLeave={() => setHoveredIndicator(null)}
                                         className="pointer-events-auto flex items-center justify-center px-1.5 h-5 rounded text-[9px] font-bold tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30 transition-colors"
                                     >
-                                        ✕
+                                        <Trash2 size={10} />
                                     </button>
                                 )}
                             </div>
@@ -2803,9 +2986,9 @@ export default React.memo(function AdvancedCandlestickChart({
                         style={{ top: panePositions.rsi != null ? `${panePositions.rsi + 4}px` : (showMACD ? '80%' : '75%') }}
                     >
                         {/* RSI Header & Live Readout */}
-                        <div className="flex items-center gap-2 px-3 py-0.5 text-[11px] font-mono">
+                        <div className="flex items-center gap-2 px-3 py-0.5 text-[11px] font-mono tabular-nums">
                             <span className="font-semibold text-violet-400">RSI ({activeIndicatorConfig.rsi.period})</span>
-                            <span className="font-bold text-violet-300">
+                            <span className="font-bold text-violet-300 tabular-nums">
                                 {(oscillatorHover.rsi ?? latestOscillatorsRef.current.rsi) != null 
                                     ? Number(oscillatorHover.rsi ?? latestOscillatorsRef.current.rsi).toFixed(2) 
                                     : '--'}
@@ -2828,17 +3011,17 @@ export default React.memo(function AdvancedCandlestickChart({
                         style={{ top: panePositions.macd != null ? `${panePositions.macd + 4}px` : (showRSI ? '60%' : '75%') }}
                     >
                         {/* MACD Header & Live Readout */}
-                        <div className="flex items-center gap-2.5 px-3 py-0.5 text-[11px] font-mono">
+                        <div className="flex items-center gap-2.5 px-3 py-0.5 text-[11px] font-mono tabular-nums">
                             <span className="font-semibold text-blue-400">MACD ({activeIndicatorConfig.macd.fast}, {activeIndicatorConfig.macd.slow}, {activeIndicatorConfig.macd.signal})</span>
                             <div className="flex items-center gap-2 text-[10px]">
                                 <span className="text-text-tertiary">MACD:</span>
-                                <span className="text-blue-400 font-semibold">
+                                <span className="text-blue-400 font-semibold tabular-nums">
                                     {(oscillatorHover.macd ?? latestOscillatorsRef.current.macd) != null 
                                         ? Number(oscillatorHover.macd ?? latestOscillatorsRef.current.macd).toFixed(2) 
                                         : '--'}
                                 </span>
                                 <span className="text-text-tertiary">Signal:</span>
-                                <span className="text-amber-400 font-semibold">
+                                <span className="text-amber-400 font-semibold tabular-nums">
                                     {(oscillatorHover.signal ?? latestOscillatorsRef.current.signal) != null 
                                         ? Number(oscillatorHover.signal ?? latestOscillatorsRef.current.signal).toFixed(2) 
                                         : '--'}
@@ -2849,7 +3032,7 @@ export default React.memo(function AdvancedCandlestickChart({
                                     if (h == null) return <span className="text-text-tertiary">--</span>;
                                     const isPos = h >= 0;
                                     return (
-                                        <span className={`font-semibold ${isPos ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                        <span className={`font-semibold tabular-nums ${isPos ? 'text-emerald-400' : 'text-rose-400'}`}>
                                             {isPos ? `+${Number(h).toFixed(2)}` : Number(h).toFixed(2)}
                                         </span>
                                     );

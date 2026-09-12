@@ -37,7 +37,10 @@ import {
     FiChevronDown,
     FiMap,
     FiWifi,
-    FiDatabase
+    FiDatabase,
+    FiTrash2,
+    FiRotateCcw,
+    FiMessageSquare
 } from "react-icons/fi";
 import {
     Shield, Layers, Zap, Target, CheckCircle2, XCircle, BrainCircuit, Mail, Code2, Terminal
@@ -55,9 +58,13 @@ import {
     requestCurrentEmailVerificationOTP,
     verifyCurrentEmail,
     deleteUserProfile,
+    resetAiChatsApi,
+    clearMarketCacheApi,
+    factoryResetApi,
     generateRegistrationOptions,
     verifyRegistration,
 } from "../../../../services/userService";
+import DangerActionModal from "./DangerActionModal";
 import { startRegistration } from "@simplewebauthn/browser";
 import Loader from "../../../../shared/components/ui/Loader";
 
@@ -628,29 +635,82 @@ const SettingsPage = () => {
         }
     };
 
-    // -- Delete Account Logic --
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [deleteConfirmText, setDeleteConfirmText] = useState("");
-    const [isDeleting, setIsDeleting] = useState(false);
+    // -- Danger Zone Architecture (4 Tiers) --
+    const [activeDangerAction, setActiveDangerAction] = useState(null);
+    const [isDangerLoading, setIsDangerLoading] = useState(false);
+    const [dangerErrorMessage, setDangerErrorMessage] = useState("");
     const { clearUser: contextClearUser } = useContext(UserContext);
 
-    const handleDeleteAccount = async () => {
-        if (deleteConfirmText !== "DELETE") return;
+    const DANGER_CONFIGS = {
+        "delete-account": {
+            id: "delete-account",
+            title: "Delete Account",
+            description: "Permanently removes your account profile, active sessions, and personal data. This action is irreversible and cannot be undone.",
+            requiredConfirmText: "DELETE",
+            actionButtonText: "Delete Account",
+            buttonVariant: "red"
+        },
+        "factory-reset": {
+            id: "factory-reset",
+            title: "Factory Reset",
+            description: "Restores the application to an initial pristine state. Clears user preferences, trading journals, notes, drawings, manual overrides, and market data.",
+            requiredConfirmText: "FACTORY RESET",
+            actionButtonText: "Factory Reset",
+            buttonVariant: "red"
+        },
+        "clear-cache": {
+            id: "clear-cache",
+            title: "Clear Market Cache",
+            description: "Flushes volatile SQLite and MongoDB market caches (candles, ticks, quotes, option chains, and technicals). Fresh data will reload immediately on page view.",
+            requiredConfirmText: "CLEAR CACHE",
+            actionButtonText: "Clear Market Cache",
+            buttonVariant: "orange"
+        },
+        "reset-chats": {
+            id: "reset-chats",
+            title: "Reset AI Conversations",
+            description: "Clears all PAI chat message history and cached AI card insights across all pages. Your market data, credentials, and settings remain untouched.",
+            requiredConfirmText: "RESET CHATS",
+            actionButtonText: "Reset AI Chats",
+            buttonVariant: "amber"
+        }
+    };
+
+    const handleExecuteDangerAction = async ({ totp, confirmText }) => {
+        if (!activeDangerAction) return;
+        setIsDangerLoading(true);
+        setDangerErrorMessage("");
 
         try {
-            setIsDeleting(true);
-            await deleteUserProfile();
-
-            // Success - clear local data and redirect
-            localStorage.clear();
-            contextClearUser();
-            navigate("/login", { replace: true });
-        } catch {
-            console.error("Failed to delete account");
-            alert("Failed to delete account. Please try again later.");
+            if (activeDangerAction === "reset-chats") {
+                const res = await resetAiChatsApi({ totp, confirmText });
+                toast.success(res.message || "AI conversations cleared successfully.");
+                setActiveDangerAction(null);
+            } else if (activeDangerAction === "clear-cache") {
+                const res = await clearMarketCacheApi({ totp, confirmText });
+                toast.success(res.message || "Market cache cleared successfully.");
+                setActiveDangerAction(null);
+            } else if (activeDangerAction === "factory-reset") {
+                await factoryResetApi({ totp, confirmText });
+                toast.success("Factory reset completed successfully. Redirecting...");
+                localStorage.clear();
+                contextClearUser();
+                setActiveDangerAction(null);
+                navigate("/login", { replace: true });
+            } else if (activeDangerAction === "delete-account") {
+                await deleteUserProfile({ totp, confirmText });
+                toast.success("Account deleted successfully.");
+                localStorage.clear();
+                contextClearUser();
+                setActiveDangerAction(null);
+                navigate("/login", { replace: true });
+            }
+        } catch (err) {
+            console.error("[DangerZone] Action failed:", err);
+            const msg = err.response?.data?.message || err.message || "Operation failed. Please check your Authenticator code.";
+            setDangerErrorMessage(msg);
         } finally {
-            setIsDeleting(false);
-            setShowDeleteModal(false);
+            setIsDangerLoading(false);
         }
     };
 
@@ -962,21 +1022,152 @@ const SettingsPage = () => {
                                 </div>
 
                                 <div className="border-t border-[var(--border-subtle)] pt-8">
-                                    <h3 className="mb-4 flex items-center gap-2 text-lg font-medium text-red-500">
-                                        <FiAlertCircle className="text-red-500" /> Danger Zone
-                                    </h3>
-                                    <div className="rounded-xl border border-red-500/10 bg-red-500/5 px-4 md:px-6 pt-2">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                            <div className="text-center sm:text-left">
-                                                <p className="font-semibold text-text-primary">Delete Account</p>
-                                                <p className="text-xs md:text-sm text-text-secondary mt-1">Permanently remove your account and all associated data. This action cannot be undone.</p>
+                                    <div className="mb-5 text-left flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                        <div>
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-500/10 text-red-500">
+                                                    <FiAlertCircle size={16} />
+                                                </div>
+                                                <h3 className="text-lg font-bold text-red-500 tracking-tight">
+                                                    Danger Zone
+                                                </h3>
                                             </div>
-                                            <button
-                                                onClick={() => setShowDeleteModal(true)}
-                                                className="w-full sm:w-auto shrink-0 rounded-lg bg-red-600/10 border border-red-500/20 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-lg shadow-red-500/5"
-                                            >
-                                                Delete Account
-                                            </button>
+                                            <p className="text-xs text-text-secondary mt-1">
+                                                High-security administrative operations protected by mandatory 6-digit Authenticator TOTP verification.
+                                            </p>
+                                        </div>
+                                        <span className="self-start sm:self-auto px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md border border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400">
+                                            TOTP Protected
+                                        </span>
+                                    </div>
+
+                                    <div className="space-y-3.5">
+                                        {/* Tier 1 (Most Critical): Delete Account */}
+                                        <div className="rounded-xl border border-red-600/30 bg-red-600/[0.04] hover:bg-red-600/[0.07] p-4 sm:p-5 transition-all shadow-sm">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                                                    <div className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-red-600/10 border border-red-600/20 text-red-600 dark:text-red-400">
+                                                        <FiTrash2 size={18} />
+                                                    </div>
+                                                    <div className="text-left space-y-1 min-w-0 flex-1">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <p className="font-semibold text-text-primary text-sm tracking-tight">Delete Account</p>
+                                                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md border bg-red-600/10 text-red-600 dark:text-red-400 border-red-600/20">
+                                                                Permanent Deletion
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-text-secondary leading-relaxed max-w-2xl">
+                                                            Permanently removes your account profile, active sessions, and personal data. Master schemas and instrument resolver remain intact.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        setDangerErrorMessage("");
+                                                        setActiveDangerAction("delete-account");
+                                                    }}
+                                                    className="w-full sm:w-48 h-10 shrink-0 flex items-center justify-center gap-2 rounded-lg bg-red-700/10 border border-red-600/30 text-xs font-semibold text-red-700 dark:text-red-400 hover:bg-red-700 hover:text-white transition-all shadow-sm"
+                                                >
+                                                    <FiTrash2 size={13} />
+                                                    <span>Delete Account</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Tier 2 (Severe): Factory Reset */}
+                                        <div className="rounded-xl border border-rose-500/30 bg-rose-500/[0.04] hover:bg-rose-500/[0.07] p-4 sm:p-5 transition-all shadow-sm">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                                                    <div className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400">
+                                                        <FiRotateCcw size={18} />
+                                                    </div>
+                                                    <div className="text-left space-y-1 min-w-0 flex-1">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <p className="font-semibold text-text-primary text-sm tracking-tight">Factory Reset</p>
+                                                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md border bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20">
+                                                                Full Reset
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-text-secondary leading-relaxed max-w-2xl">
+                                                            Restores application to initial pristine state. Clears user preferences, trading journals, notes, drawings, overrides, and market caches.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        setDangerErrorMessage("");
+                                                        setActiveDangerAction("factory-reset");
+                                                    }}
+                                                    className="w-full sm:w-48 h-10 shrink-0 flex items-center justify-center gap-2 rounded-lg bg-rose-600/10 border border-rose-500/30 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white transition-all shadow-sm"
+                                                >
+                                                    <FiRotateCcw size={13} />
+                                                    <span>Factory Reset</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Tier 3 (Moderate): Clear Market & Telemetry Cache */}
+                                        <div className="rounded-xl border border-orange-500/30 bg-orange-500/[0.04] hover:bg-orange-500/[0.07] p-4 sm:p-5 transition-all shadow-sm">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                                                    <div className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400">
+                                                        <FiDatabase size={18} />
+                                                    </div>
+                                                    <div className="text-left space-y-1 min-w-0 flex-1">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <p className="font-semibold text-text-primary text-sm tracking-tight">Clear Market & Telemetry Cache</p>
+                                                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md border bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20">
+                                                                Market Cache Only
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-text-secondary leading-relaxed max-w-2xl">
+                                                            Flushes volatile SQLite & MongoDB market caches (candles, ticks, quotes, chains, technicals). Master symbol catalog is preserved.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        setDangerErrorMessage("");
+                                                        setActiveDangerAction("clear-cache");
+                                                    }}
+                                                    className="w-full sm:w-48 h-10 shrink-0 flex items-center justify-center gap-2 rounded-lg bg-orange-500/10 border border-orange-500/30 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:bg-orange-600 hover:text-white transition-all shadow-sm"
+                                                >
+                                                    <FiDatabase size={13} />
+                                                    <span>Clear Market Cache</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Tier 4 (Mild): Reset AI Conversations */}
+                                        <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.04] hover:bg-amber-500/[0.07] p-4 sm:p-5 transition-all shadow-sm">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                                                    <div className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-400">
+                                                        <FiMessageSquare size={18} />
+                                                    </div>
+                                                    <div className="text-left space-y-1 min-w-0 flex-1">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <p className="font-semibold text-text-primary text-sm tracking-tight">Reset AI Conversations</p>
+                                                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                                                                AI Cache Only
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-text-secondary leading-relaxed max-w-2xl">
+                                                            Clears all PAI chat message history and cached AI card insights. Your market data, credentials, and settings remain untouched.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        setDangerErrorMessage("");
+                                                        setActiveDangerAction("reset-chats");
+                                                    }}
+                                                    className="w-full sm:w-48 h-10 shrink-0 flex items-center justify-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-600 hover:text-white transition-all shadow-sm"
+                                                >
+                                                    <FiMessageSquare size={13} />
+                                                    <span>Reset AI Chats</span>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -2244,55 +2435,18 @@ const SettingsPage = () => {
                 )
             }
 
-            {/* Delete Account Modal */}
-            {
-                showDeleteModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                        <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-white dark:bg-[#0b1220] p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 mb-4">
-                                <FiAlertCircle className="h-8 w-8 text-red-500" />
-                            </div>
-                            <h3 className="text-center text-xl font-bold text-slate-900 dark:text-white">Delete your account?</h3>
-                            <p className="mt-2 text-center text-slate-500 dark:text-slate-300">
-                                This action is permanent and cannot be undone. All your trades, settings, and profile data will be forever lost.
-                            </p>
-
-                            <div className="mt-6 space-y-4">
-                                <p className="text-sm text-center text-slate-500 dark:text-slate-400">
-                                    Please type <span className="font-bold text-slate-900 dark:text-white tracking-widest">DELETE</span> to confirm
-                                </p>
-                                <input
-                                    type="text"
-                                    value={deleteConfirmText}
-                                    onChange={(e) => setDeleteConfirmText(e.target.value)}
-                                    placeholder="Type DELETE here"
-                                    className="w-full rounded-lg border border-gray-300 dark:border-border-default bg-gray-50 dark:bg-transparent px-4 py-3 text-center text-slate-900 dark:text-text-primary placeholder:text-gray-400 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500/20"
-                                />
-
-                                <div className="flex gap-3 pt-2">
-                                    <button
-                                        onClick={() => {
-                                            setShowDeleteModal(false);
-                                            setDeleteConfirmText("");
-                                        }}
-                                        disabled={isDeleting}
-                                        className="flex-1 rounded-lg border border-slate-200 dark:border-border-default bg-white dark:bg-slate-800 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleDeleteAccount}
-                                        disabled={deleteConfirmText !== "DELETE" || isDeleting}
-                                        className="flex-1 rounded-lg bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50 shadow-lg shadow-red-600/20"
-                                    >
-                                        {isDeleting ? "Deleting..." : "Delete Permanently"}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
+            {/* Danger Zone Action Modal */}
+            <DangerActionModal
+                isOpen={Boolean(activeDangerAction)}
+                onClose={() => {
+                    setActiveDangerAction(null);
+                    setDangerErrorMessage("");
+                }}
+                onConfirm={handleExecuteDangerAction}
+                config={activeDangerAction ? DANGER_CONFIGS[activeDangerAction] : null}
+                isLoading={isDangerLoading}
+                errorMessage={dangerErrorMessage}
+            />
         </div >
     );
 };

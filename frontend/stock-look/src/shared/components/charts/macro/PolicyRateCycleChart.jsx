@@ -21,6 +21,7 @@
 import React from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from 'recharts';
 import { motion } from 'framer-motion';
+import { TrendingUp, TrendingDown, Scale, Lightbulb } from 'lucide-react';
 
 // =============================
 // Component
@@ -100,13 +101,26 @@ export default function PolicyRateCycleChart({ data, height = 300 }) {
                     </div>
                     <div>
                         <div className="text-xs text-white/50">Stance</div>
-                        <div className={`text-sm font-medium ${trend === 'tightening' ? 'text-red-400' :
+                        <div className={`text-sm font-medium flex items-center gap-1 ${trend === 'tightening' ? 'text-red-400' :
                             trend === 'easing' ? 'text-green-400' :
                                 'text-yellow-400'
                             }`}>
-                            {trend === 'tightening' ? '📈 Hawkish' :
-                                trend === 'easing' ? '📉 Dovish' :
-                                    '⚖️ Neutral'}
+                            {trend === 'tightening' ? (
+                                <>
+                                    <TrendingUp size={13} />
+                                    <span>Hawkish</span>
+                                </>
+                            ) : trend === 'easing' ? (
+                                <>
+                                    <TrendingDown size={13} />
+                                    <span>Dovish</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Scale size={13} />
+                                    <span>Neutral</span>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -115,7 +129,7 @@ export default function PolicyRateCycleChart({ data, height = 300 }) {
             {/* AI Interpretation */}
             <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                 <div className="flex items-start gap-2">
-                    <span className="text-blue-400 text-sm">💡</span>
+                    <Lightbulb size={14} className="text-blue-400 shrink-0 mt-0.5" />
                     <p className="text-xs text-white/70 leading-relaxed">
                         {getPolicyInterpretation(latest.rate, trend, change)}
                     </p>

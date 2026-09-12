@@ -8,11 +8,11 @@ const socket = io(BASE_URL, {
 });
 
 socket.on("connect", () => {
-    console.log("🔌 Connected to Praxis Backend Socket:", socket.id);
+    console.log("[Socket] Connected to Praxis Backend Socket:", socket.id);
 });
 
 socket.on("disconnect", () => {
-    console.log("🔌 Disconnected from Praxis Backend Socket");
+    console.log("[Socket] Disconnected from Praxis Backend Socket");
 });
 
 export default socket;

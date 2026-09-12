@@ -17,12 +17,12 @@ import { TRADING_MODES } from '../tradingModes.js';
 // =============================
 
 export const technicalSections = [
-    { id: 'Trend',      label: 'Trend', w: 0.25, icon: '📈' },
-    { id: 'Momentum',   label: 'Mom',   w: 0.20, icon: '🚀' },
-    { id: 'Volatility', label: 'Vol',   w: 0.15, icon: '⚡' },
-    { id: 'Volume',     label: 'Vol',   w: 0.15, icon: '📊' },
-    { id: 'Breadth',    label: 'Brd',   w: 0.15, icon: '🌍' },
-    { id: 'Structure',  label: 'Str',   w: 0.10, icon: '🏗️' }
+    { id: 'Trend',      label: 'Trend', w: 0.25, icon: 'TrendingUp' },
+    { id: 'Momentum',   label: 'Mom',   w: 0.20, icon: 'Zap' },
+    { id: 'Volatility', label: 'Vol',   w: 0.15, icon: 'Activity' },
+    { id: 'Volume',     label: 'Vol',   w: 0.15, icon: 'BarChart2' },
+    { id: 'Breadth',    label: 'Brd',   w: 0.15, icon: 'Globe' },
+    { id: 'Structure',  label: 'Str',   w: 0.10, icon: 'Layers' }
 ];
 
 // =============================

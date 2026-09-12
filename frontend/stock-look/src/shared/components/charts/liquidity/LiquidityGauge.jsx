@@ -20,6 +20,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Lightbulb } from 'lucide-react';
 
 // =============================
 // Component
@@ -145,13 +146,16 @@ export default function LiquidityGauge({
                 </div>
 
                 <div className="mt-3 p-3 bg-white/5 rounded-lg w-full">
-                    <div className="text-xs text-white/70 text-center">
-                        <span className="font-medium">💡 Impact:</span>{' '}
-                        {value > 50000
-                            ? 'Surplus liquidity supports market rally'
-                            : value < -50000
-                                ? 'Tight liquidity may pressure valuations'
-                                : 'Neutral liquidity - limited impact'}
+                    <div className="text-xs text-white/70 flex items-center justify-center gap-1.5">
+                        <Lightbulb size={13} className="text-amber-400 shrink-0" />
+                        <span>
+                            <span className="font-medium text-white/90">Impact:</span>{' '}
+                            {value > 50000
+                                ? 'Surplus liquidity supports market rally'
+                                : value < -50000
+                                    ? 'Tight liquidity may pressure valuations'
+                                    : 'Neutral liquidity - limited impact'}
+                        </span>
                     </div>
                 </div>
             </div>

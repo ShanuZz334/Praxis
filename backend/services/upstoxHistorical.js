@@ -142,7 +142,7 @@ export const fetchHistoricalCandles = async (instrumentKey, timeframe, toDate, f
  * Smart Sync Engine with 4-second timeout guard.
  */
 export const syncCandlesIfStale = async (instrumentKey, timeframe = 'day') => {
-    const SYNC_TIMEOUT_MS = 8000;
+    const SYNC_TIMEOUT_MS = 15000;
     const cacheKey = `${instrumentKey}_${timeframe}`;
 
     // 1. Check Cooldown Cache (CRITICAL: Prevents API spam when market is closed)
@@ -176,17 +176,47 @@ export const syncCandlesIfStale = async (instrumentKey, timeframe = 'day') => {
 
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
+        const isIntraday = timeframe.includes('minute') || timeframe.includes('hour');
+
+        // Check if there is an existing multi-day gap between the newest candles and older candles
+        let hasHistoricalGap = false;
+        if (lastTs && count > 0) {
+            const recentDates = db.prepare(`
+                SELECT DISTINCT SUBSTR(timestamp, 1, 10) as dt 
+                FROM candles 
+                WHERE instrument_key = ? AND timeframe = ?
+                ORDER BY dt DESC 
+                LIMIT 2
+            `).all(instrumentKey, timeframe);
+
+            if (recentDates.length >= 2) {
+                const newestDay = new Date(recentDates[0].dt);
+                const prevDay = new Date(recentDates[1].dt);
+                const diffDays = Math.round((newestDay - prevDay) / (1000 * 60 * 60 * 24));
+                // Normal weekend gap is 3 days (Fri to Mon). A gap > 4 days indicates missing trading sessions.
+                if (diffDays > 4) {
+                    hasHistoricalGap = true;
+                    console.log(`[Historical Sync] Detected ${diffDays}-day gap between ${recentDates[1].dt} and ${recentDates[0].dt} for ${instrumentKey} (${timeframe}).`);
+                }
+            }
+        }
         
-        if (!lastTs || count < 200) {
+        if (!lastTs || count < 200 || hasHistoricalGap) {
             const fromDateObj = new Date();
-            if (timeframe === '1minute' || timeframe === '5minute' || timeframe === '10minute' || timeframe === '15minute') fromDateObj.setDate(fromDateObj.getDate() - 15);
-            else if (timeframe === '30minute' || timeframe === '1hour') fromDateObj.setDate(fromDateObj.getDate() - 60);
-            else fromDateObj.setDate(fromDateObj.getDate() - 365);
+            // Upstox historical-candle API strictly enforces a maximum 30-day window for 1minute intervals.
+            // Using 28 days prevents UDAPI1148 errors across all intraday timeframes (1m, 5m, 15m, 30m, 1h).
+            if (isIntraday) {
+                fromDateObj.setDate(fromDateObj.getDate() - 28);
+            } else {
+                fromDateObj.setDate(fromDateObj.getDate() - 365);
+            }
             
             const fromDate = fromDateObj.toISOString().split('T')[0];
-            console.log(`[Historical Sync] Missing/Insufficient data for ${instrumentKey} (${timeframe}). Fetching: ${fromDate} to ${todayStr}`);
+            console.log(`[Historical Sync] Missing/Insufficient data or gap for ${instrumentKey} (${timeframe}). Fetching: ${fromDate} to ${todayStr}`);
             await fetchHistoricalCandles(instrumentKey, timeframe, todayStr, fromDate, false);
-            await fetchHistoricalCandles(instrumentKey, timeframe, todayStr, todayStr, true);
+            if (isIntraday) {
+                await fetchHistoricalCandles(instrumentKey, timeframe, todayStr, todayStr, true);
+            }
             cooldownCache.set(cacheKey, Date.now());
             return;
         }
@@ -198,12 +228,9 @@ export const syncCandlesIfStale = async (instrumentKey, timeframe = 'day') => {
             // Need to update. If it's intraday, any gap > 1 minute might mean we need to fetch today's data again.
             if (lastDateStr < todayStr) {
                 // Cap from_date to Upstox's intraday data retention window to prevent UDAPI1148 errors.
-                // Upstox retains: ~30 days for minute candles, ~60 days for hourly candles.
                 let effectiveFromDate = lastDateStr;
-                const isMinute = timeframe.includes('minute');
-                const isHour   = timeframe.includes('hour');
-                if (isMinute || isHour) {
-                    const maxDaysBack = isMinute ? 28 : 58; // stay safely inside the retention window
+                if (isIntraday) {
+                    const maxDaysBack = 28; // stay safely inside the 30-day retention window
                     const retentionCutoff = new Date();
                     retentionCutoff.setDate(retentionCutoff.getDate() - maxDaysBack);
                     const cutoffStr = retentionCutoff.toISOString().split('T')[0];
@@ -215,7 +242,7 @@ export const syncCandlesIfStale = async (instrumentKey, timeframe = 'day') => {
                 console.log(`[Historical Sync] Data stale for ${instrumentKey} (${timeframe}). Fetching historical: ${effectiveFromDate} to ${todayStr}`);
                 await fetchHistoricalCandles(instrumentKey, timeframe, todayStr, effectiveFromDate, false);
             }
-            if (timeframe !== 'day') {
+            if (isIntraday) {
                 console.log(`[Historical Sync] Fetching intraday for ${instrumentKey} (${timeframe})`);
                 await fetchHistoricalCandles(instrumentKey, timeframe, todayStr, todayStr, true);
             }

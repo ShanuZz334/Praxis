@@ -20,6 +20,7 @@ import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 // Imports
 // =============================
 import React, { useMemo, useState } from "react";
+import { BarChart2, Lightbulb } from "lucide-react";
 import ChartWrapper from "@/shared/components/charts/ChartWrapper";
 import { getChartForCard, shouldShowChart, getChartType } from "./chartMapping";
 
@@ -111,7 +112,10 @@ function getInsightForCard(card) {
         ) : (
           <div className="h-[300px] bg-black/30 rounded-xl p-4 flex items-center justify-center border border-white/5 border-dashed">
             <div className="text-center">
-              <div className="text-white/60 text-sm mb-2">📊 Chart visualization coming soon</div>
+              <div className="text-white/60 text-sm mb-2 flex items-center justify-center gap-1.5">
+                <BarChart2 size={16} />
+                <span>Chart visualization coming soon</span>
+              </div>
               <div className="text-white/40 text-xs">{card.label}</div>
             </div>
           </div>
@@ -121,7 +125,7 @@ function getInsightForCard(card) {
       {/* EDUCATIONAL INSIGHT */}
       <div className="bg-[#0b1220] border border-white/10 rounded-xl p-5 shadow-inner">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-blue-400 text-lg">💡</span>
+          <Lightbulb size={16} className="text-blue-400 shrink-0" />
           <span className="text-sm font-semibold text-blue-100">Why this matters</span>
         </div>
         <p className="text-sm text-white/70 leading-relaxed pl-7">

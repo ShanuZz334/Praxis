@@ -21,12 +21,14 @@
 import React from "react";
 import OverrideUpdateModal from "@/features/dashboard/messages/ui/OverrideUpdateModal";
 import { useHighImpactEventNotifier } from "@/shared/hooks/useHighImpactEventNotifier.jsx";
+import { useAiLimitNotifier } from "@/shared/hooks/useAiLimitNotifier.jsx";
 
 // =============================
 // Main Component
 // =============================
 const AppShell = ({ children }) => {
   useHighImpactEventNotifier();
+  useAiLimitNotifier();
 
   return (
     <div className="w-full min-h-screen">

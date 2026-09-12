@@ -23,6 +23,7 @@
 // =============================
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { useTheme } from "@/shared/context/ThemeContext";
 import OptionsHistoryChart from "./OptionsHistoryChart";
 
@@ -82,7 +83,7 @@ export default function OptionsModal({ open, onClose, card }) {
                         onClick={onClose}
                         className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded-full bg-background-elevated text-text-tertiary hover:text-text-primary hover:bg-background-subtle transition-colors border border-border-subtle"
                     >
-                        ✕
+                        <X size={16} />
                     </button>
                 </div>
 

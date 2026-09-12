@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file ChartSettingsPanel.jsx
  * @purpose Settings popover for chart position-sizing parameters.
  *
@@ -37,7 +37,7 @@ function writeSetting(key, value) {
 function PillGroup({ label, options, settingKey, value, onChange }) {
     return (
         <div className="flex flex-col gap-1">
-            <span className="text-[9px] font-semibold uppercase tracking-widest text-white/30">
+            <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-500 dark:text-white/30">
                 {label}
             </span>
             <div className="flex gap-1 flex-wrap">
@@ -49,8 +49,8 @@ function PillGroup({ label, options, settingKey, value, onChange }) {
                             onClick={() => { writeSetting(settingKey, String(opt.value)); onChange(String(opt.value)); }}
                             className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all duration-150 border
                                 ${active
-                                    ? "bg-blue-500/20 border-blue-400/60 text-blue-300"
-                                    : "bg-white/5 border-white/8 text-white/40 hover:text-white/70 hover:bg-white/10"
+                                    ? "bg-blue-50 dark:bg-blue-500/20 border-blue-300 dark:border-blue-400/60 text-blue-600 dark:text-blue-300 shadow-sm"
+                                    : "bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/8 text-slate-600 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/70 hover:bg-slate-200/70 dark:hover:bg-white/10"
                                 }`}
                         >
                             {opt.label}
@@ -92,8 +92,8 @@ export default function ChartSettingsPanel({ visible }) {
                 title="Chart Position Settings"
                 className={`pointer-events-auto flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150
                     ${open
-                        ? "bg-blue-500/20 text-blue-400"
-                        : "text-slate-500 dark:text-white/40 hover:text-white/90 hover:bg-white/5"}`}
+                        ? "bg-blue-500/15 text-blue-600 dark:text-blue-400"
+                        : "text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white/90 hover:bg-black/5 dark:hover:bg-white/5"}`}
             >
                 <Settings2 size={13} strokeWidth={2} />
             </button>
@@ -108,23 +108,23 @@ export default function ChartSettingsPanel({ visible }) {
                         transition={{ duration: 0.15 }}
                         onPointerDown={e => e.stopPropagation()}
                         onClick={e => e.stopPropagation()}
-                        className="absolute bottom-0 left-[76px] z-[200] w-[220px] bg-[#1a1f2e]/97 border border-white/10 rounded-xl backdrop-blur-md shadow-2xl p-3 flex flex-col gap-3 max-h-[70vh] overflow-y-auto"
+                        className="absolute bottom-0 left-[76px] z-[200] w-[220px] bg-white/95 dark:bg-[#1a1f2e]/97 border border-slate-200/90 dark:border-white/10 rounded-xl backdrop-blur-md shadow-2xl p-3 flex flex-col gap-3 max-h-[70vh] overflow-y-auto"
                     >
                         {/* header */}
                         <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                            <span className="text-[10px] font-bold text-slate-500 dark:text-white/60 uppercase tracking-widest">
                                 Position Settings
                             </span>
                             <button
                                 onClick={() => setOpen(false)}
-                                className="text-white/30 hover:text-white/70 transition-colors"
+                                className="text-slate-400 dark:text-white/30 hover:text-slate-700 dark:hover:text-white/70 transition-colors"
                             >
                                 <X size={11} />
                             </button>
                         </div>
 
                         {/* divider */}
-                        <div className="w-full h-px bg-white/6" />
+                        <div className="w-full h-px bg-slate-200 dark:bg-white/6" />
 
                         {/* -- Risk per trade -- */}
                         <PillGroup
@@ -140,8 +140,8 @@ export default function ChartSettingsPanel({ visible }) {
                             ]}
                         />
 
-                        <div className="w-full h-px bg-white/6" />
-                        <span className="text-[9px] font-bold text-white/25 uppercase tracking-widest -mb-1">
+                        <div className="w-full h-px bg-slate-200 dark:bg-white/6" />
+                        <span className="text-[9px] font-bold text-slate-400 dark:text-white/25 uppercase tracking-widest -mb-1">
                             Swing / Positional
                         </span>
 
@@ -173,8 +173,8 @@ export default function ChartSettingsPanel({ visible }) {
                             ]}
                         />
 
-                        <div className="w-full h-px bg-white/6" />
-                        <span className="text-[9px] font-bold text-white/25 uppercase tracking-widest -mb-1">
+                        <div className="w-full h-px bg-slate-200 dark:bg-white/6" />
+                        <span className="text-[9px] font-bold text-slate-400 dark:text-white/25 uppercase tracking-widest -mb-1">
                             Scalp
                         </span>
 
@@ -205,7 +205,7 @@ export default function ChartSettingsPanel({ visible }) {
                         />
 
                         {/* reset */}
-                        <div className="w-full h-px bg-white/6" />
+                        <div className="w-full h-px bg-slate-200 dark:bg-white/6" />
                         <button
                             onClick={() => {
                                 Object.entries(DEFAULTS).forEach(([k, v]) => { writeSetting(k, v); });
@@ -215,7 +215,7 @@ export default function ChartSettingsPanel({ visible }) {
                                 setScalpPart(DEFAULTS.praxis_scalp_partial);
                                 setScalpTP(DEFAULTS.praxis_scalp_tp);
                             }}
-                            className="text-[9px] text-white/25 hover:text-white/50 transition-colors text-left"
+                            className="text-[9px] text-slate-400 dark:text-white/25 hover:text-slate-600 dark:hover:text-white/50 transition-colors text-left"
                         >
                             Reset to defaults
                         </button>

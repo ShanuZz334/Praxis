@@ -7,7 +7,7 @@
  *               → Available for some stocks; not universally provided by Upstox.
  *  - Attempt 2: Manual override
  *
- * ⚠️  WHY AUTO CALCULATION IS NOT POSSIBLE FROM INCOME STATEMENT:
+ * [NOTE] WHY AUTO CALCULATION IS NOT POSSIBLE FROM INCOME STATEMENT:
  *     Upstox's income_statement API compresses the P&L into 3 summary categories:
  *     [revenue], [operating_profit], [net_profit].
  *     The [operating_profit] category is actually PBT (Profit Before Tax) — i.e.,

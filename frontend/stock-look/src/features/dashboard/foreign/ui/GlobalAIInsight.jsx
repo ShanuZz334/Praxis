@@ -18,6 +18,7 @@
 // Imports
 // =============================
 import React from "react";
+import { Globe } from "lucide-react";
 import { generateGlobalInsight } from "../engine/globalRiskEngine";
 
 // =============================
@@ -31,7 +32,9 @@ export default function GlobalAIInsight({ globalData }) {
 
             {/* LEFT: ANALYST VIEW */}
             <div className="lg:col-span-2 bg-background-card/85 backdrop-blur-xl border border-border-default rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-8 opacity-5 text-9xl -rotate-12 transition-transform group-hover:rotate-0 duration-1000">🌍</div>
+                <div className="absolute top-0 right-0 p-8 opacity-5 -rotate-12 transition-transform group-hover:rotate-0 duration-1000">
+                    <Globe size={120} />
+                </div>
 
                 <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-4">

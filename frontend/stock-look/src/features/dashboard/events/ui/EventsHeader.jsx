@@ -20,6 +20,7 @@
 // Imports
 // =============================
 import React from "react";
+import { AlertTriangle } from "lucide-react";
 import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 import AiInsightSection from "@/shared/components/ui/AiInsightSection";
 
@@ -128,8 +129,9 @@ export default function EventsHeader({
 
             {/* Cluster Warning Banner */}
             {cluster?.detected && (
-                <div className="bg-red-500/10 border-t border-red-500/20 p-2 flex items-center justify-center gap-3 text-xs text-red-300">
-                    <span className="font-bold">⚠️ High Volatility Alert:</span>
+                <div className="bg-red-500/10 border-t border-red-500/20 p-2 flex items-center justify-center gap-2 text-xs text-red-300">
+                    <AlertTriangle size={14} className="text-red-400 shrink-0" />
+                    <span className="font-bold">High Volatility Alert:</span>
                     <span>
                         {cluster.count} High-Impact events detected within {cluster.days} days. Expect IV expansion.
                     </span>

@@ -65,7 +65,7 @@ export default function DrawingToolbar({
                     exit={{ opacity: 0, x: -10, scale: 0.97 }}
                     transition={{ duration: 0.18, ease: 'easeOut' }}
                     className="absolute left-2 top-[38px] z-30 flex flex-col gap-1 
-                               bg-background-surface/95 dark:bg-[#111622]/95 border border-border-subtle/90 rounded-xl 
+                               bg-white/95 dark:bg-[#111622]/95 border border-slate-200/90 dark:border-border-subtle/90 rounded-xl 
                                backdrop-blur-md shadow-xl p-1.5 w-[68px]
                                max-h-[calc(100%-3rem)] overflow-visible"
                     onPointerDown={e => e.stopPropagation()}
@@ -75,7 +75,7 @@ export default function DrawingToolbar({
                         <div className="grid grid-cols-2 gap-1">
                             {TOOLS.map((tool) => {
                                 if (tool.type === 'sep') {
-                                    return <div key={tool.id} className="col-span-2 w-full h-px bg-white/5 my-0.5" />;
+                                    return <div key={tool.id} className="col-span-2 w-full h-px bg-slate-200 dark:bg-white/5 my-0.5" />;
                                 }
                                 const { Icon } = tool;
                                 const isActive = activeTool === tool.id;
@@ -104,7 +104,7 @@ export default function DrawingToolbar({
                     </div>
 
                     {/* Fixed Bottom Section */}
-                    <div className="flex-shrink-0 w-full flex flex-col gap-1 border-t border-black/5 dark:border-white/5 pt-1 mt-1 overflow-visible">
+                    <div className="flex-shrink-0 w-full flex flex-col gap-1 border-t border-slate-200 dark:border-white/5 pt-1 mt-1 overflow-visible">
                         <div className="flex flex-wrap gap-1.5 justify-center py-1 px-0.5">
                         {COLORS.map(color => (
                             <button
@@ -138,7 +138,7 @@ export default function DrawingToolbar({
                         </div>
 
                         {/* Undo + Clear */}
-                        <div className="w-full h-px bg-black/5 dark:bg-white/5 my-0.5" />
+                        <div className="w-full h-px bg-slate-200 dark:bg-white/5 my-0.5" />
                         <div className="grid grid-cols-2 gap-1">
                             <button
                                 onMouseEnter={(e) => {
@@ -165,7 +165,7 @@ export default function DrawingToolbar({
                         </div>
 
                         {/* Position Settings */}
-                        <div className="w-full h-px bg-black/5 dark:bg-white/5 my-0.5" />
+                        <div className="w-full h-px bg-slate-200 dark:bg-white/5 my-0.5" />
                         <div className="flex justify-center">
                             <ChartSettingsPanel visible={true} />
                         </div>
@@ -182,7 +182,7 @@ export default function DrawingToolbar({
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -4 }}
                         transition={{ duration: 0.15 }}
-                        className="fixed z-[100] bg-[#1a1f2e] border border-white/10 text-white/90 text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-xl pointer-events-none whitespace-nowrap"
+                        className="fixed z-[100] bg-white dark:bg-[#1a1f2e] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white/90 text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-xl pointer-events-none whitespace-nowrap"
                         style={{
                             top: hovered.top,
                             left: hovered.left,

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
-import { Loader2, RefreshCcw, Send, FileText, Globe, AlertCircle, CheckCircle, Zap, Newspaper } from 'lucide-react';
+import { Loader2, RefreshCcw, Send, FileText, Globe, AlertCircle, CheckCircle, Zap, Newspaper, Sparkles } from 'lucide-react';
 import { getColorMap, detectInstrumentType, getPES7Breakdown, INSTRUMENT_TYPES, SOURCE_COLORS } from '@/shared/global/logic/eventsEngine';
 
 export default function EventsManualForm({ onEventSubmitted }) {
@@ -185,7 +185,7 @@ export default function EventsManualForm({ onEventSubmitted }) {
 
                     {!previewData && !loading && (
                         <div className="flex-1 flex flex-col items-center justify-center text-text-tertiary">
-                            <div className="mb-2">✨</div>
+                            <div className="mb-2"><Sparkles className="w-5 h-5 text-accent-primary opacity-60" /></div>
                             <div className="text-sm">Preview will appear here</div>
                             <div className="text-[10px] mt-1 text-center max-w-[200px]">Submit the event to see AI analysis, sentiment, impact, and more.</div>
                         </div>
@@ -307,7 +307,7 @@ function EventPreviewCard({ event }) {
                         <div className="text-[10px] uppercase font-bold text-text-primary tracking-widest mb-2">Affected Assets</div>
                         <div className="flex flex-wrap gap-2">
                             {event.affected_assets.map(a => (
-                                <span key={a} className="text-[10px] px-2 py-0.5 rounded bg-[#1E3A8A]/30 text-blue-400 border border-[#1E3A8A] font-medium tracking-wide">
+                                <span key={a} className="text-[10px] px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200 dark:bg-[#1E3A8A]/30 dark:text-blue-400 dark:border-[#1E3A8A] font-medium tracking-wide">
                                     {a}
                                 </span>
                             ))}
@@ -320,7 +320,7 @@ function EventPreviewCard({ event }) {
                         <div className="text-[10px] uppercase font-bold text-text-primary tracking-widest mb-2">Key Data Points</div>
                         <div className="flex flex-wrap gap-2">
                             {event.key_data_points.map((pt, i) => (
-                                <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                                <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 font-mono">
                                     {pt}
                                 </span>
                             ))}

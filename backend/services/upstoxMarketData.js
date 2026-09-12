@@ -212,6 +212,13 @@ export const getCachedMarketData = () => ({
     news: cachedNews
 });
 
+export const clearBroadcastMemoryCaches = () => {
+    cachedFlowData = null;
+    cachedSmartlists = null;
+    cachedSectors = null;
+    cachedNews = null;
+};
+
 export const forceMarketDataPoll = async () => {
     try {
         const flowData = await fetchFiiDiiFlow();

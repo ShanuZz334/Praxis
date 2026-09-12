@@ -20,6 +20,7 @@
 
 import React from 'react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip } from 'recharts';
+import { Lightbulb, AlertTriangle } from 'lucide-react';
 import { RechartsTooltipWrapper } from '../ChartTooltip';
 
 // =============================
@@ -126,15 +127,18 @@ export default function MarketStressRadar({
 
             {/* Interpretation */}
             <div className="mt-4 p-3 bg-white/5 rounded-lg">
-                <div className="text-xs text-white/70">
-                    <span className="font-medium">💡 Stress Analysis:</span>{' '}
-                    {overallStress > 70
-                        ? 'Extreme stress across multiple dimensions - high caution advised'
-                        : overallStress > 50
-                            ? 'Elevated stress levels - monitor closely for deterioration'
-                            : overallStress > 30
-                                ? 'Moderate stress - some pockets of concern'
-                                : 'Low stress environment - favorable for risk-taking'}
+                <div className="text-xs text-white/70 flex items-start gap-1.5">
+                    <Lightbulb size={13} className="text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                        <span className="font-medium text-white/90">Stress Analysis:</span>{' '}
+                        {overallStress > 70
+                            ? 'Extreme stress across multiple dimensions - high caution advised'
+                            : overallStress > 50
+                                ? 'Elevated stress levels - monitor closely for deterioration'
+                                : overallStress > 30
+                                    ? 'Moderate stress - some pockets of concern'
+                                    : 'Low stress environment - favorable for risk-taking'}
+                    </div>
                 </div>
             </div>
 
@@ -144,9 +148,10 @@ export default function MarketStressRadar({
                     {radarData.filter(d => d.value > 70).map(d => (
                         <div
                             key={d.dimension}
-                            className="px-3 py-1 bg-red-500/20 border border-red-500/30 rounded-full text-xs text-red-400"
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-red-500/20 border border-red-500/30 rounded-full text-xs text-red-400"
                         >
-                            ⚠ {d.dimension} Alert
+                            <AlertTriangle size={12} />
+                            <span>{d.dimension} Alert</span>
                         </div>
                     ))}
                 </div>

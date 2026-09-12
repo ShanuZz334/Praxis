@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Sparkles, Settings, Sun, Moon, Square, AtSign, Zap, Mic, MicOff, Loader2, Volume2, Brain, Headset } from 'lucide-react';
+import { Send, Sparkles, Settings, Sun, Moon, Square, AtSign, Zap, Mic, MicOff, Loader2, Volume2, Brain, Headset, AlertTriangle } from 'lucide-react';
 import PaiMessageBubble from './PaiMessageBubble';
 import { useTheme } from '@/shared/context/ThemeContext';
 import UiverseDropdown from '@/shared/components/ui/UiverseDropdown';
@@ -450,7 +450,7 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
                                                             <span className="text-blue-400/60">{s.score}</span>
                                                         )}
                                                         {!live && (
-                                                            <span className="text-amber-500/80">⚠</span>
+                                                            <AlertTriangle size={8} className="text-amber-500/80 shrink-0" />
                                                         )}
                                                     </span>
                                                 );

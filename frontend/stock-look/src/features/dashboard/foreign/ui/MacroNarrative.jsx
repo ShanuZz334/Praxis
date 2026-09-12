@@ -16,6 +16,7 @@
 // Imports
 // =============================
 import React from "react";
+import { Mic } from "lucide-react";
 
 // =============================
 // Main Component
@@ -29,7 +30,7 @@ export default function MacroNarrative({ impact, regime }) {
 
                 {/* Header */}
                 <div className="flex items-center gap-3 border-b border-slate-800/50 pb-4">
-                    <span className="text-xl">🎙️</span>
+                    <Mic size={18} className="text-slate-400 shrink-0" />
                     <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Morning Macro Brief</div>
                 </div>
 

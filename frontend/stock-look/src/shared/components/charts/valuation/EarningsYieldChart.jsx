@@ -21,6 +21,7 @@
 
 import React from 'react';
 import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Lightbulb } from 'lucide-react';
 import { RechartsTooltipWrapper } from '../ChartTooltip';
 import { formatChartDate } from '@/shared/utils/chartUtils';
 
@@ -144,13 +145,16 @@ export default function EarningsYieldChart({
 
             {/* Interpretation */}
             <div className="mt-3 p-3 bg-white/5 rounded-lg">
-                <div className="text-xs text-white/70">
-                    <span className="font-medium">💡 Insight:</span>{' '}
-                    {latestData.erp > 2
-                        ? 'Positive ERP suggests equities are attractive vs bonds'
-                        : latestData.erp < 0
-                            ? 'Negative ERP - bonds more attractive than equities'
-                            : 'Neutral ERP - equities fairly priced vs bonds'}
+                <div className="text-xs text-white/70 flex items-start gap-1.5">
+                    <Lightbulb size={13} className="text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                        <span className="font-medium text-white/90">Insight:</span>{' '}
+                        {latestData.erp > 2
+                            ? 'Positive ERP suggests equities are attractive vs bonds'
+                            : latestData.erp < 0
+                                ? 'Negative ERP - bonds more attractive than equities'
+                                : 'Neutral ERP - equities fairly priced vs bonds'}
+                    </div>
                 </div>
             </div>
         </div>

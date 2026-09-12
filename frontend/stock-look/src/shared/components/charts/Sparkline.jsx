@@ -33,7 +33,7 @@ const PADDING = 4;
 
 function Sparkline({ data = [], color = "var(--accent-primary)" }) {
   const ref = useRef(null);
-  const [width, setWidth] = useState(1); // 🔑 never 0
+  const [width, setWidth] = useState(1); // never 0
 
   /* ---------------------------------------
      Measure container width

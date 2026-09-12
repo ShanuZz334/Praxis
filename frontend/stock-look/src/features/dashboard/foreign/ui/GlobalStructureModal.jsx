@@ -22,6 +22,7 @@
 // =============================
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { useTheme } from "@/shared/context/ThemeContext";
 import GlobalInterpretationDesk from "./GlobalInterpretationDesk";
 import GlobalMetricsDesk from "./GlobalMetricsDesk";
@@ -64,7 +65,7 @@ export default function GlobalStructureModal({ open, onClose, card }) {
                     <GlobalInterpretationDesk card={card} />
                 </div>
 
-                {/* 🧱 CENTER: Main Panel */}
+                {/* CENTER: Main Panel */}
                 <div className="
                     flex-1 min-w-0 max-w-3xl pointer-events-auto
                     flex flex-col
@@ -100,7 +101,7 @@ export default function GlobalStructureModal({ open, onClose, card }) {
                                 border border-border-subtle hover:border-border-default
                             "
                         >
-                            <span className="group-hover:rotate-90 transition-transform duration-300">✕</span>
+                            <X size={16} className="group-hover:rotate-90 transition-transform duration-300" />
                         </button>
                     </div>
 
@@ -153,7 +154,7 @@ export default function GlobalStructureModal({ open, onClose, card }) {
                     </div>
                 </div>
 
-                {/* ➡ RIGHT: Metrics Desk */}
+                {/* RIGHT: Metrics Desk */}
                 <div className="hidden lg:block w-[240px] pointer-events-auto">
                     <GlobalMetricsDesk card={card} />
                 </div>

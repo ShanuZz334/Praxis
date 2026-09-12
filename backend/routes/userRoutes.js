@@ -38,6 +38,9 @@ import {
     verifyCurrentEmail,
     logoutUser,
     deleteUserProfile,
+    resetAiChats,
+    clearMarketCache,
+    factoryReset,
 } from "../controllers/userController.js";
 
 // =============================
@@ -50,6 +53,13 @@ const router = express.Router();
 // =============================
 router.put("/profile", protect, updateUserProfile);
 router.delete("/profile", protect, deleteUserProfile);
+
+// =============================
+// Danger Zone Routes
+// =============================
+router.post("/danger/reset-chats", protect, resetAiChats);
+router.post("/danger/clear-market-cache", protect, clearMarketCache);
+router.post("/danger/factory-reset", protect, factoryReset);
 
 // =============================
 // Broker Routes

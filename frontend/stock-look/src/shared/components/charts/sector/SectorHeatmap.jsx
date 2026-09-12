@@ -20,6 +20,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { Lightbulb } from 'lucide-react';
 
 // =============================
 // Component
@@ -140,10 +141,13 @@ export default function SectorHeatmap({
 
             {/* Interpretation */}
             <div className="mt-3 p-3 bg-white/5 rounded-lg">
-                <div className="text-xs text-white/70">
-                    <span className="font-medium">💡 How to Read:</span>{' '}
-                    Green sectors are trading below historical averages (potential value),
-                    Red sectors are at historical highs (expensive). Click any sector for detailed analysis.
+                <div className="text-xs text-white/70 flex items-start gap-1.5">
+                    <Lightbulb size={13} className="text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                        <span className="font-medium text-white/90">How to Read:</span>{' '}
+                        Green sectors are trading below historical averages (potential value),
+                        Red sectors are at historical highs (expensive). Click any sector for detailed analysis.
+                    </div>
                 </div>
             </div>
         </div>
