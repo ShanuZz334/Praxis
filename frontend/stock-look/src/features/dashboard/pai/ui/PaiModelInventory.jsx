@@ -8,13 +8,16 @@ import { MODEL_CATALOG } from '../data/modelCatalogData';
  * [54%] [⭕ ring]
  */
 function ModelGauge({ percent = 100, size = 32, strokeWidth = 3.2 }) {
-    const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+    const num = Number(percent);
+    const clamped = Math.max(0, Math.min(100, isNaN(num) ? 100 : num));
+    const isUnderFull = clamped > 0 && clamped < 100 && clamped >= 99;
+    const displayText = isUnderFull ? clamped.toFixed(1) : Math.round(clamped);
     const colorClass = clamped > 65 ? 'text-emerald-500' : clamped > 35 ? 'text-amber-500' : 'text-rose-500';
 
     return (
         <div className="flex items-center gap-2 select-none">
             <span className="text-[13px] font-bold text-text-primary font-mono tracking-tight">
-                {clamped}%
+                {displayText}%
             </span>
             <div className="relative shrink-0 flex items-center justify-center" style={{ width: size, height: size }}>
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
@@ -96,10 +99,14 @@ export default function PaiModelInventory({ providers = [], localModels = [] }) 
         const pollInterval = setInterval(fetchQuotas, 30000); // 30s poll
         const tickInterval = setInterval(() => setNowTimestamp(Date.now()), 1000); // 1s UI clock
 
+        const handleRefresh = () => fetchQuotas();
+        window.addEventListener('ai_gateway_refresh', handleRefresh);
+
         return () => {
             isMounted = false;
             clearInterval(pollInterval);
             clearInterval(tickInterval);
+            window.removeEventListener('ai_gateway_refresh', handleRefresh);
         };
     }, []);
 
@@ -459,7 +466,11 @@ export default function PaiModelInventory({ providers = [], localModels = [] }) 
                                 <div className="bg-background-surface/50 p-2.5 rounded-lg border border-white/[0.04]">
                                     <span className="text-[9px] uppercase tracking-wider text-text-tertiary block mb-0.5">Quota Remaining</span>
                                     <div className="flex items-center justify-between mt-0.5">
-                                        <span className="text-[13px] font-mono font-bold text-text-primary">{activeModalModel.remainingPercent}%</span>
+                                        <span className="text-[13px] font-mono font-bold text-text-primary">
+                                            {Number(activeModalModel.remainingPercent) >= 99 && Number(activeModalModel.remainingPercent) < 100 
+                                                ? Number(activeModalModel.remainingPercent).toFixed(1) 
+                                                : Math.round(Number(activeModalModel.remainingPercent))}%
+                                        </span>
                                         <ModelGauge percent={activeModalModel.remainingPercent} size={24} strokeWidth={3.0} />
                                     </div>
                                     <span className="text-[9px] text-emerald-400 font-mono block mt-0.5">

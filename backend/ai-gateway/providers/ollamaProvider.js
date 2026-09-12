@@ -15,7 +15,7 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode, 
         stream: false,
         keep_alive: model.includes('3b') ? -1 : undefined,
         options: {
-            temperature: temperature ?? 0.2,
+            temperature: temperature ?? 0.7,
             num_predict: maxTokens ?? 1024,
             num_ctx: 32768
         }

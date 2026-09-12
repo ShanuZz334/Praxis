@@ -4,18 +4,44 @@ import db from "../config/localDb.js";
 import { protect } from "../middleware/authMiddleware.js";
 import aiGateway from "../ai-gateway/index.js";
 import AiRouting from "../models/AiRouting.js";
-import { runFundamentalIntelligence } from "../services/intelligenceCron.js";
+import { runFundamentalIntelligence, forceFullAppSynchronization } from "../services/intelligenceCron.js";
 
 const router = express.Router();
 
 router.get("/force-cron", async (req, res) => {
     try {
-        await runFundamentalIntelligence();
-        res.json({ status: "success", message: "Intelligence Cron forced successfully." });
+        const instrument_key = req.body?.instrument_key || req.query?.instrument_key || null;
+        const result = await forceFullAppSynchronization({ targetInstrument: instrument_key });
+        res.json({ status: "success", message: "Intelligence Cron forced successfully.", details: result });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
+
+/**
+ * @route   POST /api/v1/intelligence/force-sync
+ * @route   GET  /api/v1/intelligence/force-sync
+ * @desc    Trigger instant, all-engine background sync + market data refresh for dashboard
+ * @access  Public / Private
+ */
+const handleForceSyncRequest = async (req, res) => {
+    try {
+        const instrument_key = req.body?.instrument_key || req.query?.instrument_key || null;
+        const result = await forceFullAppSynchronization({ targetInstrument: instrument_key });
+        res.json({
+            status: "success",
+            message: "Full app synchronization completed successfully across all intelligence engines.",
+            data: result
+        });
+    } catch (error) {
+        console.error("❌ Error in force-sync handler:", error);
+        res.status(500).json({ status: "error", error: error.message });
+    }
+};
+
+router.post("/force-sync", handleForceSyncRequest);
+router.get("/force-sync", handleForceSyncRequest);
+
 
 /**
  * @route   GET /api/v1/intelligence/history
@@ -164,19 +190,34 @@ router.post("/sync", async (req, res) => {
                 // Normalize instrument_key: global/events always stored under 'GLOBAL' key
                 // (ForeignPage uses 'GLOBAL_MACRO', master reads 'GLOBAL' via snapshotRoutes)
                 const hdKey = (category === 'global' || category === 'events') ? 'GLOBAL' : instrument_key;
+                const cardCounts = {};
+                if (payload.cards && Array.isArray(payload.cards)) {
+                    for (const c of payload.cards) {
+                        if (c.id && c.score != null) cardCounts[c.id] = c.score;
+                    }
+                }
                 try {
                     db.prepare(`
-                        INSERT INTO header_data (instrument_key, category, composite_score, regime_json, updated_at)
-                        VALUES (?, ?, ?, ?, ?)
+                        INSERT INTO header_data (
+                            instrument_key, category, composite_score, regime_json, 
+                            tailwinds_json, risks_json, counts_json, updated_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT(instrument_key, category) DO UPDATE SET
                             composite_score = excluded.composite_score,
                             regime_json     = COALESCE(excluded.regime_json, header_data.regime_json),
+                            tailwinds_json  = COALESCE(excluded.tailwinds_json, header_data.tailwinds_json),
+                            risks_json      = COALESCE(excluded.risks_json, header_data.risks_json),
+                            counts_json     = COALESCE(excluded.counts_json, header_data.counts_json),
                             updated_at      = excluded.updated_at
                     `).run(
                         hdKey,
                         category,
                         payload.compositeScore,
                         payload.regime ? JSON.stringify(payload.regime) : null,
+                        payload.tailwinds ? JSON.stringify(payload.tailwinds) : null,
+                        payload.risks ? JSON.stringify(payload.risks) : null,
+                        Object.keys(cardCounts).length > 0 ? JSON.stringify(cardCounts) : null,
                         nowIso
                     );
                 } catch (hdErr) {
@@ -271,20 +312,27 @@ router.post("/card-insight", protect, async (req, res) => {
         const routing = await AiRouting.findOne({ isSingleton: true }).lean();
         
         let verbosityInstruction = "";
-        let finalMaxTokens = 80;
+        let finalMaxTokens = 1536;
         
         if (routing && routing.cardInsight) {
             const verbLevel = routing.cardInsight.verbosity;
-            if (verbLevel === 'short') {
-                verbosityInstruction = " Generate exactly 1 to 2 short sentences total. NO MORE.";
-                finalMaxTokens = 60;
+            let numVerbosity = 150;
+            if (typeof verbLevel === 'number') {
+                numVerbosity = verbLevel;
+            } else if (verbLevel === 'short') {
+                numVerbosity = 50;
             } else if (verbLevel === 'detailed') {
-                verbosityInstruction = " Provide a highly detailed, comprehensive analysis spanning multiple sentences. Break down the reasoning deeply.";
-                finalMaxTokens = 300;
-            } else {
-                verbosityInstruction = " Generate EXACTLY ONE SINGLE PARAGRAPH. Keep it concise but actionable.";
-                finalMaxTokens = 120;
+                numVerbosity = 350;
             }
+
+            if (numVerbosity <= 100) {
+                verbosityInstruction = ` Generate exactly 1 to 2 short sentences total (maximum ${numVerbosity} words). NO MORE. Conclude completely.`;
+            } else if (numVerbosity >= 350) {
+                verbosityInstruction = ` Provide a detailed, comprehensive analysis (target ${numVerbosity} words). Conclude naturally.`;
+            } else {
+                verbosityInstruction = ` Generate EXACTLY ONE SINGLE PARAGRAPH (target ${numVerbosity} words). Keep it concise and actionable.`;
+            }
+            finalMaxTokens = Math.max(1024, Math.floor(numVerbosity * 3.5));
         }
 
         const prompt = `Generate an insight about ${metric} for ${stockSymbol}. Current value: ${value}. ${sectorAvg ? `Sector Average: ${sectorAvg}. ` : ""}${historicalContext ? `Historical Trend: ${historicalContext.trend}. ` : ""}${verbosityInstruction}`;

@@ -45,11 +45,26 @@ export function checkProviderHealth(providerId, modelId) {
     return true; // Circuit closed (healthy)
 }
 
-export function recordProviderFailure(providerId, modelId) {
+export function recordProviderFailure(providerId, modelId, error = null) {
     const key = `${providerId}::${modelId}`;
     if (!circuitBreakerState[key]) circuitBreakerState[key] = { failures: 0, lastFailedAt: null };
     circuitBreakerState[key].failures += 1;
     circuitBreakerState[key].lastFailedAt = Date.now();
+
+    if (error) {
+        const errMsg = typeof error === 'string' ? error : (error.message || String(error));
+        circuitBreakerState[key].lastError = errMsg;
+        const lower = errMsg.toLowerCase();
+        if (errMsg.includes('401') || errMsg.includes('403') || lower.includes('unauthorized') || lower.includes('invalid api key')) {
+            circuitBreakerState[key].errorType = 'auth';
+        } else if (errMsg.includes('429') || lower.includes('rate limit')) {
+            circuitBreakerState[key].errorType = 'rate_limit';
+        } else if (errMsg.includes('ECONNREFUSED') || lower.includes('fetch failed') || lower.includes('network') || lower.includes('timeout')) {
+            circuitBreakerState[key].errorType = 'offline';
+        } else {
+            circuitBreakerState[key].errorType = 'error';
+        }
+    }
     saveCBState();
 }
 
@@ -59,6 +74,52 @@ export function recordProviderSuccess(providerId, modelId) {
         delete circuitBreakerState[key];
         saveCBState();
     }
+}
+
+export function clearProviderCircuitBreaker(providerId) {
+    let modified = false;
+    for (const key of Object.keys(circuitBreakerState)) {
+        if (key === providerId || key.startsWith(`${providerId}::`)) {
+            delete circuitBreakerState[key];
+            modified = true;
+        }
+    }
+    if (modified) saveCBState();
+}
+
+export function getCircuitBreakerStatus(providerId) {
+    let maxFailures = 0;
+    let latestFailureTime = 0;
+    let isTripped = false;
+    let lastError = null;
+    let errorType = null;
+
+    for (const [key, state] of Object.entries(circuitBreakerState)) {
+        const [pId] = key.split('::');
+        if (pId === providerId) {
+            if (state.failures > maxFailures) {
+                maxFailures = state.failures;
+            }
+            if (state.lastFailedAt && state.lastFailedAt > latestFailureTime) {
+                latestFailureTime = state.lastFailedAt;
+                if (state.lastError) lastError = state.lastError;
+                if (state.errorType) errorType = state.errorType;
+            }
+            if (state.failures >= AI_CONFIG.CIRCUIT_BREAKER.MAX_FAILURES) {
+                if (Date.now() - state.lastFailedAt <= AI_CONFIG.CIRCUIT_BREAKER.RESET_TIMEOUT) {
+                    isTripped = true;
+                }
+            }
+        }
+    }
+
+    return {
+        isTripped,
+        failures: maxFailures,
+        lastFailedAt: latestFailureTime || null,
+        lastError,
+        errorType
+    };
 }
 
 export async function getRouteForTask(level, taskType) {
@@ -72,6 +133,7 @@ export async function getRouteForTask(level, taskType) {
             let explicitPref = null;
             if (taskType === 'per_card_insight') explicitPref = routing.cardInsight;
             else if (taskType === 'page_header_insight') explicitPref = routing.headerInsight;
+            else if (taskType === 'page_synthesis' || taskType === 'page_insight') explicitPref = routing.pageInsight;
             else if (taskType === 'chat_conversation') explicitPref = routing.manualChat;
             else if (taskType === 'future_vision_prediction') explicitPref = routing.futureVision;
             else explicitPref = routing.pageInsight;

@@ -126,6 +126,7 @@ export default function MasterDashboard() {
         globalData,   // Yahoo-scraped: DXY, Gold, Crude, SP500, US10Y, VIX, Bitcoin, 25 global symbols
         marketNews,   // Socket-pushed news — used to compute EVT live on Master Dashboard
         tradingMode,  // From ThemeContext — used to cadence EVT scoring
+        isSyncing,
     });
 
     const { getMasterSnapshot, registerBulk, register } = useDataRegistry();
@@ -134,11 +135,31 @@ export default function MasterDashboard() {
         if (isSyncing) return;
         setIsSyncing(true);
         try {
-            if (typeof refresh === 'function') await refresh();
+            // 1. Trigger full backend multi-engine cron + Upstox market data force sync
+            await axiosInstance.post('/api/v1/intelligence/force-sync', {
+                instrument_key: instKeyForEngine
+            }).catch(err => console.warn("[Sync] Force-sync endpoint error:", err.message));
+
+            // 2. Refresh Master composite scores
+            if (typeof refresh === 'function') {
+                await refresh();
+            }
+
+            // 3. Dispatch local UI event for any listening components or widgets
+            window.dispatchEvent(new CustomEvent('praxis:force-sync:done', {
+                detail: { timestamp: Date.now(), instrumentKey: instKeyForEngine }
+            }));
+
+            // 4. Force AI insight to regenerate cleanly with the newly synced stable scores
+            window.dispatchEvent(new CustomEvent('praxis:ai:force-refresh', {
+                detail: { timestamp: Date.now(), instrumentKey: instKeyForEngine }
+            }));
+        } catch (err) {
+            console.error("❌ Force sync error:", err);
         } finally {
             setIsSyncing(false);
         }
-    }, [refresh, isSyncing]);
+    }, [refresh, isSyncing, instKeyForEngine]);
 
     // Register fallback cards globally so autocomplete has live values for unmounted cards
     useEffect(() => {
@@ -367,6 +388,7 @@ export default function MasterDashboard() {
                 tailwinds={tailwinds}
                 headwinds={risks}
                 totalCredits={totalCredits}
+                isSyncing={isSyncing}
                 enableBreakdown={true}
                 cards={aggregatedCards}
                 masterPayload={masterPayload}

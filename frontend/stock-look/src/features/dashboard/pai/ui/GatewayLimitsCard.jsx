@@ -4,7 +4,8 @@ import axiosInstance from '@/shared/utils/axiosInstance';
 
 function formatCountdown(resetTimestamp, nowTimestamp, fallbackStr = 'Daily') {
     if (!resetTimestamp) return fallbackStr;
-    const diffMs = Math.max(0, resetTimestamp - nowTimestamp);
+    const diffMs = resetTimestamp - nowTimestamp;
+    if (diffMs <= 0) return 'Resetting...';
     const hours = Math.floor(diffMs / 3600000);
     const mins = Math.floor((diffMs % 3600000) / 60000);
     const secs = Math.floor((diffMs % 60000) / 1000);
@@ -14,7 +15,14 @@ function formatCountdown(resetTimestamp, nowTimestamp, fallbackStr = 'Daily') {
 }
 
 function ProgressBar({ percent = 100, label, current, total, color = 'emerald' }) {
-    const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+    const num = Number(percent);
+    const clamped = Math.max(0, Math.min(100, isNaN(num) ? 100 : num));
+    const isUnderFull = (current !== undefined && total !== undefined && typeof current === 'number' && typeof total === 'number' && current < total && current > 0) || (clamped >= 99 && clamped < 100);
+    const displayPct = isUnderFull 
+        ? ((current !== undefined && total !== undefined && typeof current === 'number' && typeof total === 'number' && total > 0) 
+            ? ((current / total) * 100).toFixed(1) 
+            : clamped.toFixed(1))
+        : Math.round(clamped);
     const barColor = clamped > 50 
         ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' 
         : clamped > 20 
@@ -29,7 +37,7 @@ function ProgressBar({ percent = 100, label, current, total, color = 'emerald' }
                 <span className="text-text-tertiary">{label}</span>
                 <div className="flex items-center gap-1.5">
                     <span className="text-text-primary font-medium">{current} <span className="opacity-40">/</span> {total}</span>
-                    <span className={`font-bold ${textClass}`}>({clamped}%)</span>
+                    <span className={`font-bold ${textClass}`}>({displayPct}%)</span>
                 </div>
             </div>
             <div className="w-full h-1.5 bg-neutral-800/80 rounded-full overflow-hidden p-0.5 border border-white/[0.04]">
@@ -48,6 +56,12 @@ export default function GatewayLimitsCard({ className = "" }) {
     const [lastSync, setLastSync] = useState(null);
     const [nowTimestamp, setNowTimestamp] = useState(Date.now());
     const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const gatewayDataRef = React.useRef(null);
+    gatewayDataRef.current = gatewayData;
+
+    const isRefreshingRef = React.useRef(false);
+    isRefreshingRef.current = isRefreshing;
 
     const fetchGatewayStatus = async () => {
         try {
@@ -68,11 +82,32 @@ export default function GatewayLimitsCard({ className = "" }) {
     useEffect(() => {
         fetchGatewayStatus();
         const pollInterval = setInterval(fetchGatewayStatus, 25000); // 25s auto-poll
-        const tickInterval = setInterval(() => setNowTimestamp(Date.now()), 1000); // 1s UI clock
+        
+        const tickInterval = setInterval(() => {
+            const now = Date.now();
+            setNowTimestamp(now);
+
+            // Auto-replenish: If any exhausted provider's reset countdown has elapsed, fetch immediately
+            if (gatewayDataRef.current && !isRefreshingRef.current) {
+                const providers = Object.values(gatewayDataRef.current);
+                const hasExpired = providers.some(p => {
+                    if (!p.resetTimestamp) return false;
+                    const isExhausted = p.status === 'Exhausted' || p.healthStatus === 'exhausted' || (p.remainingRequests !== 'Unlimited' && p.remainingRequests <= 0);
+                    return isExhausted && now >= p.resetTimestamp;
+                });
+                if (hasExpired) {
+                    fetchGatewayStatus();
+                }
+            }
+        }, 1000); // 1s UI clock
+
+        const handleRefresh = () => fetchGatewayStatus();
+        window.addEventListener('ai_gateway_refresh', handleRefresh);
 
         return () => {
             clearInterval(pollInterval);
             clearInterval(tickInterval);
+            window.removeEventListener('ai_gateway_refresh', handleRefresh);
         };
     }, []);
 
@@ -137,6 +172,7 @@ export default function GatewayLimitsCard({ className = "" }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-7 gap-3">
                 {providersList.map(prov => {
                     const isOnline = prov.status === 'Online';
+                    const isExhausted = prov.status === 'Exhausted' || prov.healthStatus === 'exhausted' || (prov.remainingRequests !== 'Unlimited' && prov.requestsPercent === 0);
                     const isOllama = prov.id === 'ollama';
 
                     // Dynamic reset countdown
@@ -144,6 +180,14 @@ export default function GatewayLimitsCard({ className = "" }) {
                     if (prov.resetTimestamp) {
                         resetText = formatCountdown(prov.resetTimestamp, nowTimestamp, prov.resetCountdown || 'Daily');
                     }
+
+                    const statusDotColor = isExhausted 
+                        ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.5)] animate-pulse' 
+                        : isOnline 
+                        ? 'bg-emerald-400' 
+                        : 'bg-zinc-500';
+                    const statusText = isExhausted ? 'EXHAUSTED' : prov.status;
+                    const statusTextColor = isExhausted ? 'text-rose-400 font-semibold' : 'text-text-tertiary';
 
                     return (
                         <div
@@ -156,10 +200,10 @@ export default function GatewayLimitsCard({ className = "" }) {
                                     <span className="text-[13px] font-bold text-text-primary truncate">
                                         {prov.name}
                                     </span>
-                                    <div className="flex items-center gap-1 shrink-0">
-                                        <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-rose-500'}`} />
-                                        <span className="text-[10px] font-mono text-text-tertiary uppercase">
-                                            {prov.status}
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        <span className={`w-2 h-2 rounded-full ${statusDotColor}`} />
+                                        <span className={`text-[10px] font-mono uppercase ${statusTextColor}`}>
+                                            {statusText}
                                         </span>
                                     </div>
                                 </div>

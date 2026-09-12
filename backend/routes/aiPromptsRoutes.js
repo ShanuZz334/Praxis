@@ -517,7 +517,7 @@ router.post('/generate/:targetId', async (req, res) => {
         
         if (routing) {
             const isMasterDashboard = targetId === 'praxis_composite_header';
-            const isChatTarget = targetId.startsWith('qchat_') || targetId.includes('manual');
+            const isChatTarget = targetId.includes('qchat') || targetId.includes('chat') || targetId.includes('manual');
             const verbosityLevel = isMasterDashboard ? routing.pageInsight?.verbosity : (isChatTarget ? routing.manualChat?.verbosity : (isHeaderTarget ? routing.headerInsight?.verbosity : routing.cardInsight?.verbosity));
             
             // Normalize legacy string values to numbers for comparison
@@ -530,23 +530,25 @@ router.post('/generate/:targetId', async (req, res) => {
                 numVerbosity = 350;
             }
 
+            const tokenCeiling = Math.max(1536, Math.floor(numVerbosity * 3.5));
+            dynamicMaxTokens = Math.min(8192, Math.max(savedPrompt?.maxTokens || 0, tokenCeiling));
+
             if (numVerbosity <= 100) {
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Generate EXACTLY 1 to 2 short sentences total (maximum ${numVerbosity} words). NO MORE. Be extremely concise and ensure you finish your thought completely without cutting off.]`;
-                dynamicMaxTokens = 2048; // Generous buffer, let the AI finish rather than hard cut
             } else if (numVerbosity >= 350) {
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Provide a detailed, comprehensive analysis spanning multiple paragraphs. You MUST strictly limit your entire response to approximately ${numVerbosity} words. To prevent being cut off, you MUST write a final, natural concluding paragraph well before reaching this word limit.]`;
-                dynamicMaxTokens = 4096;
             } else {
                 // Default / medium
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: You MUST generate EXACTLY ONE SINGLE PARAGRAPH (maximum ${numVerbosity} words). Do NOT use any line breaks or multiple paragraphs. The entire response must be a single block of text and must be a complete thought.]`;
-                dynamicMaxTokens = 3072;
             }
         }
         
         const enforcedSystemInstruction = `${goldenRulesStr}Task Instruction:\n${systemInstruction}${verbosityInstruction}`;
 
+        const taskType = (targetId === 'praxis_composite_header') ? 'page_synthesis' : (isHeaderTarget ? 'page_header_insight' : 'per_card_insight');
+
         const response = await aiGateway.process({
-            taskType: isHeaderTarget ? 'page_header_insight' : 'per_card_insight', // Dynamically route headers vs cards
+            taskType, // Dynamically route master dashboard vs headers vs cards
             prompt: userMessage,
             systemInstruction: enforcedSystemInstruction,
             data: { targetId, value, stockSymbol, scope },
@@ -706,7 +708,7 @@ router.post('/chat/:targetId', async (req, res) => {
         
         if (routing) {
             const isMasterDashboard = targetId === 'praxis_composite_header';
-            const isChatTarget = targetId.startsWith('qchat_') || targetId.includes('manual');
+            const isChatTarget = targetId.includes('qchat') || targetId.includes('chat') || targetId.includes('manual');
             const verbosityLevel = isMasterDashboard ? routing.pageInsight?.verbosity : (isChatTarget ? routing.manualChat?.verbosity : (isHeaderTarget ? routing.headerInsight?.verbosity : routing.cardInsight?.verbosity));
             
             // Normalize legacy string values to numbers for comparison
@@ -719,16 +721,16 @@ router.post('/chat/:targetId', async (req, res) => {
                 numVerbosity = 350;
             }
 
+            const tokenCeiling = Math.max(1536, Math.floor(numVerbosity * 3.5));
+            dynamicMaxTokens = Math.min(8192, Math.max(savedPrompt?.maxTokens || 0, tokenCeiling));
+
             if (numVerbosity <= 100) {
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Generate EXACTLY 1 to 2 short sentences total (maximum ${numVerbosity} words). NO MORE. Be extremely concise and ensure you finish your thought completely without cutting off.]`;
-                dynamicMaxTokens = 2048; // Generous buffer, let the AI finish rather than hard cut
             } else if (numVerbosity >= 350) {
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Provide a detailed, comprehensive analysis spanning multiple paragraphs. You MUST strictly limit your entire response to approximately ${numVerbosity} words. To prevent being cut off, you MUST write a final, natural concluding paragraph well before reaching this word limit.]`;
-                dynamicMaxTokens = 4096;
             } else {
                 // Default / medium
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: You MUST generate EXACTLY ONE SINGLE PARAGRAPH (maximum ${numVerbosity} words). Do NOT use any line breaks or multiple paragraphs. The entire response must be a single block of text and must be a complete thought.]`;
-                dynamicMaxTokens = 3072;
             }
         }
         

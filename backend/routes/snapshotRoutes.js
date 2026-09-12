@@ -156,6 +156,7 @@ router.get("/header/:instrument_key", (req, res) => {
                 SELECT instrument_key, category, composite_score, regime_json, tailwinds_json, risks_json, counts_json, tree_payload_json, updated_at 
                 FROM header_data 
                 WHERE instrument_key = ? OR instrument_key = 'GLOBAL' OR instrument_key = 'EVENTS'
+                ORDER BY updated_at ASC
             `).all(instrument_key);
 
             const result = {};

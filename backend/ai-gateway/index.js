@@ -12,6 +12,7 @@ import { validateInput } from './guardrails/inputGuard.js';
 import { responseCache } from './cache/responseCache.js';
 import { semanticCache } from './cache/semanticCache.js';
 import { costLogger } from './costLogger.js';
+import AiRouting from '../models/AiRouting.js';
 
 const providers = {
     ollama,
@@ -35,7 +36,22 @@ export const aiGateway = {
             return { error: true, message: "Input validation failed", details: e.message };
         }
 
-        const { taskType, prompt, data, jsonMode, schema, maxTokens, temperature } = request;
+        const { taskType, prompt, data, jsonMode, schema, maxTokens } = request;
+        let temperature = request.temperature;
+        if (temperature === undefined || temperature === null) {
+            try {
+                const routingDoc = await AiRouting.findOne({ isSingleton: true }).lean();
+                if (routingDoc && routingDoc.temperature !== undefined && routingDoc.temperature !== null) {
+                    temperature = routingDoc.temperature;
+                }
+            } catch (err) {
+                // fallback
+            }
+        }
+        if (temperature === undefined || temperature === null) {
+            temperature = 0.7;
+        }
+
         const level = classifyTask(taskType);
         
         request.level = level; 

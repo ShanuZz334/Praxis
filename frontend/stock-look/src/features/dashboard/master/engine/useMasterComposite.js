@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { API_PATHS } from '@/shared/utils/apiPaths';
+import socket from '@/shared/utils/socket';
 import { saveIntelScore, loadAllIntelScores, saveAllIntelScores } from '@/shared/utils/intelCache';
 
 // Engines
@@ -95,16 +96,86 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
     // IMPORTANT: Only update TECH from localStorage — FUND/OPT/GLOB have stale master-computed
     // values in localStorage and must only be updated from the DB poll (fetchMasterData).
     useEffect(() => {
-        const handleIntelUpdate = () => {
+        const handleIntelUpdate = (e) => {
             if (!selectedInstrument) return;
+            const detail = e?.detail;
+            const targetKey = detail?.instrument_key;
+
+            // Strictly guard against cross-instrument score pollution
+            const isMatch = targetKey === selectedInstrument;
+            const isGlobalMacro = targetKey === 'GLOBAL' || targetKey === 'EVENTS';
+
+            // If this socket broadcast belongs to a different stock/index, DO NOT overwrite current dashboard scores!
+            if (detail && !isMatch && !isGlobalMacro) {
+                return;
+            }
+
             const cached = loadAllIntelScores(selectedInstrument);
             setDbFallbackData(prev => {
                 const next = { ...prev };
                 const nowIso = new Date().toISOString();
                 
-                // The backend background intelligence cron computes authoritative scores 
-                // for all 5 modules independently of any page being open, and broadcasts 
-                // them via socket. We accept them all here for a 100% lively dashboard.
+                // If detail has direct payload from socket, prioritize it because it contains full counts/tailwinds/risks!
+                if (detail) {
+                    if (isMatch && detail.technical?.composite_score != null) {
+                        next.technical = {
+                            ...prev.technical,
+                            composite_score: detail.technical.composite_score,
+                            regime_json: typeof detail.technical.regime === 'object' ? detail.technical.regime : { label: detail.technical.regime },
+                            counts: detail.technical.counts || prev.technical?.counts,
+                            tailwinds_json: detail.technical.tailwinds || prev.technical?.tailwinds_json,
+                            risks_json: detail.technical.risks || prev.technical?.risks_json,
+                            updated_at: nowIso
+                        };
+                    }
+                    if (isMatch && detail.options?.composite_score != null) {
+                        next.options = {
+                            ...prev.options,
+                            composite_score: detail.options.composite_score,
+                            regime_json: typeof detail.options.regime === 'object' ? detail.options.regime : { label: detail.options.regime },
+                            counts: detail.options.counts || prev.options?.counts,
+                            tailwinds_json: detail.options.tailwinds || prev.options?.tailwinds_json,
+                            risks_json: detail.options.risks || prev.options?.risks_json,
+                            updated_at: nowIso
+                        };
+                    }
+                    if ((isMatch || isGlobalMacro) && detail.global?.composite_score != null) {
+                        next.global = {
+                            ...prev.global,
+                            composite_score: detail.global.composite_score,
+                            regime_json: typeof detail.global.regime === 'object' ? detail.global.regime : { label: detail.global.regime },
+                            counts: detail.global.counts || prev.global?.counts,
+                            tailwinds_json: detail.global.tailwinds || prev.global?.tailwinds_json,
+                            risks_json: detail.global.risks || prev.global?.risks_json,
+                            updated_at: nowIso
+                        };
+                    }
+                    if ((isMatch || isGlobalMacro) && detail.events?.composite_score != null) {
+                        next.events = {
+                            ...prev.events,
+                            composite_score: detail.events.composite_score,
+                            regime_json: typeof detail.events.regime === 'object' ? detail.events.regime : { label: detail.events.regime },
+                            counts: detail.events.counts || prev.events?.counts,
+                            tailwinds_json: detail.events.tailwinds || prev.events?.tailwinds_json,
+                            risks_json: detail.events.risks || prev.events?.risks_json,
+                            updated_at: nowIso
+                        };
+                    }
+                    if (isMatch && detail.fundamental?.composite_score != null) {
+                        next.fundamental = {
+                            ...prev.fundamental,
+                            composite_score: detail.fundamental.composite_score,
+                            regime_json: typeof detail.fundamental.regime === 'object' ? detail.fundamental.regime : { label: detail.fundamental.regime },
+                            counts: detail.fundamental.counts || prev.fundamental?.counts,
+                            tailwinds_json: detail.fundamental.tailwinds || prev.fundamental?.tailwinds_json,
+                            risks_json: detail.fundamental.risks || prev.fundamental?.risks_json,
+                            updated_at: nowIso
+                        };
+                    }
+                    return next;
+                }
+
+                // Fallback to localStorage if no socket detail
                 if (cached.technical?.score != null && !cached.technical.stale)
                     next.technical = { ...prev.technical, composite_score: cached.technical.score, regime_json: cached.technical.regime, updated_at: nowIso };
                 
@@ -247,19 +318,30 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                         if (Array.isArray(chainArray) && chainArray.length > 0 && isMounted) {
                             const normalized = chainArray.map(c => ({
                                 strike: c.strike_price,
-                                iv: 0,
+                                iv: parseFloat(c.call_options?.option_greeks?.iv) || 0,
                                 call: {
                                     oi: parseFloat(c.call_options?.market_data?.oi) || 0,
                                     vol: parseFloat(c.call_options?.market_data?.volume) || 0,
-                                    delta: 0, gamma: 0, theta: 0, vega: 0
+                                    oiChg: parseFloat(c.call_options?.market_data?.oi_change) || 0,
+                                    delta: parseFloat(c.call_options?.option_greeks?.delta) || 0,
+                                    gamma: parseFloat(c.call_options?.option_greeks?.gamma) || 0,
+                                    theta: parseFloat(c.call_options?.option_greeks?.theta) || 0,
+                                    vega: parseFloat(c.call_options?.option_greeks?.vega) || 0,
+                                    iv: parseFloat(c.call_options?.option_greeks?.iv) || 0
                                 },
                                 put: {
                                     oi: parseFloat(c.put_options?.market_data?.oi) || 0,
                                     vol: parseFloat(c.put_options?.market_data?.volume) || 0,
-                                    delta: 0, gamma: 0, theta: 0, vega: 0
+                                    oiChg: parseFloat(c.put_options?.market_data?.oi_change) || 0,
+                                    delta: parseFloat(c.put_options?.option_greeks?.delta) || 0,
+                                    gamma: parseFloat(c.put_options?.option_greeks?.gamma) || 0,
+                                    theta: parseFloat(c.put_options?.option_greeks?.theta) || 0,
+                                    vega: parseFloat(c.put_options?.option_greeks?.vega) || 0,
+                                    iv: parseFloat(c.put_options?.option_greeks?.iv) || 0
                                 }
                             }));
                             setChainData(normalized);
+
                             if (optRes.value.data?.fallback) missingLiveData.push('Options');
                         }
                     } else if (optRes.status === 'rejected') {
@@ -380,18 +462,28 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
         } catch { return null; }
     }, [extraData.marketNews, extraData.tradingMode]);
 
+    const prevStableScoresRef = useRef(null);
+
     // Final Aggregation
     const masterScores = useMemo(() => {
+        // If syncing is actively in progress, hold the previous stable composite scores
+        // to prevent violent jumps or intermediate flashes while data pipelines run.
+        if (extraData?.isSyncing && prevStableScoresRef.current) {
+            return prevStableScoresRef.current;
+        }
+
         // Guard helper: treat 0 and null as absent — both mean "no real data yet"
         const validScore = (v) => (v != null && v > 0) ? v : null;
 
         // Time-aware freshness check: if DB is older than 60 mins, prefer LIVE engine computation
         const isFresh = (dbItem) => {
-            if (!dbItem || !dbItem.updated_at) return false;
-            let dateStr = dbItem.updated_at;
+            if (!dbItem) return false;
+            if (!dbItem.updated_at) return (dbItem.composite_score != null && dbItem.composite_score > 0);
+            let dateStr = String(dbItem.updated_at);
             // Handle SQLite CURRENT_TIMESTAMP (YYYY-MM-DD HH:MM:SS) vs ISO strings
             if (!dateStr.includes('T') && !dateStr.includes('Z')) dateStr = dateStr.replace(' ', 'T') + 'Z';
             const dbDate = new Date(dateStr);
+            if (isNaN(dbDate.getTime())) return (dbItem.composite_score != null && dbItem.composite_score > 0);
             return ((Date.now() - dbDate.getTime()) / 60000) < 60;
         };
 
@@ -525,16 +617,19 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             return result;
         };
 
+        const liveGlobRaw = Object.fromEntries(Object.entries(globalEngine?.cardData || {}).map(([k, v]) => [k, v?.score]));
         const mergedTech = safeMerge(dbFallbackData?.technical?.counts, techEngine?.cardScores);
         const mergedFund = safeMerge(dbFallbackData?.fundamental?.counts, fundEngine?.rawScores);
-        const mergedOpt = safeMerge(dbFallbackData?.options?.counts, optionsEngine?.cardScores);
+        const mergedOpt  = safeMerge(dbFallbackData?.options?.counts, optionsEngine?.cardScores);
+        const mergedGlob = safeMerge(dbFallbackData?.global?.counts, Object.keys(liveGlobRaw).length > 0 ? liveGlobRaw : null);
+        const mergedEvt  = safeMerge(dbFallbackData?.events?.counts, null);
 
         const activeCounts = {
             fundamental: parseEngineCounts(mergedFund, 'FUND'),
-            technical: parseEngineCounts(mergedTech, 'TECH'),
-            options: parseEngineCounts(mergedOpt, 'OPT'),
-            global: parseEngineCounts(Object.fromEntries(Object.entries(globalEngine?.cardData || {}).map(([k, v]) => [k, v?.score])), 'GLOB', globalEngine?.cards) || dbFallbackData?.global?.counts,
-            events: dbFallbackData?.events?.counts
+            technical:   parseEngineCounts(mergedTech, 'TECH'),
+            options:     parseEngineCounts(mergedOpt, 'OPT'),
+            global:      parseEngineCounts(mergedGlob, 'GLOB'),
+            events:      parseEngineCounts(mergedEvt, 'EVT')
         };
 
         Object.entries(activeCounts).forEach(([engineName, counts]) => {
@@ -737,10 +832,15 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             integrity
         };
 
-    }, [fundEngine, techEngine, optionsEngine, globalEngine, dbFallbackData, selectedInstrument, evtLiveScore, isIndex]);
+        prevStableScoresRef.current = result;
+        return result;
+    }, [fundEngine, techEngine, optionsEngine, globalEngine, dbFallbackData, selectedInstrument, evtLiveScore, isIndex, extraData?.isSyncing]);
+
+    const isRefreshingRef = useRef(false);
 
     const refresh = useCallback(async () => {
-        if (!selectedInstrument) return;
+        if (!selectedInstrument || isRefreshingRef.current) return;
+        isRefreshingRef.current = true;
         setLoading(true);
         const savedTimeframe = typeof window !== 'undefined' ? (localStorage.getItem('praxis_technical_timeframe') || 'day') : 'day';
         const currentLtp = baseSpotPriceRef.current || '';
@@ -796,8 +896,29 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             }
         } finally {
             setLoading(false);
+            isRefreshingRef.current = false;
         }
     }, [selectedInstrument, selectedExpiry]);
 
+    useEffect(() => {
+        let debounceTimer = null;
+        const handleSyncEvent = (payload) => {
+            const target = payload?.instrument || payload?.instrument_key;
+            if (target && target !== selectedInstrument && target !== 'GLOBAL' && target !== 'ALL') {
+                return;
+            }
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                refresh();
+            }, 300);
+        };
+        socket.on('app:sync:complete', handleSyncEvent);
+        return () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            socket.off('app:sync:complete', handleSyncEvent);
+        };
+    }, [refresh, selectedInstrument]);
+
     return { ...masterScores, loading, headlessFundCards, headlessTechCards, refresh };
 }
+

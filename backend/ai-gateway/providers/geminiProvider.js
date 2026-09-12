@@ -8,7 +8,7 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode, 
     const url = p.baseUrl || 'https://generativelanguage.googleapis.com/v1beta/openai';
     const endpoint = url.endsWith('/chat/completions') ? url : `${url}/chat/completions`;
 
-    const payload = { model, messages, temperature: temperature ?? 0.2, max_tokens: maxTokens ?? 1024 };
+    const payload = { model, messages, temperature: temperature ?? 0.7, max_tokens: maxTokens ?? 1024 };
     if (jsonMode) payload.response_format = { type: "json_object" };
 
     const startTime = Date.now();

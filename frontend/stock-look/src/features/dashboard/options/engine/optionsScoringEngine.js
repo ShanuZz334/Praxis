@@ -8,7 +8,7 @@
  * - Centralized to allow both frontend and backend to use the same logic.
  */
 
-import { computeLiveOiChange } from './oiTrackerEngine';
+import { computeLiveOiChange } from './oiTrackerEngine.js';
 
 // ==========================================
 // 1. Put-Call Ratio (OI) Scoring
@@ -420,3 +420,145 @@ export function gradeMaxPain(chainData, spotPrice) {
     
     return { currentValue: maxPainStrike, distance: diffPct, diff, score, bias, confidence: "90%", aiInsight };
 }
+
+// ==========================================
+// 9. Institutional Composite Scoring Engine
+// ==========================================
+export function computeOptionsInstitutionalComposite(chainData, spotPrice, instrumentKey, historicalSnapshots = {}) {
+    if (!chainData || !Array.isArray(chainData) || chainData.length === 0) {
+        return {
+            compositeScore: 50,
+            regime: { label: 'Neutral' },
+            sections: [],
+            tailwinds: [],
+            risks: [],
+            cardScores: {}
+        };
+    }
+
+    let totalCallOi = 0;
+    let totalPutOi = 0;
+    let totalCallVol = 0;
+    let totalPutVol = 0;
+    let closestStrike = -1;
+    let minDiff = Infinity;
+
+    chainData.forEach(row => {
+        if (row.call) {
+            totalCallOi += (row.call.oi || 0);
+            totalCallVol += (row.call.vol || 0);
+        }
+        if (row.put) {
+            totalPutOi += (row.put.oi || 0);
+            totalPutVol += (row.put.vol || 0);
+        }
+        if (spotPrice && row.strike != null) {
+            const diff = Math.abs(row.strike - spotPrice);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closestStrike = row.strike;
+            }
+        }
+    });
+
+    const pcrOiValue = totalCallOi > 0 ? (totalPutOi / totalCallOi) : 1;
+    const pcrVolValue = totalCallVol > 0 ? (totalPutVol / totalCallVol) : 1;
+
+    const atmRow = chainData.find(r => r.strike === closestStrike);
+    const callDelta = atmRow?.call?.delta || 0;
+    const callGamma = atmRow?.call?.gamma || 0;
+    const callTheta = atmRow?.call?.theta || 0;
+    const callVega  = atmRow?.call?.vega  || 0;
+    const iv = atmRow?.iv || atmRow?.call?.iv || 15;
+
+    const c_call_oi  = gradeTotalCallOI(chainData, instrumentKey, historicalSnapshots);
+    const c_put_oi   = gradeTotalPutOI(chainData, instrumentKey, historicalSnapshots);
+    const c_oi_chg   = gradeOIChange(chainData, instrumentKey, historicalSnapshots);
+    const c_pcr_oi   = scorePcrOi(pcrOiValue);
+    const c_pcr_vol  = scorePcrVolume(pcrVolValue);
+    const c_delta    = scoreDelta(callDelta);
+    const c_gamma    = scoreGamma(callGamma, spotPrice);
+    const c_theta    = scoreTheta(callTheta, spotPrice);
+    const c_vega     = scoreVega(callVega, iv, spotPrice);
+    const c_atm_iv   = gradeAtmIv(iv);
+    const c_iv_rank  = gradeIvRank(50);
+    const c_iv_pct   = gradeIvPercentile(50);
+    const c_max_pain = gradeMaxPain(chainData, spotPrice);
+
+    const safeScore = (obj) => (obj && obj.score != null && !isNaN(obj.score)) ? Math.round(obj.score) : null;
+
+    const cardScores = {
+        total_call_oi: safeScore(c_call_oi),
+        total_put_oi: safeScore(c_put_oi),
+        oi_change: safeScore(c_oi_chg),
+        pcr_oi: safeScore(c_pcr_oi),
+        pcr_volume: safeScore(c_pcr_vol),
+        delta: safeScore(c_delta),
+        gamma: safeScore(c_gamma),
+        theta: safeScore(c_theta),
+        vega: safeScore(c_vega),
+        atm_iv: safeScore(c_atm_iv),
+        iv_rank: safeScore(c_iv_rank) ?? 50,
+        iv_percentile: safeScore(c_iv_pct) ?? 50,
+        max_pain: safeScore(c_max_pain)
+    };
+
+    const avg = (...keys) => {
+        const vals = keys.map(k => cardScores[k]).filter(v => v !== null && !isNaN(v));
+        if (vals.length === 0) return null;
+        return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+    };
+
+    const sections = [
+        { id: 'Open Interest',      label: 'Open Interest',      shortLabel: 'OI',  score: avg('total_call_oi', 'total_put_oi', 'oi_change'), weight: 0.25 },
+        { id: 'Put-Call Ratio',     label: 'Put-Call Ratio',     shortLabel: 'PCR', score: avg('pcr_oi', 'pcr_volume'),                       weight: 0.20 },
+        { id: 'Greeks',             label: 'Greeks',             shortLabel: 'GRK', score: avg('delta', 'gamma', 'theta', 'vega'),             weight: 0.20 },
+        { id: 'Market Positioning', label: 'Market Positioning', shortLabel: 'POS', score: avg('max_pain'),                                   weight: 0.20 },
+        { id: 'Volatility',         label: 'Volatility',         shortLabel: 'VOL', score: avg('atm_iv', 'iv_rank', 'iv_percentile'),          weight: 0.15 },
+    ];
+
+    const validSections = sections.filter(s => s.score !== null);
+    let compositeScore = 50;
+    if (validSections.length > 0) {
+        const totalW = validSections.reduce((acc, s) => acc + s.weight, 0);
+        compositeScore = validSections.reduce((acc, s) => acc + (s.score * s.weight), 0) / totalW;
+        const distressCount = validSections.filter(s => s.score < 25).length;
+        compositeScore = Math.max(0, compositeScore - distressCount * 3);
+        compositeScore = Math.min(100, Math.round(compositeScore));
+    }
+
+    let regimeLabel = 'Neutral';
+    if (compositeScore >= 70) regimeLabel = 'Bullish';
+    else if (compositeScore >= 55) regimeLabel = 'Mild Bullish';
+    else if (compositeScore >= 45) regimeLabel = 'Balanced Phase';
+    else if (compositeScore >= 30) regimeLabel = 'Mild Bearish';
+    else regimeLabel = 'Bearish';
+
+    const tailwindImpact = (s) => (s.score - 50) * s.weight;
+    const tailwinds = sections
+        .filter(s => s.score !== null && s.score >= 60)
+        .sort((a, b) => tailwindImpact(b) - tailwindImpact(a))
+        .slice(0, 3)
+        .map(s => ({ id: s.id, label: s.label, value: s.score, sub: `${Math.round(s.weight * 100)}% weight` }));
+
+    const riskImpact = (s) => (50 - s.score) * s.weight;
+    const risks = sections
+        .filter(s => s.score !== null && s.score <= 40)
+        .sort((a, b) => riskImpact(b) - riskImpact(a))
+        .slice(0, 3)
+        .map(s => ({ id: s.id, label: s.label, value: s.score, sub: `${Math.round(s.weight * 100)}% weight` }));
+
+    return {
+        compositeScore,
+        regime: { label: regimeLabel },
+        sections,
+        tailwinds,
+        risks,
+        cardScores,
+        pcrOiValue,
+        pcrVolValue,
+        totalCallOi,
+        totalPutOi
+    };
+}
+

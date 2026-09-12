@@ -57,7 +57,21 @@ axiosInstance.interceptors.request.use(
 // =============================
 
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    try {
+      const url = response.config?.url || "";
+      const method = (response.config?.method || "").toLowerCase();
+      if (
+        (url.includes("/ai-prompts/") || url.includes("/ai-settings/") || url.includes("/chart/pae/")) &&
+        (method === "post" || method === "put" || method === "patch" || method === "delete")
+      ) {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("ai_gateway_refresh"));
+        }
+      }
+    } catch (_) {}
+    return response;
+  },
   (error) => {
     if (!error.response) {
       console.error("Network error or server unreachable");

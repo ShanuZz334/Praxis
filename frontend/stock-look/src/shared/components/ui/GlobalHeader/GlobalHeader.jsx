@@ -54,6 +54,7 @@ export default function GlobalHeader({
     score = 0,
     prevScore = 0,
     scoreModifier = 0,
+    isSyncing = false,
 
     // Context
     gauge = null, // Custom gauge object { label, color, meaning }
@@ -351,6 +352,7 @@ export default function GlobalHeader({
                             cards={cards}
                             sections={sections}
                             masterPayload={masterPayload}
+                            isSyncing={isSyncing}
                         />
                     </div>
 

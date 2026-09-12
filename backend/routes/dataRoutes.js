@@ -84,15 +84,7 @@ const headers = {
     'Accept': 'application/json',
 };
 
-router.get("/global", async (req, res) => {
-    // Return cached data if within TTL
-    if (globalCache && (Date.now() - lastFetchTime < CACHE_TTL_MS)) {
-        return res.json({ status: "success", cached: true, data: globalCache });
-    }
-
-    // If stale but within 24h, serve it while we try fresh fetch in background
-    const isStaleButUsable = globalCache && (Date.now() - lastFetchTime < STALE_FALLBACK_MS);
-
+export async function fetchAndCacheGlobalData() {
     try {
         const results = {};
         
@@ -170,17 +162,29 @@ router.get("/global", async (req, res) => {
             console.warn("⚠️ Could not persist global cache to SQLite:", e.message);
         }
 
-        res.json({ status: "success", cached: false, data: results });
+        return results;
     } catch (error) {
         console.error("Error fetching global data:", error.response?.data || error.message);
-        // Serve stale data (in-memory or SQLite) instead of 500
-        if (globalCache) {
-            return res.json({ status: "success", cached: "stale", data: globalCache });
-        }
-        res.status(500).json({ error: "Failed to fetch live macro data" });
+        return globalCache || null;
     }
-});
+}
 
+router.get("/global", async (req, res) => {
+    // Return cached data if within TTL
+    if (globalCache && (Date.now() - lastFetchTime < CACHE_TTL_MS)) {
+        return res.json({ status: "success", cached: true, data: globalCache });
+    }
+
+    const results = await fetchAndCacheGlobalData();
+    if (results) {
+        return res.json({ status: "success", cached: false, data: results });
+    }
+
+    if (globalCache) {
+        return res.json({ status: "success", cached: "stale", data: globalCache });
+    }
+    res.status(500).json({ error: "Failed to fetch live macro data" });
+});
 
 export default router;
 

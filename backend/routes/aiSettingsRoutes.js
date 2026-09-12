@@ -5,7 +5,7 @@ import AiRouting from '../models/AiRouting.js';
 import { encrypt, decrypt } from '../ai-gateway/utils/encryption.js';
 import { providerCache } from '../ai-gateway/cache/providerCache.js';
 import { aiQuotaTracker } from '../ai-gateway/aiQuotaTracker.js';
-import { clearCircuitBreakerState } from '../ai-gateway/modelRouter.js';
+import { clearCircuitBreakerState, getCircuitBreakerStatus, recordProviderFailure, recordProviderSuccess } from '../ai-gateway/modelRouter.js';
 
 const router = express.Router();
 
@@ -32,6 +32,8 @@ router.use(protect);
 router.get('/providers', async (req, res) => {
     try {
         const providers = await AiProvider.find().sort({ priority: 1 }).lean();
+        const gatewayStatus = await aiQuotaTracker.getGatewayStatus(providers);
+
         const masked = providers.map(p => {
             let maskedKey = '';
             if (p.apiKey) {
@@ -43,9 +45,42 @@ router.get('/providers', async (req, res) => {
                     maskedKey = 'INVALID_KEY';
                 }
             }
-            return { ...p, apiKey: maskedKey };
+            const cbStatus = getCircuitBreakerStatus(p.providerId);
+            const quotaHealth = aiQuotaTracker.computeProviderHealth(p, gatewayStatus, cbStatus);
+
+            return {
+                ...p,
+                apiKey: maskedKey,
+                limitStatus: quotaHealth.status,
+                quotaHealth
+            };
         });
         res.json(masked);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.post('/providers/health-check', async (req, res) => {
+    try {
+        const providers = await AiProvider.find().sort({ priority: 1 }).lean();
+        const pingResults = {};
+        for (const p of providers) {
+            if (p.isActive) {
+                pingResults[p.providerId] = await aiQuotaTracker.pingProviderHealth(p, true);
+            }
+        }
+        const gatewayStatus = await aiQuotaTracker.getGatewayStatus(providers);
+        const enriched = providers.map(p => {
+            const cbStatus = getCircuitBreakerStatus(p.providerId);
+            const quotaHealth = aiQuotaTracker.computeProviderHealth(p, gatewayStatus, cbStatus);
+            return {
+                ...p,
+                limitStatus: quotaHealth.status,
+                quotaHealth
+            };
+        });
+        res.json({ success: true, timestamp: new Date().toISOString(), providers: enriched, pingResults });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -204,8 +239,31 @@ router.post('/providers/:providerId/test', async (req, res) => {
             throw new Error(await response.text());
         }
 
-        res.json({ success: true, latencyMs: Date.now() - startTime });
+        const latency = Date.now() - startTime;
+        
+        // Capture live response headers if available from test call
+        if (provider.providerId.startsWith('openrouter')) {
+            aiQuotaTracker.recordOpenRouterHeaders(response.headers, provider.providerId);
+            delete aiQuotaTracker.openrouterKeyCache[provider.providerId];
+        } else if (provider.providerId.startsWith('groq')) {
+            aiQuotaTracker.recordGroqHeaders(response.headers, provider.providerId);
+        } else if (provider.providerId === 'gemini') {
+            aiQuotaTracker.recordGeminiHeaders(response.headers);
+        }
+
+        recordProviderSuccess(provider.providerId, modelToTest);
+        aiQuotaTracker.recordSuccess(provider.providerId, latency);
+        await aiQuotaTracker.pingProviderHealth(provider, true).catch(() => {});
+
+        res.json({ success: true, latencyMs: latency });
     } catch (error) {
+        const modelToTest = 'test';
+        recordProviderFailure(req.params.providerId, modelToTest, error);
+        if (error.message.includes('429') || error.message.toLowerCase().includes('rate limit')) {
+            aiQuotaTracker.recordRateLimitHit(req.params.providerId, error.message);
+        } else if (error.message.includes('401') || error.message.includes('403') || error.message.toLowerCase().includes('invalid api key')) {
+            aiQuotaTracker.recordAuthFailure(req.params.providerId, error.message);
+        }
         res.json({ success: false, error: error.message });
     }
 });
@@ -245,9 +303,9 @@ router.get('/providers/ollama/models', async (req, res) => {
         const ollama = await AiProvider.findOne({ providerId: 'ollama' }).lean();
         if (!ollama || !ollama.baseUrl) return res.json([]);
         
-        // Fetch from Ollama tags API
+        // Fast 600ms timeout for local daemon check to prevent UI stall
         const response = await fetch(`${ollama.baseUrl}/api/tags`, {
-            signal: AbortSignal.timeout(3000)
+            signal: AbortSignal.timeout(600)
         });
         if (!response.ok) return res.json([]);
         

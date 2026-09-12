@@ -70,11 +70,20 @@ export const yahooFinanceService = {
     
     // --- FUNDAMENTALS ---
     
+    _formatSymbol(symbol) {
+        if (!symbol) return null;
+        let clean = symbol.split('-')[0].trim();
+        if (clean === 'HDFC') clean = 'HDFCBANK';
+        if (clean.startsWith('^') || clean.endsWith('.NS') || clean.endsWith('.BO')) {
+            return clean;
+        }
+        return `${clean}.NS`;
+    },
+
     async getForwardPE(symbol) {
         try {
-            let cleanSymbol = symbol.split('-')[0];
-            if (cleanSymbol === 'HDFC') cleanSymbol = 'HDFCBANK';
-            const formattedSymbol = cleanSymbol.endsWith('.NS') ? cleanSymbol : `${cleanSymbol}.NS`;
+            if (!symbol || symbol.startsWith('^')) return null;
+            const formattedSymbol = this._formatSymbol(symbol);
             const summary = await yahooFinance.quoteSummary(formattedSymbol, { modules: ['defaultKeyStatistics'] });
             return summary?.defaultKeyStatistics?.forwardPE || null;
         } catch (error) {
@@ -90,9 +99,8 @@ export const yahooFinanceService = {
 
     async getBeta(symbol) {
         try {
-            let cleanSymbol = symbol.split('-')[0];
-            if (cleanSymbol === 'HDFC') cleanSymbol = 'HDFCBANK';
-            const formattedSymbol = cleanSymbol.endsWith('.NS') ? cleanSymbol : `${cleanSymbol}.NS`;
+            if (!symbol || symbol.startsWith('^')) return null;
+            const formattedSymbol = this._formatSymbol(symbol);
             const summary = await yahooFinance.quoteSummary(formattedSymbol, { modules: ['defaultKeyStatistics'] });
             return summary?.defaultKeyStatistics?.beta || null;
         } catch (error) {
@@ -103,9 +111,8 @@ export const yahooFinanceService = {
 
     async getAnalystConsensus(symbol) {
         try {
-            let cleanSymbol = symbol.split('-')[0];
-            if (cleanSymbol === 'HDFC') cleanSymbol = 'HDFCBANK';
-            const formattedSymbol = cleanSymbol.endsWith('.NS') || cleanSymbol.endsWith('.BO') ? cleanSymbol : `${cleanSymbol}.NS`;
+            if (!symbol || symbol.startsWith('^')) return null;
+            const formattedSymbol = this._formatSymbol(symbol);
             const result = await yahooFinance.quoteSummary(formattedSymbol, { modules: ['financialData'] });
             
             if (result?.financialData) {
@@ -123,8 +130,8 @@ export const yahooFinanceService = {
 
     async getDividendYield(symbol) {
         try {
-            if (!symbol) return null;
-            const yfSymbol = symbol.endsWith('.NS') || symbol.endsWith('.BO') ? symbol : `${symbol}.NS`;
+            if (!symbol || symbol.startsWith('^')) return null;
+            const yfSymbol = this._formatSymbol(symbol);
             const result = await yahooFinance.quoteSummary(yfSymbol, { modules: ['summaryDetail'] });
             if (result && result.summaryDetail) {
                 if (result.summaryDetail.dividendYield !== undefined && result.summaryDetail.dividendYield !== null) {

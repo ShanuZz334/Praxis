@@ -8,28 +8,54 @@ import { extractFundamentalData } from './extractors.js';
 import * as scorers from '../../frontend/stock-look/src/features/dashboard/fundamentals/engine/scoringEngine.js';
 import { getScoreLabel, computeCompanyComposite, computeIndexComposite } from '../../frontend/stock-look/src/features/dashboard/fundamentals/engine/FundamentalCompositeEngine.js';
 
-export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType = 'Companies') {
+export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType = 'Companies', tradingMode = 'swing') {
     // 1. Extract variables from raw JSON
     const ext = extractFundamentalData(rawData);
 
     // 2. Compute Individual Scores
     const peResult = scorers.scorePERatio(ext.currentPE, null, ext.sectorPE);
     const pbResult = scorers.scorePBRatio(ext.currentPB, null, ext.sectorPB);
+    const evResult = scorers.scoreEVEbitda(ext.currentEVEbitda, ext.sectorEVEbitda);
     const divResult = scorers.scoreDividendYield(ext.currentDivYield, ext.bondYield);
     const epsResult = scorers.scoreEPSGrowth(ext.epsCAGR, ext.latestYoY, ext.positiveYears, ext.totalPeriods);
     const deResult = scorers.scoreDebtToEquity(ext.currentDE, ext.sectorDE);
     const roeResult = scorers.scoreROE(ext.currentROE, ext.sectorROE);
     const roceResult = scorers.scoreROCE(ext.currentROCE, ext.sectorROCE);
+    const roaResult = scorers.scoreROA(ext.currentROA, ext.sectorROA);
     const netMarginResult = scorers.scoreNetMargin(ext.currentNetMargin, ext.sectorNetMargin);
     const opMarginResult = scorers.scoreOperatingMargin(ext.currentOpMargin, ext.sectorOpMargin);
-    const crResult = scorers.scoreDebtToEquity(ext.currentRatio, ext.sectorCurrentRatio); // Using DE scorer logic roughly for CR in backend for now or we can use an actual scorer if we had it, wait!
+    const crResult = scorers.scoreCurrentRatio(ext.currentRatio, ext.sectorCurrentRatio);
     const icResult = scorers.scoreInterestCoverage(ext.interestCoverage, ext.sectorCoverage);
-    const fpeResult = scorers.scoreForwardPE(ext.forwardPE, ext.currentPE);
+    
+    let fpeResult = { score: null, bias: 'Neutral' };
+    if (ext.forwardPE) {
+        fpeResult = scorers.scoreForwardPE(ext.forwardPE, ext.currentPE);
+        // Guard against anomalous distortion dragging harmonic mean below 25
+        if (fpeResult.score !== null && fpeResult.score < 25) {
+            fpeResult.score = 35;
+        }
+    }
+
     const eyResult = scorers.scoreEarningsYield(ext.currentEarningsYield, null, ext.bondYield);
     const fcfResult = scorers.scoreFreeCashFlow(ext.currentFCF, ext.currentRevenue);
-    const revResult = scorers.scoreRevenueGrowth({cagr: ext.revCAGR, latestYoY: ext.revYoY, positiveYears: ext.revPos, totalPeriods: ext.revTot}, null);
-    const patResult = scorers.scoreProfitGrowth({cagr: ext.patCAGR, latestYoY: ext.patYoY, positiveYears: ext.patPos, totalPeriods: ext.patTot}, null);
+    const revResult = scorers.scoreRevenueGrowth({ cagr: ext.revCAGR, latestYoY: ext.revYoY, positiveYears: ext.revPos, totalPeriods: ext.revTot }, null);
+    const patResult = scorers.scoreProfitGrowth({ cagr: ext.patCAGR, latestYoY: ext.patYoY, positiveYears: ext.patPos, totalPeriods: ext.patTot }, null);
     
+    // Ownership & Sector
+    const promoterResult = scorers.scorePromoterHolding(ext.currentPromoter, ext.prevPromoter);
+    const smartMoneyResult = scorers.scoreSmartMoneyFlow(ext.latestInstitutional, ext.prevInstitutional);
+    const earningsTrendResult = scorers.scoreEarningsTrend(ext.epsHistory, null);
+
+    // Cash Conversion Cycle
+    let cccScore = 50;
+    if (ext.inventoryTurnover && ext.receivablesTurnover && ext.payablesTurnover) {
+        const cccDays = Math.round((365 / ext.inventoryTurnover) + (365 / ext.receivablesTurnover) - (365 / ext.payablesTurnover));
+        if (cccDays < 0) cccScore = 90;
+        else if (cccDays < 30) cccScore = 75;
+        else if (cccDays < 90) cccScore = 50;
+        else cccScore = 20;
+    }
+
     // Macro / Manual Cards
     const adResult = scorers.scoreADRatio(null);
     const vixResult = scorers.scoreVIX(ext.indiaVix);
@@ -39,185 +65,94 @@ export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType 
 
     // 3. Build Cards Array
     const cards = [
-        {
-            id: 'pe_ratio',
-            module: 'P/E Ratio',
-            score: peResult.score,
-            bias: peResult.bias,
-            creditAllocation: 8,
-            normalized: peResult.score > 70 ? 1 : (peResult.score < 30 ? -1 : 0),
-            rawInput: { currentPE: ext.currentPE, sectorPE: ext.sectorPE }
-        },
-        {
-            id: 'pb_ratio',
-            module: 'P/B Ratio',
-            score: pbResult.score,
-            bias: pbResult.bias,
-            creditAllocation: 8,
-            normalized: pbResult.score > 70 ? 1 : (pbResult.score < 30 ? -1 : 0),
-            rawInput: { currentPB: ext.currentPB, sectorPB: ext.sectorPB }
-        },
-        {
-            id: 'dividend_yield',
-            module: 'Dividend Yield',
-            score: divResult.score,
-            bias: divResult.bias,
-            creditAllocation: 6,
-            normalized: divResult.score > 70 ? 1 : (divResult.score < 30 ? -1 : 0),
-            rawInput: { currentDivYield: ext.currentDivYield, bondYield: ext.bondYield }
-        },
-        {
-            id: 'dii_flow',
-            module: 'DII Flow',
-            score: fiiResult.score,
-            bias: fiiResult.bias,
-            creditAllocation: 5,
-            normalized: fiiResult.score > 70 ? 1 : (fiiResult.score < 30 ? -1 : 0),
-            rawInput: { diiFlow: ext.diiFlow }
-        },
-        {
-            id: 'analyst_consensus',
-            module: 'Analyst Consensus',
-            score: analystResult.score,
-            bias: analystResult.bias,
-            creditAllocation: 7,
-            normalized: analystResult.score > 70 ? 1 : (analystResult.score < 30 ? -1 : 0),
-            rawInput: { analystConsensus: ext.analystConsensus }
-        },
-        {
-            id: 'eps_growth',
-            module: 'EPS Growth',
-            score: epsResult.score,
-            bias: epsResult.bias,
-            creditAllocation: 9,
-            normalized: epsResult.score > 70 ? 1 : (epsResult.score < 30 ? -1 : 0),
-            rawInput: { cagr: ext.epsCAGR, yoy: ext.latestYoY, posYears: ext.positiveYears, total: ext.totalPeriods }
-        },
-        {
-            id: 'debt_to_equity',
-            module: 'Debt to Equity',
-            score: deResult.score,
-            bias: deResult.bias,
-            creditAllocation: 8,
-            normalized: deResult.score > 70 ? 1 : (deResult.score < 30 ? -1 : 0),
-            rawInput: { currentDE: ext.currentDE, sectorDE: ext.sectorDE }
-        },
-        {
-            id: 'roe',
-            module: 'ROE',
-            score: roeResult.score,
-            bias: roeResult.bias,
-            creditAllocation: 9,
-            normalized: roeResult.score > 70 ? 1 : (roeResult.score < 30 ? -1 : 0),
-            rawInput: { currentROE: ext.currentROE, sectorROE: ext.sectorROE }
-        },
-        {
-            id: 'roce',
-            module: 'ROCE',
-            score: roceResult.score,
-            bias: roceResult.bias,
-            creditAllocation: 8,
-            normalized: roceResult.score > 70 ? 1 : (roceResult.score < 30 ? -1 : 0),
-            rawInput: { currentROCE: ext.currentROCE, sectorROCE: ext.sectorROCE }
-        },
+        { id: 'pe_ratio', score: peResult.score, bias: peResult.bias, rawInput: { currentPE: ext.currentPE, sectorPE: ext.sectorPE } },
+        { id: 'pb_ratio', score: pbResult.score, bias: pbResult.bias, rawInput: { currentPB: ext.currentPB, sectorPB: ext.sectorPB } },
+        { id: 'ev_ebitda', score: evResult.score, bias: evResult.bias, rawInput: { evEbitda: ext.currentEVEbitda } },
+        { id: 'forward_pe', score: fpeResult.score, bias: fpeResult.bias, rawInput: { forwardPE: ext.forwardPE } },
+        { id: 'dividend_yield', score: divResult.score, bias: divResult.bias, rawInput: { currentDivYield: ext.currentDivYield, bondYield: ext.bondYield } },
+        { id: 'eps_growth', score: epsResult.score, bias: epsResult.bias, rawInput: { cagr: ext.epsCAGR, yoy: ext.latestYoY, posYears: ext.positiveYears, total: ext.totalPeriods } },
+        { id: 'debt_to_equity', score: deResult.score, bias: deResult.bias, rawInput: { currentDE: ext.currentDE, sectorDE: ext.sectorDE } },
+        { id: 'current_ratio', score: crResult.score, bias: crResult.bias, rawInput: { currentRatio: ext.currentRatio } },
+        { id: 'roe', score: roeResult.score, bias: roeResult.bias, rawInput: { currentROE: ext.currentROE, sectorROE: ext.sectorROE } },
+        { id: 'roce', score: roceResult.score, bias: roceResult.bias, rawInput: { currentROCE: ext.currentROCE, sectorROCE: ext.sectorROCE } },
+        { id: 'roa', score: roaResult.score, bias: roaResult.bias, rawInput: { currentROA: ext.currentROA } },
         { id: 'net_margin', score: netMarginResult.score, bias: netMarginResult.bias, rawInput: { currentMargin: ext.currentNetMargin } },
         { id: 'operating_margin', score: opMarginResult.score, bias: opMarginResult.bias, rawInput: { currentMargin: ext.currentOpMargin } },
         { id: 'interest_coverage', score: icResult.score, bias: icResult.bias, rawInput: { currentCoverage: ext.interestCoverage } },
-        { id: 'forward_pe', score: fpeResult.score, bias: fpeResult.bias, rawInput: { forwardPE: ext.forwardPE } },
         { id: 'earnings_yield', score: eyResult.score, bias: eyResult.bias, rawInput: { earningsYield: ext.currentEarningsYield } },
         { id: 'free_cash_flow', score: fcfResult.score, bias: fcfResult.bias, rawInput: { currentFCF: ext.currentFCF } },
         { id: 'revenue_growth', score: revResult.score, bias: revResult.bias, rawInput: { cagr: ext.revCAGR } },
         { id: 'profit_growth', score: patResult.score, bias: patResult.bias, rawInput: { cagr: ext.patCAGR } },
+        { id: 'promoter_holding', score: promoterResult.score, bias: promoterResult.bias, rawInput: { promoter: ext.currentPromoter } },
+        { id: 'smart_money_flow', score: smartMoneyResult.score, bias: smartMoneyResult.bias, rawInput: { institutional: ext.latestInstitutional } },
+        { id: 'earnings_trend', score: earningsTrendResult.score, bias: earningsTrendResult.bias, rawInput: { trend: earningsTrendResult.trendLabel } },
+        { id: 'cash_conversion', score: cccScore, bias: cccScore >= 70 ? 'Bullish' : cccScore <= 30 ? 'Bearish' : 'Neutral', rawInput: {} },
         { id: 'gdp_growth', score: gdpResult.score, bias: gdpResult.bias, rawInput: { gdpGrowth: ext.gdpGrowth } },
         { id: 'fii_dii_flow', score: fiiResult.score, bias: fiiResult.bias, rawInput: { fiiFlow: ext.fiiFlow, diiFlow: ext.diiFlow } },
+        { id: 'dii_flow', score: fiiResult.score, bias: fiiResult.bias, rawInput: { diiFlow: ext.diiFlow } },
+        { id: 'analyst_consensus', score: analystResult.score, bias: analystResult.bias, rawInput: { analystConsensus: ext.analystConsensus } },
         { id: 'advance_decline', score: adResult.score, bias: adResult.bias, rawInput: {} },
         { id: 'india_vix', score: vixResult.score, bias: vixResult.bias, rawInput: {} },
-        
-        // --- CALCULATED FIELDS ---
-        { 
-            id: 'inventory_days', 
-            score: ext.inventoryTurnover ? (ext.inventoryTurnover > 6 ? 80 : 40) : 50, 
-            bias: ext.inventoryTurnover ? (ext.inventoryTurnover > 6 ? 'Bullish' : 'Bearish') : 'Neutral',
-            rawInput: { days: ext.inventoryTurnover ? Math.round(365 / ext.inventoryTurnover) : null }
-        },
-        { 
-            id: 'receivable_days', 
-            score: ext.receivablesTurnover ? (ext.receivablesTurnover > 6 ? 80 : 40) : 50, 
-            bias: ext.receivablesTurnover ? (ext.receivablesTurnover > 6 ? 'Bullish' : 'Bearish') : 'Neutral',
-            rawInput: { days: ext.receivablesTurnover ? Math.round(365 / ext.receivablesTurnover) : null }
-        },
-        { 
-            id: 'payable_days', 
-            score: ext.payablesTurnover ? (ext.payablesTurnover > 4 ? 60 : 40) : 50, 
-            bias: ext.payablesTurnover ? (ext.payablesTurnover > 4 ? 'Bullish' : 'Bearish') : 'Neutral',
-            rawInput: { days: ext.payablesTurnover ? Math.round(365 / ext.payablesTurnover) : null }
-        },
-        { 
-            id: 'mcap_to_gdp', 
-            score: ext.marketCapGDP ? (ext.marketCapGDP > 120 ? 30 : 70) : 50, 
-            bias: ext.marketCapGDP ? (ext.marketCapGDP > 120 ? 'Bearish' : 'Bullish') : 'Neutral',
-            rawInput: { ratio: ext.marketCapGDP }
-        },
-        { 
-            id: 'sector_concentration', 
-            score: 50, 
-            bias: 'Neutral', 
-            rawInput: { computed: true } 
-        },
-        { 
-            id: 'cyclical_vs_defensive', 
-            score: 50, 
-            bias: 'Neutral', 
-            rawInput: { computed: true } 
-        }
+        { id: 'mcap_to_gdp', score: ext.marketCapGDP ? (ext.marketCapGDP > 120 ? 30 : 70) : 50, bias: 'Neutral', rawInput: { ratio: ext.marketCapGDP } }
     ];
 
     // 4. Compute Composite using EXACT frontend convex weighting
     const isIndex = instrumentKey?.startsWith('NSE_INDEX');
     const formattedScores = {};
     cards.forEach(c => {
-        formattedScores[c.id] = { score: c.score };
+        if (c.score !== null && c.score !== undefined && !isNaN(Number(c.score))) {
+            formattedScores[c.id] = Number(c.score);
+        }
     });
+
+    // Provide index aliases if in index mode
+    if (isIndex) {
+        if (formattedScores['pe_ratio'] !== undefined) formattedScores['nifty_pe'] = formattedScores['pe_ratio'];
+        if (formattedScores['pb_ratio'] !== undefined) formattedScores['nifty_pb'] = formattedScores['pb_ratio'];
+        if (formattedScores['eps_growth'] !== undefined) formattedScores['eps_yoy'] = formattedScores['eps_growth'];
+        if (formattedScores['gdp_growth'] !== undefined) formattedScores['gdp'] = formattedScores['gdp_growth'];
+        if (formattedScores['fii_dii_flow'] !== undefined) {
+            formattedScores['fii'] = formattedScores['fii_dii_flow'];
+            formattedScores['dii'] = formattedScores['fii_dii_flow'];
+        }
+    }
     
-    let compositeScore = 50;
+    let compositeResult = null;
     try {
-        const compositeResult = isIndex ? computeIndexComposite(formattedScores) : computeCompanyComposite(formattedScores);
-        compositeScore = compositeResult.compositeScore;
+        compositeResult = isIndex ? computeIndexComposite(formattedScores, tradingMode) : computeCompanyComposite(formattedScores, tradingMode);
     } catch (err) {
-        console.error("Failed to dynamically import FundamentalCompositeEngine", err);
+        console.error("Failed to execute FundamentalCompositeEngine", err);
+    }
+
+    let compositeScore = 50;
+    if (compositeResult && typeof compositeResult.compositeScore === 'number' && compositeResult.compositeScore > 0) {
+        compositeScore = compositeResult.compositeScore;
+    } else {
         const validScores = cards.map(c => c.score).filter(s => s !== null && !isNaN(s));
         compositeScore = validScores.length ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length) : 50;
     }
     
-    // Fallback to our own label generator if frontend import fails in Node (React ES6 module resolution issue)
-    let regimeLabel = { label: 'Neutral', cssColor: 'text-yellow-500', hexColor: '#eab308' };
-    try {
-        regimeLabel = getScoreLabel(compositeScore);
-    } catch(e) {
-        if (compositeScore >= 80) regimeLabel = { label: 'Strong Bullish', cssColor: 'text-green-500', hexColor: '#22c55e' };
-        else if (compositeScore >= 60) regimeLabel = { label: 'Bullish', cssColor: 'text-green-400', hexColor: '#4ade80' };
-        else if (compositeScore >= 40) regimeLabel = { label: 'Neutral', cssColor: 'text-yellow-500', hexColor: '#eab308' };
-        else if (compositeScore >= 20) regimeLabel = { label: 'Bearish', cssColor: 'text-orange-500', hexColor: '#f97316' };
-        else regimeLabel = { label: 'Strong Bearish', cssColor: 'text-red-500', hexColor: '#ef4444' };
+    let regime = compositeResult?.regime;
+    if (!regime) {
+        try {
+            const rl = getScoreLabel(compositeScore);
+            regime = { label: rl.label, description: "Backend AI Engine computed regime.", confidence: 80, color: rl.cssColor, hexColor: rl.hexColor };
+        } catch(e) {
+            regime = { label: compositeScore >= 60 ? 'Bullish' : compositeScore <= 40 ? 'Bearish' : 'Neutral', description: "Backend AI Engine computed regime." };
+        }
     }
+
+    const sections = compositeResult?.sections || [];
+    const tailwinds = compositeResult?.tailwinds || [];
+    const risks = compositeResult?.headwinds || compositeResult?.risks || [];
 
     return {
         compositeScore,
-        regime: {
-            label: regimeLabel.label,
-            description: "Backend AI Engine computed regime.",
-            confidence: 80,
-            color: regimeLabel.cssColor,
-            hexColor: regimeLabel.hexColor
-        },
-        sections: [
-            { id: 'valuation', label: 'Valuation', score: Math.round((peResult.score + pbResult.score)/2), weight: 0.3 },
-            { id: 'growth', label: 'Growth', score: epsResult.score, weight: 0.2 },
-            { id: 'profitability', label: 'Profitability', score: Math.round((roeResult.score + roceResult.score)/2), weight: 0.25 },
-            { id: 'health', label: 'Financial Health', score: deResult.score, weight: 0.25 }
-        ],
-        tailwinds: [],
-        risks: [],
-        cards
+        regime,
+        sections,
+        tailwinds,
+        risks,
+        cards,
+        formattedScores
     };
 }

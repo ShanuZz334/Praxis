@@ -56,7 +56,13 @@ export function storePrediction(instrumentKey, timeframe, tradingMode, candles, 
 export function getAllPAESessions(instrumentKey, timeframe) {
     const db = _load();
     const arr = db[_key(instrumentKey, timeframe)];
-    return Array.isArray(arr) ? arr : (arr ? [arr] : []);
+    const sessions = Array.isArray(arr) ? arr : (arr ? [arr] : []);
+    const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    return sessions.filter(s => {
+        const t = s.storedAt || Number(s.id) || 0;
+        return (now - t) < NINETY_DAYS;
+    });
 }
 
 export function scoreClosedCandle(instrumentKey, timeframe, barIndex, realCandle) {
@@ -226,6 +232,68 @@ export function computeConfidence(predictedCandle, atrValue, instrumentKey, time
     return Math.round(Math.max(5, Math.min(99, (aiConfidence - entropyPenalty) * Math.min(histWeight, 1.2))));
 }
 
+/**
+ * Normalizes any timestamp representation (number, string, or { year, month, day } BusinessDay object)
+ * into a canonical, comparable string key.
+ */
+export function normalizeTimeKey(t) {
+    if (!t) return '';
+    if (typeof t === 'number') return String(t < 10000000000 ? t * 1000 : t);
+    if (typeof t === 'string') return t.split('T')[0];
+    if (t && typeof t === 'object' && t.year) {
+        const m = String(t.month).padStart(2, '0');
+        const d = String(t.day).padStart(2, '0');
+        return `${t.year}-${m}-${d}`;
+    }
+    return String(t);
+}
+
+/**
+ * Builds a continuous, non-overlapping 3-month timeline of all undeleted predicted candles.
+ * 
+ * - Strictly ignores deleted candles.
+ * - Resolves overlapping timestamps by prioritizing the fresher session.
+ * - Sorts chronologically across all formats (intraday seconds/ms, strings, BusinessDay objects).
+ */
+export function buildContinuousTimeline(allSessions) {
+    if (!allSessions || !Array.isArray(allSessions) || allSessions.length === 0) {
+        return { candles: [], times: [] };
+    }
+
+    const candleMap = new Map();
+
+    for (const session of allSessions) {
+        if (!session.candles || !session.times) continue;
+        const len = Math.min(session.candles.length, session.times.length);
+
+        for (let i = 0; i < len; i++) {
+            const c = session.candles[i];
+            const t = session.times[i];
+
+            // Strictly filter out deleted or invalid candles
+            if (!c || !t || c.deleted) continue;
+
+            const key = normalizeTimeKey(t);
+            // More recent session takes precedence for overlapping timestamps
+            candleMap.set(key, { candle: c, time: t });
+        }
+    }
+
+    const getSortMs = (t) => {
+        if (!t) return 0;
+        if (typeof t === 'number') return t < 10000000000 ? t * 1000 : t;
+        if (typeof t === 'string') return new Date(t).getTime();
+        if (t && typeof t === 'object' && t.year) return new Date(t.year, t.month - 1, t.day).getTime();
+        return 0;
+    };
+
+    const sortedEntries = Array.from(candleMap.values()).sort((a, b) => getSortMs(a.time) - getSortMs(b.time));
+    return {
+        candles: sortedEntries.map(e => e.candle),
+        times: sortedEntries.map(e => e.time)
+    };
+}
+
 export function clearPAESession(instrumentKey, timeframe) {
     const db = _load();
     const k = _key(instrumentKey, timeframe);
@@ -243,6 +311,7 @@ export function deletePAECandleByTime(instrumentKey, timeframe, targetTime) {
     
     let arr = Array.isArray(db[k]) ? db[k] : [db[k]];
     let modified = false;
+    const targetKey = normalizeTimeKey(targetTime);
     
     for (let s = 0; s < arr.length; s++) {
         const session = arr[s];
@@ -250,19 +319,23 @@ export function deletePAECandleByTime(instrumentKey, timeframe, targetTime) {
         
         for (let i = session.times.length - 1; i >= 0; i--) {
             const st = session.times[i];
-            const isMatch = (st === targetTime) || 
-                            (st && targetTime && typeof st === 'object' && typeof targetTime === 'object' && st.year === targetTime.year && st.month === targetTime.month && st.day === targetTime.day) ||
-                            (st != null && targetTime != null && !isNaN(Number(st)) && !isNaN(Number(targetTime)) && Number(st) === Number(targetTime));
-                            
-            if (isMatch) {
-                session.candles[i].deleted = true;
+            if (normalizeTimeKey(st) === targetKey) {
+                // Permanently remove the candle and timestamp from the session
+                session.candles.splice(i, 1);
+                session.times.splice(i, 1);
+                if (session.scores && Array.isArray(session.scores)) {
+                    session.scores = session.scores.filter(sc => sc.barIndex !== i);
+                }
+                if (session.liveErrors && Array.isArray(session.liveErrors)) {
+                    session.liveErrors = session.liveErrors.filter(le => le.barIndex !== i);
+                }
                 modified = true;
             }
         }
     }
     
     // Filter out completely empty sessions
-    arr = arr.filter(s => s.candles && s.candles.some(c => !c.deleted));
+    arr = arr.filter(s => s.candles && s.candles.length > 0 && s.candles.some(c => !c.deleted));
     
     if (arr.length === 0) {
         delete db[k];
@@ -280,27 +353,14 @@ export function deletePAESessionByTime(instrumentKey, timeframe, targetTime) {
     
     let arr = Array.isArray(db[k]) ? db[k] : [db[k]];
     let modified = false;
+    const targetKey = normalizeTimeKey(targetTime);
     
     for (let s = arr.length - 1; s >= 0; s--) {
         const session = arr[s];
         if (!session.times || !session.candles) continue;
         
-        let found = false;
-        for (let i = 0; i < session.times.length; i++) {
-            const st = session.times[i];
-            
-            // Intraday timestamps (numbers) or Daily BusinessDay objects
-            const isMatch = (st === targetTime) || 
-                            (st && targetTime && typeof st === 'object' && typeof targetTime === 'object' && st.year === targetTime.year && st.month === targetTime.month && st.day === targetTime.day) ||
-                            (st != null && targetTime != null && !isNaN(Number(st)) && !isNaN(Number(targetTime)) && Number(st) === Number(targetTime));
-                            
-            if (isMatch) {
-                found = true;
-                break;
-            }
-        }
-        
-        if (found) {
+        const hasTime = session.times.some(st => normalizeTimeKey(st) === targetKey);
+        if (hasTime) {
             arr.splice(s, 1);
             modified = true;
             break;
@@ -350,25 +410,33 @@ function _save(db) {
     try { 
         localStorage.setItem(PAE_STORAGE_KEY, JSON.stringify(db)); 
     } catch (e) {
-        // If quota exceeded, iteratively delete the oldest sessions
-        console.warn('PAE Storage Quota Exceeded. Purging oldest sessions...');
-        let keys = Object.keys(db);
-        while (keys.length > 0) {
-            let oldestKey = keys.reduce((a, b) => {
-                const arrA = db[a] || [];
-                const arrB = db[b] || [];
-                const timeA = arrA.length > 0 ? arrA[0].storedAt : Infinity;
-                const timeB = arrB.length > 0 ? arrB[0].storedAt : Infinity;
-                return timeA < timeB ? a : b;
-            });
-            delete db[oldestKey];
-            keys = Object.keys(db);
-            try { 
-                localStorage.setItem(PAE_STORAGE_KEY, JSON.stringify(db)); 
-                break; // successfully saved
-            } catch (err) {
-                // keep looping
+        // Safe session-level pruning: remove oldest individual session instead of wiping whole symbols
+        console.warn('PAE Storage Quota Exceeded. Pruning oldest individual session...');
+        try {
+            let oldestSessionTime = Infinity;
+            let targetKey = null;
+            let targetIdx = -1;
+
+            for (const [k, sessions] of Object.entries(db)) {
+                if (Array.isArray(sessions)) {
+                    sessions.forEach((s, idx) => {
+                        const t = s.storedAt || Number(s.id) || 0;
+                        if (t < oldestSessionTime) {
+                            oldestSessionTime = t;
+                            targetKey = k;
+                            targetIdx = idx;
+                        }
+                    });
+                }
             }
+
+            if (targetKey && targetIdx >= 0) {
+                db[targetKey].splice(targetIdx, 1);
+                if (db[targetKey].length === 0) delete db[targetKey];
+                localStorage.setItem(PAE_STORAGE_KEY, JSON.stringify(db));
+            }
+        } catch (innerErr) {
+            console.error('Failed to prune PAE storage:', innerErr);
         }
     }
 }

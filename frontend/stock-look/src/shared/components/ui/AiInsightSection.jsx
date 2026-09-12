@@ -89,6 +89,7 @@ export default function AiInsightSection({
     cards = [],
     sections = [],
     masterPayload = null,
+    isSyncing = false,
 }) {
     const path = window.location.pathname.toLowerCase();
     const targetId = resolveTargetId(path, isIndex);
@@ -169,6 +170,9 @@ export default function AiInsightSection({
 
         const isForce = forceOrEvent === true || (forceOrEvent && forceOrEvent.type === 'click');
 
+        // Block auto-generation while sync is in flight to prevent intermediate flickering
+        if (isSyncing && !isForce) return;
+
         // In manual mode, strictly block auto-generation; only proceed if user clicked/forced
         if (generationMode === 'manual' && !isForce) {
             return;
@@ -182,7 +186,7 @@ export default function AiInsightSection({
         // Sensitivity is loaded from SQLite preferences on mount (see sensitivityRef below)
         const key = targetId.includes('technical') ? 'praxis_ai_sensitivity_technical' : 'praxis_ai_sensitivity_global';
         const stored = sensitivityRef.current[key];
-        let sensitivityThreshold = (stored !== undefined && !isNaN(parseInt(stored, 10))) ? parseInt(stored, 10) : 5;
+        let sensitivityThreshold = (stored !== undefined && !isNaN(parseInt(stored, 10))) ? Math.min(parseInt(stored, 10), 2) : 2;
 
         // Only regenerate if user manually clicked, symbol changed, OR score moved by >= threshold, OR regime changed
         const isSignificantScoreChange = lastScore === null || Math.abs(currentScore - lastScore) >= sensitivityThreshold;
@@ -255,7 +259,7 @@ export default function AiInsightSection({
             pageData: pageData
         });
     }, [targetId, score, actionType, confidence, bulls, bears, neutrals, stockSymbol, generate,
-        coveragePercent, cards, sections, masterPayload, getPageStructuredData, resolvedPageId, currentSymbol, generationMode]);
+        coveragePercent, cards, sections, masterPayload, getPageStructuredData, resolvedPageId, currentSymbol, generationMode, isSyncing]);
 
     const [isReadyToGenerate, setIsReadyToGenerate] = useState(false);
 
@@ -272,10 +276,22 @@ export default function AiInsightSection({
         triggerGenerateRef.current = triggerGenerate;
     }, [triggerGenerate]);
 
+    // Force regenerate AI insight when user clicks Sync button and pipeline finishes
+    useEffect(() => {
+        const handleForceRefresh = () => {
+            if (triggerGenerateRef.current) {
+                triggerGenerateRef.current(true);
+            }
+        };
+        window.addEventListener('praxis:ai:force-refresh', handleForceRefresh);
+        return () => window.removeEventListener('praxis:ai:force-refresh', handleForceRefresh);
+    }, []);
+
     // Auto-trigger when score becomes available (Auto mode only)
     // Re-run on score or coverage changes
     useEffect(() => {
         if (generationMode === 'manual') return; // Strict manual mode: never auto-trigger
+        if (isSyncing) return; // Strict sync freeze: do not auto-trigger while sync is running
         if (isReadyToGenerate && coveragePercent >= 75) {
             // Debounce generation by 1.5s so we don't double-fire while
             // complex multi-part websockets (like the Master Dashboard) are still loading in.
@@ -286,7 +302,7 @@ export default function AiInsightSection({
             }, 1500);
             return () => clearTimeout(timer);
         }
-    }, [score, stockSymbol, actionType, coveragePercent, isReadyToGenerate, generationMode]);
+    }, [score, stockSymbol, actionType, coveragePercent, isReadyToGenerate, generationMode, isSyncing]);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
@@ -340,17 +356,19 @@ export default function AiInsightSection({
         });
     }, [cleanInsight, score, currentSymbol, actionType, cacheKey, isRestoredFromCache, lastGeneratedAt]);
 
-    // Safety measure: if the currently displayed insight was generated for a wildly different score 
-    // (e.g. before the rest of the Master Dashboard finished loading), instantly hide the outdated text 
+    // Safety measure: if the currently displayed insight was generated for a different score 
+    // or regime (e.g. before the rest of the Master Dashboard finished loading), instantly hide the outdated text 
     // so the user doesn't see a blatant contradiction while waiting for the new insight to generate.
     const currentScore = typeof score === 'number' ? score : parseFloat(score) || 0;
     
     // Determine display threshold using sensitivityRef (loaded from SQLite preferences)
     const displayKey = targetId.includes('technical') ? 'praxis_ai_sensitivity_technical' : 'praxis_ai_sensitivity_global';
     const displayStored = sensitivityRef.current[displayKey];
-    const displaySensitivityThreshold = (displayStored !== undefined && !isNaN(parseInt(displayStored, 10))) ? parseInt(displayStored, 10) : 5;
+    const displaySensitivityThreshold = (displayStored !== undefined && !isNaN(parseInt(displayStored, 10))) ? Math.min(parseInt(displayStored, 10), 2) : 2;
 
-    const isOutdated = lastStateRef.current.score !== null && Math.abs(currentScore - lastStateRef.current.score) >= displaySensitivityThreshold;
+    const isScoreOutdated = lastStateRef.current.score !== null && Math.abs(currentScore - lastStateRef.current.score) >= displaySensitivityThreshold;
+    const isRegimeOutdated = lastStateRef.current.regime !== null && actionType && lastStateRef.current.regime !== actionType;
+    const isOutdated = isScoreOutdated || isRegimeOutdated;
 
     const isTyping = insight && displayedText.length < aiBody.length;
     
@@ -433,6 +451,14 @@ export default function AiInsightSection({
                                 {generationMode}
                             </div>
                         </PortalTooltip>
+
+                        {/* Syncing Indicator */}
+                        {isSyncing && (
+                            <div className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded font-mono font-semibold uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20 animate-pulse">
+                                <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                                <span>SYNCING</span>
+                            </div>
+                        )}
 
                         {/* Manual refresh button */}
                         {!isLoading && coveragePercent >= 75 && (

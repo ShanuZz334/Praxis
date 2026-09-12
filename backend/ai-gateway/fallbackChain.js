@@ -1,5 +1,6 @@
 import { checkProviderHealth, recordProviderFailure, recordProviderSuccess } from './modelRouter.js';
 import { validateOutput } from './guardrails/outputGuard.js';
+import { aiQuotaTracker } from './aiQuotaTracker.js';
 
 export async function executeWithFallback(routePlan, providers, requestConfig) {
     let fallbackTriggered = false;
@@ -54,6 +55,7 @@ export async function executeWithFallback(routePlan, providers, requestConfig) {
                 const { parsed, raw } = validateOutput(result.text, requestConfig.jsonMode, requestConfig.schema);
                 
                 recordProviderSuccess(route.provider, route.model);
+                aiQuotaTracker.recordSuccess?.(route.provider, result.latencyMs);
                 
                 return {
                     ...result,
@@ -71,6 +73,12 @@ export async function executeWithFallback(routePlan, providers, requestConfig) {
                 console.error(`[AI Gateway] Error with ${route.provider} (${route.model}):`, error.message);
                 providerErrors.push(errMsg);
                 
+                if (error.message.includes('429') || error.message.toLowerCase().includes('rate limit')) {
+                    aiQuotaTracker.recordRateLimitHit?.(route.provider, error.message);
+                } else if (error.message.includes('401') || error.message.includes('403') || error.message.toLowerCase().includes('invalid api key')) {
+                    aiQuotaTracker.recordAuthFailure?.(route.provider, error.message);
+                }
+
                 // If it's a Malformed JSON or a Transient Network Error (502/503/timeout), we retry
                 const isTransient = error.message.includes('timeout') || error.message.includes('502') || error.message.includes('503') || error.message.includes('fetch');
                 
@@ -83,11 +91,11 @@ export async function executeWithFallback(routePlan, providers, requestConfig) {
                         console.warn(`[AI Gateway] Transient error from ${route.provider}, applying 500ms backoff...`);
                         await new Promise(r => setTimeout(r, 500 * providerAttempts));
                     } else {
-                        recordProviderFailure(route.provider, route.model);
+                        recordProviderFailure(route.provider, route.model, error);
                     }
                 } else {
                     // Hard error (e.g. 400 Bad Request, 401 Unauthorized), don't retry locally
-                    recordProviderFailure(route.provider, route.model);
+                    recordProviderFailure(route.provider, route.model, error);
                     fallbackReason = error.message;
                     break; 
                 }

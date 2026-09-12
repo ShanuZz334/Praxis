@@ -2,10 +2,15 @@ import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 
-// Ensure the local_data directory exists
-const dataDir = path.join(process.cwd(), "local_data");
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure the local_data directory exists (anchored reliably to backend/local_data)
+const dataDir = path.resolve(__dirname, "..", "local_data");
 if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir);
+    fs.mkdirSync(dataDir, { recursive: true });
 }
 
 // Initialize SQLite database

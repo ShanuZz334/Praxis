@@ -8,7 +8,7 @@ export async function call({ model, messages, maxTokens, temperature, jsonMode, 
     const url = p.baseUrl || 'https://api.groq.com/openai/v1';
     const endpoint = url.endsWith('/chat/completions') ? url : `${url}/chat/completions`;
 
-    const payload = { model, messages, temperature: temperature ?? 0.2, max_tokens: maxTokens ?? 1024 };
+    const payload = { model, messages, temperature: temperature ?? 0.7, max_tokens: maxTokens ?? 1024 };
     // Removed response_format: { type: "json_object" } to prevent 400 errors with OSS models
     // Our outputGuard regex will extract the JSON block.
 

@@ -20,7 +20,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { getIndicatorProfiles } from '../../utils/indicatorModeProfiles';
 import { FO_INDICES, FO_EQUITIES } from '../../utils/foInstruments';
 import { assembleContext, getFVSettings } from '../../utils/futureVisionContextAssembler';
-import { storePrediction, scoreClosedCandle, getPAESession, clearPAESession, computeConfidence, getAllPAESessions, updatePAEAutoMode, deletePAECandleByTime, deletePAESessionByTime, storeLiveErrors } from '../../utils/predictionAccuracyEngine';
+import { storePrediction, scoreClosedCandle, getPAESession, clearPAESession, computeConfidence, getAllPAESessions, updatePAEAutoMode, deletePAECandleByTime, deletePAESessionByTime, storeLiveErrors, buildContinuousTimeline, normalizeTimeKey } from '../../utils/predictionAccuracyEngine';
 import { blendRollingForecasts } from '../../utils/FutureVisionBlender';
 import axiosInstance from '../../utils/axiosInstance';
 import { useDataRegistry } from '../../context/DataRegistryContext';
@@ -467,11 +467,8 @@ export default React.memo(function AdvancedCandlestickChart({
             // Ghost PAE / AI Reference Tooltip
             if (param.time && param.point && ghostCandleSeriesRef.current && param.seriesData.get(ghostCandleSeriesRef.current)) {
                 const gData = param.seriesData.get(ghostCandleSeriesRef.current);
-                const gMarker = ghostMarkersRef.current.find(m => {
-                    if (typeof m.time === 'number' && typeof param.time === 'number') return m.time === param.time;
-                    if (m.time?.year) return (m.time.year === param.time.year && m.time.month === param.time.month && m.time.day === param.time.day);
-                    return m.time === param.time;
-                });
+                const paramKey = normalizeTimeKey(param.time);
+                const gMarker = ghostMarkersRef.current.find(m => normalizeTimeKey(m.time) === paramKey);
                 if (gMarker) {
                     setGhostTooltip({
                         x: param.point.x,
@@ -680,7 +677,10 @@ export default React.memo(function AdvancedCandlestickChart({
     // ── Ghost Candle Renderer ────────────────────────────────────────────────────
     const _renderGhostCandles = (candles, times, withPAEDimming) => {
         if (!ghostCandleSeriesRef.current) return;
-        if (!candles?.length || !times?.length) return;
+        if (!candles?.length || !times?.length) {
+            ghostCandleSeriesRef.current.setData([]);
+            return;
+        }
 
         // Calculate average candle range and body from recent real candles to guarantee authentic size & shape
         const recentCandles = data && data.length > 0 ? data.slice(-20) : [];
@@ -695,15 +695,6 @@ export default React.memo(function AdvancedCandlestickChart({
         const minBody = Math.max(avgBody * 0.4, 0.2);
         const minWick = Math.max(avgRange * 0.15, 0.1);
 
-        // Normalize time representation helper
-        const getNormalizedTimeKey = (t) => {
-            if (!t) return '';
-            if (typeof t === 'number') return String(t);
-            if (typeof t === 'string') return t;
-            if (t?.year) return `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`;
-            return String(t);
-        };
-
         const getMs = (t) => {
             if (!t) return 0;
             if (typeof t === 'number') return t < 10000000000 ? t * 1000 : t;
@@ -716,13 +707,15 @@ export default React.memo(function AdvancedCandlestickChart({
         const realCandles = [...(data || []), ...(demoRealCandles || [])];
         if (liveCandle) realCandles.push(liveCandle);
 
-        const realTimeSet = new Set(realCandles.map(c => getNormalizedTimeKey(c.time)));
+        const realTimeSet = new Set(realCandles.map(c => normalizeTimeKey(c.time)));
         const lastRealMs = realCandles.length > 0 ? getMs(realCandles[realCandles.length - 1].time) : 0;
 
         let lastValidTime = 0;
 
         let ghostData = candles
             .map((c, i) => {
+                if (!c || c.deleted) return null;
+
                 let open  = Number(c.open)  || 0;
                 let close = Number(c.close) || 0;
                 let high  = Number(c.high)  || 0;
@@ -747,7 +740,7 @@ export default React.memo(function AdvancedCandlestickChart({
                 low  = Math.min(low,  Number((bodyMin - minWick).toFixed(2)));
 
                 const candleTime = times[i];
-                const timeKey = getNormalizedTimeKey(candleTime);
+                const timeKey = normalizeTimeKey(candleTime);
                 const candleMs = getMs(candleTime);
 
                 // Detect if a real candle is rendering above this ghost candle
@@ -782,7 +775,7 @@ export default React.memo(function AdvancedCandlestickChart({
                     }
                 }
 
-                const base = {
+                return {
                     time:  candleTime,
                     open,
                     high,
@@ -792,17 +785,6 @@ export default React.memo(function AdvancedCandlestickChart({
                     borderColor: borderColor,
                     wickColor: wickColor,
                 };
-                
-                if (c.deleted) {
-                    return {
-                        ...base,
-                        color: 'transparent',
-                        borderColor: 'transparent',
-                        wickColor: 'transparent',
-                    };
-                }
-                
-                return base;
             })
             .filter(Boolean)
             .filter(c => c.time != null && c.open > 0);
@@ -821,7 +803,8 @@ export default React.memo(function AdvancedCandlestickChart({
         });
 
         if (!ghostData.length) {
-            console.warn('[FutureVision] No valid ghost candles to render after strictly increasing filter.');
+            console.warn('[FutureVision] No valid ghost candles to render after strictly increasing filter. Clearing ghost series.');
+            ghostCandleSeriesRef.current.setData([]);
             return;
         }
 
@@ -910,7 +893,7 @@ export default React.memo(function AdvancedCandlestickChart({
 
 
     // ── Future Vision: Trigger Function ─────────────────────────────────────────
-    const triggerFutureVision = async () => {
+    const triggerFutureVision = async (isOptimize = false) => {
         if (fvLoading) return;
 
         
@@ -925,7 +908,7 @@ export default React.memo(function AdvancedCandlestickChart({
                         label: 'Ignore & Run',
                         onClick: () => {
                             fvIgnoreStaleRef.current = true;
-                            triggerFutureVision();
+                            triggerFutureVision(isOptimize);
                         }
                     }
                 });
@@ -985,23 +968,31 @@ export default React.memo(function AdvancedCandlestickChart({
 
             let { candles, overall_bias, key_risk } = res.data;
 
-            // --- MVUE Institutional Blending ---
+            const lastCandle = data && data.length > 0 ? data[data.length - 1] : null;
+
+            // --- Institutional Bayesian-Kalman Blending ---
             const oldSession = fvSessionRef.current;
             if (oldSession && oldSession.candles && oldSession.candles.length > 0) {
                 const oldRemaining = oldSession.candles.slice(fvLiveBarIndexRef.current);
                 if (oldRemaining.length > 0) {
-                    const blended = blendRollingForecasts(oldRemaining, candles);
+                    const blended = blendRollingForecasts(oldRemaining, candles, {
+                        skipRenderingCandle: true,
+                        maxHorizon: 10,
+                        anchorPrice: lastCandle?.close
+                    });
                     candles = blended;
-                    import('sonner').then(({ toast }) => toast.success('MVUE Blending Applied', { description: 'Prior predictions optimally blended with fresh data.', duration: 3000 }));
+                    import('sonner').then(({ toast }) => toast.success('Future Vision Optimized', { 
+                        description: `Preserved active candle; blended & smoothed ${blended.length} forecast bars.`, 
+                        duration: 3500 
+                    }));
                 }
             }
 
             fvLiveBarIndexRef.current = 0;
 
             // Generate robust future market timestamps for ghost candles
-            const lastCandle = data[data.length - 1];
             const times = [];
-            const isDailyOrAbove = typeof lastCandle.time !== 'number';
+            const isDailyOrAbove = typeof lastCandle?.time !== 'number';
 
             if (isDailyOrAbove) {
                 let currentMs = typeof lastCandle.time === 'string' 
@@ -1062,14 +1053,28 @@ export default React.memo(function AdvancedCandlestickChart({
             }
 
             // Store session for PAE
-            fvSessionRef.current = { candles, instrumentKey, timeframe, times };
             storePrediction(instrumentKey, timeframe, tradingMode || 'swing', candles, overall_bias, key_risk, times, res.data.modelUsed);
             
             // Persist auto mode flag
             updatePAEAutoMode(instrumentKey, timeframe, fvAutoMode);
 
-            // Render ghost candles
-            _renderGhostCandles(candles, times, false);
+            // Fetch the full continuous 3-month timeline (preserving historical undeleted predictions)
+            const allSessions = getAllPAESessions(instrumentKey, timeframe);
+            const { candles: continuousCandles, times: continuousTimes } = buildContinuousTimeline(allSessions);
+
+            fvSessionRef.current = {
+                candles: continuousCandles.length > 0 ? continuousCandles : candles,
+                instrumentKey,
+                timeframe,
+                times: continuousTimes.length > 0 ? continuousTimes : times
+            };
+
+            // Render ghost candles across the full continuous timeline
+            _renderGhostCandles(
+                continuousCandles.length > 0 ? continuousCandles : candles,
+                continuousTimes.length > 0 ? continuousTimes : times,
+                false
+            );
 
             setFvBias(overall_bias || 'neutral');
             setFvRisk(key_risk || '');
@@ -1093,7 +1098,44 @@ export default React.memo(function AdvancedCandlestickChart({
         }
     };
 
+    // ── Future Vision Toolbar Click Handler (Single-Click Predict/Optimize, Double-Click Auto Mode) ──
+    const handleTelescopeClick = () => {
+        if (fvLoading) return;
 
+        // If Auto Mode is already active, clicking immediately turns it off
+        if (fvAutoMode) {
+            setFvAutoMode(false);
+            updatePAEAutoMode(instrumentKey, timeframe, false);
+            import('sonner').then(({ toast }) => toast.info('Future Vision Auto Mode disabled'));
+            return;
+        }
+
+        if (fvClickTimerRef.current) {
+            // Double-click detected: Toggle Auto Mode ON
+            clearTimeout(fvClickTimerRef.current);
+            fvClickTimerRef.current = null;
+            setFvAutoMode(true);
+            updatePAEAutoMode(instrumentKey, timeframe, true);
+            import('sonner').then(({ toast }) => toast.success('Future Vision Auto Mode enabled', {
+                description: 'AI will continuously refresh predictions on every candle close.'
+            }));
+            if (!fvActive) {
+                triggerFutureVision(false);
+            }
+        } else {
+            // First click: Start 260ms window to distinguish single click from double click
+            fvClickTimerRef.current = setTimeout(() => {
+                fvClickTimerRef.current = null;
+                if (!fvActive) {
+                    // Generate single-time forecast
+                    triggerFutureVision(false);
+                } else {
+                    // Optimize and blend with fresh forecast run
+                    triggerFutureVision(true);
+                }
+            }, 260);
+        }
+    };
 
     // Check for stored PAE session on mount or instrument/timeframe change
     useEffect(() => {
@@ -1101,53 +1143,44 @@ export default React.memo(function AdvancedCandlestickChart({
         const allSessions = getAllPAESessions(instrumentKey, timeframe);
         
         if (allSessions && allSessions.length > 0) {
-            // Build a continuous, non-overlapping history of all ghost candles
-            const uniqueCandles = new Map();
-            const uniqueTimes = new Map();
+            // Build a continuous, non-overlapping history of all undeleted ghost candles (up to 90 days)
+            const { candles: continuousCandles, times: continuousTimes } = buildContinuousTimeline(allSessions);
             
-            for (const session of allSessions) {
-                if (!session.candles || !session.times) continue;
-                for (let i = 0; i < session.candles.length; i++) {
-                    const t = session.times[i];
-                    uniqueCandles.set(t, session.candles[i]);
-                    uniqueTimes.set(t, t);
-                }
+            if (continuousCandles.length === 0) {
+                setFvActive(false);
+                setFvAutoMode(false);
+                setFvBias(null);
+                setFvRisk('');
+                setFvPAE(null);
+                setFvModel(null);
+                fvSessionRef.current = null;
+                if (ghostCandleSeriesRef.current) ghostCandleSeriesRef.current.setData([]);
+                return;
             }
-            
-            // Sort chronologically
-            const sortedTimes = Array.from(uniqueTimes.keys()).sort((a, b) => {
-                const ta = typeof a === 'object' ? new Date(a.year, a.month-1, a.day).getTime() : new Date(a).getTime();
-                const tb = typeof b === 'object' ? new Date(b.year, b.month-1, b.day).getTime() : new Date(b).getTime();
-                return ta - tb;
-            });
-            
-            const continuousCandles = sortedTimes.map(t => uniqueCandles.get(t));
-            const continuousTimes = sortedTimes.map(t => uniqueTimes.get(t));
-            
+
             const latestSession = allSessions[allSessions.length - 1];
 
             fvSessionRef.current = { 
                 candles: continuousCandles, 
-                instrumentKey: latestSession.instrumentKey, 
-                timeframe: latestSession.timeframe, 
+                instrumentKey: latestSession.instrumentKey || instrumentKey, 
+                timeframe: latestSession.timeframe || timeframe, 
                 times: continuousTimes 
             };
             
             // Fast-forward fvLiveBarIndexRef to match the current real time
             let newIdx = 0;
             if (data && data.length > 0) {
-                const lastTime = data[data.length - 1].time;
+                const getMs = (timeObj) => {
+                    if (!timeObj) return 0;
+                    if (typeof timeObj === 'number') return timeObj < 10000000000 ? timeObj * 1000 : timeObj;
+                    if (typeof timeObj === 'string') return new Date(timeObj).getTime();
+                    if (timeObj && timeObj.year) return new Date(timeObj.year, timeObj.month - 1, timeObj.day).getTime();
+                    return 0;
+                };
+
+                const lastRealMs = getMs(data[data.length - 1].time);
                 for (let i = 0; i < continuousTimes.length; i++) {
-                    const t = continuousTimes[i];
-                    
-                    const getMs = (timeObj) => {
-                        if (typeof timeObj === 'number') return timeObj;
-                        if (typeof timeObj === 'string') return new Date(timeObj).getTime();
-                        if (timeObj && timeObj.year) return new Date(timeObj.year, timeObj.month - 1, timeObj.day).getTime();
-                        return 0;
-                    };
-                    
-                    if (getMs(t) <= getMs(lastTime)) {
+                    if (getMs(continuousTimes[i]) <= lastRealMs) {
                         newIdx = i + 1;
                     }
                 }
@@ -1166,13 +1199,10 @@ export default React.memo(function AdvancedCandlestickChart({
                 for (let i = 0; i < newIdx; i++) {
                     const ghost = continuousCandles[i];
                     const gTime = continuousTimes[i];
+                    const gKey = normalizeTimeKey(gTime);
                     
                     // Find the exact real candle that matched this time
-                    const realCandle = data.find(d => {
-                        if (d.time === gTime) return true;
-                        if (d.time && gTime && d.time.year === gTime.year && d.time.month === gTime.month && d.time.day === gTime.day) return true;
-                        return false;
-                    });
+                    const realCandle = data.find(d => normalizeTimeKey(d.time) === gKey);
                     
                     if (realCandle && ghost) {
                         const errOpen = Math.abs(ghost.open - realCandle.open) / Math.max(realCandle.open, 0.001);
@@ -1196,20 +1226,14 @@ export default React.memo(function AdvancedCandlestickChart({
                 ghostMarkersRef.current = [];
             }
             
-            // Only render strictly future ghost candles so they don't visually overlap and clash with historical real candles
+            // Render the full continuous 3-month timeline!
+            // Undeleted historical predictions appear as Background Reference Watermarks under real candles,
+            // while upcoming forecasts glow actively into the future.
             _renderGhostCandles(
-                continuousCandles.slice(newIdx), 
-                continuousTimes.slice(newIdx), 
-                true
+                continuousCandles, 
+                continuousTimes, 
+                false
             );
-            // Disable native overlapping arrows on restore
-            // if (ghostCandleSeriesRef.current && ghostMarkersRef.current.length > 0) {
-            //     if (!ghostMarkersPluginRef.current) {
-            //         ghostMarkersPluginRef.current = createSeriesMarkers(ghostCandleSeriesRef.current, ghostMarkersRef.current);
-            //     } else {
-            //         ghostMarkersPluginRef.current.setMarkers(ghostMarkersRef.current);
-            //     }
-            // }
             
             setFvPAE(getPAESession(instrumentKey, timeframe));
         } else {
@@ -2101,7 +2125,42 @@ export default React.memo(function AdvancedCandlestickChart({
 
                     <div className="w-px h-3 bg-border-subtle/80 mx-0.5" />
 
-                    {/* Future Vision Ghost Candles Visibility Toggle (Icon Only, Glowing Violet) */}
+                    {/* 1. Future Vision Engine: Single-Click Predict/Optimize, Double-Click Auto Mode */}
+                    <button
+                        onClick={handleTelescopeClick}
+                        disabled={fvLoading}
+                        className={`relative flex items-center justify-center p-0.5 rounded transition-all select-none cursor-pointer ${
+                            fvLoading 
+                                ? 'cursor-wait opacity-80' 
+                                : fvAutoMode 
+                                ? 'text-violet-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.7)]' 
+                                : fvActive 
+                                ? 'text-violet-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.5)] hover:text-violet-300' 
+                                : 'text-text-muted hover:text-text-primary'
+                        }`}
+                        title={
+                            fvLoading 
+                                ? "Future Vision: Generating prediction..." 
+                                : fvAutoMode 
+                                ? "Future Vision Auto Mode: ON (Click to turn OFF)" 
+                                : fvActive 
+                                ? "Future Vision: Click to optimize & extend forecast (Double-click for Auto Mode)" 
+                                : "Future Vision: Click to predict (Double-click for Auto Mode)"
+                        }
+                    >
+                        {fvLoading ? (
+                            <Loader size="tiny" color="purple" />
+                        ) : (
+                            <>
+                                <Telescope size={12} />
+                                {fvAutoMode && (
+                                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                                )}
+                            </>
+                        )}
+                    </button>
+
+                    {/* 2. Future Vision Ghost Candles Visibility Toggle (Icon Only, Glowing Violet) */}
                     <button
                         onClick={() => setFvVisible(p => !p)}
                         className={`flex items-center justify-center p-0.5 transition-colors ${
@@ -2326,7 +2385,7 @@ export default React.memo(function AdvancedCandlestickChart({
                                                 </span>
                                                 {fvActive && (
                                                     <span className="text-[9px] font-mono font-bold text-violet-400 bg-violet-500/10 px-1.5 py-0.2 rounded border border-violet-500/20">
-                                                        7 BARS PREDICTED
+                                                        {fvSessionRef.current?.candles?.length || 7} BARS PREDICTED
                                                     </span>
                                                 )}
                                             </div>
@@ -2335,24 +2394,24 @@ export default React.memo(function AdvancedCandlestickChart({
                                             <div className="grid grid-cols-2 gap-1.5">
                                                 {/* Manual Single-Time Predict Button */}
                                                 <button
-                                                    onClick={() => triggerFutureVision()}
+                                                    onClick={() => triggerFutureVision(Boolean(fvActive))}
                                                     disabled={fvLoading}
                                                     className={`py-1.5 px-2 rounded-lg text-[10px] font-bold tracking-wide transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer ${
                                                         fvLoading 
                                                             ? 'bg-violet-600/30 text-violet-300 cursor-wait border border-violet-500/30' 
                                                             : 'bg-violet-600 hover:bg-violet-500 text-white border border-violet-500/50 hover:shadow-[0_0_12px_rgba(139,92,246,0.4)]'
                                                     }`}
-                                                    title="Generate a single 7-bar AI predictive forecast on demand"
+                                                    title={fvActive ? "Regenerate and blend forecast with fresh AI inference" : "Generate a single 7-bar AI predictive forecast on demand"}
                                                 >
                                                     {fvLoading ? (
                                                         <>
-                                                            <Loader size="tiny" />
+                                                            <Loader size="tiny" color="purple" />
                                                             <span>Predicting...</span>
                                                         </>
                                                     ) : (
                                                         <>
                                                             <Sparkles size={11} />
-                                                            <span>{fvActive ? 'Regenerate' : 'Manual Predict'}</span>
+                                                            <span>{fvActive ? 'Optimize & Blend' : 'Manual Predict'}</span>
                                                         </>
                                                     )}
                                                 </button>
@@ -2526,29 +2585,33 @@ export default React.memo(function AdvancedCandlestickChart({
                 if (fvActive && fvSessionRef.current) {
                     e.preventDefault();
                     
-                    let hoveredGhostIndex = -1;
-                    if (hoveredTimeRef.current) {
-                        for (let i = 0; i < fvSessionRef.current.times.length; i++) {
-                            const ht = hoveredTimeRef.current;
-                            const st = fvSessionRef.current.times[i];
-                            if (st === ht || (st && ht && st.year === ht.year && st.month === ht.month && st.day === ht.day)) {
-                                hoveredGhostIndex = i;
-                                break;
-                            }
+                    const rect = chartContainerRef.current?.getBoundingClientRect();
+                    const x = rect ? e.clientX - rect.left : null;
+                    let targetTime = hoveredTimeRef.current;
+                    if (!targetTime && x != null && chartRef.current) {
+                        try {
+                            targetTime = chartRef.current.timeScale().coordinateToTime(x);
+                        } catch (err) {
+                            // ignore coordinate translation error
                         }
+                    }
+
+                    const targetKey = normalizeTimeKey(targetTime);
+                    let hoveredGhostIndex = -1;
+                    if (targetKey && fvSessionRef.current && fvSessionRef.current.times) {
+                        hoveredGhostIndex = fvSessionRef.current.times.findIndex(t => normalizeTimeKey(t) === targetKey);
                     }
 
                     if (hoveredGhostIndex !== -1) {
                         // 1) Capture the exact time synchronously before the user moves their mouse to click the toast!
-                        const targetDeleteTime = hoveredTimeRef.current;
-                        const targetGhostIndex = hoveredGhostIndex;
+                        const targetDeleteTime = targetTime || fvSessionRef.current.times[hoveredGhostIndex];
                         
                         import('sonner').then(({ toast }) => {
                             toast.custom((t) => (
                                 <div className="bg-slate-900 text-white p-4 rounded-lg shadow-xl border border-rose-900/50 flex flex-col gap-3 min-w-[320px]">
                                     <div className="font-semibold text-rose-400">Delete Prediction?</div>
                                     <div className="text-sm text-slate-300 leading-snug">
-                                        You selected a specific ghost candle. Do you want to delete just this single candle, or the entire 7-candle set it belongs to?
+                                        You selected a specific ghost candle. Do you want to delete just this single candle, or the entire set it belongs to?
                                     </div>
                                     <div className="flex gap-2 justify-end mt-1">
                                         <button onClick={() => toast.dismiss(t)} className="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 rounded transition-colors">
@@ -2560,47 +2623,41 @@ export default React.memo(function AdvancedCandlestickChart({
                                             // 1) Delete the single candle from the permanent DB
                                             deletePAECandleByTime(instrumentKey, timeframe, targetDeleteTime);
                                             
-                                            // 2) Seamlessly rebuild the UI state from the DB without page reload
+                                            // 2) Seamlessly rebuild the continuous 3-month UI state from DB without reload
                                             const allSessions = getAllPAESessions(instrumentKey, timeframe);
                                             if (allSessions && allSessions.length > 0) {
-                                                const uniqueCandles = new Map();
-                                                const uniqueTimes = new Map();
+                                                const { candles: continuousCandles, times: continuousTimes } = buildContinuousTimeline(allSessions);
                                                 
-                                                for (const session of allSessions) {
-                                                    if (!session.candles || !session.times) continue;
-                                                    for (let i = 0; i < session.candles.length; i++) {
-                                                        const t = session.times[i];
-                                                        uniqueCandles.set(t, session.candles[i]);
-                                                        uniqueTimes.set(t, t);
+                                                if (continuousCandles.length > 0) {
+                                                    if (fvSessionRef.current) {
+                                                        fvSessionRef.current.candles = continuousCandles;
+                                                        fvSessionRef.current.times = continuousTimes;
                                                     }
+                                                    
+                                                    _renderGhostCandles(continuousCandles, continuousTimes, false);
+                                                    
+                                                    // Remove marker for this deleted candle
+                                                    const delKey = normalizeTimeKey(targetDeleteTime);
+                                                    ghostMarkersRef.current = ghostMarkersRef.current.filter(m => normalizeTimeKey(m.time) !== delKey);
+                                                    if (ghostMarkersPluginRef.current) {
+                                                        ghostMarkersPluginRef.current.setMarkers(ghostMarkersRef.current);
+                                                    }
+                                                    
+                                                    setFvPAE(getPAESession(instrumentKey, timeframe));
+                                                } else {
+                                                    clearPAESession(instrumentKey, timeframe);
+                                                    setFvActive(false);
+                                                    setFvAutoMode(false);
+                                                    setFvBias(null);
+                                                    setFvRisk('');
+                                                    setFvPAE(null);
+                                                    setFvModel(null);
+                                                    fvSessionRef.current = null;
+                                                    fvLiveBarIndexRef.current = 0;
+                                                    ghostMarkersRef.current = [];
+                                                    if (ghostMarkersPluginRef.current) ghostMarkersPluginRef.current.setMarkers([]);
+                                                    if (ghostCandleSeriesRef.current) ghostCandleSeriesRef.current.setData([]);
                                                 }
-                                                
-                                                const sortedTimes = Array.from(uniqueTimes.keys()).sort((a, b) => {
-                                                    const ta = typeof a === 'object' ? new Date(a.year, a.month-1, a.day).getTime() : new Date(a).getTime();
-                                                    const tb = typeof b === 'object' ? new Date(b.year, b.month-1, b.day).getTime() : new Date(b).getTime();
-                                                    return ta - tb;
-                                                });
-                                                
-                                                const continuousCandles = sortedTimes.map(t => uniqueCandles.get(t));
-                                                const continuousTimes = sortedTimes.map(t => uniqueTimes.get(t));
-                                                
-                                                if (fvSessionRef.current) {
-                                                    fvSessionRef.current.candles = continuousCandles;
-                                                    fvSessionRef.current.times = continuousTimes;
-                                                }
-                                                
-                                                _renderGhostCandles(continuousCandles, continuousTimes, true);
-                                                
-                                                // Remove marker for this deleted candle
-                                                const filteredMarkers = ghostMarkersRef.current.filter(m => {
-                                                    return m.time !== targetDeleteTime && !(m.time.year && targetDeleteTime.year && m.time.year === targetDeleteTime.year && m.time.month === targetDeleteTime.month && m.time.day === targetDeleteTime.day);
-                                                });
-                                                ghostMarkersRef.current = filteredMarkers;
-                                                if (ghostMarkersPluginRef.current) {
-                                                    ghostMarkersPluginRef.current.setMarkers(ghostMarkersRef.current);
-                                                }
-                                                
-                                                setFvPAE(getPAESession(instrumentKey, timeframe));
                                             } else {
                                                 clearPAESession(instrumentKey, timeframe);
                                                 setFvActive(false);
@@ -2621,48 +2678,44 @@ export default React.memo(function AdvancedCandlestickChart({
                                         </button>
                                         <button onClick={() => {
                                             toast.dismiss(t);
-                                            // 3) Use the captured exact timestamp of the set they want to delete!
+                                            // 3) Delete the entire session containing this candle
                                             deletePAESessionByTime(instrumentKey, timeframe, targetDeleteTime);
                                             
-                                            // Seamlessly rebuild the UI state without a page reload
+                                            // Seamlessly rebuild continuous timeline
                                             const allSessions = getAllPAESessions(instrumentKey, timeframe);
                                             if (allSessions && allSessions.length > 0) {
-                                                const uniqueCandles = new Map();
-                                                const uniqueTimes = new Map();
+                                                const { candles: continuousCandles, times: continuousTimes } = buildContinuousTimeline(allSessions);
                                                 
-                                                for (const session of allSessions) {
-                                                    if (!session.candles || !session.times) continue;
-                                                    for (let i = 0; i < session.candles.length; i++) {
-                                                        const t = session.times[i];
-                                                        uniqueCandles.set(t, session.candles[i]);
-                                                        uniqueTimes.set(t, t);
+                                                if (continuousCandles.length > 0) {
+                                                    if (fvSessionRef.current) {
+                                                        fvSessionRef.current.candles = continuousCandles;
+                                                        fvSessionRef.current.times = continuousTimes;
                                                     }
+                                                    
+                                                    _renderGhostCandles(continuousCandles, continuousTimes, false);
+                                                    
+                                                    // Prune markers
+                                                    if (ghostMarkersPluginRef.current) {
+                                                        ghostMarkersPluginRef.current.setMarkers([]);
+                                                    }
+                                                    ghostMarkersRef.current = [];
+                                                    
+                                                    setFvPAE(getPAESession(instrumentKey, timeframe));
+                                                } else {
+                                                    clearPAESession(instrumentKey, timeframe);
+                                                    setFvActive(false);
+                                                    setFvAutoMode(false);
+                                                    setFvBias(null);
+                                                    setFvRisk('');
+                                                    setFvPAE(null);
+                                                    setFvModel(null);
+                                                    fvSessionRef.current = null;
+                                                    fvLiveBarIndexRef.current = 0;
+                                                    ghostMarkersRef.current = [];
+                                                    if (ghostMarkersPluginRef.current) ghostMarkersPluginRef.current.setMarkers([]);
+                                                    if (ghostCandleSeriesRef.current) ghostCandleSeriesRef.current.setData([]);
                                                 }
-                                                
-                                                const sortedTimes = Array.from(uniqueTimes.keys()).sort((a, b) => {
-                                                    const ta = typeof a === 'object' ? new Date(a.year, a.month-1, a.day).getTime() : new Date(a).getTime();
-                                                    const tb = typeof b === 'object' ? new Date(b.year, b.month-1, b.day).getTime() : new Date(b).getTime();
-                                                    return ta - tb;
-                                                });
-                                                
-                                                const continuousCandles = sortedTimes.map(t => uniqueCandles.get(t));
-                                                const continuousTimes = sortedTimes.map(t => uniqueTimes.get(t));
-                                                
-                                                fvSessionRef.current.candles = continuousCandles;
-                                                fvSessionRef.current.times = continuousTimes;
-                                                
-                                                _renderGhostCandles(continuousCandles, continuousTimes, true);
-                                                
-                                                // Clear existing markers plugin safely
-                                                if (ghostMarkersPluginRef.current) {
-                                                    ghostMarkersPluginRef.current.setMarkers([]);
-                                                }
-                                                ghostMarkersRef.current = [];
-                                                
-                                                // Trigger a subtle state toggle to refresh dependent PAE visual components
-                                                setFvPAE(getPAESession(instrumentKey, timeframe));
                                             } else {
-                                                // If that was the last set, clear everything
                                                 clearPAESession(instrumentKey, timeframe);
                                                 setFvActive(false);
                                                 setFvAutoMode(false);
@@ -2676,7 +2729,6 @@ export default React.memo(function AdvancedCandlestickChart({
                                                 if (ghostMarkersPluginRef.current) ghostMarkersPluginRef.current.setMarkers([]);
                                                 if (ghostCandleSeriesRef.current) ghostCandleSeriesRef.current.setData([]);
                                             }
-                                            
                                             setHoveredIndicator(null);
                                         }} className="px-3 py-1.5 text-xs font-medium bg-rose-600 text-white hover:bg-rose-500 rounded transition-colors shadow-sm shadow-rose-900/50">
                                             Delete Entire Set
