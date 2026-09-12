@@ -1834,6 +1834,30 @@ export function generateAiInsightSmartMoneyCard(latestInstitutional, prevInstitu
     return text;
 }
 
+// --- Relative Valuation Score ------------------------------------------------
+export function scoreRelativeValuation(blendedPremium) {
+    if (blendedPremium === null || blendedPremium === undefined || isNaN(blendedPremium)) {
+        return { score: null, bias: 'Neutral', valuationStatus: 'Unknown' };
+    }
+    let score = 55, bias = 'Neutral', valuationStatus = 'In-Line with Sector';
+    if (blendedPremium < -25)       { score = 95; bias = 'Strong Bullish'; valuationStatus = 'Deep Discount'; }
+    else if (blendedPremium < -10)  { score = 80; bias = 'Bullish';        valuationStatus = 'Discount to Sector'; }
+    else if (blendedPremium < 0)    { score = 65; bias = 'Bullish';        valuationStatus = 'Slight Discount'; }
+    else if (blendedPremium < 10)   { score = 55; bias = 'Neutral';        valuationStatus = 'In-Line with Sector'; }
+    else if (blendedPremium < 25)   { score = 38; bias = 'Bearish';        valuationStatus = 'Premium to Sector'; }
+    else if (blendedPremium < 50)   { score = 22; bias = 'Bearish';        valuationStatus = 'Significant Premium'; }
+    else                             { score = 10; bias = 'Strong Bearish'; valuationStatus = 'Extreme Premium'; }
+    return { score, bias, valuationStatus };
+}
+
+// --- Corporate Actions Score --------------------------------------------------
+export function scoreCorporateActions(hasCorporateActions) {
+    if (hasCorporateActions === null || hasCorporateActions === undefined) {
+        return { score: null, bias: 'Neutral' };
+    }
+    return { score: hasCorporateActions ? 50 : null, bias: 'Neutral' };
+}
+
 // --- Earnings Quality Score ---------------------------------------------------
 export function scoreEarningsQuality(cfoToNetProfit) {
     if (cfoToNetProfit === null || isNaN(cfoToNetProfit)) return { score: null, bias: 'Neutral', confidence: 0, qualityLabel: 'Unknown' };

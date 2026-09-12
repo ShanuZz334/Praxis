@@ -16,6 +16,7 @@ import { useDataRegistry } from '@/shared/context/DataRegistryContext';
 import { TechnicalEngine } from '../../technical/engine/headlessTechnicalParser';
 import { getCompositeState } from '@/shared/global/logic/signals';
 import { getIndicatorConfig, INDICATOR_CONFIG } from '@/shared/config/indicatorConfig';
+import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { validateRegistry } from '@/shared/utils/RegistryValidator';
 import { toast } from 'sonner';
 import { useManualOverrides } from '@/shared/hooks/useManualOverrides';
@@ -29,6 +30,21 @@ const formatTitle = (str) => {
     }).join(' ');
 };
 
+const resolveCardRegistryEntry = (id) => {
+    if (!id) return null;
+    if (CARD_REGISTRY[id]) return CARD_REGISTRY[id];
+    for (const card of Object.values(CARD_REGISTRY)) {
+        if (card.legacyIds && card.legacyIds.includes(id)) return card;
+        if (card.aliases && card.aliases.includes(id)) return card;
+    }
+    return null;
+};
+
+const resolveCardTitle = (id, config) => {
+    const regEntry = resolveCardRegistryEntry(id);
+    return regEntry?.displayName || config?.title || formatTitle(config?.id) || formatTitle(id);
+};
+
 export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, livePrices, extraData = {}) {
     const { getMasterSnapshot, registerBulk } = useDataRegistry();
     const [loading, setLoading] = useState(true);
@@ -38,18 +54,22 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
     const [rawTechnicals, setRawTechnicals] = useState(null);
     const [chainData, setChainData] = useState([]);
 
-    // L1: Pre-populate dbFallbackData from localStorage ONLY for TECH (master computes correctly).
-    // FUND/OPT/GLOB must NOT be pre-loaded from localStorage — master previously wrote wrong
-    // values there (37, 38, 59 from incomplete headless engines). Those stale values would
-    // flash the wrong score before the 10s DB poll fills in the correct page-written values.
+    // L1: Pre-populate dbFallbackData from localStorage across all modules.
+    // Dedicated pages (useAiSync) and backend cron now authoritatively write to intelCache.
     const [dbFallbackData, setDbFallbackData] = useState(() => {
         if (!selectedInstrument) return {};
         const cached = loadAllIntelScores(selectedInstrument);
         const result = {};
-        // TECH only: master's TechnicalEngine is complete and produces the correct score
         if (cached.technical?.score != null && !cached.technical.stale)
             result.technical = { composite_score: cached.technical.score, regime_json: cached.technical.regime };
-        // FUND, OPT, GLOB, EVT: loaded from DB poll (10s) to avoid stale master-computed values
+        if (cached.fundamental?.score != null && !cached.fundamental.stale)
+            result.fundamental = { composite_score: cached.fundamental.score, regime_json: cached.fundamental.regime };
+        if (cached.options?.score != null && !cached.options.stale)
+            result.options = { composite_score: cached.options.score };
+        if (cached.global?.score != null && !cached.global.stale)
+            result.global = { composite_score: cached.global.score, regime_json: cached.global.regime };
+        if (cached.events?.score != null && !cached.events.stale)
+            result.events = { composite_score: cached.events.score };
         return result;
     });
 
@@ -240,11 +260,26 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                 let missingLiveData = [];
                 const currentLtp = livePrices?.[selectedInstrument]?.ltp || '';
 
+                // Intelligently resolve options expiry if not provided by context
+                let activeExpiry = selectedExpiry;
+                if (!activeExpiry && selectedInstrument) {
+                    try {
+                        const contractsRes = await axiosInstance.get(API_PATHS.OPTIONS.GET_CONTRACTS(selectedInstrument));
+                        const contracts = contractsRes.data?.data || contractsRes.data || [];
+                        if (Array.isArray(contracts) && contracts.length > 0) {
+                            const expList = [...new Set(contracts.map(c => c.expiry || c.expiry_date))]
+                                .filter(Boolean)
+                                .sort((a, b) => new Date(a) - new Date(b));
+                            if (expList.length > 0) activeExpiry = expList[0];
+                        }
+                    } catch (_) {}
+                }
+
                 // Create promises for parallel execution
                 const dbPromise = axiosInstance.get(`/api/v1/snapshots/header/${selectedInstrument}`);
                 const fundPromise = axiosInstance.get(API_PATHS.FUNDAMENTALS.GET(selectedInstrument));
                 const techPromise = axiosInstance.get(`/api/v1/upstox/technicals?instrument=${selectedInstrument}&timeframe=${savedTimeframe}&ltp=${currentLtp}`);
-                const optPromise = selectedExpiry ? axiosInstance.get(API_PATHS.OPTIONS.GET_CHAIN(selectedInstrument, selectedExpiry)) : Promise.resolve(null);
+                const optPromise = activeExpiry ? axiosInstance.get(API_PATHS.OPTIONS.GET_CHAIN(selectedInstrument, activeExpiry)) : Promise.resolve(null);
 
                 // Wait for all to complete simultaneously
                 const [dbRes, fundRes, techRes, optRes] = await Promise.allSettled([dbPromise, fundPromise, techPromise, optPromise]);
@@ -312,8 +347,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                 }
 
                 // 4. Fetch Live Options Chain
-                if (selectedExpiry) {
-                    if (optRes.status === 'fulfilled' && optRes.value?.data) {
+                if (optRes.status === 'fulfilled' && optRes.value?.data) {
                         const chainArray = optRes.value.data?.data || optRes.value.data || [];
                         if (Array.isArray(chainArray) && chainArray.length > 0 && isMounted) {
                             const normalized = chainArray.map(c => ({
@@ -348,7 +382,6 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                         console.error("Live options failed, relying on DB", optRes.reason);
                         missingLiveData.push('Options');
                     }
-                }
 
                 // Silently log if fallback is used for any critical module instead of spamming toasts every 10s
                 if (missingLiveData.length > 0 && isMounted) {
@@ -475,8 +508,16 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
         // Guard helper: treat 0 and null as absent — both mean "no real data yet"
         const validScore = (v) => (v != null && v > 0) ? v : null;
 
-        // Time-aware freshness check: if DB is older than 60 mins, prefer LIVE engine computation
-        const isFresh = (dbItem) => {
+        const getCardCount = (dbItem) => {
+            if (!dbItem) return 0;
+            const c = dbItem.counts || dbItem.counts_json;
+            if (!c) return 0;
+            if (typeof c === 'object') return Object.keys(c).length;
+            try { return Object.keys(JSON.parse(c)).length; } catch { return 0; }
+        };
+
+        // Time-aware freshness check: if DB is older than maxAgeMinutes, prefer LIVE engine computation
+        const isFresh = (dbItem, maxAgeMinutes = 60) => {
             if (!dbItem) return false;
             if (!dbItem.updated_at) return (dbItem.composite_score != null && dbItem.composite_score > 0);
             let dateStr = String(dbItem.updated_at);
@@ -484,35 +525,42 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             if (!dateStr.includes('T') && !dateStr.includes('Z')) dateStr = dateStr.replace(' ', 'T') + 'Z';
             const dbDate = new Date(dateStr);
             if (isNaN(dbDate.getTime())) return (dbItem.composite_score != null && dbItem.composite_score > 0);
-            return ((Date.now() - dbDate.getTime()) / 60000) < 60;
+            return ((Date.now() - dbDate.getTime()) / 60000) < maxAgeMinutes;
         };
 
-        const getBestScore = (dbItem, engineScore) => {
+        const getBestScore = (dbItem, engineScore, moduleType = 'general') => {
             const dbScore = validScore(dbItem?.composite_score);
             const liveScore = validScore(engineScore);
-            // 1. If DB is fresh and valid, use it (it's the authoritative score from individual pages)
-            if (isFresh(dbItem) && dbScore) return dbScore;
+
+            // Fundamentals: financial statement data is valid across days/weeks.
+            // If SQLite has a high-coverage snapshot (>= 20 cards) within 24h, DB is authoritative.
+            if (moduleType === 'fundamental' && dbScore && getCardCount(dbItem) >= 20 && isFresh(dbItem, 1440)) {
+                return dbScore;
+            }
+
+            // 1. If DB is fresh and valid, use it (it is the authoritative score from individual pages or cron)
+            if (isFresh(dbItem, moduleType === 'fundamental' ? 1440 : 60) && dbScore) return dbScore;
             // 2. Otherwise, if we have a live computation, use it (better to be slightly off than ancient)
             if (liveScore) return liveScore;
             // 3. Fallback to stale DB score if nothing else exists
             return dbScore ?? null;
         };
 
-        // FUND: Headless parser is incomplete (37 vs 52), but live 37 is better than a stale DB 20 from weeks ago.
-        const fundScore = getBestScore(dbFallbackData?.fundamental, fundEngine?.compositeScore);
+        // FUND: DB-FIRST if rich snapshot exists (authoritative from FundamentalPage or cron), otherwise live engine
+        const fundScore = getBestScore(dbFallbackData?.fundamental, fundEngine?.compositeScore, 'fundamental');
 
         // TECH: DB-FIRST if fresh (backend cron is now 100% authoritative and live via socket), otherwise live engine
-        const techScore = getBestScore(dbFallbackData?.technical, techEngine?.compositeScore);
+        const techScore = getBestScore(dbFallbackData?.technical, techEngine?.compositeScore, 'technical');
 
         // OPT: DB-FIRST if fresh (51 vs 38 due to expiry differences), otherwise live engine
-        const optScore = getBestScore(dbFallbackData?.options, optionsEngine?.compositeScore);
+        const optScore = getBestScore(dbFallbackData?.options, optionsEngine?.compositeScore, 'options');
 
         // GLOB: DB-FIRST if fresh (52 vs 59), otherwise live engine
-        const globScore = getBestScore(dbFallbackData?.global, globalEngine?.compositeScore);
+        const globScore = getBestScore(dbFallbackData?.global, globalEngine?.compositeScore, 'global');
         // EVT: backend cron uses AI-enriched market_events (authoritative). evtLiveScore uses
         // raw Upstox news which is noisier and scores differently. 
         // DB-FIRST if fresh, otherwise live engine.
-        const evtScore = getBestScore(dbFallbackData?.events, evtLiveScore);
+        const evtScore = getBestScore(dbFallbackData?.events, evtLiveScore, 'events');
 
         // L1 Cache: Only persist scores that this master actually computed correctly.
         // DO NOT write FUND or OPT — the master's headless engines produce wrong values for those
@@ -587,7 +635,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
 
                 cards.push({
                     id,
-                    module: config?.title || formatTitle(config?.id) || formatTitle(id),
+                    module: resolveCardTitle(id, config),
                     normalized,
                     credit,
                     engine: engineName,
@@ -617,9 +665,17 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             return result;
         };
 
+        const dbFundCount = Object.keys(dbFallbackData?.fundamental?.counts || {}).length;
+        const mergedFund = dbFundCount >= 20
+            ? safeMerge(fundEngine?.cardScores, dbFallbackData?.fundamental?.counts)
+            : safeMerge(dbFallbackData?.fundamental?.counts, fundEngine?.cardScores);
+
+        const dbTechCount = Object.keys(dbFallbackData?.technical?.counts || {}).length;
+        const mergedTech = dbTechCount >= 18
+            ? safeMerge(techEngine?.cardScores, dbFallbackData?.technical?.counts)
+            : safeMerge(dbFallbackData?.technical?.counts, techEngine?.cardScores);
+
         const liveGlobRaw = Object.fromEntries(Object.entries(globalEngine?.cardData || {}).map(([k, v]) => [k, v?.score]));
-        const mergedTech = safeMerge(dbFallbackData?.technical?.counts, techEngine?.cardScores);
-        const mergedFund = safeMerge(dbFallbackData?.fundamental?.counts, fundEngine?.rawScores);
         const mergedOpt  = safeMerge(dbFallbackData?.options?.counts, optionsEngine?.cardScores);
         const mergedGlob = safeMerge(dbFallbackData?.global?.counts, Object.keys(liveGlobRaw).length > 0 ? liveGlobRaw : null);
         const mergedEvt  = safeMerge(dbFallbackData?.events?.counts, null);
@@ -657,40 +713,40 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
         });
         // Total missing is calculated dynamically after the missingBreakdown generation.
 
-        // Compute missing breakdown
+        // Compute missing breakdown from CARD_REGISTRY (master source of truth)
         const activeIds = new Set(aggregatedCards.map(c => c.id));
         const activeTitles = new Set(aggregatedCards.map(c => c.module));
         const missingBreakdown = {};
-        Object.entries(INDICATOR_CONFIG).forEach(([id, config]) => {
-            const title = config.title || formatTitle(config.id) || formatTitle(id);
-            if (!activeIds.has(id) && !activeTitles.has(title)) {
-                let skip = false;
-                // Index-specific exclusions for Technicals
-                if (isIndex && ['cmf', 'volume_sma', 'obv', 'vwap'].includes(id)) skip = true;
-                if (!isIndex && ['breadth_ratio', 'mcclellan', 'ad_line', 'nh_nl', 'trin'].includes(id)) skip = true;
-                
-                // Index-specific exclusions for Fundamentals
-                const fundIndexOnly = ['advance_decline', 'sector_dashboard', 'india_vix', 'mcap_gdp', 'nifty_pe', 'nifty_pb'];
-                const fundStockOnly = ['forward_pe', 'ev_ebitda', 'earnings_yield', 'relative_valuation', 'earnings_trend', 'revenue_growth', 'profit_growth', 'roe', 'roce', 'roa', 'net_margin', 'operating_margin', 'debt_to_equity', 'interest_coverage', 'free_cash_flow', 'current_ratio', 'promoter_holding', 'smart_money_flow', 'earnings_quality', 'peer_comparison', 'analyst_consensus', 'corporate_actions', 'cash_conversion'];
-                
-                if (isIndex && fundStockOnly.includes(id)) skip = true;
-                if (!isIndex && fundIndexOnly.includes(id)) skip = true;
-                
-                if (!skip) {
-                    let engine = 'MISC';
-                    const cat = config.category || '';
-                    const str = id.toLowerCase();
-                    
-                    // Strict Exact Matches for Global Dashboard (25 Cards)
-                    const GLOB_CARDS = ['dxy', 'usd_inr', 'crude', 'brent_crude_oil', 'gold', 'silver', 'us_10y_yield', 'sp_futures', 'nasdaq_futures', 'dow_futures', 'vix', 'bitcoin', 'eurusd', 'usdjpy', 'nikkei', 'ftse', 'dax', 'hangseng', 'shanghai', 'cac40', 'eurostoxx', 'copper', 'natgas', 'wheat', 'aluminum', 'move'];
 
-                    if (GLOB_CARDS.includes(str)) engine = 'GLOB';
-                    else if (str.includes('atm_iv') || str.includes('iv_rank') || str.includes('iv_percentile') || str.includes('pcr') || str.includes('max_pain') || str.match(/oi|delta|gamma|theta|vega/)) engine = 'OPT';
-                    else if (cat.includes('Technical') || cat.includes('Oscillator') || str.match(/sma|ema|rsi|macd|bollinger|bb_|kc|adx|atr|vwap|obv|stoch|supertrend|cmf|trendline|pivot|fibonacci|breadth|mcclellan|ad_line|nh_nl|trin/)) engine = 'TECH';
-                    else engine = 'FUND'; 
+        const pageToEngine = {
+            Fundamentals: 'FUND',
+            Technical: 'TECH',
+            Options: 'OPT',
+            Foreign: 'GLOB',
+            Events: 'EVT'
+        };
 
-                    missingBreakdown[`${engine}||${title}`] = 1;
-                }
+        Object.values(CARD_REGISTRY).forEach(card => {
+            if (card.type !== 'card') return; // Exclude passive widgets
+
+            const applies = isIndex
+                ? ['indices', 'both', 'n/a'].includes(card.appliesTo)
+                : ['company', 'equity', 'both', 'n/a'].includes(card.appliesTo);
+            if (!applies) return;
+
+            // Instrument-specific exclusions
+            if (isIndex && ['cmf', 'volume_sma', 'obv', 'vwap'].includes(card.id)) return;
+            if (!isIndex && ['breadth_ratio', 'mcclellan', 'ad_line', 'nh_nl', 'trin'].includes(card.id)) return;
+
+            // Check if card is already active by id, displayName, legacyIds, or aliases
+            const isActive = activeIds.has(card.id) ||
+                activeTitles.has(card.displayName) ||
+                (card.legacyIds && card.legacyIds.some(lid => activeIds.has(lid))) ||
+                (card.aliases && card.aliases.some(alias => activeIds.has(alias)));
+
+            if (!isActive) {
+                const engine = pageToEngine[card.page] || 'MISC';
+                missingBreakdown[`${engine}||${card.displayName}`] = 1;
             }
         });
 
@@ -795,7 +851,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             source: "Live Engines + DB Cache"
         };
 
-        return {
+        const result = {
             praxisComposite: Math.round(praxisComposite),
             modifierImpact: institutionalData.modifierImpact,
             moduleScores: scores,
@@ -886,13 +942,49 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             }
 
             // 4. Options
-            if (selectedExpiry) {
+            let activeExpiry = selectedExpiry;
+            if (!activeExpiry && selectedInstrument) {
                 try {
-                    const optRes = await axiosInstance.get(API_PATHS.OPTIONS.GET_CHAIN(selectedInstrument, selectedExpiry));
-                    if (optRes.data?.success) {
-                        setChainData(optRes.data.data?.chain || []);
+                    const cRes = await axiosInstance.get(API_PATHS.OPTIONS.GET_CONTRACTS(selectedInstrument));
+                    const contracts = cRes.data?.data || cRes.data || [];
+                    if (Array.isArray(contracts) && contracts.length > 0) {
+                        const expList = [...new Set(contracts.map(c => c.expiry || c.expiry_date))].filter(Boolean).sort((a, b) => new Date(a) - new Date(b));
+                        if (expList.length > 0) activeExpiry = expList[0];
                     }
-                } catch { /* options are optional */ }
+                } catch (_) {}
+            }
+            if (activeExpiry) {
+                try {
+                    const optRes = await axiosInstance.get(API_PATHS.OPTIONS.GET_CHAIN(selectedInstrument, activeExpiry));
+                    const chainArray = optRes.data?.data || optRes.data || [];
+                    if (Array.isArray(chainArray) && chainArray.length > 0) {
+                        const normalized = chainArray.map(c => ({
+                            strike: c.strike_price,
+                            iv: parseFloat(c.call_options?.option_greeks?.iv) || 0,
+                            call: {
+                                oi: parseFloat(c.call_options?.market_data?.oi) || 0,
+                                vol: parseFloat(c.call_options?.market_data?.volume) || 0,
+                                oiChg: parseFloat(c.call_options?.market_data?.oi_change) || 0,
+                                delta: parseFloat(c.call_options?.option_greeks?.delta) || 0,
+                                gamma: parseFloat(c.call_options?.option_greeks?.gamma) || 0,
+                                theta: parseFloat(c.call_options?.option_greeks?.theta) || 0,
+                                vega: parseFloat(c.call_options?.option_greeks?.vega) || 0,
+                                iv: parseFloat(c.call_options?.option_greeks?.iv) || 0
+                            },
+                            put: {
+                                oi: parseFloat(c.put_options?.market_data?.oi) || 0,
+                                vol: parseFloat(c.put_options?.market_data?.volume) || 0,
+                                oiChg: parseFloat(c.put_options?.market_data?.oi_change) || 0,
+                                delta: parseFloat(c.put_options?.option_greeks?.delta) || 0,
+                                gamma: parseFloat(c.put_options?.option_greeks?.gamma) || 0,
+                                theta: parseFloat(c.put_options?.option_greeks?.theta) || 0,
+                                vega: parseFloat(c.put_options?.option_greeks?.vega) || 0,
+                                iv: parseFloat(c.put_options?.option_greeks?.iv) || 0
+                            }
+                        }));
+                        setChainData(normalized);
+                    }
+                } catch (_) {}
             }
         } finally {
             setLoading(false);

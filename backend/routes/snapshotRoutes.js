@@ -1,5 +1,6 @@
 import express from "express";
 import localDb from "../config/localDb.js";
+import { broadcast } from "../services/socketBroadcast.js";
 
 const router = express.Router();
 
@@ -96,23 +97,39 @@ router.post("/header", (req, res) => {
                 instrument_key, category, composite_score, regime_json, tailwinds_json, risks_json, counts_json, tree_payload_json, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(instrument_key, category) DO UPDATE SET
-                composite_score = COALESCE(excluded.composite_score, header_data.composite_score),
+                composite_score = CASE WHEN excluded.composite_score IS NOT NULL AND excluded.composite_score > 0 THEN excluded.composite_score ELSE header_data.composite_score END,
                 regime_json = COALESCE(excluded.regime_json, header_data.regime_json),
                 tailwinds_json = COALESCE(excluded.tailwinds_json, header_data.tailwinds_json),
                 risks_json = COALESCE(excluded.risks_json, header_data.risks_json),
-                counts_json = COALESCE(excluded.counts_json, header_data.counts_json),
+                counts_json = CASE WHEN excluded.counts_json IS NOT NULL AND excluded.counts_json != '{}' THEN excluded.counts_json ELSE header_data.counts_json END,
                 tree_payload_json = COALESCE(excluded.tree_payload_json, header_data.tree_payload_json),
                 updated_at = CURRENT_TIMESTAMP
         `).run(
             instrument_key,
             category,
             composite_score !== undefined ? composite_score : null,
-            regime_json !== undefined ? JSON.stringify(regime_json) : null,
-            tailwinds_json !== undefined ? JSON.stringify(tailwinds_json) : null,
-            risks_json !== undefined ? JSON.stringify(risks_json) : null,
-            counts_json !== undefined ? JSON.stringify(counts_json) : null,
-            tree_payload_json !== undefined ? JSON.stringify(tree_payload_json) : null
+            regime_json !== undefined ? (typeof regime_json === 'string' ? regime_json : JSON.stringify(regime_json)) : null,
+            tailwinds_json !== undefined ? (typeof tailwinds_json === 'string' ? tailwinds_json : JSON.stringify(tailwinds_json)) : null,
+            risks_json !== undefined ? (typeof risks_json === 'string' ? risks_json : JSON.stringify(risks_json)) : null,
+            counts_json !== undefined ? (typeof counts_json === 'string' ? counts_json : JSON.stringify(counts_json)) : null,
+            tree_payload_json !== undefined ? (typeof tree_payload_json === 'string' ? tree_payload_json : JSON.stringify(tree_payload_json)) : null
         );
+
+        if (composite_score !== undefined && composite_score !== null) {
+            try {
+                broadcast('intelligence:snapshot', {
+                    instrument_key,
+                    [category]: {
+                        composite_score,
+                        regime: regime_json,
+                        counts: counts_json,
+                        tailwinds: tailwinds_json,
+                        risks: risks_json,
+                        tree_payload: tree_payload_json
+                    }
+                });
+            } catch (_) {}
+        }
 
         res.json({ status: "success", message: "Header state saved." });
     } catch (error) {

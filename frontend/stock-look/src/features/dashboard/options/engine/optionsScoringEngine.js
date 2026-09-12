@@ -427,8 +427,8 @@ export function gradeMaxPain(chainData, spotPrice) {
 export function computeOptionsInstitutionalComposite(chainData, spotPrice, instrumentKey, historicalSnapshots = {}) {
     if (!chainData || !Array.isArray(chainData) || chainData.length === 0) {
         return {
-            compositeScore: 50,
-            regime: { label: 'Neutral' },
+            compositeScore: 0,
+            regime: { label: 'Awaiting Data' },
             sections: [],
             tailwinds: [],
             risks: [],
@@ -518,7 +518,7 @@ export function computeOptionsInstitutionalComposite(chainData, spotPrice, instr
     ];
 
     const validSections = sections.filter(s => s.score !== null);
-    let compositeScore = 50;
+    let compositeScore = 0;
     if (validSections.length > 0) {
         const totalW = validSections.reduce((acc, s) => acc + s.weight, 0);
         compositeScore = validSections.reduce((acc, s) => acc + (s.score * s.weight), 0) / totalW;
@@ -528,7 +528,8 @@ export function computeOptionsInstitutionalComposite(chainData, spotPrice, instr
     }
 
     let regimeLabel = 'Neutral';
-    if (compositeScore >= 70) regimeLabel = 'Bullish';
+    if (validSections.length === 0) regimeLabel = 'Awaiting Data';
+    else if (compositeScore >= 70) regimeLabel = 'Bullish';
     else if (compositeScore >= 55) regimeLabel = 'Mild Bullish';
     else if (compositeScore >= 45) regimeLabel = 'Balanced Phase';
     else if (compositeScore >= 30) regimeLabel = 'Mild Bearish';

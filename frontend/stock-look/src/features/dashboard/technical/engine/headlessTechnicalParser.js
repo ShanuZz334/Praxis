@@ -262,19 +262,8 @@ export class TechnicalEngine {
                 this.register();
                 this.publish();
 
-                // Persist composite score to header_data (fire & forget)
-                const { computeTechnicalComposite } = await import('./TechnicalCompositeEngine');
-                const composite = computeTechnicalComposite(this.cache.scores, this.instrument?.startsWith?.('NSE_INDEX'));
-                if (composite?.compositeScore != null) {
-                    axiosInstance.post('/api/v1/snapshots/header', {
-                        instrument_key: this.instrument,
-                        category: 'technical',
-                        composite_score: composite.compositeScore,
-                        regime_json: composite.regime,
-                        counts_json: this.cache.scores,
-                        tree_payload_json: composite.nestedTreePayload
-                    }).catch(() => {});
-                }
+                // Headless parser is an in-memory evaluator for Master Dashboard;
+                // it must not overwrite the authoritative header_data persisted by TechnicalPage or cron.
             }
         } catch (e) {
             console.error("TechnicalEngine poll failed", e);

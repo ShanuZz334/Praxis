@@ -2,10 +2,10 @@
   "date": "2026-09-12",
   "usage": {
     "groq::openai/gpt-oss-120b": {
-      "requests": 3,
-      "tokensIn": 14161,
-      "tokensOut": 10896,
-      "lastCalled": "2026-09-12T14:47:48.063Z"
+      "requests": 5,
+      "tokensIn": 23203,
+      "tokensOut": 18129,
+      "lastCalled": "2026-09-12T16:45:43.391Z"
     },
     "gemini::gemini-3.5-flash": {
       "requests": 3,
@@ -14,10 +14,10 @@
       "lastCalled": "2026-09-12T14:52:37.615Z"
     },
     "gemini::gemini-3.8-flash": {
-      "requests": 2,
-      "tokensIn": 1549,
-      "tokensOut": 987,
-      "lastCalled": "2026-09-12T14:53:06.375Z"
+      "requests": 3,
+      "tokensIn": 7411,
+      "tokensOut": 1960,
+      "lastCalled": "2026-09-12T16:44:26.797Z"
     },
     "groq::qwen/qwen3.8-27b": {
       "requests": 2,
@@ -37,9 +37,9 @@
     "remainingRequests": 999,
     "resetRequests": "1m26.4s",
     "limitTokens": 8000,
-    "remainingTokens": 5013,
-    "resetTokens": "22.402s",
-    "updatedAt": 1789228217666
+    "remainingTokens": 2992,
+    "resetTokens": "37.56s",
+    "updatedAt": 1789231543381
   },
   "openrouterLiveHeaders": {
     "limitRequests": 50,

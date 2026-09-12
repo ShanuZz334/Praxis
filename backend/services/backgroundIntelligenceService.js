@@ -141,14 +141,6 @@ function getUserSelectedInstruments() {
             }
         } catch {}
 
-        // Tertiary: also pick up any instrument that has data in header_data
-        try {
-            const cachedKeys = db.prepare(
-                `SELECT DISTINCT instrument_key FROM header_data WHERE instrument_key NOT IN ('GLOBAL','EVENTS') LIMIT 50`
-            ).all();
-            for (const row of cachedKeys) instruments.add(row.instrument_key);
-        } catch {}
-
         return [...instruments];
     } catch {
         return PRIORITY_INSTRUMENTS;
@@ -156,15 +148,17 @@ function getUserSelectedInstruments() {
 }
 
 // ── Technical Intelligence ──────────────────────────────────────────────────
-export async function runTechnicalIntelligence(instrumentKeys = PRIORITY_INSTRUMENTS, force = false) {
+export async function runTechnicalIntelligence(instrumentKeys = null, force = false) {
     if (!force && !shouldRun('tech')) return;
     if (isRunning.tech) return;
     isRunning.tech = true;
     try {
         const mode = getTradingMode();
         const timeframe = getTechnicalTimeframe();
-        console.log(`[BG Intel] Running Technical Intelligence (mode: ${mode}, timeframe: ${timeframe}, force: ${force}) for ${instrumentKeys.length} instruments...`);
-        const allKeys = [...new Set([...instrumentKeys, ...getUserSelectedInstruments()])];
+        const allKeys = (Array.isArray(instrumentKeys) && instrumentKeys.length > 0)
+            ? instrumentKeys
+            : getUserSelectedInstruments();
+        console.log(`[BG Intel] Running Technical Intelligence (mode: ${mode}, timeframe: ${timeframe}, force: ${force}) for ${allKeys.length} instruments...`);
 
         for (const instrumentKey of allKeys) {
             try {
@@ -348,13 +342,15 @@ function buildTechScoresFromCache(row) {
 }
 
 // ── Options Intelligence ──────────────────────────────────────────────────
-export async function runOptionsIntelligence(instrumentKeys = PRIORITY_INSTRUMENTS, force = false) {
+export async function runOptionsIntelligence(instrumentKeys = null, force = false) {
     if (!force && !shouldRun('options')) return;
     if (isRunning.options) return;
     isRunning.options = true;
     try {
-        console.log(`[BG Intel] Running Options Intelligence (force: ${force})...`);
-        const allKeys = [...new Set([...instrumentKeys, ...getUserSelectedInstruments()])];
+        const allKeys = (Array.isArray(instrumentKeys) && instrumentKeys.length > 0)
+            ? instrumentKeys
+            : getUserSelectedInstruments();
+        console.log(`[BG Intel] Running Options Intelligence (force: ${force}) for ${allKeys.length} instruments...`);
 
         for (const instrumentKey of allKeys) {
             try {

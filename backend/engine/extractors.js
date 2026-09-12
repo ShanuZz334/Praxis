@@ -63,9 +63,20 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
     }
 
     // 5. Debt to Equity
-    const deObj = findRatio(['debt to equity', 'debt/equity']);
-    const currentDE = deObj?.company_value ? parseFloat(deObj.company_value) : (rawData?.debtToEquity !== undefined ? parseFloat(rawData.debtToEquity) : (rawData?.debt_to_equity !== undefined ? parseFloat(rawData.debt_to_equity) : null));
+    const deObj = findRatio(['debt to equity', 'debt/equity', 'debt equity']);
+    let currentDE = deObj?.company_value ? parseFloat(deObj.company_value) : (rawData?.debtToEquity !== undefined ? parseFloat(rawData.debtToEquity) : (rawData?.debt_to_equity !== undefined ? parseFloat(rawData.debt_to_equity) : null));
     const sectorDE = deObj?.sector_value ? parseFloat(deObj.sector_value) : null;
+    if (currentDE === null && balanceArray.length > 0) {
+        const equityObj = balanceArray.find(m => m.particular === 'Equity Capital');
+        const nonCurrLiabObj = balanceArray.find(m => m.particular === 'Non-Current Liabilities');
+        const currLiabObj = balanceArray.find(m => m.particular === 'Current Liabilities');
+        if (equityObj?.history?.length > 0 && (nonCurrLiabObj || currLiabObj)) {
+            const latestEquity = equityObj.history[0].value;
+            const ncl = nonCurrLiabObj?.history?.[0]?.value || 0;
+            const cl = currLiabObj?.history?.[0]?.value || 0;
+            if (latestEquity > 0) currentDE = (ncl + cl) / latestEquity;
+        }
+    }
 
     // 6. ROE
     const roeObj = findRatio(['return on equity', 'roe']);
@@ -117,7 +128,7 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
     }
 
     // 9. GDP Growth
-    const gdpGrowth = rawData?.externalData?.gdpGrowth ?? rawData?.gdpGrowth ?? 7.0; 
+    let gdpGrowth = rawData?.externalData?.gdpGrowth ?? rawData?.gdpGrowth ?? 7.0; 
 
     // 10. Market Cap to GDP (Buffett Indicator)
     const marketCapGDP = 110; 
@@ -125,19 +136,41 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
     // --- Additional Fundamentals ---
     
     // Net Margin
-    const nmObj = findRatio(['net margin', 'net profit margin']);
-    const currentNetMargin = nmObj?.company_value ? parseFloat(nmObj.company_value) : null;
+    const nmObj = findRatio(['net margin', 'net profit margin', 'profit margin']);
+    let currentNetMargin = nmObj?.company_value ? parseFloat(nmObj.company_value) : null;
     const sectorNetMargin = nmObj?.sector_value ? parseFloat(nmObj.sector_value) : null;
+    if (currentNetMargin === null && incomeArray.length > 0) {
+        const profitObj = incomeArray.find(m => (m.particular === 'Profit After Tax' || m.particular === 'Profit Before Tax') && m.history?.length >= 1);
+        const revObj = incomeArray.find(m => (m.particular === 'Total Revenue' || m.particular === 'Revenue') && m.history?.length >= 1);
+        if (profitObj && revObj && revObj.history[0].value > 0) {
+            currentNetMargin = (profitObj.history[0].value / revObj.history[0].value) * 100;
+        }
+    }
 
     // Operating Margin
     const omObj = findRatio(['operating margin']);
-    const currentOpMargin = omObj?.company_value ? parseFloat(omObj.company_value) : null;
+    let currentOpMargin = omObj?.company_value ? parseFloat(omObj.company_value) : null;
     const sectorOpMargin = omObj?.sector_value ? parseFloat(omObj.sector_value) : null;
+    if (currentOpMargin === null) {
+        const incStmt = Array.isArray(rawData?.income?.income_statement) ? rawData.income.income_statement : [];
+        const opProfitObj = incStmt.find(m => m.category === 'operating_profit' && m.history?.length >= 1);
+        const revObj = incomeArray.find(m => (m.particular === 'Total Revenue' || m.particular === 'Revenue') && m.history?.length >= 1);
+        if (opProfitObj && revObj && revObj.history[0].value > 0) {
+            currentOpMargin = (opProfitObj.history[0].value / revObj.history[0].value) * 100;
+        }
+    }
 
     // Current Ratio
     const crObj = findRatio(['current ratio']);
-    const currentRatio = crObj?.company_value ? parseFloat(crObj.company_value) : (rawData?.currentRatio !== undefined ? parseFloat(rawData.currentRatio) : (rawData?.current_ratio !== undefined ? parseFloat(rawData.current_ratio) : null));
+    let currentRatio = crObj?.company_value ? parseFloat(crObj.company_value) : (rawData?.currentRatio !== undefined ? parseFloat(rawData.currentRatio) : (rawData?.current_ratio !== undefined ? parseFloat(rawData.current_ratio) : null));
     const sectorCurrentRatio = crObj?.sector_value ? parseFloat(crObj.sector_value) : null;
+    if (currentRatio === null && balanceArray.length > 0) {
+        const caObj = balanceArray.find(m => m.particular?.toLowerCase() === 'current assets');
+        const clObj = balanceArray.find(m => m.particular?.toLowerCase() === 'current liabilities');
+        if (caObj?.history?.length > 0 && clObj?.history?.length > 0 && clObj.history[0].value > 0) {
+            currentRatio = caObj.history[0].value / clObj.history[0].value;
+        }
+    }
 
     // Interest Coverage
     const icObj = findRatio(['interest coverage']);
@@ -146,22 +179,32 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
 
     // Forward PE
     const fpeObj = findRatio(['forward p/e', 'forward pe']);
-    const forwardPE = rawData?.externalData?.forwardPE ?? rawData?.forward_pe ?? (fpeObj?.company_value ? parseFloat(fpeObj.company_value) : null);
+    let forwardPE = rawData?.externalData?.forwardPE ?? rawData?.forward_pe ?? (fpeObj?.company_value ? parseFloat(fpeObj.company_value) : null);
     
     // VIX
     const indiaVix = rawData?.externalData?.vix ?? rawData?.india_vix ?? null;
 
-    // Earnings Yield (EPS / Price - computed later or from ratio)
+    // Earnings Yield (EPS / Price - computed from P/E or ratio)
     const eyObj = findRatio(['earnings yield']);
-    const currentEarningsYield = eyObj?.company_value ? parseFloat(eyObj.company_value) : null;
+    let currentEarningsYield = eyObj?.company_value ? parseFloat(eyObj.company_value) : null;
+    if (currentEarningsYield === null && currentPE !== null && currentPE > 0) {
+        currentEarningsYield = (1 / currentPE) * 100;
+    }
 
     // Free Cash Flow
     let currentFCF = rawData?.free_cash_flow ? parseFloat(rawData.free_cash_flow) : null;
     let currentRevenue = rawData?.revenue ? parseFloat(rawData.revenue) : null;
-    if (cashArray.length > 0) {
-        const fcfObj = cashArray.find(r => r.particular?.toLowerCase().includes('free cash flow'));
-        if (fcfObj && fcfObj.history && fcfObj.history.length > 0) {
-            currentFCF = fcfObj.history[0].value; // most recent
+    if (currentFCF === null) {
+        const cashFlowArr = Array.isArray(rawData?.cashFlow?.cash_flow) ? rawData.cashFlow.cash_flow : [];
+        const opCashObj = cashFlowArr.find(m => m.category === 'operating');
+        const invCashObj = cashFlowArr.find(m => m.category === 'investing');
+        if (opCashObj?.history?.length > 0 && invCashObj?.history?.length > 0) {
+            currentFCF = opCashObj.history[0].value + invCashObj.history[0].value;
+        } else if (cashArray.length > 0) {
+            const fcfObj = cashArray.find(r => r.particular?.toLowerCase().includes('free cash flow'));
+            if (fcfObj && fcfObj.history && fcfObj.history.length > 0) {
+                currentFCF = fcfObj.history[0].value;
+            }
         }
     }
     if (incomeArray.length > 0) {
@@ -203,6 +246,35 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
         }
     }
 
+    // Relative Valuation (Blended premium/discount vs sector: 40% P/E, 35% P/B, 25% EV/EBITDA)
+    let pePrem = (currentPE !== null && sectorPE) ? ((currentPE - sectorPE) / sectorPE) * 100 : null;
+    let pbPrem = (currentPB !== null && sectorPB) ? ((currentPB - sectorPB) / sectorPB) * 100 : null;
+    let evebPrem = (currentEVEbitda !== null && sectorEVEbitda) ? ((currentEVEbitda - sectorEVEbitda) / sectorEVEbitda) * 100 : null;
+    let blendedPremium = null;
+    let premW = 0;
+    if (pePrem !== null) { blendedPremium = (blendedPremium || 0) + pePrem * 0.40; premW += 0.40; }
+    if (pbPrem !== null) { blendedPremium = (blendedPremium || 0) + pbPrem * 0.35; premW += 0.35; }
+    if (evebPrem !== null) { blendedPremium = (blendedPremium || 0) + evebPrem * 0.25; premW += 0.25; }
+    if (premW > 0 && blendedPremium !== null) blendedPremium = blendedPremium / premW;
+
+    // Earnings Quality (Operating Cash Flow / Net Profit)
+    const cashFlowArr = Array.isArray(rawData?.cashFlow?.cash_flow) ? rawData.cashFlow.cash_flow : [];
+    const opCf = cashFlowArr.find(c => c.category === 'operating')?.history?.[0]?.value ?? cashArray.find(m => m.particular?.toLowerCase().includes('operating'))?.history?.[0]?.value ?? null;
+    let netProf = null;
+    const incStmt = Array.isArray(rawData?.income?.income_statement) ? rawData.income.income_statement : [];
+    const netProfObj = incStmt.find(i => i.category === 'net_profit');
+    if (netProfObj?.history?.length > 0) {
+        netProf = netProfObj.history[0].value;
+    } else if (incomeArray.length > 0) {
+        const patObj = incomeArray.find(m => m.particular === 'Profit After Tax' || m.particular === 'Profit Before Tax');
+        if (patObj?.history?.length > 0) netProf = patObj.history[0].value;
+    }
+    const cfoToNetProfit = (opCf !== null && netProf !== null && netProf !== 0) ? (opCf / netProf) : null;
+
+    // Corporate Actions
+    const corpActionsArr = Array.isArray(rawData?.corporate_actions) ? rawData.corporate_actions : [];
+    const hasCorporateActions = corpActionsArr.length > 0;
+
     // --- Working Capital Turnover Ratios ---
     const cccObj = rawData?.cashConversionCycle || {};
     const invTOObj = findRatio(['inventory turnover']);
@@ -213,6 +285,22 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
     
     const payTOObj = findRatio(['payables turnover', 'creditors turnover']);
     const payablesTurnover = payTOObj?.company_value ? parseFloat(payTOObj.company_value) : (cccObj.payableDays ? (365 / cccObj.payableDays) : null);
+
+    // Apply manual overrides if provided
+    if (manualOverrides.debt_to_equity !== undefined && manualOverrides.debt_to_equity !== null && manualOverrides.debt_to_equity !== '') currentDE = parseFloat(manualOverrides.debt_to_equity);
+    if (manualOverrides.current_ratio !== undefined && manualOverrides.current_ratio !== null && manualOverrides.current_ratio !== '') currentRatio = parseFloat(manualOverrides.current_ratio);
+    if (manualOverrides.net_margin !== undefined && manualOverrides.net_margin !== null && manualOverrides.net_margin !== '') currentNetMargin = parseFloat(manualOverrides.net_margin);
+    if (manualOverrides.operating_margin !== undefined && manualOverrides.operating_margin !== null && manualOverrides.operating_margin !== '') currentOpMargin = parseFloat(manualOverrides.operating_margin);
+    if (manualOverrides.free_cash_flow !== undefined && manualOverrides.free_cash_flow !== null && manualOverrides.free_cash_flow !== '') currentFCF = parseFloat(manualOverrides.free_cash_flow);
+    if (manualOverrides.earnings_yield !== undefined && manualOverrides.earnings_yield !== null && manualOverrides.earnings_yield !== '') currentEarningsYield = parseFloat(manualOverrides.earnings_yield);
+    if (manualOverrides.relative_valuation !== undefined && manualOverrides.relative_valuation !== null && manualOverrides.relative_valuation !== '') blendedPremium = parseFloat(manualOverrides.relative_valuation);
+    if (manualOverrides.pe_ratio !== undefined && manualOverrides.pe_ratio !== null && manualOverrides.pe_ratio !== '') currentPE = parseFloat(manualOverrides.pe_ratio);
+    if (manualOverrides.forward_pe !== undefined && manualOverrides.forward_pe !== null && manualOverrides.forward_pe !== '') forwardPE = parseFloat(manualOverrides.forward_pe);
+    if (manualOverrides.pb_ratio !== undefined && manualOverrides.pb_ratio !== null && manualOverrides.pb_ratio !== '') currentPB = parseFloat(manualOverrides.pb_ratio);
+    if (manualOverrides.ev_ebitda !== undefined && manualOverrides.ev_ebitda !== null && manualOverrides.ev_ebitda !== '') currentEVEbitda = parseFloat(manualOverrides.ev_ebitda);
+    if (manualOverrides.gdp_growth !== undefined && manualOverrides.gdp_growth !== null && manualOverrides.gdp_growth !== '') gdpGrowth = parseFloat(manualOverrides.gdp_growth);
+    if (manualOverrides.dividend_yield !== undefined && manualOverrides.dividend_yield !== null && manualOverrides.dividend_yield !== '') currentDivYield = parseFloat(manualOverrides.dividend_yield);
+    if (manualOverrides.promoter_holding !== undefined && manualOverrides.promoter_holding !== null && manualOverrides.promoter_holding !== '') currentPromoter = parseFloat(manualOverrides.promoter_holding);
 
     // Return structured extracted variables
     return {
@@ -237,6 +325,7 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
         currentFCF, currentRevenue,
         revCAGR, revYoY, revPos, revTot,
         patCAGR, patYoY, patPos, patTot,
+        blendedPremium, cfoToNetProfit, hasCorporateActions,
         inventoryTurnover, receivablesTurnover, payablesTurnover,
         indiaVix, analystConsensus
     };

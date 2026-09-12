@@ -46,8 +46,9 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
                     : computeCompanyComposite(scoresRef.current, tradingMode);
                 setResult({ ...newRes, rawScores: { ...scoresRef.current } });
 
-                // Persist header calculation to Backend (Fire & Forget)
-                if (instrumentKey) {
+                // Persist header calculation to Backend (Fire & Forget) — only when cards have sufficiently mounted
+                const cardCount = Object.keys(scoresRef.current || {}).length;
+                if (instrumentKey && newRes.compositeScore > 0 && cardCount >= (isIndex ? 5 : 10)) {
                     axiosInstance.post('/api/v1/snapshots/header', {
                         instrument_key: instrumentKey,
                         category: 'fundamental',
@@ -59,7 +60,7 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
                         tree_payload_json: newRes.nestedTreePayload
                     }).catch(err => console.error("Failed to sync header:", err));
                 }
-            }, 50);
+            }, 150);
         };
 
         const handleSnapshot = (e) => {

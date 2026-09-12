@@ -263,3 +263,88 @@ export const syncCandlesIfStale = async (instrumentKey, timeframe = 'day') => {
         console.warn(`[Historical Sync] Skipped for ${instrumentKey}: ${err.message}`);
     }
 };
+
+// Cache of completed deep historical backfills to guarantee zero redundant API calls
+const completedHistoricalSyncs = new Set();
+
+/**
+ * Ensures daily historical candles exist in SQLite back to targetFromDate (e.g. '2010-01-01' or '2000-01-01').
+ * If data is already in SQLite, strictly returns immediately with ZERO API calls.
+ */
+export const ensureHistoricalDailyCandles = async (instrumentKey, targetFromDate = '2010-01-01') => {
+    const targetYear = new Date(targetFromDate).getFullYear();
+    const syncKey = `${instrumentKey}_day_${targetYear}`;
+    if (completedHistoricalSyncs.has(syncKey)) {
+        return; // Already backfilled and verified in DB
+    }
+
+    try {
+        // Check persistent SQLite backfill metadata
+        try {
+            const meta = db.prepare("SELECT oldest_date FROM historical_backfill_meta WHERE instrument_key = ? AND timeframe = 'day'").get(instrumentKey);
+            if (meta && meta.oldest_date) {
+                const metaYear = new Date(meta.oldest_date).getFullYear();
+                if (metaYear <= targetYear) {
+                    completedHistoricalSyncs.add(syncKey);
+                    return; // 100% verified in DB metadata
+                }
+            }
+        } catch (_) {}
+
+        const stmt = db.prepare(`SELECT MIN(timestamp) as oldestTs, COUNT(*) as cnt FROM candles WHERE instrument_key = ? AND timeframe = 'day'`);
+        const row = stmt.get(instrumentKey);
+        
+        if (row && row.oldestTs) {
+            const oldestYear = new Date(row.oldestTs).getFullYear();
+            // If the oldest candle in DB is in the target year or earlier, it's ALREADY STORED!
+            if (oldestYear <= targetYear) {
+                completedHistoricalSyncs.add(syncKey);
+                try {
+                    db.prepare("INSERT OR REPLACE INTO historical_backfill_meta (instrument_key, timeframe, oldest_date) VALUES (?, 'day', ?)").run(instrumentKey, row.oldestTs);
+                } catch (_) {}
+                return; // 100% in DB, zero API calls needed
+            }
+        }
+
+        let oldestInDb = row?.oldestTs ? new Date(row.oldestTs) : new Date();
+        const targetDateObj = new Date(targetFromDate);
+
+        console.log(`[Deep Backfill] Fetching historical daily candles for ${instrumentKey} from ${targetFromDate} to ${oldestInDb.toISOString().split('T')[0]}`);
+
+        let currentTo = oldestInDb;
+        while (currentTo > targetDateObj) {
+            const nextFrom = new Date(currentTo);
+            nextFrom.setFullYear(nextFrom.getFullYear() - 7);
+            const actualFrom = nextFrom < targetDateObj ? targetDateObj : nextFrom;
+
+            const toStr = currentTo.toISOString().split('T')[0];
+            const fromStr = actualFrom.toISOString().split('T')[0];
+
+            console.log(`[Deep Backfill] Window: ${fromStr} -> ${toStr}`);
+            try {
+                await fetchHistoricalCandles(instrumentKey, 'day', toStr, fromStr, false);
+            } catch (err) {
+                console.warn(`[Deep Backfill] Window ${fromStr} -> ${toStr} failed: ${err.message}`);
+                break;
+            }
+
+            // Move pointer backwards
+            currentTo = new Date(actualFrom);
+            currentTo.setDate(currentTo.getDate() - 1);
+        }
+
+        // Record persistent metadata so this instrument is never re-queried for history
+        try {
+            const postStmt = db.prepare(`SELECT MIN(timestamp) as oldestTs FROM candles WHERE instrument_key = ? AND timeframe = 'day'`);
+            const postRow = postStmt.get(instrumentKey);
+            if (postRow && postRow.oldestTs) {
+                db.prepare("INSERT OR REPLACE INTO historical_backfill_meta (instrument_key, timeframe, oldest_date) VALUES (?, 'day', ?)").run(instrumentKey, postRow.oldestTs);
+            }
+        } catch (_) {}
+
+        completedHistoricalSyncs.add(syncKey);
+    } catch (e) {
+        console.error(`[Deep Backfill] Error for ${instrumentKey}:`, e.message);
+    }
+};
+

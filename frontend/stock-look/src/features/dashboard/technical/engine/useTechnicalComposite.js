@@ -31,8 +31,9 @@ export function useTechnicalComposite(isIndex = false, instrumentKey = null) {
             const engineResult = computeTechnicalComposite(scoresRef.current, isIndex, tradingMode);
             setCompositeData(engineResult);
 
-            // Persist to backend DB (fire & forget) — mirrors useFundamentalComposite
-            if (instrumentKey && engineResult.compositeScore != null) {
+            // Persist to backend DB (fire & forget) — only when cards have sufficiently mounted
+            const cardCount = Object.keys(scoresRef.current || {}).length;
+            if (instrumentKey && engineResult.compositeScore != null && engineResult.compositeScore > 0 && cardCount >= 5) {
                 axiosInstance.post('/api/v1/snapshots/header', {
                     instrument_key: instrumentKey,
                     category: 'technical',
@@ -44,7 +45,7 @@ export function useTechnicalComposite(isIndex = false, instrumentKey = null) {
                     tree_payload_json: engineResult.nestedTreePayload
                 }).catch(() => {});
             }
-        }, 50);
+        }, 150);
     };
 
     useEffect(() => {

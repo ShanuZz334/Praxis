@@ -16,6 +16,7 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
+import { scoreRelativeValuation } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 function extractRatio(ratios, names) {
     const item = ratios.find(r => names.some(n => r.name?.toLowerCase() === n.toLowerCase()));
@@ -59,13 +60,10 @@ export default function RelativeValuationCard({ cardId, data = null, lastUpdated
     let aiInsightText = 'Awaiting Upstox ratio data to compare company vs sector valuation.';
 
     if (blendedPremium !== null) {
-        if (blendedPremium < -25)       { score = 95; bias = 'Strong Bullish'; valuationStatus = 'Deep Discount'; }
-        else if (blendedPremium < -10)  { score = 80; bias = 'Bullish';        valuationStatus = 'Discount to Sector'; }
-        else if (blendedPremium < 0)    { score = 65; bias = 'Bullish';        valuationStatus = 'Slight Discount'; }
-        else if (blendedPremium < 10)   { score = 55; bias = 'Neutral';        valuationStatus = 'In-Line with Sector'; }
-        else if (blendedPremium < 25)   { score = 38; bias = 'Bearish';        valuationStatus = 'Premium to Sector'; }
-        else if (blendedPremium < 50)   { score = 22; bias = 'Bearish';        valuationStatus = 'Significant Premium'; }
-        else                             { score = 10; bias = 'Strong Bearish'; valuationStatus = 'Extreme Premium'; }
+        const res = scoreRelativeValuation(blendedPremium);
+        score = res.score;
+        bias = res.bias;
+        valuationStatus = res.valuationStatus;
 
         const absP = Math.abs(blendedPremium).toFixed(1);
         aiInsightText = blendedPremium < 0

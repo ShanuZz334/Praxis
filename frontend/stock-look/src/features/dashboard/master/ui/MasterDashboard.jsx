@@ -136,14 +136,21 @@ export default function MasterDashboard() {
         setIsSyncing(true);
         try {
             // 1. Trigger full backend multi-engine cron + Upstox market data force sync
-            await axiosInstance.post('/api/v1/intelligence/force-sync', {
-                instrument_key: instKeyForEngine
-            }).catch(err => console.warn("[Sync] Force-sync endpoint error:", err.message));
+            const syncPromise = (async () => {
+                await axiosInstance.post('/api/v1/intelligence/force-sync', {
+                    instrument_key: instKeyForEngine
+                }).catch(err => console.warn("[Sync] Force-sync endpoint error:", err.message));
 
-            // 2. Refresh Master composite scores
-            if (typeof refresh === 'function') {
-                await refresh();
-            }
+                // 2. Refresh Master composite scores
+                if (typeof refresh === 'function') {
+                    await refresh();
+                }
+            })();
+
+            await Promise.race([
+                syncPromise,
+                new Promise(resolve => setTimeout(resolve, 8000))
+            ]);
 
             // 3. Dispatch local UI event for any listening components or widgets
             window.dispatchEvent(new CustomEvent('praxis:force-sync:done', {
@@ -392,6 +399,8 @@ export default function MasterDashboard() {
                 enableBreakdown={true}
                 cards={aggregatedCards}
                 masterPayload={masterPayload}
+                syncId={{ instrumentKey: instKeyForEngine, category: isIndex ? 'Indices' : 'Companies' }}
+                isIndex={isIndex}
                 controls={{ 
                     customComponent: (
                         <div className="flex w-full items-center justify-between gap-3 flex-nowrap min-w-0">

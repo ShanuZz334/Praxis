@@ -8,7 +8,7 @@ import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 export function useOptionsCompositeScore(compositeData, instrumentKey, metrics = null, proDeskPicks = null, spotPrice = null, disableSync = false) {
     return useMemo(() => {
         const empty = {
-            compositeScore: 50,
+            compositeScore: 0,
             gauge: { label: '-', color: '#64748B' },
             regime: { label: '-', description: 'Awaiting options data...', color: '#64748B', confidence: 0 },
             sections: [],
@@ -95,7 +95,7 @@ export function useOptionsCompositeScore(compositeData, instrumentKey, metrics =
         ];
 
         const validSections = sectionsData.filter(s => s.score !== null);
-        let compositeScore = 50;
+        let compositeScore = 0;
         if (validSections.length > 0) {
             const totalW = validSections.reduce((acc, s) => acc + s.weight, 0);
             compositeScore = validSections.reduce((acc, s) => acc + (s.score * s.weight), 0) / totalW;
@@ -104,8 +104,8 @@ export function useOptionsCompositeScore(compositeData, instrumentKey, metrics =
             compositeScore = Math.min(100, Math.round(compositeScore));
         }
 
-        const gauge  = getOptionsGauge(compositeScore);
-        const regime = getOptionsRegime(compositeScore);
+        const gauge  = validSections.length > 0 ? getOptionsGauge(compositeScore) : { label: '-', color: '#64748B' };
+        const regime = validSections.length > 0 ? getOptionsRegime(compositeScore) : { label: '-', description: 'Awaiting options data...', color: '#64748B', confidence: 0 };
 
         const tailwindImpact = (s) => (s.score - 50) * s.weight;
         const tailwinds = sectionsData
@@ -127,7 +127,9 @@ export function useOptionsCompositeScore(compositeData, instrumentKey, metrics =
         const maxPainVal = compositeData.maxPain?.currentValue;
 
         let aiInsight;
-        if (compositeScore >= 70) {
+        if (validSections.length === 0) {
+            aiInsight = 'Awaiting options data to compute market insight.';
+        } else if (compositeScore >= 70) {
             aiInsight = 'Options sentiment is strongly Bullish at ' + compositeScore + '/100.' +
                 (pcrOiVal != null ? ' PCR OI at ' + parseFloat(pcrOiVal).toFixed(2) + ' reflects heavy put hedging - a contrarian bullish signal.' : '') +
                 (atmIvVal != null ? ' ATM IV at ' + parseFloat(atmIvVal).toFixed(1) + '% ' + (atmIvVal < 15 ? 'is low, making long options cost-effective.' : 'is elevated - premium selling may be favored.') : '');

@@ -8,7 +8,7 @@ import { saveIntelScore } from '@/shared/utils/intelCache';
 
 export const DashboardContext = createContext();
 
-export const useDashboardContext = () => useContext(DashboardContext);
+export const useDashboardContext = () => useContext(DashboardContext) || {};
 
 // Pre-initialize global variable so initial renders of IndicatorCard have the correct value
 const initialDashInstrument = localStorage.getItem('dash_instrument') || "NSE_INDEX|Nifty 50";
@@ -157,7 +157,7 @@ export function DashboardProvider({ children }) {
                         
                     if (uniqueExpiries.length > 0) {
                         setExpiries(uniqueExpiries);
-                        setSelectedExpiry(prev => uniqueExpiries.includes(prev) ? prev : "");
+                        setSelectedExpiry(prev => (prev && uniqueExpiries.includes(prev)) ? prev : uniqueExpiries[0]);
                     } else {
                         setExpiries([]);
                         setSelectedExpiry("");

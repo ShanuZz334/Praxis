@@ -93,14 +93,25 @@ axiosInstance.interceptors.response.use(
       const errorStr = typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg);
       console.error("AXIOS 401 INTERCEPTED. URL:", error.config?.url, "ErrorStr:", errorStr);
 
-      // Prevent Upstox API 401s from triggering a user logout
+      // Prevent non-auth services (Upstox, AI Gateway, quotas, telemetry, events) from triggering user logout
+      const url = error.config?.url || '';
       if (
-          error.config?.url?.includes('/upstox/') || 
-          error.config?.url?.includes('/fundamentals') || 
+          url.includes('/upstox/') || 
+          url.includes('/fundamentals') || 
+          url.includes('/gateway') || 
+          url.includes('/ai-settings') || 
+          url.includes('/ai/') || 
+          url.includes('/events') || 
           errorStr.includes("Upstox") || 
           errorStr.includes("upstox")
       ) {
-          console.error("AXIOS: Skipping logout because it's an Upstox error.");
+          console.warn("AXIOS: Skipping logout because it's a non-auth service error (Upstox/AI/Telemetry):", url);
+          return Promise.reject(error);
+      }
+
+      // If user is already on auth pages (/login, /signup, /register), skip logout to prevent infinite refresh loops
+      const currentPath = window.location.pathname;
+      if (currentPath === '/login' || currentPath === '/signup' || currentPath === '/register') {
           return Promise.reject(error);
       }
 

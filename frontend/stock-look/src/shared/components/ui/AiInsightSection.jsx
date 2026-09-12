@@ -154,15 +154,50 @@ export default function AiInsightSection({
             setDisplayedText(cached.insightText);
             setLastGeneratedAt(cached.timestamp || null);
             setIsRestoredFromCache(true);
-        } else {
-            // Reset state for new cache key so it can correctly generate
-            hasGeneratedRef.current = false;
-            lastStateRef.current = { score: null, symbol: null, regime: null };
-            setDisplayedText("");
-            setLastGeneratedAt(null);
-            setIsRestoredFromCache(false);
+            return;
         }
-    }, [cacheKey]);
+
+        // Check localStorage directly in case globalInsightCache wasn't hydrated
+        try {
+            const storedCache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+            if (storedCache[cacheKey]) {
+                const c = storedCache[cacheKey];
+                globalInsightCache[cacheKey] = c;
+                hasGeneratedRef.current = true;
+                lastStateRef.current = { score: c.score, symbol: c.symbol, regime: c.regime };
+                setDisplayedText(c.insightText);
+                setLastGeneratedAt(c.timestamp || null);
+                setIsRestoredFromCache(true);
+                return;
+            }
+        } catch {}
+
+        // Fallback: fetch persisted thread entry from SQLite backend if available
+        let isCurrent = true;
+        axiosInstance.get(`/api/v1/ai-prompts/thread/${targetId}?scope=page`)
+            .then(res => {
+                if (!isCurrent) return;
+                const entries = res.data?.entries || [];
+                const lastAssistant = [...entries].reverse().find(e => e.role === 'assistant' && e.content);
+                if (lastAssistant?.content) {
+                    const clean = lastAssistant.content.replace(/[#*]/g, '').trim();
+                    setDisplayedText(clean);
+                    setLastGeneratedAt(new Date(lastAssistant.timestamp || Date.now()).getTime());
+                    setIsRestoredFromCache(true);
+                    hasGeneratedRef.current = true;
+                }
+            })
+            .catch(() => {});
+
+        // Reset state for new cache key so it can correctly generate
+        hasGeneratedRef.current = false;
+        lastStateRef.current = { score: null, symbol: null, regime: null };
+        setDisplayedText("");
+        setLastGeneratedAt(null);
+        setIsRestoredFromCache(false);
+
+        return () => { isCurrent = false; };
+    }, [cacheKey, targetId]);
 
     const triggerGenerate = useCallback((forceOrEvent) => {
         if (score === null || score === undefined) return;
@@ -264,9 +299,9 @@ export default function AiInsightSection({
     const [isReadyToGenerate, setIsReadyToGenerate] = useState(false);
 
     useEffect(() => {
-        // Wait 12 seconds for websocket data to fully populate and settle
+        // Wait 2.5 seconds for websocket data to fully populate and settle
         // before allowing generation. This prevents rapid generating on partial data.
-        const timer = setTimeout(() => setIsReadyToGenerate(true), 12000);
+        const timer = setTimeout(() => setIsReadyToGenerate(true), 2500);
         return () => clearTimeout(timer);
     }, []);
 
@@ -372,12 +407,10 @@ export default function AiInsightSection({
 
     const isTyping = insight && displayedText.length < aiBody.length;
     
-    // We should show the skeleton if:
-    // 1. It is loading and we don't have an insight yet
-    // 2. The currently displayed insight is for a wildly different score (outdated)
-    // 3. We are waiting to generate (no cache, hasn't generated yet)
-    const isWaitingToGenerate = !isRestoredFromCache && !hasGeneratedRef.current && !isLoading;
-    const showSkeleton = (isLoading && !insight) || isOutdated || isWaitingToGenerate;
+    // We should show the skeleton ONLY if there is no text at all and we are loading or waiting
+    const hasAnyText = Boolean(displayedText || cleanInsight);
+    const isWaitingToGenerate = !isRestoredFromCache && !hasGeneratedRef.current && !isLoading && generationMode !== 'manual' && !isReadyToGenerate;
+    const showSkeleton = !hasAnyText && (isLoading || isWaitingToGenerate);
 
     return (
         <>
@@ -553,7 +586,7 @@ export default function AiInsightSection({
                                 className="flex flex-col items-start gap-2.5 py-2 w-full"
                             >
                                 <span className="text-[12px] text-text-tertiary italic">
-                                    Manual generation mode active. Click below or use the refresh button to synthesize the market insight.
+                                    {regime?.description ? regime.description : 'Manual generation mode active. Click below or use the refresh button to synthesize the market insight.'}
                                 </span>
                                 <button
                                     onClick={triggerGenerate}
@@ -562,6 +595,15 @@ export default function AiInsightSection({
                                     <Sparkles className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" />
                                     <span>Generate Insight</span>
                                 </button>
+                            </motion.div>
+                        ) : !displayedText ? (
+                            <motion.div
+                                key="empty-fallback"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="text-[13px] text-text-secondary leading-relaxed font-medium"
+                            >
+                                {regime?.description || 'Awaiting market regime analysis...'}
                             </motion.div>
                         ) : (
                             <motion.div

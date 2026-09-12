@@ -130,3 +130,14 @@
 | 64 | PCR OI | Options | Auto (Engine) | Both |
 | 65 | PCR Volume | Options | Auto (Engine) | Both |
 | 66 | Max Pain | Options | Auto (Engine) | Both |
+| 134 | 7-Candle AI Predictor Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 135 | Pattern Recognition Engine Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 136 | Composite Pattern Score Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 137 | PNCO Confluence Oscillator Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 138 | AAVB Adaptive Volatility Bands Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 139 | IFDI Institutional Flow Divergence Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 140 | Tri-Factor Head-to-Head Confluence Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 141 | Custom Multi-Factor Strategy Combo Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 142 | Backtest Interactive Replay Chart | Backtesting Workshop | Lightweight Charts v5 | Both |
+| 143 | Backtest Live Performance Scorecard & Event Log | Backtesting Workshop | Auto (Engine) | Both |
+| 144 | Backtest Equity Curve & Drawdown Analysis | Backtesting Workshop | Auto (Engine) | Both |

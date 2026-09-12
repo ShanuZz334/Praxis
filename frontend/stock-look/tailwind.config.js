@@ -54,6 +54,11 @@ export default {
           hover: "var(--border-hover)",
           active: "var(--border-active)",
         },
+        accent: {
+          primary: "var(--accent-primary, #3b82f6)",
+          secondary: "var(--accent-secondary, #6366f1)",
+          glow: "var(--accent-glow, rgba(59, 130, 246, 0.4))",
+        },
         state: {
           bullish: {
             main: "var(--state-bullish-main)",

@@ -29,17 +29,21 @@ async function fetchRawFundamentals(isin, accessToken) {
         axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/income-statement?type=consolidated&time_period=yearly&fs=true`, { headers }).catch(() => ({ data: { data: [] } })),
         axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/balance-sheet?type=consolidated&fs=true`, { headers }).catch(() => ({ data: { data: [] } })),
         axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/cash-flow?type=consolidated&fs=true`, { headers }).catch(() => ({ data: { data: [] } })),
-        axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/share-holdings`, { headers }).catch(() => ({ data: { data: [] } }))
+        axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/share-holdings`, { headers }).catch(() => ({ data: { data: [] } })),
+        axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/corporate-actions`, { headers }).catch(() => ({ data: { data: [] } })),
+        axios.get(`${UPSTOX_FUNDAMENTALS_URL}/${isin}/profile`, { headers }).catch(() => ({ data: { data: {} } }))
     ];
 
-    const [ratiosRes, incomeRes, balanceRes, cashRes, holdingsRes] = await Promise.all(endpoints);
+    const [ratiosRes, incomeRes, balanceRes, cashRes, holdingsRes, corpRes, profileRes] = await Promise.all(endpoints);
 
     return {
         ratios: ratiosRes.data?.data || [],
-        income: incomeRes.data?.data || [],
-        balanceSheet: balanceRes.data?.data || [],
-        cashFlow: cashRes.data?.data || [],
-        holdings: holdingsRes.data?.data || []
+        income: incomeRes.data?.data || {},
+        balanceSheet: balanceRes.data?.data || {},
+        cashFlow: cashRes.data?.data || {},
+        holdings: holdingsRes.data?.data || [],
+        corporate_actions: corpRes.data?.data || [],
+        company_profile: profileRes.data?.data || {}
     };
 }
 
@@ -53,93 +57,121 @@ let isRunningFund = false;
 export const runFundamentalIntelligence = async (targetInstrument = null) => {
     if (isRunningFund) return;
     isRunningFund = true;
-    console.log(`🧠 Starting Headless Fundamental Intelligence Engine${targetInstrument ? ` (Target: ${targetInstrument})` : ''}...`);
+    console.log(`[FundIntel] Starting Headless Fundamental Intelligence Engine${targetInstrument ? ` (Target: ${targetInstrument})` : ''}...`);
     
     try {
         let token = null;
         try {
             token = await getUpstoxLiveToken();
         } catch (authErr) {
-            console.warn("⚠️ Fundamental Intelligence: Upstox token unavailable, continuing with external data & fallbacks:", authErr.message);
+            console.warn("[FundIntel] Upstox token unavailable, continuing with external data & fallbacks:", authErr.message);
         }
 
-        // 1. Resolve all tracked instruments from MongoDB + priority + user active keys
-        const mongoInstruments = await Instrument.find({ isin: { $ne: null } }).catch(() => []);
-        const trackedMap = new Map();
-        
-        for (const inst of mongoInstruments) {
-            trackedMap.set(inst.instrumentKey, {
-                instrumentKey: inst.instrumentKey,
-                isin: inst.isin,
-                tradingSymbol: inst.tradingSymbol
-            });
-        }
-
-        // Add priority instruments + user active instruments from SQLite
-        const priorityKeys = [...PRIORITY_INSTRUMENTS, 'NSE_EQ|INE002A01018', 'NSE_EQ|INE040A01034'];
+        let trackedInstruments = [];
         if (targetInstrument) {
-            priorityKeys.unshift(targetInstrument);
-        }
-        try {
-            const pageRows = db.prepare('SELECT state_json FROM page_state').all();
-            for (const row of pageRows) {
-                try {
-                    const state = JSON.parse(row.state_json);
-                    if (state?.instrument) priorityKeys.push(state.instrument);
-                    if (state?.selectedInstrument) priorityKeys.push(state.selectedInstrument);
-                } catch {}
-            }
-        } catch {}
-
-        for (const key of new Set(priorityKeys)) {
-            if (!key) continue;
-            if (trackedMap.has(key)) continue;
-            if (key.startsWith('NSE_EQ|')) {
-                const isin = key.replace('NSE_EQ|', '');
-                let row = null;
-                try {
-                    row = db.prepare('SELECT name, trading_symbol FROM instruments WHERE instrument_key = ? OR isin = ? LIMIT 1').get(key, isin);
-                } catch {}
-                trackedMap.set(key, {
-                    instrumentKey: key,
-                    isin: isin,
-                    tradingSymbol: row?.trading_symbol || row?.name || isin
-                });
-            } else if (key.startsWith('NSE_INDEX|')) {
-                const name = key.replace('NSE_INDEX|', '');
-                trackedMap.set(key, {
-                    instrumentKey: key,
-                    isin: null,
-                    tradingSymbol: name
-                });
-            } else {
-                let row = null;
-                try {
-                    row = db.prepare('SELECT instrument_key, isin, trading_symbol, name FROM instruments WHERE instrument_key = ? OR trading_symbol = ? OR name = ? LIMIT 1').get(key, key, key);
-                } catch {}
+            let isin = targetInstrument.startsWith('NSE_EQ|') ? targetInstrument.replace('NSE_EQ|', '') : null;
+            let symbol = targetInstrument.split('|').pop();
+            try {
+                const row = db.prepare('SELECT name, trading_symbol, isin FROM instruments WHERE instrument_key = ? OR isin = ? LIMIT 1').get(targetInstrument, isin || targetInstrument);
                 if (row) {
-                    trackedMap.set(row.instrument_key, {
-                        instrumentKey: row.instrument_key,
-                        isin: row.isin,
-                        tradingSymbol: row.trading_symbol || row.name
+                    if (row.isin) isin = row.isin;
+                    if (row.trading_symbol || row.name) symbol = row.trading_symbol || row.name;
+                }
+            } catch {}
+            trackedInstruments = [{
+                instrumentKey: targetInstrument,
+                isin,
+                tradingSymbol: symbol
+            }];
+        } else {
+            // 1. Resolve all tracked instruments from MongoDB + priority + user active keys
+            const mongoInstruments = await Instrument.find({ isin: { $ne: null } }).catch(() => []);
+            const trackedMap = new Map();
+            
+            for (const inst of mongoInstruments) {
+                trackedMap.set(inst.instrumentKey, {
+                    instrumentKey: inst.instrumentKey,
+                    isin: inst.isin,
+                    tradingSymbol: inst.tradingSymbol
+                });
+            }
+
+            // Add priority instruments + user active instruments from SQLite
+            const priorityKeys = [...PRIORITY_INSTRUMENTS, 'NSE_EQ|INE002A01018', 'NSE_EQ|INE040A01034'];
+            try {
+                const pageRows = db.prepare('SELECT state_json FROM page_state').all();
+                for (const row of pageRows) {
+                    try {
+                        const state = JSON.parse(row.state_json);
+                        if (state?.instrument) priorityKeys.push(state.instrument);
+                        if (state?.selectedInstrument) priorityKeys.push(state.selectedInstrument);
+                    } catch {}
+                }
+            } catch {}
+
+            for (const key of new Set(priorityKeys)) {
+                if (!key) continue;
+                if (trackedMap.has(key)) continue;
+                if (key.startsWith('NSE_EQ|')) {
+                    const isin = key.replace('NSE_EQ|', '');
+                    let row = null;
+                    try {
+                        row = db.prepare('SELECT name, trading_symbol FROM instruments WHERE instrument_key = ? OR isin = ? LIMIT 1').get(key, isin);
+                    } catch {}
+                    trackedMap.set(key, {
+                        instrumentKey: key,
+                        isin: isin,
+                        tradingSymbol: row?.trading_symbol || row?.name || isin
                     });
+                } else if (key.startsWith('NSE_INDEX|')) {
+                    const name = key.replace('NSE_INDEX|', '');
+                    trackedMap.set(key, {
+                        instrumentKey: key,
+                        isin: null,
+                        tradingSymbol: name
+                    });
+                } else {
+                    let row = null;
+                    try {
+                        row = db.prepare('SELECT instrument_key, isin, trading_symbol, name FROM instruments WHERE instrument_key = ? OR trading_symbol = ? OR name = ? LIMIT 1').get(key, key, key);
+                    } catch {}
+                    if (row) {
+                        trackedMap.set(row.instrument_key, {
+                            instrumentKey: row.instrument_key,
+                            isin: row.isin,
+                            tradingSymbol: row.trading_symbol || row.name
+                        });
+                    }
                 }
             }
+            trackedInstruments = [...trackedMap.values()];
         }
-
-        let trackedInstruments = [...trackedMap.values()];
-        if (targetInstrument) {
-            trackedInstruments.sort((a, b) => (a.instrumentKey === targetInstrument ? -1 : b.instrumentKey === targetInstrument ? 1 : 0));
-        }
-        console.log(`🔍 Found ${trackedInstruments.length} tracked instruments for fundamental analysis.`);
+        console.log(`[FundIntel] Processing ${trackedInstruments.length} instruments for fundamental analysis.`);
 
         for (const instrument of trackedInstruments) {
-            console.log(`📊 Processing ${instrument.tradingSymbol}...`);
+            console.log(`[FundIntel] Processing ${instrument.tradingSymbol}...`);
             
-            // 2. Fetch raw data from Upstox (if token and ISIN available)
-            let rawData = { ratios: [], income: [], balanceSheet: [], cashFlow: [], holdings: [] };
+            // 2. Fetch raw data from Upstox (if token and ISIN available) with SQLite cache fallback
+            let rawData = { ratios: [], income: {}, balanceSheet: {}, cashFlow: {}, holdings: [], corporate_actions: [] };
             if (token && instrument.isin) {
                 rawData = await fetchRawFundamentals(instrument.isin, token);
+            }
+            // If live statements are empty or incomplete, hydrate from SQLite fundamentals_data cache
+            const hasLiveStatements = (rawData.income?.full_statement?.length > 0 || (Array.isArray(rawData.income) && rawData.income.length > 0));
+            if (!hasLiveStatements) {
+                try {
+                    const cachedRow = db.prepare("SELECT raw_json FROM fundamentals_data WHERE instrument_key = ?").get(instrument.instrumentKey);
+                    if (cachedRow?.raw_json) {
+                        const parsed = JSON.parse(cachedRow.raw_json);
+                        if (parsed.income) rawData.income = parsed.income;
+                        if (parsed.balanceSheet) rawData.balanceSheet = parsed.balanceSheet;
+                        if (parsed.cashFlow) rawData.cashFlow = parsed.cashFlow;
+                        if (parsed.holdings && (!rawData.holdings || rawData.holdings.length === 0)) rawData.holdings = parsed.holdings;
+                        if (parsed.corporate_actions && (!rawData.corporate_actions || rawData.corporate_actions.length === 0)) rawData.corporate_actions = parsed.corporate_actions;
+                        if (parsed.ratios && (!rawData.ratios || rawData.ratios.length === 0)) rawData.ratios = parsed.ratios;
+                        if (parsed.company_profile) rawData.company_profile = parsed.company_profile;
+                    }
+                } catch (cacheErr) {}
             }
 
             // 3. Fetch External Data with Fallbacks
@@ -184,7 +216,9 @@ export const runFundamentalIntelligence = async (targetInstrument = null) => {
 
             let currentMode = 'swing';
             try {
-                const modeRow = db.prepare(`SELECT pref_value FROM user_preferences WHERE pref_key = 'praxis_trading_mode' LIMIT 1`).get();
+                const modeRow = db.prepare(
+                    `SELECT pref_value FROM user_preferences WHERE pref_key IN ('praxis_trading_mode', 'stocky-trading-mode') ORDER BY updated_at DESC LIMIT 1`
+                ).get();
                 if (modeRow?.pref_value) currentMode = modeRow.pref_value.toLowerCase();
             } catch {}
 
@@ -201,7 +235,7 @@ export const runFundamentalIntelligence = async (targetInstrument = null) => {
                 if (prevSnapshot && prevSnapshot.compositeScore !== null) {
                     if (prevSnapshot.compositeScore - computedSnapshot.compositeScore >= 15) {
                         regimeShift = true;
-                        console.log(`⚠️ REGIME SHIFT DETECTED for ${instrument.tradingSymbol}! Score dropped from ${prevSnapshot.compositeScore} to ${computedSnapshot.compositeScore}`);
+                        console.log(`[FundIntel] REGIME SHIFT DETECTED for ${instrument.tradingSymbol}! Score dropped from ${prevSnapshot.compositeScore} to ${computedSnapshot.compositeScore}`);
                     }
                 }
             }
@@ -218,6 +252,36 @@ export const runFundamentalIntelligence = async (targetInstrument = null) => {
                     }
                 }
             }
+
+            // Guard: Check if existing header_data has a higher-card-count snapshot from the live FundamentalPage
+            let finalCompositeScore = computedSnapshot.compositeScore;
+            let finalCounts = fundCounts;
+            let finalTreePayload = computedSnapshot.nestedTreePayload ? JSON.stringify(computedSnapshot.nestedTreePayload) : null;
+            let finalRegime = JSON.stringify({ label: computedSnapshot.regime?.label || 'Neutral' });
+            let finalTailwinds = JSON.stringify(computedSnapshot.tailwinds || []);
+            let finalRisks = JSON.stringify(computedSnapshot.risks || []);
+
+            try {
+                const existingRow = db.prepare("SELECT composite_score, counts_json, regime_json, tailwinds_json, risks_json, tree_payload_json, updated_at FROM header_data WHERE instrument_key = ? AND category = 'fundamental'").get(instrument.instrumentKey);
+                if (existingRow?.counts_json) {
+                    const existingCounts = JSON.parse(existingRow.counts_json);
+                    const existingCardCount = Object.keys(existingCounts || {}).length;
+                    const newCardCount = Object.keys(fundCounts).length;
+                    // If existing has high card count (>= 25) and was updated recently, and new has fewer cards, preserve existing higher-coverage score
+                    if (existingCardCount > newCardCount && existingRow.composite_score != null && existingRow.composite_score > 0) {
+                        const existingDate = new Date(existingRow.updated_at.includes('T') ? existingRow.updated_at : existingRow.updated_at.replace(' ', 'T') + 'Z');
+                        if (!isNaN(existingDate.getTime()) && (Date.now() - existingDate.getTime()) < 86400000) {
+                            finalCompositeScore = existingRow.composite_score;
+                            finalCounts = existingCounts;
+                            if (existingRow.tree_payload_json) finalTreePayload = existingRow.tree_payload_json;
+                            if (existingRow.regime_json) finalRegime = existingRow.regime_json;
+                            if (existingRow.tailwinds_json) finalTailwinds = existingRow.tailwinds_json;
+                            if (existingRow.risks_json) finalRisks = existingRow.risks_json;
+                            console.log(`[BG Fund] Preserving authoritative high-coverage snapshot (${existingCardCount} cards, score: ${finalCompositeScore}) for ${instrument.tradingSymbol}`);
+                        }
+                    }
+                }
+            } catch (guardErr) {}
 
             try {
                 db.prepare(`
@@ -237,14 +301,14 @@ export const runFundamentalIntelligence = async (targetInstrument = null) => {
                 `).run(
                     instrument.instrumentKey,
                     'fundamental',
-                    computedSnapshot.compositeScore,
-                    JSON.stringify({ label: computedSnapshot.regime?.label || 'Neutral' }),
-                    JSON.stringify(computedSnapshot.tailwinds || []),
-                    JSON.stringify(computedSnapshot.risks || []),
-                    Object.keys(fundCounts).length > 0 ? JSON.stringify(fundCounts) : null,
-                    null  // tree_payload_json
+                    finalCompositeScore,
+                    finalRegime,
+                    finalTailwinds,
+                    finalRisks,
+                    Object.keys(finalCounts).length > 0 ? JSON.stringify(finalCounts) : null,
+                    finalTreePayload
                 );
-                console.log(`[BG Fund] Wrote FUND score ${computedSnapshot.compositeScore} for ${instrument.tradingSymbol}`);
+                console.log(`[BG Fund] Wrote FUND score ${finalCompositeScore} for ${instrument.tradingSymbol}`);
             } catch (err) {
                 console.error("Failed to insert FUND score to header_data", err.message);
             }
@@ -278,7 +342,7 @@ export const runFundamentalIntelligence = async (targetInstrument = null) => {
             // C. Store Each Individual Card natively!
             for (const card of computedSnapshot.cards) {
                 if (!card.id) {
-                    console.error("❌ Card missing ID in Cron:", card);
+                    console.error("[FundIntel] Card missing ID in Cron:", card);
                     continue;
                 }
                 upsertAiCardStore(
@@ -308,23 +372,23 @@ export const runFundamentalIntelligence = async (targetInstrument = null) => {
             broadcast('intelligence:snapshot', {
                 instrument_key: instrument.instrumentKey,
                 fundamental: {
-                    composite_score: computedSnapshot.compositeScore,
+                    composite_score: finalCompositeScore,
                     regime: computedSnapshot.regime?.label || 'Neutral',
-                    counts: fundCounts,
+                    counts: finalCounts,
                     tailwinds: computedSnapshot.tailwinds,
                     risks: computedSnapshot.risks
                 }
             });
 
-            console.log(`✅ Saved structured AI SQLite snapshot for ${instrument.tradingSymbol}`);
+            console.log(`[FundIntel] Saved structured AI SQLite snapshot for ${instrument.tradingSymbol}`);
 
             // Rate limiting safety: Sleep 1 second between API bursts
             await new Promise(r => setTimeout(r, 1000));
         }
 
-        console.log("🏁 Fundamental Intelligence Cycle Complete.");
+        console.log("[FundIntel] Fundamental Intelligence Cycle Complete.");
     } catch (error) {
-        console.error("❌ Error in Fundamental Intelligence Engine:", error.message);
+        console.error("[FundIntel] Error in Fundamental Intelligence Engine:", error.message);
     } finally {
         isRunningFund = false;
     }
@@ -369,7 +433,7 @@ export const initIntelligenceCrons = () => {
     // Startup warm-up: bypass shouldRun() guards and force an immediate run on server start
     // 5s delay ensures SQLite is fully initialized and caches are seeded from disk
     setTimeout(() => {
-        console.log('⏱️ BG Intel: Running startup warm-up for all modules...');
+        console.log('[BG Intel] Running startup warm-up for all modules...');
         // Force lastRun to 0 so guards always pass on warm-up
         runTechnicalIntelligence(PRIORITY_INSTRUMENTS).catch(e => console.error('BG Tech warmup:', e.message));
         runOptionsIntelligence(PRIORITY_INSTRUMENTS).catch(e => console.error('BG Opt warmup:', e.message));
@@ -378,7 +442,7 @@ export const initIntelligenceCrons = () => {
         runFundamentalIntelligence().catch(e => console.error('BG Fund warmup:', e.message));
     }, 5000);
 
-    console.log("⏱️ Intelligence Crons initialized: Fundamentals (9:30AM, 1:30PM) | Mode-Aware Heartbeat (30s tick) — Intraday/Swing/Positional cadences auto-applied");
+    console.log("[Crons] Intelligence Crons initialized: Fundamentals (9:30AM, 1:30PM) | Mode-Aware Heartbeat (30s tick) -- Intraday/Swing/Positional cadences auto-applied");
 };
 
 /**
@@ -386,38 +450,77 @@ export const initIntelligenceCrons = () => {
  * Used by the UI Sync button to act as an all-in-one refresher + cron pipeline synchronizer.
  */
 export async function forceFullAppSynchronization({ targetInstrument = null } = {}) {
-    console.log(`⚡ [ForceSync] Initiating complete app synchronization${targetInstrument ? ` for ${targetInstrument}` : ''}...`);
-    const targetKeys = targetInstrument 
-        ? [targetInstrument, ...PRIORITY_INSTRUMENTS.filter(k => k !== targetInstrument)] 
-        : PRIORITY_INSTRUMENTS;
+    console.log(`[ForceSync] Initiating complete app synchronization${targetInstrument ? ` for ${targetInstrument}` : ''}...`);
 
-    const results = await Promise.allSettled([
+    if (targetInstrument) {
+        // Fast-path: Synchronize ONLY the target instrument synchronously (< 500ms)
+        const [techRes, optRes, fundRes] = await Promise.allSettled([
+            runTechnicalIntelligence([targetInstrument], true).catch(e => { console.warn('[ForceSync] Tech warn:', e.message); return null; }),
+            runOptionsIntelligence([targetInstrument], true).catch(e => { console.warn('[ForceSync] Options warn:', e.message); return null; }),
+            runFundamentalIntelligence(targetInstrument).catch(e => { console.warn('[ForceSync] Fundamental warn:', e.message); return null; })
+        ]);
+
+        const timestamp = new Date().toISOString();
+        broadcast('app:sync:complete', {
+            timestamp,
+            targetInstrument,
+            status: 'success'
+        });
+        console.log(`[ForceSync] Target instrument sync for ${targetInstrument} completed at ${timestamp}`);
+
+        // Offload broader background tasks asynchronously without blocking HTTP response
+        setImmediate(() => {
+            forceMarketDataPoll().catch(e => console.warn('[ForceSync-BG] Market data poll warn:', e.message));
+            runEventsIntelligence(true).catch(e => console.warn('[ForceSync-BG] Events warn:', e.message));
+            runGlobalIntelligence(true).catch(e => console.warn('[ForceSync-BG] Global warn:', e.message));
+            const remainingPriority = PRIORITY_INSTRUMENTS.filter(k => k !== targetInstrument);
+            if (remainingPriority.length > 0) {
+                runTechnicalIntelligence(remainingPriority, true).catch(e => console.warn('[ForceSync-BG] Tech warn:', e.message));
+                runOptionsIntelligence(remainingPriority, true).catch(e => console.warn('[ForceSync-BG] Options warn:', e.message));
+            }
+        });
+
+        return {
+            success: true,
+            timestamp,
+            targetInstrument,
+            modules: {
+                technical: techRes.status === 'fulfilled',
+                options: optRes.status === 'fulfilled',
+                fundamental: fundRes.status === 'fulfilled'
+            }
+        };
+    }
+
+    // Default path when no targetInstrument is passed
+    const [mktRes, techRes, optRes, fundRes, evtRes] = await Promise.allSettled([
         forceMarketDataPoll().catch(e => { console.warn('[ForceSync] Market data poll warn:', e.message); return null; }),
-        runGlobalIntelligence(true).catch(e => { console.warn('[ForceSync] Global warn:', e.message); return null; }),
-        runEventsIntelligence(true).catch(e => { console.warn('[ForceSync] Events warn:', e.message); return null; }),
-        runTechnicalIntelligence(targetKeys, true).catch(e => { console.warn('[ForceSync] Tech warn:', e.message); return null; }),
-        runOptionsIntelligence(targetKeys, true).catch(e => { console.warn('[ForceSync] Options warn:', e.message); return null; }),
-        runFundamentalIntelligence(targetInstrument).catch(e => { console.warn('[ForceSync] Fundamental warn:', e.message); return null; })
+        runTechnicalIntelligence(PRIORITY_INSTRUMENTS, true).catch(e => { console.warn('[ForceSync] Tech warn:', e.message); return null; }),
+        runOptionsIntelligence(PRIORITY_INSTRUMENTS, true).catch(e => { console.warn('[ForceSync] Options warn:', e.message); return null; }),
+        runFundamentalIntelligence().catch(e => { console.warn('[ForceSync] Fundamental warn:', e.message); return null; }),
+        runEventsIntelligence(true).catch(e => { console.warn('[ForceSync] Events warn:', e.message); return null; })
     ]);
+
+    setImmediate(() => {
+        runGlobalIntelligence(true).catch(e => console.warn('[ForceSync-BG] Global warn:', e.message));
+    });
 
     const timestamp = new Date().toISOString();
     broadcast('app:sync:complete', {
         timestamp,
-        targetInstrument,
+        targetInstrument: null,
         status: 'success'
     });
-    console.log(`✅ [ForceSync] Full app synchronization completed successfully at ${timestamp}`);
+    console.log(`[ForceSync] Priority sync completed at ${timestamp}`);
     return {
         success: true,
         timestamp,
-        targetInstrument,
         modules: {
-            marketData: results[0].status === 'fulfilled',
-            global: results[1].status === 'fulfilled',
-            events: results[2].status === 'fulfilled',
-            technical: results[3].status === 'fulfilled',
-            options: results[4].status === 'fulfilled',
-            fundamental: results[5].status === 'fulfilled'
+            marketData: mktRes.status === 'fulfilled',
+            technical: techRes.status === 'fulfilled',
+            options: optRes.status === 'fulfilled',
+            fundamental: fundRes.status === 'fulfilled',
+            events: evtRes.status === 'fulfilled'
         }
     };
 }

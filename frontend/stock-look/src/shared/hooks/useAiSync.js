@@ -1,9 +1,20 @@
 import { useEffect, useRef } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
+import { saveIntelScore } from '@/shared/utils/intelCache';
+
+const PAGE_TO_INTEL_MODULE = {
+    'Fundamentals': 'fund',
+    'Technical':    'tech',
+    'Options':      'opt',
+    'Foreign':      'glob',
+    'Global':       'glob',
+    'Events':       'evt'
+};
 
 /**
  * useAiSync
- * Silently streams the fully-calculated AI Composite Snapshot to the backend SQLite universal store.
+ * Silently streams the fully-calculated AI Composite Snapshot to the backend SQLite universal store
+ * and keeps L1 intelCache immediately synchronized with the authoritative page score.
  * 
  * @param {string} instrumentKey - The selected instrument (e.g. 'NSE_EQ|HDFC')
  * @param {string} pageName - The page being synced (e.g. 'Technical', 'Options')
@@ -16,6 +27,14 @@ export function useAiSync(instrumentKey, pageName, snapshot) {
 
     useEffect(() => {
         if (!instrumentKey || !pageName || !snapshot) return;
+
+        // Synchronously update L1 cache with the authoritative page score
+        const intelMod = PAGE_TO_INTEL_MODULE[pageName];
+        if (intelMod && snapshot.compositeScore != null && !isNaN(snapshot.compositeScore)) {
+            const targetKey = (intelMod === 'glob' || intelMod === 'evt') ? 'GLOBAL' : instrumentKey;
+            const regimeLabel = typeof snapshot.regime === 'object' ? snapshot.regime?.label : snapshot.regime;
+            saveIntelScore(intelMod, targetKey, snapshot.compositeScore, regimeLabel, 'live');
+        }
         
         // Prevent spamming the backend with the exact same payload repeatedly
         const hashStr = `${instrumentKey}-${snapshot.compositeScore}-${JSON.stringify(snapshot.regime || {})}`;

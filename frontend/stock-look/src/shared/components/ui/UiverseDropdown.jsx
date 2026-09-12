@@ -10,6 +10,7 @@ export default function UiverseDropdown({
     value, 
     onChange, 
     placeholder = "Select...",
+    searchPlaceholder = "Search...",
     className = "",
     dropup = false,
     hideSearch = false,
@@ -46,8 +47,10 @@ export default function UiverseDropdown({
         )
         : options;
 
+    const visibleOptions = filteredOptions.slice(0, 100);
+
     return (
-        <div ref={containerRef} className={`relative w-full md:w-auto min-w-[120px] ${className}`}>
+        <div ref={containerRef} className={`relative ${matchWidth ? 'w-full' : 'w-full md:w-auto'} min-w-[120px] ${className}`}>
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
@@ -79,7 +82,7 @@ export default function UiverseDropdown({
                                 <input
                                     type="text"
                                     className="w-full bg-background-surface/50 border border-border-default/50 rounded-md pl-2.5 pr-10 py-1 text-[10px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-blue-500/50"
-                                    placeholder="Search..."
+                                    placeholder={searchPlaceholder}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     onClick={(e) => e.stopPropagation()}
@@ -95,40 +98,47 @@ export default function UiverseDropdown({
                         {filteredOptions.length === 0 ? (
                             <div className="px-3 py-2 text-xs text-text-tertiary italic">No options</div>
                         ) : (
-                            filteredOptions.map(opt => {
-                                const isSelected = value === opt.value;
-                                return (
-                                    <button
-                                        key={opt.value}
-                                        onClick={() => {
-                                            onChange(opt.value);
-                                            setIsOpen(false);
-                                            setSearchTerm("");
-                                        }}
-                                        className={`
-                                            w-full text-left px-2.5 py-1 text-[10px] font-normal tracking-wide transition-colors flex items-center justify-between
-                                            hover:bg-background-surface/80
-                                            ${isSelected 
-                                                ? 'bg-blue-600/15 text-blue-600 dark:text-blue-400 font-semibold border-l-2 border-blue-600 dark:border-blue-400 pl-2.5' 
-                                                : 'text-text-primary border-l-2 border-transparent'}
-                                        `}
-                                    >
-                                        <div className="flex items-center justify-between w-full">
-                                            <span className="truncate">{opt.label}</span>
-                                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                                {opt.badge && (
-                                                    <span className="text-[9px] font-bold bg-white/10 text-text-secondary px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                                        {opt.badge}
-                                                    </span>
-                                                )}
-                                                {isSelected && (
-                                                    <Check size={13} className="text-blue-600 dark:text-blue-400 shrink-0" />
-                                                )}
+                            <>
+                                {visibleOptions.map(opt => {
+                                    const isSelected = value === opt.value;
+                                    return (
+                                        <button
+                                            key={opt.value}
+                                            onClick={() => {
+                                                onChange(opt.value);
+                                                setIsOpen(false);
+                                                setSearchTerm("");
+                                            }}
+                                            className={`
+                                                w-full text-left px-2.5 py-1 text-[10px] font-normal tracking-wide transition-colors flex items-center justify-between
+                                                hover:bg-background-surface/80
+                                                ${isSelected 
+                                                    ? 'bg-blue-600/15 text-blue-600 dark:text-blue-400 font-semibold border-l-2 border-blue-600 dark:border-blue-400 pl-2.5' 
+                                                    : 'text-text-primary border-l-2 border-transparent'}
+                                            `}
+                                        >
+                                            <div className="flex items-center justify-between w-full">
+                                                <span className="truncate">{opt.label}</span>
+                                                <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                                    {opt.badge && (
+                                                        <span className="text-[9px] font-bold bg-white/10 text-text-secondary px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                            {opt.badge}
+                                                        </span>
+                                                    )}
+                                                    {isSelected && (
+                                                        <Check size={13} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    </button>
-                                );
-                            })
+                                        </button>
+                                    );
+                                })}
+                                {filteredOptions.length > 100 && (
+                                    <div className="px-3 py-1.5 text-[9px] text-text-tertiary text-center border-t border-border-default/40">
+                                        Showing top 100 of {filteredOptions.length} — type to refine
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

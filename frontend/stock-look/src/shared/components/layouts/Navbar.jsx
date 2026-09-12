@@ -17,14 +17,14 @@
 
 import React, { useContext, useEffect, useState } from "react";
 import { FiBell, FiSettings, FiCrosshair } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "@/shared/context/ThemeContext";
 import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { usePaiWidget } from "@/shared/context/PaiWidgetContext";
 import { useNotificationStore } from "@/shared/context/NotificationContext";
 import DetachableInstrumentSelector from "@/shared/components/controls/DetachableInstrumentSelector";
 import CalculatorWidget from "@/shared/components/controls/CalculatorWidget";
-import { Calculator } from "lucide-react";
+import { Calculator, FlaskConical } from "lucide-react";
 import { MdPointOfSale } from "react-icons/md";
 
 import { FO_INDICES, FO_EQUITIES } from '@/shared/utils/foInstruments';
@@ -42,6 +42,8 @@ import OrderTicket from "@/features/trading/ui/OrderTicket";
 
 const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isDashboardPage = location.pathname === '/dashboard/home' || location.pathname === '/dashboard';
   const { theme, useOrbNav } = useTheme();
   const { isStandbyMode, toggleStandby } = useVoice();
   const { unreadCount } = useNotificationStore();
@@ -373,6 +375,24 @@ const Navbar = ({ onToggleSidebar }) => {
             <div className="absolute -top-1 -right-1 w-2 h-2 bg-accent-primary rounded-full animate-pulse" />
           )}
         </button>
+
+        {/* Backtesting Workshop Direct Launcher — Positioned Directly Under the Tickets Icon, ONLY on Dashboard Page */}
+        {isDashboardPage && (
+          <button
+            onClick={() => navigate('/backtest')}
+            className="
+              w-[30px] h-[30px] flex items-center justify-center rounded-xl
+              text-text-tertiary
+              transition-all
+              hover:text-accent-primary
+              hover:bg-background-surface/80
+              active:scale-95
+            "
+            title="Backtesting Workshop"
+          >
+            <FlaskConical className="w-[18px] h-[18px] transition-transform hover:scale-110" />
+          </button>
+        )}
       </div>
 
       {/* Detachable Magnetic Instrument Selector (Floating Widget) */}

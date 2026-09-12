@@ -62,6 +62,9 @@ export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType 
     const gdpResult = scorers.scoreGDPGrowth(ext.gdpGrowth);
     const fiiResult = scorers.scoreInstitutionalFlow(ext.fiiFlow, ext.diiFlow);
     const analystResult = scorers.scoreAnalystConsensus(ext.analystConsensus);
+    const relValResult = scorers.scoreRelativeValuation(ext.blendedPremium);
+    const eqResult = scorers.scoreEarningsQuality(ext.cfoToNetProfit);
+    const caResult = scorers.scoreCorporateActions(ext.hasCorporateActions);
 
     // 3. Build Cards Array
     const cards = [
@@ -91,6 +94,9 @@ export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType 
         { id: 'fii_dii_flow', score: fiiResult.score, bias: fiiResult.bias, rawInput: { fiiFlow: ext.fiiFlow, diiFlow: ext.diiFlow } },
         { id: 'dii_flow', score: fiiResult.score, bias: fiiResult.bias, rawInput: { diiFlow: ext.diiFlow } },
         { id: 'analyst_consensus', score: analystResult.score, bias: analystResult.bias, rawInput: { analystConsensus: ext.analystConsensus } },
+        { id: 'relative_valuation', score: relValResult.score, bias: relValResult.bias, rawInput: { blendedPremium: ext.blendedPremium } },
+        { id: 'earnings_quality', score: eqResult.score, bias: eqResult.bias, rawInput: { cfoToNetProfit: ext.cfoToNetProfit } },
+        { id: 'corporate_actions', score: caResult.score, bias: caResult.bias, rawInput: { hasCorporateActions: ext.hasCorporateActions } },
         { id: 'advance_decline', score: adResult.score, bias: adResult.bias, rawInput: {} },
         { id: 'india_vix', score: vixResult.score, bias: vixResult.bias, rawInput: {} },
         { id: 'mcap_to_gdp', score: ext.marketCapGDP ? (ext.marketCapGDP > 120 ? 30 : 70) : 50, bias: 'Neutral', rawInput: { ratio: ext.marketCapGDP } }
@@ -153,6 +159,7 @@ export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType 
         tailwinds,
         risks,
         cards,
-        formattedScores
+        formattedScores,
+        nestedTreePayload: compositeResult?.nestedTreePayload || null
     };
 }

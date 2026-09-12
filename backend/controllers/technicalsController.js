@@ -1,5 +1,5 @@
 import { calculateTechnicals } from '../services/technicalCalculationService.js';
-import { syncCandlesIfStale } from '../services/upstoxHistorical.js';
+import { syncCandlesIfStale, ensureHistoricalDailyCandles } from '../services/upstoxHistorical.js';
 import { triggerBackfillIfNeeded } from '../services/backfillEngine.js';
 import db from '../config/localDb.js';
 
@@ -276,33 +276,123 @@ export const getTechnicalIndicators = async (req, res) => {
     }
 };
 
+const normalizeTimeframe = (tf) => {
+    if (!tf) return 'day';
+    const clean = String(tf).toLowerCase().trim();
+    const map = {
+        '1m': '1minute',
+        '1min': '1minute',
+        '1minute': '1minute',
+        '3m': '3minute',
+        '3min': '3minute',
+        '3minute': '3minute',
+        '5m': '5minute',
+        '5min': '5minute',
+        '5minute': '5minute',
+        '10m': '10minute',
+        '10min': '10minute',
+        '10minute': '10minute',
+        '15m': '15minute',
+        '15min': '15minute',
+        '15minute': '15minute',
+        '30m': '30minute',
+        '30min': '30minute',
+        '30minute': '30minute',
+        '1h': '1hour',
+        '60m': '1hour',
+        '1hour': '1hour',
+        'd': 'day',
+        'day': 'day',
+        'daily': 'day',
+        'w': 'week',
+        'week': 'week',
+        'm': 'month',
+        'month': 'month',
+    };
+    return map[clean] || clean;
+};
+
 export const getCandles = async (req, res) => {
-    console.log(`[getCandles] Route hit! instrument: ${req.query.instrument}`);
     try {
-        const { instrument, timeframe = 'day', limit = 1000 } = req.query;
+        const { instrument, limit = 25000, fromDate, toDate } = req.query;
+        const timeframe = normalizeTimeframe(req.query.timeframe || 'day');
         if (!instrument) {
             return res.status(400).json({ success: false, error: "Instrument key is required" });
         }
 
-        // Smart Sync Historical Data to ensure latest candles are in DB
-        try {
-            await syncCandlesIfStale(instrument, timeframe);
-            console.log(`[getCandles] Sync completed`);
-        } catch (syncErr) {
-            console.warn(`[Candles] Sync skipped for ${instrument}: ${syncErr.message}`);
+        // Helper function to query candles from SQLite
+        const queryDbCandles = () => {
+            let query = `
+                SELECT timestamp, open, high, low, close, volume 
+                FROM candles 
+                WHERE instrument_key = ? AND timeframe = ?
+            `;
+            const params = [instrument, timeframe];
+
+            if (fromDate) {
+                query += ` AND timestamp >= ?`;
+                params.push(new Date(fromDate).toISOString());
+            }
+            if (toDate) {
+                query += ` AND timestamp <= ?`;
+                params.push(new Date(toDate).toISOString());
+            }
+
+            query += ` ORDER BY timestamp DESC LIMIT ?`;
+            params.push(parseInt(limit, 10) || 25000);
+
+            return db.prepare(query).all(...params);
+        };
+
+        // 1. PRIMARY PATH: Query local SQLite DB immediately (zero network delay)
+        let rows = queryDbCandles();
+
+        // 2. Determine if local DB data satisfies the request
+        if (timeframe === 'day' && fromDate) {
+            // Historical backtesting request (e.g. 10+ years):
+            const targetYear = new Date(fromDate).getFullYear();
+            const oldestRow = rows.length > 0 ? rows[rows.length - 1] : null;
+            const oldestYearInDb = oldestRow ? new Date(oldestRow.timestamp).getFullYear() : 9999;
+
+            // Check if already backfilled in DB or metadata table
+            let alreadyBackfilled = false;
+            try {
+                const meta = db.prepare("SELECT oldest_date FROM historical_backfill_meta WHERE instrument_key = ? AND timeframe = 'day'").get(instrument);
+                if (meta?.oldest_date) {
+                    const metaYear = new Date(meta.oldest_date).getFullYear();
+                    if (metaYear <= targetYear || oldestYearInDb <= targetYear || rows.length > 3000) {
+                        alreadyBackfilled = true;
+                    }
+                }
+            } catch (_) {}
+
+            if (oldestYearInDb <= targetYear) {
+                alreadyBackfilled = true;
+            }
+
+            // ONLY backfill if data is genuinely not present in DB
+            if (!alreadyBackfilled && (rows.length === 0 || oldestYearInDb > targetYear)) {
+                try {
+                    await ensureHistoricalDailyCandles(instrument, fromDate);
+                    rows = queryDbCandles();
+                } catch (deepErr) {
+                    console.warn(`[Candles] Deep backfill skipped for ${instrument}: ${deepErr.message}`);
+                }
+            }
+            // Once data is stored in DB, NEVER fetch again! Served directly from SQLite.
+        } else if (rows.length === 0) {
+            // DB has no rows at all for this instrument/timeframe -> Initial on-demand sync
+            try {
+                await syncCandlesIfStale(instrument, timeframe);
+                rows = queryDbCandles();
+            } catch (retryErr) {
+                console.warn(`[Candles] On-demand sync retry failed for ${instrument}: ${retryErr.message}`);
+            }
+        } else if (!fromDate && rows.length > 0) {
+            // Intraday or recent chart request: trigger non-blocking background staleness check
+            syncCandlesIfStale(instrument, timeframe).catch(() => {});
         }
 
-        console.log(`[getCandles] Fetching from DB...`);
-        // Fetch from DB
-        const stmt = db.prepare(`
-            SELECT timestamp, open, high, low, close, volume 
-            FROM candles 
-            WHERE instrument_key = ? AND timeframe = ? 
-            ORDER BY timestamp DESC
-            LIMIT ?
-        `);
-        
-        const rows = stmt.all(instrument, timeframe, parseInt(limit, 10));
         rows.reverse();
 
         // Format for lightweight-charts: { time: 'YYYY-MM-DD' or unix timestamp, open, high, low, close }

@@ -33,6 +33,7 @@ import { UserContext } from "@/shared/context/UserContext";
 import AuthLayout from "@/shared/components/layouts/AuthLayout";
 import DashboardLayout from "@/shared/components/layouts/DashboardLayout";
 import UpstoxCallback from "@/features/admin/pages/UpstoxCallback";
+import BacktestingWorkshop from "@/features/backtest/pages/BacktestingWorkshop";
 import Loader from "@/shared/components/ui/Loader";
 
 // =============================
@@ -105,6 +106,16 @@ const AppRoutes = () => {
         <Route
           path="/oauth/upstox/callback"
           element={<UpstoxCallback />}
+        />
+
+        {/* Dedicated Backtesting Workshop Scope (Isolated, No Dashboard Chrome) */}
+        <Route
+          path="/backtest"
+          element={
+            <ProtectedRoute>
+              <BacktestingWorkshop />
+            </ProtectedRoute>
+          }
         />
 
         {/* Authenticated Dashboard Scope */}

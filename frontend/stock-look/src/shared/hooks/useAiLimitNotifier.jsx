@@ -59,6 +59,13 @@ export function useAiLimitNotifier() {
 
     const evaluateLimits = useCallback(async () => {
         try {
+            // Do not run background AI checks when unauthenticated or on login/signup pages
+            const path = window.location.pathname;
+            const token = localStorage.getItem('token');
+            if (!token || path === '/login' || path === '/signup' || path === '/register') {
+                return;
+            }
+
             // Fetch gateway provider headers and model quotas in parallel
             const [gatewayRes, quotasRes] = await Promise.allSettled([
                 axiosInstance.get('/api/v1/gateway/status'),

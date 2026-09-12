@@ -153,7 +153,7 @@ function computeSections(scores) {
 
 export function computeTechnicalComposite(scoresData, isIndex = false, tradingMode = 'swing') {
     if (!scoresData || Object.keys(scoresData).length === 0) {
-        return { compositeScore: 50, regime: { label: 'Unknown', color: 'text-slate-400' }, sections: [], rawSections: {}, cardScores: {} };
+        return { compositeScore: 0, regime: { label: 'Awaiting Data', color: 'text-slate-400' }, sections: [], rawSections: {}, cardScores: {} };
     }
 
     const scores = scoresData;
@@ -177,7 +177,7 @@ export function computeTechnicalComposite(scoresData, isIndex = false, tradingMo
 
     const validSections = sectionsData.filter(s => s.score !== null);
     
-    let compositeScore = 50;
+    let compositeScore = 0;
     if (validSections.length > 0) {
         const totalW = validSections.reduce((acc, s) => acc + s.weight, 0);
         compositeScore = validSections.reduce((acc, s) => acc + (s.score * s.weight), 0) / totalW;
@@ -185,27 +185,30 @@ export function computeTechnicalComposite(scoresData, isIndex = false, tradingMo
         // Apply distress penalties (convex weighting)
         const distressCount = validSections.filter(x => x.score < 25).length;
         compositeScore = Math.max(0, compositeScore - distressCount * 4);
-    }
 
-    const adxScore = scores[CARD_REGISTRY.adx.id];
-    if (adxScore !== undefined && adxScore !== null) {
-        if (adxScore < 40) {
-            // Low ADX (weak trend) pulls composite towards neutral 50
-            compositeScore = 50 + (compositeScore - 50) * 0.7;
-        } else if (adxScore > 60) {
-            // High ADX (strong trend) amplifies the composite direction
-            compositeScore = Math.max(0, Math.min(100, 50 + (compositeScore - 50) * 1.2));
+        const adxScore = scores[CARD_REGISTRY.adx.id];
+        if (adxScore !== undefined && adxScore !== null) {
+            if (adxScore < 40) {
+                // Low ADX (weak trend) pulls composite towards neutral 50
+                compositeScore = 50 + (compositeScore - 50) * 0.7;
+            } else if (adxScore > 60) {
+                // High ADX (strong trend) amplifies the composite direction
+                compositeScore = Math.max(0, Math.min(100, 50 + (compositeScore - 50) * 1.2));
+            }
         }
+        compositeScore = Math.round(compositeScore);
     }
-
-    compositeScore = Math.round(compositeScore);
 
     // Regime uses Table 1: Composite Score Palette (7 tiers)
     const compositeColor = getCompositeColor(compositeScore);
-    const regime = {
+    const regime = validSections.length > 0 ? {
         label: compositeColor.label,
         hexColor: compositeColor.hex,
         cssColor: `text-[${compositeColor.hex}]`,
+    } : {
+        label: 'Awaiting Data',
+        hexColor: '#4B5563',
+        cssColor: 'text-slate-400',
     };
 
     const result = {

@@ -82,6 +82,15 @@ export const initLocalDb = () => {
             UNIQUE(instrument_key, timeframe, timestamp)
         );
 
+        -- 4b. Historical Backfill Metadata (tracks instruments that have their 10+ year history stored)
+        CREATE TABLE IF NOT EXISTS historical_backfill_meta (
+            instrument_key TEXT,
+            timeframe TEXT,
+            oldest_date TEXT,
+            synced_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(instrument_key, timeframe)
+        );
+
         -- 4. Quotes (Market Snapshot)
         CREATE TABLE IF NOT EXISTS quotes (
             instrument_key TEXT PRIMARY KEY,

@@ -718,7 +718,7 @@ export default function FundamentalPage() {
                   coveragePercent: coveragePercent, 
                   source: error ? "Disconnected (Manual Only)" : "Upstox + Local", 
                   freshness: resolveTime(!!fundamentalsData),
-                  snapshotTime: snapshotDatesStr
+                  snapshotTime: fundamentalsData ? `Live: ${new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}` : (snapshotDatesStr || null)
               }}
               cards={cardsForHeader}
               totalCredits={totalCredits}

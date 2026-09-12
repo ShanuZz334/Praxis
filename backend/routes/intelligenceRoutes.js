@@ -5,6 +5,7 @@ import { protect } from "../middleware/authMiddleware.js";
 import aiGateway from "../ai-gateway/index.js";
 import AiRouting from "../models/AiRouting.js";
 import { runFundamentalIntelligence, forceFullAppSynchronization } from "../services/intelligenceCron.js";
+import { broadcast } from "../services/socketBroadcast.js";
 
 const router = express.Router();
 
@@ -34,7 +35,7 @@ const handleForceSyncRequest = async (req, res) => {
             data: result
         });
     } catch (error) {
-        console.error("❌ Error in force-sync handler:", error);
+        console.error("[ForceSync] Error in force-sync handler:", error);
         res.status(500).json({ status: "error", error: error.message });
     }
 };
@@ -69,7 +70,7 @@ router.get("/history", protect, async (req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ Error fetching intelligence history:", error.message);
+        console.error("[Intelligence] Error fetching intelligence history:", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 });
@@ -92,7 +93,7 @@ router.get("/latest", protect, async (req, res) => {
 
         res.json({ status: "success", data: snapshot });
     } catch (error) {
-        console.error("❌ Error fetching latest intelligence:", error.message);
+        console.error("[Intelligence] Error fetching latest intelligence:", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 });
@@ -144,7 +145,7 @@ router.post("/sync", async (req, res) => {
         if (payload.cards && Array.isArray(payload.cards)) {
             for (const card of payload.cards) {
                 if (!card.id) {
-                    console.error("❌ Card missing ID in payload from:", page_name, card);
+                    console.error("[Intelligence] Card missing ID in payload from:", page_name, card);
                     continue;
                 }
                 upsertAiCardStore(
@@ -195,20 +196,30 @@ router.post("/sync", async (req, res) => {
                     for (const c of payload.cards) {
                         if (c.id && c.score != null) cardCounts[c.id] = c.score;
                     }
+                } else if (payload.rawScores && typeof payload.rawScores === 'object') {
+                    for (const [k, v] of Object.entries(payload.rawScores)) {
+                        if (v != null && !isNaN(v)) cardCounts[k] = Number(v);
+                    }
+                } else if (payload.counts && typeof payload.counts === 'object') {
+                    for (const [k, v] of Object.entries(payload.counts)) {
+                        if (v != null && !isNaN(v)) cardCounts[k] = Number(v);
+                    }
                 }
+                const treePayload = payload.nestedTreePayload || payload.tree_payload || payload.tree_payload_json || null;
                 try {
                     db.prepare(`
                         INSERT INTO header_data (
                             instrument_key, category, composite_score, regime_json, 
-                            tailwinds_json, risks_json, counts_json, updated_at
+                            tailwinds_json, risks_json, counts_json, tree_payload_json, updated_at
                         )
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT(instrument_key, category) DO UPDATE SET
                             composite_score = excluded.composite_score,
                             regime_json     = COALESCE(excluded.regime_json, header_data.regime_json),
                             tailwinds_json  = COALESCE(excluded.tailwinds_json, header_data.tailwinds_json),
                             risks_json      = COALESCE(excluded.risks_json, header_data.risks_json),
                             counts_json     = COALESCE(excluded.counts_json, header_data.counts_json),
+                            tree_payload_json = COALESCE(excluded.tree_payload_json, header_data.tree_payload_json),
                             updated_at      = excluded.updated_at
                     `).run(
                         hdKey,
@@ -218,17 +229,31 @@ router.post("/sync", async (req, res) => {
                         payload.tailwinds ? JSON.stringify(payload.tailwinds) : null,
                         payload.risks ? JSON.stringify(payload.risks) : null,
                         Object.keys(cardCounts).length > 0 ? JSON.stringify(cardCounts) : null,
+                        treePayload ? (typeof treePayload === 'string' ? treePayload : JSON.stringify(treePayload)) : null,
                         nowIso
                     );
+
+                    // Broadcast snapshot over socket so Master Dashboard and other pages update instantly
+                    broadcast('intelligence:snapshot', {
+                        instrument_key: hdKey,
+                        [category]: {
+                            composite_score: payload.compositeScore,
+                            regime: typeof payload.regime === 'object' ? payload.regime?.label : payload.regime,
+                            counts: cardCounts,
+                            tailwinds: payload.tailwinds || [],
+                            risks: payload.risks || payload.headwinds || [],
+                            tree_payload: treePayload
+                        }
+                    });
                 } catch (hdErr) {
-                    console.error(`⚠️ header_data write failed for ${page_name}:`, hdErr.message);
+                    console.error(`[header_data] write failed for ${page_name}:`, hdErr.message);
                 }
             }
         }
 
         res.json({ status: "success", message: "Snapshot synced to SQLite successfully" });
     } catch (error) {
-        console.error("❌ Error syncing intelligence:", error.message);
+        console.error("[Intelligence] Error syncing intelligence:", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 });
@@ -254,7 +279,7 @@ router.get("/overrides", protect, async (req, res) => {
 
         res.json({ status: "success", data: overrides });
     } catch (error) {
-        console.error("❌ Error fetching overrides:", error.message);
+        console.error("[Intelligence] Error fetching overrides:", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 });
@@ -287,7 +312,7 @@ router.post("/overrides", protect, async (req, res) => {
 
         res.json({ status: "success", data: overrides });
     } catch (error) {
-        console.error("❌ Error saving overrides:", error.message);
+        console.error("[Intelligence] Error saving overrides:", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 });
@@ -358,7 +383,7 @@ router.post("/card-insight", protect, async (req, res) => {
             cached: !!response.cached
         });
     } catch (error) {
-        console.error("❌ Error generating card insight:", error.message);
+        console.error("[Intelligence] Error generating card insight:", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 });

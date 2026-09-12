@@ -27,6 +27,66 @@ async function verifyProviderKey(providerId, baseUrl, apiKey) {
     }
 }
 
+// --- Public Telemetry & Status Routes (No auth required) ---
+router.get('/status', async (req, res) => {
+    try {
+        const providers = await AiProvider.find().lean();
+        const status = await aiQuotaTracker.getGatewayStatus(providers);
+        res.json(status);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/gateway/status', async (req, res) => {
+    try {
+        const providers = await AiProvider.find().lean();
+        const status = await aiQuotaTracker.getGatewayStatus(providers);
+        res.json(status);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/quotas', async (req, res) => {
+    try {
+        const providers = await AiProvider.find().lean();
+        const quotas = await aiQuotaTracker.computeQuotas(providers);
+        res.json(quotas);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/providers/templates', (req, res) => {
+    res.json([
+        {
+            providerId: 'gemini', displayName: 'Google Gemini', purpose: 'Vision / General / High Quota', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+            models: { level1_fast: 'gemini-3.5-flash-lite', level2_standard: 'gemini-3.5-flash', level3_advanced: 'gemini-3.8-flash', level4_expert: 'gemini-3.8-flash', level5_reasoner: 'gemini-3.8-flash', level6_vision: 'gemini-3.8-flash' }
+        },
+        {
+            providerId: 'groq', displayName: 'Groq', purpose: 'Ultra-Low Latency - Cloud', baseUrl: 'https://api.groq.com/openai/v1',
+            models: { level1_fast: 'groq/compound-mini', level2_standard: 'groq/compound', level3_advanced: 'openai/gpt-oss-20b', level4_expert: 'qwen/qwen3.8-27b', level5_reasoner: 'openai/gpt-oss-120b', level7_audio: 'whisper-large-v3-turbo' }
+        },
+        {
+            providerId: 'ollama', displayName: 'Local Ollama', purpose: 'Fast Tasks / Personal', baseUrl: 'http://localhost:11434',
+            models: { level1_fast: 'qwen2.5:3b', level2_standard: 'qwen2.5:7b' }
+        },
+        {
+            providerId: 'openrouter', displayName: 'OpenRouter', purpose: 'Deep Reasoning - Fallback', baseUrl: 'https://openrouter.ai/api/v1',
+            models: { level1_fast: 'nvidia/nemotron-3.5-lightning:free', level2_standard: 'meta-llama/llama-3.3-70b-instruct:free', level3_advanced: 'inclusionai/ling-3.0-flash-fin:free', level4_expert: 'poolside/laguna-s-2.1:free', level5_reasoner: 'nvidia/nemotron-3-ultra-550b-a55b:free' }
+        },
+        {
+            providerId: 'openrouter_2', displayName: 'OpenRouter (Secondary)', purpose: 'Deep Reasoning - Backup', baseUrl: 'https://openrouter.ai/api/v1',
+            models: { level1_fast: 'nex-agi/nex-n2.5-mini:free', level2_standard: 'microsoft/phi-3-medium-128k-instruct:free', level3_advanced: 'inclusionai/ling-3.0-flash-fin:free', level4_expert: 'nex-agi/nex-n2.5-pro:free', level5_reasoner: 'nvidia/nemotron-3-super-120b-a12b:free' }
+        },
+        {
+            providerId: 'zai', displayName: 'Z.AI (Zhipu)', purpose: 'High concurrency and cost-effective multi-modal models', baseUrl: 'https://api.z.ai/api/paas/v4',
+            models: { level1_fast: 'glm-4.5-flash', level2_standard: 'glm-5.3-flash', level3_advanced: 'glm-5.1', level4_expert: 'glm-5.2', level5_reasoner: 'glm-4-plus', level6_vision: 'glm-4.6v' }
+        }
+    ]);
+});
+
 router.use(protect);
 
 router.get('/providers', async (req, res) => {
@@ -320,36 +380,6 @@ router.get('/providers/ollama/models', async (req, res) => {
         res.json(models);
     } catch (error) {
         res.json([]); // Fail silently, return empty models if ollama is down
-    }
-});
-
-router.get('/quotas', async (req, res) => {
-    try {
-        const providers = await AiProvider.find().lean();
-        const quotas = await aiQuotaTracker.computeQuotas(providers);
-        res.json(quotas);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-router.get('/gateway/status', async (req, res) => {
-    try {
-        const providers = await AiProvider.find().lean();
-        const status = await aiQuotaTracker.getGatewayStatus(providers);
-        res.json(status);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-router.get('/status', async (req, res) => {
-    try {
-        const providers = await AiProvider.find().lean();
-        const status = await aiQuotaTracker.getGatewayStatus(providers);
-        res.json(status);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
     }
 });
 

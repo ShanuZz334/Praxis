@@ -1,0 +1,259 @@
+/**
+ * @file BacktestEquityCurve.jsx
+ * @purpose Bottom strip displaying cumulative equity progression, drawdown underlay, and trade-by-trade progression.
+ * @date 2026-09-12
+ */
+
+import React, { useState } from 'react';
+import { TrendingUp, ShieldAlert, ArrowUpRight, DollarSign, Percent } from 'lucide-react';
+
+export default function BacktestEquityCurve({
+    equityCurve = [],
+    initialCapital = 100000,
+    endingCapital = 100000,
+    maxDrawdownPct = 0
+}) {
+    const [viewMode, setViewMode] = useState('EQUITY'); // 'EQUITY' | 'PERCENT'
+    const [hoveredPoint, setHoveredPoint] = useState(null);
+
+    if (!equityCurve || equityCurve.length < 2) {
+        return (
+            <div className="h-[110px] bg-background-card border-t border-border-subtle px-4 flex items-center justify-center text-xs text-text-tertiary">
+                <span>Equity curve will populate once backtest simulation executes.</span>
+            </div>
+        );
+    }
+
+    const n = equityCurve.length;
+    const initialCap = initialCapital || 100000;
+
+    // Numerical bounds
+    const minEquity = Math.min(...equityCurve.map(p => p.equity));
+    const maxEquity = Math.max(...equityCurve.map(p => p.equity));
+    const minPct = Math.min(...equityCurve.map(p => p.pnlPct));
+    const maxPct = Math.max(...equityCurve.map(p => p.pnlPct));
+
+    const minVal = viewMode === 'EQUITY' ? minEquity : minPct;
+    const maxVal = viewMode === 'EQUITY' ? maxEquity : maxPct;
+    const range = maxVal - minVal || 1;
+
+    const width = 800;
+    const height = 65;
+
+    // Baseline value & Y coordinate (initialCapital for EQUITY, 0 for PERCENT)
+    const baselineVal = viewMode === 'EQUITY' ? initialCap : 0;
+    const baselineY = height - ((baselineVal - minVal) / range) * (height - 14) - 7;
+
+    // SVG Points with padding to prevent clipping
+    const points = equityCurve.map((d, i) => {
+        const x = (i / (n - 1)) * width;
+        const val = viewMode === 'EQUITY' ? d.equity : d.pnlPct;
+        const y = height - ((val - minVal) / range) * (height - 14) - 7;
+        return { x, y, data: d };
+    });
+
+    const pathString = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`, '');
+    const fillString = `${pathString} L ${width} ${height} L 0 ${height} Z`;
+
+    const netReturnPct = Math.round(((endingCapital - initialCap) / initialCap) * 1000) / 10;
+
+    return (
+        <div className="h-[110px] w-full max-w-full bg-background-card/95 backdrop-blur-md border-t border-border-subtle px-3 sm:px-4 py-2 flex items-center justify-between gap-3 z-20 select-none overflow-hidden">
+            {/* Left: Summary Metrics (switches based on viewMode) */}
+            <div className="flex items-center gap-5 min-w-[230px]">
+                <div>
+                    <span className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider block">
+                        {viewMode === 'EQUITY' ? 'Account Progression' : 'Cumulative % Return'}
+                    </span>
+                    <div className="flex items-baseline gap-2 mt-0.5">
+                        {viewMode === 'EQUITY' ? (
+                            <>
+                                <span className="text-xl font-black font-mono text-text-primary">
+                                    ₹{endingCapital.toLocaleString('en-IN')}
+                                </span>
+                                <span className={`text-xs font-bold font-mono ${
+                                    netReturnPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                                }`}>
+                                    {netReturnPct >= 0 ? '+' : ''}{netReturnPct}%
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                <span className={`text-xl font-black font-mono ${
+                                    netReturnPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                                }`}>
+                                    {netReturnPct >= 0 ? '+' : ''}{netReturnPct}%
+                                </span>
+                                <span className="text-xs font-bold font-mono text-text-tertiary">
+                                    (₹{endingCapital.toLocaleString('en-IN')})
+                                </span>
+                            </>
+                        )}
+                    </div>
+                    <span className="text-[9px] font-mono text-text-muted block mt-0.5">
+                        {viewMode === 'EQUITY' 
+                            ? `Net PnL: ${endingCapital >= initialCap ? '+' : ''}₹${(endingCapital - initialCap).toLocaleString('en-IN')}`
+                            : `Max DD: -${maxDrawdownPct}% • Initial: ₹${initialCap.toLocaleString('en-IN')}`}
+                    </span>
+                </div>
+
+                <div className="border-l border-border-subtle pl-4 hidden sm:block">
+                    <span className="text-[10px] text-text-tertiary uppercase font-bold tracking-wider block">Max Drawdown</span>
+                    <span className="text-sm font-bold font-mono text-rose-400 mt-0.5 block">
+                        -{maxDrawdownPct}%
+                    </span>
+                </div>
+            </div>
+
+            {/* Center: Interactive SVG Curve with Watermark & Y-Axis Scale */}
+            <div className="flex-1 min-w-0 relative h-full flex items-center gap-1.5">
+                <div className="flex-1 min-w-0 relative h-[70px]">
+                    <svg
+                        viewBox={`0 0 ${width} ${height}`}
+                        className="w-full h-full overflow-visible"
+                        preserveAspectRatio="none"
+                    >
+                        <defs>
+                            <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={netReturnPct >= 0 ? '#10b981' : '#f43f5e'} stopOpacity="0.25" />
+                                <stop offset="100%" stopColor={netReturnPct >= 0 ? '#10b981' : '#f43f5e'} stopOpacity="0.0" />
+                            </linearGradient>
+                        </defs>
+
+                        {/* Area Fill */}
+                        <path d={fillString} fill="url(#equityGrad)" />
+
+                        {/* Baseline Reference Line (0% in PERCENT mode, initialCapital in EQUITY mode) */}
+                        {baselineY >= 0 && baselineY <= height && (
+                            <g>
+                                <line
+                                    x1="0"
+                                    y1={baselineY}
+                                    x2={width}
+                                    y2={baselineY}
+                                    stroke="rgba(148, 163, 184, 0.25)"
+                                    strokeWidth="1"
+                                    strokeDasharray="4 4"
+                                />
+                                <text
+                                    x="6"
+                                    y={baselineY > 15 ? baselineY - 3 : baselineY + 10}
+                                    fill="#94a3b8"
+                                    fontSize="8"
+                                    fontFamily="monospace"
+                                    fontWeight="bold"
+                                >
+                                    {viewMode === 'EQUITY' ? `Base: ₹${initialCap.toLocaleString('en-IN')}` : 'Base: 0.0%'}
+                                </text>
+                            </g>
+                        )}
+
+                        {/* Stroke Line */}
+                        <path
+                            d={pathString}
+                            fill="none"
+                            stroke={netReturnPct >= 0 ? '#10b981' : '#f43f5e'}
+                            strokeWidth="2"
+                        />
+
+                        {/* Hover dot */}
+                        {hoveredPoint && (
+                            <circle
+                                cx={hoveredPoint.x}
+                                cy={hoveredPoint.y}
+                                r="4.5"
+                                fill="#ffffff"
+                                stroke="#3b82f6"
+                                strokeWidth="2.5"
+                            />
+                        )}
+                    </svg>
+
+                    {/* Hover overlay crosshair zones */}
+                    <div className="absolute inset-0 flex">
+                        {points.map((p, i) => (
+                            <div
+                                key={i}
+                                className="flex-1 h-full cursor-crosshair"
+                                onMouseEnter={() => setHoveredPoint(p)}
+                                onMouseLeave={() => setHoveredPoint(null)}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Tooltip on hover */}
+                    {hoveredPoint && (
+                        <div
+                            className="absolute bottom-full mb-1.5 pointer-events-none bg-background-surface/95 backdrop-blur-md border border-border-default rounded-lg px-2.5 py-1.5 shadow-xl text-[10px] font-mono z-50 whitespace-nowrap"
+                            style={{ left: `${(hoveredPoint.x / width) * 100}%`, transform: 'translateX(-50%)' }}
+                        >
+                            {viewMode === 'EQUITY' ? (
+                                <>
+                                    <div className="text-text-primary font-bold text-xs">
+                                        ₹{hoveredPoint.data.equity.toLocaleString('en-IN')}
+                                    </div>
+                                    <div className="text-text-secondary text-[9px] mt-0.5">
+                                        Return: <span className={hoveredPoint.data.pnlPct >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                                            {hoveredPoint.data.pnlPct >= 0 ? '+' : ''}{hoveredPoint.data.pnlPct}%
+                                        </span>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className={`font-bold text-xs ${hoveredPoint.data.pnlPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                        {hoveredPoint.data.pnlPct >= 0 ? '+' : ''}{hoveredPoint.data.pnlPct}%
+                                    </div>
+                                    <div className="text-text-secondary text-[9px] mt-0.5">
+                                        Equity: ₹{hoveredPoint.data.equity.toLocaleString('en-IN')}
+                                    </div>
+                                </>
+                            )}
+                            <div className="text-rose-400 text-[9px] mt-0.5">
+                                Drawdown: -{hoveredPoint.data.drawdown}%
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Y-Axis Scale Legend (Toggles dynamically between ₹ and %) */}
+                <div className="flex flex-col justify-between h-[65px] text-[9px] font-mono select-none px-2 py-0.5 border-l border-border-subtle/80 bg-background-surface/30 rounded-r-lg shrink-0 w-[78px] text-right">
+                    <div className="text-emerald-400 font-bold truncate" title="Peak Value">
+                        {viewMode === 'EQUITY' ? `₹${Math.round(maxEquity).toLocaleString('en-IN')}` : `${maxPct >= 0 ? '+' : ''}${Math.round(maxPct * 10) / 10}%`}
+                    </div>
+                    <div className="text-text-muted font-bold truncate" title="Starting Baseline">
+                        {viewMode === 'EQUITY' ? `₹${initialCap.toLocaleString('en-IN')}` : `0.0%`}
+                    </div>
+                    <div className={`font-bold truncate ${minVal < baselineVal ? 'text-rose-400' : 'text-text-tertiary'}`} title="Trough Value">
+                        {viewMode === 'EQUITY' ? `₹${Math.round(minEquity).toLocaleString('en-IN')}` : `${minPct >= 0 ? '+' : ''}${Math.round(minPct * 10) / 10}%`}
+                    </div>
+                </div>
+            </div>
+
+            {/* Right: View Mode Toggle */}
+            <div className="flex items-center gap-1 bg-background-surface p-1 rounded-lg border border-border-subtle shrink-0">
+                <button
+                    onClick={() => setViewMode('EQUITY')}
+                    className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition cursor-pointer ${
+                        viewMode === 'EQUITY'
+                            ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
+                            : 'text-text-tertiary hover:text-text-primary border border-transparent'
+                    }`}
+                    title="Display cumulative account equity progression in INR"
+                >
+                    ₹ Equity
+                </button>
+                <button
+                    onClick={() => setViewMode('PERCENT')}
+                    className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition cursor-pointer ${
+                        viewMode === 'PERCENT'
+                            ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
+                            : 'text-text-tertiary hover:text-text-primary border border-transparent'
+                    }`}
+                    title="Display cumulative percentage return and baseline"
+                >
+                    % Return
+                </button>
+            </div>
+        </div>
+    );
+}

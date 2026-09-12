@@ -620,10 +620,11 @@ function SectionBar({ sections }) {
         <div className={`flex w-full gap-1 h-28 mt-0 border-t ${STYLES.BORDER_DIVIDER} pt-2 pb-3`}>
             {sections.map(s => {
                 const sc = s.score;
-                const heightPct = sc !== null ? Math.min(100, Math.max(0, sc)) : 0;
+                const hasScore = sc !== null && !isNaN(sc) && sc > 0;
+                const heightPct = hasScore ? Math.min(100, Math.max(0, sc)) : 0;
                 
                 // Section tubes use Table 2: Indicator Palette (5 tiers)
-                const barHex = getIndicatorColor(sc).hex;
+                const barHex = hasScore ? getIndicatorColor(sc).hex : '#4B5563';
 
                 return (
                     <div key={s.id} className="relative flex-1 flex flex-col items-center justify-end h-full group min-w-[20px]">
@@ -638,7 +639,7 @@ function SectionBar({ sections }) {
                                 className="text-[9px] font-bold font-mono leading-none" 
                                 style={{ color: barHex }}
                             >
-                                {sc !== null ? Math.round(sc) : '--'}
+                                {hasScore ? Math.round(sc) : 0}
                             </span>
                             <span className="text-[8px] uppercase font-bold text-text-tertiary tracking-widest mt-0.5">
                                 {s.shortLabel}

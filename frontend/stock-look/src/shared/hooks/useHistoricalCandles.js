@@ -31,10 +31,12 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
     }
 
     const getLimit = (tf) => {
-        if (tf === 'day') return 730;
-        if (tf === 'week') return 104;
-        if (tf === 'month') return 60;
-        return 99999;
+        // Return all available stored candles from local SQLite DB (up to 25,000 bars).
+        // If 10+ years of data is already stored in the DB (from Backtesting Workshop or past sync),
+        // the normal chart section will cleanly include and display all of it.
+        // Because no 'fromDate' param is passed here, the backend works safely like before
+        // without hitting Upstox limits or calling 10-year deep backfill on instrument change.
+        return 25000;
     };
 
     const fetchCandles = async (isMounted) => {
