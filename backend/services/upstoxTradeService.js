@@ -27,7 +27,7 @@ const FALLBACK_HOLIDAYS_2026 = [
     { date: "2026-05-01", holiday_type: "ALL", description: "Maharashtra Day" },
     { date: "2026-06-27", holiday_type: "ALL", description: "Bakri Id (Id-Ul-Zuha)" },
     { date: "2026-08-15", holiday_type: "ALL", description: "Independence Day" },
-    { date: "2026-09-17", holiday_type: "ALL", description: "Ganesh Chaturthi" },
+    { date: "2026-09-14", holiday_type: "ALL", description: "Ganesh Chaturthi" },
     { date: "2026-10-02", holiday_type: "ALL", description: "Mahatma Gandhi Jayanti" },
     { date: "2026-10-18", holiday_type: "ALL", description: "Dussehra" },
     { date: "2026-11-08", holiday_type: "ALL", description: "Diwali-Laxmi Pujan" }, // Muhurat Trading

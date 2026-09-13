@@ -20,6 +20,7 @@ import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 import AiInsightModal from "@/shared/components/ui/AiInsightModal";
 import { FO_EQUITIES, FO_INDICES } from "@/shared/utils/foInstruments";
 import { getCompositeColor } from "@/shared/config/scoreColors";
+import axiosInstance from "@/shared/utils/axiosInstance";
 
 function resolveReadableSymbol(instrumentKey) {
     if (!instrumentKey) return null;

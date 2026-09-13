@@ -12,7 +12,7 @@ export default React.memo(function AdvancedNewsFeed({ newsItems, searchQuery, so
 
     // Filter by tab and search
     const filtered = newsItems.filter(news => {
-        if (activeTab !== "ALL EVENTS" && news.category?.toUpperCase() !== activeTab.toUpperCase()) {
+        if (activeTab !== "ALL EVENTS" && (news.category || "GENERAL").toUpperCase() !== activeTab.toUpperCase()) {
             return false;
         }
         if (searchQuery) {
@@ -295,7 +295,7 @@ const NewsItem = React.memo(function NewsItem({ event, onDelete, setAdditionalCh
                     <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest flex-wrap">
                         <span style={{ color: colors.sourceHex }}>{event.source}</span>
                         <span className="text-text-tertiary">•</span>
-                        <span style={{ color: colors.categoryHex }}>{event.category}</span>
+                        <span style={{ color: colors.categoryHex }}>{event.category || "GENERAL"}</span>
                         <span className="text-text-tertiary">•</span>
                         <span className="text-text-tertiary normal-case tracking-normal">{timeAgo}</span>
                     </div>

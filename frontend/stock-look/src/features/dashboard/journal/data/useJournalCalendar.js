@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
+import { registerDynamicHolidays, NSE_HOLIDAYS } from '@/shared/utils/tradingCalendar';
 
 export function useJournalCalendar(year) {
   const [dayMap, setDayMap] = useState({});
@@ -23,8 +24,12 @@ export function useJournalCalendar(year) {
         const summaryData = summaryRes.data?.data || summaryRes.data || [];
         
         // Ensure they are arrays
-        const holidays = Array.isArray(holidaysData) ? holidaysData : [];
+        const holidays = Array.isArray(holidaysData) && holidaysData.length > 0
+          ? holidaysData
+          : NSE_HOLIDAYS.filter(h => h.date.startsWith(String(currentYear)));
         const summary = Array.isArray(summaryData) ? summaryData : [];
+
+        registerDynamicHolidays(holidays);
 
         const newDayMap = {};
 

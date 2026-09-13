@@ -169,6 +169,15 @@ async function processNewsArticle(newsItem, useFewShot = true) {
             console.log(`[AutoProcessor] Validation auto-corrections for "${heading.slice(0, 50)}":`, errors);
         }
 
+        const finalHeadline = sanitized.headline || heading;
+        const finalCategory = sanitized.category || "Macro";
+
+        // Safeguard: Do not save hollow/empty events
+        if (!finalHeadline || finalHeadline.trim().length === 0) {
+            console.warn(`[AutoProcessor] Skipping event with missing headline for "${heading.slice(0, 50)}"`);
+            return null;
+        }
+
         // 10. Save to DB
         const stmt = db.prepare(`
             INSERT INTO market_events (
@@ -180,22 +189,22 @@ async function processNewsArticle(newsItem, useFewShot = true) {
         `);
 
         const info = stmt.run(
-            sanitized.headline       || heading,
-            sanitized.summary        || summary || null,
-            sanitized.category       || null,
+            finalHeadline,
+            sanitized.summary        || summary || finalHeadline,
+            finalCategory,
             sanitized.sub_category   || null,
             sanitized.source         || "Market News (Auto)",
-            sanitized.sentiment      || null,
-            sanitized.importance     || null,
-            sanitized.severity       || null,
+            sanitized.sentiment      || "Neutral",
+            sanitized.importance     || "Medium",
+            sanitized.severity       || "Normal",
             sanitized.override_mode  || "None",
             sanitized.confidence     || 60,
-            sanitized.affected_assets ? JSON.stringify(sanitized.affected_assets) : "[]",
+            sanitized.affected_assets && sanitized.affected_assets.length > 0 ? JSON.stringify(sanitized.affected_assets) : "[]",
             sanitized.event_score    || 0,
-            sanitized.horizon        || null,
+            sanitized.horizon        || "Swing",
             sanitized.reasoning      || null,
             sanitized.instrument_type || instrumentType,
-            sanitized.key_data_points ? JSON.stringify(sanitized.key_data_points) : "[]",
+            sanitized.key_data_points && sanitized.key_data_points.length > 0 ? JSON.stringify(sanitized.key_data_points) : "[]",
             article_link             || null,
             sanitized.ttl_hours      || 72
         );
@@ -205,7 +214,7 @@ async function processNewsArticle(newsItem, useFewShot = true) {
         processedHeadlines.add(heading.trim());
         if (sanitized.headline) processedHeadlines.add(sanitized.headline.trim());
 
-        console.log(`[AutoProcessor] ✅ Saved event: "${sanitized.headline?.slice(0, 60)}" | Score: ${sanitized.event_score} | Type: ${instrumentType}`);
+        console.log(`[AutoProcessor] ✅ Saved event: "${finalHeadline.slice(0, 60)}" | Score: ${sanitized.event_score} | Category: ${finalCategory} | Assets: ${(sanitized.affected_assets || []).join(",")}`);
         return info.lastInsertRowid;
 
     } catch (e) {

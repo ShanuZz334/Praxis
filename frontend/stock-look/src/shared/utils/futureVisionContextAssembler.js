@@ -17,6 +17,7 @@
  */
 
 import { getPAEReport } from './predictionAccuracyEngine';
+import { getHolidayReason, getNextTradingDate, getNextTradingDayUTC, formatDateKey } from './tradingCalendar';
 
 const FV_SETTINGS_KEY = 'praxis_future_vision_settings';
 
@@ -285,6 +286,35 @@ function _computePriceAnalytics(w96, w20, w5, last, prev, indicators) {
         if (wickUp > 40 && lc < lo)  lines.push(`  → Long upper wick on red bar — REJECTION / bearish signal`);
         if (wickDn > 40 && lc > lo)  lines.push(`  → Long lower wick on green bar — SUPPORT HOLD / bullish signal`);
         if (bodyRatio < 15)          lines.push(`  → Doji / indecision — market at inflection point`);
+    }
+
+    // Session & Market Calendar Awareness
+    if (last && last.time) {
+        const isSec = typeof last.time === 'number';
+        const lastDate = isSec ? new Date(last.time * 1000) : new Date(last.time);
+        const nextTradingDate = isSec ? getNextTradingDayUTC(lastDate) : getNextTradingDate(lastDate);
+        
+        // Scan intervening days for market holidays
+        const interveningHolidays = [];
+        const scan = new Date(lastDate);
+        while (scan < nextTradingDate) {
+            if (isSec) scan.setUTCDate(scan.getUTCDate() + 1);
+            else scan.setDate(scan.getDate() + 1);
+            
+            const reason = getHolidayReason(scan, isSec);
+            if (reason) {
+                interveningHolidays.push({ date: formatDateKey(scan), reason });
+            }
+        }
+
+        if (interveningHolidays.length > 0) {
+            lines.push(`\n[NSE TRADING CALENDAR & HOLIDAY ALERT]`);
+            interveningHolidays.forEach(h => {
+                lines.push(`MARKET CLOSED (LEAVE) : ${h.date} — ${h.reason}. Regular trading is officially suspended.`);
+            });
+            lines.push(`Next Active Session   : ${nextTradingDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}.`);
+            lines.push(`Prediction Directive  : All forecast candles apply exclusively to active market sessions starting ${nextTradingDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}. Do NOT model trading on holiday dates.`);
+        }
     }
 
     return lines.join('\n');

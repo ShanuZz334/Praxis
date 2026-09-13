@@ -22,6 +22,7 @@ import { FO_INDICES, FO_EQUITIES } from '../../utils/foInstruments';
 import { assembleContext, getFVSettings } from '../../utils/futureVisionContextAssembler';
 import { storePrediction, scoreClosedCandle, getPAESession, clearPAESession, computeConfidence, getAllPAESessions, updatePAEAutoMode, deletePAECandleByTime, deletePAESessionByTime, storeLiveErrors, buildContinuousTimeline, normalizeTimeKey, sanitizePAESession } from '../../utils/predictionAccuracyEngine';
 import { blendRollingForecasts } from '../../utils/FutureVisionBlender';
+import { getNextIntradayCandleTime, getNextTradingDay, healFutureCandleTimes, formatDateKey } from '../../utils/tradingCalendar';
 import axiosInstance from '../../utils/axiosInstance';
 import { useDataRegistry } from '../../context/DataRegistryContext';
 import { Telescope, Info, Eye, EyeOff, Microscope, RotateCw } from 'lucide-react';
@@ -812,6 +813,16 @@ export default React.memo(function AdvancedCandlestickChart({
         const realTimeSet = new Set(realCandles.map(c => normalizeTimeKey(c.time)));
         const lastRealMs = realCandles.length > 0 ? getMs(realCandles[realCandles.length - 1].time) : 0;
 
+        const isDailyOrAbove = typeof (data?.[data.length - 1]?.time) !== 'number';
+        const TF_SECONDS = {
+            '1m': 60, '1minute': 60, '3m': 180, '3minute': 180, '5m': 300, '5minute': 300,
+            '10m': 600, '10minute': 600, '15m': 900, '15minute': 900, '30m': 1800, '30minute': 1800,
+            '1h': 3600, '60m': 3600, '1hour': 3600,
+        };
+        const barSize = TF_SECONDS[timeframe] || 900;
+        const lastCandleTime = realCandles.length > 0 ? realCandles[realCandles.length - 1].time : null;
+        const healedTimes = healFutureCandleTimes(times, lastCandleTime, barSize, isDailyOrAbove);
+
         let lastValidTime = 0;
 
         let ghostData = candles
@@ -841,7 +852,7 @@ export default React.memo(function AdvancedCandlestickChart({
                 high = Math.max(high, Number((bodyMax + minWick).toFixed(2)));
                 low  = Math.min(low,  Number((bodyMin - minWick).toFixed(2)));
 
-                const candleTime = times[i];
+                const candleTime = healedTimes[i] ?? times[i];
                 const timeKey = normalizeTimeKey(candleTime);
                 const candleMs = getMs(candleTime);
 
@@ -1107,19 +1118,14 @@ export default React.memo(function AdvancedCandlestickChart({
             const isDailyOrAbove = typeof lastCandle?.time !== 'number';
 
             if (isDailyOrAbove) {
-                let currentMs = typeof lastCandle.time === 'string' 
-                    ? new Date(lastCandle.time).getTime() 
-                    : new Date(lastCandle.time.year, lastCandle.time.month - 1, lastCandle.time.day).getTime();
+                let date = typeof lastCandle.time === 'string' 
+                    ? new Date(lastCandle.time) 
+                    : new Date(lastCandle.time.year, lastCandle.time.month - 1, lastCandle.time.day);
                 
                 for (let i = 0; i < candles.length; i++) {
-                    currentMs += 86400000;
-                    let date = new Date(currentMs);
-                    while (date.getDay() === 0 || date.getDay() === 6) {
-                        currentMs += 86400000;
-                        date = new Date(currentMs);
-                    }
+                    date = getNextTradingDay(date);
                     if (typeof lastCandle.time === 'string') {
-                        times.push(date.toISOString().split('T')[0]);
+                        times.push(formatDateKey(date));
                     } else {
                         times.push({ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() });
                     }
@@ -1136,30 +1142,12 @@ export default React.memo(function AdvancedCandlestickChart({
                 };
                 let barSize = TF_SECONDS[timeframe] || 900;
                 
-                // Strict NSE Trading Hours in UTC:
-                // Market opens 09:15 IST = 03:45 UTC = 225 UTC mins
-                // Market closes 15:30 IST = 10:00 UTC = 600 UTC mins
-                const minUtcMins = 225;
-                const maxUtcMins = 600;
-                
                 let currentTime = typeof lastCandle.time === 'number'
                     ? lastCandle.time
                     : Math.floor(new Date(lastCandle.time).getTime() / 1000);
 
                 for (let i = 0; i < candles.length; i++) {
-                    currentTime += barSize;
-                    let date = new Date(currentTime * 1000);
-                    let tm = date.getUTCHours() * 60 + date.getUTCMinutes();
-                    
-                    // If the candle time is at or beyond market close (15:30 IST / 10:00 UTC),
-                    // or before market open (09:15 IST / 03:45 UTC), roll to next trading day 09:15 IST
-                    if (tm >= maxUtcMins || tm < minUtcMins) {
-                        date.setUTCDate(date.getUTCDate() + 1);
-                        if (date.getUTCDay() === 6) date.setUTCDate(date.getUTCDate() + 2); // Sat -> Mon
-                        if (date.getUTCDay() === 0) date.setUTCDate(date.getUTCDate() + 1); // Sun -> Mon
-                        date.setUTCHours(Math.floor(minUtcMins / 60), minUtcMins % 60, 0, 0);
-                        currentTime = Math.floor(date.getTime() / 1000);
-                    }
+                    currentTime = getNextIntradayCandleTime(currentTime, barSize);
                     times.push(currentTime);
                 }
             }
@@ -2653,18 +2641,12 @@ export default React.memo(function AdvancedCandlestickChart({
                             const isDailyOrAbove = typeof lastReal.time !== 'number';
 
                             if (isDailyOrAbove) {
-                                let currentMs = typeof lastReal.time === 'string'
-                                    ? new Date(lastReal.time).getTime()
-                                    : new Date(lastReal.time.year, lastReal.time.month - 1, lastReal.time.day).getTime();
-                                
-                                currentMs += 86400000;
-                                let date = new Date(currentMs);
-                                while (date.getDay() === 0 || date.getDay() === 6) {
-                                    currentMs += 86400000;
-                                    date = new Date(currentMs);
-                                }
+                                let date = typeof lastReal.time === 'string'
+                                    ? new Date(lastReal.time)
+                                    : new Date(lastReal.time.year, lastReal.time.month - 1, lastReal.time.day);
+                                date = getNextTradingDay(date);
                                 if (typeof lastReal.time === 'string') {
-                                    nextTime = date.toISOString().split('T')[0];
+                                    nextTime = formatDateKey(date);
                                 } else {
                                     nextTime = { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() };
                                 }
@@ -2689,20 +2671,7 @@ export default React.memo(function AdvancedCandlestickChart({
                                     minUtcMins = 225; maxUtcMins = 600;
                                 }
 
-                                let currentTime = lastReal.time + barSize;
-                                let date = new Date(currentTime * 1000);
-                                let tm = date.getUTCHours() * 60 + date.getUTCMinutes();
-
-                                if (tm >= maxUtcMins || tm < minUtcMins) {
-                                    if (tm >= maxUtcMins) date.setUTCDate(date.getUTCDate() + 1);
-                                    if (maxUtcMins < 1400) {
-                                        if (date.getUTCDay() === 6) date.setUTCDate(date.getUTCDate() + 2);
-                                        if (date.getUTCDay() === 0) date.setUTCDate(date.getUTCDate() + 1);
-                                    }
-                                    date.setUTCHours(Math.floor(minUtcMins / 60), minUtcMins % 60, 0, 0);
-                                    currentTime = Math.floor(date.getTime() / 1000);
-                                }
-                                nextTime = currentTime;
+                                nextTime = getNextIntradayCandleTime(lastReal.time, barSize, minUtcMins, maxUtcMins);
                             }
                             const newCandle = { time: nextTime, open, high, low, close, volume: Math.min(lastReal.volume || 1000, 50000) };
 

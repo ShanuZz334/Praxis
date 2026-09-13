@@ -691,6 +691,65 @@ export function validateAndSanitizeEvent(raw) {
     sanitized.key_data_points = Array.isArray(sanitized.key_data_points)  ? sanitized.key_data_points  : [];
     sanitized.ttl_hours       = Number.isInteger(Number(raw.ttl_hours)) ? Number(raw.ttl_hours) : 72; // Default to 72 hours (3 days)
 
+    // Category validation & automatic fallback
+    const matchedCat = EVENT_CATEGORIES.find(
+        c => c.label.toLowerCase() === String(raw.category || "").trim().toLowerCase()
+    );
+    if (matchedCat) {
+        sanitized.category = matchedCat.label;
+    } else {
+        const INSTRUMENT_TO_CATEGORY = {
+            COMMODITY: "Commodities",
+            CURRENCY: "Currency",
+            GLOBAL: "Global",
+            EQUITY: "Corporate",
+            MACRO_POLICY: "Macro",
+            INDICES: "Macro"
+        };
+        sanitized.category = INSTRUMENT_TO_CATEGORY[sanitized.instrument_type] || "Macro";
+        if (raw.category) {
+            errors.push(`Auto-corrected: unknown category "${raw.category}" -> defaulted to "${sanitized.category}"`);
+        } else {
+            errors.push(`Auto-corrected: missing category -> inferred "${sanitized.category}" from instrument_type`);
+        }
+    }
+
+    // Clean & normalize affected_assets
+    sanitized.affected_assets = sanitized.affected_assets
+        .filter(a => typeof a === "string" && a.trim().length > 0)
+        .map(a => a.trim().toUpperCase());
+
+    // Heuristic entity extraction if affected_assets is empty
+    if (sanitized.affected_assets.length === 0 && (raw.headline || raw.summary)) {
+        const text = `${raw.headline || ""} ${raw.summary || ""}`.toUpperCase();
+        const fallbackAssets = [];
+        
+        // Common sector / company keyword triggers in Indian markets
+        if (/BRENT|CRUDE|OIL|OMC/.test(text)) fallbackAssets.push("BPCL", "IOCL", "HPCL");
+        if (/PAINT|ASIAN PAINT|BERGER/.test(text)) fallbackAssets.push("ASIANPAINT", "BERGERPAINTS");
+        if (/AIRLINE|AVIATION|INDIGO|INTERGLOBE/.test(text)) fallbackAssets.push("INDIGO");
+        if (/BANK|RBI|REPO|CREDIT|NIM/.test(text)) fallbackAssets.push("HDFCBANK", "SBIN", "ICICIBANK");
+        if (/IT\b|INFOSYS|TCS|WIPRO|TECH M|HCL/.test(text)) fallbackAssets.push("INFY", "TCS", "WIPRO");
+        if (/AUTO|VEHICLE|MARUTI|TATA MOTOR|M&M/.test(text)) fallbackAssets.push("MARUTI", "TATAMOTORS", "M&M");
+        if (/STEEL|METAL|TATA STEEL|JSW/.test(text)) fallbackAssets.push("TATASTEEL", "JSWSTEEL");
+        if (/PHARMA|DRUG|SUN PHARMA|CIPLA/.test(text)) fallbackAssets.push("SUNPHARMA", "CIPLA");
+        if (/NIFTY|SENSEX|MARKET WRAP|DOMESTIC MARKET/.test(text)) fallbackAssets.push("NIFTY");
+
+        if (fallbackAssets.length > 0) {
+            sanitized.affected_assets = Array.from(new Set(fallbackAssets)).slice(0, 7);
+            errors.push(`Auto-corrected: populated ${sanitized.affected_assets.length} affected assets from headline/summary`);
+        }
+    }
+
+    // Heuristic quantitative catalyst extraction if key_data_points is empty
+    if (sanitized.key_data_points.length === 0 && (raw.headline || raw.summary)) {
+        const text = `${raw.headline || ""} ${raw.summary || ""}`;
+        const dataPointMatches = text.match(/(\$\d+(\.\d+)?(\/[a-zA-Z]+)?|\b\d+(\.\d+)?%|\b\d+\s*bps|\b\d+(\.\d+)?\s*(cr|crore|lakh|bn|billion|trillion))/gi);
+        if (dataPointMatches && dataPointMatches.length > 0) {
+            sanitized.key_data_points = Array.from(new Set(dataPointMatches)).slice(0, 3);
+            errors.push(`Auto-corrected: extracted key data points: ${sanitized.key_data_points.join(", ")}`);
+        }
+    }
 
     // Compute event score deterministically — never trust AI-provided score.
     // Horizon is now a 5th input to the PES-7 formula (v2 institutional scale).

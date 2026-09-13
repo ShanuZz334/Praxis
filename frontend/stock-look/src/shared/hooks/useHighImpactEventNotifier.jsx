@@ -37,30 +37,27 @@ export function useHighImpactEventNotifier() {
 
         if (liveNewEvents.length === 0) return;
 
-        // Cap batch alerts at 3 most recent to avoid toast flood if bulk imported
-        const eventsToAlert = liveNewEvents.slice(0, 3);
+        // Cap batch alerts at 1 to prevent toast flooding and stacked clutter
+        const eventsToAlert = liveNewEvents.slice(0, 1);
 
-        eventsToAlert.forEach((ev, index) => {
-            setTimeout(() => {
-                const displayScore = getDisplayScore(ev.event_score);
-                const colors = getColorMap(ev);
+        eventsToAlert.forEach((ev) => {
+            const displayScore = getDisplayScore(ev.event_score);
+            const colors = getColorMap(ev);
 
-                toast.custom(
-                    (id) => (
-                        <EventAlertToast
-                            event={ev}
-                            displayScore={displayScore}
-                            colors={colors}
-                            toastId={id}
-                        />
-                    ),
-                    {
-                        id: `event-alert-${ev.id}`,
-                        duration: 8000,
-                        position: 'top-right',
-                    }
-                );
-            }, index * 400);
+            toast.custom(
+                (id) => (
+                    <EventAlertToast
+                        event={ev}
+                        displayScore={displayScore}
+                        colors={colors}
+                        toastId={id}
+                    />
+                ),
+                {
+                    id: `event-alert-${ev.id}`,
+                    duration: 5000,
+                }
+            );
         });
     };
 

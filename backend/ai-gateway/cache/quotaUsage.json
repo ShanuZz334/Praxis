@@ -1,35 +1,23 @@
 {
-  "date": "2026-09-12",
+  "date": "2026-09-13",
   "usage": {
     "groq::openai/gpt-oss-120b": {
-      "requests": 5,
-      "tokensIn": 23203,
-      "tokensOut": 18129,
-      "lastCalled": "2026-09-12T16:45:43.391Z"
+      "requests": 1,
+      "tokensIn": 4520,
+      "tokensOut": 4910,
+      "lastCalled": "2026-09-13T06:01:57.357Z"
     },
     "gemini::gemini-3.5-flash": {
-      "requests": 3,
-      "tokensIn": 1690,
-      "tokensOut": 729,
-      "lastCalled": "2026-09-12T14:52:37.615Z"
-    },
-    "gemini::gemini-3.8-flash": {
-      "requests": 3,
-      "tokensIn": 7411,
-      "tokensOut": 1960,
-      "lastCalled": "2026-09-12T16:44:26.797Z"
+      "requests": 1,
+      "tokensIn": 2282,
+      "tokensOut": 242,
+      "lastCalled": "2026-09-13T06:24:23.216Z"
     },
     "groq::qwen/qwen3.8-27b": {
       "requests": 2,
-      "tokensIn": 5247,
-      "tokensOut": 1723,
-      "lastCalled": "2026-09-12T15:50:17.688Z"
-    },
-    "ollama::qwen2.5:7b": {
-      "requests": 1,
-      "tokensIn": 123,
-      "tokensOut": 9,
-      "lastCalled": "2026-09-12T14:33:18.002Z"
+      "tokensIn": 3078,
+      "tokensOut": 1459,
+      "lastCalled": "2026-09-13T06:29:28.093Z"
     }
   },
   "groqLiveHeaders": {
@@ -37,9 +25,18 @@
     "remainingRequests": 999,
     "resetRequests": "1m26.4s",
     "limitTokens": 8000,
-    "remainingTokens": 2992,
-    "resetTokens": "37.56s",
-    "updatedAt": 1789231543381
+    "remainingTokens": 4643,
+    "resetTokens": "25.177s",
+    "updatedAt": 1789280967998
+  },
+  "groq2LiveHeaders": {
+    "limitRequests": 1000,
+    "remainingRequests": 1000,
+    "resetRequests": "1ms",
+    "limitTokens": 8000,
+    "remainingTokens": 8000,
+    "resetTokens": "1ms",
+    "updatedAt": 1789162789288
   },
   "openrouterLiveHeaders": {
     "limitRequests": 50,
@@ -51,13 +48,5 @@
     "remainingRequests": 50,
     "updatedAt": 1789172132397
   },
-  "groq2LiveHeaders": {
-    "limitRequests": 1000,
-    "remainingRequests": 1000,
-    "resetRequests": "1ms",
-    "limitTokens": 8000,
-    "remainingTokens": 8000,
-    "resetTokens": "1ms",
-    "updatedAt": 1789162789288
-  }
+  "geminiLiveHeaders": null
 }

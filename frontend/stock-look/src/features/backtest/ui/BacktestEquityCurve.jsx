@@ -58,7 +58,7 @@ export default function BacktestEquityCurve({
     const netReturnPct = Math.round(((endingCapital - initialCap) / initialCap) * 1000) / 10;
 
     return (
-        <div className="h-[110px] w-full max-w-full bg-background-card/95 backdrop-blur-md border-t border-border-subtle px-3 sm:px-4 py-2 flex items-center justify-between gap-3 z-20 select-none overflow-hidden">
+        <div className="h-[110px] w-full max-w-full bg-background-card/95 backdrop-blur-md border-t border-border-subtle px-3 sm:px-4 py-2 flex items-center justify-between gap-3 relative z-40 select-none overflow-visible">
             {/* Left: Summary Metrics (switches based on viewMode) */}
             <div className="flex items-center gap-5 min-w-[230px]">
                 <div>
@@ -184,9 +184,17 @@ export default function BacktestEquityCurve({
                     {/* Tooltip on hover */}
                     {hoveredPoint && (
                         <div
-                            className="absolute bottom-full mb-1.5 pointer-events-none bg-background-surface/95 backdrop-blur-md border border-border-default rounded-lg px-2.5 py-1.5 shadow-xl text-[10px] font-mono z-50 whitespace-nowrap"
+                            className="absolute bottom-full mb-2 pointer-events-none bg-background-surface/95 backdrop-blur-md border border-border-default rounded-lg px-2.5 py-1.5 shadow-2xl text-[10px] font-mono z-50 whitespace-nowrap"
                             style={{ left: `${(hoveredPoint.x / width) * 100}%`, transform: 'translateX(-50%)' }}
                         >
+                            <div className="text-[9px] text-text-tertiary flex items-center justify-between gap-3 mb-1 border-b border-border-subtle/60 pb-0.5">
+                                <span>{hoveredPoint.data.tradeIndex ? `Trade #${hoveredPoint.data.tradeIndex}` : 'Initial Baseline'}</span>
+                                {hoveredPoint.data.outcome && (
+                                    <span className={hoveredPoint.data.outcome === 'WIN' ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                                        {hoveredPoint.data.outcome}
+                                    </span>
+                                )}
+                            </div>
                             {viewMode === 'EQUITY' ? (
                                 <>
                                     <div className="text-text-primary font-bold text-xs">
@@ -211,6 +219,8 @@ export default function BacktestEquityCurve({
                             <div className="text-rose-400 text-[9px] mt-0.5">
                                 Drawdown: -{hoveredPoint.data.drawdown}%
                             </div>
+                            {/* Downward indicator caret */}
+                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-background-surface border-r border-b border-border-default" />
                         </div>
                     )}
                 </div>

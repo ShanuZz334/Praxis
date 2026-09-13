@@ -15,6 +15,7 @@ export function useAiLimitNotifier() {
     const { addNotification, notifications } = useNotificationStore();
     const notifiedKeysRef = useRef(new Set());
     const isInitialMount = useRef(true);
+    const lastToastTimeRef = useRef(0);
 
     // Seed existing notification IDs so page refresh never re-spams toasts
     useEffect(() => {
@@ -40,19 +41,24 @@ export function useAiLimitNotifier() {
             timestamp: new Date().toISOString()
         });
 
+        // Throttle desktop popup toasts to avoid multiple stacked cards on screen
+        const now = Date.now();
+        if (now - lastToastTimeRef.current < 5000) {
+            return;
+        }
+        lastToastTimeRef.current = now;
+
         if (toastType === 'critical') {
             toast.error(title, {
                 id,
                 description,
-                duration: 8000,
-                position: 'top-right'
+                duration: 5000,
             });
         } else if (toastType === 'warning') {
             toast.warning(title, {
                 id,
                 description,
-                duration: 7000,
-                position: 'top-right'
+                duration: 5000,
             });
         }
     }, [addNotification]);
