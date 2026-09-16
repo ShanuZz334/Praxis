@@ -1,33 +1,63 @@
 {
-  "date": "2026-09-13",
+  "date": "2026-09-16",
   "usage": {
-    "groq::openai/gpt-oss-120b": {
-      "requests": 1,
-      "tokensIn": 4520,
-      "tokensOut": 4910,
-      "lastCalled": "2026-09-13T06:01:57.357Z"
-    },
     "gemini::gemini-3.5-flash": {
-      "requests": 1,
-      "tokensIn": 2282,
-      "tokensOut": 242,
-      "lastCalled": "2026-09-13T06:24:23.216Z"
+      "requests": 9,
+      "tokensIn": 11935,
+      "tokensOut": 200,
+      "lastCalled": "2026-09-16T15:16:17.702Z"
     },
-    "groq::qwen/qwen3.8-27b": {
+    "groq::groq/compound": {
+      "requests": 8,
+      "tokensIn": 44428,
+      "tokensOut": 9691,
+      "lastCalled": "2026-09-16T15:17:12.288Z"
+    },
+    "groq::openai/gpt-oss-120b": {
+      "requests": 3,
+      "tokensIn": 15039,
+      "tokensOut": 9631,
+      "lastCalled": "2026-09-16T17:13:47.131Z"
+    },
+    "groq_2::groq/compound": {
+      "requests": 1,
+      "tokensIn": 5106,
+      "tokensOut": 1134,
+      "lastCalled": "2026-09-16T15:16:15.991Z"
+    },
+    "groq::openai/gpt-oss-20b": {
+      "requests": 3,
+      "tokensIn": 9955,
+      "tokensOut": 4796,
+      "lastCalled": "2026-09-16T17:06:47.044Z"
+    },
+    "groq_2::openai/gpt-oss-20b": {
       "requests": 2,
-      "tokensIn": 3078,
-      "tokensOut": 1459,
-      "lastCalled": "2026-09-13T06:29:28.093Z"
+      "tokensIn": 4510,
+      "tokensOut": 2907,
+      "lastCalled": "2026-09-16T17:06:58.010Z"
+    },
+    "openrouter_2::nvidia/nemotron-3-super-120b-a12b:free": {
+      "requests": 1,
+      "tokensIn": 9575,
+      "tokensOut": 8192,
+      "lastCalled": "2026-09-16T17:10:44.761Z"
+    },
+    "gemini::gemini-3.5-flash-lite": {
+      "requests": 1,
+      "tokensIn": 9436,
+      "tokensOut": 936,
+      "lastCalled": "2026-09-16T17:15:34.643Z"
     }
   },
   "groqLiveHeaders": {
     "limitRequests": 1000,
-    "remainingRequests": 999,
-    "resetRequests": "1m26.4s",
+    "remainingRequests": 1000,
+    "resetRequests": "1ms",
     "limitTokens": 8000,
-    "remainingTokens": 4643,
-    "resetTokens": "25.177s",
-    "updatedAt": 1789280967998
+    "remainingTokens": 8000,
+    "resetTokens": "1ms",
+    "updatedAt": 1789578931007
   },
   "groq2LiveHeaders": {
     "limitRequests": 1000,
@@ -36,7 +66,7 @@
     "limitTokens": 8000,
     "remainingTokens": 8000,
     "resetTokens": "1ms",
-    "updatedAt": 1789162789288
+    "updatedAt": 1789578506175
   },
   "openrouterLiveHeaders": {
     "limitRequests": 50,

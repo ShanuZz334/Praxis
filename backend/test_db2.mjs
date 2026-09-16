@@ -1,1 +1,0 @@
-import Database from 'better-sqlite3'; const db = new Database('local_data/praxis_market.db'); console.log('page_state:', db.prepare('SELECT state_json FROM page_state').all()); console.log('user_preferences:', db.prepare('SELECT pref_value FROM user_preferences WHERE pref_key LIKE \'%page_state%\'').all());

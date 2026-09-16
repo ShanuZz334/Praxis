@@ -156,7 +156,7 @@ initInstrumentCron();
 initIntelligenceCrons();
 
 io.on("connection", (socket) => {
-    console.log(`🔌 Client connected to Socket.io: ${socket.id}`);
+    console.log(`[Socket.io] Client connected: ${socket.id}`);
     
     socket.on("subscribe:instruments", async ({ keys, mode }) => {
         if (keys && keys.length > 0) {
@@ -171,7 +171,9 @@ io.on("connection", (socket) => {
             if (cachedQuotes.length > 0) {
                 // Send it to this specific socket
                 cachedQuotes.forEach(quote => {
-                    validKeys.add(quote.instrumentKey);
+                    if (!quote.isStale) {
+                        validKeys.add(quote.instrumentKey);
+                    }
                     socket.emit("market:update", { instrumentKey: quote.instrumentKey, data: quote });
                 });
             }
@@ -219,9 +221,6 @@ io.on("connection", (socket) => {
                         };
                         // Broadcast globally so all sockets get the true close price
                         broadcast("market:update", { instrumentKey: k, data: payload });
-                        
-                        // We also directly update the SQLite cache by virtue of fetchQuotes() already doing it,
-                        // so future getLatestQuotes() will load it natively.
                     }
                 }).catch(console.error);
             }
@@ -257,12 +256,16 @@ io.on("connection", (socket) => {
     });
 
     socket.on("disconnect", () => {
-        console.log(`🔌 Client disconnected from Socket.io: ${socket.id}`);
+        console.log(`[Socket.io] Client disconnected: ${socket.id}`);
     });
 });
 
 httpServer.listen(PORT, () => {
-    console.log(`✅ Server running on port ${PORT}`);
+    console.log(`[Server] Server running on port ${PORT}`);
+    // Run automated storage guardrail maintenance in background on startup
+    import("./services/storageGuardrail.js").then(m => {
+        m.runStorageMaintenance(false).catch(err => console.warn("[Storage Guardrail] Startup check warning:", err.message));
+    }).catch(() => {});
     // Start the Upstox Market Data Feed V3 service
     connectUpstoxWebsocket().catch(e => console.error(e));
     // Start periodic polling for FII/DII and Smartlists to broadcast over socket

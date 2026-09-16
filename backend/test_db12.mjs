@@ -1,1 +1,0 @@
-import Database from 'better-sqlite3'; const db = new Database('local_data/praxis_market.db'); console.log('header_data:', db.prepare('SELECT instrument_key FROM header_data WHERE instrument_key LIKE \'%INE040A01034%\'').all());

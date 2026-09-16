@@ -312,6 +312,69 @@ const normalizeTimeframe = (tf) => {
     return map[clean] || clean;
 };
 
+const getMinutesFromTf = (tf) => {
+    if (!tf) return 1;
+    if (tf.includes('1hour') || tf.includes('60m')) return 60;
+    if (tf.includes('30m')) return 30;
+    if (tf.includes('15m')) return 15;
+    if (tf.includes('10m')) return 10;
+    if (tf.includes('5m')) return 5;
+    if (tf.includes('3m')) return 3;
+    if (tf.includes('1m')) return 1;
+    return 1;
+};
+
+const resample1mCandles = (oneMinBars, intervalMinutes) => {
+    if (!Array.isArray(oneMinBars) || oneMinBars.length === 0) return [];
+    if (intervalMinutes <= 1) return oneMinBars;
+
+    // Ensure chronological order
+    const sorted = [...oneMinBars].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    const intervalMs = intervalMinutes * 60 * 1000;
+    const aggregated = [];
+    let currentWindowStartMs = null;
+    let currentBar = null;
+
+    for (const b of sorted) {
+        const ts = new Date(b.timestamp).getTime();
+        // Indian market opens at 09:15 IST (03:45 UTC)
+        const istDate = new Date(ts + 5.5 * 3600 * 1000);
+        const y = istDate.getUTCFullYear();
+        const m = istDate.getUTCMonth();
+        const d = istDate.getUTCDate();
+        const marketOpenMs = Date.UTC(y, m, d, 3, 45, 0);
+
+        let winStartMs;
+        if (ts < marketOpenMs) {
+            winStartMs = Math.floor(ts / intervalMs) * intervalMs;
+        } else {
+            const msSinceOpen = ts - marketOpenMs;
+            const winIdx = Math.floor(msSinceOpen / intervalMs);
+            winStartMs = marketOpenMs + (winIdx * intervalMs);
+        }
+
+        if (currentWindowStartMs === null || winStartMs !== currentWindowStartMs) {
+            if (currentBar) aggregated.push(currentBar);
+            currentWindowStartMs = winStartMs;
+            currentBar = {
+                timestamp: new Date(winStartMs).toISOString(),
+                open: b.open,
+                high: b.high,
+                low: b.low,
+                close: b.close,
+                volume: b.volume || 0
+            };
+        } else {
+            if (b.high > currentBar.high) currentBar.high = b.high;
+            if (b.low < currentBar.low) currentBar.low = b.low;
+            currentBar.close = b.close;
+            currentBar.volume += (b.volume || 0);
+        }
+    }
+    if (currentBar) aggregated.push(currentBar);
+    return aggregated;
+};
+
 export const getCandles = async (req, res) => {
     try {
         const { instrument, limit = 25000, fromDate, toDate } = req.query;
@@ -320,14 +383,17 @@ export const getCandles = async (req, res) => {
             return res.status(400).json({ success: false, error: "Instrument key is required" });
         }
 
+        const isIntraday = timeframe.includes('minute') || timeframe.includes('hour');
+        const numLimit = parseInt(limit, 10) || 25000;
+
         // Helper function to query candles from SQLite
-        const queryDbCandles = () => {
+        const queryDbCandles = (targetTf = timeframe, customLimit = numLimit) => {
             let query = `
                 SELECT timestamp, open, high, low, close, volume 
                 FROM candles 
                 WHERE instrument_key = ? AND timeframe = ?
             `;
-            const params = [instrument, timeframe];
+            const params = [instrument, targetTf];
 
             if (fromDate) {
                 query += ` AND timestamp >= ?`;
@@ -339,22 +405,76 @@ export const getCandles = async (req, res) => {
             }
 
             query += ` ORDER BY timestamp DESC LIMIT ?`;
-            params.push(parseInt(limit, 10) || 25000);
+            params.push(customLimit);
 
             return db.prepare(query).all(...params);
         };
 
         // 1. PRIMARY PATH: Query local SQLite DB immediately (zero network delay)
-        let rows = queryDbCandles();
+        let rows = queryDbCandles(timeframe);
 
-        // 2. Determine if local DB data satisfies the request
+        // 2. Multi-Timeframe Intraday Resampling Bridge:
+        // If an intraday timeframe (e.g. 15m, 5m, 1h) is requested, check if 1m data exists in DB.
+        // If DB has 1m data older than the oldest row or if rows.length === 0, resample the 1m data on the fly!
+        if (isIntraday && timeframe !== '1minute') {
+            const oldestRowTs = rows.length > 0 ? rows[rows.length - 1].timestamp : (toDate ? new Date(toDate).toISOString() : new Date().toISOString());
+            const hasOlder1m = db.prepare(`
+                SELECT COUNT(*) as cnt 
+                FROM candles 
+                WHERE instrument_key = ? AND timeframe = '1minute' AND timestamp < ?
+            `).get(instrument, oldestRowTs);
+
+            if (rows.length === 0 || (hasOlder1m && hasOlder1m.cnt > 0 && rows.length < numLimit)) {
+                // Fetch underlying 1-minute bars to resample
+                const needed1mLimit = Math.min(numLimit * getMinutesFromTf(timeframe), 150000);
+                let query1m = `
+                    SELECT timestamp, open, high, low, close, volume 
+                    FROM candles 
+                    WHERE instrument_key = ? AND timeframe = '1minute'
+                `;
+                const params1m = [instrument];
+                if (fromDate) {
+                    query1m += ` AND timestamp >= ?`;
+                    params1m.push(new Date(fromDate).toISOString());
+                }
+                if (toDate) {
+                    query1m += ` AND timestamp <= ?`;
+                    params1m.push(new Date(toDate).toISOString());
+                } else if (rows.length > 0) {
+                    // Only fetch 1m bars older than what we already have to prepend
+                    query1m += ` AND timestamp < ?`;
+                    params1m.push(oldestRowTs);
+                }
+                query1m += ` ORDER BY timestamp DESC LIMIT ?`;
+                params1m.push(needed1mLimit);
+
+                const oneMinBars = db.prepare(query1m).all(...params1m);
+                if (oneMinBars.length > 0) {
+                    const resampledOlder = resample1mCandles(oneMinBars, getMinutesFromTf(timeframe));
+                    // Combine resampled older bars with existing rows (chronological merge)
+                    const existingMap = new Map();
+                    for (const r of rows) existingMap.set(r.timestamp, r);
+                    for (const r of resampledOlder) {
+                        if (!existingMap.has(r.timestamp)) {
+                            rows.push(r);
+                        }
+                    }
+                    // Sort descending before the standard slice
+                    rows.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                    if (rows.length > numLimit) {
+                        rows = rows.slice(0, numLimit);
+                    }
+                }
+            }
+        }
+
+        // 3. Determine if local DB data satisfies the request
         if (timeframe === 'day' && fromDate) {
             // Historical backtesting request (e.g. 10+ years):
             const targetYear = new Date(fromDate).getFullYear();
             const oldestRow = rows.length > 0 ? rows[rows.length - 1] : null;
             const oldestYearInDb = oldestRow ? new Date(oldestRow.timestamp).getFullYear() : 9999;
 
-            // Check if already backfilled in DB or metadata table
             let alreadyBackfilled = false;
             try {
                 const meta = db.prepare("SELECT oldest_date FROM historical_backfill_meta WHERE instrument_key = ? AND timeframe = 'day'").get(instrument);
@@ -370,21 +490,19 @@ export const getCandles = async (req, res) => {
                 alreadyBackfilled = true;
             }
 
-            // ONLY backfill if data is genuinely not present in DB
             if (!alreadyBackfilled && (rows.length === 0 || oldestYearInDb > targetYear)) {
                 try {
                     await ensureHistoricalDailyCandles(instrument, fromDate);
-                    rows = queryDbCandles();
+                    rows = queryDbCandles(timeframe);
                 } catch (deepErr) {
                     console.warn(`[Candles] Deep backfill skipped for ${instrument}: ${deepErr.message}`);
                 }
             }
-            // Once data is stored in DB, NEVER fetch again! Served directly from SQLite.
         } else if (rows.length === 0) {
             // DB has no rows at all for this instrument/timeframe -> Initial on-demand sync
             try {
                 await syncCandlesIfStale(instrument, timeframe);
-                rows = queryDbCandles();
+                rows = queryDbCandles(timeframe);
             } catch (retryErr) {
                 console.warn(`[Candles] On-demand sync retry failed for ${instrument}: ${retryErr.message}`);
             }
@@ -401,9 +519,14 @@ export const getCandles = async (req, res) => {
         for (const row of rows) {
             // lightweight-charts requires time in seconds for intraday, or string for daily
             const dateObj = new Date(row.timestamp);
-            const time = timeframe === 'day' || timeframe === 'week' || timeframe === 'month' 
-                ? dateObj.toISOString().split('T')[0] 
-                : Math.floor(dateObj.getTime() / 1000);
+            let time;
+            if (timeframe === 'day' || timeframe === 'week' || timeframe === 'month') {
+                // True IST Date: add 5.5 hours so UTC 18:30 aligns to the actual Indian trading calendar date
+                const istDate = new Date(dateObj.getTime() + 5.5 * 3600 * 1000);
+                time = istDate.toISOString().split('T')[0];
+            } else {
+                time = Math.floor(dateObj.getTime() / 1000);
+            }
             
             if (!seenTimes.has(time)) {
                 seenTimes.add(time);
@@ -417,6 +540,80 @@ export const getCandles = async (req, res) => {
                 });
             }
         }
+
+        // 4. Live Session Stitching for Daily Candles:
+        // If Upstox EOD batch has not closed today's daily candle yet, synthesize today's bar
+        // from today's completed/active intraday bars in SQLite or the latest quote so today is never missing!
+        if (timeframe === 'day') {
+            const istNow = new Date(Date.now() + 5.5 * 3600 * 1000);
+            const todayStr = istNow.toISOString().split('T')[0];
+            const lastDataTime = formattedData.length > 0 ? formattedData[formattedData.length - 1].time : null;
+
+            // Only synthesize if today is a weekday and not yet represented in formattedData
+            const dayOfWeek = istNow.getUTCDay();
+            const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+
+            if (isWeekday && (!lastDataTime || lastDataTime < todayStr)) {
+                // 1. Check if today's intraday bars exist in candles table
+                const todayUtcStart = `${todayStr}T03:45:00.000Z`; // 09:15 IST
+                const todayBars = db.prepare(`
+                    SELECT open, high, low, close, volume 
+                    FROM candles 
+                    WHERE instrument_key = ? AND timestamp >= ?
+                    ORDER BY timestamp ASC
+                `).all(instrument, todayUtcStart);
+
+                if (todayBars.length > 0) {
+                    const synthDaily = {
+                        time: todayStr,
+                        open: todayBars[0].open,
+                        high: Math.max(...todayBars.map(b => b.high)),
+                        low: Math.min(...todayBars.map(b => b.low)),
+                        close: todayBars[todayBars.length - 1].close,
+                        volume: todayBars.reduce((sum, b) => sum + (b.volume || 0), 0)
+                    };
+                    formattedData.push(synthDaily);
+                } else {
+                    // 2. Fallback to today's entry in quotes table
+                    try {
+                        const qRow = db.prepare(`SELECT open, high, low, close, ltp, volume, updated_at FROM quotes WHERE instrument_key = ?`).get(instrument);
+                        if (qRow && (qRow.ltp || qRow.close)) {
+                            const qDate = qRow.updated_at ? new Date(new Date(qRow.updated_at).getTime() + 5.5 * 3600 * 1000).toISOString().split('T')[0] : null;
+                            if (qDate === todayStr) {
+                                formattedData.push({
+                                    time: todayStr,
+                                    open: qRow.open || qRow.ltp,
+                                    high: Math.max(qRow.high || qRow.ltp, qRow.ltp),
+                                    low: Math.min(qRow.low || qRow.ltp, qRow.ltp),
+                                    close: qRow.ltp || qRow.close,
+                                    volume: qRow.volume || 0
+                                });
+                            }
+                        }
+                    } catch (_) {}
+                }
+            }
+        }
+
+        // 5. Keep SQLite quotes table synchronized with the latest candle price
+        try {
+            if (formattedData.length > 0) {
+                const latestBar = formattedData[formattedData.length - 1];
+                if (latestBar && typeof latestBar.close === 'number' && latestBar.close > 0) {
+                    db.prepare(`
+                        INSERT INTO quotes (instrument_key, ltp, close, open, high, low, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        ON CONFLICT(instrument_key) DO UPDATE SET
+                            ltp = excluded.ltp,
+                            close = excluded.close,
+                            open = excluded.open,
+                            high = excluded.high,
+                            low = excluded.low,
+                            updated_at = CURRENT_TIMESTAMP
+                    `).run(instrument, latestBar.close, latestBar.close, latestBar.open, latestBar.high, latestBar.low);
+                }
+            }
+        } catch (_) {}
 
         // Send response immediately — don't block on backfill
         res.status(200).json({

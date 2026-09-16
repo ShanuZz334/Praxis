@@ -28,10 +28,10 @@ try {
         for (const row of rows) {
             globalCache[row.symbol_id] = { value: row.value, hi52: row.hi_52, lo52: row.lo_52, pctChange: row.pct_change };
         }
-        console.log(`✅ Global cache seeded from SQLite (${rows.length} symbols)`);
+        console.log(`[Global Cache] Seeded from SQLite (${rows.length} symbols)`);
     }
 } catch (e) {
-    console.warn("⚠️ Could not seed global cache from SQLite:", e.message);
+    console.warn("[Global Cache] Could not seed global cache from SQLite:", e.message);
 }
 const CACHE_TTL_MS = 1 * 60 * 1000; // 1 minute
 const STALE_FALLBACK_MS = 24 * 60 * 60 * 1000; // 24 hours — serve stale rather than failing
@@ -164,7 +164,7 @@ export async function fetchAndCacheGlobalData() {
             });
             persistAll(results);
         } catch (e) {
-            console.warn("⚠️ Could not persist global cache to SQLite:", e.message);
+            console.warn("[Global Cache] Could not persist global cache to SQLite:", e.message);
         }
 
         return results;
@@ -189,6 +189,27 @@ router.get("/global", async (req, res) => {
         return res.json({ status: "success", cached: "stale", data: globalCache });
     }
     res.status(500).json({ error: "Failed to fetch live macro data" });
+});
+
+router.get("/storage-health", async (req, res) => {
+    try {
+        const { getStorageHealthReport } = await import("../services/storageGuardrail.js");
+        const report = getStorageHealthReport();
+        res.json({ success: true, data: report });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+router.post("/storage-optimize", async (req, res) => {
+    try {
+        const { runStorageMaintenance } = await import("../services/storageGuardrail.js");
+        const fullVacuum = req.body?.vacuum === true;
+        const result = await runStorageMaintenance(fullVacuum);
+        res.json({ success: true, data: result });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 export default router;

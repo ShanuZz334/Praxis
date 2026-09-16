@@ -183,7 +183,7 @@ export const resetAiChats = async (req, res) => {
 // =============================
 export const clearMarketCache = async (req, res) => {
     try {
-        const { totp, confirmText } = req.body || {};
+        const { totp, confirmText, clearMode = "preserve_ohlcv" } = req.body || {};
 
         if (confirmText !== "CLEAR CACHE") {
             return res.status(400).json({ message: "Invalid confirmation text. Must type CLEAR CACHE" });
@@ -193,20 +193,27 @@ export const clearMarketCache = async (req, res) => {
             return res.status(400).json({ message: "Invalid or expired Authenticator TOTP code" });
         }
 
+        const shouldPreserveOHLCV = clearMode !== "full";
+
         // MongoDB: Clear volatile market streams
-        await Promise.allSettled([
-            Candle.deleteMany({}),
+        const mongoTasks = [
             MarketTick.deleteMany({}),
             MarketStatus.deleteMany({}),
             OptionChain.deleteMany({}),
             OptionGreek.deleteMany({}),
             Quote.deleteMany({})
-        ]);
+        ];
 
-        // SQLite: Safely truncate all calculation and market cache tables
+        // Only delete MongoDB candles if full wipe is explicitly requested
+        if (!shouldPreserveOHLCV) {
+            mongoTasks.push(Candle.deleteMany({}));
+        }
+
+        await Promise.allSettled(mongoTasks);
+
+        // SQLite: Safely truncate volatile calculation and market cache tables
         // NOTE: Master 'instruments', 'journal_notes', 'user_overrides', 'user_preferences', 'chart_drawings', 'market_events', 'catalysts' are STRICTLY PRESERVED.
-        const marketCacheTables = [
-            "candles",
+        const volatileCacheTables = [
             "market_ticks",
             "quotes",
             "option_chain",
@@ -230,19 +237,41 @@ export const clearMarketCache = async (req, res) => {
             "fii_dii_history"
         ];
 
-        for (const table of marketCacheTables) {
+        // If full wipe is requested, also include candles and historical_backfill_meta
+        const tablesToClear = shouldPreserveOHLCV
+            ? volatileCacheTables
+            : ["candles", "historical_backfill_meta", ...volatileCacheTables];
+
+        for (const table of tablesToClear) {
             try {
                 db.prepare(`DELETE FROM ${table}`).run();
-            } catch (err) {}
+            } catch (err) {
+                console.warn(`[DangerZone] Error clearing table ${table}:`, err.message);
+            }
         }
 
         // Invalidate in-memory caches
         try { invalidateGlobalCache(); } catch (_) {}
         try { clearBroadcastMemoryCaches(); } catch (_) {}
 
+        // Checkpoint WAL and run background VACUUM to reclaim disk space from purged rows
+        try {
+            db.pragma('wal_checkpoint(TRUNCATE)');
+        } catch (_) {}
+
+        setTimeout(() => {
+            try {
+                db.exec("VACUUM");
+                db.pragma('wal_checkpoint(TRUNCATE)');
+            } catch (_) {}
+        }, 300);
+
         res.json({
             success: true,
-            message: "Market, candles, and telemetry caches cleared successfully. Master instrument catalogue and user settings preserved."
+            clearMode: shouldPreserveOHLCV ? "preserve_ohlcv" : "full",
+            message: shouldPreserveOHLCV
+                ? "Market cache and telemetry cleared successfully. OHLCV candlestick records and master catalog preserved."
+                : "Full market cache and historical OHLCV candles cleared successfully. Master catalog preserved."
         });
     } catch (error) {
         console.error("[DangerZone] clearMarketCache error:", error.message);

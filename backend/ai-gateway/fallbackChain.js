@@ -1,6 +1,7 @@
 import { checkProviderHealth, recordProviderFailure, recordProviderSuccess } from './modelRouter.js';
 import { validateOutput } from './guardrails/outputGuard.js';
 import { aiQuotaTracker } from './aiQuotaTracker.js';
+import { sanitizeAiErrorMessage } from './utils/aiErrorSanitizer.js';
 
 export async function executeWithFallback(routePlan, providers, requestConfig) {
     let fallbackTriggered = false;
@@ -96,7 +97,7 @@ export async function executeWithFallback(routePlan, providers, requestConfig) {
                 } else {
                     // Hard error (e.g. 400 Bad Request, 401 Unauthorized), don't retry locally
                     recordProviderFailure(route.provider, route.model, error);
-                    fallbackReason = error.message;
+                    fallbackReason = sanitizeAiErrorMessage(error.message, route.provider).cleanMessage;
                     break; 
                 }
             }

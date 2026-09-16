@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { sanitizeNotification } from '@/shared/utils/aiErrorSanitizer';
 
 const NotificationContext = createContext(null);
 
@@ -11,7 +12,11 @@ export const NotificationProvider = ({ children }) => {
         try {
             const stored = localStorage.getItem('praxis_notifications');
             if (stored) {
-                setNotifications(JSON.parse(stored));
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed)) {
+                    const cleaned = parsed.map(sanitizeNotification);
+                    setNotifications(cleaned);
+                }
             }
         } catch (e) {
             console.error('Failed to load notifications from local storage', e);
@@ -28,11 +33,12 @@ export const NotificationProvider = ({ children }) => {
     }, [notifications]);
 
     const addNotification = useCallback((notification) => {
-        const id = notification.id || (Date.now().toString() + Math.random().toString(36).substring(7));
+        const sanitized = sanitizeNotification(notification);
+        const id = sanitized?.id || (Date.now().toString() + Math.random().toString(36).substring(7));
         const newNotification = {
             timestamp: new Date().toISOString(),
             read: false,
-            ...notification,
+            ...sanitized,
             id // Ensure ID is set properly
         };
         

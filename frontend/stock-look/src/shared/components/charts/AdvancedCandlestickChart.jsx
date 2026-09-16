@@ -422,7 +422,7 @@ export default React.memo(function AdvancedCandlestickChart({
             color: 'rgba(34,197,94,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false,
         });
         fairValueSeriesRef.current = chart.addSeries(LineSeries, {
-            color: 'rgba(255,255,255,0.5)', lineWidth: 1, priceLineVisible: true, lastValueVisible: true,
+            color: 'rgba(255,255,255,0.5)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false,
         });
         overvaluedSeriesRef.current = chart.addSeries(LineSeries, {
             color: 'rgba(239,68,68,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false,
@@ -1099,13 +1099,13 @@ export default React.memo(function AdvancedCandlestickChart({
                 const oldRemaining = oldSession.candles.slice(fvLiveBarIndexRef.current);
                 if (oldRemaining.length > 0) {
                     const blended = blendRollingForecasts(oldRemaining, candles, {
-                        skipRenderingCandle: true,
-                        maxHorizon: 10,
+                        skipRenderingCandle: false,
+                        maxHorizon: horizonBars || candles.length || 7,
                         anchorPrice: lastCandle?.close
                     });
                     candles = blended;
                     import('sonner').then(({ toast }) => toast.success('Future Vision Optimized', { 
-                        description: `Preserved active candle; blended & smoothed ${blended.length} forecast bars.`, 
+                        description: `Preserved active forecast; blended & smoothed ${blended.length} forecast bars.`, 
                         duration: 3500 
                     }));
                 }
@@ -1158,9 +1158,9 @@ export default React.memo(function AdvancedCandlestickChart({
             // Persist auto mode flag
             updatePAEAutoMode(instrumentKey, timeframe, fvAutoMode);
 
-            // Fetch the full continuous 3-month timeline (preserving historical undeleted predictions)
+            // Fetch the continuous timeline (pruning stale unfulfilled ghost candles from older sessions)
             const allSessions = getAllPAESessions(instrumentKey, timeframe);
-            const { candles: continuousCandles, times: continuousTimes } = buildContinuousTimeline(allSessions);
+            const { candles: continuousCandles, times: continuousTimes } = buildContinuousTimeline(allSessions, lastCandle?.time);
 
             fvSessionRef.current = {
                 candles: continuousCandles.length > 0 ? continuousCandles : candles,
@@ -1301,8 +1301,10 @@ export default React.memo(function AdvancedCandlestickChart({
         const allSessions = getAllPAESessions(instrumentKey, timeframe);
         
         if (allSessions && allSessions.length > 0) {
-            // Build a continuous, non-overlapping history of all undeleted ghost candles (up to 90 days)
-            const { candles: continuousCandles, times: continuousTimes } = buildContinuousTimeline(allSessions);
+            const effectiveData = [...(data || []), ...demoRealCandles];
+            const lastRealTime = effectiveData.length > 0 ? effectiveData[effectiveData.length - 1].time : null;
+            // Build a continuous, non-overlapping history of ghost candles (pruning stale unfulfilled ghost candles)
+            const { candles: continuousCandles, times: continuousTimes } = buildContinuousTimeline(allSessions, lastRealTime);
             
             if (continuousCandles.length === 0) {
                 setFvActive(false);
@@ -1331,7 +1333,6 @@ export default React.memo(function AdvancedCandlestickChart({
             setFvActive(true);
             setFvAutoMode(latestSession.autoMode || false);
             
-            const effectiveData = [...(data || []), ...demoRealCandles];
             if (effectiveData.length > 0) {
                 syncFutureVisionWithData(effectiveData, fvSessionRef.current);
             } else {
@@ -2778,7 +2779,9 @@ export default React.memo(function AdvancedCandlestickChart({
                                             // 2) Seamlessly rebuild the continuous 3-month UI state from DB without reload
                                             const allSessions = getAllPAESessions(instrumentKey, timeframe);
                                             if (allSessions && allSessions.length > 0) {
-                                                const { candles: continuousCandles, times: continuousTimes } = buildContinuousTimeline(allSessions);
+                                                const effectiveData = [...(data || []), ...demoRealCandles];
+                                                const lastRealTime = effectiveData.length > 0 ? effectiveData[effectiveData.length - 1].time : null;
+                                                const { candles: continuousCandles, times: continuousTimes } = buildContinuousTimeline(allSessions, lastRealTime);
                                                 
                                                 if (continuousCandles.length > 0) {
                                                     if (fvSessionRef.current) {
@@ -2836,7 +2839,9 @@ export default React.memo(function AdvancedCandlestickChart({
                                             // Seamlessly rebuild continuous timeline
                                             const allSessions = getAllPAESessions(instrumentKey, timeframe);
                                             if (allSessions && allSessions.length > 0) {
-                                                const { candles: continuousCandles, times: continuousTimes } = buildContinuousTimeline(allSessions);
+                                                const effectiveData = [...(data || []), ...demoRealCandles];
+                                                const lastRealTime = effectiveData.length > 0 ? effectiveData[effectiveData.length - 1].time : null;
+                                                const { candles: continuousCandles, times: continuousTimes } = buildContinuousTimeline(allSessions, lastRealTime);
                                                 
                                                 if (continuousCandles.length > 0) {
                                                     if (fvSessionRef.current) {

@@ -1,1 +1,0 @@
-import mongoose from 'mongoose'; import { config } from 'dotenv'; config({path: '.env'}); import Instrument from './models/Instrument.js'; mongoose.connect(process.env.MONGO_URI).then(async () => { const res = await Instrument.find({ instrumentKey: /HDFC/ }); console.log(res.map(r => r.instrumentKey)); process.exit(0); });

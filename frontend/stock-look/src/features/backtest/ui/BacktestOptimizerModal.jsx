@@ -59,6 +59,18 @@ export default function BacktestOptimizerModal({
         return () => clearTimeout(timer);
     }, [isOpen, candles, activeConfig]);
 
+    // Close on Escape key press
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     const handleReRun = () => {
         if (!candles || candles.length < 30) {
             setError('Insufficient historical candle data (min 30 candles required).');
@@ -113,8 +125,14 @@ export default function BacktestOptimizerModal({
     const base = calibResult?.baseline?.summary || {};
 
     return (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200 select-none">
-            <div className="w-full max-w-6xl min-h-[520px] max-h-[92vh] bg-background-card border border-border-subtle rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div 
+            onClick={onClose}
+            className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200 select-none"
+        >
+            <div 
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-6xl min-h-[520px] max-h-[92vh] bg-background-card border border-border-subtle rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            >
                 
                 {/* 1. Modal Header */}
                 <div className="p-4 border-b border-border-subtle flex items-center justify-between bg-background-surface/60">
@@ -487,16 +505,23 @@ export default function BacktestOptimizerModal({
                                                             -{cand.summary?.maxDrawdownPct}%
                                                         </td>
                                                         <td className="py-1.5 text-center">
-                                                            <button
-                                                                onClick={() => handleApply({
-                                                                    type: cand.id,
-                                                                    title: cand.label,
-                                                                    config: cand.config
-                                                                })}
-                                                                className="px-2 py-0.5 rounded bg-blue-600/15 hover:bg-blue-600 text-blue-400 hover:text-white text-[10px] font-bold font-sans transition cursor-pointer"
-                                                            >
-                                                                Apply
-                                                            </button>
+                                                            {appliedId === cand.id ? (
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold font-sans">
+                                                                    <Check size={10} />
+                                                                    Applied
+                                                                </span>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => handleApply({
+                                                                        type: cand.id,
+                                                                        title: cand.label,
+                                                                        config: cand.config
+                                                                    })}
+                                                                    className="px-2 py-0.5 rounded bg-blue-600/15 hover:bg-blue-600 text-blue-400 hover:text-white text-[10px] font-bold font-sans transition cursor-pointer"
+                                                                >
+                                                                    Apply
+                                                                </button>
+                                                            )}
                                                         </td>
                                                     </tr>
                                                 ))}

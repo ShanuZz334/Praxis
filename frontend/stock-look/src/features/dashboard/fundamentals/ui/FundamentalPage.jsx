@@ -31,6 +31,7 @@ import Loader from "@/shared/components/ui/Loader";
 import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
 import { useSnapshots } from "@/shared/hooks/useSnapshots";
 import { useGlobalApiData } from "@/features/dashboard/foreign/data/useGlobalApiData";
+import { formatTimestampWithDate } from "@/shared/utils/formatters";
 
 // Wrapper to automatically inject timer configs
 const TimerOverrideInput = ({ overrideKey, manualLastUpdated, expiryConfigs, info, ...props }) => {
@@ -362,8 +363,7 @@ export default function FundamentalPage() {
   };
 
   const formatTime = (ts) => {
-      if (!ts) return null;
-      return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      return formatTimestampWithDate(ts, { includeSeconds: false });
   };
   
   // Use the universal freshness tracker for fundamentals. 

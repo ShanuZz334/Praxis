@@ -1,1 +1,0 @@
-import axios from 'axios'; axios.get('https://query2.finance.yahoo.com/v10/finance/quoteSummary/RELIANCE.NS?modules=defaultKeyStatistics', {headers: {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36', 'Accept': 'application/json'}}).then(res => console.log('Axios worked!')).catch(err => console.error('Axios error:', err.message));

@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import socket from '@/shared/utils/socket';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { useNotificationStore } from '@/shared/context/NotificationContext';
+import { sanitizeAiErrorMessage } from '@/shared/utils/aiErrorSanitizer';
 
 export function useAiLimitNotifier() {
     const { addNotification, notifications } = useNotificationStore();
@@ -211,15 +212,20 @@ export function useAiLimitNotifier() {
             const alertId = `ai_ws_limit_${data.providerId}_${Math.floor(Date.now() / 60000)}`;
 
             if (data.type === 'reached') {
+                const pId = data.providerId || 'gemini';
+                const sanitized = sanitizeAiErrorMessage(data.message || data.reason, pId);
+
                 emitAlert({
                     id: alertId,
                     title: `Quota Exhausted: ${pName}`,
-                    description: data.message || `${pName} rate limit (429) hit. Traffic routed to fallback model.`,
+                    description: sanitized.cleanMessage,
                     priority: 'critical',
                     metadata: {
                         Provider: pName,
                         Status: 'Rate Limited (429)',
-                        Reason: data.message || 'Exceeded provider inference allowance'
+                        ...(sanitized.model ? { Model: sanitized.model } : {}),
+                        ...(sanitized.retryAfter ? { ResetsIn: `~${sanitized.retryAfter}` } : {}),
+                        Reason: sanitized.reason
                     },
                     toastType: 'critical'
                 });

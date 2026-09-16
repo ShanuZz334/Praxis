@@ -1,1 +1,0 @@
-import mongoose from 'mongoose'; import { config } from 'dotenv'; config({path: '.env'}); import Instrument from './models/Instrument.js'; mongoose.connect(process.env.MONGO_URI).then(async () => { const res = await Instrument.find({}); console.log(res); process.exit(0); });

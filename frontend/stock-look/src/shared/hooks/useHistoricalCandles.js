@@ -16,7 +16,7 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
     const [isBackfilling, setIsBackfilling] = useState(false);
     const [backfillInfo, setBackfillInfo] = useState(null);
     const [liveCandle, setLiveCandle] = useState(null);
-    const { livePrices } = useDashboardContext();
+    const { livePrices, updateLivePrice } = useDashboardContext();
     const backfillPollRef = useRef(null);
     const lastTotalCandlesRef = useRef(0);
 
@@ -50,8 +50,22 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
                 params: { instrument: instrumentKey, timeframe, limit: getLimit(timeframe) }
             });
             if (isMounted && response.data?.success) {
-                setData(response.data.data);
-                lastTotalCandlesRef.current = response.data.data.length;
+                const candleList = response.data.data || [];
+                setData(candleList);
+                lastTotalCandlesRef.current = candleList.length;
+                if (candleList.length > 0) {
+                    const latestBar = candleList[candleList.length - 1];
+                    if (latestBar && typeof latestBar.close === 'number') {
+                        updateLivePrice?.(instrumentKey, {
+                            ltp: latestBar.close,
+                            close: latestBar.close,
+                            open: latestBar.open,
+                            high: latestBar.high,
+                            low: latestBar.low,
+                            volume: latestBar.volume
+                        });
+                    }
+                }
             }
         } catch (err) {
             console.error('Failed to fetch historical candles:', err);

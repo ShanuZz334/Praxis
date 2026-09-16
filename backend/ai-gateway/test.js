@@ -1,1 +1,0 @@
-import { validateOutput } from './guardrails/outputGuard.js'; const malformed = '{\"candles\": [{\"open\": 100, \"close\":'; try { console.log(validateOutput(malformed, true, {})); } catch(e) { console.error(e); }

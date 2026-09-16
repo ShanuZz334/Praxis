@@ -30,23 +30,32 @@ export function storePrediction(instrumentKey, timeframe, tradingMode, candles, 
         db[key] = arr;
     }
     
+    const lastSess = arr.length > 0 ? arr[arr.length - 1] : null;
+    // If last session was recent (< 1 hour) and has no completed scores yet, update it directly on regeneration
+    const isRegen = lastSess && (!lastSess.scores || lastSess.scores.length === 0) && (Date.now() - (lastSess.storedAt || 0) < 3600000);
+
     const session = {
-        id: Date.now().toString(),
+        id: isRegen ? lastSess.id : Date.now().toString(),
         instrumentKey, timeframe, tradingMode,
         candles,
         bias,
         risk,
         times,
         modelUsed,
-        scores: [],
+        scores: isRegen && lastSess.scores ? lastSess.scores : [],
         storedAt: Date.now(),
     };
     
-    arr.push(session);
+    if (isRegen) {
+        arr[arr.length - 1] = session;
+    } else {
+        arr.push(session);
+    }
+
     // 90-day retention policy (auto-delete older predictions)
     const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
     const now = Date.now();
-    arr = arr.filter(s => (now - s.storedAt) < NINETY_DAYS);
+    arr = arr.filter(s => (now - (s.storedAt || 0)) < NINETY_DAYS);
     db[key] = arr;
     
     _save(db);
@@ -294,34 +303,16 @@ export function normalizeTimeKey(t) {
 }
 
 /**
- * Builds a continuous, non-overlapping 3-month timeline of all undeleted predicted candles.
+ * Builds a continuous, non-overlapping timeline of predicted candles.
  * 
  * - Strictly ignores deleted candles.
  * - Resolves overlapping timestamps by prioritizing the fresher session.
+ * - Prunes stale unfulfilled future candles from older sessions when a newer session exists.
  * - Sorts chronologically across all formats (intraday seconds/ms, strings, BusinessDay objects).
  */
-export function buildContinuousTimeline(allSessions) {
+export function buildContinuousTimeline(allSessions, lastRealTime = null) {
     if (!allSessions || !Array.isArray(allSessions) || allSessions.length === 0) {
         return { candles: [], times: [] };
-    }
-
-    const candleMap = new Map();
-
-    for (const session of allSessions) {
-        if (!session.candles || !session.times) continue;
-        const len = Math.min(session.candles.length, session.times.length);
-
-        for (let i = 0; i < len; i++) {
-            const c = session.candles[i];
-            const t = session.times[i];
-
-            // Strictly filter out deleted or invalid candles
-            if (!c || !t || c.deleted) continue;
-
-            const key = normalizeTimeKey(t);
-            // More recent session takes precedence for overlapping timestamps
-            candleMap.set(key, { candle: c, time: t });
-        }
     }
 
     const getSortMs = (t) => {
@@ -331,6 +322,35 @@ export function buildContinuousTimeline(allSessions) {
         if (t && typeof t === 'object' && t.year) return new Date(t.year, t.month - 1, t.day).getTime();
         return 0;
     };
+
+    const lastRealMs = getSortMs(lastRealTime);
+    const candleMap = new Map();
+    const latestIdx = allSessions.length - 1;
+
+    for (let s = 0; s < allSessions.length; s++) {
+        const session = allSessions[s];
+        if (!session.candles || !session.times) continue;
+        const isLatest = (s === latestIdx);
+        const len = Math.min(session.candles.length, session.times.length);
+
+        for (let i = 0; i < len; i++) {
+            const c = session.candles[i];
+            const t = session.times[i];
+
+            // Strictly filter out deleted or invalid candles
+            if (!c || !t || c.deleted) continue;
+
+            // If from an older session, discard unfulfilled future candles
+            // (Only the latest active session is permitted to project forward ghost candles)
+            if (!isLatest && lastRealMs > 0 && getSortMs(t) > lastRealMs) {
+                continue;
+            }
+
+            const key = normalizeTimeKey(t);
+            // More recent session takes precedence for overlapping timestamps
+            candleMap.set(key, { candle: c, time: t });
+        }
+    }
 
     const sortedEntries = Array.from(candleMap.values()).sort((a, b) => getSortMs(a.time) - getSortMs(b.time));
     return {

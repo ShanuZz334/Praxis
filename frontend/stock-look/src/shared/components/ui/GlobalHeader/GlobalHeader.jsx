@@ -32,6 +32,7 @@ import PortalTooltip from "@/shared/components/ui/PortalTooltip";
 import { getCompositeState, getSignalState } from "@/shared/global/logic/signals";
 import { typography } from "@/shared/global/styles/typography";
 import { getCompositeColor, getIndicatorColor } from "@/shared/config/scoreColors";
+import { formatTimestampWithDate } from "@/shared/utils/formatters";
 
 // =============================
 // Constants
@@ -186,8 +187,7 @@ export default function GlobalHeader({
     }, [integrity?.coveragePercent]);
 
     const formatFullTime = (ts) => {
-        if (!ts) return null;
-        return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        return formatTimestampWithDate(ts, { includeSeconds: false });
     };
 
     const displayFreshness = integrity?.coveragePercent === 100

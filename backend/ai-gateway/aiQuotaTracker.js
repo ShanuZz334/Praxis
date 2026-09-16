@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { decrypt } from './utils/encryption.js';
+import { sanitizeAiErrorMessage } from './utils/aiErrorSanitizer.js';
 import { clearProviderCircuitBreaker } from './modelRouter.js';
 import { broadcast } from '../services/socketBroadcast.js';
 
@@ -250,11 +251,13 @@ class AiQuotaTracker {
         const utcReset = getTimeToMidnight('UTC');
         const ptReset = getTimeToMidnight('America/Los_Angeles');
 
+        const sanitized = sanitizeAiErrorMessage(errorMsg, pId);
+
         if (!this.liveHealth) this.liveHealth = {};
         this.liveHealth[pId] = {
             status: 'exhausted',
             errorType: 'rate_limit',
-            lastError: errorMsg || 'Rate limit reached (429)',
+            lastError: sanitized.cleanMessage,
             timestamp: now
         };
 
@@ -263,7 +266,10 @@ class AiQuotaTracker {
                 type: 'reached',
                 providerId: pId,
                 name: pId === 'groq' ? 'Groq' : pId === 'openrouter' ? 'OpenRouter' : pId === 'gemini' ? 'Gemini' : pId,
-                message: errorMsg || `Rate limit reached (429) for ${pId}`,
+                message: sanitized.cleanMessage,
+                reason: sanitized.reason,
+                model: sanitized.model,
+                retryAfter: sanitized.retryAfter,
                 timestamp: now
             });
         } catch (_) {}

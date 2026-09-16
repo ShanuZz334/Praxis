@@ -21,6 +21,7 @@ import AiInsightModal from "@/shared/components/ui/AiInsightModal";
 import { FO_EQUITIES, FO_INDICES } from "@/shared/utils/foInstruments";
 import { getCompositeColor } from "@/shared/config/scoreColors";
 import axiosInstance from "@/shared/utils/axiosInstance";
+import { formatTimestampWithDate } from "@/shared/utils/formatters";
 
 function resolveReadableSymbol(instrumentKey) {
     if (!instrumentKey) return null;
@@ -31,10 +32,7 @@ function resolveReadableSymbol(instrumentKey) {
 }
 
 function formatInsightTime(ts) {
-    if (!ts) return null;
-    const date = new Date(ts);
-    if (isNaN(date.getTime())) return null;
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    return formatTimestampWithDate(ts, { includeSeconds: true });
 }
 
 // ─── Resolve targetId from URL path + instrument mode ─────────────────────────

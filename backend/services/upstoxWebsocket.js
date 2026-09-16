@@ -34,16 +34,10 @@ const decodeProfobuf = (buffer) => {
             bytes: String,
         });
     } catch (error) {
-        console.error("❌ Protobuf decode error:", error);
+        console.error("[Error] Protobuf decode error:", error);
         return null;
     }
 };
-
-// Prepare the SQLite insert statement once for extreme high-frequency performance
-const insertTickStmt = db.prepare(`
-    INSERT INTO market_ticks (instrument_key, ltp, volume, open_interest, timestamp) 
-    VALUES (?, ?, ?, ?, ?)
-`);
 
 const insertQuoteWsStmt = db.prepare(`
     INSERT INTO quotes (

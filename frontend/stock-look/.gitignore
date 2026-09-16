@@ -50,5 +50,19 @@ Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
-*.sln
 *.sw?
+
+# Scratch, test, logs, dumps, and patches
+*.patch
+*.tmp
+*.bak
+*.txt
+scratch*
+temp_*
+test_*
+test-*
+fix_*
+bisect*
+babel_*
+*scan*.cjs
+

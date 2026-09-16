@@ -17,6 +17,7 @@ import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { useManualOverrides } from "@/shared/hooks/useManualOverrides";
 import { useAiSync } from "@/shared/hooks/useAiSync";
 import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/confidenceEngine";
+import { formatTimestampWithDate } from "@/shared/utils/formatters";
 
 const DEFAULT_OVERRIDES = {
     ad_line: null, mcclellan: null, nh_nl: null, trin: null,
@@ -172,8 +173,7 @@ export default function TechnicalPage() {
     };
 
     const formatTime = (ts) => {
-        if (!ts) return null;
-        return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        return formatTimestampWithDate(ts, { includeSeconds: false });
     };
 
     const resolveTime = useDataFreshness(technicalsData, manualOverrides, manualOverrideTimes, isMarketOpen, formatTime, "1s");

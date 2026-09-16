@@ -17,6 +17,7 @@
 
 import React, { useState } from "react";
 import { FiStar } from "react-icons/fi";
+import { cleanAiText, cleanMetadataValue } from "@/shared/utils/aiErrorSanitizer";
 
 // =============================
 // Component
@@ -105,20 +106,24 @@ export default function MessageCard({
                     </div>
 
                     <p className="text-[11px] text-text-secondary mb-2 line-clamp-1 leading-relaxed">
-                        {message.description}
+                        {cleanAiText(message.description, message.metadata?.Provider)}
                     </p>
 
                     {/* Metadata Pills */}
                     {message.metadata && (
                         <div className="flex flex-wrap gap-1.5 mb-2">
-                            {Object.entries(message.metadata).slice(0, 3).map(([key, value]) => (
-                                <span
-                                    key={key}
-                                    className="px-2 py-1 bg-background-surface border border-border-default rounded-md text-[11px] text-text-secondary font-mono transition-all duration-200 hover:bg-border-default hover:border-border-default"
-                                >
-                                    {value}
-                                </span>
-                            ))}
+                            {Object.entries(message.metadata).slice(0, 4).map(([key, value]) => {
+                                const cleanVal = cleanMetadataValue(value, message.metadata?.Provider);
+                                if (!cleanVal) return null;
+                                return (
+                                    <span
+                                        key={key}
+                                        className="px-2 py-1 bg-background-surface border border-border-default rounded-md text-[11px] text-text-secondary font-medium transition-all duration-200 hover:bg-border-default hover:border-border-default max-w-[220px] truncate"
+                                    >
+                                        {cleanVal}
+                                    </span>
+                                );
+                            })}
                         </div>
                     )}
                 </div>

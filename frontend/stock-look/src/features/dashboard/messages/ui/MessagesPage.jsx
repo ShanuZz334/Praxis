@@ -22,6 +22,7 @@ import {
 import MessageCard from "./MessageCard";
 import MessageDetailModal from "./MessageDetailModal";
 import { useNotificationStore } from "@/shared/context/NotificationContext";
+import { sanitizeNotification } from "@/shared/utils/aiErrorSanitizer";
 
 const MESSAGE_CATEGORIES = [
     { id: "all", label: "All Messages" },
@@ -74,8 +75,8 @@ export default function MessagesPage() {
 
     const { notifications, removeNotification, markAsRead, markAllAsRead, clearAll, unreadCount } = useNotificationStore();
 
-    // Map notifications to the format expected by the page
-    const messages = notifications.map(n => ({
+    // Map notifications to the format expected by the page and sanitize any legacy raw errors
+    const messages = notifications.map(n => sanitizeNotification({
         ...n,
         // Ensure required fields exist if they were omitted
         category: n.category || 'alerts',

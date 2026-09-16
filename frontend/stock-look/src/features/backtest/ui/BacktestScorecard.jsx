@@ -8,7 +8,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
     Award, TrendingUp, AlertTriangle, ShieldCheck, Download, 
     Layers, Cpu, ArrowUpRight, ArrowDownRight, Table, BarChart2,
-    GitCompare, RotateCcw, Trash2, X, Check, History, Zap
+    GitCompare, RotateCcw, Trash2, X, Check, History, Zap, Activity
 } from 'lucide-react';
 
 function formatTimeIso(t) {
@@ -23,9 +23,9 @@ function formatTimeIso(t) {
 
 function formatTimeHuman(t) {
     if (!t) return '';
-    if (typeof t === 'string') return t;
-    const d = new Date(t * 1000);
-    return isNaN(d.getTime()) ? String(t) : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+    const rawMs = typeof t === 'number' && t < 1e11 ? t * 1000 : t;
+    const d = new Date(rawMs);
+    return isNaN(d.getTime()) ? String(t) : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
 }
 
 function formatRunTimestamp(ts) {
@@ -46,6 +46,7 @@ export default function BacktestScorecard({
     onDeleteRun = () => {},
     onClearRuns = () => {},
     onOpenOptimizer = () => {},
+    onPlugLeakNow = () => {},
     isOpen = true,
     onClose = () => {},
 }) {
@@ -84,21 +85,35 @@ export default function BacktestScorecard({
     const [restoredRunId, setRestoredRunId] = useState(null);
     const [matrixSortBy, setMatrixSortBy] = useState('timestamp'); // 'timestamp' | 'winRate' | 'profitFactor' | 'netReturnPct' | 'drawdown'
 
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isCompareModalOpen) {
+                setIsCompareModalOpen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isCompareModalOpen]);
+
     const targetTradesCount = trades.filter(t => t.exitReason === 'TARGET').length;
     const stopTradesCount = trades.filter(t => t.exitReason === 'STOP').length;
+    const trailTradesCount = trades.filter(t => t.exitReason === 'TRAILING_STOP').length;
     const horizonTradesCount = trades.filter(t => t.exitReason === 'HORIZON_EXPIRY').length;
+    const breakevenTradesCount = trades.filter(t => t.exitReason === 'BREAKEVEN').length;
 
     const filteredTrades = trades.filter(t => {
         if (exitFilter === 'TARGET') return t.exitReason === 'TARGET';
         if (exitFilter === 'STOP') return t.exitReason === 'STOP';
+        if (exitFilter === 'TRAILING_STOP') return t.exitReason === 'TRAILING_STOP';
         if (exitFilter === 'HORIZON_EXPIRY') return t.exitReason === 'HORIZON_EXPIRY';
+        if (exitFilter === 'BREAKEVEN') return t.exitReason === 'BREAKEVEN';
         return true;
     });
 
     // Export CSV of Event Log
     const handleExportCsv = () => {
         if (!trades || !trades.length) return;
-        const headers = ['ID', 'Signal', 'Direction', 'Unit', 'Entry Time', 'Entry Price', 'Exit Time', 'Exit Price', 'Return %', 'Realized PnL', 'Outcome', 'Reason', 'Bars Held'];
+        const headers = ['ID', 'Signal', 'Direction', 'Unit', 'Entry Time', 'Entry Price', 'Exit Time', 'Exit Price', 'Net Return %', 'Realized PnL', 'Outcome', 'Reason', 'Bars Held', 'MAE %', 'MFE %', 'Friction %'];
         const rows = trades.map(t => [
             t.id,
             `"${t.sourceDetail}"`,
@@ -112,7 +127,10 @@ export default function BacktestScorecard({
             t.realizedPnl || 0,
             t.outcome,
             t.exitReason || '',
-            t.barsHeld
+            t.barsHeld,
+            t.maePct || 0,
+            t.mfePct || 0,
+            t.frictionPct || 0
         ]);
 
         const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -219,18 +237,16 @@ export default function BacktestScorecard({
                         >
                             Metrics
                         </button>
-                        {activeUnit === 'PREDICTOR' && (
-                            <button
-                                onClick={() => setActiveTab('CALIBRATION')}
-                                className={`px-2 py-1 text-[10px] font-bold rounded-md transition cursor-pointer ${
-                                    activeTab === 'CALIBRATION'
-                                        ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
-                                        : 'text-text-tertiary hover:text-text-primary border border-transparent'
-                                }`}
-                            >
-                                Calib
-                            </button>
-                        )}
+                        <button
+                            onClick={() => setActiveTab('CALIBRATION')}
+                            className={`px-2 py-1 text-[10px] font-bold rounded-md transition cursor-pointer ${
+                                activeTab === 'CALIBRATION'
+                                    ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
+                                    : 'text-text-tertiary hover:text-text-primary border border-transparent'
+                            }`}
+                        >
+                            Calib
+                        </button>
                         <button
                             onClick={() => setActiveTab('LOG')}
                             className={`px-2 py-1 text-[10px] font-bold rounded-md transition cursor-pointer ${
@@ -277,7 +293,7 @@ export default function BacktestScorecard({
             {/* TAB 1: METRICS VIEW */}
             {activeTab === 'METRICS' && (
                 <div className="flex flex-col gap-3">
-                    {/* Primary Stats Grid */}
+                    {/* Primary Institutional Quad Grid */}
                     <div className="grid grid-cols-2 gap-2">
                         {/* Win Rate */}
                         <div className="bg-background-surface/80 p-3 rounded-xl border border-border-subtle flex flex-col">
@@ -290,7 +306,7 @@ export default function BacktestScorecard({
                                 </span>
                             </div>
                             <span className="text-[10px] text-text-tertiary mt-1">
-                                {summary.wins}W / {summary.losses}L
+                                {summary.wins}W / {summary.losses}L {summary.breakEvens > 0 ? `(${summary.breakEvens} BE)` : ''}
                             </span>
                         </div>
 
@@ -309,6 +325,21 @@ export default function BacktestScorecard({
                             </span>
                         </div>
 
+                        {/* Sharpe Ratio */}
+                        <div className="bg-background-surface/80 p-3 rounded-xl border border-border-subtle flex flex-col">
+                            <span className="text-[10px] font-semibold text-text-tertiary uppercase">Sharpe Ratio</span>
+                            <div className="flex items-baseline gap-1 mt-1">
+                                <span className={`text-xl font-black font-mono ${
+                                    summary.sharpeRatio >= 1.0 ? 'text-emerald-400' : summary.sharpeRatio >= 0 ? 'text-blue-400' : 'text-rose-400'
+                                }`}>
+                                    {summary.sharpeRatio > 0 ? '+' : ''}{summary.sharpeRatio}
+                                </span>
+                            </div>
+                            <span className="text-[10px] text-text-tertiary mt-1">
+                                Rf: 7.0% (G-Sec)
+                            </span>
+                        </div>
+
                         {/* Max Drawdown */}
                         <div className="bg-background-surface/80 p-3 rounded-xl border border-border-subtle flex flex-col">
                             <span className="text-[10px] font-semibold text-text-tertiary uppercase">Max Drawdown</span>
@@ -321,62 +352,165 @@ export default function BacktestScorecard({
                                 Peak-to-Trough
                             </span>
                         </div>
+                    </div>
 
-                        {/* Total Signals */}
-                        <div className="bg-background-surface/80 p-3 rounded-xl border border-border-subtle flex flex-col">
-                            <span className="text-[10px] font-semibold text-text-tertiary uppercase">Total Signals</span>
-                            <div className="flex items-baseline gap-1 mt-1">
-                                <span className="text-xl font-black font-mono text-text-primary">
-                                    {summary.totalTrades}
-                                </span>
-                            </div>
-                            <span className={`text-[10px] font-semibold mt-1 ${
-                                summary.isSampleReliable ? 'text-emerald-400' : 'text-amber-400'
-                            }`}>
-                                {summary.isSampleReliable ? '✓ Reliable Sample' : '⚠ Small Sample'}
+                    {/* Secondary Institutional Quad Grid */}
+                    <div className="grid grid-cols-4 gap-1.5 p-2 rounded-xl bg-background-surface/50 border border-border-subtle text-center font-mono">
+                        <div className="flex flex-col">
+                            <span className="text-[8px] uppercase text-text-tertiary font-bold">CAGR</span>
+                            <span className={`text-[11px] font-black ${summary.cagr >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {summary.cagr >= 0 ? '+' : ''}{summary.cagr}%
+                            </span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[8px] uppercase text-text-tertiary font-bold">Sortino</span>
+                            <span className={`text-[11px] font-black ${summary.sortinoRatio >= 1.0 ? 'text-emerald-400' : 'text-blue-400'}`}>
+                                {summary.sortinoRatio}
+                            </span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[8px] uppercase text-text-tertiary font-bold">Calmar</span>
+                            <span className={`text-[11px] font-black ${summary.calmarRatio >= 1.0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                {summary.calmarRatio}
+                            </span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[8px] uppercase text-text-tertiary font-bold">Realized R:R</span>
+                            <span className="text-[11px] font-black text-emerald-400">
+                                {summary.realizedRR}x
                             </span>
                         </div>
                     </div>
 
                     {/* Detailed Financial Telemetry */}
-                    <div className="bg-background-surface/60 rounded-xl p-3 border border-border-subtle flex flex-col gap-2">
-                        <span className="font-bold text-[10px] text-text-secondary uppercase tracking-wider">
-                            Performance Telemetry
-                        </span>
+                    <div className="bg-background-surface/70 rounded-xl p-3.5 border border-border-subtle flex flex-col gap-1.5 shadow-xs">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-border-subtle/50">
+                            <div className="flex items-center gap-1.5">
+                                <Activity size={12} className="text-text-tertiary" />
+                                <span className="font-semibold text-[10px] text-text-secondary uppercase tracking-wider">
+                                    Performance Telemetry
+                                </span>
+                            </div>
+                            <span className="text-[9px] font-mono text-text-tertiary uppercase tracking-wider px-1.5 py-0.5 rounded bg-background-elevated/80 border border-border-subtle/50">
+                                Detailed Stats
+                            </span>
+                        </div>
 
-                        <div className="flex justify-between items-center py-0.5 border-b border-border-subtle/50">
-                            <span className="text-text-tertiary">Net Cumulative Return:</span>
-                            <span className={`font-mono font-bold ${
+                        {/* Net Cumulative Return */}
+                        <div className="flex justify-between items-center py-1.5 px-1 border-b border-border-subtle/30 hover:bg-background-elevated/30 rounded transition-colors">
+                            <span className="text-text-secondary text-[11px] font-medium">Net Cumulative Return</span>
+                            <span className={`font-mono font-bold text-xs ${
                                 summary.netReturnPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
                             }`}>
                                 {summary.netReturnPct >= 0 ? '+' : ''}{summary.netReturnPct}%
                             </span>
                         </div>
 
-                        <div className="flex justify-between items-center py-0.5 border-b border-border-subtle/50">
-                            <span className="text-text-tertiary">Avg Return / Trade:</span>
-                            <span className={`font-mono font-bold ${
-                                summary.avgTradeReturn >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                            }`}>
-                                {summary.avgTradeReturn >= 0 ? '+' : ''}{summary.avgTradeReturn}%
+                        {/* Ending Capital */}
+                        <div className="flex justify-between items-center py-1.5 px-1 border-b border-border-subtle/30 hover:bg-background-elevated/30 rounded transition-colors">
+                            <span className="text-text-secondary text-[11px] font-medium">Ending Capital</span>
+                            <span className="font-mono font-bold text-xs text-text-primary">
+                                ₹{summary.endingCapital ? summary.endingCapital.toLocaleString('en-IN') : '0'}
                             </span>
                         </div>
 
-                        <div className="flex justify-between items-center py-0.5 border-b border-border-subtle/50">
-                            <span className="text-text-tertiary">Best Trade:</span>
-                            <span className="font-mono font-bold text-emerald-400">+{summary.bestTrade}%</span>
+                        {/* Expectancy / Trade */}
+                        <div className="flex justify-between items-center py-1.5 px-1 border-b border-border-subtle/30 hover:bg-background-elevated/30 rounded transition-colors">
+                            <span className="text-text-secondary text-[11px] font-medium">Expectancy / Trade</span>
+                            <span className={`font-mono font-bold text-xs ${summary.expectancy >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {summary.expectancy >= 0 ? '+' : ''}{summary.expectancy}%
+                            </span>
                         </div>
 
-                        <div className="flex justify-between items-center py-0.5 border-b border-border-subtle/50">
-                            <span className="text-text-tertiary">Worst Trade:</span>
-                            <span className="font-mono font-bold text-rose-400">{summary.worstTrade}%</span>
+                        {/* Kelly Recommended Sizing */}
+                        <div className="flex justify-between items-center py-1.5 px-1 border-b border-border-subtle/30 hover:bg-background-elevated/30 rounded transition-colors">
+                            <span className="text-text-secondary text-[11px] font-medium">Kelly Criterion Sizing</span>
+                            <div className="flex items-baseline font-mono text-xs">
+                                <span className={`font-bold ${summary.kellyPct > 0 ? 'text-emerald-400' : 'text-text-secondary'}`}>
+                                    {summary.kellyPct}%
+                                </span>
+                                <span className="text-[10px] text-text-tertiary font-sans font-normal ml-1">
+                                    of capital
+                                </span>
+                            </div>
                         </div>
 
-                        <div className="flex justify-between items-center py-0.5">
-                            <span className="text-text-tertiary">Avg Duration:</span>
-                            <span className="font-mono text-text-secondary">{summary.avgBarsHeld} candles</span>
+                        {/* Streaks (Max W / L) */}
+                        <div className="flex justify-between items-center py-1.5 px-1 border-b border-border-subtle/30 hover:bg-background-elevated/30 rounded transition-colors">
+                            <span className="text-text-secondary text-[11px] font-medium">Max Streaks (W / L)</span>
+                            <div className="flex items-center gap-1.5 font-mono text-xs">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
+                                    {summary.maxConsecutiveWins || 0}W
+                                </span>
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] font-bold">
+                                    {summary.maxConsecutiveLosses || 0}L
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Avg MAE / MFE */}
+                        <div className="flex justify-between items-center py-1.5 px-1 border-b border-border-subtle/30 hover:bg-background-elevated/30 rounded transition-colors">
+                            <span className="text-text-secondary text-[11px] font-medium">Avg MAE / MFE</span>
+                            <div className="flex items-center gap-1.5 font-mono text-xs">
+                                <span className="text-rose-400 font-bold">
+                                    {summary.avgMae}%
+                                </span>
+                                <span className="text-border-subtle font-normal">/</span>
+                                <span className="text-emerald-400 font-bold">
+                                    +{summary.avgMfe}%
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Buy & Hold Benchmark */}
+                        <div className="flex justify-between items-center py-1.5 px-1 border-b border-border-subtle/30 hover:bg-background-elevated/30 rounded transition-colors">
+                            <span className="text-text-secondary text-[11px] font-medium">Buy & Hold Benchmark</span>
+                            <span className={`font-mono font-bold text-xs ${summary.buyAndHoldReturnPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {summary.buyAndHoldReturnPct >= 0 ? '+' : ''}{summary.buyAndHoldReturnPct}%
+                            </span>
+                        </div>
+
+                        {/* Avg Duration */}
+                        <div className="flex justify-between items-center py-1.5 px-1 hover:bg-background-elevated/30 rounded transition-colors">
+                            <span className="text-text-secondary text-[11px] font-medium">Avg Trade Duration</span>
+                            <div className="flex items-baseline font-mono text-xs">
+                                <span className="font-bold text-text-primary">
+                                    {summary.avgBarsHeld || 0}
+                                </span>
+                                <span className="text-[10px] text-text-tertiary font-sans font-normal ml-1">
+                                    candles
+                                </span>
+                            </div>
                         </div>
                     </div>
+
+                    {/* Year-by-Year Performance Matrix */}
+                    {summary.yearlyBreakdown && summary.yearlyBreakdown.length > 1 && (
+                        <div className="bg-background-surface/60 rounded-xl p-3 border border-border-subtle flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                                <span className="font-bold text-[10px] text-text-secondary uppercase tracking-wider">
+                                    Annual Returns Matrix
+                                </span>
+                                <span className="text-[10px] text-text-tertiary font-mono">
+                                    {summary.yearlyBreakdown.length} Years
+                                </span>
+                            </div>
+                            <div className="flex flex-col gap-1 mt-0.5 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
+                                {summary.yearlyBreakdown.map((y) => (
+                                    <div key={y.year} className="flex items-center justify-between py-1 px-2 rounded bg-background-app/70 border border-border-subtle/60 text-[10px] font-mono">
+                                        <span className="font-bold text-text-primary">{y.year}</span>
+                                        <span className="text-text-tertiary">{y.trades} trades</span>
+                                        <span className={y.winRate >= 50 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                                            {y.winRate}% WR
+                                        </span>
+                                        <span className={`font-bold ${y.returnPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                            {y.returnPct >= 0 ? '+' : ''}{y.returnPct}%
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Walk-Forward Comparison */}
                     {walkForward && (
@@ -403,7 +537,9 @@ export default function BacktestScorecard({
 
                                 <div className="bg-background-app p-2 rounded-lg border border-border-subtle">
                                     <span className="text-[9px] text-text-muted block">Out-Sample (Test)</span>
-                                    <span className="text-sm font-bold font-mono text-emerald-400">
+                                    <span className={`text-sm font-bold font-mono ${
+                                        (walkForward.outOfSample?.winRate || 0) >= 50 ? 'text-emerald-400' : 'text-rose-400'
+                                    }`}>
                                         {walkForward.outOfSample?.winRate || 0}% WR
                                     </span>
                                     <span className="text-[9px] text-text-tertiary block mt-0.5">
@@ -432,7 +568,9 @@ export default function BacktestScorecard({
                                     const isStop = e.reason === 'STOP';
                                     const isHorizon = e.reason === 'HORIZON_EXPIRY';
                                     const isTrail = e.reason === 'TRAILING_STOP';
-                                    const label = isTarget ? '🎯 Target Hit' : isStop ? '🛑 Stop Hit' : isHorizon ? '⏳ Horizon Expiry' : isTrail ? '⚡ Trailing Stop' : e.reason;
+                                    const isBreakeven = e.reason === 'BREAKEVEN';
+                                    const isEod = e.reason === 'EOD_SQUAREOFF';
+                                    const label = isTarget ? '🎯 Target Hit' : isStop ? '🛑 Stop Hit' : isHorizon ? '⏳ Horizon Expiry' : isTrail ? '⚡ Trailing Stop' : isBreakeven ? '⚖️ Breakeven Stop' : isEod ? '🔔 EOD Square-Off' : e.reason;
                                     return (
                                         <div key={e.reason} className="bg-background-app/70 p-2 rounded-lg border border-border-subtle/60 flex flex-col gap-1">
                                             <div className="flex justify-between items-center text-[11px]">
@@ -458,7 +596,7 @@ export default function BacktestScorecard({
 
                             {/* Edge Leak Warning Callout */}
                             {summary.horizonExpiryAnalysis?.isMajorDrag && (
-                                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 flex flex-col gap-2 text-amber-400 text-[10px] leading-tight mt-1">
+                                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5 flex flex-col gap-2 text-amber-400 text-[10px] leading-tight mt-1 shadow-sm">
                                     <div className="flex items-start gap-1.5">
                                         <AlertTriangle size={13} className="shrink-0 mt-0.5 text-amber-400" />
                                         <div>
@@ -468,16 +606,29 @@ export default function BacktestScorecard({
                                             </span>
                                         </div>
                                     </div>
-                                    {onOpenOptimizer && (
-                                        <button
-                                            type="button"
-                                            onClick={onOpenOptimizer}
-                                            className="self-start flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 rounded text-amber-300 font-semibold text-[10px] transition cursor-pointer"
-                                        >
-                                            <Zap size={10} className="fill-amber-400 text-amber-400" />
-                                            <span>⚡ Auto-Calibrate Parameters to Plug Leak</span>
-                                        </button>
-                                    )}
+                                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                                        {onPlugLeakNow && (
+                                            <button
+                                                type="button"
+                                                onClick={onPlugLeakNow}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 rounded-lg text-emerald-300 font-bold text-[10px] transition cursor-pointer shadow-sm active:scale-95"
+                                                title="Immediately switches to pure Target/Stop exit mode with premature timeout disabled"
+                                            >
+                                                <Check size={12} className="text-emerald-400" />
+                                                <span>⚡ 1-Click Plug: Disable Timeout & Run Target/Stop</span>
+                                            </button>
+                                        )}
+                                        {onOpenOptimizer && (
+                                            <button
+                                                type="button"
+                                                onClick={onOpenOptimizer}
+                                                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-background-surface hover:bg-background-app border border-amber-500/30 rounded-lg text-amber-300 font-medium text-[10px] transition cursor-pointer shadow-sm active:scale-95"
+                                            >
+                                                <Zap size={11} className="fill-amber-400 text-amber-400" />
+                                                <span>Open Auto-Calibration Studio</span>
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -604,7 +755,9 @@ export default function BacktestScorecard({
                             { id: 'ALL', label: `All (${trades.length})` },
                             { id: 'TARGET', label: `🎯 Target (${targetTradesCount})` },
                             { id: 'STOP', label: `🛑 Stop (${stopTradesCount})` },
+                            { id: 'TRAILING_STOP', label: `⚡ Trail (${trailTradesCount})` },
                             { id: 'HORIZON_EXPIRY', label: `⏳ Horizon (${horizonTradesCount})` },
+                            { id: 'BREAKEVEN', label: `⚖️ BE (${breakevenTradesCount})` },
                         ].map((f) => {
                             const isSelected = exitFilter === f.id;
                             return (
@@ -918,6 +1071,8 @@ export default function BacktestScorecard({
                                         <th className="pb-2.5 font-bold text-center">Trades</th>
                                         <th className="pb-2.5 font-bold text-right">Win Rate</th>
                                         <th className="pb-2.5 font-bold text-right">Profit Factor</th>
+                                        <th className="pb-2.5 font-bold text-right">Sharpe</th>
+                                        <th className="pb-2.5 font-bold text-right">CAGR</th>
                                         <th className="pb-2.5 font-bold text-right">Net Return</th>
                                         <th className="pb-2.5 font-bold text-right">Max DD</th>
                                         <th className="pb-2.5 font-bold text-right">Date</th>
@@ -957,6 +1112,12 @@ export default function BacktestScorecard({
                                                     <span className={`${r.summary?.profitFactor >= 1.5 ? 'text-emerald-400' : r.summary?.profitFactor >= 1.0 ? 'text-amber-400' : 'text-rose-400'} ${isBestPf ? 'bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-500/30' : ''}`}>
                                                         {r.summary?.profitFactor}
                                                     </span>
+                                                </td>
+                                                <td className="py-2.5 text-right font-black text-blue-400">
+                                                    {r.summary?.sharpeRatio ?? '—'}
+                                                </td>
+                                                <td className="py-2.5 text-right font-black text-emerald-400">
+                                                    {r.summary?.cagr ? `${r.summary.cagr}%` : '—'}
                                                 </td>
                                                 <td className="py-2.5 text-right font-black">
                                                     <span className={`${r.summary?.netReturnPct > 0 ? 'text-emerald-400' : 'text-rose-400'} ${isBestRet ? 'bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-500/30' : ''}`}>

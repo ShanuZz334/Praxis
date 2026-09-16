@@ -27,15 +27,22 @@ export default function BacktestEquityCurve({
     const n = equityCurve.length;
     const initialCap = initialCapital || 100000;
 
-    // Numerical bounds
+    // Numerical bounds spanning both Strategy and Buy & Hold Benchmark
+    const allStrategyVals = equityCurve.map(p => viewMode === 'EQUITY' ? p.equity : p.pnlPct);
+    const allBenchVals = equityCurve.map(p => {
+        const b = p.benchmarkEquity || initialCap;
+        return viewMode === 'EQUITY' ? b : ((b - initialCap) / initialCap) * 100;
+    });
+    const combinedVals = [...allStrategyVals, ...allBenchVals];
+
+    const minVal = Math.min(...combinedVals);
+    const maxVal = Math.max(...combinedVals);
+    const range = maxVal - minVal || 1;
+
     const minEquity = Math.min(...equityCurve.map(p => p.equity));
     const maxEquity = Math.max(...equityCurve.map(p => p.equity));
     const minPct = Math.min(...equityCurve.map(p => p.pnlPct));
     const maxPct = Math.max(...equityCurve.map(p => p.pnlPct));
-
-    const minVal = viewMode === 'EQUITY' ? minEquity : minPct;
-    const maxVal = viewMode === 'EQUITY' ? maxEquity : maxPct;
-    const range = maxVal - minVal || 1;
 
     const width = 800;
     const height = 65;
@@ -44,7 +51,7 @@ export default function BacktestEquityCurve({
     const baselineVal = viewMode === 'EQUITY' ? initialCap : 0;
     const baselineY = height - ((baselineVal - minVal) / range) * (height - 14) - 7;
 
-    // SVG Points with padding to prevent clipping
+    // Strategy SVG Points
     const points = equityCurve.map((d, i) => {
         const x = (i / (n - 1)) * width;
         const val = viewMode === 'EQUITY' ? d.equity : d.pnlPct;
@@ -52,8 +59,18 @@ export default function BacktestEquityCurve({
         return { x, y, data: d };
     });
 
+    // Buy & Hold Benchmark SVG Points
+    const benchPoints = equityCurve.map((d, i) => {
+        const x = (i / (n - 1)) * width;
+        const benchEq = d.benchmarkEquity || initialCap;
+        const val = viewMode === 'EQUITY' ? benchEq : ((benchEq - initialCap) / initialCap) * 100;
+        const y = height - ((val - minVal) / range) * (height - 14) - 7;
+        return { x, y };
+    });
+
     const pathString = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`, '');
     const fillString = `${pathString} L ${width} ${height} L 0 ${height} Z`;
+    const benchPathString = benchPoints.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`, '');
 
     const netReturnPct = Math.round(((endingCapital - initialCap) / initialCap) * 1000) / 10;
 
@@ -148,7 +165,17 @@ export default function BacktestEquityCurve({
                             </g>
                         )}
 
-                        {/* Stroke Line */}
+                        {/* Benchmark Buy & Hold Overlay Line */}
+                        <path
+                            d={benchPathString}
+                            fill="none"
+                            stroke="#94a3b8"
+                            strokeWidth="1.5"
+                            strokeDasharray="4 4"
+                            opacity="0.6"
+                        />
+
+                        {/* Strategy Stroke Line */}
                         <path
                             d={pathString}
                             fill="none"
@@ -201,8 +228,13 @@ export default function BacktestEquityCurve({
                                         ₹{hoveredPoint.data.equity.toLocaleString('en-IN')}
                                     </div>
                                     <div className="text-text-secondary text-[9px] mt-0.5">
-                                        Return: <span className={hoveredPoint.data.pnlPct >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                                        Strategy: <span className={hoveredPoint.data.pnlPct >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
                                             {hoveredPoint.data.pnlPct >= 0 ? '+' : ''}{hoveredPoint.data.pnlPct}%
+                                        </span>
+                                    </div>
+                                    <div className="text-text-tertiary text-[9px] mt-0.5">
+                                        Buy & Hold: <span className="font-bold text-slate-300">
+                                            ₹{(hoveredPoint.data.benchmarkEquity || initialCap).toLocaleString('en-IN')}
                                         </span>
                                     </div>
                                 </>
@@ -213,6 +245,12 @@ export default function BacktestEquityCurve({
                                     </div>
                                     <div className="text-text-secondary text-[9px] mt-0.5">
                                         Equity: ₹{hoveredPoint.data.equity.toLocaleString('en-IN')}
+                                    </div>
+                                    <div className="text-text-tertiary text-[9px] mt-0.5">
+                                        Buy & Hold: <span className="font-bold text-slate-300">
+                                            {Math.round((((hoveredPoint.data.benchmarkEquity || initialCap) - initialCap) / initialCap) * 1000) / 10 >= 0 ? '+' : ''}
+                                            {Math.round((((hoveredPoint.data.benchmarkEquity || initialCap) - initialCap) / initialCap) * 1000) / 10}%
+                                        </span>
                                     </div>
                                 </>
                             )}
@@ -239,30 +277,44 @@ export default function BacktestEquityCurve({
                 </div>
             </div>
 
-            {/* Right: View Mode Toggle */}
-            <div className="flex items-center gap-1 bg-background-surface p-1 rounded-lg border border-border-subtle shrink-0">
-                <button
-                    onClick={() => setViewMode('EQUITY')}
-                    className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition cursor-pointer ${
-                        viewMode === 'EQUITY'
-                            ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
-                            : 'text-text-tertiary hover:text-text-primary border border-transparent'
-                    }`}
-                    title="Display cumulative account equity progression in INR"
-                >
-                    ₹ Equity
-                </button>
-                <button
-                    onClick={() => setViewMode('PERCENT')}
-                    className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition cursor-pointer ${
-                        viewMode === 'PERCENT'
-                            ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
-                            : 'text-text-tertiary hover:text-text-primary border border-transparent'
-                    }`}
-                    title="Display cumulative percentage return and baseline"
-                >
-                    % Return
-                </button>
+            {/* Right: View Mode Toggle & Legend */}
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
+                {/* Toggle Tabs */}
+                <div className="flex items-center gap-1 bg-background-surface p-1 rounded-lg border border-border-subtle">
+                    <button
+                        onClick={() => setViewMode('EQUITY')}
+                        className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition cursor-pointer ${
+                            viewMode === 'EQUITY'
+                                ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
+                                : 'text-text-tertiary hover:text-text-primary border border-transparent'
+                        }`}
+                        title="Display cumulative account equity progression in INR"
+                    >
+                        ₹ Equity
+                    </button>
+                    <button
+                        onClick={() => setViewMode('PERCENT')}
+                        className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition cursor-pointer ${
+                            viewMode === 'PERCENT'
+                                ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
+                                : 'text-text-tertiary hover:text-text-primary border border-transparent'
+                        }`}
+                        title="Display cumulative percentage return and baseline"
+                    >
+                        % Return
+                    </button>
+                </div>
+                {/* Legend row */}
+                <div className="flex items-center gap-3 text-[9px] font-mono text-text-tertiary px-0.5">
+                    <span className="flex items-center gap-1">
+                        <svg width="16" height="6" viewBox="0 0 16 6"><line x1="0" y1="3" x2="16" y2="3" stroke={netReturnPct >= 0 ? '#10b981' : '#f43f5e'} strokeWidth="2" strokeLinecap="round"/></svg>
+                        Strategy
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <svg width="16" height="6" viewBox="0 0 16 6"><line x1="0" y1="3" x2="16" y2="3" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="3 2"/></svg>
+                        Buy &amp; Hold
+                    </span>
+                </div>
             </div>
         </div>
     );

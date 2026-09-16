@@ -1,1 +1,0 @@
-import Database from 'better-sqlite3'; const db = new Database('local_data/praxis_market.db'); console.log('options_cache:', db.prepare('SELECT instrument_key FROM options_cache WHERE instrument_key NOT LIKE \'NSE_%\'').all()); console.log('technicals_cache:', db.prepare('SELECT instrument_key FROM technicals_cache WHERE instrument_key NOT LIKE \'NSE_%\'').all());

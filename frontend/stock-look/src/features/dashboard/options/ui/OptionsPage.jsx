@@ -28,6 +28,7 @@ import Loader from "@/shared/components/ui/Loader";
 import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/confidenceEngine";
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
+import { formatTimestampWithDate } from '@/shared/utils/formatters';
 import { useDataRegistry } from '@/shared/context/DataRegistryContext';
 import { useTheme } from '@/shared/context/ThemeContext';
 
@@ -481,8 +482,7 @@ export default function OptionsPage() {
     };
 
     const formatTime = (ts) => {
-        if (!ts) return null;
-        return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        return formatTimestampWithDate(ts, { includeSeconds: false });
     };
 
     // Composite Live Engine Scores

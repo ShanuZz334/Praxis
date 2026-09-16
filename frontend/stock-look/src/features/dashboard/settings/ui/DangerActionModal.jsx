@@ -18,6 +18,16 @@ export default function DangerActionModal({
 }) {
     const [confirmText, setConfirmText] = useState('');
     const [totp, setTotp] = useState('');
+    const [selectedOption, setSelectedOption] = useState(
+        config?.defaultOption || config?.options?.[0]?.id || ''
+    );
+
+    // Sync selected option when config changes
+    React.useEffect(() => {
+        if (config?.defaultOption || config?.options?.[0]?.id) {
+            setSelectedOption(config.defaultOption || config.options[0].id);
+        }
+    }, [config?.id]);
 
     if (!isOpen || !config) return null;
 
@@ -26,7 +36,8 @@ export default function DangerActionModal({
         description,
         requiredConfirmText,
         actionButtonText,
-        buttonVariant = 'red' // red | orange | amber
+        buttonVariant = 'red', // red | orange | amber
+        options = []
     } = config;
 
     const isKeywordMatch = confirmText.trim() === requiredConfirmText;
@@ -36,13 +47,16 @@ export default function DangerActionModal({
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!canSubmit) return;
-        onConfirm({ totp, confirmText: confirmText.trim() });
+        onConfirm({ totp, confirmText: confirmText.trim(), clearMode: selectedOption });
     };
 
     const handleClose = () => {
         if (isLoading) return;
         setConfirmText('');
         setTotp('');
+        if (config?.defaultOption || config?.options?.[0]?.id) {
+            setSelectedOption(config.defaultOption || config.options[0].id);
+        }
         onClose();
     };
 
@@ -59,10 +73,12 @@ export default function DangerActionModal({
         amber: 'border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400',
     }[buttonVariant] || 'border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400';
 
+    const selectedOptionObj = options.find(o => o.id === selectedOption) || null;
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-150">
             <div 
-                className="w-full max-w-md rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1017] p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-150 text-left"
+                className={`w-full ${options.length > 0 ? 'max-w-md sm:max-w-lg' : 'max-w-md'} rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1017] p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-150 text-left`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
@@ -87,9 +103,61 @@ export default function DangerActionModal({
 
                 {/* Form Body */}
                 <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+                    {/* Scope Options Selector (if configured) */}
+                    {options && options.length > 0 && (
+                        <div className="space-y-2">
+                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                                Select Market Data Scope
+                            </label>
+                            <div className="space-y-2">
+                                {options.map((opt) => {
+                                    const isSelected = selectedOption === opt.id;
+                                    return (
+                                        <div
+                                            key={opt.id}
+                                            onClick={() => !isLoading && setSelectedOption(opt.id)}
+                                            className={`cursor-pointer rounded-lg border p-3 transition-all ${
+                                                isSelected
+                                                    ? 'border-orange-500/60 bg-orange-500/10 dark:bg-orange-950/20 ring-1 ring-orange-500/30'
+                                                    : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className={`h-3.5 w-3.5 rounded-full border flex items-center justify-center transition-colors ${
+                                                        isSelected ? 'border-orange-500 bg-orange-500' : 'border-slate-400 dark:border-slate-600'
+                                                    }`}>
+                                                        {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                                                    </div>
+                                                    <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                                                        {opt.label}
+                                                    </span>
+                                                </div>
+                                                {opt.badge && (
+                                                    <span className={`px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider rounded border ${
+                                                        isSelected
+                                                            ? 'bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-500/30'
+                                                            : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
+                                                    }`}>
+                                                        {opt.badge}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {opt.description && (
+                                                <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed pl-6">
+                                                    {opt.description}
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Concise Notice Banner */}
                     <div className={`p-3 rounded-lg border text-xs leading-relaxed ${noticeStyles}`}>
-                        {description}
+                        {selectedOptionObj?.notice || description}
                     </div>
 
                     {/* Error Banner */}

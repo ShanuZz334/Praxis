@@ -233,6 +233,55 @@ export default function BacktestingWorkshop() {
         }
     }, [candles, handleSaveRun]);
 
+    const handlePlugLeakDirectly = useCallback(() => {
+        const pluggedConfig = {
+            ...config,
+            exitRule: {
+                ...config.exitRule,
+                type: 'TARGET_STOP',
+                enableHorizonTimeout: false, // Disables premature timeout completely
+            }
+        };
+
+        setConfig(pluggedConfig);
+        const name = `Plugged: ${config.unit} (Pure Target/Stop)`;
+        setRunName(name);
+
+        if (candles && candles.length >= 30) {
+            const result = runBacktest(candles, pluggedConfig);
+            setSimulationResult(result);
+
+            try {
+                const newRun = {
+                    id: Date.now().toString(),
+                    name,
+                    unit: pluggedConfig.unit,
+                    instrument: pluggedConfig.instrument,
+                    timeframe: pluggedConfig.timeframe,
+                    summary: result.summary,
+                    config: JSON.parse(JSON.stringify(pluggedConfig)),
+                    timestamp: Date.now(),
+                };
+                handleSaveRun(newRun);
+            } catch (e) {
+                /* silent */
+            }
+
+            setAppliedNotice({
+                name: 'Edge Leak Successfully Plugged',
+                winRate: result.summary?.winRate ?? 0,
+                profitFactor: result.summary?.profitFactor ?? 0,
+                totalTrades: result.summary?.totalTrades ?? 0,
+                targetPct: pluggedConfig.exitRule?.targetPct,
+                stopPct: pluggedConfig.exitRule?.stopPct,
+            });
+
+            setTimeout(() => {
+                setAppliedNotice(null);
+            }, 6000);
+        }
+    }, [config, candles, handleSaveRun]);
+
     // ── 1. Fetch Historical Candles on Instrument / Timeframe / DateRange Change ──
     const fetchHistoricalData = useCallback(async (inst, tf, dateRange = 'SINCE_2010') => {
         setLoadingCandles(true);
@@ -244,7 +293,7 @@ export default function BacktestingWorkshop() {
                 else if (dateRange === 'SINCE_2015') fromDate = '2015-01-01';
                 else if (dateRange === 'SINCE_2020') fromDate = '2020-01-01';
                 else if (dateRange === 'ALL_TIME') fromDate = '2000-01-01';
-                else if (dateRange === 'LAST_2_YEARS') {
+                else if (dateRange === 'LAST_2_YEARS' || dateRange === '2Y') {
                     const d = new Date();
                     d.setFullYear(d.getFullYear() - 2);
                     fromDate = d.toISOString().split('T')[0];
@@ -282,12 +331,15 @@ export default function BacktestingWorkshop() {
     }, []);
 
     useEffect(() => {
+        // Clear stale results immediately so the UI reflects the new selection
+        setSimulationResult(null);
         fetchHistoricalData(config.instrument, config.timeframe, config.dateRange).then((data) => {
             if (data && data.length > 0) {
-                // Auto-run baseline backtest on first load
+                // Auto-run baseline backtest on first load or instrument/timeframe/dateRange change
                 const res = runBacktest(data, config);
                 setSimulationResult(res);
             }
+            // If data is empty, simulationResult stays null → scorecard shows empty state
         });
     }, [config.instrument, config.timeframe, config.dateRange]);
 
@@ -306,9 +358,11 @@ export default function BacktestingWorkshop() {
         config.customRules,
         config.exitRule,
         config.slippageModel,
+        config.sizingModel,
         config.walkForward,
         config.initialCapital,
         config.positionSizePct,
+        config.costModel,
     ]);
 
     // ── 2. Run Backtest Simulation Handler ───────────────────────────────────
@@ -339,6 +393,18 @@ export default function BacktestingWorkshop() {
             }
         }, 150);
     }, [candles, config, runName, handleSaveRun]);
+
+    // Global keyboard shortcut: Ctrl+Enter (or Cmd+Enter) to trigger simulation
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                handleRunBacktest();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [handleRunBacktest]);
 
     const instrumentLabel = useMemo(() => {
         const all = [...(FO_INDICES || []), ...(FO_EQUITIES || [])];
@@ -487,6 +553,7 @@ export default function BacktestingWorkshop() {
                     onDeleteRun={handleDeleteRun}
                     onClearRuns={handleClearRuns}
                     onOpenOptimizer={() => setIsOptimizerOpen(true)}
+                    onPlugLeakNow={handlePlugLeakDirectly}
                     isOpen={isRightOpen}
                 />
             </div>

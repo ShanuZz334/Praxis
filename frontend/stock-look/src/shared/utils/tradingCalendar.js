@@ -191,37 +191,75 @@ export function getNextTradingDayUTC(startDate) {
  *   - Market Open:  09:15 IST = 03:45 UTC = 225 UTC minutes
  *   - Market Close: 15:30 IST = 10:00 UTC = 600 UTC minutes
  *
- * If nextTime lands on/after 15:30 IST or before 09:15 IST, it rolls forward to 09:15 IST
- * of the NEXT VALID TRADING DAY (skipping weekends and NSE holidays).
+ * If nextTime lands on/after 15:30 IST (or after the final bar start time of the session)
+ * or outside market hours, it rolls forward to 09:15 IST of the NEXT VALID TRADING DAY.
  */
-export function getNextIntradayCandleTime(currentTimeSeconds, barSizeSeconds, minUtcMins = 225, maxUtcMins = 600) {
-    let nextTime = currentTimeSeconds + barSizeSeconds;
-    let date = new Date(nextTime * 1000);
-    let tm = date.getUTCHours() * 60 + date.getUTCMinutes();
+export function getNextIntradayCandleTime(currentTimeSeconds, barSizeSeconds = 900, minUtcMins = 225, maxUtcMins = 600) {
+    const barMins = Math.max(1, Math.round(barSizeSeconds / 60));
+    const lastPossibleStartMins = maxUtcMins - barMins;
 
-    if (tm >= maxUtcMins || tm < minUtcMins) {
-        // Roll to next trading day
-        do {
-            date.setUTCDate(date.getUTCDate() + 1);
-        } while (isMarketClosedDay(date, true));
+    const curDate = new Date(currentTimeSeconds * 1000);
+    const curUtcMins = curDate.getUTCHours() * 60 + curDate.getUTCMinutes();
+    const curIsClosedDay = isMarketClosedDay(curDate, true);
 
-        date.setUTCHours(Math.floor(minUtcMins / 60), minUtcMins % 60, 0, 0);
-        nextTime = Math.floor(date.getTime() / 1000);
+    // If current time is on a weekend/holiday, or already at/past the last bar of the day
+    if (curIsClosedDay || curUtcMins >= lastPossibleStartMins || curUtcMins < minUtcMins) {
+        let rollDate = new Date(curDate);
+        if (curUtcMins >= lastPossibleStartMins || curIsClosedDay) {
+            do {
+                rollDate.setUTCDate(rollDate.getUTCDate() + 1);
+            } while (isMarketClosedDay(rollDate, true));
+        }
+        rollDate.setUTCHours(Math.floor(minUtcMins / 60), minUtcMins % 60, 0, 0);
+        return Math.floor(rollDate.getTime() / 1000);
     }
+
+    const nextTime = currentTimeSeconds + barSizeSeconds;
+    const nextDate = new Date(nextTime * 1000);
+    const nextUtcMins = nextDate.getUTCHours() * 60 + nextDate.getUTCMinutes();
+
+    // If advancing causes the candle to overshoot the session end
+    if (nextUtcMins > lastPossibleStartMins) {
+        let rollDate = new Date(nextDate);
+        do {
+            rollDate.setUTCDate(rollDate.getUTCDate() + 1);
+        } while (isMarketClosedDay(rollDate, true));
+
+        rollDate.setUTCHours(Math.floor(minUtcMins / 60), minUtcMins % 60, 0, 0);
+        return Math.floor(rollDate.getTime() / 1000);
+    }
+
     return nextTime;
 }
 
 /**
- * Validates and heals future candle times so that no forecast candle falls on a weekend or NSE holiday.
- * If any future candle lands on a market-closed day, the future timeline is re-anchored from lastRealCandleTime.
+ * Validates and heals future candle times so that no forecast candle falls on a weekend,
+ * NSE holiday, or outside official market hours (09:15 - 15:30 IST).
  */
 export function healFutureCandleTimes(times = [], lastRealCandleTime = null, barSizeSeconds = 900, isDailyOrAbove = false) {
     if (!times || times.length === 0) return times;
 
-    const hasClosedDay = times.some(t => isMarketClosedDay(t, !isDailyOrAbove));
-    if (!hasClosedDay) return times;
+    const barMins = Math.max(1, Math.round(barSizeSeconds / 60));
+    const lastPossibleStartMins = 600 - barMins;
 
-    console.log("[TradingCalendar] Detected market-closed day in ghost candles. Re-aligning forecast timeline past holidays/weekends...");
+    // Check if any candle violates weekend/holiday rules OR intraday market hours
+    const needsHealing = times.some(t => {
+        if (isDailyOrAbove) {
+            return isMarketClosedDay(t, false);
+        }
+        if (isMarketClosedDay(t, true)) return true;
+
+        if (typeof t === 'number') {
+            const d = new Date(t < 10000000000 ? t * 1000 : t);
+            const utcMins = d.getUTCHours() * 60 + d.getUTCMinutes();
+            if (utcMins < 225 || utcMins > lastPossibleStartMins) return true;
+        }
+        return false;
+    });
+
+    if (!needsHealing) return times;
+
+    console.log("[TradingCalendar] Detected market-closed day or after-hours bar in ghost candles. Re-aligning forecast timeline strictly to NSE hours...");
 
     const healed = [];
     if (isDailyOrAbove) {

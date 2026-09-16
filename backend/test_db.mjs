@@ -1,1 +1,0 @@
-import Database from 'better-sqlite3'; const db = new Database('local_data/praxis_local.db'); console.log(db.prepare('SELECT name FROM sqlite_master WHERE type=\'table\'').all()); console.log(db.prepare('SELECT * FROM user_preferences').all());

@@ -282,8 +282,6 @@ router.get("/market-quote", async (req, res) => {
 
             // Seed Local SQLite for fast synchronous reads by Technical Engines
             try {
-                const insertTick = db.prepare("INSERT INTO market_ticks (instrument_key, ltp, volume, open_interest, timestamp) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)");
-                
                 const insertQuote = db.prepare(`
                     INSERT INTO quotes (
                         instrument_key, ltp, open, high, low, close, volume, 
@@ -301,17 +299,15 @@ router.get("/market-quote", async (req, res) => {
 
                 const insertManyQuotes = db.transaction((quotesToInsert) => {
                     for (const q of quotesToInsert) {
-                        insertTick.run(q.instrument, q.ltp, q.volume || 0, q.openInterest || 0);
                         insertQuote.run(q.instrument, q.ltp, q.open || null, q.high || null, q.low || null, q.previousClose || q.close || null, q.volume || 0);
                     }
                 });
                 insertManyQuotes(ticksToSave);
             } catch (sqliteErr) {
-                console.error("Failed to seed SQLite with initial REST data:", sqliteErr.message);
+                console.error("Failed to seed SQLite with initial REST quotes:", sqliteErr.message);
             }
 
-            // Market tick data is now fully persisted in SQLite (market_ticks + quotes tables above).
-            // MongoDB MarketTick collection is retired as of Phase 7 of the local-DB migration.
+            // Market quotes are now fully persisted in SQLite (quotes table above).
         }
 
         let responseData = response.data?.data || {};

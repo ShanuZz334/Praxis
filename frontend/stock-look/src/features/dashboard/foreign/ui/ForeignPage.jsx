@@ -26,6 +26,7 @@ import { useGlobalApiData } from "../data/useGlobalApiData";
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import Loader from "@/shared/components/ui/Loader";
 import { useTheme } from '@/shared/context/ThemeContext';
+import { formatTimestampWithDate } from '@/shared/utils/formatters';
 
 const DEFAULT_OVERRIDES = {
     dxy: null,
@@ -117,8 +118,7 @@ export default function ForeignPage() {
     };
   
     const formatTime = (ts) => {
-        if (!ts) return null;
-        return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        return formatTimestampWithDate(ts, { includeSeconds: false });
     };
 
     // Calculate freshness correctly based on whether we have live data or manual overrides

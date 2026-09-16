@@ -246,7 +246,7 @@ export default function BacktestReplayChart({
                         position: t.direction === 1 ? 'belowBar' : 'aboveBar',
                         color: t.direction === 1 ? '#10b981' : '#f43f5e',
                         shape: t.direction === 1 ? 'arrowUp' : 'arrowDown',
-                        text: `${t.direction === 1 ? 'BUY' : 'SELL'} @ ₹${t.entryPrice}`,
+                        text: `${t.direction === 1 ? 'BUY' : 'SELL'} @ ₹${Number(t.entryPrice).toLocaleString('en-IN')}`,
                         id: `${t.id}_entry`,
                     });
                 }
@@ -341,7 +341,7 @@ export default function BacktestReplayChart({
                         <>
                             <span className="text-border-subtle">|</span>
                             <span className="text-text-tertiary">
-                                C: <strong className="text-text-primary">₹{candles[replayIndex].close}</strong>
+                                C: <strong className="text-text-primary">₹{Number(candles[replayIndex].close).toLocaleString('en-IN')}</strong>
                             </span>
                             <span className="text-text-tertiary">
                                 {formatCandleTime(candles[replayIndex].time)}
@@ -365,7 +365,7 @@ export default function BacktestReplayChart({
                         </div>
                         <button
                             onClick={() => setSelectedTrade(null)}
-                            className="text-text-muted hover:text-text-primary p-0.5"
+                            className="text-text-muted hover:text-text-primary p-0.5 cursor-pointer"
                         >
                             <X size={13} />
                         </button>
@@ -374,24 +374,36 @@ export default function BacktestReplayChart({
                     <div className="flex flex-col gap-1.5">
                         <div className="flex justify-between">
                             <span className="text-text-tertiary">Signal:</span>
-                            <span className="font-semibold text-text-primary">{selectedTrade.sourceDetail}</span>
+                            <span className="font-semibold text-text-primary truncate max-w-[150px]">{selectedTrade.sourceDetail}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-text-tertiary">Entry Price:</span>
-                            <span className="font-mono text-text-primary">₹{selectedTrade.entryPrice}</span>
+                            <span className="font-mono text-text-primary">₹{Number(selectedTrade.entryPrice).toLocaleString('en-IN')}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-text-tertiary">Exit Price:</span>
-                            <span className="font-mono text-text-primary">₹{selectedTrade.exitPrice || 'Active'}</span>
+                            <span className="font-mono text-text-primary">
+                                {typeof selectedTrade.exitPrice === 'number' ? `₹${selectedTrade.exitPrice.toLocaleString('en-IN')}` : (selectedTrade.exitPrice || 'Active')}
+                            </span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-text-tertiary">Realized Return:</span>
                             <span className={`font-bold font-mono ${
-                                selectedTrade.returnPct > 0 ? 'text-emerald-400' : 'text-rose-400'
+                                selectedTrade.returnPct > 0 ? 'text-emerald-400' : selectedTrade.returnPct < 0 ? 'text-rose-400' : 'text-slate-400'
                             }`}>
                                 {selectedTrade.returnPct > 0 ? '+' : ''}{selectedTrade.returnPct}%
                             </span>
                         </div>
+                        {selectedTrade.realizedPnl !== undefined && (
+                            <div className="flex justify-between">
+                                <span className="text-text-tertiary">Realized PnL:</span>
+                                <span className={`font-bold font-mono ${
+                                    selectedTrade.realizedPnl > 0 ? 'text-emerald-400' : selectedTrade.realizedPnl < 0 ? 'text-rose-400' : 'text-slate-400'
+                                }`}>
+                                    {selectedTrade.realizedPnl >= 0 ? '+' : ''}₹{selectedTrade.realizedPnl.toLocaleString('en-IN')}
+                                </span>
+                            </div>
+                        )}
                         <div className="flex justify-between">
                             <span className="text-text-tertiary">Exit Reason:</span>
                             <span className="font-medium text-text-secondary uppercase text-[10px]">{selectedTrade.exitReason}</span>

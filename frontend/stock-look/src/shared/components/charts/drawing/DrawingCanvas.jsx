@@ -20,16 +20,31 @@ const normalizeTime = (t) => t;
  * Convert chart-space {price, time} to canvas pixel coordinates 
  */
 function toPixel(p, chart, series) {
-    if (!p || !chart || !series) return null;
+    if (!p) return null;
     try {
-        let x = chart.timeScale().timeToCoordinate(p.time);
-        if (x == null && p.logical != null) {
+        let x = null;
+        if (chart && p.time != null) {
+            x = chart.timeScale().timeToCoordinate(p.time);
+        }
+        if (x == null && chart && p.logical != null) {
             x = chart.timeScale().logicalToCoordinate(p.logical);
         }
-        const y = series.priceToCoordinate(p.price);
+        let y = null;
+        if (series && p.price != null) {
+            y = series.priceToCoordinate(p.price);
+        }
+        // Fallback to raw canvas pixel coordinates if available (e.g. live draft cursor)
+        if (x == null && p.x != null) x = p.x;
+        if (y == null && p.y != null) y = p.y;
+
         if (x == null || y == null || isNaN(x) || isNaN(y)) return null;
         return { x, y };
-    } catch { return null; }
+    } catch {
+        if (p.x != null && p.y != null && !isNaN(p.x) && !isNaN(p.y)) {
+            return { x: p.x, y: p.y };
+        }
+        return null;
+    }
 }
 
 /** Distance from point (px,py) to segment (ax,ay)-(bx,by) */
@@ -181,21 +196,67 @@ export default function DrawingCanvas({
             if (d.type === 'trend' && d.p2) {
                 const p2 = toPixel(d.p2, chart, series);
                 if (!p2) return;
-                // Extend to right edge
-                const slope = (p2.y - p1.y) / (p2.x - p1.x || 0.001);
-                const extY = p2.y + slope * (rightEdge - p2.x);
-                drawLine(p1.x, p1.y, rightEdge, extY, highlight, [], 1.5);
-                // Anchor dots
-                if (isHovered) {
-                    [p1, p2].forEach(p => {
-                        ctx.beginPath();
-                        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-                        ctx.fillStyle = color;
-                        ctx.fill();
-                    });
+
+                const isDraft = d === draftRef.current;
+                const showAnchors = isHovered || isDraft;
+
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const dist = Math.hypot(dx, dy);
+
+                // Draw line if points are not identical
+                if (dist > 1.5) {
+                    const slope = dy / (dx || 0.001);
+                    const extY = p2.y + slope * (rightEdge - p2.x);
+
+                    // 1. Direct segment between P1 and P2 (prominent rubber-band line)
+                    drawLine(p1.x, p1.y, p2.x, p2.y, highlight, [], isDraft ? 2 : 1.5);
+
+                    // 2. Projected extension ray towards the right edge of chart
+                    if (p2.x < rightEdge) {
+                        drawLine(p2.x, p2.y, rightEdge, extY, highlight, isDraft ? [5, 4] : [], isDraft ? 1.5 : 1.5);
+                    }
                 }
+
+                // Fixed Point 1 Anchor & Dynamic Point 2 Cursor Anchor
+                if (showAnchors) {
+                    // P1: Fixed anchor point (prominent dot + white border + outer ring if drafting)
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(p1.x, p1.y, 5, 0, Math.PI * 2);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    if (isDraft) {
+                        ctx.beginPath();
+                        ctx.arc(p1.x, p1.y, 8.5, 0, Math.PI * 2);
+                        ctx.strokeStyle = color + '99';
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+
+                    // P2: Cursor anchor point (visible whenever user moves the mouse)
+                    if (dist > 1.5 || !isDraft) {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(p2.x, p2.y, isDraft ? 5 : 4, 0, Math.PI * 2);
+                        ctx.fillStyle = isDraft ? '#ffffff' : color;
+                        ctx.fill();
+                        ctx.strokeStyle = isDraft ? color : '#ffffff';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+
                 drawPriceLabel(p1.y, d.p1.price, color);
-                drawPriceLabel(p2.y, d.p2.price, color);
+                if (dist > 1.5 || !isDraft) {
+                    drawPriceLabel(p2.y, d.p2.price, color);
+                }
             }
 
             if (d.type === 'rect' && d.p2) {
@@ -930,6 +991,16 @@ export default function DrawingCanvas({
         if (!container) return;
 
         const onContextMenu = (e) => {
+            if (draftRef.current) {
+                e.preventDefault();
+                draftRef.current = null;
+                if (animFrameRef.current) {
+                    cancelAnimationFrame(animFrameRef.current);
+                    animFrameRef.current = null;
+                }
+                render();
+                return;
+            }
             if (activeTool !== 'cursor') return;
             const rect = container.getBoundingClientRect();
             const cx = e.clientX - rect.left;
@@ -947,7 +1018,35 @@ export default function DrawingCanvas({
 
         container.addEventListener('contextmenu', onContextMenu);
         return () => container.removeEventListener('contextmenu', onContextMenu);
-    }, [containerRef, activeTool, getHoveredId, deleteDrawing]);
+    }, [containerRef, activeTool, getHoveredId, deleteDrawing, render]);
+
+    // ── High-performance render requester (60fps capped) ────────────────────
+    const requestRender = useCallback(() => {
+        if (animFrameRef.current) return;
+        animFrameRef.current = requestAnimationFrame(() => {
+            animFrameRef.current = null;
+            render();
+        });
+    }, [render]);
+
+    // Clear any in-progress draft whenever activeTool changes
+    useEffect(() => {
+        draftRef.current = null;
+        if (animFrameRef.current) {
+            cancelAnimationFrame(animFrameRef.current);
+            animFrameRef.current = null;
+        }
+        render();
+    }, [activeTool, render]);
+
+    // Clean up animation frames on unmount
+    useEffect(() => {
+        return () => {
+            if (animFrameRef.current) {
+                cancelAnimationFrame(animFrameRef.current);
+            }
+        };
+    }, []);
 
     // ── Mouse Events ────────────────────────────────────────────────────────
 
@@ -956,17 +1055,34 @@ export default function DrawingCanvas({
         const pt = pixelToChartPoint(e.clientX, e.clientY);
         if (!pt) return;
 
-        canvasRef.current.style.cursor = 'crosshair';
-
-        // Update in-progress draft p2
-        const draft = draftRef.current;
-        if (draft && draft.type === 'brush') {
-            draftRef.current = { ...draft, points: [...draft.points, { price: pt.price, time: pt.time, logical: pt.logical }] };
-        } else if (draft && draft.type !== 'text') {
-            if (draft.step === 1) draftRef.current = { ...draft, p2: { price: pt.price, time: pt.time, logical: pt.logical } };
-            if (draft.step === 2) draftRef.current = { ...draft, p3: { price: pt.price, time: pt.time, logical: pt.logical } };
+        if (canvasRef.current) {
+            canvasRef.current.style.cursor = 'crosshair';
         }
-    }, [activeTool, pixelToChartPoint, getHoveredId]);
+
+        // Update in-progress draft with real-time cursor coordinates
+        const draft = draftRef.current;
+        if (draft) {
+            if (draft.type === 'brush') {
+                draftRef.current = {
+                    ...draft,
+                    points: [...draft.points, { price: pt.price, time: pt.time, logical: pt.logical, x: pt.x, y: pt.y }]
+                };
+            } else if (draft.type !== 'text') {
+                if (draft.step === 1) {
+                    draftRef.current = {
+                        ...draft,
+                        p2: { price: pt.price, time: pt.time, logical: pt.logical, x: pt.x, y: pt.y }
+                    };
+                } else if (draft.step === 2) {
+                    draftRef.current = {
+                        ...draft,
+                        p3: { price: pt.price, time: pt.time, logical: pt.logical, x: pt.x, y: pt.y }
+                    };
+                }
+            }
+            requestRender();
+        }
+    }, [activeTool, pixelToChartPoint, requestRender]);
 
     const onMouseDown = useCallback((e) => {
         if (e.button !== 0 || activeTool === 'cursor') return;
@@ -979,6 +1095,7 @@ export default function DrawingCanvas({
         if (activeTool === 'hline' || activeTool === 'hray' || activeTool === 'vline') {
             addDrawing({ id, type: activeTool, p1: { price: pt.price, time: pt.time, logical: pt.logical }, color: activeColor });
             setActiveTool('cursor');
+            requestRender();
             return;
         }
 
@@ -992,6 +1109,7 @@ export default function DrawingCanvas({
                 y: e.clientY
             });
             setActiveTool('cursor');
+            requestRender();
             return;
         }
 
@@ -1000,15 +1118,16 @@ export default function DrawingCanvas({
             draftRef.current = {
                 id,
                 type: 'brush',
-                p1: { price: pt.price, time: pt.time, logical: pt.logical },
-                points: [{ price: pt.price, time: pt.time, logical: pt.logical }],
+                p1: { price: pt.price, time: pt.time, logical: pt.logical, x: pt.x, y: pt.y },
+                points: [{ price: pt.price, time: pt.time, logical: pt.logical, x: pt.x, y: pt.y }],
                 color: activeColor,
                 step: 1
             };
+            requestRender();
             return;
         }
 
-        // Two-point tools: trend, arrow, rect, circle, fib, channel, measure, longpos, shortpos
+        // Two-point tools: trend, arrow, rect, circle, fib, channel, measure, longpos, shortpos, scalp
         if (['trend', 'arrow', 'rect', 'circle', 'fib', 'channel', 'measure', 'longpos', 'shortpos', 'scalp'].includes(activeTool)) {
             if (draftRef.current && draftRef.current.type === activeTool) {
                 const draft = draftRef.current;
@@ -1016,36 +1135,61 @@ export default function DrawingCanvas({
                 // 3-point tools (channel)
                 if (activeTool === 'channel') {
                     if (draft.step === 1) {
-                        draftRef.current = { ...draft, p2: { price: pt.price, time: pt.time, logical: pt.logical }, step: 2 };
+                        draftRef.current = {
+                            ...draft,
+                            p2: { price: pt.price, time: pt.time, logical: pt.logical, x: pt.x, y: pt.y },
+                            step: 2,
+                            startClientX: e.clientX,
+                            startClientY: e.clientY
+                        };
+                        requestRender();
                         return;
                     }
                     if (draft.step === 2) {
-                        addDrawing({ id: draft.id, type: draft.type, p1: draft.p1, p2: draft.p2, p3: { price: pt.price, time: pt.time, logical: pt.logical }, color: draft.color });
+                        addDrawing({
+                            id: draft.id,
+                            type: draft.type,
+                            p1: draft.p1,
+                            p2: draft.p2,
+                            p3: { price: pt.price, time: pt.time, logical: pt.logical, x: pt.x, y: pt.y },
+                            color: draft.color
+                        });
                         draftRef.current = null;
                         setActiveTool('cursor');
+                        requestRender();
                         return;
                     }
                 }
 
-                // Normal 2-point drag click
-                addDrawing({ id: draft.id, type: draft.type, p1: draft.p1, p2: { price: pt.price, time: pt.time, logical: pt.logical }, color: draft.color });
+                // Complete 2-point drawing on second click (fixes Point 2 cleanly in place)
+                addDrawing({
+                    id: draft.id,
+                    type: draft.type,
+                    p1: draft.p1,
+                    p2: { price: pt.price, time: pt.time, logical: pt.logical, x: pt.x, y: pt.y },
+                    color: draft.color
+                });
                 draftRef.current = null;
                 setActiveTool('cursor');
+                requestRender();
                 return;
             } else {
-                // First click / start drag
+                // First click: Fix Point 1 and initialize Point 2 at same location
                 draftRef.current = {
                     id,
                     type: activeTool,
-                    p1: { price: pt.price, time: pt.time, logical: pt.logical },
-                    p2: { price: pt.price, time: pt.time, logical: pt.logical },
+                    p1: { price: pt.price, time: pt.time, logical: pt.logical, x: pt.x, y: pt.y },
+                    p2: { price: pt.price, time: pt.time, logical: pt.logical, x: pt.x, y: pt.y },
                     color: activeColor,
                     step: 1,
+                    startClientX: e.clientX,
+                    startClientY: e.clientY,
                 };
+                requestRender();
                 return;
             }
         }
-    }, [activeTool, activeColor, pixelToChartPoint, getHoveredId, addDrawing, deleteDrawing, setActiveTool]);
+    }, [activeTool, activeColor, pixelToChartPoint, addDrawing, setActiveTool, requestRender]);
 
     const onMouseUp = useCallback((e) => {
         const draft = draftRef.current;
@@ -1057,28 +1201,28 @@ export default function DrawingCanvas({
             }
             draftRef.current = null;
             setActiveTool('cursor');
+            requestRender();
             return;
         }
 
-        const p1Pixel = toPixel(draft.p1, chartRef.current, candleSeriesRef.current);
-        const p2Pixel = toPixel(draft.p2, chartRef.current, candleSeriesRef.current);
-        let dist = 0;
-        if (p1Pixel && p2Pixel) {
-            dist = Math.hypot(p2Pixel.x - p1Pixel.x, p2Pixel.y - p1Pixel.y);
-        }
+        // If the user performed a deliberate click-and-drag (held mouse down and moved > 35px),
+        // finish the drawing on mouseUp.
+        // Otherwise, if they just clicked (< 35px drag), keep the drawing in progress
+        // so Point 1 remains fixed while the rubber-band line follows the cursor until the second click.
+        const dragDist = Math.hypot(e.clientX - (draft.startClientX || e.clientX), e.clientY - (draft.startClientY || e.clientY));
 
-        if (dist > 5) {
+        if (dragDist > 35) {
             if (draft.type === 'channel') {
-                draftRef.current = { ...draft, step: 2 };
+                draftRef.current = { ...draft, step: 2, startClientX: e.clientX, startClientY: e.clientY };
+                requestRender();
                 return;
             }
-            // It was a drag. Finish drawing.
             addDrawing({ id: draft.id, type: draft.type, p1: draft.p1, p2: draft.p2, color: draft.color });
             draftRef.current = null;
             setActiveTool('cursor');
+            requestRender();
         }
-        // If dist <= 5, we assume it's a click to start the drawing, so we do nothing here and wait for the second click.
-    }, [addDrawing, setActiveTool, chartRef, candleSeriesRef]);
+    }, [addDrawing, setActiveTool, requestRender]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -1086,11 +1230,15 @@ export default function DrawingCanvas({
             if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
                 // Undo handled by parent via prop
             }
-            if (e.key === 'Escape') { draftRef.current = null; setActiveTool('cursor'); }
+            if (e.key === 'Escape') {
+                draftRef.current = null;
+                setActiveTool('cursor');
+                requestRender();
+            }
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [setActiveTool]);
+    }, [setActiveTool, requestRender]);
 
     const isDrawingMode = activeTool !== 'cursor';
 

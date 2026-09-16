@@ -661,10 +661,27 @@ const SettingsPage = () => {
         "clear-cache": {
             id: "clear-cache",
             title: "Clear Market Cache",
-            description: "Flushes volatile SQLite and MongoDB market caches (candles, ticks, quotes, option chains, and technicals). Fresh data will reload immediately on page view.",
+            description: "Flushes volatile SQLite and MongoDB market caches. Choose whether to preserve historical candlestick bars (OHLCV) for saved instruments.",
             requiredConfirmText: "CLEAR CACHE",
             actionButtonText: "Clear Market Cache",
-            buttonVariant: "orange"
+            buttonVariant: "orange",
+            defaultOption: "preserve_ohlcv",
+            options: [
+                {
+                    id: "preserve_ohlcv",
+                    label: "Clear Cache Except OHLCV",
+                    badge: "Recommended",
+                    description: "Flushes volatile market ticks, quotes, option chains, and card calculations (~1.9 GB). Strictly preserves historical OHLCV candle records of saved instruments.",
+                    notice: "Volatile telemetry, live price ticks, quotes, and derivative calculation caches will be cleared. Your saved OHLCV candles and instrument metadata will remain safely intact."
+                },
+                {
+                    id: "full",
+                    label: "Remove Full Market Data",
+                    badge: "Full Wipe",
+                    description: "Completely flushes all market data including all stored OHLCV candles. Historical candles will have to be re-downloaded from Upstox.",
+                    notice: "All market data, including years of backfilled OHLCV candlestick bars, will be permanently deleted. Chart candles will need to be re-downloaded."
+                }
+            ]
         },
         "reset-chats": {
             id: "reset-chats",
@@ -676,7 +693,7 @@ const SettingsPage = () => {
         }
     };
 
-    const handleExecuteDangerAction = async ({ totp, confirmText }) => {
+    const handleExecuteDangerAction = async ({ totp, confirmText, clearMode }) => {
         if (!activeDangerAction) return;
         setIsDangerLoading(true);
         setDangerErrorMessage("");
@@ -687,7 +704,7 @@ const SettingsPage = () => {
                 toast.success(res.message || "AI conversations cleared successfully.");
                 setActiveDangerAction(null);
             } else if (activeDangerAction === "clear-cache") {
-                const res = await clearMarketCacheApi({ totp, confirmText });
+                const res = await clearMarketCacheApi({ totp, confirmText, clearMode });
                 toast.success(res.message || "Market cache cleared successfully.");
                 setActiveDangerAction(null);
             } else if (activeDangerAction === "factory-reset") {
@@ -1041,32 +1058,32 @@ const SettingsPage = () => {
                                         </span>
                                     </div>
 
-                                    <div className="space-y-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                         {/* Tier 1 (Most Critical): Delete Account */}
-                                        <div className="rounded-xl border border-border-default bg-background-card hover:border-border-subtle p-4 sm:p-5 transition-all duration-200 shadow-sm">
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                                        <div className="flex flex-col justify-between h-full rounded-xl border border-border-default bg-background-card hover:border-border-subtle p-4 sm:p-5 transition-all duration-200 shadow-sm">
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between gap-2">
                                                     <div className="h-10 w-10 shrink-0 rounded-lg flex items-center justify-center bg-background-elevated border border-border-subtle text-red-400">
                                                         <FiTrash2 size={16} />
                                                     </div>
-                                                    <div className="text-left space-y-1 min-w-0 flex-1">
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <p className="font-semibold text-text-primary text-sm tracking-tight">Delete Account</p>
-                                                            <span className="px-2 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider rounded border border-red-500/20 bg-red-500/10 text-red-400">
-                                                                Critical
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-xs text-text-secondary leading-relaxed max-w-2xl">
-                                                            Permanently removes your account profile, active sessions, and personal data. This action is irreversible.
-                                                        </p>
-                                                    </div>
+                                                    <span className="px-2 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider rounded border border-red-500/20 bg-red-500/10 text-red-400">
+                                                        Critical
+                                                    </span>
                                                 </div>
+                                                <div className="space-y-1">
+                                                    <p className="font-semibold text-text-primary text-sm tracking-tight">Delete Account</p>
+                                                    <p className="text-xs text-text-secondary leading-relaxed">
+                                                        Permanently removes your account profile, active sessions, and personal data. This action is irreversible.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="pt-4 mt-auto">
                                                 <button
                                                     onClick={() => {
                                                         setDangerErrorMessage("");
                                                         setActiveDangerAction("delete-account");
                                                     }}
-                                                    className="w-full sm:w-40 h-9 shrink-0 flex items-center justify-center gap-2 rounded-lg bg-red-600/15 hover:bg-red-600/25 border border-red-500/30 hover:border-red-500/50 text-xs font-semibold text-red-400 hover:text-red-300 transition-all shadow-sm"
+                                                    className="w-full h-9 flex items-center justify-center gap-2 rounded-lg bg-red-600/15 hover:bg-red-600/25 border border-red-500/30 hover:border-red-500/50 text-xs font-semibold text-red-400 hover:text-red-300 transition-all shadow-sm"
                                                 >
                                                     <FiTrash2 size={13} />
                                                     <span>Delete Account</span>
@@ -1075,30 +1092,30 @@ const SettingsPage = () => {
                                         </div>
 
                                         {/* Tier 2 (Severe): Factory Reset */}
-                                        <div className="rounded-xl border border-border-default bg-background-card hover:border-border-subtle p-4 sm:p-5 transition-all duration-200 shadow-sm">
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                                        <div className="flex flex-col justify-between h-full rounded-xl border border-border-default bg-background-card hover:border-border-subtle p-4 sm:p-5 transition-all duration-200 shadow-sm">
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between gap-2">
                                                     <div className="h-10 w-10 shrink-0 rounded-lg flex items-center justify-center bg-background-elevated border border-border-subtle text-rose-400">
                                                         <FiRotateCcw size={16} />
                                                     </div>
-                                                    <div className="text-left space-y-1 min-w-0 flex-1">
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <p className="font-semibold text-text-primary text-sm tracking-tight">Factory Reset</p>
-                                                            <span className="px-2 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider rounded border border-rose-500/20 bg-rose-500/10 text-rose-400">
-                                                                Severe
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-xs text-text-secondary leading-relaxed max-w-2xl">
-                                                            Restores application to initial pristine state. Clears user preferences, trading journals, notes, drawings, overrides, and market caches.
-                                                        </p>
-                                                    </div>
+                                                    <span className="px-2 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider rounded border border-rose-500/20 bg-rose-500/10 text-rose-400">
+                                                        Severe
+                                                    </span>
                                                 </div>
+                                                <div className="space-y-1">
+                                                    <p className="font-semibold text-text-primary text-sm tracking-tight">Factory Reset</p>
+                                                    <p className="text-xs text-text-secondary leading-relaxed">
+                                                        Restores application to initial pristine state. Clears user preferences, trading journals, notes, drawings, overrides, and market caches.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="pt-4 mt-auto">
                                                 <button
                                                     onClick={() => {
                                                         setDangerErrorMessage("");
                                                         setActiveDangerAction("factory-reset");
                                                     }}
-                                                    className="w-full sm:w-40 h-9 shrink-0 flex items-center justify-center gap-2 rounded-lg bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 hover:border-rose-500/50 text-xs font-semibold text-rose-400 hover:text-rose-300 transition-all shadow-sm"
+                                                    className="w-full h-9 flex items-center justify-center gap-2 rounded-lg bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 hover:border-rose-500/50 text-xs font-semibold text-rose-400 hover:text-rose-300 transition-all shadow-sm"
                                                 >
                                                     <FiRotateCcw size={13} />
                                                     <span>Factory Reset</span>
@@ -1107,30 +1124,30 @@ const SettingsPage = () => {
                                         </div>
 
                                         {/* Tier 3 (Moderate): Clear Market Cache */}
-                                        <div className="rounded-xl border border-border-default bg-background-card hover:border-border-subtle p-4 sm:p-5 transition-all duration-200 shadow-sm">
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                                        <div className="flex flex-col justify-between h-full rounded-xl border border-border-default bg-background-card hover:border-border-subtle p-4 sm:p-5 transition-all duration-200 shadow-sm">
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between gap-2">
                                                     <div className="h-10 w-10 shrink-0 rounded-lg flex items-center justify-center bg-background-elevated border border-border-subtle text-text-secondary">
                                                         <FiDatabase size={16} />
                                                     </div>
-                                                    <div className="text-left space-y-1 min-w-0 flex-1">
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <p className="font-semibold text-text-primary text-sm tracking-tight">Clear Market Cache</p>
-                                                            <span className="px-2 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider rounded border border-border-subtle bg-background-elevated text-text-tertiary">
-                                                                Moderate
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-xs text-text-secondary leading-relaxed max-w-2xl">
-                                                            Flushes volatile SQLite & MongoDB market caches (candles, ticks, quotes, chains, technicals). Master catalog is preserved.
-                                                        </p>
-                                                    </div>
+                                                    <span className="px-2 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider rounded border border-border-subtle bg-background-elevated text-text-tertiary">
+                                                        Moderate
+                                                    </span>
                                                 </div>
+                                                <div className="space-y-1">
+                                                    <p className="font-semibold text-text-primary text-sm tracking-tight">Clear Market Cache</p>
+                                                    <p className="text-xs text-text-secondary leading-relaxed">
+                                                        Flushes volatile SQLite & MongoDB market caches (ticks, quotes, chains, technicals). Master catalog and optional OHLCV candle bars can be preserved.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="pt-4 mt-auto">
                                                 <button
                                                     onClick={() => {
                                                         setDangerErrorMessage("");
                                                         setActiveDangerAction("clear-cache");
                                                     }}
-                                                    className="w-full sm:w-40 h-9 shrink-0 flex items-center justify-center gap-2 rounded-lg bg-background-elevated hover:bg-background-surface border border-border-default hover:border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary transition-all shadow-sm"
+                                                    className="w-full h-9 flex items-center justify-center gap-2 rounded-lg bg-background-elevated hover:bg-background-surface border border-border-default hover:border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary transition-all shadow-sm"
                                                 >
                                                     <FiDatabase size={13} />
                                                     <span>Clear Market Cache</span>
@@ -1139,30 +1156,30 @@ const SettingsPage = () => {
                                         </div>
 
                                         {/* Tier 4 (Mild): Reset AI Chats */}
-                                        <div className="rounded-xl border border-border-default bg-background-card hover:border-border-subtle p-4 sm:p-5 transition-all duration-200 shadow-sm">
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                                        <div className="flex flex-col justify-between h-full rounded-xl border border-border-default bg-background-card hover:border-border-subtle p-4 sm:p-5 transition-all duration-200 shadow-sm">
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between gap-2">
                                                     <div className="h-10 w-10 shrink-0 rounded-lg flex items-center justify-center bg-background-elevated border border-border-subtle text-text-secondary">
                                                         <FiMessageSquare size={16} />
                                                     </div>
-                                                    <div className="text-left space-y-1 min-w-0 flex-1">
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <p className="font-semibold text-text-primary text-sm tracking-tight">Reset AI Chats</p>
-                                                            <span className="px-2 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider rounded border border-border-subtle bg-background-elevated text-text-tertiary">
-                                                                Mild
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-xs text-text-secondary leading-relaxed max-w-2xl">
-                                                            Clears all PAI chat message history and cached AI card insights across all pages. Credentials and market data remain untouched.
-                                                        </p>
-                                                    </div>
+                                                    <span className="px-2 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider rounded border border-border-subtle bg-background-elevated text-text-tertiary">
+                                                        Mild
+                                                    </span>
                                                 </div>
+                                                <div className="space-y-1">
+                                                    <p className="font-semibold text-text-primary text-sm tracking-tight">Reset AI Chats</p>
+                                                    <p className="text-xs text-text-secondary leading-relaxed">
+                                                        Clears all PAI chat message history and cached AI card insights across all pages. Credentials and market data remain untouched.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="pt-4 mt-auto">
                                                 <button
                                                     onClick={() => {
                                                         setDangerErrorMessage("");
                                                         setActiveDangerAction("reset-chats");
                                                     }}
-                                                    className="w-full sm:w-40 h-9 shrink-0 flex items-center justify-center gap-2 rounded-lg bg-background-elevated hover:bg-background-surface border border-border-default hover:border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary transition-all shadow-sm"
+                                                    className="w-full h-9 flex items-center justify-center gap-2 rounded-lg bg-background-elevated hover:bg-background-surface border border-border-default hover:border-border-subtle text-xs font-semibold text-text-secondary hover:text-text-primary transition-all shadow-sm"
                                                 >
                                                     <FiMessageSquare size={13} />
                                                     <span>Reset AI Chats</span>

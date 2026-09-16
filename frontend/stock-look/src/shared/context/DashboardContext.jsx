@@ -412,6 +412,29 @@ export function DashboardProvider({ children }) {
         setGlobalOrderTicket,
         globalData,
         setGlobalData,
+        setLivePrices,
+        updateLivePrice: (instrumentKey, quoteData) => {
+            if (!instrumentKey || !quoteData) return;
+            setLivePrices(prev => {
+                const existing = prev[instrumentKey] || {};
+                const ltp = quoteData.ltp || quoteData.close || existing.ltp || 0;
+                const close = quoteData.close || existing.close || 0;
+                const netChange = close > 0 ? ltp - close : (quoteData.netChange ?? existing.netChange ?? 0);
+                const pctChange = close > 0 ? (netChange / close) * 100 : (quoteData.pctChange ?? existing.pctChange ?? 0);
+                return {
+                    ...prev,
+                    [instrumentKey]: {
+                        ...existing,
+                        ...quoteData,
+                        ltp,
+                        close,
+                        netChange,
+                        pctChange,
+                        status: netChange > 0 ? 'up' : netChange < 0 ? 'down' : 'neutral'
+                    }
+                };
+            });
+        },
         openOrderTicket: (instrumentKey) => setGlobalOrderTicket({ instrumentKey, action: "BUY" })
     };
 
