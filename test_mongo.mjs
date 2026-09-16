@@ -1,1 +1,0 @@
-import { config } from 'dotenv'; config({ path: './backend/.env' }); import mongoose from 'mongoose'; console.log('Connecting...'); mongoose.connect(process.env.MONGO_URI, {serverSelectionTimeoutMS: 5000}).then(() => { console.log('Connected!'); process.exit(0); }).catch(e => { console.error('Error:', e.message); process.exit(1); });
