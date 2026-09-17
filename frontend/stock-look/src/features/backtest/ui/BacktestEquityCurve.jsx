@@ -4,7 +4,7 @@
  * @date 2026-09-12
  */
 
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 import { TrendingUp, ShieldAlert, ArrowUpRight, DollarSign, Percent } from 'lucide-react';
 
 export default function BacktestEquityCurve({
@@ -15,6 +15,7 @@ export default function BacktestEquityCurve({
 }) {
     const [viewMode, setViewMode] = useState('EQUITY'); // 'EQUITY' | 'PERCENT'
     const [hoveredPoint, setHoveredPoint] = useState(null);
+    const gradId = useId().replace(/:/g, '_');
 
     if (!equityCurve || equityCurve.length < 2) {
         return (
@@ -131,14 +132,14 @@ export default function BacktestEquityCurve({
                         preserveAspectRatio="none"
                     >
                         <defs>
-                            <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor={netReturnPct >= 0 ? '#10b981' : '#f43f5e'} stopOpacity="0.25" />
                                 <stop offset="100%" stopColor={netReturnPct >= 0 ? '#10b981' : '#f43f5e'} stopOpacity="0.0" />
                             </linearGradient>
                         </defs>
 
                         {/* Area Fill */}
-                        <path d={fillString} fill="url(#equityGrad)" />
+                        <path d={fillString} fill={`url(#${gradId})`} />
 
                         {/* Baseline Reference Line (0% in PERCENT mode, initialCapital in EQUITY mode) */}
                         {baselineY >= 0 && baselineY <= height && (
@@ -196,17 +197,19 @@ export default function BacktestEquityCurve({
                         )}
                     </svg>
 
-                    {/* Hover overlay crosshair zones */}
-                    <div className="absolute inset-0 flex">
-                        {points.map((p, i) => (
-                            <div
-                                key={i}
-                                className="flex-1 h-full cursor-crosshair"
-                                onMouseEnter={() => setHoveredPoint(p)}
-                                onMouseLeave={() => setHoveredPoint(null)}
-                            />
-                        ))}
-                    </div>
+                    {/* High-performance single-listener hover overlay */}
+                    <div
+                        className="absolute inset-0 cursor-crosshair z-10"
+                        onMouseMove={(e) => {
+                            if (!points || points.length === 0) return;
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            if (rect.width <= 0) return;
+                            const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                            const closestIdx = Math.round(ratio * (points.length - 1));
+                            setHoveredPoint(points[closestIdx] || null);
+                        }}
+                        onMouseLeave={() => setHoveredPoint(null)}
+                    />
 
                     {/* Tooltip on hover */}
                     {hoveredPoint && (

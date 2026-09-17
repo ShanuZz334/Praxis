@@ -136,9 +136,17 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
     // Returns the interval length in seconds for a given timeframe string,
     // or null for daily/weekly/monthly (which don't need live boundary tracking).
     const _getTimeframeSec = (tf) => {
-        const map = { '1minute': 60, '3minute': 180, '5minute': 300, '10minute': 600,
-                      '15minute': 900, '30minute': 1800, '1hour': 3600 };
-        return map[tf] ?? null;
+        if (!tf) return null;
+        const map = {
+            '1m': 60, '1minute': 60,
+            '3m': 180, '3minute': 180,
+            '5m': 300, '5minute': 300,
+            '10m': 600, '10minute': 600,
+            '15m': 900, '15minute': 900,
+            '30m': 1800, '30minute': 1800,
+            '1h': 3600, '60m': 3600, '1hour': 3600,
+        };
+        return map[tf.toLowerCase().trim()] ?? null;
     };
 
     // Returns the Unix-seconds start of the candle that contains `nowMs`,
@@ -177,11 +185,6 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
         const lastHistorical = data[data.length - 1];
 
         setLiveCandle(prevLive => {
-            const emitTick = (tick) => {
-                window.dispatchEvent(new CustomEvent(`liveCandleUpdate_${instrumentKey}`, { detail: tick }));
-                return tick;
-            };
-
             // ── Candle boundary detection ─────────────────────────────────────
             // For intraday timeframes, check whether wall-clock has crossed into
             // a new bar. If so, open a brand-new candle instead of patching the old one.

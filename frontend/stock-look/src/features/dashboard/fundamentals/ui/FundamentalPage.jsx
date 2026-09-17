@@ -237,6 +237,22 @@ export default function FundamentalPage() {
           data.fii_dii_flow = liveInstFlow;
       }
 
+      if (rawFundamentalsData?.credit_growth !== undefined && rawFundamentalsData?.credit_growth !== null) {
+          data.credit_growth = rawFundamentalsData.credit_growth;
+      }
+      if (rawFundamentalsData?.corporate_debt !== undefined && rawFundamentalsData?.corporate_debt !== null) {
+          data.corporate_debt = rawFundamentalsData.corporate_debt;
+      }
+      if (rawFundamentalsData?.fiiTrend !== undefined && rawFundamentalsData?.fiiTrend !== null) {
+          data.fiiTrend = rawFundamentalsData.fiiTrend;
+      }
+      if (rawFundamentalsData?.liquidity) {
+          data.liquidity = rawFundamentalsData.liquidity;
+      }
+      if (rawFundamentalsData?.advance_decline) {
+          data.advance_decline = rawFundamentalsData.advance_decline;
+      }
+
       // --- ON-DEMAND LIVE MACROS OVERRIDE ---
       if (rawFundamentalsData?.analystConsensus) {
           data.analyst_consensus = rawFundamentalsData.analystConsensus;
@@ -445,9 +461,9 @@ export default function FundamentalPage() {
   const hasTargetPrice = rawFundamentalsData?.analystConsensus?.targetPrice !== undefined && rawFundamentalsData?.analystConsensus?.targetPrice !== null;
   const hasAnalystCount = rawFundamentalsData?.analystConsensus?.analysts !== undefined && rawFundamentalsData?.analystConsensus?.analysts !== null;
   
-  const hasFiiFlow = fundamentalsData?.liquidity?.fii_net !== undefined;
-  const hasDiiFlow = fundamentalsData?.liquidity?.dii_net !== undefined;
-  const hasAdvanceDecline = fundamentalsData?.advance_decline?.advances !== undefined;
+  const hasFiiFlow = fundamentalsData?.liquidity?.fii_net !== undefined && fundamentalsData?.liquidity?.fii_net !== null;
+  const hasDiiFlow = fundamentalsData?.liquidity?.dii_net !== undefined && fundamentalsData?.liquidity?.dii_net !== null;
+  const hasAdvanceDecline = fundamentalsData?.advance_decline?.advances !== undefined && fundamentalsData?.advance_decline?.advances !== null;
   const hasMcapGdp = false; // Always manual for now
   
   const hasCpi = rawFundamentalsData?.cpiInflation !== undefined && rawFundamentalsData?.cpiInflation !== null;

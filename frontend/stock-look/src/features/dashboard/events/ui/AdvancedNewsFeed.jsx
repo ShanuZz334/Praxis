@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { Cpu, RotateCcw, Trash2 } from "lucide-react";
-import { getColorMap, EVENT_CATEGORIES } from "@/shared/global/logic/eventsEngine";
+import { Cpu, RotateCcw, Trash2, Hash } from "lucide-react";
+import { getColorMap, EVENT_CATEGORIES, generateEventHashtags } from "@/shared/global/logic/eventsEngine";
 import { useDashboardContext } from "@/shared/context/DashboardContext";
 import { FO_EQUITIES, FO_INDICES } from "@/shared/utils/foInstruments";
 import { toast } from "sonner";
 
-export default React.memo(function AdvancedNewsFeed({ newsItems, searchQuery, sortMode, onReset, onDeleteEvent, setAdditionalCharts }) {
+export default React.memo(function AdvancedNewsFeed({ newsItems, searchQuery, setSearchQuery, sortMode, onReset, onDeleteEvent, setAdditionalCharts }) {
     const [activeTab, setActiveTab] = useState("ALL EVENTS");
 
     if (!newsItems) return null;
@@ -16,11 +16,14 @@ export default React.memo(function AdvancedNewsFeed({ newsItems, searchQuery, so
             return false;
         }
         if (searchQuery) {
-            const query = searchQuery.toLowerCase();
+            const query = searchQuery.toLowerCase().replace(/^#/, '').trim();
             const inHeadline = news.headline?.toLowerCase().includes(query);
             const inSummary = news.summary?.toLowerCase().includes(query);
             const inAssets = Array.isArray(news.affected_assets) && news.affected_assets.some(a => a.toLowerCase().includes(query));
-            if (!inHeadline && !inSummary && !inAssets) return false;
+            const inSubCat = news.sub_category?.toLowerCase().includes(query);
+            const tags = Array.isArray(news.hashtags) && news.hashtags.length > 0 ? news.hashtags : generateEventHashtags(news);
+            const inTags = tags.some(t => t.toLowerCase().includes(query));
+            if (!inHeadline && !inSummary && !inAssets && !inSubCat && !inTags) return false;
         }
 
         // Filter out fully expired events (where TTL decay is 0)
@@ -126,7 +129,18 @@ export default React.memo(function AdvancedNewsFeed({ newsItems, searchQuery, so
                 </div>
                 {sorted.length > 0 ? (
                     sorted.map((news) => (
-                        <NewsItem key={news.id} event={news} onDelete={() => onDeleteEvent && onDeleteEvent(news.id)} setAdditionalCharts={setAdditionalCharts} />
+                        <NewsItem 
+                            key={news.id} 
+                            event={news} 
+                            onDelete={() => onDeleteEvent && onDeleteEvent(news.id)} 
+                            setAdditionalCharts={setAdditionalCharts}
+                            onTagClick={(tag) => {
+                                if (setSearchQuery) {
+                                    setSearchQuery(tag.replace('#', ''));
+                                    toast.info(`Filtered by ${tag}`);
+                                }
+                            }}
+                        />
                     ))
                 ) : (
                     <div className="py-10 flex flex-col items-center justify-center border border-dashed border-border-default rounded-xl">
@@ -194,7 +208,7 @@ function resolveInstrument(assetStr) {
     return instrument;
 }
 
-const NewsItem = React.memo(function NewsItem({ event, onDelete, setAdditionalCharts }) {
+const NewsItem = React.memo(function NewsItem({ event, onDelete, setAdditionalCharts, onTagClick }) {
     const [showAllAssets, setShowAllAssets] = React.useState(false);
     const colors = getColorMap(event);
     const date = new Date(event.published_time || event.created_at);
@@ -252,6 +266,11 @@ const NewsItem = React.memo(function NewsItem({ event, onDelete, setAdditionalCh
     else if (c >= 70) confIcon = 'confidence-high';
     else if (c >= 50) confIcon = 'confidence-medium';
 
+    // Extract or compute hashtags
+    const hashtags = Array.isArray(event.hashtags) && event.hashtags.length > 0 
+        ? event.hashtags 
+        : generateEventHashtags(event);
+
     return (
         <div 
             className="group relative w-full bg-background-card border border-border-default hover:border-border-subtle transition-all duration-200 rounded-xl overflow-hidden cursor-pointer"
@@ -291,22 +310,49 @@ const NewsItem = React.memo(function NewsItem({ event, onDelete, setAdditionalCh
             <div className="pl-6 pr-4 py-4 flex flex-col xl:flex-row gap-6">
                 
                 {/* Left Column: Content */}
-                <div className="flex-1 flex flex-col gap-2.5">
+                <div className="flex-1 flex flex-col gap-2.5 min-w-0">
                     <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest flex-wrap">
                         <span style={{ color: colors.sourceHex }}>{event.source}</span>
                         <span className="text-text-tertiary">•</span>
                         <span style={{ color: colors.categoryHex }}>{event.category || "GENERAL"}</span>
+                        {event.sub_category && (
+                            <>
+                                <span className="text-text-tertiary">•</span>
+                                <span className="text-blue-600 dark:text-blue-400 font-semibold normal-case tracking-normal px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 border border-blue-200/80 dark:border-blue-800/50">
+                                    {event.sub_category}
+                                </span>
+                            </>
+                        )}
                         <span className="text-text-tertiary">•</span>
                         <span className="text-text-tertiary normal-case tracking-normal">{timeAgo}</span>
                     </div>
 
-                    <h3 className="text-[15px] font-bold text-text-primary leading-snug">
+                    <h3 className="text-[15px] font-bold text-text-primary leading-snug break-words" title={event.headline}>
                         {event.headline}
                     </h3>
                     
                     <p className="text-[12px] text-text-secondary leading-relaxed line-clamp-2">
                         {event.summary}
                     </p>
+
+                    {/* Institutional Hashtags Taxonomy */}
+                    {hashtags && hashtags.length > 0 && (
+                        <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
+                            {hashtags.map((tag, i) => (
+                                <button
+                                    key={i}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onTagClick) onTagClick(tag);
+                                    }}
+                                    className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-indigo-50/70 text-indigo-600 border border-indigo-200/60 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-800/40 hover:bg-indigo-100 hover:text-indigo-700 dark:hover:bg-indigo-900/50 transition-colors cursor-pointer"
+                                    title={`Filter events by ${tag}`}
+                                >
+                                    {tag.startsWith("#") ? tag : `#${tag}`}
+                                </button>
+                            ))}
+                        </div>
+                    )}
 
                     {Array.isArray(event.affected_assets) && event.affected_assets.length > 0 && (
                         <div className="flex items-center flex-wrap gap-2 mt-1">
@@ -379,18 +425,26 @@ const NewsItem = React.memo(function NewsItem({ event, onDelete, setAdditionalCh
 
                 {/* Right Column: Score, Source, Date */}
                 <div className="flex flex-col justify-between items-start shrink-0 xl:w-48 py-1">
-                    <div className="flex items-center justify-between w-full">
-                        <span className="text-[10px] uppercase text-text-tertiary tracking-widest">Event Score</span>
-                        <div 
-                            className="text-[15px] font-mono font-bold px-3 py-1 rounded border"
-                            style={{ 
-                                color: colors.scoreHex, 
-                                backgroundColor: `${colors.scoreHex}15`,
-                                borderColor: `${colors.scoreHex}30`
-                            }}
-                        >
-                            {event.event_score > 0 ? '+' : ''}{(event.event_score / 10).toFixed(1)}
+                    <div className="flex flex-col items-end gap-1.5 w-full">
+                        <div className="flex items-center justify-between w-full">
+                            <span className="text-[10px] uppercase text-text-tertiary tracking-widest">Event Score</span>
+                            <div 
+                                className="text-[15px] font-mono font-bold px-3 py-1 rounded border"
+                                style={{ 
+                                    color: colors.scoreHex, 
+                                    backgroundColor: `${colors.scoreHex}15`,
+                                    borderColor: `${colors.scoreHex}30`
+                                }}
+                            >
+                                {event.event_score > 0 ? '+' : ''}{(event.event_score / 10).toFixed(1)}
+                            </div>
                         </div>
+                        {event.impact_magnitude !== undefined && event.impact_magnitude !== null && (
+                            <div className="flex items-center justify-between w-full text-[9px] font-mono text-text-tertiary">
+                                <span>Impact:</span>
+                                <span className="font-semibold text-text-secondary">{(event.impact_magnitude / 10).toFixed(1)} / 10</span>
+                            </div>
+                        )}
                     </div>
                     
                     <div className="flex flex-col items-start text-left gap-3 mt-4 xl:mt-auto w-full">

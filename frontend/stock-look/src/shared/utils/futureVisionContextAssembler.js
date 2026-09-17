@@ -77,7 +77,10 @@ export function assembleContext({
     isAutoRefresh = false,
     calibrationProfile = null,
     analystBrief = null,
-    patternScore = null
+    patternScore = null,
+    drawings = [],
+    activeOverlays = {},
+    masterSnapshot = {}
 }) {
     // ─── Pre-process OHLCV ──────────────────────────────────────────────────
     const clampedBars = Math.max(10, Math.min(ohlcvBars, 200));
@@ -96,13 +99,22 @@ export function assembleContext({
     // ─── Block 1B: Derived Price Analytics ──────────────────────────────
     const priceAnalytics = _computePriceAnalytics(windowMain, window20, window5, last, prev, indicators);
 
+    // ─── Block 1C: Trader Drawings & Active Chart Overlays ────────────────
+    const drawingsBlock = _computeDrawingsBlock(drawings, lastClose);
+    const overlaysBlock = _computeActiveOverlaysBlock(activeOverlays, lastClose);
+
     // If it's a JSON payload from the DB fallback, do NOT trim it or it will break the JSON structure.
-    const _trim = (s) => s || 'N/A';
-    const technicalBlock   = _trim(aiNarratives['Technical']);
-    const fundamentalBlock = _trim(aiNarratives['Fundamentals']);
-    const eventBlock       = _trim(aiNarratives['Events']);
-    const optionsBlock     = _trim(aiNarratives['Options']);
-    const globalBlock      = _trim(aiNarratives['Global']);
+    const _resolveNarrative = (moduleKey, primary) => {
+        if (primary && primary !== 'N/A') return primary;
+        const fallback = _synthesizeFallbackNarrative(moduleKey, masterSnapshot, symbol);
+        return fallback !== 'N/A' ? fallback : (primary || 'N/A');
+    };
+
+    const technicalBlock   = _resolveNarrative('Technical', aiNarratives['Technical']);
+    const fundamentalBlock = _resolveNarrative('Fundamentals', aiNarratives['Fundamentals']);
+    const eventBlock       = _resolveNarrative('Events', aiNarratives['Events']);
+    const optionsBlock     = _resolveNarrative('Options', aiNarratives['Options']);
+    const globalBlock      = _resolveNarrative('Global', aiNarratives['Global']);
     const sessionBlock = _computeSessionBlock(tradingMode, timeframe, horizonBars);
     const paeReport = getPAEReport(instrumentKey, timeframe);
 
@@ -140,7 +152,7 @@ export function assembleContext({
   ${sessionBlock}
   
   ================================================================================
-  BLOCK 1 - PRICE ACTION
+  BLOCK 1 - PRICE ACTION & CHART STRUCTURE
   ================================================================================
   
   [CSV DATA - LAST ${clampedBars} BARS]
@@ -149,6 +161,13 @@ export function assembleContext({
   
   [DERIVED ANALYTICS]
   ${priceAnalytics}
+  
+  ================================================================================
+  BLOCK 1C - TRADER'S CHART DRAWINGS & ACTIVE OVERLAYS
+  ================================================================================
+  
+  ${drawingsBlock}
+  ${overlaysBlock}
 `;
 
     if (!isAutoRefresh) {
@@ -591,3 +610,198 @@ function _computePatternScoreBlock(patternScore) {
     }
     return lines.join('\n');
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// DRAWINGS & ACTIVE OVERLAYS PARSERS
+// ─────────────────────────────────────────────────────────────────────
+
+function _computeDrawingsBlock(drawings = [], lastClose = 0) {
+    if (!drawings || drawings.length === 0) {
+        return '[TRADER CHART MARKINGS]\nNo manual chart annotations or levels placed by trader. Rely on algorithmic swing points.';
+    }
+
+    const lines = ['[TRADER CHART MARKINGS & PLOTTED LEVELS]'];
+    const hLevels = [];
+    const positions = [];
+    const trendlines = [];
+    const fibLevels = [];
+    const zones = [];
+    const channels = [];
+    const notes = [];
+
+    drawings.forEach(d => {
+        if (!d || !d.type) return;
+        const p1 = d.p1;
+        const p2 = d.p2;
+
+        if ((d.type === 'hline' || d.type === 'hray') && p1?.price != null) {
+            const price = Number(p1.price);
+            const diff = price - lastClose;
+            const pct = lastClose > 0 ? (diff / lastClose * 100).toFixed(2) : '0.00';
+            const role = price >= lastClose ? 'OVERHEAD RESISTANCE' : 'UNDERNEATH SUPPORT';
+            hLevels.push(`• ₹${_f2(price)} (${diff >= 0 ? '+' : ''}${pct}% vs Close) — Plotted ${d.type === 'hray' ? 'Ray' : 'Horizontal'} Level [${role}]`);
+        } else if ((d.type === 'longpos' || d.type === 'shortpos' || d.type === 'scalp') && p1?.price != null && p2?.price != null) {
+            const isLong = d.type === 'longpos' || (d.type === 'scalp' && p1.price < p2.price);
+            const entry = Number(p1.price);
+            const stop = Number(p2.price);
+            const risk = Math.abs(entry - stop);
+            const riskPct = entry > 0 ? ((risk / entry) * 100).toFixed(2) : '0.00';
+            const tp1 = isLong ? entry + risk * 2 : entry - risk * 2;
+            const tp2 = isLong ? entry + risk * 3 : entry - risk * 3;
+            const dirLabel = isLong ? 'LONG POSITION' : 'SHORT POSITION';
+            positions.push(`• [${dirLabel} TRADE SETUP]\n  Entry: ₹${_f2(entry)} | Stop Loss: ₹${_f2(stop)} (${riskPct}% risk) | Target 1 (2R): ₹${_f2(tp1)} | Target 2 (3R): ₹${_f2(tp2)}`);
+        } else if (d.type === 'trend' && p1?.price != null && p2?.price != null) {
+            const slope = p2.price >= p1.price ? 'Ascending' : 'Descending';
+            trendlines.push(`• ${slope} Trendline: Anchors at ₹${_f2(p1.price)} → ₹${_f2(p2.price)}`);
+        } else if (d.type === 'fib' && p1?.price != null && p2?.price != null) {
+            const high = Math.max(p1.price, p2.price);
+            const low = Math.min(p1.price, p2.price);
+            const diff = high - low;
+            const f382 = high - diff * 0.382;
+            const f500 = high - diff * 0.500;
+            const f618 = high - diff * 0.618;
+            fibLevels.push(`• Fibonacci Retracement: Swing High ₹${_f2(high)}, Swing Low ₹${_f2(low)}\n  - 38.2% Level: ₹${_f2(f382)}\n  - 50.0% Equilibrium: ₹${_f2(f500)}\n  - 61.8% Golden Pocket: ₹${_f2(f618)}`);
+        } else if (d.type === 'rect' && p1?.price != null && p2?.price != null) {
+            const zLow = Math.min(p1.price, p2.price);
+            const zHigh = Math.max(p1.price, p2.price);
+            const zoneType = lastClose >= zHigh ? 'Demand / Accumulation Support Zone' : lastClose <= zLow ? 'Supply / Overhead Resistance Zone' : 'Consolidation / Pivot Range';
+            zones.push(`• Box Zone: ₹${_f2(zLow)} – ₹${_f2(zHigh)} (${zoneType})`);
+        } else if (d.type === 'channel' && p1?.price != null && p2?.price != null) {
+            channels.push(`• Parallel Channel: Rails anchored at ₹${_f2(p1.price)} and ₹${_f2(p2.price)}`);
+        } else if (d.type === 'text' && d.text) {
+            notes.push(`• Trader Annotation at ₹${_f2(p1?.price)}: "${d.text}"`);
+        }
+    });
+
+    if (hLevels.length) {
+        lines.push('\nPlotted Horizontal Support & Resistance:');
+        lines.push(...hLevels);
+    }
+    if (positions.length) {
+        lines.push('\nPlotted Trade Setups & Execution Targets:');
+        lines.push(...positions);
+    }
+    if (trendlines.length) {
+        lines.push('\nPlotted Trendlines:');
+        lines.push(...trendlines);
+    }
+    if (fibLevels.length) {
+        lines.push('\nPlotted Fibonacci Anchors:');
+        lines.push(...fibLevels);
+    }
+    if (zones.length) {
+        lines.push('\nPlotted Supply / Demand Zones:');
+        lines.push(...zones);
+    }
+    if (channels.length) {
+        lines.push('\nPlotted Channels:');
+        lines.push(...channels);
+    }
+    if (notes.length) {
+        lines.push('\nTrader Notes:');
+        lines.push(...notes);
+    }
+
+    lines.push('\nCRITICAL DIRECTIVE: The user has actively charted these levels on screen. In Pass 1 & 2, you MUST evaluate price behavior relative to these marked levels (e.g. bouncing off support, rejecting at resistance, or targeting plotted take-profit levels).');
+
+    return lines.join('\n');
+}
+
+function _computeActiveOverlaysBlock(overlays = {}, lastClose = 0) {
+    if (!overlays || Object.keys(overlays).length === 0) return '';
+    const active = [];
+
+    if (overlays.supertrend?.enabled) {
+        active.push(`• Supertrend: ACTIVE on chart — Signal: ${overlays.supertrend.signal?.toUpperCase() || 'N/A'}, Level: ₹${_f2(overlays.supertrend.value)}`);
+    }
+    if (overlays.vwap?.enabled) {
+        const v = overlays.vwap.value;
+        const dist = v ? ((lastClose - v) / v * 100).toFixed(2) : '0.00';
+        active.push(`• VWAP: ACTIVE on chart — Value: ₹${_f2(v)} (Price is ${Number(dist) >= 0 ? '+' : ''}${dist}% vs VWAP)`);
+    }
+    if (overlays.ema?.enabled) {
+        active.push(`• EMA Crossover: ACTIVE on chart — Fast: ₹${_f2(overlays.ema.fast)}, Slow: ₹${_f2(overlays.ema.slow)} (${overlays.ema.trend || 'N/A'}${overlays.ema.ema50 ? `, 50 EMA: ₹${_f2(overlays.ema.ema50)}` : ''})`);
+    }
+    if (overlays.cpr?.enabled) {
+        active.push(`• CPR (Central Pivot Range): ACTIVE on chart — Pivot: ₹${_f2(overlays.cpr.pivot)}, TC: ₹${_f2(overlays.cpr.tc)}, BC: ₹${_f2(overlays.cpr.bc)}`);
+    }
+    if (overlays.adaptiveBands?.enabled) {
+        active.push(`• Adaptive Bands: ACTIVE on chart — Mode: ${overlays.adaptiveBands.mode || 'swing'}, Upper: ₹${_f2(overlays.adaptiveBands.upper)}, Mid: ₹${_f2(overlays.adaptiveBands.mid)}, Lower: ₹${_f2(overlays.adaptiveBands.lower)}${overlays.adaptiveBands.isSqueeze ? ' [ACTIVE BAND SQUEEZE]' : ''}`);
+    }
+    if (overlays.macd?.enabled) {
+        active.push(`• MACD: ACTIVE on chart — Line: ${_f2(overlays.macd.line)}, Signal: ${_f2(overlays.macd.signal)}, Hist: ${_f2(overlays.macd.hist)}`);
+    }
+    if (overlays.rsi?.enabled) {
+        active.push(`• RSI(14): ACTIVE on chart — Value: ${_f1(overlays.rsi.value)}`);
+    }
+    if (overlays.psar?.enabled) {
+        active.push(`• Parabolic SAR: ACTIVE on chart — Value: ₹${_f2(overlays.psar.value)} (${overlays.psar.direction || 'N/A'})`);
+    }
+    if (overlays.autoFib?.enabled) {
+        active.push(`• Auto Fibonacci: ACTIVE on chart`);
+    }
+    if (overlays.ichimoku?.enabled) {
+        active.push(`• Ichimoku Cloud: ACTIVE on chart`);
+    }
+
+    if (!active.length) return '';
+    return '\n[ACTIVE USER CHART OVERLAYS & ON-SCREEN TELEMETRY]\n' + active.join('\n');
+}
+
+function _synthesizeFallbackNarrative(moduleName, masterSnapshot, symbol) {
+    if (!masterSnapshot || typeof masterSnapshot !== 'object') return 'N/A';
+
+    if (moduleName === 'Fundamentals') {
+        const fund = masterSnapshot.fundamentals || {};
+        const pe = fund.pe_ratio?.value ?? fund.pe ?? null;
+        const fwdPe = fund.forward_pe?.value ?? fund.forwardPE ?? null;
+        const roe = fund.roe?.value ?? fund.roe ?? null;
+        const roce = fund.roce?.value ?? fund.roce ?? null;
+        const de = fund.debt_to_equity?.value ?? fund.debtToEquity ?? null;
+        const promoter = fund.promoter_holding?.value ?? fund.promoterHolding ?? null;
+        if (pe != null || roe != null || de != null) {
+            return `[INSTITUTIONAL FUNDAMENTALS COMPOSITE] Symbol: ${symbol}. P/E: ${_f1(pe)}, Fwd P/E: ${_f1(fwdPe)}, ROE: ${_f1(roe)}%, ROCE: ${_f1(roce)}%, D/E: ${_f2(de)}, Promoter: ${_f1(promoter)}%. Solid fundamental baseline registered.`;
+        }
+    }
+
+    if (moduleName === 'Technical') {
+        const tech = masterSnapshot.technical || {};
+        const rsi = tech.rsi?.value ?? null;
+        const macd = tech.macd?.value ?? null;
+        const supertrend = tech.supertrend?.signal ?? null;
+        if (rsi != null || macd != null || supertrend != null) {
+            return `[INSTITUTIONAL TECHNICAL COMPOSITE] RSI: ${_f1(rsi)}, MACD: ${_f2(macd)}, Supertrend: ${supertrend || 'Neutral'}. Multi-factor technical confluence registered.`;
+        }
+    }
+
+    if (moduleName === 'Options') {
+        const opt = masterSnapshot.options || {};
+        const pcr = opt.pcr?.value ?? null;
+        const maxPain = opt.max_pain?.value ?? null;
+        const ivRank = opt.iv_rank?.value ?? null;
+        if (pcr != null || maxPain != null || ivRank != null) {
+            return `[INSTITUTIONAL OPTIONS STRUCTURE] PCR: ${_f2(pcr)}, Max Pain: ₹${_f2(maxPain)}, IV Rank: ${_f1(ivRank)}%. Derivatives sentiment recorded.`;
+        }
+    }
+
+    if (moduleName === 'Global') {
+        const foreign = masterSnapshot.foreign || {};
+        const dxy = foreign.dxy?.value ?? null;
+        const crude = foreign.crude_oil?.value ?? null;
+        const us10y = foreign.us10y?.value ?? null;
+        if (dxy != null || crude != null || us10y != null) {
+            return `[INSTITUTIONAL GLOBAL MACRO] DXY: ${_f2(dxy)}, Brent Crude: $${_f2(crude)}, US 10Y: ${_f2(us10y)}%. Global liquidity cues registered.`;
+        }
+    }
+
+    if (moduleName === 'Events') {
+        const evt = masterSnapshot.events || {};
+        const count = evt.count ?? evt.eventCount ?? null;
+        if (count != null) {
+            return `[INSTITUTIONAL EVENTS MONITOR] Upcoming catalysts recorded: ${count} active events tracked.`;
+        }
+    }
+
+    return 'N/A';
+}
+

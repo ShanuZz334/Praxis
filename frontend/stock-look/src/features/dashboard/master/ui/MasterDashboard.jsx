@@ -244,7 +244,7 @@ export default function MasterDashboard() {
         const label = selected?.tradingsymbol || selected?.label || selected?.name || val?.split('|').pop();
         
         if (val && additionalCharts.length < 3 && !additionalCharts.some(c => c.value === val) && val !== instKey) {
-            setAdditionalCharts([...additionalCharts, { value: val, label }]);
+            setAdditionalCharts([...additionalCharts, { value: val, label, lot_size: selected?.lot_size }]);
         }
         setIsAddChartOpen(false);
     };

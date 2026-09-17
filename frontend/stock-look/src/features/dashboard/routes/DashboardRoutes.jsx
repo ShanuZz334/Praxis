@@ -39,7 +39,6 @@ const AboutPage = lazy(() => import("@/features/dashboard/about/ui/AboutPage"));
 const SettingsPage = lazy(() => import("@/features/dashboard/settings/ui/SettingsPage"));
 const MessagesPage = lazy(() => import("@/features/dashboard/messages/ui/MessagesPage"));
 const AdminDashboard = lazy(() => import("@/features/admin/pages/AdminDashboard"));
-const UpstoxCallback = lazy(() => import("@/features/admin/pages/UpstoxCallback"));
 const JournalPage = lazy(() => import("@/features/dashboard/journal/ui/JournalPage"));
 const PaiPage = lazy(() => import("@/features/dashboard/pai/ui/PaiPage"));
 const PaiSettingsPage = lazy(() => import("@/features/dashboard/pai/ui/PaiSettingsPage"));
@@ -70,8 +69,7 @@ const DashboardRoutes = ({ setActiveMenu }) => {
         >
           <Routes location={location}>
             {/* Default /dashboard entry redirects to /dashboard/home */}
-        <Route index element={<Navigate to="home" replace />} />
-        <Route path="" element={<Navigate to="home" replace />} />
+            <Route index element={<Navigate to="home" replace />} />
 
         <Route
           path="home"
@@ -225,15 +223,6 @@ const DashboardRoutes = ({ setActiveMenu }) => {
             </>
           }
         />
-        <Route
-          path="messages"
-          element={
-            <>
-              <MenuSync menu="messages" setActiveMenu={setActiveMenu} />
-              <MessagesPage />
-            </>
-          }
-        />
 
         <Route
           path="admin"
@@ -244,8 +233,6 @@ const DashboardRoutes = ({ setActiveMenu }) => {
             </>
           }
         />
-
-        <Route path="/oauth/upstox/callback" element={<UpstoxCallback />} />
         
           {/* Fallback to Home for any unmapped /dashboard/* routes */}
           <Route path="*" element={<Navigate to="home" replace />} />

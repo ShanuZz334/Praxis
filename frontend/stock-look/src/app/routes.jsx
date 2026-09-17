@@ -34,6 +34,7 @@ import AuthLayout from "@/shared/components/layouts/AuthLayout";
 import DashboardLayout from "@/shared/components/layouts/DashboardLayout";
 import UpstoxCallback from "@/features/admin/pages/UpstoxCallback";
 import BacktestingWorkshop from "@/features/backtest/pages/BacktestingWorkshop";
+import StrategyBuilderPage from "@/features/backtest/strategy/StrategyBuilderPage";
 import Loader from "@/shared/components/ui/Loader";
 
 // =============================
@@ -114,6 +115,16 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <BacktestingWorkshop />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Dedicated Strategy Builder Scope */}
+        <Route
+          path="/backtest/strategy"
+          element={
+            <ProtectedRoute>
+              <StrategyBuilderPage />
             </ProtectedRoute>
           }
         />

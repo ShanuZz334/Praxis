@@ -92,6 +92,10 @@ export const API_PATHS = {
     ORDER_BOOK: "/api/v1/portfolio/order-book",
     TRADE_BOOK: "/api/v1/portfolio/trade-book",
   },
+
+  BACKTEST: {
+    WALKTHROUGH: "/api/v1/intelligence/backtest-walkthrough",
+  },
 };
 
 

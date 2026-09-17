@@ -242,6 +242,16 @@ export function healFutureCandleTimes(times = [], lastRealCandleTime = null, bar
     const barMins = Math.max(1, Math.round(barSizeSeconds / 60));
     const lastPossibleStartMins = 600 - barMins;
 
+    const getMs = (t) => {
+        if (!t) return 0;
+        if (typeof t === 'number') return t < 10000000000 ? t * 1000 : t;
+        if (typeof t === 'string') return new Date(t).getTime();
+        if (t?.year) return new Date(t.year, t.month - 1, t.day).getTime();
+        return 0;
+    };
+
+    const lastRealMs = getMs(lastRealCandleTime);
+
     // Check if any candle violates weekend/holiday rules OR intraday market hours
     const needsHealing = times.some(t => {
         if (isDailyOrAbove) {
@@ -264,10 +274,18 @@ export function healFutureCandleTimes(times = [], lastRealCandleTime = null, bar
     const healed = [];
     if (isDailyOrAbove) {
         let current = lastRealCandleTime
-            ? (typeof lastRealCandleTime === "string" ? new Date(lastRealCandleTime) : new Date(lastRealCandleTime.year, lastRealCandleTime.month - 1, lastRealCandleTime.day))
+            ? (typeof lastRealCandleTime === "string" 
+                ? (() => { const [y, m, d] = lastRealCandleTime.split('T')[0].split('-').map(Number); return new Date(y, (m || 1) - 1, d || 1); })()
+                : new Date(lastRealCandleTime.year, lastRealCandleTime.month - 1, lastRealCandleTime.day))
             : new Date();
 
         for (let i = 0; i < times.length; i++) {
+            const tMs = getMs(times[i]);
+            // Preserve valid historical timestamps
+            if (lastRealMs > 0 && tMs <= lastRealMs && !isMarketClosedDay(times[i], false)) {
+                healed.push(times[i]);
+                continue;
+            }
             current = getNextTradingDay(current);
             if (typeof times[i] === "string") {
                 healed.push(formatDateKey(current));
@@ -281,6 +299,12 @@ export function healFutureCandleTimes(times = [], lastRealCandleTime = null, bar
             : (lastRealCandleTime ? Math.floor(new Date(lastRealCandleTime).getTime() / 1000) : Math.floor(Date.now() / 1000));
 
         for (let i = 0; i < times.length; i++) {
+            const tMs = getMs(times[i]);
+            // Preserve valid historical timestamps
+            if (lastRealMs > 0 && tMs <= lastRealMs) {
+                healed.push(times[i]);
+                continue;
+            }
             curSec = getNextIntradayCandleTime(curSec, barSizeSeconds);
             healed.push(curSec);
         }

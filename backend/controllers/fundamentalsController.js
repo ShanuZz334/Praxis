@@ -13,11 +13,11 @@ const UPSTOX_FUNDAMENTALS_URL = "https://api.upstox.com/v2/fundamentals";
 
 export const getFundamentals = async (req, res) => {
     try {
-        let liveToken;
+        let liveToken = null;
         try {
             liveToken = await getUpstoxLiveToken();
         } catch (authErr) {
-            return res.status(401).json({ error: "Upstox is not authenticated for live market data" });
+            console.warn("Upstox live token unavailable, proceeding with public/macro sources.");
         }
 
         const instrumentKey = req.query.instrument_key;
@@ -62,6 +62,10 @@ export const getFundamentals = async (req, res) => {
                     console.log('Failed to fetch NSE index fundamentals:', nseErr.message);
                 }
             } else {
+                if (!liveToken) {
+                    throw new Error("Upstox live token required for company fundamentals. Triggering fallback.");
+                }
+
                 const headers = {
                     "Accept": "application/json",
                     "Authorization": `Bearer ${liveToken}`
@@ -150,14 +154,11 @@ export const getFundamentals = async (req, res) => {
                 fiscalDeficit = await fredApiService.getFiscalDeficit();
             } catch (e) { console.error("Failed to fetch Fiscal Deficit:", e.message); }
 
+            // Calculate FII Trend from fii_dii_history table
             try {
                 const fiiRows = localDb.prepare(`
-                    SELECT data_payload, timestamp FROM ai_card_store
-                    WHERE instrument_key = 'GLOBAL' 
-                    AND page_name = 'Dashboard' 
-                    AND section_name = 'InstitutionalFlow' 
-                    AND card_name = 'FiiDiiSegmented'
-                    ORDER BY timestamp DESC
+                    SELECT date, fii_json FROM fii_dii_history 
+                    ORDER BY date DESC 
                     LIMIT 30
                 `).all();
 
@@ -166,8 +167,8 @@ export const getFundamentals = async (req, res) => {
                     let trendDirection = 0;
                     
                     for (const row of fiiRows) {
-                        const payloadData = JSON.parse(row.data_payload);
-                        const netCashFii = payloadData?.fii?.['NSE_EQ|CASH']?.net || 0;
+                        const payloadData = JSON.parse(row.fii_json);
+                        const netCashFii = payloadData?.['NSE_EQ|CASH']?.net || 0;
                         
                         if (trendDirection === 0) {
                             if (netCashFii === 0) break;
@@ -184,6 +185,7 @@ export const getFundamentals = async (req, res) => {
                     fiiTrend = persistence;
                 }
             } catch (e) { console.error("Failed to calculate FII Trend:", e.message); }
+
             try {
                 systemLiquidity = await fredApiService.getGlobalLiquidity();
             } catch (e) { console.error("Failed to fetch Global Liquidity:", e.message); }
@@ -196,6 +198,64 @@ export const getFundamentals = async (req, res) => {
             payload.systemLiquidity = systemLiquidity; // for backwards compatibility
             payload.mfFlows = mfFlows;
             payload.fiiTrend = fiiTrend;
+
+            // Live FII/DII, Advance/Decline, and Sector Dashboard Injection
+            try {
+                const nse = new NseIndia();
+                
+                // FII/DII
+                const fiiData = await nse.getDataByEndpoint('/api/fiidiiTradeReact');
+                if (Array.isArray(fiiData) && fiiData.length > 0) {
+                    let fii_net = null;
+                    let dii_net = null;
+                    for (const item of fiiData) {
+                        if (item.category === 'FII/FPI') fii_net = parseFloat(item.netValue);
+                        if (item.category === 'DII') dii_net = parseFloat(item.netValue);
+                    }
+                    payload.liquidity = { fii_net, dii_net, updated_at: fiiData[0].date };
+                }
+
+                // Advance / Decline & Sector Dashboard
+                const indicesData = await nse.getAllIndices();
+                if (indicesData && indicesData.data) {
+                    const nifty50 = indicesData.data.find(x => x.indexSymbol === 'NIFTY 50');
+                    if (nifty50) {
+                        payload.advance_decline = {
+                            advances: parseInt(nifty50.advances),
+                            declines: parseInt(nifty50.declines),
+                            updated_at: new Date().toISOString()
+                        };
+                    }
+
+                    // Sector Dashboard
+                    const sectors = ['NIFTY BANK', 'NIFTY IT', 'NIFTY AUTO', 'NIFTY FMCG', 'NIFTY METAL', 'NIFTY PHARMA'];
+                    const sectorData = {};
+                    for (const sector of sectors) {
+                        const sec = indicesData.data.find(x => x.indexSymbol === sector);
+                        if (sec) {
+                            sectorData[sector] = parseFloat(sec.percentChange);
+                        }
+                    }
+                    payload.sector_dashboard = sectorData;
+                }
+            } catch (e) {
+                console.error("Failed to fetch NSE live data:", e.message);
+            }
+
+            // Live RBI Scraper Attempt (Credit Growth & Corporate Debt)
+            try {
+                const creditGrowth = await rbiApiService.getCreditGrowth();
+                if (creditGrowth !== null) payload.credit_growth = creditGrowth;
+            } catch (e) {
+                console.error("RBI Scraper (Credit Growth) Failed, fallback engaged:", e.message);
+            }
+
+            try {
+                const corpDebt = await rbiApiService.getCorporateDebt();
+                if (corpDebt !== null) payload.corporate_debt = corpDebt;
+            } catch (e) {
+                console.error("RBI Scraper (Corp Debt) Failed, fallback engaged:", e.message);
+            }
 
             setCache(cacheKey, payload, 86400); // 24 hours TTL
 
@@ -213,13 +273,10 @@ export const getFundamentals = async (req, res) => {
             }
 
             // --- SQLITE COLUMN-LEVEL WRITE (fundamentals_cache) ---
-            // Extract well-known scalar fields from payload for fast column queries
             try {
                 const ratios = Array.isArray(payload.ratios) ? payload.ratios : [];
                 const getR = (name) => { const r = ratios.find(r => r.name?.toLowerCase().replace(/[^a-z0-9]/g,'').includes(name)); return r ? parseFloat(r.company_value) || null : null; };
 
-                // Sanitizer: coerce any object/array/NaN to null so better-sqlite3
-                // never sees a non-primitive in a positional ? parameter.
                 const toNum = (v) => {
                     if (v === null || v === undefined) return null;
                     if (typeof v === 'object') return null;
@@ -234,6 +291,10 @@ export const getFundamentals = async (req, res) => {
                     return p ? toNum(p.holding_percentage) : null;
                 })();
 
+                const adRatio = payload.advance_decline?.advances !== undefined && payload.advance_decline?.declines !== undefined
+                    ? (payload.advance_decline.declines === 0 ? payload.advance_decline.advances : payload.advance_decline.advances / payload.advance_decline.declines)
+                    : null;
+
                 localDb.prepare(`
                     INSERT INTO fundamentals_cache (
                         instrument_key,
@@ -241,14 +302,15 @@ export const getFundamentals = async (req, res) => {
                         roe, roce, roa,
                         debt_to_equity, current_ratio, interest_coverage, free_cash_flow, cash_conversion,
                         promoter_holding,
+                        nifty_pe, nifty_pb,
                         gdp_growth, cpi, repo_rate, fiscal_deficit,
-                        fii_flow, dii_flow, fii_trend,
-                        india_vix, crude, global_liq,
+                        fii_flow, dii_flow, fii_trend, advance_decline,
+                        india_vix, crude, credit_growth, corp_debt, global_liq,
                         analyst_consensus,
                         yahoo_raw_json,
                         updated_at
                     ) VALUES (
-                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP
                     )
                     ON CONFLICT(instrument_key) DO UPDATE SET
                         pe_ratio=excluded.pe_ratio, forward_pe=excluded.forward_pe,
@@ -258,10 +320,14 @@ export const getFundamentals = async (req, res) => {
                         debt_to_equity=excluded.debt_to_equity, current_ratio=excluded.current_ratio,
                         interest_coverage=excluded.interest_coverage, free_cash_flow=excluded.free_cash_flow,
                         cash_conversion=excluded.cash_conversion, promoter_holding=excluded.promoter_holding,
+                        nifty_pe=excluded.nifty_pe, nifty_pb=excluded.nifty_pb,
                         gdp_growth=excluded.gdp_growth, cpi=excluded.cpi, repo_rate=excluded.repo_rate,
                         fiscal_deficit=excluded.fiscal_deficit,
                         fii_flow=excluded.fii_flow, dii_flow=excluded.dii_flow, fii_trend=excluded.fii_trend,
-                        india_vix=excluded.india_vix, crude=excluded.crude, global_liq=excluded.global_liq,
+                        advance_decline=excluded.advance_decline,
+                        india_vix=excluded.india_vix, crude=excluded.crude,
+                        credit_growth=excluded.credit_growth, corp_debt=excluded.corp_debt,
+                        global_liq=excluded.global_liq,
                         analyst_consensus=excluded.analyst_consensus,
                         yahoo_raw_json=excluded.yahoo_raw_json,
                         updated_at=CURRENT_TIMESTAMP
@@ -282,6 +348,8 @@ export const getFundamentals = async (req, res) => {
                     null, // free_cash_flow — extracted separately if needed
                     toNum(payload.cashConversionCycle),
                     promoterHolding,
+                    toNum(getR('pe')),
+                    toNum(getR('pb')),
                     toNum(payload.gdpGrowth),
                     toNum(payload.cpiInflation),
                     toNum(payload.repoRate),
@@ -289,8 +357,11 @@ export const getFundamentals = async (req, res) => {
                     toNum(payload.liquidity?.fii_net),
                     toNum(payload.liquidity?.dii_net),
                     toStr(payload.fiiTrend),
+                    toNum(adRatio),
                     toNum(payload.india_vix),
                     null, // crude — fetched via globalData
+                    toNum(payload.credit_growth),
+                    toNum(payload.corporate_debt),
                     toNum(payload.global_liq),
                     toStr(payload.analystConsensus),
                     payload.yahoo_raw ? JSON.stringify(payload.yahoo_raw) : null
@@ -308,86 +379,27 @@ export const getFundamentals = async (req, res) => {
         }
 
         // Live Daily High/Low Injection from Upstox API directly
-        try {
-            const quoteRes = await axios.get(`https://api.upstox.com/v2/market-quote/quotes?instrument_key=${encodeURIComponent(instrumentKey)}`, {
-                headers: { "Accept": "application/json", "Authorization": `Bearer ${liveToken}` }
-            });
-            const quoteData = quoteRes.data?.data || {};
-            const quoteObj = Object.values(quoteData)[0];
-            if (quoteObj && quoteObj.ohlc) {
-                if (!payload.quote) payload.quote = {};
-                payload.quote.ohlc = { high: quoteObj.ohlc.high, low: quoteObj.ohlc.low };
-                if (!payload.quote.last_price) payload.quote.last_price = quoteObj.last_price;
-            }
-        } catch (e) {
-            console.error("Failed to fetch Live Quote for High/Low:", e.message);
-        }
-
-        // Live FII/DII, Advance/Decline, and Sector Dashboard Injection
-        try {
-            const nse = new NseIndia();
-            
-            // FII/DII
-            const fiiData = await nse.getDataByEndpoint('/api/fiidiiTradeReact');
-            if (Array.isArray(fiiData) && fiiData.length > 0) {
-                let fii_net = null;
-                let dii_net = null;
-                for (const item of fiiData) {
-                    if (item.category === 'FII/FPI') fii_net = parseFloat(item.netValue);
-                    if (item.category === 'DII') dii_net = parseFloat(item.netValue);
+        if (liveToken) {
+            try {
+                const quoteRes = await axios.get(`https://api.upstox.com/v2/market-quote/quotes?instrument_key=${encodeURIComponent(instrumentKey)}`, {
+                    headers: { "Accept": "application/json", "Authorization": `Bearer ${liveToken}` }
+                });
+                const quoteData = quoteRes.data?.data || {};
+                const quoteObj = Object.values(quoteData)[0];
+                if (quoteObj && quoteObj.ohlc) {
+                    if (!payload.quote) payload.quote = {};
+                    payload.quote.ohlc = { high: quoteObj.ohlc.high, low: quoteObj.ohlc.low };
+                    if (!payload.quote.last_price) payload.quote.last_price = quoteObj.last_price;
                 }
-                payload.liquidity = { fii_net, dii_net, updated_at: fiiData[0].date };
+            } catch (e) {
+                console.error("Failed to fetch Live Quote for High/Low:", e.message);
             }
-
-            // Advance / Decline & Sector Dashboard
-            const indicesData = await nse.getAllIndices();
-            if (indicesData && indicesData.data) {
-                const nifty50 = indicesData.data.find(x => x.indexSymbol === 'NIFTY 50');
-                if (nifty50) {
-                    payload.advance_decline = {
-                        advances: parseInt(nifty50.advances),
-                        declines: parseInt(nifty50.declines),
-                        updated_at: new Date().toISOString()
-                    };
-                }
-
-                // Sector Dashboard
-                const sectors = ['NIFTY BANK', 'NIFTY IT', 'NIFTY AUTO', 'NIFTY FMCG', 'NIFTY METAL', 'NIFTY PHARMA'];
-                const sectorData = {};
-                for (const sector of sectors) {
-                    const sec = indicesData.data.find(x => x.indexSymbol === sector);
-                    if (sec) {
-                        sectorData[sector] = parseFloat(sec.percentChange);
-                    }
-                }
-                payload.sector_dashboard = sectorData;
-            }
-
-        } catch (e) {
-            console.error("Failed to fetch NSE live data:", e.message);
-        }
-
-        // Live RBI Scraper Attempt
-        try {
-            const creditGrowth = await rbiApiService.getCreditGrowth();
-            if (creditGrowth !== null) payload.credit_growth = creditGrowth;
-        } catch (e) {
-            console.error("RBI Scraper (Credit Growth) Failed, fallback engaged:", e.message);
-        }
-
-        try {
-            const corpDebt = await rbiApiService.getCorporateDebt();
-            if (corpDebt !== null) payload.corporate_debt = corpDebt;
-        } catch (e) {
-            console.error("RBI Scraper (Corp Debt) Failed, fallback engaged:", e.message);
         }
 
         return res.json({ status: "success", data: payload, cached: !!getCache(cacheKey) });
 
     } catch (error) {
         console.error("Error fetching fundamentals:", error?.response?.data || error.message);
-        import("fs").then(fs => fs.appendFileSync("c:/project/ALLBACKUP/Praxis/backend/real_errors.log", new Date().toISOString() + " FundError: " + (error.stack || error.message) + "\n"));
-        
         // --- SQLITE FALLBACK ---
         try {
             const row = localDb.prepare("SELECT raw_json FROM fundamentals_data WHERE instrument_key = ?").get(req.query.instrument_key);

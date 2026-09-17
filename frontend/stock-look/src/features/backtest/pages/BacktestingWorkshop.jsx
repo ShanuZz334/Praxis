@@ -18,7 +18,9 @@ import BacktestReplayChart from '../ui/BacktestReplayChart';
 import BacktestScorecard from '../ui/BacktestScorecard';
 import BacktestEquityCurve from '../ui/BacktestEquityCurve';
 import BacktestOptimizerModal from '../ui/BacktestOptimizerModal';
+import ModelFinetuneCard from '@/shared/components/finetune/ModelFinetuneCard';
 import { runBacktest, DEFAULT_BACKTEST_CONFIG, TIMEFRAME_DEFAULTS } from '../engine/backtestEngine';
+import { getTestableUnits } from '../engine/testableUnitsRegistry';
 
 export default function BacktestingWorkshop() {
     const navigate = useNavigate();
@@ -35,9 +37,12 @@ export default function BacktestingWorkshop() {
             const raw = localStorage.getItem('praxis_backtest_active_config');
             if (raw) {
                 const parsed = JSON.parse(raw);
+                const validUnits = getTestableUnits();
+                const unit = validUnits.some(u => u.id === parsed.unit) ? parsed.unit : (validUnits[0]?.id || 'PREDICTOR');
                 return {
                     ...fallback,
                     ...parsed,
+                    unit,
                     exitRule: {
                         ...fallback.exitRule,
                         ...(parsed.exitRule || {}),
@@ -73,6 +78,7 @@ export default function BacktestingWorkshop() {
     });
 
     const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
+    const [isFinetuneOpen, setIsFinetuneOpen] = useState(false);
 
     const [isLeftOpen, setIsLeftOpen] = useState(() => {
         try {
@@ -345,10 +351,11 @@ export default function BacktestingWorkshop() {
 
     // Auto-update simulation when configuration parameters change
     useEffect(() => {
-        if (!candles || candles.length < 30) return;
+        if (loadingCandles || !candles || candles.length < 30) return;
         const res = runBacktest(candles, config);
         setSimulationResult(res);
     }, [
+        loadingCandles,
         candles,
         config.unit,
         config.mode,
@@ -363,6 +370,7 @@ export default function BacktestingWorkshop() {
         config.initialCapital,
         config.positionSizePct,
         config.costModel,
+        config.customThreshold,
     ]);
 
     // ── 2. Run Backtest Simulation Handler ───────────────────────────────────
@@ -415,9 +423,26 @@ export default function BacktestingWorkshop() {
 
     const dateSpan = useMemo(() => {
         if (!candles || candles.length < 2) return null;
-        const start = typeof candles[0].time === 'string' ? candles[0].time.slice(0, 4) : new Date(candles[0].time * 1000).getFullYear();
-        const end = typeof candles[candles.length - 1].time === 'string' ? candles[candles.length - 1].time.slice(0, 4) : new Date(candles[candles.length - 1].time * 1000).getFullYear();
-        return `${start}–${end} (${candles.length.toLocaleString()} bars)`;
+        const first = candles[0];
+        const last = candles[candles.length - 1];
+
+        const formatDate = (t) => {
+            if (!t) return '';
+            const d = typeof t === 'string' ? new Date(t) : new Date(t * (t < 10000000000 ? 1000 : 1));
+            if (isNaN(d.getTime())) return String(t);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+
+        const uniqueDays = new Set(candles.map(c => {
+            if (!c.time) return null;
+            if (typeof c.time === 'string') return c.time.slice(0, 10);
+            const d = new Date(c.time * (c.time < 10000000000 ? 1000 : 1));
+            return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+        }).filter(Boolean)).size;
+
+        const firstStr = formatDate(first.time);
+        const lastStr = formatDate(last.time);
+        return `${candles.length.toLocaleString()} bars • ${uniqueDays} trading days (${firstStr} – ${lastStr})`;
     }, [candles]);
 
     return (
@@ -436,6 +461,7 @@ export default function BacktestingWorkshop() {
                 isRightOpen={isRightOpen}
                 onToggleLeft={() => setIsLeftOpen(prev => !prev)}
                 onToggleRight={() => setIsRightOpen(prev => !prev)}
+                onOpenFinetune={() => setIsFinetuneOpen(true)}
             />
 
             {/* Floating Toast Notification when Calibration is Applied */}
@@ -497,6 +523,8 @@ export default function BacktestingWorkshop() {
                     setRunName={setRunName}
                     onOpenOptimizer={() => setIsOptimizerOpen(true)}
                     isOpen={isLeftOpen}
+                    candles={candles}
+                    activeRunSummary={simulationResult?.summary}
                 />
 
                 {/* Center: Replay Chart or Loading / Error State */}
@@ -544,6 +572,7 @@ export default function BacktestingWorkshop() {
                 {/* Right: Live Scorecard */}
                 <BacktestScorecard
                     summary={simulationResult?.summary || {}}
+                    config={config}
                     calibration={simulationResult?.calibration || []}
                     walkForward={simulationResult?.walkForward || null}
                     trades={simulationResult?.trades || []}
@@ -575,6 +604,19 @@ export default function BacktestingWorkshop() {
                 instrumentLabel={instrumentLabel}
                 onApplyCalibration={handleApplyCalibration}
             />
+
+            {/* 5. AI Foundation Model Auto-Fine-Tuning Studio Modal */}
+            {isFinetuneOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
+                    <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+                        <ModelFinetuneCard
+                            instrument={config.instrument}
+                            timeframe={config.timeframe}
+                            onClose={() => setIsFinetuneOpen(false)}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

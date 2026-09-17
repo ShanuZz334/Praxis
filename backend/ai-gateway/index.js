@@ -65,16 +65,18 @@ export const aiGateway = {
 
         request.targetModel = routePlan.length > 0 ? routePlan[0].model : 'fallback';
 
-        const exactHit = responseCache.get(request);
-        if (exactHit) {
-            costLogger.log(request, exactHit);
-            return exactHit;
-        }
+        if (!request.bypassCache && !request.forceRefresh) {
+            const exactHit = responseCache.get(request);
+            if (exactHit) {
+                costLogger.log(request, exactHit);
+                return exactHit;
+            }
 
-        const semanticHit = await semanticCache.check(request);
-        if (semanticHit) {
-            costLogger.log(request, semanticHit);
-            return semanticHit;
+            const semanticHit = await semanticCache.check(request);
+            if (semanticHit) {
+                costLogger.log(request, semanticHit);
+                return semanticHit;
+            }
         }
 
         let messages = [];

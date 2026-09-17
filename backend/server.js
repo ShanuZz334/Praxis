@@ -46,6 +46,12 @@ import portfolioRoutes from "./routes/portfolioRoutes.js";
 import overridesRoutes from "./routes/overridesRoutes.js";
 import preferencesRoutes from "./routes/preferencesRoutes.js";
 import paceRoutes from "./routes/paceRoutes.js";
+import indicatorLabRoutes from "./routes/indicatorLabRoutes.js";
+import predictionRoutes from "./routes/predictionRoutes.js";
+import finetuneRoutes from "./routes/finetuneRoutes.js";
+import { resolvePendingPredictions, initStartupCatchup } from "./services/predictionResolutionService.js";
+import { ensureEnsembleRunning } from "./services/ensembleService.js";
+import cron from "node-cron";
 
 // =============================
 // Express App Setup
@@ -118,6 +124,9 @@ app.use("/api/v1/portfolio", portfolioRoutes);
 app.use("/api/v1/overrides", overridesRoutes);
 app.use("/api/v1/preferences", preferencesRoutes);
 app.use("/api/v1/pace", paceRoutes);
+app.use("/api/v1/indicator-lab", indicatorLabRoutes);
+app.use("/api/v1/predictions", predictionRoutes);
+app.use("/api/v1/finetune", finetuneRoutes);
 
 app.use("/api/flow", flowRoutes);
 
@@ -154,6 +163,22 @@ initSocketBroadcaster(io);
 // Initialize daily cron jobs
 initInstrumentCron();
 initIntelligenceCrons();
+
+// Run startup catch-up resolution for predictions that closed while the app was offline
+initStartupCatchup().catch(err => {
+    console.warn('[PredictionEngine] Startup catch-up warning:', err.message);
+});
+
+// Periodic probabilistic prediction resolution cron (runs every 2 mins to score closed candles)
+cron.schedule("*/2 * * * *", () => {
+    resolvePendingPredictions().then(res => {
+        if (res.resolvedCount > 0) {
+            console.log(`[PredictionEngine] Automatically resolved ${res.resolvedCount} closed prediction(s)`);
+        }
+    }).catch(err => {
+        console.warn('[PredictionEngine] Cron resolution warning:', err.message);
+    });
+});
 
 io.on("connection", (socket) => {
     console.log(`[Socket.io] Client connected: ${socket.id}`);
@@ -272,5 +297,7 @@ httpServer.listen(PORT, () => {
     startMarketDataPolling();
     // Initialize the auto-news-to-events pipeline processor
     initNewsAutoProcessor();
+    // Auto-verify and start Python foundation model ensemble microservice
+    ensureEnsembleRunning().catch(err => console.warn("[EnsembleService] Startup initialization warning:", err.message));
 });
 

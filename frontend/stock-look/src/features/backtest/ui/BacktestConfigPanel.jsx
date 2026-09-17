@@ -8,23 +8,46 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
     Play, Sliders, ShieldCheck, Cpu, Zap, Activity, Layers, 
     TrendingUp, RefreshCw, BarChart2, Eye, GitCompare, ChevronDown,
-    Building2, Search, Filter, Sparkles, Calendar
+    Building2, Search, Filter, Sparkles, Calendar, Code2,
+    Plus, X, Trash2, Download, Upload, Check, AlertTriangle,
+    RotateCcw, SlidersHorizontal, Boxes, ArrowRight
 } from 'lucide-react';
 import { FO_INDICES, FO_EQUITIES } from '@/shared/utils/foInstruments';
 import UiverseDropdown from '@/shared/components/ui/UiverseDropdown';
 import InstrumentSelectorModal from '@/features/trading/ui/InstrumentSelectorModal';
+import { SIGNAL_DEFINITIONS, SIGNAL_CATEGORIES } from '@/features/backtest/strategy/strategySignalDefinitions';
 import { TIMEFRAME_DEFAULTS } from '../engine/backtestEngine';
+import { 
+    getTestableUnits, 
+    saveTestableUnits, 
+    addTestableUnit, 
+    removeTestableUnit, 
+    resetTestableUnitsToDefault,
+    subscribeToTestableUnits,
+    exportUnitJson,
+    importUnitFromJson,
+    DEFAULT_BUILTIN_UNITS 
+} from '../engine/testableUnitsRegistry';
+import { getCustomIndicators } from '../lab/customIndicatorRegistry';
 
-export const TESTABLE_UNITS = [
-    { id: 'PREDICTOR', label: '7-Candle Predictor', icon: Cpu, desc: 'AI forecast direction & confidence calibration' },
-    { id: 'PATTERNS', label: 'Pattern Engine', icon: Layers, desc: '40+ candlestick & chart patterns win rate' },
-    { id: 'COMPOSITE_SCORE', label: 'Composite Score', icon: Activity, desc: 'Pattern sentiment threshold crossovers' },
-    { id: 'PNCO', label: 'PNCO Oscillator', icon: Zap, desc: 'Cross-domain momentum & bull/bear trap filter' },
-    { id: 'AAVB', label: 'AAVB Bands', icon: TrendingUp, desc: 'Macro-volatility adaptive channel bounces' },
-    { id: 'IFDI', label: 'IFDI Flow Index', icon: BarChart2, desc: 'Smart money hidden accumulation & distribution' },
-    { id: 'HEAD_TO_HEAD', label: 'Head-to-Head', icon: GitCompare, desc: 'Confluence vs individual component benchmark' },
-    { id: 'CUSTOM_COMBO', label: 'Custom Combo', icon: Sliders, desc: 'Multi-factor rule builder' },
-];
+export const TESTABLE_UNITS = DEFAULT_BUILTIN_UNITS;
+
+const ICON_MAP = {
+    Cpu,
+    Layers,
+    Activity,
+    Zap,
+    TrendingUp,
+    BarChart2,
+    GitCompare,
+    Sliders,
+    Sparkles,
+    Code2,
+    SlidersHorizontal,
+    Boxes,
+    ShieldCheck,
+};
+
 
 const QUICK_INDICES = [
     { label: 'NIFTY 50', value: 'NSE_INDEX|Nifty 50' },
@@ -42,6 +65,30 @@ const QUICK_COMPANIES = [
     { label: 'ICICIBANK', value: 'NSE_EQ|INE090A01021' },
 ];
 
+const PATTERN_OPTIONS = [
+    { value: 'ALL', label: 'All 40+ Patterns (Any Trigger)', badge: 'ALL' },
+    { value: 'Hammer', label: 'Hammer (Bull)', badge: 'Single' },
+    { value: 'ShootingStar', label: 'Shooting Star (Bear)', badge: 'Single' },
+    { value: 'InvertedHammer', label: 'Inverted Hammer (Bull)', badge: 'Single' },
+    { value: 'HangingMan', label: 'Hanging Man (Bear)', badge: 'Single' },
+    { value: 'BullMarubozu', label: 'Bullish Marubozu', badge: 'Single' },
+    { value: 'BearMarubozu', label: 'Bearish Marubozu', badge: 'Single' },
+    { value: 'BullEngulfing', label: 'Bullish Engulfing', badge: 'Two-Candle' },
+    { value: 'BearEngulfing', label: 'Bearish Engulfing', badge: 'Two-Candle' },
+    { value: 'PiercingLine', label: 'Piercing Line (Bull)', badge: 'Two-Candle' },
+    { value: 'DarkCloudCover', label: 'Dark Cloud Cover (Bear)', badge: 'Two-Candle' },
+    { value: 'BullHarami', label: 'Bullish Harami', badge: 'Two-Candle' },
+    { value: 'BearHarami', label: 'Bearish Harami', badge: 'Two-Candle' },
+    { value: 'MorningStar', label: 'Morning Star (Bull)', badge: 'Three-Candle' },
+    { value: 'EveningStar', label: 'Evening Star (Bear)', badge: 'Three-Candle' },
+    { value: 'ThreeWhiteSoldiers', label: 'Three White Soldiers', badge: 'Three-Candle' },
+    { value: 'ThreeBlackCrows', label: 'Three Black Crows', badge: 'Three-Candle' },
+    { value: 'DoubleBottom', label: 'Double Bottom', badge: 'Structural' },
+    { value: 'DoubleTop', label: 'Double Top', badge: 'Structural' },
+    { value: 'HeadAndShoulders', label: 'Head & Shoulders', badge: 'Structural' },
+    { value: 'InvHeadAndShoulders', label: 'Inv Head & Shoulders', badge: 'Structural' },
+];
+
 export default function BacktestConfigPanel({
     config,
     onChangeConfig,
@@ -54,6 +101,106 @@ export default function BacktestConfigPanel({
     onClose = () => {},
 }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Dynamic Testable Units State
+    const [testableUnits, setTestableUnits] = useState(() => getTestableUnits());
+    const [addModalMode, setAddModalMode] = useState(null); // 'INDICATORS' | 'LAB' | 'STRATEGY' | 'RESTORE' | 'IMPORT' | null
+    const [indicatorCategory, setIndicatorCategory] = useState('ALL');
+    const [unitToDetach, setUnitToDetach] = useState(null);
+    const [importJsonText, setImportJsonText] = useState('');
+    const [importError, setImportError] = useState('');
+    const [catalogSearch, setCatalogSearch] = useState('');
+
+    // Subscribe to testable units and custom indicator changes
+    useEffect(() => {
+        const unsub = subscribeToTestableUnits((updated) => {
+            setTestableUnits(updated);
+        });
+        return unsub;
+    }, []);
+
+    // Automatic fallback if current unit was removed/deleted
+    useEffect(() => {
+        if (testableUnits.length > 0 && !testableUnits.some(u => u.id === config.unit)) {
+            onChangeConfig(prev => ({
+                ...prev,
+                unit: testableUnits[0].id,
+            }));
+        }
+    }, [testableUnits, config.unit, onChangeConfig]);
+
+    const availableLabIndicators = useMemo(() => {
+        return getCustomIndicators();
+    }, [testableUnits, addModalMode]);
+
+    const availableStrategies = useMemo(() => {
+        try {
+            const raw = localStorage.getItem('praxis_strategies');
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            return [];
+        }
+    }, [testableUnits, addModalMode]);
+
+    const removedBuiltins = useMemo(() => {
+        const presentIds = new Set(testableUnits.map(u => u.id));
+        return DEFAULT_BUILTIN_UNITS.filter(b => !presentIds.has(b.id));
+    }, [testableUnits]);
+
+    const handleInitiateRemoveUnit = (unit) => {
+        if (unit.type === 'BUILTIN' || unit.type === 'INDICATOR') {
+            removeTestableUnit(unit.id);
+            if (config.unit === unit.id) {
+                const remaining = testableUnits.filter(u => u.id !== unit.id);
+                if (remaining.length > 0) {
+                    onChangeConfig(prev => ({ ...prev, unit: remaining[0].id }));
+                }
+            }
+        } else {
+            setUnitToDetach(unit);
+        }
+    };
+
+    const handleConfirmRemoveOnly = (unit) => {
+        removeTestableUnit(unit.id, { deleteFromApp: false });
+        if (config.unit === unit.id) {
+            const remaining = testableUnits.filter(u => u.id !== unit.id);
+            if (remaining.length > 0) {
+                onChangeConfig(prev => ({ ...prev, unit: remaining[0].id }));
+            }
+        }
+        setUnitToDetach(null);
+    };
+
+    const handleConfirmDeletePermanently = (unit) => {
+        removeTestableUnit(unit.id, { deleteFromApp: true });
+        if (config.unit === unit.id) {
+            const remaining = testableUnits.filter(u => u.id !== unit.id);
+            if (remaining.length > 0) {
+                onChangeConfig(prev => ({ ...prev, unit: remaining[0].id }));
+            }
+        }
+        setUnitToDetach(null);
+    };
+
+    const handleResetUnits = () => {
+        resetTestableUnitsToDefault();
+        onChangeConfig(prev => ({ ...prev, unit: 'PREDICTOR' }));
+    };
+
+    const handleImportJson = () => {
+        setImportError('');
+        try {
+            const imported = importUnitFromJson(importJsonText);
+            if (imported) {
+                onChangeConfig(prev => ({ ...prev, unit: imported.id }));
+                setAddModalMode(null);
+                setImportJsonText('');
+            }
+        } catch (err) {
+            setImportError(err.message || 'Failed to parse unit struct JSON.');
+        }
+    };
 
     const isCompanyInstrument = Boolean(
         config.instrument?.startsWith('NSE_EQ|') || 
@@ -507,45 +654,81 @@ export default function BacktestConfigPanel({
             <div className="bg-background-surface/70 rounded-xl p-3 border border-border-subtle flex flex-col gap-2.5 shadow-xs">
                 <div className="flex items-center justify-between pb-1.5 border-b border-border-subtle/50">
                     <div className="flex items-center gap-1.5">
-                        <Cpu size={12} className="text-text-tertiary" />
-                        <span className="font-semibold text-[10px] text-text-secondary uppercase tracking-wider">
+                        <Cpu size={12} className="text-text-tertiary shrink-0" />
+                        <span className="font-semibold text-[10px] text-text-secondary uppercase tracking-wider whitespace-nowrap">
                             Unit Under Test
+                        </span>
+                        <span className="text-[9px] font-mono font-bold text-accent-primary bg-accent-primary/10 border border-accent-primary/25 px-1.5 py-0.2 rounded shrink-0">
+                            {testableUnits.length}
                         </span>
                     </div>
                     <button
                         type="button"
-                        onClick={onOpenOptimizer}
-                        className="flex items-center gap-1 text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20 transition cursor-pointer"
-                        title="Run multi-parameter optimization sweep on active unit"
+                        onClick={() => setAddModalMode('INDICATORS')}
+                        className="flex items-center gap-1 text-[10px] font-mono font-semibold text-accent-primary hover:text-accent-primary/80 transition px-1.5 py-0.5 rounded hover:bg-accent-primary/10 cursor-pointer shrink-0"
+                        title="Open Units Catalog to add standard indicators, custom models, or strategies"
                     >
-                        <Zap size={10} className="fill-blue-400/20" />
-                        <span>Auto-Calibrate</span>
+                        <Plus size={10} />
+                        <span>Add Unit</span>
                     </button>
                 </div>
 
-                {/* 8 Engine Selection Grid */}
+                {/* Dynamic Engine Selection Grid */}
                 <div className="grid grid-cols-2 gap-1.5">
-                    {TESTABLE_UNITS.map((unit) => {
-                        const Icon = unit.icon;
+                    {testableUnits.map((unit) => {
+                        const Icon = ICON_MAP[unit.iconName] || unit.icon || Cpu;
                         const isSelected = config.unit === unit.id;
+                        const isCustom = unit.type === 'CUSTOM_INDICATOR' || unit.type === 'STRATEGY' || unit.type === 'INDICATOR' || unit.isDetachable;
                         return (
-                            <button
+                            <div
                                 key={unit.id}
-                                type="button"
-                                onClick={() => update('unit', unit.id)}
-                                className={`flex items-center gap-2 p-2 rounded-lg border text-left transition-all cursor-pointer ${
+                                className={`group relative flex items-center justify-between p-2 rounded-lg border text-left transition-all ${
                                     isSelected
                                         ? 'bg-blue-500/15 border-blue-500/40 text-text-primary shadow-xs ring-1 ring-blue-500/30 font-semibold'
                                         : 'bg-background-app/50 border-border-subtle/60 text-text-secondary hover:bg-background-elevated/40 hover:text-text-primary hover:border-border-default'
                                 }`}
-                                title={unit.desc}
                             >
-                                <Icon size={13} className={isSelected ? 'text-blue-400 shrink-0' : 'text-text-tertiary shrink-0'} />
-                                <span className="text-[11px] truncate font-medium">{unit.label}</span>
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={() => update('unit', unit.id)}
+                                    className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer"
+                                    title={unit.desc}
+                                >
+                                    <Icon size={13} className={isSelected ? 'text-blue-400 shrink-0' : 'text-text-tertiary shrink-0'} />
+                                    <span className="text-[11px] truncate font-medium">{unit.label}</span>
+                                </button>
+
+                                {/* Badges for custom units, indicators, strategies */}
+                                {isCustom && unit.nickname && (
+                                    <span className={`text-[8px] font-mono px-1 py-0.2 rounded border shrink-0 mr-3 ${
+                                        unit.type === 'INDICATOR'
+                                            ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                                            : unit.type === 'STRATEGY'
+                                            ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                                            : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                                    }`}>
+                                        {unit.nickname}
+                                    </span>
+                                )}
+
+                                {/* Floating remove/detach button on hover */}
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleInitiateRemoveUnit(unit);
+                                    }}
+                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 hover:bg-rose-500/20 text-text-tertiary hover:text-rose-400 p-0.5 rounded transition cursor-pointer z-10"
+                                    title={isCustom ? "Remove / Detach Unit from Grid" : "Remove from Grid"}
+                                >
+                                    <X size={10} />
+                                </button>
+                            </div>
                         );
                     })}
                 </div>
+
+
 
                 {/* Sub-parameters based on unit */}
                 {config.unit === 'PATTERNS' && (
@@ -556,41 +739,14 @@ export default function BacktestConfigPanel({
                                 {config.selectedPattern || 'ALL'}
                             </span>
                         </div>
-                        <select
+                        <UiverseDropdown
+                            options={PATTERN_OPTIONS}
                             value={config.selectedPattern || 'ALL'}
-                            onChange={(e) => update('selectedPattern', e.target.value)}
-                            className="w-full bg-background-elevated border border-border-subtle rounded-md px-2 py-1 text-[11px] text-text-primary outline-none font-mono cursor-pointer"
-                        >
-                            <option value="ALL">All 40+ Patterns (Any Trigger)</option>
-                            <optgroup label="Single-Candle Reversals">
-                                <option value="Hammer">Hammer (Bull)</option>
-                                <option value="ShootingStar">Shooting Star (Bear)</option>
-                                <option value="InvertedHammer">Inverted Hammer (Bull)</option>
-                                <option value="HangingMan">Hanging Man (Bear)</option>
-                                <option value="BullMarubozu">Bullish Marubozu</option>
-                                <option value="BearMarubozu">Bearish Marubozu</option>
-                            </optgroup>
-                            <optgroup label="Two-Candle Formations">
-                                <option value="BullEngulfing">Bullish Engulfing</option>
-                                <option value="BearEngulfing">Bearish Engulfing</option>
-                                <option value="PiercingLine">Piercing Line (Bull)</option>
-                                <option value="DarkCloudCover">Dark Cloud Cover (Bear)</option>
-                                <option value="BullHarami">Bullish Harami</option>
-                                <option value="BearHarami">Bearish Harami</option>
-                            </optgroup>
-                            <optgroup label="Three-Candle Formations">
-                                <option value="MorningStar">Morning Star (Bull)</option>
-                                <option value="EveningStar">Evening Star (Bear)</option>
-                                <option value="ThreeWhiteSoldiers">Three White Soldiers</option>
-                                <option value="ThreeBlackCrows">Three Black Crows</option>
-                            </optgroup>
-                            <optgroup label="Structural Patterns">
-                                <option value="DoubleBottom">Double Bottom</option>
-                                <option value="DoubleTop">Double Top</option>
-                                <option value="HeadAndShoulders">Head &amp; Shoulders</option>
-                                <option value="InvHeadAndShoulders">Inv Head &amp; Shoulders</option>
-                            </optgroup>
-                        </select>
+                            onChange={(val) => update('selectedPattern', val)}
+                            placeholder="Select Pattern..."
+                            searchPlaceholder="Search patterns..."
+                            matchWidth={true}
+                        />
                     </div>
                 )}
 
@@ -677,7 +833,111 @@ export default function BacktestConfigPanel({
                         </label>
                     </div>
                 )}
+
+                {/* Dynamic Unit Sub-Parameters (Standard Indicators / Custom Lab / Strategies) */}
+                {Boolean(!['PATTERNS', 'PNCO', 'HEAD_TO_HEAD', 'COMPOSITE_SCORE', 'CUSTOM_COMBO', 'PREDICTOR', 'AAVB', 'IFDI'].includes(config.unit)) && (() => {
+                    const activeUnitObj = testableUnits.find(u => u.id === config.unit);
+                    const isIndicator = activeUnitObj?.type === 'INDICATOR' || Boolean(SIGNAL_DEFINITIONS[config.unit]);
+                    const isStrategy = activeUnitObj?.type === 'STRATEGY' || config.unit?.startsWith('strat_');
+                    const indDef = isIndicator ? SIGNAL_DEFINITIONS[activeUnitObj?.id || config.unit] : null;
+
+                    if (isIndicator && indDef) {
+                        const preset = indDef.presetConditions?.[0];
+                        return (
+                            <div className="bg-background-app/70 p-2.5 rounded-lg border border-border-subtle/60 flex flex-col gap-2 mt-0.5">
+                                <div className="flex justify-between items-center text-[11px]">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                        <Activity size={12} className="text-cyan-400 shrink-0" />
+                                        <span className="text-text-secondary font-medium truncate">
+                                            {indDef.label}
+                                        </span>
+                                    </div>
+                                    <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 uppercase">
+                                        {indDef.category || 'INDICATOR'}
+                                    </span>
+                                </div>
+                                <p className="text-[10px] text-text-tertiary leading-snug">
+                                    {indDef.desc}
+                                </p>
+                                {preset && (
+                                    <div className="text-[9px] font-mono text-cyan-300 bg-cyan-500/10 p-1.5 rounded border border-cyan-500/20">
+                                        Signal Trigger: {preset.label}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    }
+
+                    if (isStrategy) {
+                        return (
+                            <div className="bg-background-app/70 p-2.5 rounded-lg border border-border-subtle/60 flex flex-col gap-2 mt-0.5">
+                                <div className="flex justify-between items-center text-[11px]">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                        <SlidersHorizontal size={12} className="text-blue-400 shrink-0" />
+                                        <span className="text-text-secondary font-medium truncate">
+                                            {activeUnitObj?.label || 'Strategy Blueprint'}
+                                        </span>
+                                    </div>
+                                    <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 uppercase">
+                                        {(activeUnitObj?.rules || []).length} RULES
+                                    </span>
+                                </div>
+                                <p className="text-[10px] text-text-tertiary leading-snug">
+                                    {activeUnitObj?.desc || 'Compound multi-factor strategy'}
+                                </p>
+                            </div>
+                        );
+                    }
+
+                    const activeMode = config.mode || 'swing';
+                    const modeThreshold = activeUnitObj?.modes?.[activeMode]?.threshold ?? 20;
+                    const currentThreshold = config.customThreshold !== undefined ? config.customThreshold : modeThreshold;
+
+                    return (
+                        <div className="bg-background-app/70 p-2.5 rounded-lg border border-border-subtle/60 flex flex-col gap-2 mt-0.5">
+                            <div className="flex justify-between items-center text-[11px]">
+                                <div className="flex items-center gap-1.5">
+                                    <Sparkles size={12} className="text-amber-400" />
+                                    <span className="text-text-secondary font-medium truncate max-w-[140px]">
+                                        {activeUnitObj?.label || 'Custom Model'}
+                                    </span>
+                                </div>
+                                <span className="font-mono font-bold text-accent-primary text-[10px]">
+                                    ±{currentThreshold}
+                                </span>
+                            </div>
+                            
+                            <input
+                                type="range"
+                                min="5"
+                                max="50"
+                                step="5"
+                                value={currentThreshold}
+                                onChange={(e) => update('customThreshold', Number(e.target.value))}
+                                className="w-full accent-accent-primary cursor-pointer h-1.5 bg-background-subtle rounded-lg"
+                            />
+                            
+                            <div className="flex items-center justify-between text-[9px] text-text-tertiary pt-0.5 border-t border-border-subtle/40">
+                                <span className="truncate max-w-[160px]">
+                                    {activeUnitObj?.rules?.length ? `${activeUnitObj.rules.length} custom rules baked` : 'Zero-line & threshold reversals'}
+                                </span>
+                            </div>
+                        </div>
+                    );
+                })()}
+
+                {/* Auto-Calibrate Active Unit Action */}
+                <button
+                    type="button"
+                    onClick={onOpenOptimizer}
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/25 hover:border-blue-500/40 text-[10px] font-mono font-bold transition cursor-pointer shadow-xs active:scale-[0.99] mt-0.5"
+                    title="Run multi-parameter optimization sweep on active unit"
+                >
+                    <Zap size={11} className="fill-blue-400/20 text-blue-400" />
+                    <span>Auto-Calibrate Active Unit</span>
+                </button>
             </div>
+
 
             {/* 4. Exit Rules & Stops */}
             <div className="bg-background-surface/70 rounded-xl p-3 border border-border-subtle flex flex-col gap-2.5 shadow-xs">
@@ -1044,6 +1304,524 @@ export default function BacktestConfigPanel({
                 </div>
             </div>
         )}
+        {/* Dynamic Units Catalog Modal */}
+        {addModalMode && (
+            <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-150">
+                <div className="w-full max-w-md bg-background-card border border-border-default rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                    {/* Header */}
+                    <div className="px-4 py-3 border-b border-border-subtle flex items-center justify-between bg-background-elevated/30">
+                        <div className="flex items-center gap-2">
+                            <Boxes size={16} className="text-accent-primary" />
+                            <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider">
+                                Units Catalog &amp; Manager
+                            </h3>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => { setAddModalMode(null); setCatalogSearch(''); setImportError(''); }}
+                            className="p-1 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-background-elevated transition cursor-pointer"
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+
+                    {/* Navigation Tabs */}
+                    <div className="flex items-center gap-1 px-3 py-2 border-b border-border-subtle bg-background-app/60 overflow-x-auto no-scrollbar">
+                        <button
+                            type="button"
+                            onClick={() => { setAddModalMode('INDICATORS'); setImportError(''); }}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                                addModalMode === 'INDICATORS'
+                                    ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-xs'
+                                    : 'text-text-tertiary hover:text-text-primary hover:bg-background-elevated'
+                            }`}
+                        >
+                            <Activity size={11} />
+                            <span>Standard Indicators ({Object.keys(SIGNAL_DEFINITIONS).length})</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => { setAddModalMode('LAB'); setImportError(''); }}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                                addModalMode === 'LAB'
+                                    ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-xs'
+                                    : 'text-text-tertiary hover:text-text-primary hover:bg-background-elevated'
+                            }`}
+                        >
+                            <Sparkles size={11} />
+                            <span>Custom Lab ({availableLabIndicators.length})</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => { setAddModalMode('STRATEGY'); setImportError(''); }}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                                addModalMode === 'STRATEGY'
+                                    ? 'bg-blue-500/15 text-blue-300 border border-blue-500/30 shadow-xs'
+                                    : 'text-text-tertiary hover:text-text-primary hover:bg-background-elevated'
+                            }`}
+                        >
+                            <SlidersHorizontal size={11} />
+                            <span>Strategies ({availableStrategies.length})</span>
+                        </button>
+
+                        {removedBuiltins.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => { setAddModalMode('RESTORE'); setImportError(''); }}
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                                    addModalMode === 'RESTORE'
+                                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shadow-xs'
+                                        : 'text-text-tertiary hover:text-text-primary hover:bg-background-elevated'
+                                }`}
+                            >
+                                <RotateCcw size={11} />
+                                <span>Restore Built-in ({removedBuiltins.length})</span>
+                            </button>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={() => { setAddModalMode('IMPORT'); setImportError(''); }}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                                addModalMode === 'IMPORT'
+                                    ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-xs'
+                                    : 'text-text-tertiary hover:text-text-primary hover:bg-background-elevated'
+                            }`}
+                        >
+                            <Upload size={11} />
+                            <span>Import JSON</span>
+                        </button>
+                    </div>
+
+                    {/* Content */}
+                    {addModalMode === 'IMPORT' ? (
+                        <div className="p-4 flex flex-col gap-3">
+                            <p className="text-[11px] text-text-secondary leading-relaxed">
+                                Paste a valid Praxis unit or custom indicator JSON struct to register and add it directly to your testable units.
+                            </p>
+                            <textarea
+                                rows={8}
+                                value={importJsonText}
+                                onChange={(e) => setImportJsonText(e.target.value)}
+                                placeholder={`{\n  "version": "2.0.0",\n  "label": "My Custom Unit",\n  "nickname": "MCU",\n  "code": "..."\n}`}
+                                className="w-full font-mono text-[10px] p-2.5 rounded-xl bg-background-app border border-border-subtle text-text-primary outline-none focus:border-accent-primary transition-colors resize-none"
+                            />
+                            {importError && (
+                                <div className="text-[10px] text-rose-400 flex items-center gap-1.5 bg-rose-500/10 p-2 rounded-lg border border-rose-500/20 font-mono">
+                                    <AlertTriangle size={12} className="shrink-0" />
+                                    <span>{importError}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-end gap-2 pt-2 border-t border-border-subtle">
+                                <button
+                                    type="button"
+                                    onClick={() => { setAddModalMode(null); setImportJsonText(''); setImportError(''); }}
+                                    className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary rounded-lg cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleImportJson}
+                                    disabled={!importJsonText.trim()}
+                                    className="px-4 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-sm cursor-pointer disabled:opacity-50"
+                                >
+                                    Import &amp; Add Unit
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-4 flex flex-col gap-3 flex-1 overflow-hidden">
+                            {/* Search Bar */}
+                            <div className="relative">
+                                <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary" />
+                                <input
+                                    type="text"
+                                    value={catalogSearch}
+                                    onChange={(e) => setCatalogSearch(e.target.value)}
+                                    placeholder="Filter units by name, category, or nickname..."
+                                    className="w-full pl-7 pr-3 py-1.5 rounded-lg bg-background-app border border-border-subtle text-xs text-text-primary placeholder:text-text-muted outline-none focus:border-accent-primary"
+                                />
+                            </div>
+
+                            {/* Standard Indicators Category Filter Bar */}
+                            {addModalMode === 'INDICATORS' && (
+                                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1">
+                                    {['ALL', 'MOMENTUM', 'TREND', 'VOLATILITY', 'VOLUME', 'STRUCTURE', 'RAW_DATA'].map(cat => (
+                                        <button
+                                            key={cat}
+                                            type="button"
+                                            onClick={() => setIndicatorCategory(cat)}
+                                            className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold whitespace-nowrap transition cursor-pointer ${
+                                                indicatorCategory === cat
+                                                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs'
+                                                    : 'bg-background-app text-text-tertiary hover:text-text-secondary border border-border-subtle'
+                                            }`}
+                                        >
+                                            {cat === 'ALL' ? `All (${Object.keys(SIGNAL_DEFINITIONS).length})` : cat}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Catalog Item List */}
+                            <div className="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar max-h-[50vh]">
+                                {addModalMode === 'INDICATORS' && (() => {
+                                    const filtered = Object.values(SIGNAL_DEFINITIONS).filter(ind => {
+                                        const matchesCat = indicatorCategory === 'ALL' || ind.category === indicatorCategory;
+                                        const matchesSearch = !catalogSearch || 
+                                            (ind.label || '').toLowerCase().includes(catalogSearch.toLowerCase()) || 
+                                            (ind.id || '').toLowerCase().includes(catalogSearch.toLowerCase()) ||
+                                            (ind.desc || '').toLowerCase().includes(catalogSearch.toLowerCase());
+                                        return matchesCat && matchesSearch;
+                                    });
+
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="text-center py-6 text-text-tertiary text-xs">
+                                                No standard indicators match the selected filter.
+                                            </div>
+                                        );
+                                    }
+
+                                    return filtered.map(ind => {
+                                        const isAdded = testableUnits.some(u => u.id === ind.id);
+                                        const catObj = SIGNAL_CATEGORIES.find(c => c.id === ind.category) || { badgeColor: 'bg-slate-500/10 text-slate-300 border-slate-500/30' };
+                                        return (
+                                            <div key={ind.id} className="p-2.5 rounded-xl border border-border-subtle bg-background-elevated/20 flex items-center justify-between gap-3 hover:border-border-default transition">
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold text-text-primary truncate">{ind.label}</span>
+                                                        <span className={`text-[8px] font-mono px-1.5 py-0.2 rounded border ${catObj.badgeColor}`}>
+                                                            {ind.category}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[10px] text-text-tertiary truncate mt-0.5">{ind.desc}</p>
+                                                </div>
+                                                {isAdded ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            removeTestableUnit(ind.id);
+                                                            setTestableUnits(getTestableUnits());
+                                                        }}
+                                                        className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-rose-500/20 text-emerald-400 hover:text-rose-400 border border-emerald-500/30 hover:border-rose-500/40 text-[10px] font-bold shrink-0 cursor-pointer transition group/btn flex items-center gap-1 active:scale-95"
+                                                        title="Click to remove from testable units grid"
+                                                    >
+                                                        <Check size={10} className="group-hover/btn:hidden text-emerald-400" />
+                                                        <X size={10} className="hidden group-hover/btn:inline text-rose-400" />
+                                                        <span className="group-hover/btn:hidden">Added</span>
+                                                        <span className="hidden group-hover/btn:inline">Remove</span>
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            addTestableUnit({
+                                                                id: ind.id,
+                                                                label: ind.label,
+                                                                nickname: ind.id.toUpperCase().slice(0, 5),
+                                                                desc: ind.desc,
+                                                                category: ind.category,
+                                                                type: 'INDICATOR',
+                                                                iconName: ind.category === 'MOMENTUM' ? 'Activity' : ind.category === 'TREND' ? 'TrendingUp' : ind.category === 'VOLATILITY' ? 'Zap' : ind.category === 'VOLUME' ? 'BarChart2' : 'Layers',
+                                                            });
+                                                            onChangeConfig(prev => ({ ...prev, unit: ind.id }));
+                                                            setTestableUnits(getTestableUnits());
+                                                        }}
+                                                        className="px-2.5 py-1 rounded-lg bg-accent-primary hover:bg-accent-primary-hover text-white text-[10px] font-bold shrink-0 cursor-pointer shadow-xs transition"
+                                                    >
+                                                        + Add Unit
+                                                    </button>
+                                                )}
+                                            </div>
+                                        );
+                                    });
+                                })()}
+
+                                {addModalMode === 'LAB' && (() => {
+                                    const filtered = availableLabIndicators.filter(i => 
+                                        !catalogSearch || 
+                                        (i.name || '').toLowerCase().includes(catalogSearch.toLowerCase()) || 
+                                        (i.nickname || '').toLowerCase().includes(catalogSearch.toLowerCase())
+                                    );
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="text-center py-6 text-text-tertiary text-xs">
+                                                No custom indicators found. Create one in Strategy Builder or Indicator Lab!
+                                            </div>
+                                        );
+                                    }
+                                    return filtered.map(ind => {
+                                        const isAdded = testableUnits.some(u => u.id === ind.id || u.indicatorId === ind.id);
+                                        return (
+                                            <div key={ind.id} className="p-2.5 rounded-xl border border-border-subtle bg-background-elevated/20 flex items-center justify-between gap-3 hover:border-border-default transition">
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold text-text-primary truncate">{ind.name}</span>
+                                                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                                                            {ind.nickname || 'CUST'}
+                                                        </span>
+                                                        {ind.promoted && (
+                                                            <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                                PROMOTED
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[10px] text-text-tertiary truncate mt-0.5">{ind.description || 'Custom Lab quantitative model'}</p>
+                                                </div>
+                                                {isAdded ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            removeTestableUnit(ind.id);
+                                                            setTestableUnits(getTestableUnits());
+                                                        }}
+                                                        className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-rose-500/20 text-emerald-400 hover:text-rose-400 border border-emerald-500/30 hover:border-rose-500/40 text-[10px] font-bold shrink-0 cursor-pointer transition group/btn flex items-center gap-1 active:scale-95"
+                                                        title="Click to remove from testable units grid"
+                                                    >
+                                                        <Check size={10} className="group-hover/btn:hidden text-emerald-400" />
+                                                        <X size={10} className="hidden group-hover/btn:inline text-rose-400" />
+                                                        <span className="group-hover/btn:hidden">Added</span>
+                                                        <span className="hidden group-hover/btn:inline">Remove</span>
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            addTestableUnit(ind);
+                                                            onChangeConfig(prev => ({ ...prev, unit: ind.id }));
+                                                            setTestableUnits(getTestableUnits());
+                                                        }}
+                                                        className="px-2.5 py-1 rounded-lg bg-accent-primary hover:bg-accent-primary-hover text-white text-[10px] font-bold shrink-0 cursor-pointer shadow-xs transition"
+                                                    >
+                                                        + Add Unit
+                                                    </button>
+                                                )}
+                                            </div>
+                                        );
+                                    });
+                                })()}
+
+                                {addModalMode === 'STRATEGY' && (() => {
+                                    const filtered = availableStrategies.filter(s => 
+                                        !catalogSearch || 
+                                        (s.name || '').toLowerCase().includes(catalogSearch.toLowerCase())
+                                    );
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="text-center py-6 text-text-tertiary text-xs">
+                                                No saved strategies found. Create one in Strategy Builder!
+                                            </div>
+                                        );
+                                    }
+                                    return filtered.map(strat => {
+                                        const isAdded = testableUnits.some(u => u.id === strat.id);
+                                        return (
+                                            <div key={strat.id} className="p-2.5 rounded-xl border border-border-subtle bg-background-elevated/20 flex items-center justify-between gap-3 hover:border-border-default transition">
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold text-text-primary truncate">{strat.name}</span>
+                                                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                                                            {(strat.rules || []).length} RULES
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[10px] text-text-tertiary truncate mt-0.5">{strat.description || 'Compound multi-factor blueprint'}</p>
+                                                </div>
+                                                {isAdded ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            removeTestableUnit(strat.id);
+                                                            setTestableUnits(getTestableUnits());
+                                                        }}
+                                                        className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-rose-500/20 text-emerald-400 hover:text-rose-400 border border-emerald-500/30 hover:border-rose-500/40 text-[10px] font-bold shrink-0 cursor-pointer transition group/btn flex items-center gap-1 active:scale-95"
+                                                        title="Click to remove from testable units grid"
+                                                    >
+                                                        <Check size={10} className="group-hover/btn:hidden text-emerald-400" />
+                                                        <X size={10} className="hidden group-hover/btn:inline text-rose-400" />
+                                                        <span className="group-hover/btn:hidden">Added</span>
+                                                        <span className="hidden group-hover/btn:inline">Remove</span>
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            addTestableUnit({
+                                                                id: strat.id,
+                                                                name: strat.name,
+                                                                nickname: 'STRAT',
+                                                                description: strat.description,
+                                                                type: 'STRATEGY',
+                                                                rules: strat.rules,
+                                                                mode: strat.mode,
+                                                            });
+                                                            onChangeConfig(prev => ({ ...prev, unit: strat.id }));
+                                                            setTestableUnits(getTestableUnits());
+                                                        }}
+                                                        className="px-2.5 py-1 rounded-lg bg-accent-primary hover:bg-accent-primary-hover text-white text-[10px] font-bold shrink-0 cursor-pointer shadow-xs transition"
+                                                    >
+                                                        + Add Unit
+                                                    </button>
+                                                )}
+                                            </div>
+                                        );
+                                    });
+                                })()}
+
+                                {addModalMode === 'RESTORE' && (() => {
+                                    const filtered = removedBuiltins.filter(b => 
+                                        !catalogSearch || 
+                                        b.label.toLowerCase().includes(catalogSearch.toLowerCase()) || 
+                                        b.id.toLowerCase().includes(catalogSearch.toLowerCase())
+                                    );
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="text-center py-6 text-text-tertiary text-xs">
+                                                All 8 built-in units are currently active in your grid!
+                                            </div>
+                                        );
+                                    }
+                                    return filtered.map(b => (
+                                        <div key={b.id} className="p-2.5 rounded-xl border border-border-subtle bg-background-elevated/20 flex items-center justify-between gap-3 hover:border-border-default transition">
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-bold text-text-primary">{b.label}</span>
+                                                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-background-app text-text-tertiary border border-border-subtle">
+                                                        {b.id}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[10px] text-text-tertiary truncate mt-0.5">{b.desc}</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    addTestableUnit(b);
+                                                    onChangeConfig(prev => ({ ...prev, unit: b.id }));
+                                                    setAddModalMode(null);
+                                                }}
+                                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold shrink-0 cursor-pointer shadow-xs transition"
+                                            >
+                                                Restore
+                                            </button>
+                                        </div>
+                                    ));
+                                })()}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Footer */}
+                    <div className="px-4 py-2.5 border-t border-border-subtle flex items-center justify-between bg-background-elevated/20">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                handleResetUnits();
+                                setAddModalMode(null);
+                            }}
+                            className="text-[10px] font-mono text-rose-400 hover:text-rose-300 flex items-center gap-1 transition cursor-pointer"
+                            title="Reset active units grid to standard 8 built-ins"
+                        >
+                            <RotateCcw size={11} />
+                            <span>Reset to 8 Defaults</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setAddModalMode(null); setCatalogSearch(''); setImportError(''); }}
+                            className="px-3 py-1 rounded-lg text-xs text-text-tertiary hover:text-text-primary hover:bg-background-elevated transition cursor-pointer"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+
+        {/* Dynamic Detach & Delete Unit Modal */}
+        {unitToDetach && (
+            <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-150">
+                <div className="w-full max-w-sm bg-background-card border border-border-default rounded-2xl shadow-2xl p-4 flex flex-col gap-3.5">
+                    <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                        <div className="flex items-center gap-2 text-rose-400">
+                            <AlertTriangle size={16} />
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-text-primary">
+                                Detach Unit: {unitToDetach.label}
+                            </h3>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setUnitToDetach(null)}
+                            className="p-1 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-background-elevated transition cursor-pointer"
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+
+                    <p className="text-[11px] text-text-secondary leading-relaxed">
+                        Choose how you want to detach <strong className="text-text-primary font-mono">{unitToDetach.label}</strong> ({unitToDetach.nickname}):
+                    </p>
+
+                    <div className="flex flex-col gap-2">
+                        {/* Option 1: Remove from Grid only */}
+                        <button
+                            type="button"
+                            onClick={() => handleConfirmRemoveOnly(unitToDetach)}
+                            className="w-full p-2.5 rounded-xl border border-border-subtle bg-background-app/70 hover:bg-background-elevated text-left transition cursor-pointer flex items-center justify-between group"
+                        >
+                            <div>
+                                <div className="text-xs font-bold text-text-primary group-hover:text-accent-primary transition">
+                                    Remove from Grid Only
+                                </div>
+                                <div className="text-[10px] text-text-tertiary mt-0.5">
+                                    Hides unit from this panel. Model code remains safe in your Indicator Lab.
+                                </div>
+                            </div>
+                            <ArrowRight size={14} className="text-text-tertiary group-hover:text-accent-primary group-hover:translate-x-0.5 transition shrink-0 ml-2" />
+                        </button>
+
+                        {/* Option 2: Permanently Detach & Delete */}
+                        <button
+                            type="button"
+                            onClick={() => handleConfirmDeletePermanently(unitToDetach)}
+                            className="w-full p-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-left transition cursor-pointer flex items-center justify-between group"
+                        >
+                            <div>
+                                <div className="text-xs font-bold text-rose-400 flex items-center gap-1.5">
+                                    <Trash2 size={12} />
+                                    <span>Permanently Detach &amp; Delete</span>
+                                </div>
+                                <div className="text-[10px] text-rose-300/70 mt-0.5">
+                                    Deletes code &amp; struct from entire app and cascade-cleans any strategy rules.
+                                </div>
+                            </div>
+                            <ArrowRight size={14} className="text-rose-400 group-hover:translate-x-0.5 transition shrink-0 ml-2" />
+                        </button>
+                    </div>
+
+                    {/* Backup option */}
+                    <div className="pt-2 border-t border-border-subtle flex items-center justify-between">
+                        <button
+                            type="button"
+                            onClick={() => exportUnitJson(unitToDetach)}
+                            className="text-[10px] font-mono font-semibold text-text-secondary hover:text-text-primary flex items-center gap-1 cursor-pointer"
+                        >
+                            <Download size={11} /> Download Backup (.json)
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setUnitToDetach(null)}
+                            className="text-xs text-text-tertiary hover:text-text-primary px-2 py-1 rounded-md cursor-pointer"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
         </>
     );
 }
+

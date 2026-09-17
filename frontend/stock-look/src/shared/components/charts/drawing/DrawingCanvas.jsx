@@ -96,7 +96,7 @@ export default function DrawingCanvas({
             const time = chart.timeScale().coordinateToTime(x);
             const logical = chart.timeScale().coordinateToLogical(x);
             const price = series.coordinateToPrice(y);
-            if (time == null || price == null) return null;
+            if ((time == null && logical == null) || price == null) return null;
             return { time, price, logical, x, y };
         } catch { return null; }
     }, [chartRef, candleSeriesRef]);
@@ -516,8 +516,8 @@ export default function DrawingCanvas({
                 // Convert all prices to pixel Y
                 const entryY = p1.y;
                 const stopY = p2.y;
-                const tp1Pt = toPixel({ price: tp1Price, time: d.p2.time }, chart, series);
-                const tp2Pt = toPixel({ price: tp2Price, time: d.p2.time }, chart, series);
+                const tp1Pt = toPixel({ price: tp1Price, time: d.p2.time, logical: d.p2.logical }, chart, series);
+                const tp2Pt = toPixel({ price: tp2Price, time: d.p2.time, logical: d.p2.logical }, chart, series);
                 if (!tp1Pt || !tp2Pt) return;
                 const tp1Y = tp1Pt.y;
                 const tp2Y = tp2Pt.y;
@@ -676,8 +676,8 @@ export default function DrawingCanvas({
                 
                 const entryY = p1.y;
                 const stopY = p2.y;
-                const partialPt = toPixel({ price: partialPrice, time: d.p2.time }, chart, series);
-                const targetPt = toPixel({ price: targetPrice, time: d.p2.time }, chart, series);
+                const partialPt = toPixel({ price: partialPrice, time: d.p2.time, logical: d.p2.logical }, chart, series);
+                const targetPt = toPixel({ price: targetPrice, time: d.p2.time, logical: d.p2.logical }, chart, series);
                 if (!partialPt || !targetPt) return;
                 const partialY = partialPt.y;
                 const targetY = targetPt.y;

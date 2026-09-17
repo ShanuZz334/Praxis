@@ -47,6 +47,10 @@ export default function InstrumentSelectorModal({
     }
     return FO_INDICES[0]?.value || 'NSE_INDEX|Nifty 50';
   });
+  const [indexTradeMode, setIndexTradeMode] = useState(() => {
+    if (currentInstrument?.option_type) return 'OPTIONS';
+    return mode === 'trade' ? 'OPTIONS' : 'SPOT';
+  });
   
   // Companies states
   const [selectedCompanyKey, setSelectedCompanyKey] = useState(() => {
@@ -56,7 +60,10 @@ export default function InstrumentSelectorModal({
     }
     return FO_EQUITIES[0]?.value || 'NSE_EQ|INE002A01018';
   });
-  const [companyTradeMode, setCompanyTradeMode] = useState('EQUITY'); // 'EQUITY' | 'OPTIONS'
+  const [companyTradeMode, setCompanyTradeMode] = useState(() => {
+    if (currentInstrument?.option_type) return 'OPTIONS';
+    return 'EQUITY';
+  });
 
   // Option contracts states
   const [contracts, setContracts] = useState([]);
@@ -84,20 +91,25 @@ export default function InstrumentSelectorModal({
           setSelectedIndexKey(activeKey);
         }
         if (currentInstrument?.option_type) {
+          setIndexTradeMode('OPTIONS');
           setSelectedOptionKey(activeKey);
+        } else {
+          setIndexTradeMode(mode === 'trade' ? 'OPTIONS' : 'SPOT');
         }
       }
     }
-  }, [isOpen, currentInstrument, selectedInstrument]);
+  }, [isOpen, currentInstrument, selectedInstrument, mode]);
 
-  // Fetch option contracts when underlying changes (for Indices or for Company in OPTIONS mode)
+  // Fetch option contracts when underlying changes (for Indices in OPTIONS mode or trade mode, or for Company in OPTIONS mode)
   useEffect(() => {
     if (!isOpen) return;
 
     let targetUnderlying = null;
     if (category === 'Indices') {
-      targetUnderlying = selectedIndexKey;
-    } else if (category === 'Companies' && companyTradeMode === 'OPTIONS') {
+      if (indexTradeMode === 'OPTIONS' || mode === 'trade') {
+        targetUnderlying = selectedIndexKey;
+      }
+    } else if (category === 'Companies' && (companyTradeMode === 'OPTIONS' || mode === 'trade')) {
       targetUnderlying = selectedCompanyKey;
     }
 
@@ -145,7 +157,7 @@ export default function InstrumentSelectorModal({
       setContracts([]);
       setSelectedOptionKey(null);
     }
-  }, [isOpen, category, selectedIndexKey, selectedCompanyKey, companyTradeMode]);
+  }, [isOpen, category, selectedIndexKey, selectedCompanyKey, companyTradeMode, indexTradeMode, mode]);
 
   if (!isOpen) return null;
 
@@ -161,25 +173,34 @@ export default function InstrumentSelectorModal({
   let validationMessage = '';
 
   if (category === 'Indices') {
-    const selectedOption = contracts.find(c => c.value === selectedOptionKey);
-    if (selectedOption) {
-      selectedTradable = selectedOption;
-      isSelectionValid = true;
-      validationMessage = `Option Contract Ready: ${selectedOption.label}`;
-    } else if (mode === 'select') {
-      const idxObj = FO_INDICES.find(i => i.value === selectedIndexKey) || { label: selectedIndexKey, value: selectedIndexKey };
-      selectedTradable = {
-        label: idxObj.label,
-        value: idxObj.value,
-        tradingsymbol: idxObj.label,
-        instrument_token: idxObj.value,
-        exchange: 'NSE'
-      };
-      isSelectionValid = true;
-      validationMessage = `Ready to select: ${idxObj.label}`;
+    const idxObj = FO_INDICES.find(i => i.value === selectedIndexKey) || { label: selectedIndexKey, value: selectedIndexKey };
+
+    if (indexTradeMode === 'OPTIONS') {
+      const selectedOption = contracts.find(c => c.value === selectedOptionKey);
+      if (selectedOption) {
+        selectedTradable = selectedOption;
+        isSelectionValid = true;
+        validationMessage = `Option Contract Ready: ${selectedOption.label}`;
+      } else {
+        isSelectionValid = false;
+        validationMessage = `Please select an Option contract for ${idxObj.label}.`;
+      }
     } else {
-      isSelectionValid = false;
-      validationMessage = 'Indices cannot be traded directly. Please select an Option contract.';
+      // indexTradeMode === 'SPOT'
+      if (mode === 'select') {
+        selectedTradable = {
+          label: idxObj.label,
+          value: idxObj.value,
+          tradingsymbol: idxObj.label,
+          instrument_token: idxObj.value,
+          exchange: 'NSE'
+        };
+        isSelectionValid = true;
+        validationMessage = `Ready to select: ${idxObj.label}`;
+      } else {
+        isSelectionValid = false;
+        validationMessage = 'Indices cannot be traded directly. Please switch to Index Options.';
+      }
     }
   } else if (category === 'Companies') {
     const compObj = FO_EQUITIES.find(e => e.value === selectedCompanyKey) || {
@@ -187,7 +208,7 @@ export default function InstrumentSelectorModal({
       value: selectedCompanyKey
     };
 
-    if (companyTradeMode === 'EQUITY' || mode === 'select') {
+    if (companyTradeMode === 'EQUITY') {
       selectedTradable = {
         label: compObj.label,
         value: compObj.value,
@@ -198,6 +219,7 @@ export default function InstrumentSelectorModal({
       isSelectionValid = true;
       validationMessage = `Ready to ${mode}: ${compObj.label}`;
     } else {
+      // companyTradeMode === 'OPTIONS'
       const selectedOption = contracts.find(c => c.value === selectedOptionKey);
       if (selectedOption) {
         selectedTradable = selectedOption;
@@ -348,12 +370,51 @@ export default function InstrumentSelectorModal({
               />
             </div>
 
-            {/* 2. SELECT OPTION CONTRACT */}
-            {mode === 'trade' && (
-              <div className="flex flex-col gap-1.5">
+            {/* 2. INDEX TRADE MODE (SPOT OR OPTION) */}
+            <div>
+              <label className="text-[9px] text-text-secondary font-mono font-bold uppercase tracking-wider block mb-1">
+                2. Instrument Type
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIndexTradeMode('SPOT');
+                    setSelectedOptionKey(null);
+                  }}
+                  className={`flex-1 py-1.5 px-2.5 rounded-xl text-[10px] font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
+                    indexTradeMode === 'SPOT'
+                      ? 'bg-blue-500/15 text-blue-400 border-blue-500/30 shadow-sm'
+                      : 'bg-white/[0.03] text-text-secondary border-border-subtle/60 dark:border-white/[0.06] hover:text-text-primary hover:bg-white/[0.06]'
+                  }`}
+                >
+                  <Layers size={12} className="text-blue-400" />
+                  <span>Index (Spot)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIndexTradeMode('OPTIONS');
+                    setSelectedOptionKey(null);
+                  }}
+                  className={`flex-1 py-1.5 px-2.5 rounded-xl text-[10px] font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
+                    indexTradeMode === 'OPTIONS'
+                      ? 'bg-blue-500/15 text-blue-400 border-blue-500/30 shadow-sm'
+                      : 'bg-white/[0.03] text-text-secondary border-border-subtle/60 dark:border-white/[0.06] hover:text-text-primary hover:bg-white/[0.06]'
+                  }`}
+                >
+                  <Zap size={12} className="text-amber-400" />
+                  <span>Index Options</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 3. OPTION CONTRACTS IF OPTIONS MODE */}
+            {indexTradeMode === 'OPTIONS' && (
+              <div className="flex flex-col gap-1.5 animate-in fade-in duration-200">
                 <div className="flex justify-between items-center">
                   <label className="text-[9px] text-text-secondary font-mono font-bold uppercase tracking-wider">
-                    2. Option Contract <span className="text-rose-400">*</span>
+                    3. Option Contract <span className="text-rose-400">*</span>
                   </label>
                   {contracts.length > 0 && (
                     <div className="flex bg-black/20 p-0.5 rounded-md border border-border-subtle/60 dark:border-white/[0.06] text-[9px] font-mono font-bold gap-0.5">
@@ -411,7 +472,10 @@ export default function InstrumentSelectorModal({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setCompanyTradeMode('EQUITY')}
+                  onClick={() => {
+                    setCompanyTradeMode('EQUITY');
+                    setSelectedOptionKey(null);
+                  }}
                   className={`flex-1 py-1.5 px-2.5 rounded-xl text-[10px] font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
                     companyTradeMode === 'EQUITY'
                       ? 'bg-blue-500/15 text-blue-400 border-blue-500/30 shadow-sm'
@@ -423,7 +487,10 @@ export default function InstrumentSelectorModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCompanyTradeMode('OPTIONS')}
+                  onClick={() => {
+                    setCompanyTradeMode('OPTIONS');
+                    setSelectedOptionKey(null);
+                  }}
                   className={`flex-1 py-1.5 px-2.5 rounded-xl text-[10px] font-bold transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
                     companyTradeMode === 'OPTIONS'
                       ? 'bg-blue-500/15 text-blue-400 border-blue-500/30 shadow-sm'

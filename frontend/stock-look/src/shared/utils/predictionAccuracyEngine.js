@@ -21,6 +21,110 @@ const ALPHA = 0.1; // significance level for WIS
 // PUBLIC API
 // ─────────────────────────────────────────────────────────────────────
 
+/**
+ * Institutional-Grade Candlestick Error & Accuracy Engine
+ * Evaluates forecast against actual outcome across 4 quantitative dimensions:
+ *   1. Directional alignment (35% weight)
+ *   2. Close price proximity relative to bar volatility/range (40% weight)
+ *   3. Range & volatility expansion/contraction error (15% weight)
+ *   4. Tail risk / extreme envelope breach (10% weight)
+ * 
+ * Returns normalized Error % (0% = perfect, 100% = complete divergence)
+ * 
+ * @param {object} pred - Predicted candle { open, high, low, close }
+ * @param {object} real - Real market candle { open, high, low, close }
+ * @returns {object} { errorPct, accuracyPct, color, shape, text, details }
+ */
+export function calculateInstitutionalCandleError(pred, real) {
+    if (!pred || !real) {
+        return { errorPct: 0, accuracyPct: 100, color: '#10b981', shape: 'arrowDown', text: '0%', details: {} };
+    }
+
+    const pOpen  = Number(pred.open)  || 0;
+    const pHigh  = Number(pred.high)  || 0;
+    const pLow   = Number(pred.low)   || 0;
+    const pClose = Number(pred.close) || 0;
+
+    const rOpen  = Number(real.open)  || 0;
+    const rHigh  = Number(real.high)  || 0;
+    const rLow   = Number(real.low)   || 0;
+    const rClose = Number(real.close) || 0;
+
+    if (rClose <= 0 || pClose <= 0) {
+        return { errorPct: 0, accuracyPct: 100, color: '#10b981', shape: 'arrowDown', text: '0%', details: {} };
+    }
+
+    // 1. Directional Component (35% weight)
+    const pDelta = pClose - pOpen;
+    const rDelta = rClose - rOpen;
+    const minDojiThreshold = Math.max(rOpen * 0.0003, 0.05);
+
+    let dirError = 0;
+    const isRealDoji = Math.abs(rDelta) < minDojiThreshold;
+    const isPredDoji = Math.abs(pDelta) < minDojiThreshold;
+
+    if (isRealDoji && isPredDoji) {
+        dirError = 0;
+    } else if (isRealDoji || isPredDoji) {
+        dirError = 25; // Mild penalty if one was flat and the other moved slightly
+    } else if (Math.sign(pDelta) !== Math.sign(rDelta)) {
+        dirError = 100; // Complete directional failure
+    } else {
+        dirError = 0; // Direction matches
+    }
+
+    // 2. Price Proximity relative to Volatility Range (40% weight)
+    const rRange = Math.max(rHigh - rLow, minDojiThreshold);
+    const pRange = Math.max(pHigh - pLow, minDojiThreshold);
+    const effectiveVol = Math.max(rRange, pRange, rOpen * 0.001);
+
+    const closeDist = Math.abs(pClose - rClose);
+    const priceError = Math.min(100, (closeDist / effectiveVol) * 100);
+
+    // 3. Range / Volatility Modeling Error (15% weight)
+    const rangeDiff = Math.abs(pRange - rRange);
+    const rangeError = Math.min(100, (rangeDiff / Math.max(rRange, pRange)) * 100);
+
+    // 4. Tail Risk / Envelope Breach (10% weight)
+    let tailBreach = 0;
+    if (rClose > pHigh) tailBreach = rClose - pHigh;
+    else if (rClose < pLow) tailBreach = pLow - rClose;
+    const tailError = Math.min(100, (tailBreach / effectiveVol) * 100);
+
+    // Composite Institutional Error (0% to 100%)
+    const rawError = (0.35 * dirError) + (0.40 * priceError) + (0.15 * rangeError) + (0.10 * tailError);
+    const errorPct = Math.min(100, Math.max(0, Math.round(rawError)));
+    const accuracyPct = 100 - errorPct;
+
+    // Color grading:
+    // 0-25% Error  -> Emerald Green (#10b981) - High Institutional Accuracy
+    // 26-50% Error -> Amber / Gold (#f59e0b)  - Moderate Alignment
+    // >50% Error   -> Electric Rose / Red (#ef4444) - Divergence / Miss
+    let color = '#10b981';
+    if (errorPct > 50) {
+        color = '#ef4444';
+    } else if (errorPct > 25) {
+        color = '#f59e0b';
+    }
+
+    return {
+        errorPct,
+        accuracyPct,
+        color,
+        shape: 'arrowDown',
+        text: `${errorPct}%`,
+        details: {
+            dirError,
+            priceError,
+            rangeError,
+            tailError,
+            closeDist,
+            effectiveVol,
+            directionMatch: Math.sign(pDelta) === Math.sign(rDelta)
+        }
+    };
+}
+
 export function storePrediction(instrumentKey, timeframe, tradingMode, candles, bias, risk, times, modelUsed) {
     const db = _load();
     const key = _key(instrumentKey, timeframe);
@@ -130,13 +234,10 @@ export function scoreClosedCandle(instrumentKey, timeframe, barIndexOrTime, real
     const overshoot     = Math.max(0, real.close - pred.high);
     const wis = intervalWidth + (2 / ALPHA) * undershoot + (2 / ALPHA) * overshoot;
 
-    // Institutional composite accuracy score (0-100)
-    // 1. Directional alignment (weight: 40%)
-    // 2. Close price proximity to predicted close relative to the predicted volatility range (weight: 60%)
-    const range = Math.max(pred.high - pred.low, real.high - real.low, 0.01);
-    const closeError = Math.abs(real.close - pred.close);
-    const precisionScore = Math.max(0, 60 - (closeError / range) * 60);
-    const compositeScore = (da === 1 ? 40 : 0) + precisionScore;
+    // Institutional composite error & accuracy score (0-100)
+    const instEval = calculateInstitutionalCandleError(pred, real);
+    const errorPct = instEval.errorPct;
+    const compositeScore = instEval.accuracyPct;
 
     const barScore = {
         barIndex: targetIdx,
@@ -146,7 +247,9 @@ export function scoreClosedCandle(instrumentKey, timeframe, barIndexOrTime, real
         hlError:   hlError   * 100,
         closeBias,
         wis,
+        errorPct,
         compositeScore,
+        evalDetails: instEval.details,
         realCandle: { open: real.open, high: real.high, low: real.low, close: real.close },
         predCandle: { open: pred.open, high: pred.high, low: pred.low, close: pred.close },
         scoredAt: Date.now(),
@@ -171,7 +274,7 @@ export function scoreClosedCandle(instrumentKey, timeframe, barIndexOrTime, real
 }
 
 /**
- * storeLiveErrors — Persists the live in-progress per-candle MAPE into the active session.
+ * storeLiveErrors — Persists the live in-progress per-candle MAPE and institutional error into the active session.
  * Called on every real market tick so the next auto-generation can read accurate error context.
  * @param {string} instrumentKey
  * @param {string} timeframe
@@ -179,8 +282,9 @@ export function scoreClosedCandle(instrumentKey, timeframe, barIndexOrTime, real
  * @param {number} mape          - current MAPE % for that bar
  * @param {object} liveCandle    - the live candle tick
  * @param {object} predictedCandle - the ghost candle prediction at that bar
+ * @param {number} [errorPct]    - optional precomputed institutional error %
  */
-export function storeLiveErrors(instrumentKey, timeframe, barIndex, mape, liveCandle, predictedCandle) {
+export function storeLiveErrors(instrumentKey, timeframe, barIndex, mape, liveCandle, predictedCandle, errorPct = null) {
     const db = _load();
     const key = _key(instrumentKey, timeframe);
     let arr = db[key];
@@ -190,6 +294,9 @@ export function storeLiveErrors(instrumentKey, timeframe, barIndex, mape, liveCa
 
     if (!session.liveErrors) session.liveErrors = [];
 
+    const instEval = calculateInstitutionalCandleError(predictedCandle, liveCandle);
+    const resolvedErrorPct = typeof errorPct === 'number' ? errorPct : instEval.errorPct;
+
     const targetKey = normalizeTimeKey(predictedCandle?.time || liveCandle?.time);
     const existingIdx = session.liveErrors.findIndex(e => 
         e.barIndex === barIndex || (e.time && normalizeTimeKey(e.time) === targetKey)
@@ -197,6 +304,7 @@ export function storeLiveErrors(instrumentKey, timeframe, barIndex, mape, liveCa
     const entry = {
         barIndex,
         time: predictedCandle?.time || liveCandle?.time,
+        errorPct: resolvedErrorPct,
         mape: parseFloat(mape.toFixed(3)),
         closeDrift: parseFloat((liveCandle.close - predictedCandle.close).toFixed(2)),
         directionMatch: Math.sign(liveCandle.close - liveCandle.open) === Math.sign(predictedCandle.close - predictedCandle.open),

@@ -321,6 +321,22 @@ export default function AiInsightSection({
         return () => window.removeEventListener('praxis:ai:force-refresh', handleForceRefresh);
     }, []);
 
+    // Instant telemetry sync listener — updates displayedText immediately when user clicks the Navbar FV Launcher button
+    useEffect(() => {
+        const handleTelemetrySynced = (e) => {
+            const detail = e.detail;
+            if (detail && detail.cacheKey === cacheKey) {
+                hasGeneratedRef.current = true;
+                lastStateRef.current = { score: detail.score, symbol: detail.symbol, regime: detail.regime };
+                setDisplayedText(detail.text);
+                setLastGeneratedAt(Date.now());
+                setIsRestoredFromCache(true);
+            }
+        };
+        window.addEventListener('praxis:fv:telemetry-synced', handleTelemetrySynced);
+        return () => window.removeEventListener('praxis:fv:telemetry-synced', handleTelemetrySynced);
+    }, [cacheKey]);
+
     // Auto-trigger when score becomes available (Auto mode only)
     // Re-run on score or coverage changes
     useEffect(() => {

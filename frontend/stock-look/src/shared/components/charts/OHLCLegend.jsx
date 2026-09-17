@@ -48,8 +48,10 @@ const OHLCLegend = ({ crosshairData: propCrosshairData, chartRef, candleSeriesRe
     if (!d || d.open === undefined) return null;
 
     const isUp = d.close >= d.open;
-    const chg = d.close - d.open;
+    const chg = (typeof d.close === 'number' && typeof d.open === 'number') ? d.close - d.open : 0;
     const pct = d.open > 0 ? (chg / d.open) * 100 : 0;
+    const safeChg = !isNaN(chg) ? chg : 0;
+    const safePct = !isNaN(pct) ? pct : 0;
     const range = (d.high && d.low) ? (d.high - d.low) : 0;
     const rangePct = d.open > 0 ? (range / d.open) * 100 : 0;
     const volume = d.volume ?? latest?.volume;
@@ -85,8 +87,8 @@ const OHLCLegend = ({ crosshairData: propCrosshairData, chartRef, candleSeriesRe
 
             {/* Change Badge */}
             <div className={`px-1.5 py-0.5 rounded border text-[9px] font-bold tabular-nums ${badgeColor} flex items-center justify-center min-w-[104px] shrink-0`}>
-                <span className="tabular-nums">{sign}{chg.toFixed(2)}</span>
-                <span className="opacity-75 tabular-nums ml-0.5">({sign}{pct.toFixed(2)}%)</span>
+                <span className="tabular-nums">{sign}{safeChg.toFixed(2)}</span>
+                <span className="opacity-75 tabular-nums ml-0.5">({sign}{safePct.toFixed(2)}%)</span>
             </div>
 
             {/* Volume readout */}

@@ -242,7 +242,7 @@ export function getDisplayScore(rawScore) {
 }
 
 /**
- * Computes the deterministic PES-7 Event Score (Institutional Grade v2).
+ * Computes the deterministic PES-7 Event Score (Institutional Grade v3).
  *
  * Formula: SentimentBase × Importance × Severity × HorizonWeight × ConfidenceSigmoid
  * Internal scale: ±100  |  Display scale (via getDisplayScore): ±10
@@ -260,7 +260,21 @@ export function computeEventScore(sentiment, importance, severity, confidence, h
 }
 
 /**
- * Returns a full PES-7 breakdown object for display in the Prompt Panel UI.
+ * Computes Market Impact / Structural Volatility Magnitude (Omega) in range [0, 100].
+ * In institutional quant modeling, even if an event has a Neutral directional score (0.0),
+ * its importance, severity, and confidence impart substantial market volatility kinetic energy.
+ */
+export function computeEventImpactMagnitude(importance, severity, confidence, horizon = "Positional") {
+    const impMult    = PES7_WEIGHTS.importance[importance] ?? 0.55;
+    const sevMult    = PES7_WEIGHTS.severity[severity]     ?? 0.30;
+    const horizMult  = PES7_WEIGHTS.horizon[horizon]       ?? 1.00;
+    const confFactor = confidenceSigmoid(Math.max(0, Math.min(100, Number(confidence) || 60)));
+    const magnitude  = 100.0 * impMult * sevMult * (horizMult / 1.15) * confFactor;
+    return Math.round(Math.max(0.0, Math.min(100.0, magnitude)) * 10) / 10;
+}
+
+/**
+ * Returns a full PES-7 breakdown object for display in the UI / Diagnostics.
  */
 export function getPES7Breakdown(sentiment, importance, severity, confidence, horizon = "Positional") {
     const sentWeight = PES7_WEIGHTS.sentiment[sentiment]   ?? 0.0;
@@ -269,6 +283,7 @@ export function getPES7Breakdown(sentiment, importance, severity, confidence, ho
     const horizMult  = PES7_WEIGHTS.horizon[horizon]       ?? 1.00;
     const confFactor = confidenceSigmoid(Math.max(0, Math.min(100, Number(confidence) || 60)));
     const finalScore = computeEventScore(sentiment, importance, severity, confidence, horizon);
+    const impactMag  = computeEventImpactMagnitude(importance, severity, confidence, horizon);
     return {
         sentimentWeight:      sentWeight,
         importanceMultiplier: impMult,
@@ -277,7 +292,9 @@ export function getPES7Breakdown(sentiment, importance, severity, confidence, ho
         confidenceFactor:     Math.round(confFactor * 1000) / 1000,
         rawScore:             sentWeight * impMult * sevMult * horizMult * confFactor,
         finalScore,
-        displayScore:         getDisplayScore(finalScore)
+        displayScore:         getDisplayScore(finalScore),
+        impactMagnitude:      impactMag,
+        displayImpact:        (impactMag / 10).toFixed(1)
     };
 }
 
@@ -361,10 +378,10 @@ export function detectInstrumentType(headline = "", content = "", source = "") {
 const SHARED_OUTPUT_SCHEMA = `
 Output ONLY a raw JSON object (no markdown, no triple-backtick wrapper):
 {
-  "headline": "string - concise institutional headline",
+  "headline": "string - COMPLETE, non-truncated institutional headline. Must NEVER cut off mid-word, mid-number (e.g. '23,2'), or end with dangling prepositions/symbols. If summarizing, ensure complete grammatical closure; otherwise retain the original headline.",
   "summary": "string - 2-3 sentences of institutional analysis (NOT a restatement of headline)",
   "category": "Macro | Earnings | Policy | Corporate | Geopolitical | Commodities | Currency | Bonds | Global | Economy",
-  "sub_category": "string - specific subcategory e.g. Rate Decision, Q1 Results, Crude Inventory",
+  "sub_category": "string - specific subcategory e.g. Rate Decision, Q1 Results, Crude Inventory, FII Outflow",
   "source": "string - exact source name",
   "published_time": "ISO 8601 timestamp or null",
   "sentiment": "Very Bullish | Bullish | Neutral | Bearish | Very Bearish",
@@ -373,19 +390,21 @@ Output ONLY a raw JSON object (no markdown, no triple-backtick wrapper):
   "override_mode": "None | Watch | Override | Force Override",
   "horizon": "Intraday | Swing | Positional | Structural | Long Term",
   "confidence": integer 0-100,
-  "affected_assets": ["array of NSE/BSE ticker symbols or index names, max 8"],
+  "affected_assets": ["array of NSE/BSE ticker symbols or index names, max 8. Include ALL stocks and indices mentioned in headline and summary."],
   "instrument_type": "MACRO_POLICY | INDICES | EQUITY | COMMODITY | CURRENCY | GLOBAL",
-  "key_data_points": ["specific quantitative facts from the news e.g. 5.1% CPI, Rate held at 6.5%"],
+  "key_data_points": ["specific quantitative facts from the news e.g. 5.1% CPI, Rate held at 6.5%, Rs 4,200 Cr FII outflow"],
+  "hashtags": ["array of 3-5 institutional hashtags e.g. #MacroPolicy, #RateDecision, #NIFTY50, #MarketRally"],
   "reasoning": "string - detailed institutional explanation: mechanism, sector sensitivity, horizon",
   "ttl_hours": "integer - the estimated time-to-live of this event's impact in hours (e.g. 24 for intraday noise, 72 for typical earnings, 720 for structural shifts, 8760 for a pandemic)"
 }
 
 CRITICAL RULES:
+- HEADLINE INTEGRITY: Never truncate headlines. Never end with incomplete numbers, dangling prepositions, or trailing symbols (; , - / &).
 - DO NOT include event_score. The backend computes it deterministically.
 - Neutral sentiment CANNOT have Major, Systemic, or Black Swan severity.
 - Very Bearish or Very Bullish sentiment should typically have Major or higher severity.
 - key_data_points must have at least 1 entry for High or Critical importance events.
-- affected_assets must use correct NSE ticker symbols (e.g. SBIN not State Bank of India).`;
+- affected_assets must use correct NSE ticker symbols (e.g. SBIN not State Bank of India, HDFCBANK, ONGC, LICI, etc.).`;
 
 export const MACRO_POLICY_SYSTEM_PROMPT = `You are Praxis AI, an institutional macro-policy event analyst for Indian equities.
 Specialization: RBI/SEBI/Government decisions, CPI, GDP, IIP, and macroeconomic data releases.
@@ -654,7 +673,7 @@ Return the extracted JSON object.`;
 export const EVENT_EXTRACTION_SYSTEM_PROMPT = MACRO_POLICY_SYSTEM_PROMPT;
 
 // ============================================================================================
-// SECTION 8: Input Validator
+// SECTION 8: Input Validator, Entity Extraction & Hashtags Taxonomy
 // ============================================================================================
 
 const VALID_SENTIMENTS  = ["Very Bullish", "Bullish", "Neutral", "Bearish", "Very Bearish"];
@@ -665,14 +684,243 @@ const VALID_HORIZONS    = ["Intraday", "Swing", "Positional", "Structural", "Lon
 const VALID_INSTRUMENTS = ["MACRO_POLICY", "INDICES", "EQUITY", "COMMODITY", "CURRENCY", "GLOBAL"];
 
 /**
+ * Detects whether a headline was truncated mid-sentence, mid-word, or mid-number by an AI model.
+ * Institutional signals of truncation:
+ * 1. Cutoff numbers: ends in comma or decimal before digits finish, e.g. "23,2" or "10." or "₹"
+ * 2. Dangling prepositions/conjunctions/articles: e.g. "and", "or", "for", "with", "at", "of", "to", "in", "by", "from", "the", "a", "an", "as", "while", "after", "before", "due", "into", "is", "are", "was", "were", "has", "have", "had", "its", "their", "which", "that", "above", "below", "between", "over", "under", "during", "amid", "among", "near", "up to", "up"
+ * 3. Trailing punctuation or open symbols: comma, semicolon, dash, hyphen, colon, open bracket, currency sign (₹, $, €), ampersand, slash
+ * 4. Suspiciously cut-off token fragment: e.g. trailing single/double uppercase letter fragment preceded by space or punctuation like ", NIF", "; TCS", "for S", "SENSE"
+ * 5. Relative length truncation: headline is under 25 chars when original was much longer and doesn't finish cleanly.
+ */
+export function isHeadlineTruncated(headline, originalHeading = "") {
+    if (!headline || typeof headline !== "string") return true;
+    const h = headline.trim();
+    if (h.length === 0) return true;
+
+    // 1. Cutoff numbers e.g. "23,2" or "500," or "10."
+    if (/\b\d+,\d{1,2}$/.test(h)) return true;
+    if (/[\d,]\.$/.test(h) && !/\b(no|inc|corp|ltd|co)\.$/i.test(h)) return true;
+    if (/\d+,$/.test(h)) return true;
+
+    // 2. Trailing dangling punctuation / symbols: comma, semicolon, dash, slash, ampersand, currency
+    if (/[,;:\-–—\(\[\{₹$€£&/\\#@\+]\s*$/.test(h)) return true;
+
+    // 3. Trailing prepositions / conjunctions / connectors
+    const trailingConnectors = /\b(and|or|for|with|to|at|of|in|on|by|from|the|a|an|as|while|after|before|due|into|is|are|was|were|has|have|had|its|their|which|that|above|below|between|over|under|during|amid|among|near|up to|up)\s*$/i;
+    if (trailingConnectors.test(h)) return true;
+
+    // 4. Fragment abbreviations like ", NIF" or "SENSE" or "for S"
+    if (/[,\s;]([A-Z]{1,3})\s*$/.test(h)) {
+        const match = h.match(/[,\s;]([A-Z]{1,3})\s*$/);
+        const frag = match ? match[1] : "";
+        if (frag.length <= 2 && !["IT", "US", "UK", "EU", "AI", "EV", "FX", "PE", "PB", "LT"].includes(frag)) {
+            return true;
+        }
+        if (["NIF", "SEN", "TAT", "INF", "HDF"].includes(frag)) {
+            return true;
+        }
+    }
+
+    // 5. If original heading exists and current headline is less than half the length and doesn't end in terminal punctuation
+    if (originalHeading && originalHeading.length > 35 && h.length < 25 && !/[.!?]$/.test(h)) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Systematic institutional F&O entity & ticker dictionary.
+ */
+const ASSET_ENTITY_MAP = [
+    // Indices & Major Benchmarks
+    { pattern: /\b(NIFTY\s*50|NIFTY50|NIFTY)\b/i, symbol: "NIFTY" },
+    { pattern: /\b(BANK\s*NIFTY|BANKNIFTY)\b/i, symbol: "BANKNIFTY" },
+    { pattern: /\b(SENSEX)\b/i, symbol: "SENSEX" },
+    { pattern: /\b(FIN\s*NIFTY|FINNIFTY)\b/i, symbol: "FINNIFTY" },
+    { pattern: /\b(MIDCPNIFTY|MIDCAP\s*NIFTY)\b/i, symbol: "MIDCPNIFTY" },
+    { pattern: /\b(NIFTY\s*IT|IT\s*INDEX|NIFTYIT)\b/i, symbol: "NIFTYIT" },
+    { pattern: /\b(NIFTY\s*AUTO|AUTO\s*INDEX)\b/i, symbol: "NIFTYAUTO" },
+    { pattern: /\b(NIFTY\s*PHARMA|PHARMA\s*INDEX)\b/i, symbol: "NIFTYPHARMA" },
+    { pattern: /\b(NIFTY\s*METAL|METAL\s*INDEX)\b/i, symbol: "NIFTYMETAL" },
+    { pattern: /\b(NIFTY\s*FMCG|FMCG\s*INDEX)\b/i, symbol: "NIFTYFMCG" },
+    { pattern: /\b(NIFTY\s*REALTY|REALTY\s*INDEX|REALTY)\b/i, symbol: "REALTY" },
+    { pattern: /\b(INDIA\s*VIX|VIX)\b/i, symbol: "INDIAVIX" },
+
+    // Top Liquid Equities & Corporate Names
+    { pattern: /\b(RELIANCE|RIL)\b/i, symbol: "RELIANCE" },
+    { pattern: /\b(HDFC\s*BANK|HDFCBANK|HDFC)\b/i, symbol: "HDFCBANK" },
+    { pattern: /\b(ICICI\s*BANK|ICICIBANK|ICICI)\b/i, symbol: "ICICIBANK" },
+    { pattern: /\b(STATE\s*BANK|STATE\s*BANK\s*OF\s*INDIA|SBIN|SBI)\b/i, symbol: "SBIN" },
+    { pattern: /\b(TATA\s*CONSULTANCY|TCS)\b/i, symbol: "TCS" },
+    { pattern: /\b(INFOSYS|INFY)\b/i, symbol: "INFY" },
+    { pattern: /\b(BHARTI\s*AIRTEL|AIRTEL|BHARTIARTL)\b/i, symbol: "BHARTIARTL" },
+    { pattern: /\b(ITC)\b/i, symbol: "ITC" },
+    { pattern: /\b(KOTAK\s*BANK|KOTAK\s*MAHINDRA|KOTAKBANK)\b/i, symbol: "KOTAKBANK" },
+    { pattern: /\b(LARSEN|L&T|LNT)\b/i, symbol: "LT" },
+    { pattern: /\b(TATA\s*MOTORS|TATAMOTORS|TMPV)\b/i, symbol: "TATAMOTORS" },
+    { pattern: /\b(ONGC|OIL\s*AND\s*NATURAL\s*GAS)\b/i, symbol: "ONGC" },
+    { pattern: /\b(OIL\s*INDIA)\b/i, symbol: "OIL" },
+    { pattern: /\b(LIC|LICI|LIFE\s*INSURANCE\s*CORP)\b/i, symbol: "LICI" },
+    { pattern: /\b(HCL\s*TECH|HCL\s*TECHNOLOGIES|HCLTECH)\b/i, symbol: "HCLTECH" },
+    { pattern: /\b(WIPRO)\b/i, symbol: "WIPRO" },
+    { pattern: /\b(TECH\s*MAHINDRA|TECHM)\b/i, symbol: "TECHM" },
+    { pattern: /\b(MARUTI|MARUTI\s*SUZUKI)\b/i, symbol: "MARUTI" },
+    { pattern: /\b(MAHINDRA\s*&\s*MAHINDRA|M&M)\b/i, symbol: "M&M" },
+    { pattern: /\b(SUN\s*PHARMA|SUNPHARMA)\b/i, symbol: "SUNPHARMA" },
+    { pattern: /\b(DR\s*REDDY|DRREDDY)\b/i, symbol: "DRREDDY" },
+    { pattern: /\b(CIPLA)\b/i, symbol: "CIPLA" },
+    { pattern: /\b(TATA\s*STEEL|TATASTEEL)\b/i, symbol: "TATASTEEL" },
+    { pattern: /\b(JSW\s*STEEL|JSWSTEEL)\b/i, symbol: "JSWSTEEL" },
+    { pattern: /\b(SAIL|STEEL\s*AUTHORITY)\b/i, symbol: "SAIL" },
+    { pattern: /\b(HINDALCO)\b/i, symbol: "HINDALCO" },
+    { pattern: /\b(TITAN)\b/i, symbol: "TITAN" },
+    { pattern: /\b(ASIAN\s*PAINTS|ASIAN\s*PAINT|ASIANPAINT)\b/i, symbol: "ASIANPAINT" },
+    { pattern: /\b(BERGER\s*PAINTS|BERGERPAINTS)\b/i, symbol: "BERGERPAINTS" },
+    { pattern: /\b(BPCL|BHARAT\s*PETROLEUM)\b/i, symbol: "BPCL" },
+    { pattern: /\b(IOCL|IOC|INDIAN\s*OIL)\b/i, symbol: "IOCL" },
+    { pattern: /\b(HPCL|HINDUSTAN\s*PETROLEUM)\b/i, symbol: "HPCL" },
+    { pattern: /\b(INDIGO|INTERGLOBE\s*AVIATION)\b/i, symbol: "INDIGO" },
+    { pattern: /\b(PAYTM|ONE97)\b/i, symbol: "PAYTM" },
+    { pattern: /\b(YES\s*BANK|YESBANK)\b/i, symbol: "YESBANK" },
+    { pattern: /\b(BAJAJ\s*FINANCE|BAJFINANCE)\b/i, symbol: "BAJFINANCE" },
+    { pattern: /\b(BAJAJ\s*FINSERV|BAJAJFINSV)\b/i, symbol: "BAJAJFINSV" },
+    { pattern: /\b(AXIS\s*BANK|AXISBANK)\b/i, symbol: "AXISBANK" },
+    { pattern: /\b(ADANI\s*ENT|ADANIENT)\b/i, symbol: "ADANIENT" },
+    { pattern: /\b(ADANI\s*PORTS|ADANIPORTS)\b/i, symbol: "ADANIPORTS" },
+    { pattern: /\b(NTPC)\b/i, symbol: "NTPC" },
+    { pattern: /\b(POWER\s*GRID|POWERGRID)\b/i, symbol: "POWERGRID" },
+    { pattern: /\b(COAL\s*INDIA|COALINDIA)\b/i, symbol: "COALINDIA" },
+    { pattern: /\b(ULTRATECH|ULTRACEMCO)\b/i, symbol: "ULTRACEMCO" },
+    { pattern: /\b(NEW\s*INDIA\s*ASSURANCE|NIACL)\b/i, symbol: "NIACL" },
+    { pattern: /\b(GENERAL\s*INSURANCE|GICRE|GIC\s*RE)\b/i, symbol: "GICRE" },
+    { pattern: /\b(IFCI)\b/i, symbol: "IFCI" },
+    { pattern: /\b(EICHER\s*MOTORS|EICHERMOT)\b/i, symbol: "EICHERMOT" },
+    { pattern: /\b(RAILTEL)\b/i, symbol: "RAILTEL" },
+    { pattern: /\b(BSE)\b/i, symbol: "BSE" },
+    { pattern: /\b(CDSL)\b/i, symbol: "CDSL" },
+    { pattern: /\b(MAZAGON\s*DOCK|MAZDOCK)\b/i, symbol: "MAZDOCK" },
+    { pattern: /\b(BHEL)\b/i, symbol: "BHEL" },
+    { pattern: /\b(TITAGARH)\b/i, symbol: "TITAGARH" },
+    { pattern: /\b(ZOMATO)\b/i, symbol: "ZOMATO" },
+    { pattern: /\b(JIO\s*FIN|JIOFIN)\b/i, symbol: "JIOFIN" }
+];
+
+/**
+ * Extracts affected stock/index symbols deterministically from headline and summary text.
+ */
+export function extractAssetsFromText(headline = "", summary = "") {
+    const assets = [];
+    const headlineText = String(headline || "");
+    const summaryText = String(summary || "");
+
+    // Prioritize assets found in headline first
+    for (const item of ASSET_ENTITY_MAP) {
+        if (item.pattern.test(headlineText) && !assets.includes(item.symbol)) {
+            assets.push(item.symbol);
+        }
+    }
+    // Then assets found in summary
+    for (const item of ASSET_ENTITY_MAP) {
+        if (item.pattern.test(summaryText) && !assets.includes(item.symbol)) {
+            assets.push(item.symbol);
+        }
+    }
+    return assets;
+}
+
+/**
+ * Generates institutional hashtags for taxonomy display and filtering.
+ */
+export function generateEventHashtags(event) {
+    const tags = new Set();
+    const cat = String(event.category || "").trim().toLowerCase();
+    const subCat = String(event.sub_category || "").trim();
+    const instType = String(event.instrument_type || "").trim().toUpperCase();
+    const sentiment = String(event.sentiment || "").trim();
+    const headline = String(event.headline || "").toLowerCase();
+    const assets = Array.isArray(event.affected_assets) ? event.affected_assets : [];
+
+    // 1. Primary Instrument / Macro Tag
+    if (instType === "MACRO_POLICY" || cat === "policy" || cat === "macro") {
+        tags.add("#MacroPolicy");
+    } else if (instType === "COMMODITY" || cat === "commodities") {
+        tags.add("#Commodities");
+    } else if (instType === "CURRENCY" || cat === "currency") {
+        tags.add("#FXMarkets");
+    } else if (instType === "GLOBAL" || cat === "global" || cat === "geopolitical") {
+        tags.add("#GlobalMacro");
+    } else if (cat === "earnings") {
+        tags.add("#EarningsSeason");
+    } else {
+        tags.add("#BroadMarket");
+    }
+
+    // 2. Sub-Category / Catalyst Tag
+    if (subCat && subCat.length > 2) {
+        const cleanSub = "#" + subCat.replace(/[^a-zA-Z0-9]/g, '');
+        if (cleanSub.length > 2 && cleanSub.length <= 22) {
+            tags.add(cleanSub);
+        }
+    } else {
+        if (/repo|interest rate|monetary|mpc|rbi|rate hike|rate cut/.test(headline)) tags.add("#RateDecision");
+        else if (/q1|q2|q3|q4|quarterly|pat|profit|revenue|guidance/.test(headline)) tags.add("#QuarterlyResults");
+        else if (/fii|dii|foreign institutional|outflow|inflow/.test(headline)) tags.add("#FIIFlows");
+        else if (/crude|oil|brent|petroleum/.test(headline)) tags.add("#CrudeOil");
+        else if (/inflation|cpi|wpi/.test(headline)) tags.add("#InflationCPI");
+        else if (/ipo|ofs|bidding|anchor/.test(headline)) tags.add("#IPOWatch");
+        else if (/vix|volatility|circuit/.test(headline)) tags.add("#MarketVolatility");
+        else if (/upi|mdr|payment|digital payment/.test(headline)) tags.add("#DigitalPayments");
+        else if (/ceo|md|leadership|board|management/.test(headline)) tags.add("#LeadershipChange");
+        else if (/gainers|losers|top gainers/.test(headline)) tags.add("#TopMovers");
+        else tags.add("#MarketIntelligence");
+    }
+
+    // 3. Asset Ticker Tags (Top 2 primary)
+    for (const a of assets.slice(0, 2)) {
+        if (typeof a === "string" && a.length > 1) {
+            tags.add("#" + a.replace(/[^a-zA-Z0-9]/g, ''));
+        }
+    }
+
+    // 4. Directional / Dynamic Tag
+    if (sentiment === "Very Bullish" || sentiment === "Bullish") {
+        tags.add(/rally|surge|jump|gain|high/.test(headline) ? "#MarketRally" : "#BullishBias");
+    } else if (sentiment === "Very Bearish" || sentiment === "Bearish") {
+        tags.add(/slide|drop|fall|tumble|low/.test(headline) ? "#MarketCorrection" : "#BearishPressure");
+    } else {
+        tags.add("#Consolidation");
+    }
+
+    return Array.from(tags).slice(0, 5);
+}
+
+/**
  * Validates and sanitizes an AI response before computing score and saving to DB.
  * Returns { valid, errors, sanitized } — sanitized always has a computed event_score.
  */
-export function validateAndSanitizeEvent(raw) {
+export function validateAndSanitizeEvent(raw, originalHeading = "") {
     const errors = [];
     const sanitized = { ...raw };
 
-    if (!raw.headline || raw.headline.trim().length === 0) errors.push("headline is required");
+    // Anti-truncation guardrail: check if headline is cut off
+    if (!sanitized.headline || sanitized.headline.trim().length === 0) {
+        if (originalHeading && originalHeading.trim().length > 0) {
+            sanitized.headline = originalHeading.trim();
+            errors.push("Auto-corrected: empty headline restored from original heading");
+        } else {
+            errors.push("headline is required");
+        }
+    } else if (isHeadlineTruncated(sanitized.headline, originalHeading)) {
+        if (originalHeading && originalHeading.trim().length > 0) {
+            errors.push(`Auto-corrected: truncated headline "${sanitized.headline}" restored from original "${originalHeading}"`);
+            sanitized.headline = originalHeading.trim();
+        } else {
+            // Clean up trailing broken punctuation or numbers
+            sanitized.headline = sanitized.headline.replace(/[,;:\-–—\(\[\{₹$€£&/\\#@\+]\s*$/, "").trim();
+        }
+    }
+
     if (!VALID_SENTIMENTS.includes(raw.sentiment))   { errors.push(`invalid sentiment: ${raw.sentiment}`);   sanitized.sentiment      = "Neutral"; }
     if (!VALID_IMPORTANCE.includes(raw.importance))  { errors.push(`invalid importance: ${raw.importance}`); sanitized.importance     = "Medium"; }
     if (!VALID_SEVERITY.includes(raw.severity))      { errors.push(`invalid severity: ${raw.severity}`);     sanitized.severity       = "Normal"; }
@@ -719,12 +967,27 @@ export function validateAndSanitizeEvent(raw) {
         .filter(a => typeof a === "string" && a.trim().length > 0)
         .map(a => a.trim().toUpperCase());
 
-    // Heuristic entity extraction if affected_assets is empty
-    if (sanitized.affected_assets.length === 0 && (raw.headline || raw.summary)) {
-        const text = `${raw.headline || ""} ${raw.summary || ""}`.toUpperCase();
+    // Comprehensive systematic entity extraction from headline + summary
+    const combinedText = `${sanitized.headline || ""} ${sanitized.summary || ""} ${originalHeading || ""}`;
+    const extractedAssets = extractAssetsFromText(sanitized.headline, sanitized.summary);
+    if (originalHeading) {
+        const headingAssets = extractAssetsFromText(originalHeading, "");
+        for (const ha of headingAssets) {
+            if (!extractedAssets.includes(ha)) extractedAssets.push(ha);
+        }
+    }
+
+    // Merge systematically extracted assets with AI assets
+    const mergedAssets = Array.from(new Set([...extractedAssets, ...sanitized.affected_assets]));
+    if (mergedAssets.length > sanitized.affected_assets.length) {
+        errors.push(`Auto-corrected: merged extracted assets: ${mergedAssets.join(", ")}`);
+        sanitized.affected_assets = mergedAssets.slice(0, 8);
+    }
+
+    // If still empty, check sector keyword fallbacks
+    if (sanitized.affected_assets.length === 0 && combinedText) {
+        const text = combinedText.toUpperCase();
         const fallbackAssets = [];
-        
-        // Common sector / company keyword triggers in Indian markets
         if (/BRENT|CRUDE|OIL|OMC/.test(text)) fallbackAssets.push("BPCL", "IOCL", "HPCL");
         if (/PAINT|ASIAN PAINT|BERGER/.test(text)) fallbackAssets.push("ASIANPAINT", "BERGERPAINTS");
         if (/AIRLINE|AVIATION|INDIGO|INTERGLOBE/.test(text)) fallbackAssets.push("INDIGO");
@@ -733,28 +996,43 @@ export function validateAndSanitizeEvent(raw) {
         if (/AUTO|VEHICLE|MARUTI|TATA MOTOR|M&M/.test(text)) fallbackAssets.push("MARUTI", "TATAMOTORS", "M&M");
         if (/STEEL|METAL|TATA STEEL|JSW/.test(text)) fallbackAssets.push("TATASTEEL", "JSWSTEEL");
         if (/PHARMA|DRUG|SUN PHARMA|CIPLA/.test(text)) fallbackAssets.push("SUNPHARMA", "CIPLA");
-        if (/NIFTY|SENSEX|MARKET WRAP|DOMESTIC MARKET/.test(text)) fallbackAssets.push("NIFTY");
+        if (/NIFTY|SENSEX|MARKET WRAP|DOMESTIC MARKET/.test(text)) fallbackAssets.push("NIFTY", "SENSEX");
 
         if (fallbackAssets.length > 0) {
             sanitized.affected_assets = Array.from(new Set(fallbackAssets)).slice(0, 7);
-            errors.push(`Auto-corrected: populated ${sanitized.affected_assets.length} affected assets from headline/summary`);
+            errors.push(`Auto-corrected: populated ${sanitized.affected_assets.length} affected assets from keyword triggers`);
         }
     }
 
-    // Heuristic quantitative catalyst extraction if key_data_points is empty
-    if (sanitized.key_data_points.length === 0 && (raw.headline || raw.summary)) {
-        const text = `${raw.headline || ""} ${raw.summary || ""}`;
-        const dataPointMatches = text.match(/(\$\d+(\.\d+)?(\/[a-zA-Z]+)?|\b\d+(\.\d+)?%|\b\d+\s*bps|\b\d+(\.\d+)?\s*(cr|crore|lakh|bn|billion|trillion))/gi);
+    // Quantitative catalyst extraction if key_data_points is empty
+    if (sanitized.key_data_points.length === 0 && combinedText) {
+        const dataPointMatches = combinedText.match(/(\$\d+(\.\d+)?(\/[a-zA-Z]+)?|\b\d+(\.\d+)?%|\b\d+\s*bps|\b\d+(\.\d+)?\s*(cr|crore|lakh|bn|billion|trillion)|₹\s*[\d,]+(\.\d+)?)/gi);
         if (dataPointMatches && dataPointMatches.length > 0) {
-            sanitized.key_data_points = Array.from(new Set(dataPointMatches)).slice(0, 3);
+            sanitized.key_data_points = Array.from(new Set(dataPointMatches.map(m => m.trim()))).slice(0, 4);
             errors.push(`Auto-corrected: extracted key data points: ${sanitized.key_data_points.join(", ")}`);
         }
     }
 
-    // Compute event score deterministically — never trust AI-provided score.
-    // Horizon is now a 5th input to the PES-7 formula (v2 institutional scale).
+    // Standardize / generate hashtags
+    if (Array.isArray(raw.hashtags) && raw.hashtags.length > 0) {
+        sanitized.hashtags = raw.hashtags
+            .filter(t => typeof t === "string" && t.trim().length > 1)
+            .map(t => t.startsWith("#") ? t.trim() : "#" + t.trim().replace(/\s+/g, ''));
+    } else {
+        sanitized.hashtags = generateEventHashtags(sanitized);
+    }
+
+    // Compute event score deterministically
     sanitized.event_score = computeEventScore(
         sanitized.sentiment,
+        sanitized.importance,
+        sanitized.severity,
+        sanitized.confidence,
+        sanitized.horizon
+    );
+
+    // Compute impact magnitude
+    sanitized.impact_magnitude = computeEventImpactMagnitude(
         sanitized.importance,
         sanitized.severity,
         sanitized.confidence,
@@ -769,15 +1047,70 @@ export function validateAndSanitizeEvent(raw) {
 }
 
 // ============================================================================================
-// SECTION 6: Institutional Asset Extraction (Tailwinds / Headwinds)
+// SECTION 6: Institutional Asset Extraction (Tailwinds / Headwinds with Beta Sensitivities)
 // ============================================================================================
+
+/**
+ * Institutional Asset Beta Sensitivities.
+ * Maps asset sensitivity coefficients to specific event instruments:
+ * - Crude/Commodities: Inverts sign for Upstream E&P (ONGC, OIL = -1.0), amplifies for Paints/OMCs/Aviation (+1.3).
+ * - FX/Currency (USDINR depreciation): Inverts sign for IT & Pharma exporters (TCS, INFY, WIPRO, SUNPHARMA = -1.0).
+ * - Interest Rates/Macro Policy (Rate Hikes): High sensitivity for Realty (1.3) vs Banks (0.8).
+ */
+const ASSET_BETA_SENSITIVITIES = {
+    COMMODITY: {
+        "ONGC": -1.0,  // Upstream benefits from higher crude (reverses bearish commodity signal)
+        "OIL": -1.0,
+        "BPCL": 1.3,   // Marketing margin hit
+        "IOCL": 1.3,
+        "HPCL": 1.3,
+        "INDIGO": 1.35, // ATF cost surge
+        "SPICEJET": 1.35,
+        "ASIANPAINT": 1.25, // Raw material inflation
+        "BERGERPAINTS": 1.25,
+        "TATASTEEL": 1.1,
+        "JSWSTEEL": 1.1
+    },
+    CURRENCY: {
+        "TCS": -1.0,   // Rupee weakness boosts USD realizations (reverses bearish currency signal)
+        "INFY": -1.0,
+        "WIPRO": -1.0,
+        "HCLTECH": -1.0,
+        "TECHM": -1.0,
+        "SUNPHARMA": -0.85,
+        "DRREDDY": -0.85,
+        "CIPLA": -0.85,
+        "BPCL": 1.15,
+        "IOCL": 1.15,
+        "HPCL": 1.15
+    },
+    MACRO_POLICY: {
+        "REALTY": 1.3,
+        "DLF": 1.3,
+        "GODREJPROP": 1.3,
+        "BANKNIFTY": 0.8,
+        "HDFCBANK": 0.8,
+        "SBIN": 0.8,
+        "MARUTI": 1.1,
+        "TATAMOTORS": 1.1,
+        "M&M": 1.1
+    }
+};
+
+function getAssetSensitivityMultiplier(asset, instrumentType) {
+    if (!asset || !instrumentType) return 1.0;
+    const inst = ASSET_BETA_SENSITIVITIES[instrumentType];
+    if (inst && inst[asset] !== undefined) {
+        return inst[asset];
+    }
+    return 1.0;
+}
 
 export function extractInstitutionalImpacts(events) {
     if (!events || !Array.isArray(events)) return { tailwinds: [], headwinds: [] };
 
     // Minimum time-decayed impact for an asset to surface in tailwinds/headwinds.
-    // Calibrated to the ±100 internal scale: ~10 pts minimum effective impact.
-    const MIN_IMPACT_THRESHOLD = 10.0;
+    const MIN_IMPACT_THRESHOLD = 8.0;
 
     const assetImpacts = {};
 
@@ -791,12 +1124,16 @@ export function extractInstitutionalImpacts(events) {
         const decayFactor = computeTimeDecay(ev.created_at, ev.published_time, ev.ttl_hours);
         if (decayFactor === 0) return; // Expired event: skip entirely
 
-        const impact = rawScore * decayFactor;
+        const baseImpact = rawScore * decayFactor;
 
         ev.affected_assets.forEach(asset => {
             if (!asset || typeof asset !== 'string') return;
             const name = asset.trim().toUpperCase();
             if (name.length === 0) return;
+
+            // Apply institutional beta sensitivity multiplier
+            const sensitivity = getAssetSensitivityMultiplier(name, ev.instrument_type);
+            const impact = baseImpact * sensitivity;
 
             if (!assetImpacts[name]) {
                 assetImpacts[name] = { totalImpact: 0, count: 0, latestReason: ev.headline, date: ev.created_at };
@@ -869,14 +1206,10 @@ export function computePortfolioMetrics(events, tradingMode = TRADING_MODES.SWIN
         if (rawScore === 0) return;
 
         // Apply dynamic time decay — impact shrinks exponentially as event ages relative to TTL.
-        // This replaces the old static TTL-expiry hard-cut: instead of binary on/off,
-        // events gracefully fade, which is far closer to how markets absorb news.
         const decayFactor = computeTimeDecay(ev.created_at, ev.published_time, ev.ttl_hours);
         if (decayFactor === 0) return; // Fully expired event: skip
 
-        // Apply horizon multiplier — events tagged with a horizon that matches the active
-        // trading mode are amplified; mismatched horizons are dampened.
-        // SWING mode keeps all horizon multipliers at 1.0 (no change from baseline).
+        // Apply horizon multiplier
         const horizonMult = horizonWeights[ev.horizon] ?? 1.0;
 
         const impact = rawScore * decayFactor * horizonMult;
@@ -903,13 +1236,10 @@ export function computePortfolioMetrics(events, tradingMode = TRADING_MODES.SWIN
     const consensus = totalWeight > 0 ? (netMomentum / totalWeight) : 0;
 
     // Volume Activation (slower curve: 8 events for ~63% activation, 15 for ~85%)
-    // This ensures that a single dominant event cannot pin the Global Score to extremes.
     const activeCount = effectiveScores.length;
     const volumeActivation = 1.0 - Math.exp(-activeCount / 8.0);
 
     // Regime Divergence Penalty:
-    // If one event has an outsized effective impact >2.5× the median, it is an outlier.
-    // We dampen the composite by 20% to prevent a single Black Swan from dominating.
     let divergencePenalty = 1.0;
     if (effectiveScores.length > 2) {
         const sorted = [...effectiveScores].sort((a, b) => a - b);
@@ -918,7 +1248,17 @@ export function computePortfolioMetrics(events, tradingMode = TRADING_MODES.SWIN
         if (median > 0 && max > 2.5 * median) divergencePenalty = 0.80;
     }
 
-    const compositeScore = Math.round(50 + 50 * consensus * volumeActivation * divergencePenalty);
+    // Herfindahl-Hirschman Index (HHI) for Sector / Category Concentration
+    let sumSquaredShares = 0;
+    if (totalWeight > 0) {
+        Object.keys(catMomentum).forEach(cat => {
+            const share = catMomentum[cat].weight / totalWeight;
+            sumSquaredShares += share * share;
+        });
+    }
+    const concentrationPenalty = sumSquaredShares > 0.65 ? 0.88 : 1.0;
+
+    const compositeScore = Math.round(50 + 50 * consensus * volumeActivation * divergencePenalty * concentrationPenalty);
 
     // ─────────────────────────────────────────────────────────────────────────
     // SECTION / CATEGORY SCORES — Institutional Grade

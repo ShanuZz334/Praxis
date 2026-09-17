@@ -16,7 +16,8 @@ function generateHash(request) {
         prompt: request.prompt,
         data: request.data,
         targetModel: request.targetModel,
-        temperature: request.temperature
+        temperature: request.temperature,
+        maxTokens: request.maxTokens
     });
     return crypto.createHash('sha256').update(hashData).digest('hex');
 }

@@ -86,6 +86,18 @@ function ensureSourceUrlColumn() {
 }
 
 /**
+ * Adds hashtags column to market_events if not present.
+ */
+function ensureHashtagsColumn() {
+    try {
+        db.exec(`ALTER TABLE market_events ADD COLUMN hashtags TEXT;`);
+        console.log("[AutoProcessor] Added hashtags column to market_events");
+    } catch (e) {
+        // Column already exists — safe to ignore
+    }
+}
+
+/**
  * Sleeps for a given number of milliseconds.
  */
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -132,7 +144,7 @@ async function processNewsArticle(newsItem, useFewShot = true) {
             systemInstruction: systemPrompt,
             jsonMode:          true,
             temperature:       0.1,
-            maxTokens:         900
+            maxTokens:         2048
         });
 
         if (result.error) {
@@ -163,8 +175,8 @@ async function processNewsArticle(newsItem, useFewShot = true) {
         // 8. Ensure instrument_type is set
         if (!rawData.instrument_type) rawData.instrument_type = instrumentType;
 
-        // 9. Validate, sanitize, compute PES-7 score deterministically
-        const { sanitized, errors } = validateAndSanitizeEvent(rawData);
+        // 9. Validate, sanitize, compute PES-7 score deterministically (passing original heading for anti-truncation)
+        const { sanitized, errors } = validateAndSanitizeEvent(rawData, heading);
         if (errors.length > 0) {
             console.log(`[AutoProcessor] Validation auto-corrections for "${heading.slice(0, 50)}":`, errors);
         }
@@ -178,14 +190,14 @@ async function processNewsArticle(newsItem, useFewShot = true) {
             return null;
         }
 
-        // 10. Save to DB
+        // 10. Save to DB (with hashtags)
         const stmt = db.prepare(`
             INSERT INTO market_events (
                 headline, summary, category, sub_category, source,
                 sentiment, importance, severity, override_mode,
                 confidence, affected_assets, event_score, horizon, reasoning,
-                instrument_type, key_data_points, source_url, ttl_hours
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                instrument_type, key_data_points, source_url, ttl_hours, hashtags
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         const info = stmt.run(
@@ -206,7 +218,8 @@ async function processNewsArticle(newsItem, useFewShot = true) {
             sanitized.instrument_type || instrumentType,
             sanitized.key_data_points && sanitized.key_data_points.length > 0 ? JSON.stringify(sanitized.key_data_points) : "[]",
             article_link             || null,
-            sanitized.ttl_hours      || 72
+            sanitized.ttl_hours      || 72,
+            sanitized.hashtags && sanitized.hashtags.length > 0 ? JSON.stringify(sanitized.hashtags) : "[]"
         );
 
         // 11. Mark as processed
@@ -313,6 +326,7 @@ export async function processNewsItems(newsItems, broadcastFn = null, useFewShot
  */
 export function initNewsAutoProcessor() {
     ensureSourceUrlColumn();
+    ensureHashtagsColumn();
     loadProcessedLinks();
     console.log("✅ News Auto-Processor initialized");
 }

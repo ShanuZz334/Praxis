@@ -6,6 +6,7 @@ import aiGateway from "../ai-gateway/index.js";
 import AiRouting from "../models/AiRouting.js";
 import { runFundamentalIntelligence, forceFullAppSynchronization } from "../services/intelligenceCron.js";
 import { broadcast } from "../services/socketBroadcast.js";
+import { sanitizeAiErrorMessage } from "../ai-gateway/utils/aiErrorSanitizer.js";
 
 const router = express.Router();
 
@@ -385,6 +386,151 @@ router.post("/card-insight", protect, async (req, res) => {
     } catch (error) {
         console.error("[Intelligence] Error generating card insight:", error.message);
         res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+/**
+ * @route   POST /api/v1/intelligence/backtest-walkthrough
+ * @desc    Generate an institutional strategic diagnosis & walkthrough from scorecard metrics & test configs.
+ *          Prefers local 7B / Ollama if available, backed by AI Gateway fallback chain and quantitative guardrails.
+ * @access  Public / Private
+ */
+router.post("/backtest-walkthrough", async (req, res) => {
+    try {
+        const { summary = {}, config = {}, instrument = "N/A", timeframe = "1d", activeUnit = "PREDICTOR" } = req.body;
+
+        if (!summary || typeof summary !== "object") {
+            return res.status(400).json({ status: "error", error: "Invalid summary payload provided" });
+        }
+
+        // 1. Sanitize string inputs against injection
+        const cleanInstrument = String(instrument).replace(/[<>{}[\]]/g, "").slice(0, 80);
+        const cleanTimeframe = String(timeframe).replace(/[<>{}[\]]/g, "").slice(0, 20);
+        const cleanUnit = String(activeUnit).replace(/[<>{}[\]]/g, "").slice(0, 30);
+        const cleanMode = String(config.mode || "SWING").replace(/[<>{}[\]]/g, "").slice(0, 30);
+        const cleanExitMode = String(config.targetStopMode || "TARGET_STOP").replace(/[<>{}[\]]/g, "").slice(0, 40);
+
+        // 2. Extract verified metrics
+        const winRate = summary.winRate ?? 0;
+        const wins = summary.wins ?? 0;
+        const losses = summary.losses ?? 0;
+        const totalTrades = summary.totalTrades ?? (wins + losses);
+        const profitFactor = summary.profitFactor ?? 0;
+        const realizedRR = summary.realizedRR ?? 1;
+        const expectancy = summary.expectancy ?? 0;
+        const netReturnPct = summary.netReturnPct ?? 0;
+        const maxDrawdownPct = Math.abs(summary.maxDrawdownPct ?? 0);
+        const sharpeRatio = summary.sharpeRatio ?? 0;
+        const sortinoRatio = summary.sortinoRatio ?? 0;
+        const calmarRatio = summary.calmarRatio ?? 0;
+        const endingCapital = summary.endingCapital ? `₹${summary.endingCapital.toLocaleString('en-IN')}` : "N/A";
+        const maxConsecWins = summary.maxConsecutiveWins ?? 0;
+        const maxConsecLosses = summary.maxConsecutiveLosses ?? 0;
+        const durationCandles = summary.avgTradeDurationCandles ?? 0;
+
+        // Mathematical break-even calculation: WR_be = 1 / (1 + RR)
+        const breakEvenWR = Math.round((1 / (1 + Math.max(0.01, realizedRR))) * 1000) / 10;
+        const recoveryGainRequired = maxDrawdownPct > 0 && maxDrawdownPct < 100
+            ? Math.round(((1 / (1 - maxDrawdownPct / 100)) - 1) * 1000) / 10
+            : 0;
+
+        // Multi-year breakdown
+        const matrix = Array.isArray(summary.annualMatrix) ? summary.annualMatrix : [];
+        const annualSummary = matrix.length > 0
+            ? matrix.map(m => `${m.year}: ${m.returnPct >= 0 ? '+' : ''}${m.returnPct}% (${m.trades} trades, ${m.winRate}% WR)`).slice(0, 10).join("; ")
+            : "No annual breakdown available";
+
+        // 3. Construct institutional prompt
+        const systemInstruction = `You are an elite Institutional Quantitative Risk Auditor and Chief Trading Systems Architect for the Praxis platform.
+Your client is Shanif (nickname Shanu).
+You must NEVER hallucinate or alter any numbers. Stick strictly to the exact figures supplied.
+
+Deliver a rigorous, unhedged, direct, and actionable "Scorecard Strategic Diagnosis & Walkthrough".
+Your response MUST be formatted in clean, professional markdown with these exact numbered sections:
+
+### 1. Executive Verdict & Edge Health
+- Blunt, unambiguous assessment of whether this system has an edge or is fatally bleeding capital.
+- State whether this configuration is viable or completely unviable for live execution.
+
+### 2. Trading Style Suitability (Swing vs Intraday vs Scalp)
+- Evaluate whether this strategy actually works for Swing Trading, Day Trading, or Scalping based on holding duration (${durationCandles} candles on ${cleanTimeframe}) and drawdown behavior.
+- Clearly declare if it's "good for swing", "marginal", or "fully toxic".
+
+### 3. Core Mathematical Leaks & Exit Mechanics
+- Analyze the break-even math: Win Rate (${winRate}%) vs Required Break-Even (${breakEvenWR}%) at Realized R:R (${realizedRR}x).
+- Explain how the Expectancy (${expectancy}% per trade) drives cumulative decay.
+- Address the Exit Model (${cleanExitMode}, Horizon: ${config.maxHorizonCandles || 'N/A'} candles, Target: ${config.targetPct || 'N/A'}%, Stop: ${config.stopLossPct || 'N/A'}%).
+
+### 4. Capital Ruin & Drawdown Math
+- Dissect the peak drawdown of -${maxDrawdownPct}%. Emphasize the asymmetrical recovery burden (+${recoveryGainRequired}% gain needed to break even).
+- Address the impact of the ${maxConsecLosses}-loss losing streak and risk-of-ruin.
+
+### 5. Multi-Year Regime Resilience
+- Review cyclical performance (${annualSummary}). Explain whether the system survives bear markets or regime shifts.
+
+### 6. Prescriptive Optimization Roadmap
+- Give 3 to 4 concrete, prioritized parameter changes (e.g. SL/TP adjustment, ATR trailing stop, minimum confidence threshold filter) to fix the strategy.
+
+### Output Completeness Mandate:
+- Deliver rigorous, institutional-grade quantitative reasoning.
+- Every section and every priority bullet point MUST be completely finished with full analysis.
+- Conclude naturally and cleanly. NEVER stop mid-sentence or leave recommendations unfinished.`;
+
+        const userPrompt = `Audit and synthesize this quantitative backtest scorecard:
+- Asset / Instrument: ${cleanInstrument} (${cleanTimeframe}) | Mode: ${cleanMode} | Unit: ${cleanUnit}
+- Total Executions: ${totalTrades} (${wins} Wins / ${losses} Losses)
+- Win Rate: ${winRate}% (Mathematical Break-Even Needed: ${breakEvenWR}%)
+- Realized Risk-Reward: ${realizedRR}x | Profit Factor: ${profitFactor}
+- Mathematical Expectancy: ${expectancy}% per trade
+- Net Cumulative Return: ${netReturnPct}% | Ending Capital: ${endingCapital}
+- Max Peak-to-Trough Drawdown: -${maxDrawdownPct}% (Requires +${recoveryGainRequired}% to break even)
+- Max Consecutive Streaks: ${maxConsecWins} Wins / ${maxConsecLosses} Losses
+- Average Position Duration: ${durationCandles} candles
+- Exit Model Config: Mode = ${cleanExitMode}, Target = ${config.targetPct || 'N/A'}%, Stop = ${config.stopLossPct || 'N/A'}%, Horizon = ${config.maxHorizonCandles || 'N/A'} candles
+- Annual Breakdown: ${annualSummary}`;
+
+        const { forceRefresh = false } = req.body;
+
+        // 4. Dispatch through AI Gateway (classified as 'report_generation', prioritizing local 7B / Ollama with fallback)
+        const response = await aiGateway.process({
+            taskType: "report_generation",
+            prompt: userPrompt,
+            systemInstruction,
+            maxTokens: 4096,
+            temperature: 0.25,
+            forceRefresh: Boolean(forceRefresh),
+            data: { instrument: cleanInstrument, timeframe: cleanTimeframe, winRate, profitFactor, maxDrawdownPct }
+        });
+
+        if (response.error) {
+            const sanitized = sanitizeAiErrorMessage(response.message || "AI Gateway processing failed", response.provider || "AI Gateway");
+            return res.status(502).json({
+                status: "error",
+                error: sanitized.cleanMessage,
+                details: sanitized
+            });
+        }
+
+        const walkthroughText = response.text?.trim() || "";
+
+        return res.json({
+            status: "success",
+            data: {
+                walkthrough: walkthroughText,
+                provider: response.provider,
+                model: response.model,
+                latencyMs: response.latencyMs,
+                cached: !!response.cached
+            }
+        });
+
+    } catch (error) {
+        console.error("[Intelligence] Error generating backtest walkthrough:", error.message);
+        const sanitized = sanitizeAiErrorMessage(error.message, "AI Gateway");
+        return res.status(500).json({
+            status: "error",
+            error: sanitized.cleanMessage
+        });
     }
 });
 

@@ -314,14 +314,17 @@ const normalizeTimeframe = (tf) => {
 
 const getMinutesFromTf = (tf) => {
     if (!tf) return 1;
-    if (tf.includes('1hour') || tf.includes('60m')) return 60;
-    if (tf.includes('30m')) return 30;
-    if (tf.includes('15m')) return 15;
-    if (tf.includes('10m')) return 10;
-    if (tf.includes('5m')) return 5;
-    if (tf.includes('3m')) return 3;
-    if (tf.includes('1m')) return 1;
-    return 1;
+    const clean = tf.toLowerCase().trim();
+    const map = {
+        '1m': 1, '1minute': 1,
+        '3m': 3, '3minute': 3,
+        '5m': 5, '5minute': 5,
+        '10m': 10, '10minute': 10,
+        '15m': 15, '15minute': 15,
+        '30m': 30, '30minute': 30,
+        '1h': 60, '60m': 60, '1hour': 60,
+    };
+    return map[clean] || 1;
 };
 
 const resample1mCandles = (oneMinBars, intervalMinutes) => {
@@ -594,6 +597,26 @@ export const getCandles = async (req, res) => {
                 }
             }
         }
+
+        // Ensure strictly ascending chronological order and deduplicate timestamps
+        // This guarantees Lightweight Charts never crashes with "Assertion failed: data must be asc ordered by time"
+        formattedData.sort((a, b) => {
+            const tA = typeof a.time === 'number' ? a.time : new Date(a.time).getTime();
+            const tB = typeof b.time === 'number' ? b.time : new Date(b.time).getTime();
+            return tA - tB;
+        });
+
+        const deduplicated = [];
+        const seenFinal = new Set();
+        for (const item of formattedData) {
+            const k = typeof item.time === 'number' ? item.time : item.time;
+            if (!seenFinal.has(k)) {
+                seenFinal.add(k);
+                deduplicated.push(item);
+            }
+        }
+        formattedData.length = 0;
+        formattedData.push(...deduplicated);
 
         // 5. Keep SQLite quotes table synchronized with the latest candle price
         try {

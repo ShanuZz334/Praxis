@@ -12,17 +12,18 @@ export function useDrawings(instrumentKey, timeframe) {
     const debounceRef = useRef(null);
 
     // L1: instant localStorage read
-    const load = () => {
+    const load = useCallback(() => {
         try { return JSON.parse(localStorage.getItem(storageKey) || '[]'); }
         catch { return []; }
-    };
+    }, [storageKey]);
 
     const [drawings, setDrawings] = useState(load);
 
-    // On mount: hydrate from SQLite (L2) if localStorage is empty
+    // On mount or instrumentKey/timeframe change: update state immediately to current symbol's drawings
     useEffect(() => {
         if (!instrumentKey || !timeframe) return;
         const local = load();
+        setDrawings(local); // Immediately sync React state with current instrument/timeframe
         if (local.length > 0) return; // Already have drawings in L1 — don't overwrite
 
         const params = new URLSearchParams({ instrument_key: instrumentKey, timeframe });
@@ -35,19 +36,22 @@ export function useDrawings(instrumentKey, timeframe) {
                 }
             })
             .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [instrumentKey, timeframe]);
+    }, [instrumentKey, timeframe, storageKey, load]);
 
     const save = (next) => {
+        const curStorageKey = storageKey;
+        const curInstrumentKey = instrumentKey;
+        const curTimeframe = timeframe;
+
         // L1: instant localStorage write
-        try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch {}
+        try { localStorage.setItem(curStorageKey, JSON.stringify(next)); } catch {}
         // L2: debounced SQLite write via dedicated endpoint (500ms after last change)
         if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => {
             fetch('/api/v1/preferences/drawings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ instrument_key: instrumentKey, timeframe, drawings: next })
+                body: JSON.stringify({ instrument_key: curInstrumentKey, timeframe: curTimeframe, drawings: next })
             }).catch(() => {});
         }, 500);
     };

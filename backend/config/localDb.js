@@ -535,6 +535,173 @@ export const initLocalDb = () => {
             updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
         );
         CREATE INDEX IF NOT EXISTS idx_fii_dii_history_date ON fii_dii_history(date DESC);
+
+        -- ============================================================
+        -- MULTI-MODEL PREDICTION & CALIBRATION ENGINE (HEDGE SPINE)
+        -- ============================================================
+
+        -- 35. Predictions (Quantiles per model and combined ensemble)
+        CREATE TABLE IF NOT EXISTS predictions (
+            id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+            instrument            TEXT NOT NULL,
+            timeframe             TEXT NOT NULL,
+            predicted_at          DATETIME NOT NULL,
+            target_candle_time    DATETIME NOT NULL,
+            model_id              TEXT NOT NULL, -- 'naive_baseline', 'future_vision', 'kronos_small', 'ensemble', etc.
+            q10_o REAL, q25_o REAL, q50_o REAL, q75_o REAL, q90_o REAL,
+            q10_h REAL, q25_h REAL, q50_h REAL, q75_h REAL, q90_h REAL,
+            q10_l REAL, q25_l REAL, q50_l REAL, q75_l REAL, q90_l REAL,
+            q10_c REAL, q25_c REAL, q50_c REAL, q75_c REAL, q90_c REAL,
+            regime_at_prediction  TEXT NOT NULL DEFAULT 'CHOPPY',
+            weight_used           REAL NOT NULL DEFAULT 1.0,
+            features_hash         TEXT,
+            status                TEXT DEFAULT 'PENDING' -- 'PENDING', 'RESOLVED', 'ORPHANED'
+        );
+        CREATE INDEX IF NOT EXISTS idx_predictions_lookup ON predictions(instrument, timeframe, status, target_candle_time);
+        CREATE INDEX IF NOT EXISTS idx_predictions_target ON predictions(status, target_candle_time);
+
+        -- 36. Resolutions (Scored outcomes against actuals)
+        CREATE TABLE IF NOT EXISTS resolutions (
+            prediction_id       INTEGER PRIMARY KEY,
+            actual_o            REAL NOT NULL,
+            actual_h            REAL NOT NULL,
+            actual_l            REAL NOT NULL,
+            actual_c            REAL NOT NULL,
+            resolved_at         DATETIME DEFAULT CURRENT_TIMESTAMP,
+            pinball_loss        REAL NOT NULL,
+            crps                REAL,
+            interval_score      REAL,
+            inside_80_interval  INTEGER NOT NULL, -- 1 = true, 0 = false
+            conformity_score    REAL NOT NULL,
+            FOREIGN KEY (prediction_id) REFERENCES predictions(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_resolutions_time ON resolutions(resolved_at DESC);
+
+        -- 37. Model Weights (Hedge Multiplicative-Weights tracking)
+        CREATE TABLE IF NOT EXISTS model_weights (
+            model_id            TEXT NOT NULL,
+            instrument          TEXT NOT NULL,
+            timeframe           TEXT NOT NULL,
+            regime              TEXT NOT NULL,
+            weight              REAL NOT NULL DEFAULT 0.5,
+            updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+            rolling_loss_20     REAL DEFAULT 0,
+            rolling_loss_100    REAL DEFAULT 0,
+            n_resolved          INTEGER DEFAULT 0,
+            is_probation        INTEGER DEFAULT 0,
+            probation_started_at DATETIME,
+            PRIMARY KEY(model_id, instrument, timeframe, regime)
+        );
+        CREATE INDEX IF NOT EXISTS idx_model_weights_lookup ON model_weights(instrument, timeframe, regime);
+
+        -- 38. Calibration State (Conformal interval scaling per instrument/timeframe)
+        CREATE TABLE IF NOT EXISTS calibration_state (
+            instrument           TEXT NOT NULL,
+            timeframe            TEXT NOT NULL,
+            conformal_multiplier REAL DEFAULT 1.0,
+            coverage_actual_80   REAL DEFAULT 0.80,
+            window_size          INTEGER DEFAULT 200,
+            updated_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(instrument, timeframe)
+        );
+
+        -- ============================================================
+        -- AUTO-FINE-TUNING & RESILIENT RETRAINING PIPELINE
+        -- ============================================================
+
+        -- 39. Training Samples (Rolling window of 512 context -> 1 target)
+        CREATE TABLE IF NOT EXISTS training_samples (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            instrument          TEXT NOT NULL,
+            timeframe           TEXT NOT NULL,
+            candle_time         DATETIME NOT NULL,
+            context_window      TEXT NOT NULL, -- JSON array of 512 OHLCV objects
+            target_o            REAL NOT NULL,
+            target_h            REAL NOT NULL,
+            target_l            REAL NOT NULL,
+            target_c            REAL NOT NULL,
+            regime              TEXT NOT NULL,
+            feature_version     INTEGER DEFAULT 1,
+            created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+            used_by             TEXT DEFAULT '[]', -- JSON array of version numbers that trained on this
+            UNIQUE(instrument, timeframe, candle_time)
+        );
+        CREATE INDEX IF NOT EXISTS idx_training_samples_lookup ON training_samples(instrument, timeframe, candle_time);
+        CREATE INDEX IF NOT EXISTS idx_training_samples_regime ON training_samples(instrument, timeframe, regime);
+
+        -- 40. Fine-Tune Versions (Every training run, complete history)
+        CREATE TABLE IF NOT EXISTS finetune_versions (
+            id                          INTEGER PRIMARY KEY AUTOINCREMENT,
+            model_id                    TEXT NOT NULL,
+            instrument                  TEXT NOT NULL,
+            timeframe                   TEXT NOT NULL,
+            version_num                 INTEGER NOT NULL,
+            status                      TEXT NOT NULL DEFAULT 'TRAINING', -- 'COLLECTING', 'TRAINING', 'VALIDATING', 'PROMOTED', 'REJECTED', 'RETIRED', 'DRIFT_REVERTED'
+            base_checkpoint_ref         TEXT NOT NULL,
+            parent_version_id           INTEGER,
+            train_window_start          DATETIME,
+            train_window_end            DATETIME,
+            n_train_samples             INTEGER,
+            epochs_total                INTEGER,
+            epochs_completed            INTEGER DEFAULT 0,
+            checkpoint_path             TEXT,
+            val_pinball_loss            REAL,
+            zero_shot_pinball_loss      REAL,
+            live_baseline_pinball_loss  REAL,
+            improvement_vs_zero_shot_pct REAL,
+            val_coverage_80             REAL,
+            error_breakdown             TEXT, -- JSON per-regime breakdown
+            rejection_reason            TEXT,
+            started_at                  DATETIME DEFAULT CURRENT_TIMESTAMP,
+            finished_at                 DATETIME,
+            promoted_at                 DATETIME,
+            retired_at                  DATETIME,
+            UNIQUE(model_id, instrument, timeframe, version_num)
+        );
+        CREATE INDEX IF NOT EXISTS idx_finetune_versions_lookup ON finetune_versions(model_id, instrument, timeframe, status);
+
+        -- 41. Active Versions (Currently active checkpoint per model/instrument/timeframe)
+        CREATE TABLE IF NOT EXISTS active_versions (
+            model_id            TEXT NOT NULL,
+            instrument          TEXT NOT NULL,
+            timeframe           TEXT NOT NULL,
+            active_version_id   INTEGER, -- NULL means base zero-shot weights active
+            promoted_at         DATETIME,
+            reverted_at         DATETIME,
+            revert_reason       TEXT,
+            PRIMARY KEY(model_id, instrument, timeframe),
+            FOREIGN KEY (active_version_id) REFERENCES finetune_versions(id)
+        );
+
+        -- 42. Readiness State (For UI progress bars and worker scheduling)
+        CREATE TABLE IF NOT EXISTS readiness_state (
+            model_id                    TEXT NOT NULL,
+            instrument                  TEXT NOT NULL,
+            timeframe                   TEXT NOT NULL,
+            latest_finetune_version_id  INTEGER,
+            data_pct                    REAL DEFAULT 0.0,
+            train_pct                   REAL DEFAULT 0.0,
+            validation_pct              REAL DEFAULT 0.0,
+            calibration_pct             REAL DEFAULT 0.0,
+            overall_pct                 REAL DEFAULT 0.0,
+            stage                       TEXT DEFAULT 'COLLECTING', -- 'COLLECTING', 'READY_TO_TRAIN', 'TRAINING', 'VALIDATING', 'PROMOTED', 'REJECTED', 'DRIFT_REVERTED', 'DEFERRED'
+            blocker                     TEXT,
+            eta_text                    TEXT,
+            updated_at                  DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(model_id, instrument, timeframe)
+        );
+
+        -- 43. Incidents (Rollbacks, drift events, failed runs)
+        CREATE TABLE IF NOT EXISTS finetune_incidents (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            model_id            TEXT NOT NULL,
+            instrument          TEXT NOT NULL,
+            timeframe           TEXT NOT NULL,
+            reason              TEXT NOT NULL,
+            rolling_loss_20     REAL,
+            val_loss            REAL,
+            created_at          DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
     `);
 
 
@@ -557,6 +724,14 @@ export const initLocalDb = () => {
 
     try {
         db.exec(`ALTER TABLE market_events ADD COLUMN ttl_hours INTEGER;`); // Event wear-off time in hours
+    } catch (e) {}
+
+    try {
+        db.exec(`ALTER TABLE model_weights ADD COLUMN is_probation INTEGER DEFAULT 0;`);
+    } catch (e) {}
+
+    try {
+        db.exec(`ALTER TABLE model_weights ADD COLUMN probation_started_at DATETIME;`);
     } catch (e) {}
 
     console.log("✅ SQLite Tables Initialized");

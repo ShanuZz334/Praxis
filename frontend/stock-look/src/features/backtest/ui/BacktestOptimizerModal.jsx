@@ -10,7 +10,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
     Zap, Cpu, Award, ShieldCheck, Check, ArrowRight, 
     RefreshCw, ChevronDown, ChevronUp, X, Sparkles, TrendingUp,
-    BarChart2, Flame, Layers, AlertTriangle
+    BarChart2, Flame, Layers, AlertTriangle, Search, Filter,
+    CheckCircle2, Target, Sliders, Activity, Star
 } from 'lucide-react';
 import { runAutoCalibration } from '../engine/optimizerEngine';
 
@@ -28,6 +29,8 @@ export default function BacktestOptimizerModal({
     const [selectedChampionId, setSelectedChampionId] = useState('BALANCED');
     const [showLeaderboard, setShowLeaderboard] = useState(false);
     const [leaderboardSort, setLeaderboardSort] = useState('fitness');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [archetypeFilter, setArchetypeFilter] = useState('ALL');
     const [appliedId, setAppliedId] = useState(null);
 
     // Auto-run calibration when modal opens
@@ -104,7 +107,23 @@ export default function BacktestOptimizerModal({
 
     const sortedLeaderboard = useMemo(() => {
         if (!calibResult?.leaderboard) return [];
-        const list = [...calibResult.leaderboard];
+        let list = [...calibResult.leaderboard];
+
+        // Filter by Archetype
+        if (archetypeFilter !== 'ALL') {
+            list = list.filter(c => c.archetype === archetypeFilter);
+        }
+
+        // Filter by Search Query
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            list = list.filter(c => 
+                (c.label || '').toLowerCase().includes(q) ||
+                (c.archetype || '').toLowerCase().includes(q)
+            );
+        }
+
+        // Sort
         if (leaderboardSort === 'winRate') {
             return list.sort((a, b) => (b.summary?.winRate ?? 0) - (a.summary?.winRate ?? 0));
         }
@@ -117,8 +136,16 @@ export default function BacktestOptimizerModal({
         if (leaderboardSort === 'drawdown') {
             return list.sort((a, b) => (a.summary?.maxDrawdownPct ?? 999) - (b.summary?.maxDrawdownPct ?? 999));
         }
+        if (leaderboardSort === 'oosRatio') {
+            return list.sort((a, b) => (b.walkForward?.efficiencyRatio ?? 0) - (a.walkForward?.efficiencyRatio ?? 0));
+        }
         return list.sort((a, b) => (b.fitness ?? 0) - (a.fitness ?? 0));
-    }, [calibResult, leaderboardSort]);
+    }, [calibResult, leaderboardSort, archetypeFilter, searchQuery]);
+
+    const selectedChampion = useMemo(() => {
+        if (!calibResult?.champions) return null;
+        return calibResult.champions.find(c => c.type === selectedChampionId) || calibResult.champions[0];
+    }, [calibResult, selectedChampionId]);
 
     if (!isOpen) return null;
 
@@ -200,20 +227,58 @@ export default function BacktestOptimizerModal({
                 ) : calibResult ? (
                     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
                         
-                        {/* Current Baseline vs Calibrated Champions Header */}
-                        <div className="flex items-center justify-between px-1">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold uppercase tracking-wider font-mono text-text-secondary">
-                                    Current Baseline vs. Optimal Calibrated Profiles
-                                </span>
+                        {/* 1. Institutional KPI Summary Ribbon */}
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 p-2.5 rounded-xl bg-background-surface/50 border border-border-subtle font-mono">
+                            <div className="flex items-center gap-2 px-2 border-r border-border-subtle/50">
+                                <Activity size={14} className="text-blue-400 shrink-0" />
+                                <div className="min-w-0">
+                                    <div className="text-[8px] text-text-tertiary uppercase truncate">Permutations Swept</div>
+                                    <div className="text-xs font-bold text-text-primary">{calibResult.totalScanned} Tested ({calibResult.elapsedMs}ms)</div>
+                                </div>
                             </div>
-                            <span className="text-[10px] text-text-muted">
-                                Select a champion profile to inspect its tuning and apply with 1-click
-                            </span>
+                            <div className="flex items-center gap-2 px-2 border-r border-border-subtle/50">
+                                <TrendingUp size={14} className="text-emerald-400 shrink-0" />
+                                <div className="min-w-0">
+                                    <div className="text-[8px] text-text-tertiary uppercase truncate">Peak Win Rate</div>
+                                    <div className="text-xs font-bold text-emerald-400">{calibResult.bestWinRate}%</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 px-2 border-r border-border-subtle/50">
+                                <Flame size={14} className="text-amber-400 shrink-0" />
+                                <div className="min-w-0">
+                                    <div className="text-[8px] text-text-tertiary uppercase truncate">Peak Profit Factor</div>
+                                    <div className="text-xs font-bold text-amber-400">{calibResult.bestProfitFactor}</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 px-2 border-r border-border-subtle/50">
+                                <ShieldCheck size={14} className="text-cyan-400 shrink-0" />
+                                <div className="min-w-0">
+                                    <div className="text-[8px] text-text-tertiary uppercase truncate">Lowest Drawdown</div>
+                                    <div className="text-xs font-bold text-cyan-400">-{calibResult.lowestDrawdown}%</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 px-2">
+                                <Award size={14} className="text-purple-400 shrink-0" />
+                                <div className="min-w-0">
+                                    <div className="text-[8px] text-text-tertiary uppercase truncate">Walk-Forward Validity</div>
+                                    <div className="text-xs font-bold text-purple-400">{calibResult.oosPassRate}% Robust</div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Benchmark Quad Grid (1 Baseline + 3 Calibrated Champions) */}
-                        <div className="grid grid-cols-4 gap-3">
+                        <div className="flex items-center justify-between px-1 mt-0.5">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold uppercase tracking-wider font-mono text-text-secondary">
+                                    Current Baseline vs. Calibrated Champions
+                                </span>
+                            </div>
+                            <span className="text-[10px] text-text-muted">
+                                Click any champion to inspect full parameters & apply
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                             
                             {/* Card 0: CURRENT BASELINE */}
                             <div className="p-3.5 rounded-xl bg-background-surface/40 border border-border-subtle flex flex-col justify-between">
@@ -230,7 +295,7 @@ export default function BacktestOptimizerModal({
                                         Uncalibrated Setup
                                     </h4>
                                     <p className="text-[10px] text-text-muted mt-0.5 leading-tight">
-                                        Current parameters running in your workshop.
+                                        Target: {activeConfig.exitRule?.targetPct ?? 2.5}%, Stop: {activeConfig.exitRule?.stopPct ?? 1.25}%, Horizon: {activeConfig.exitRule?.horizonBars ?? 14}b
                                     </p>
 
                                     {/* Metrics */}
@@ -256,8 +321,9 @@ export default function BacktestOptimizerModal({
                                     </div>
                                 </div>
 
-                                <div className="mt-3 pt-2 border-t border-border-subtle/40 text-[10px] text-text-muted font-mono">
-                                    Trades: {base.totalTrades ?? 0} ({base.wins ?? 0}W / {base.losses ?? 0}L)
+                                <div className="mt-3 pt-2 border-t border-border-subtle/40 text-[10px] text-text-muted font-mono flex items-center justify-between">
+                                    <span>Trades: {base.totalTrades ?? 0} ({base.wins ?? 0}W/{base.losses ?? 0}L)</span>
+                                    <span>Sharpe: {base.sharpeRatio ?? 0}</span>
                                 </div>
                             </div>
 
@@ -267,10 +333,13 @@ export default function BacktestOptimizerModal({
                                 const isApplied = appliedId === champ.type;
                                 const s = champ.summary || {};
                                 const d = champ.deltas || {};
+                                const wfe = Math.round((champ.walkForward?.efficiencyRatio || 1) * 100);
 
                                 const isBalanced = champ.type === 'BALANCED';
                                 const isSniper = champ.type === 'MAX_WIN_RATE';
                                 const isShield = champ.type === 'CAPITAL_SHIELD';
+
+                                const themeBorder = isBalanced ? 'border-blue-500/80 ring-1 ring-blue-500/40' : isSniper ? 'border-amber-500/80 ring-1 ring-amber-500/40' : 'border-emerald-500/80 ring-1 ring-emerald-500/40';
 
                                 return (
                                     <div
@@ -278,14 +347,15 @@ export default function BacktestOptimizerModal({
                                         onClick={() => setSelectedChampionId(champ.type)}
                                         className={`p-3.5 rounded-xl border flex flex-col justify-between transition cursor-pointer relative ${
                                             isSelected
-                                                ? 'bg-blue-600/10 border-blue-500 shadow-lg shadow-blue-500/10'
+                                                ? `bg-background-surface shadow-xl ${themeBorder}`
                                                 : 'bg-background-surface/70 border-border-subtle hover:border-border-default'
                                         }`}
                                     >
                                         {/* Highlight Badge */}
                                         {isBalanced && (
-                                            <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full text-[9px] font-mono font-black uppercase bg-emerald-500 text-black shadow">
-                                                ★ Top Pick
+                                            <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full text-[9px] font-mono font-black uppercase bg-blue-500 text-white shadow flex items-center gap-1">
+                                                <Star size={9} fill="currentColor" />
+                                                <span>Core Alpha</span>
                                             </span>
                                         )}
 
@@ -296,17 +366,17 @@ export default function BacktestOptimizerModal({
                                                 }`}>
                                                     {champ.badge}
                                                 </span>
-                                                {champ.isCurrentlyActive && (
-                                                    <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold flex items-center gap-1">
-                                                        <Check size={10} /> Active Setup
+                                                <div className="flex items-center gap-1">
+                                                    <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-purple-500/15 border border-purple-500/30 text-purple-300 font-bold" title="Walk-Forward Out-of-Sample Efficiency Ratio">
+                                                        WFE {wfe}%
                                                     </span>
-                                                )}
+                                                </div>
                                             </div>
 
-                                            <h4 className="text-xs font-black text-text-primary">
-                                                {champ.title}
+                                            <h4 className="text-xs font-black text-text-primary flex items-center justify-between">
+                                                <span>{champ.title}</span>
                                             </h4>
-                                            <p className="text-[10px] text-text-tertiary mt-0.5 leading-tight">
+                                            <p className="text-[10px] text-text-tertiary mt-0.5 leading-tight line-clamp-2">
                                                 {champ.tagline}
                                             </p>
 
@@ -366,11 +436,11 @@ export default function BacktestOptimizerModal({
                                                 <span className="text-[9px] font-mono uppercase tracking-wider text-text-tertiary font-bold">
                                                     Key Calibrations:
                                                 </span>
-                                                <ul className="text-[10px] text-text-secondary space-y-0.5">
+                                                <ul className="text-[10px] text-text-secondary space-y-0.5 min-h-[38px]">
                                                     {champ.tuningHighlights.slice(0, 2).map((h, idx) => (
                                                         <li key={idx} className="flex items-start gap-1 leading-tight">
                                                             <span className="text-accent-primary font-bold">•</span>
-                                                            <span>{h}</span>
+                                                            <span className="truncate">{h}</span>
                                                         </li>
                                                     ))}
                                                 </ul>
@@ -388,27 +458,24 @@ export default function BacktestOptimizerModal({
                                                 className={`w-full py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
                                                     isApplied
                                                         ? 'bg-emerald-600 text-white shadow-md'
-                                                        : champ.isCurrentlyActive
-                                                        ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25'
                                                         : isSelected
-                                                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/25'
+                                                        ? isBalanced
+                                                            ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/25'
+                                                            : isSniper
+                                                            ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-md shadow-amber-600/25'
+                                                            : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/25'
                                                         : 'bg-background-surface hover:bg-background-subtle border border-border-subtle text-text-primary'
                                                 }`}
                                             >
                                                 {isApplied ? (
                                                     <>
                                                         <Check size={13} className="animate-bounce" />
-                                                        <span>✓ Applied to Workshop!</span>
-                                                    </>
-                                                ) : champ.isCurrentlyActive ? (
-                                                    <>
-                                                        <Check size={13} className="text-emerald-400" />
-                                                        <span>Re-Apply Active Setup</span>
+                                                        <span>Applied to Workshop!</span>
                                                     </>
                                                 ) : (
                                                     <>
                                                         <Sparkles size={13} />
-                                                        <span>Apply Calibration</span>
+                                                        <span>Apply {champ.title.split(' ')[0]}</span>
                                                     </>
                                                 )}
                                             </button>
@@ -417,6 +484,135 @@ export default function BacktestOptimizerModal({
                                 );
                             })}
                         </div>
+
+                        {/* 2. Selected Champion Deep Dive & Parameter Comparison Inspector */}
+                        {selectedChampion && (
+                            <div className="border border-border-subtle rounded-xl p-3.5 bg-background-surface/40 flex flex-col gap-3">
+                                <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                                    <div className="flex items-center gap-2">
+                                        <Target size={15} className="text-accent-primary" />
+                                        <span className="text-xs font-bold uppercase tracking-wider font-mono text-text-primary">
+                                            Deep Parameter Comparison: {selectedChampion.title}
+                                        </span>
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold">
+                                            {selectedChampion.badge}
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleApply(selectedChampion)}
+                                        className="px-3 py-1 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                                    >
+                                        <CheckCircle2 size={13} />
+                                        <span>Apply This Setup Now</span>
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                                    {/* Left: Baseline Setup */}
+                                    <div className="p-3 rounded-lg bg-background-card/60 border border-border-subtle flex flex-col gap-2 font-mono">
+                                        <div className="text-[10px] uppercase font-bold text-text-muted border-b border-border-subtle/50 pb-1 flex justify-between">
+                                            <span>Current Baseline</span>
+                                            <span className="text-text-secondary">Uncalibrated</span>
+                                        </div>
+                                        <div className="space-y-1 text-[11px]">
+                                            <div className="flex justify-between">
+                                                <span className="text-text-tertiary">Exit Mechanism:</span>
+                                                <span className="text-text-primary font-bold">{activeConfig.exitRule?.type || 'TARGET_STOP'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-text-tertiary">Target / Stop:</span>
+                                                <span className="text-text-primary font-bold">{activeConfig.exitRule?.targetPct ?? 2.5}% / {activeConfig.exitRule?.stopPct ?? 1.25}%</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-text-tertiary">Theoretical R:R:</span>
+                                                <span className="text-text-primary font-bold">
+                                                    {activeConfig.exitRule?.stopPct ? (activeConfig.exitRule.targetPct / activeConfig.exitRule.stopPct).toFixed(1) : '—'}:1
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-text-tertiary">Breakeven Stop Lock:</span>
+                                                <span className="text-text-secondary">{activeConfig.exitRule?.lockBreakeven ? 'Active' : 'Disabled'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-text-tertiary">Conviction Filter:</span>
+                                                <span className="text-text-secondary">{activeConfig.minConfidence ? `≥ ${activeConfig.minConfidence}%` : 'Unfiltered'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-text-tertiary">Holding Horizon:</span>
+                                                <span className="text-text-secondary">{activeConfig.exitRule?.enableHorizonTimeout ? `${activeConfig.exitRule?.horizonBars || 14} bars` : 'Disabled (Pure Target)'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Center: Institutional Rationale & Diffs */}
+                                    <div className="p-3 rounded-lg bg-background-card/60 border border-border-subtle flex flex-col gap-2">
+                                        <div className="text-[10px] uppercase font-bold text-accent-primary border-b border-border-subtle/50 pb-1 flex justify-between font-mono">
+                                            <span>Calibration Vector</span>
+                                            <span>Institutional Tuning</span>
+                                        </div>
+                                        <ul className="text-[11px] text-text-secondary space-y-1.5 mt-0.5">
+                                            {selectedChampion.tuningHighlights.map((h, i) => (
+                                                <li key={i} className="flex items-start gap-1.5 leading-tight">
+                                                    <Check size={13} className="text-emerald-400 shrink-0 mt-0.5" />
+                                                    <span>{h}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        <div className="mt-auto pt-2 border-t border-border-subtle/40 flex items-center justify-between text-[10px] font-mono text-text-tertiary">
+                                            <span>OOS Robustness Ratio:</span>
+                                            <span className="text-purple-300 font-bold">
+                                                {selectedChampion.walkForward?.efficiencyRatio ? `${Math.round(selectedChampion.walkForward.efficiencyRatio * 100)}%` : '100%'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Right: Calibrated Champion Setup */}
+                                    <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/30 flex flex-col gap-2 font-mono">
+                                        <div className="text-[10px] uppercase font-bold text-blue-400 border-b border-blue-500/20 pb-1 flex justify-between">
+                                            <span>Calibrated Setup</span>
+                                            <span className="text-emerald-400 font-bold">+{selectedChampion.deltas?.netReturnPct ?? 0}% Net</span>
+                                        </div>
+                                        <div className="space-y-1 text-[11px]">
+                                            <div className="flex justify-between">
+                                                <span className="text-text-tertiary">Exit Mechanism:</span>
+                                                <span className="text-blue-300 font-bold">{selectedChampion.config?.exitRule?.type}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-text-tertiary">Target / Stop:</span>
+                                                <span className="text-emerald-400 font-bold">
+                                                    {selectedChampion.config?.exitRule?.targetPct}% / {selectedChampion.config?.exitRule?.stopPct}%
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-text-tertiary">Theoretical R:R:</span>
+                                                <span className="text-blue-300 font-bold">
+                                                    {selectedChampion.config?.exitRule?.stopPct ? (selectedChampion.config.exitRule.targetPct / selectedChampion.config.exitRule.stopPct).toFixed(1) : '—'}:1
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-text-tertiary">Breakeven Stop Lock:</span>
+                                                <span className={selectedChampion.config?.exitRule?.lockBreakeven ? 'text-emerald-400 font-bold' : 'text-text-secondary'}>
+                                                    {selectedChampion.config?.exitRule?.lockBreakeven ? 'Active (50% Target)' : 'Disabled'}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-text-tertiary">Conviction Filter:</span>
+                                                <span className={selectedChampion.config?.minConfidence ? 'text-emerald-400 font-bold' : 'text-text-secondary'}>
+                                                    {selectedChampion.config?.minConfidence ? `≥ ${selectedChampion.config.minConfidence}%` : 'Unfiltered'}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-text-tertiary">Holding Horizon:</span>
+                                                <span className="text-text-primary">
+                                                    {selectedChampion.config?.exitRule?.enableHorizonTimeout ? `${selectedChampion.config.exitRule.horizonBars} bars` : 'Disabled (Pure Target)'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* 3. Expandable Full Parameter Sweep Leaderboard */}
                         <div className="mt-1 border border-border-subtle rounded-xl overflow-hidden bg-background-surface/40">
@@ -427,26 +623,67 @@ export default function BacktestOptimizerModal({
                             >
                                 <div className="flex items-center gap-2">
                                     <BarChart2 size={14} className="text-accent-primary" />
-                                    <span>Full Parameter Sweep Leaderboard ({calibResult.leaderboard.length} Ranked Permutations)</span>
+                                    <span>Full Parameter Sweep Matrix ({sortedLeaderboard.length} of {calibResult.leaderboard.length} Permutations)</span>
                                 </div>
                                 <div className="flex items-center gap-1 text-[11px] text-text-tertiary">
-                                    <span>{showLeaderboard ? 'Collapse' : 'Expand Table'}</span>
+                                    <span>{showLeaderboard ? 'Collapse Matrix' : 'Explore Sweep Matrix'}</span>
                                     {showLeaderboard ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                 </div>
                             </button>
 
                             {showLeaderboard && (
-                                <div className="p-3 border-t border-border-subtle">
-                                    {/* Sort Bar */}
-                                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-border-subtle text-xs">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-[10px] text-text-tertiary uppercase font-mono">Rank By:</span>
+                                <div className="p-3 border-t border-border-subtle flex flex-col gap-2.5">
+                                    {/* Search & Archetype Filter Bar */}
+                                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-border-subtle text-xs">
+                                        <div className="flex items-center gap-1.5 flex-1 min-w-[200px] max-w-sm bg-background-card rounded-lg px-2.5 py-1 border border-border-subtle">
+                                            <Search size={12} className="text-text-tertiary" />
+                                            <input
+                                                type="text"
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                placeholder="Filter parameters (e.g. BE Lock, 2.0:1, Trail)..."
+                                                className="bg-transparent border-none outline-none text-xs text-text-primary w-full placeholder:text-text-muted"
+                                            />
+                                            {searchQuery && (
+                                                <button onClick={() => setSearchQuery('')} className="text-text-tertiary hover:text-text-primary">
+                                                    <X size={12} />
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Archetype Filter Tabs */}
+                                        <div className="flex items-center gap-1">
                                             {[
-                                                { id: 'fitness', label: 'Overall Fitness' },
+                                                { id: 'ALL', label: 'All' },
+                                                { id: 'TARGET_STOP', label: 'Pure Target/Stop' },
+                                                { id: 'BREAKEVEN_LOCK', label: 'BE Lock' },
+                                                { id: 'TRAILING_STOP', label: 'Trailing Stop' },
+                                                { id: 'ADAPTIVE_HORIZON', label: 'Safety Horizon' },
+                                            ].map(f => (
+                                                <button
+                                                    key={f.id}
+                                                    onClick={() => setArchetypeFilter(f.id)}
+                                                    className={`px-2 py-0.5 rounded text-[10px] font-mono transition cursor-pointer ${
+                                                        archetypeFilter === f.id
+                                                            ? 'bg-accent-primary/20 text-accent-primary border border-accent-primary/40 font-bold'
+                                                            : 'text-text-tertiary hover:text-text-primary bg-background-surface border border-transparent'
+                                                    }`}
+                                                >
+                                                    {f.label}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Sort Options */}
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[10px] text-text-tertiary uppercase font-mono">Sort:</span>
+                                            {[
+                                                { id: 'fitness', label: 'Fitness' },
                                                 { id: 'winRate', label: 'Win Rate' },
-                                                { id: 'profitFactor', label: 'Profit Factor' },
+                                                { id: 'profitFactor', label: 'PF' },
                                                 { id: 'netReturnPct', label: 'Net Return' },
-                                                { id: 'drawdown', label: 'Lowest Drawdown' },
+                                                { id: 'drawdown', label: 'Max DD' },
+                                                { id: 'oosRatio', label: 'WFE' },
                                             ].map(s => (
                                                 <button
                                                     key={s.id}
@@ -463,16 +700,18 @@ export default function BacktestOptimizerModal({
                                         </div>
                                     </div>
 
-                                    <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                                    {/* Table */}
+                                    <div className="max-h-[260px] overflow-y-auto custom-scrollbar">
                                         <table className="w-full text-left text-xs border-collapse font-sans">
                                             <thead>
-                                                <tr className="border-b border-border-subtle text-text-tertiary text-[10px] uppercase font-mono">
-                                                    <th className="pb-1.5 font-bold">Candidate Parameters</th>
+                                                <tr className="border-b border-border-subtle text-text-tertiary text-[10px] uppercase font-mono sticky top-0 bg-background-card z-10">
+                                                    <th className="pb-1.5 font-bold">Candidate Permutation</th>
                                                     <th className="pb-1.5 font-bold text-center">Trades</th>
                                                     <th className="pb-1.5 font-bold text-right">Win Rate</th>
-                                                    <th className="pb-1.5 font-bold text-right">Profit Factor</th>
+                                                    <th className="pb-1.5 font-bold text-right">PF</th>
                                                     <th className="pb-1.5 font-bold text-right">Net Return</th>
                                                     <th className="pb-1.5 font-bold text-right">Max DD</th>
+                                                    <th className="pb-1.5 font-bold text-center">WFE</th>
                                                     <th className="pb-1.5 font-bold text-center">Action</th>
                                                 </tr>
                                             </thead>
@@ -480,8 +719,8 @@ export default function BacktestOptimizerModal({
                                                 {sortedLeaderboard.map((cand, idx) => (
                                                     <tr key={cand.id} className="hover:bg-background-surface/50 transition">
                                                         <td className="py-1.5 font-sans font-bold text-text-primary truncate max-w-[280px]">
-                                                            <span className="text-text-muted mr-1.5">#{idx + 1}</span>
-                                                            {cand.label}
+                                                            <span className="text-text-muted mr-1.5 font-mono">#{idx + 1}</span>
+                                                            <span>{cand.label}</span>
                                                         </td>
                                                         <td className="py-1.5 text-center text-text-tertiary text-[10px]">
                                                             {cand.summary?.totalTrades} ({cand.summary?.wins}W/{cand.summary?.losses}L)
@@ -503,6 +742,9 @@ export default function BacktestOptimizerModal({
                                                         </td>
                                                         <td className="py-1.5 text-right font-black text-rose-400">
                                                             -{cand.summary?.maxDrawdownPct}%
+                                                        </td>
+                                                        <td className="py-1.5 text-center text-[10px] text-purple-300 font-bold">
+                                                            {Math.round((cand.walkForward?.efficiencyRatio || 1) * 100)}%
                                                         </td>
                                                         <td className="py-1.5 text-center">
                                                             {appliedId === cand.id ? (

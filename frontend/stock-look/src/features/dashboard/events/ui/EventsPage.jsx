@@ -297,6 +297,7 @@ export default function EventsPage() {
             <AdvancedNewsFeed
                 newsItems={activeEvents}
                 searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
                 sortMode={sortMode}
                 onReset={handleReset}
                 onDeleteEvent={handleDeleteEvent}

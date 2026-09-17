@@ -5,8 +5,9 @@
  */
 
 import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-    ArrowLeft, FlaskConical, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen 
+    ArrowLeft, FlaskConical, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, SlidersHorizontal, Cpu 
 } from 'lucide-react';
 import praxisLogo from '@/assets/icons/praxis logo 2 bgless.png';
 
@@ -21,7 +22,11 @@ export default function BacktestHeader({
     isRightOpen = true,
     onToggleLeft = () => {},
     onToggleRight = () => {},
+    onOpenFinetune = () => {},
 }) {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const isStrategyPage = location.pathname.includes('/backtest/strategy');
     return (
         <header className="h-[56px] w-full max-w-full border-b border-border-subtle bg-background-card/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 z-30 select-none overflow-hidden">
             {/* Left: Brand, Panel Toggle & Workshop Badge */}
@@ -49,9 +54,40 @@ export default function BacktestHeader({
 
                 <div className="h-4 w-px bg-border-subtle mx-1" />
 
-                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold">
-                    <FlaskConical size={13} className="text-blue-400" />
-                    <span>Backtesting Workshop</span>
+                <div className="flex items-center gap-1 bg-background-surface/80 p-0.5 rounded-lg border border-border-subtle">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/backtest')}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                            !isStrategyPage
+                                ? 'bg-blue-600 text-white shadow-xs'
+                                : 'text-text-tertiary hover:text-text-primary'
+                        }`}
+                    >
+                        <FlaskConical size={12} />
+                        <span>Backtest Workshop</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => navigate('/backtest/strategy')}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                            isStrategyPage
+                                ? 'bg-blue-600 text-white shadow-xs'
+                                : 'text-text-tertiary hover:text-text-primary'
+                        }`}
+                    >
+                        <SlidersHorizontal size={12} />
+                        <span>Strategy Builder</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onOpenFinetune}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/15 transition cursor-pointer border border-indigo-500/20"
+                        title="AI Foundation Model Auto-Fine-Tuning Studio"
+                    >
+                        <Cpu size={12} />
+                        <span>Model Fine-Tuning</span>
+                    </button>
                 </div>
 
                 {/* Walk-forward badge */}

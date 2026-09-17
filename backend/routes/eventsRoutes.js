@@ -24,13 +24,16 @@ router.get("/", (req, res) => {
         const formatted = rows.map(r => {
             let assets = [];
             let keyPoints = [];
+            let hashtags = [];
             if (r.affected_assets) { try { assets = JSON.parse(r.affected_assets); } catch (e) { assets = []; } }
             if (r.key_data_points)  { try { keyPoints = JSON.parse(r.key_data_points); } catch (e) { keyPoints = []; } }
+            if (r.hashtags)         { try { hashtags = JSON.parse(r.hashtags); } catch (e) { hashtags = []; } }
             return {
                 ...r,
                 created_at:     r.created_at ? (r.created_at.includes('Z') ? r.created_at : r.created_at.replace(' ', 'T') + 'Z') : new Date().toISOString(),
                 affected_assets: assets,
-                key_data_points: keyPoints
+                key_data_points: keyPoints,
+                hashtags:       hashtags
             };
         });
         
@@ -69,7 +72,7 @@ router.post("/preview", async (req, res) => {
             systemInstruction: systemPrompt,
             jsonMode:          true,
             temperature:       0.1,
-            maxTokens:         900
+            maxTokens:         2048
         };
 
         const result = await aiGateway.process(aiRequest);
@@ -100,8 +103,8 @@ router.post("/preview", async (req, res) => {
         // Step 5: Inject auto-detected instrument type if AI didn't return it
         if (!rawAiData.instrument_type) rawAiData.instrument_type = instrumentType;
 
-        // Step 6: Validate, sanitize, and compute PES-7 score deterministically
-        const { valid, errors, sanitized } = validateAndSanitizeEvent(rawAiData);
+        // Step 6: Validate, sanitize, and compute PES-7 score deterministically (passing original headline)
+        const { valid, errors, sanitized } = validateAndSanitizeEvent(rawAiData, headline);
         
         if (!valid) {
             console.warn("[Events Preview] AI output had validation issues:", errors);
@@ -136,13 +139,16 @@ function broadcastEventsUpdated() {
         const formatted = rows.map(r => {
             let assets = [];
             let keyPoints = [];
+            let hashtags = [];
             if (r.affected_assets) { try { assets = JSON.parse(r.affected_assets); } catch (e) { assets = []; } }
             if (r.key_data_points)  { try { keyPoints = JSON.parse(r.key_data_points); } catch (e) { keyPoints = []; } }
+            if (r.hashtags)         { try { hashtags = JSON.parse(r.hashtags); } catch (e) { hashtags = []; } }
             return {
                 ...r,
                 created_at:     r.created_at ? (r.created_at.includes('Z') ? r.created_at : r.created_at.replace(' ', 'T') + 'Z') : new Date().toISOString(),
                 affected_assets: assets,
-                key_data_points: keyPoints
+                key_data_points: keyPoints,
+                hashtags:       hashtags
             };
         });
 
@@ -163,15 +169,15 @@ router.post("/confirm", (req, res) => {
 
     try {
         // Re-validate and re-compute score on backend before saving (never trust client-sent score)
-        const { sanitized } = validateAndSanitizeEvent(data);
+        const { sanitized } = validateAndSanitizeEvent(data, data.headline);
 
         const stmt = db.prepare(`
             INSERT INTO market_events (
                 headline, summary, category, sub_category, source, 
                 sentiment, importance, severity, override_mode, 
                 confidence, affected_assets, event_score, horizon, reasoning,
-                instrument_type, key_data_points, ttl_hours
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                instrument_type, key_data_points, ttl_hours, hashtags
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         
         const info = stmt.run(
@@ -191,7 +197,8 @@ router.post("/confirm", (req, res) => {
             sanitized.reasoning     || null,
             sanitized.instrument_type || "INDICES",
             sanitized.key_data_points ? JSON.stringify(sanitized.key_data_points) : "[]",
-            sanitized.ttl_hours     || 72
+            sanitized.ttl_hours     || 72,
+            sanitized.hashtags && sanitized.hashtags.length > 0 ? JSON.stringify(sanitized.hashtags) : "[]"
         );
 
         // Broadcast to all connected clients immediately so toasts fire on all open pages

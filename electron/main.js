@@ -1,9 +1,11 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
+const fs = require("fs");
 const { spawn } = require("child_process");
 
 let mainWindow;
 let backendProcess;
+let ensembleProcess;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -28,6 +30,26 @@ function createWindow() {
     });
 }
 
+function startEnsemble() {
+    console.log("Starting Python foundation model ensemble service (Kronos & Chronos-Bolt)...");
+    const researchDir = path.resolve(__dirname, "../../praxis-research");
+    const pythonExe = path.join(researchDir, ".venv", "Scripts", "python.exe");
+    const runScript = path.join(researchDir, "run_ensemble.py");
+
+    if (fs.existsSync(pythonExe) && fs.existsSync(runScript)) {
+        ensembleProcess = spawn(pythonExe, [runScript], {
+            stdio: "inherit",
+            cwd: researchDir
+        });
+
+        ensembleProcess.on("close", (code) => {
+            console.log(`Ensemble process exited with code ${code}`);
+        });
+    } else {
+        console.warn("Python venv or run_ensemble.py not found at:", researchDir);
+    }
+}
+
 function startBackend() {
     console.log("Starting backend Express server...");
     
@@ -46,10 +68,11 @@ function startBackend() {
 }
 
 app.on("ready", () => {
+    startEnsemble();
     startBackend();
     
-    // Give the backend a second to boot up
-    setTimeout(createWindow, 1500);
+    // Give services a moment to boot up
+    setTimeout(createWindow, 2000);
 });
 
 app.on("window-all-closed", function () {
@@ -65,9 +88,13 @@ app.on("activate", function () {
 });
 
 app.on("before-quit", () => {
-    // Kill the backend child process when Electron closes
+    // Kill child processes when Electron closes
     if (backendProcess) {
         console.log("Shutting down backend...");
         backendProcess.kill();
+    }
+    if (ensembleProcess) {
+        console.log("Shutting down Python ensemble service...");
+        ensembleProcess.kill();
     }
 });

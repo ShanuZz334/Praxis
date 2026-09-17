@@ -18,18 +18,18 @@
 | 14 | Policy Stance | Fundamentals | Manual | Index Only |
 | 15 | Fiscal Deficit | Fundamentals | Manual | Index Only |
 | 16 | Current Account | Fundamentals | Manual | Index Only |
-| 17 | FII Flow | Fundamentals | Manual | Index Only |
-| 18 | DII Flow | Fundamentals | Manual | Index Only |
-| 19 | FII Trend | Fundamentals | Manual | Index Only |
-| 20 | Advance / Decline | Fundamentals | Manual | Index Only |
+| 17 | FII Flow | Fundamentals | Auto (Live NSE) / Manual | Index Only |
+| 18 | DII Flow | Fundamentals | Auto (Live NSE) / Manual | Index Only |
+| 19 | FII Trend | Fundamentals | Auto (Live SQLite) / Manual | Index Only |
+| 20 | Advance / Decline | Fundamentals | Auto (Live NSE) / Manual | Index Only |
 | 21 | Sector Valuation | Fundamentals | Manual | Index Only |
 | 24 | Sector Growth | Fundamentals | Manual | Index Only |
 | 25 | Sector Concentration | Fundamentals | Manual | Index Only |
 | 26 | Cyclical / Defensive | Fundamentals | Manual | Index Only |
 | 27 | MACD Momentum | Fundamentals | Manual | Index Only |
 | 28 | 200 DMA Stretch | Fundamentals | Manual | Index Only |
-| 29 | Credit Growth | Fundamentals | Manual | Index Only |
-| 30 | Corporate Debt | Fundamentals | Manual | Index Only |
+| 29 | Credit Growth | Fundamentals | Auto (FRED/RBI) / Manual | Index Only |
+| 30 | Corporate Debt | Fundamentals | Auto (FRED/RBI) / Manual | Index Only |
 | 31 | Policy Tailwinds | Fundamentals | Manual | Index Only |
 | 32 | India VIX | Fundamentals | Auto | Index Only |
 | 33 | Crude Oil | Fundamentals | Manual | Index Only |
@@ -141,3 +141,9 @@
 | 142 | Backtest Interactive Replay Chart | Backtesting Workshop | Lightweight Charts v5 | Both |
 | 143 | Backtest Live Performance Scorecard & Event Log | Backtesting Workshop | Auto (Engine) | Both |
 | 144 | Backtest Equity Curve & Drawdown Analysis | Backtesting Workshop | Auto (Engine) | Both |
+| 145 | Custom Indicator Lab & Sandboxed Compiler | Backtesting Workshop | Auto (Node.js VM) | Both |
+| 146 | Multi-Factor Strategy Builder & Rule Canvas | Strategy Builder | Auto (Confluence Engine) | Both |
+| 147 | Live Chart Strategy Signals & Arrow Markers | Chart Section | Auto (Confluence Engine) | Both |
+| 148 | Live Chart Custom Plotted Lab Indicators | Chart Section | Auto (Node.js Sandbox) | Both |
+| 149 | Dynamic & Detachable Testable Units Grid | Backtesting Workshop | Dynamic Registry (localStorage) | Both |
+| 150 | AI Foundation Model Auto-Fine-Tuning Studio & Audit History | Backtesting Workshop | Auto (SQLite / PyTorch Subprocess) | Both |

@@ -8,8 +8,11 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
     Award, TrendingUp, AlertTriangle, ShieldCheck, Download, 
     Layers, Cpu, ArrowUpRight, ArrowDownRight, Table, BarChart2,
-    GitCompare, RotateCcw, Trash2, X, Check, History, Zap, Activity
+    GitCompare, RotateCcw, Trash2, X, Check, History, Zap, Activity,
+    Sparkles, Stethoscope, Target, OctagonAlert, Clock, Scale, Bell
 } from 'lucide-react';
+import BacktestWalkthroughSection from './BacktestWalkthroughSection';
+import { computeExecutiveVerdict, evaluateStyleSuitability } from '../engine/backtestWalkthroughEngine';
 
 function formatTimeIso(t) {
     if (!t) return '';
@@ -37,6 +40,7 @@ function formatRunTimestamp(ts) {
 
 export default function BacktestScorecard({
     summary = {},
+    config = {},
     calibration = [],
     walkForward = null,
     trades = [],
@@ -56,7 +60,10 @@ export default function BacktestScorecard({
         } catch (e) {
             return 'METRICS';
         }
-    }); // 'METRICS' | 'CALIBRATION' | 'LOG' | 'RUNS'
+    }); // 'METRICS' | 'DIAGNOSIS' | 'CALIBRATION' | 'LOG' | 'RUNS'
+
+    const miniVerdict = useMemo(() => computeExecutiveVerdict(summary, config), [summary, config]);
+    const miniStyle = useMemo(() => evaluateStyleSuitability(summary, config), [summary, config]);
 
     const [exitFilter, setExitFilter] = useState(() => {
         try {
@@ -81,6 +88,101 @@ export default function BacktestScorecard({
             /* silent */
         }
     }, [exitFilter]);
+
+    const [calibBinning, setCalibBinning] = useState(() => {
+        try {
+            return localStorage.getItem('praxis_backtest_scorecard_calib_mode') || 'ADAPTIVE';
+        } catch (e) {
+            return 'ADAPTIVE';
+        }
+    }); // 'ADAPTIVE' | 'FIXED'
+
+    const [calibProbability, setCalibProbability] = useState(() => {
+        try {
+            return localStorage.getItem('praxis_backtest_scorecard_calib_prob') || 'CALIBRATED';
+        } catch (e) {
+            return 'CALIBRATED';
+        }
+    }); // 'CALIBRATED' | 'RAW'
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('praxis_backtest_scorecard_calib_mode', calibBinning);
+        } catch (e) {
+            /* silent */
+        }
+    }, [calibBinning]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('praxis_backtest_scorecard_calib_prob', calibProbability);
+        } catch (e) {
+            /* silent */
+        }
+    }, [calibProbability]);
+
+    const activeBuckets = useMemo(() => {
+        const source = calibProbability === 'CALIBRATED'
+            ? (calibration?.calibrated || calibration)
+            : (calibration?.raw || calibration);
+
+        if (calibBinning === 'ADAPTIVE') {
+            if (source?.adaptive && source.adaptive.length > 0) return source.adaptive;
+            if (calibration?.adaptive && calibration.adaptive.length > 0) return calibration.adaptive;
+        } else {
+            if (source?.fixed && source.fixed.length > 0) return source.fixed;
+            if (calibration?.fixed && calibration.fixed.length > 0) return calibration.fixed;
+        }
+        return Array.isArray(source) ? source : Array.isArray(calibration) ? calibration : [];
+    }, [calibration, calibBinning, calibProbability]);
+
+    const calibSummary = useMemo(() => {
+        const source = calibProbability === 'CALIBRATED'
+            ? (calibration?.calibrated || calibration)
+            : (calibration?.raw || calibration);
+
+        const summaryObj = calibBinning === 'ADAPTIVE'
+            ? source?.summary?.adaptive
+            : source?.summary?.fixed;
+
+        if (summaryObj) return summaryObj;
+
+        let cal = 0, over = 0, under = 0, tent = 0, insuff = 0, noTr = 0;
+        activeBuckets.forEach(b => {
+            if (b.status === 'CALIBRATED') cal++;
+            else if (b.status === 'OVERCONFIDENT') over++;
+            else if (b.status === 'UNDERCONFIDENT') under++;
+            else if (b.status === 'TENTATIVE') tent++;
+            else if (b.status === 'NO_TRADES') noTr++;
+            else if (b.sampleSize >= 20) {
+                if (b.actualWinRate !== null && Math.abs(b.actualWinRate - b.predictedWinRate) <= 8) cal++;
+                else if (b.actualWinRate !== null && b.predictedWinRate - b.actualWinRate > 8) over++;
+                else under++;
+            } else if (b.sampleSize === 0) {
+                noTr++;
+            } else {
+                insuff++;
+            }
+        });
+        return { calibrated: cal, overconfident: over, underconfident: under, tentative: tent, insufficient: insuff, noTrades: noTr };
+    }, [activeBuckets, calibration, calibBinning, calibProbability]);
+
+    const currentEce = useMemo(() => {
+        if (calibProbability === 'CALIBRATED') {
+            return calibration?.ece?.calibrated ?? calibration?.calibrated?.ece ?? 0;
+        }
+        return calibration?.ece?.raw ?? calibration?.raw?.ece ?? 0;
+    }, [calibration, calibProbability]);
+
+    const currentBrier = useMemo(() => {
+        if (calibProbability === 'CALIBRATED') {
+            return calibration?.brierScore?.calibrated ?? calibration?.calibrated?.brierScore ?? 0.25;
+        }
+        return calibration?.brierScore?.raw ?? calibration?.raw?.brierScore ?? 0.25;
+    }, [calibration, calibProbability]);
+
+    const exhaustionAnomaly = calibration?.exhaustionAnomaly;
+
     const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
     const [restoredRunId, setRestoredRunId] = useState(null);
     const [matrixSortBy, setMatrixSortBy] = useState('timestamp'); // 'timestamp' | 'winRate' | 'profitFactor' | 'netReturnPct' | 'drawdown'
@@ -216,67 +318,82 @@ export default function BacktestScorecard({
 
     return (
         <aside className="w-[380px] xl:w-[410px] flex-shrink-0 bg-background-card border-l border-border-subtle h-full overflow-y-auto overflow-x-hidden p-4 pb-12 flex flex-col gap-4 text-xs select-none custom-scrollbar">
-            {/* Header with Navigation Tabs */}
-            <div className="flex items-center justify-between border-b border-border-subtle pb-2.5 min-w-0">
-                <div className="flex items-center gap-1.5 min-w-0">
-                    <Award size={16} className="text-amber-400 shrink-0" />
-                    <span className="font-bold text-text-primary uppercase tracking-wider text-xs font-mono shrink-0">
+            {/* Header Title (Aligned with Test Configuration header) */}
+            <div className="flex items-center justify-between pb-2 border-b border-border-subtle/60">
+                <div className="flex items-center gap-2">
+                    <Award size={14} className="text-amber-400" />
+                    <span className="font-bold text-text-primary uppercase tracking-wider text-xs font-mono">
                         Scorecard
                     </span>
                 </div>
-
-                <div className="flex items-center gap-1.5 min-w-0">
-                    <div className="flex items-center gap-0.5 bg-background-surface p-1 rounded-lg border border-border-subtle shrink-0">
-                        <button
-                            onClick={() => setActiveTab('METRICS')}
-                            className={`px-2 py-1 text-[10px] font-bold rounded-md transition cursor-pointer ${
-                                activeTab === 'METRICS'
-                                    ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
-                                    : 'text-text-tertiary hover:text-text-primary border border-transparent'
-                            }`}
-                        >
-                            Metrics
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('CALIBRATION')}
-                            className={`px-2 py-1 text-[10px] font-bold rounded-md transition cursor-pointer ${
-                                activeTab === 'CALIBRATION'
-                                    ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
-                                    : 'text-text-tertiary hover:text-text-primary border border-transparent'
-                            }`}
-                        >
-                            Calib
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('LOG')}
-                            className={`px-2 py-1 text-[10px] font-bold rounded-md transition cursor-pointer ${
-                                activeTab === 'LOG'
-                                    ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
-                                    : 'text-text-tertiary hover:text-text-primary border border-transparent'
-                            }`}
-                        >
-                            Log
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('RUNS')}
-                            className={`px-2 py-1 text-[10px] font-bold rounded-md transition cursor-pointer flex items-center gap-1 ${
-                                activeTab === 'RUNS'
-                                    ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
-                                    : 'text-text-tertiary hover:text-text-primary border border-transparent'
-                            }`}
-                            title="Saved Runs & Comparisons"
-                        >
-                            <span>Runs</span>
-                            {savedRuns.length > 0 && (
-                                <span className={`px-1 rounded text-[9px] font-mono font-bold ${
-                                    activeTab === 'RUNS' ? 'bg-white/25 text-white' : 'bg-background-card text-accent-primary'
-                                }`}>
-                                    {savedRuns.length}
-                                </span>
-                            )}
-                        </button>
-                    </div>
+                <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-text-tertiary bg-background-surface px-2 py-0.5 rounded border border-border-subtle/50 font-mono">
+                        {summary?.totalTrades ?? 0} Trades
+                    </span>
                 </div>
+            </div>
+
+            {/* Navigation Tabs Bar */}
+            <div className="flex items-center bg-background-surface/80 p-1 rounded-lg border border-border-subtle w-full gap-1">
+                <button
+                    onClick={() => setActiveTab('METRICS')}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition cursor-pointer text-center ${
+                        activeTab === 'METRICS'
+                            ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
+                            : 'text-text-tertiary hover:text-text-primary border border-transparent'
+                    }`}
+                >
+                    Metrics
+                </button>
+                <button
+                    onClick={() => setActiveTab('DIAGNOSIS')}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition cursor-pointer flex items-center justify-center gap-1 ${
+                        activeTab === 'DIAGNOSIS'
+                            ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
+                            : 'text-text-tertiary hover:text-text-primary border border-transparent'
+                    }`}
+                >
+                    <Sparkles size={11} className={miniVerdict.color === 'emerald' ? 'text-emerald-400' : miniVerdict.color === 'amber' ? 'text-amber-400' : 'text-rose-400'} />
+                    <span>Diagnosis</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab('CALIBRATION')}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition cursor-pointer text-center ${
+                        activeTab === 'CALIBRATION'
+                            ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
+                            : 'text-text-tertiary hover:text-text-primary border border-transparent'
+                    }`}
+                >
+                    Calib
+                </button>
+                <button
+                    onClick={() => setActiveTab('LOG')}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition cursor-pointer text-center ${
+                        activeTab === 'LOG'
+                            ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
+                            : 'text-text-tertiary hover:text-text-primary border border-transparent'
+                    }`}
+                >
+                    Log
+                </button>
+                <button
+                    onClick={() => setActiveTab('RUNS')}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition cursor-pointer flex items-center justify-center gap-1 ${
+                        activeTab === 'RUNS'
+                            ? 'bg-blue-600 text-white shadow-sm border border-blue-500'
+                            : 'text-text-tertiary hover:text-text-primary border border-transparent'
+                    }`}
+                    title="Saved Runs & Comparisons"
+                >
+                    <span>Runs</span>
+                    {savedRuns.length > 0 && (
+                        <span className={`px-1 rounded text-[9px] font-mono font-bold ${
+                            activeTab === 'RUNS' ? 'bg-white/25 text-white' : 'bg-background-card text-accent-primary'
+                        }`}>
+                            {savedRuns.length}
+                        </span>
+                    )}
+                </button>
             </div>
 
             {/* Guardrail Warning Banner */}
@@ -293,6 +410,36 @@ export default function BacktestScorecard({
             {/* TAB 1: METRICS VIEW */}
             {activeTab === 'METRICS' && (
                 <div className="flex flex-col gap-3">
+                    {/* Quick Strategic Diagnosis Strip */}
+                    <div 
+                        onClick={() => setActiveTab('DIAGNOSIS')}
+                        className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition hover:opacity-90 ${
+                            miniVerdict.color === 'emerald' 
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                                : miniVerdict.color === 'amber'
+                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                        }`}
+                        title="Click to view full Walkthrough & Diagnosis"
+                    >
+                        <div className="flex items-center gap-2 min-w-0">
+                            <div className={`w-2 h-2 rounded-full shrink-0 ${
+                                miniVerdict.color === 'emerald' ? 'bg-emerald-400 animate-pulse' : miniVerdict.color === 'amber' ? 'bg-amber-400' : 'bg-rose-400 animate-pulse'
+                            }`} />
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-[9px] font-black font-mono uppercase tracking-wider truncate">
+                                    {miniVerdict.badgeText}
+                                </span>
+                                <span className="text-[10px] text-text-secondary truncate mt-0.2">
+                                    {miniStyle.detectedStyle}: {miniStyle.viabilityStatus.replace(/_/g, ' ')} ({summary.expectancy >= 0 ? '+' : ''}{summary.expectancy}% exp)
+                                </span>
+                            </div>
+                        </div>
+                        <span className="text-[10px] font-bold underline font-sans shrink-0 ml-2">
+                            Walkthrough &rarr;
+                        </span>
+                    </div>
+
                     {/* Primary Institutional Quad Grid */}
                     <div className="grid grid-cols-2 gap-2">
                         {/* Win Rate */}
@@ -570,11 +717,16 @@ export default function BacktestScorecard({
                                     const isTrail = e.reason === 'TRAILING_STOP';
                                     const isBreakeven = e.reason === 'BREAKEVEN';
                                     const isEod = e.reason === 'EOD_SQUAREOFF';
-                                    const label = isTarget ? '🎯 Target Hit' : isStop ? '🛑 Stop Hit' : isHorizon ? '⏳ Horizon Expiry' : isTrail ? '⚡ Trailing Stop' : isBreakeven ? '⚖️ Breakeven Stop' : isEod ? '🔔 EOD Square-Off' : e.reason;
+                                    const label = isTarget ? 'Target Hit' : isStop ? 'Stop Hit' : isHorizon ? 'Horizon Expiry' : isTrail ? 'Trailing Stop' : isBreakeven ? 'Breakeven Stop' : isEod ? 'EOD Square-Off' : e.reason;
+                                    const IconComponent = isTarget ? Target : isStop ? OctagonAlert : isHorizon ? Clock : isTrail ? Zap : isBreakeven ? Scale : isEod ? Bell : Activity;
+                                    const iconColor = isTarget ? 'text-emerald-400' : isStop ? 'text-rose-400' : isHorizon ? 'text-amber-400' : isTrail ? 'text-blue-400' : isBreakeven ? 'text-purple-400' : isEod ? 'text-orange-400' : 'text-text-secondary';
                                     return (
                                         <div key={e.reason} className="bg-background-app/70 p-2 rounded-lg border border-border-subtle/60 flex flex-col gap-1">
                                             <div className="flex justify-between items-center text-[11px]">
-                                                <span className="font-bold text-text-primary">{label}</span>
+                                                <span className="font-bold text-text-primary flex items-center gap-1.5">
+                                                    <IconComponent size={12} className={iconColor} />
+                                                    <span>{label}</span>
+                                                </span>
                                                 <span className="font-mono font-bold text-text-secondary">
                                                     {e.count} <span className="text-text-muted text-[10px]">({e.pctOfTotal}%)</span>
                                                 </span>
@@ -615,7 +767,7 @@ export default function BacktestScorecard({
                                                 title="Immediately switches to pure Target/Stop exit mode with premature timeout disabled"
                                             >
                                                 <Check size={12} className="text-emerald-400" />
-                                                <span>⚡ 1-Click Plug: Disable Timeout & Run Target/Stop</span>
+                                                <span>1-Click Plug: Disable Timeout & Run Target/Stop</span>
                                             </button>
                                         )}
                                         {onOpenOptimizer && (
@@ -636,43 +788,212 @@ export default function BacktestScorecard({
                 </div>
             )}
 
+            {/* TAB: DIAGNOSIS & WALKTHROUGH */}
+            {activeTab === 'DIAGNOSIS' && (
+                <BacktestWalkthroughSection
+                    summary={summary}
+                    config={config}
+                    trades={trades}
+                    onOpenOptimizer={onOpenOptimizer}
+                />
+            )}
+
             {/* TAB 2: CALIBRATION VIEW (Crucial for AI Trust) */}
             {activeTab === 'CALIBRATION' && (
                 <div className="flex flex-col gap-3">
                     <div className="bg-background-surface/80 p-3 rounded-xl border border-border-subtle">
-                        <span className="font-bold text-text-primary text-xs block mb-1">
-                            AI Confidence Calibration
-                        </span>
-                        <p className="text-[11px] text-text-tertiary leading-relaxed">
-                            Evaluates whether high-confidence predictions resolve favorably in practice. Buckets require N ≥ 20 samples for statistical validity.
+                        <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                            <span className="font-bold text-text-primary text-xs">
+                                AI Confidence Calibration
+                            </span>
+
+                            {/* Dual Mode Selectors */}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                {/* Probability Mode: Calibrated vs Raw */}
+                                <div className="flex items-center bg-background-app p-0.5 rounded-lg border border-border-subtle text-[10px]">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCalibProbability('CALIBRATED')}
+                                        className={`px-2 py-0.5 rounded font-medium transition cursor-pointer ${
+                                            calibProbability === 'CALIBRATED'
+                                                ? 'bg-emerald-600 text-white shadow-sm font-semibold'
+                                                : 'text-text-tertiary hover:text-text-secondary'
+                                        }`}
+                                        title="Empirically calibrated true probabilities (~43%–51%)"
+                                    >
+                                        Calibrated
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCalibProbability('RAW')}
+                                        className={`px-2 py-0.5 rounded font-medium transition cursor-pointer ${
+                                            calibProbability === 'RAW'
+                                                ? 'bg-amber-600 text-white shadow-sm font-semibold'
+                                                : 'text-text-tertiary hover:text-text-secondary'
+                                        }`}
+                                        title="Raw uncalibrated heuristic scores (74%–91%)"
+                                    >
+                                        Raw
+                                    </button>
+                                </div>
+
+                                {/* Binning Mode: Adaptive Quantiles vs Fixed Bins */}
+                                <div className="flex items-center bg-background-app p-0.5 rounded-lg border border-border-subtle text-[10px]">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCalibBinning('ADAPTIVE')}
+                                        className={`px-2 py-0.5 rounded font-medium transition cursor-pointer ${
+                                            calibBinning === 'ADAPTIVE'
+                                                ? 'bg-blue-600 text-white shadow-sm font-semibold'
+                                                : 'text-text-tertiary hover:text-text-secondary'
+                                        }`}
+                                        title="Equal-volume quantiles dynamically partitioned across executed trades"
+                                    >
+                                        Adaptive
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCalibBinning('FIXED')}
+                                        className={`px-2 py-0.5 rounded font-medium transition cursor-pointer ${
+                                            calibBinning === 'FIXED'
+                                                ? 'bg-blue-600 text-white shadow-sm font-semibold'
+                                                : 'text-text-tertiary hover:text-text-secondary'
+                                        }`}
+                                        title="Standard fixed 10% percentage intervals"
+                                    >
+                                        Fixed
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p className="text-[11px] text-text-tertiary leading-relaxed mb-2">
+                            {calibProbability === 'CALIBRATED'
+                                ? 'Empirical Probability Calibration: Predicted confidence is calibrated to match true observed win rates, eliminating heuristic overconfidence.'
+                                : 'Raw Heuristic Conviction: Displays uncalibrated technical strength, illustrating the expected overconfidence bias in financial prediction models.'}
                         </p>
+
+                        {/* Quantitative Institutional KPI Strip */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-2 rounded-lg bg-background-app/70 border border-border-subtle/50 text-[10px] font-mono">
+                            <div>
+                                <span className="text-text-muted block text-[9px] uppercase tracking-wider">ECE (Calibration Error)</span>
+                                <span className={`font-bold ${currentEce <= 8 ? 'text-emerald-400' : currentEce <= 15 ? 'text-amber-400' : 'text-rose-400'}`}>
+                                    {currentEce}%
+                                </span>
+                            </div>
+                            <div>
+                                <span className="text-text-muted block text-[9px] uppercase tracking-wider">Brier Score</span>
+                                <span className={`font-bold ${currentBrier <= 0.25 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                    {currentBrier}
+                                </span>
+                            </div>
+                            <div>
+                                <span className="text-text-muted block text-[9px] uppercase tracking-wider">Reliability Status</span>
+                                <span className="font-bold text-emerald-400">
+                                    {calibSummary.calibrated} Calibrated
+                                </span>
+                            </div>
+                            <div>
+                                <span className="text-text-muted block text-[9px] uppercase tracking-wider">Total Samples</span>
+                                <span className="font-bold text-text-primary">
+                                    N = {trades.length}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Summary Badges */}
+                        <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-border-subtle/50 text-[10px] font-mono">
+                            <span className="text-emerald-400 font-semibold">Calibrated {calibSummary.calibrated}</span>
+                            <span className="text-text-muted">•</span>
+                            <span className="text-rose-400 font-semibold">Overconfident {calibSummary.overconfident}</span>
+                            {calibSummary.underconfident > 0 && (
+                                <>
+                                    <span className="text-text-muted">•</span>
+                                    <span className="text-cyan-400 font-semibold">Underconfident {calibSummary.underconfident}</span>
+                                </>
+                            )}
+                            {calibSummary.tentative > 0 && (
+                                <>
+                                    <span className="text-text-muted">•</span>
+                                    <span className="text-amber-400 font-semibold">Tentative {calibSummary.tentative}</span>
+                                </>
+                            )}
+                            <span className="text-text-muted">•</span>
+                            <span className="text-text-tertiary">
+                                {calibBinning === 'ADAPTIVE'
+                                    ? `Insufficient ${calibSummary.insufficient}`
+                                    : `No Trades ${calibSummary.noTrades || 0}`}
+                            </span>
+                        </div>
                     </div>
 
+                    {/* Momentum Climax / Exhaustion Anomaly Alert */}
+                    {exhaustionAnomaly?.detected && (
+                        <div className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 flex flex-col gap-1 text-[11px]">
+                            <div className="flex items-center gap-1.5 text-amber-300 font-bold">
+                                <AlertTriangle size={13} className="text-amber-400" />
+                                <span>Momentum Exhaustion Anomaly Detected</span>
+                            </div>
+                            <p className="text-text-secondary leading-relaxed text-[10px]">
+                                Actual win rate peaked at <strong className="text-emerald-400">{exhaustionAnomaly.peakWinRate}%</strong> in {exhaustionAnomaly.peakTier}, but dropped to <strong className="text-amber-400">{exhaustionAnomaly.climaxWinRate}%</strong> in {exhaustionAnomaly.climaxTier} (a {exhaustionAnomaly.dropPct}% drop). In financial markets, maximum indicator consensus often marks late-stage climax runs vulnerable to sharp reversals.
+                            </p>
+                        </div>
+                    )}
+
                     <div className="flex flex-col gap-2.5">
-                        {calibration.map((b) => {
-                            const isReliable = b.isReliable !== undefined ? b.isReliable : b.sampleSize >= 20;
-                            const isAccurate = isReliable && b.actualWinRate !== null && Math.abs(b.actualWinRate - b.predictedWinRate) <= 8;
-                            const isOverconfident = isReliable && b.actualWinRate !== null && (b.predictedWinRate - b.actualWinRate > 8);
+                        {activeBuckets.map((b) => {
+                            const isNoTrades = b.status === 'NO_TRADES' || b.sampleSize === 0;
+                            const isInsufficient = b.status === 'INSUFFICIENT_SAMPLE' || (!b.isReliable && !b.isTentative && !isNoTrades);
+                            const isTentative = b.isTentative;
+                            const isReliable = b.isReliable;
+                            const hasWinRate = b.actualWinRate !== null;
+
+                            const isAccurate = isReliable && hasWinRate && Math.abs(b.actualWinRate - b.predictedWinRate) <= 8;
+                            const isOverconfident = isReliable && hasWinRate && (b.predictedWinRate - b.actualWinRate > 8);
+                            const isUnderconfident = isReliable && hasWinRate && (b.actualWinRate - b.predictedWinRate > 8);
 
                             return (
                                 <div
                                     key={b.bucket}
                                     className={`p-2.5 rounded-xl border flex flex-col gap-1.5 transition-all ${
-                                        isReliable
-                                            ? 'bg-background-surface/70 border-border-subtle'
-                                            : 'bg-background-surface/30 border-dashed border-border-subtle/60 opacity-60'
+                                        isNoTrades
+                                            ? 'bg-background-surface/20 border-border-subtle/40 opacity-50'
+                                            : isInsufficient
+                                            ? 'bg-background-surface/30 border-dashed border-border-subtle/60 opacity-60'
+                                            : isTentative
+                                            ? 'bg-background-surface/50 border-amber-500/30'
+                                            : b.isExhaustionAnomaly
+                                            ? 'bg-background-surface/70 border-amber-500/40'
+                                            : 'bg-background-surface/70 border-border-subtle'
                                     }`}
                                 >
                                     <div className="flex justify-between items-center text-xs">
-                                        <div className="flex items-center gap-1.5">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
                                             <span className="font-bold font-mono text-text-primary">{b.bucket}</span>
-                                            {!isReliable ? (
+                                            {b.isExhaustionAnomaly && (
+                                                <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40" title="Win rate dropped at extreme confidence due to momentum climax">
+                                                    Climax Anomaly (-{b.exhaustionDrop}%)
+                                                </span>
+                                            )}
+                                            {isNoTrades ? (
+                                                <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-zinc-800 text-text-tertiary border border-border-subtle">
+                                                    No Trades in Regime
+                                                </span>
+                                            ) : isInsufficient ? (
                                                 <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
                                                     Insufficient Sample
+                                                </span>
+                                            ) : isTentative ? (
+                                                <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                                    Tentative Sample ({b.sampleSize}/20)
                                                 </span>
                                             ) : isOverconfident ? (
                                                 <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
                                                     Overconfident (-{b.predictedWinRate - b.actualWinRate}%)
+                                                </span>
+                                            ) : isUnderconfident ? (
+                                                <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                                    Underconfident (+{b.actualWinRate - b.predictedWinRate}%)
                                                 </span>
                                             ) : isAccurate ? (
                                                 <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -680,36 +1001,71 @@ export default function BacktestScorecard({
                                                 </span>
                                             ) : null}
                                         </div>
-                                        <span className="text-[10px] text-text-tertiary font-mono">N = {b.sampleSize}</span>
+                                        <span className="text-[10px] text-text-tertiary font-mono">
+                                            N = {b.sampleSize}
+                                            {b.pctOfTotal !== undefined && ` (${b.pctOfTotal}%)`}
+                                        </span>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-2 text-[11px] mt-0.5">
                                         <div>
-                                            <span className="text-[10px] text-text-muted block">Predicted:</span>
-                                            <span className="font-bold font-mono text-blue-400">~{b.predictedWinRate}%</span>
+                                            <span className="text-[10px] text-text-muted block">
+                                                {calibProbability === 'CALIBRATED' ? 'Calibrated Probability:' : 'Predicted Score:'}
+                                            </span>
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="font-bold font-mono text-blue-400">~{b.predictedWinRate}%</span>
+                                                {b.rawPredictedWinRate !== undefined && b.rawPredictedWinRate !== b.predictedWinRate && (
+                                                    <span className="text-[9px] text-text-tertiary font-mono" title="Raw Heuristic Score">
+                                                        (Raw: {b.rawPredictedWinRate}%)
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                         <div>
                                             <span className="text-[10px] text-text-muted block">Actual Win Rate:</span>
-                                            {isReliable ? (
-                                                <span className={`font-bold font-mono ${
-                                                    b.actualWinRate === null ? 'text-text-tertiary' : isAccurate ? 'text-emerald-400' : 'text-amber-400'
-                                                }`}>
-                                                    {b.actualWinRate !== null ? `${b.actualWinRate}%` : 'No Trades'}
+                                            {hasWinRate ? (
+                                                <div className="flex items-baseline gap-1.5">
+                                                    <span className={`font-bold font-mono ${
+                                                        isAccurate
+                                                            ? 'text-emerald-400'
+                                                            : isUnderconfident
+                                                            ? 'text-cyan-400'
+                                                            : isTentative
+                                                            ? 'text-amber-300'
+                                                            : 'text-amber-400'
+                                                    }`}>
+                                                        {b.actualWinRate}%
+                                                    </span>
+                                                    {b.ciLower !== null && b.ciUpper !== null && (
+                                                        <span className="text-[9px] font-mono text-text-tertiary" title="Wilson Score 95% Confidence Interval">
+                                                            [{b.ciLower}%–{b.ciUpper}%]
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : isNoTrades ? (
+                                                <span className="font-mono text-text-tertiary text-[10px] italic">
+                                                    Strategy doesn't trade here
                                                 </span>
                                             ) : (
                                                 <span className="font-mono text-text-muted text-[10px] italic">
-                                                    Needs ~20+ trades
+                                                    Needs ~10+ trades
                                                 </span>
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* Visual Comparison Bar rendered strictly when sample size is reliable */}
-                                    {isReliable && b.actualWinRate !== null && (
+                                    {/* Visual Comparison Bar rendered when actual win rate is available */}
+                                    {hasWinRate && (
                                         <div className="w-full bg-background-app h-2 rounded-full overflow-hidden flex mt-1">
                                             <div
                                                 className={`h-full rounded-full transition-all duration-500 ${
-                                                    isAccurate ? 'bg-emerald-500' : 'bg-amber-500'
+                                                    isAccurate
+                                                        ? 'bg-emerald-500'
+                                                        : isUnderconfident
+                                                        ? 'bg-cyan-500'
+                                                        : isTentative
+                                                        ? 'bg-amber-400/80 border-r-2 border-amber-300'
+                                                        : 'bg-amber-500'
                                                 }`}
                                                 style={{ width: `${b.actualWinRate}%` }}
                                             />
@@ -752,25 +1108,27 @@ export default function BacktestScorecard({
                     {/* Exit Reason Quick Filter Chips */}
                     <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
                         {[
-                            { id: 'ALL', label: `All (${trades.length})` },
-                            { id: 'TARGET', label: `🎯 Target (${targetTradesCount})` },
-                            { id: 'STOP', label: `🛑 Stop (${stopTradesCount})` },
-                            { id: 'TRAILING_STOP', label: `⚡ Trail (${trailTradesCount})` },
-                            { id: 'HORIZON_EXPIRY', label: `⏳ Horizon (${horizonTradesCount})` },
-                            { id: 'BREAKEVEN', label: `⚖️ BE (${breakevenTradesCount})` },
+                            { id: 'ALL', label: `All (${trades.length})`, icon: null },
+                            { id: 'TARGET', label: `Target (${targetTradesCount})`, icon: Target },
+                            { id: 'STOP', label: `Stop (${stopTradesCount})`, icon: OctagonAlert },
+                            { id: 'TRAILING_STOP', label: `Trail (${trailTradesCount})`, icon: Zap },
+                            { id: 'HORIZON_EXPIRY', label: `Horizon (${horizonTradesCount})`, icon: Clock },
+                            { id: 'BREAKEVEN', label: `BE (${breakevenTradesCount})`, icon: Scale },
                         ].map((f) => {
                             const isSelected = exitFilter === f.id;
+                            const IconComp = f.icon;
                             return (
                                 <button
                                     key={f.id}
                                     onClick={() => setExitFilter(f.id)}
-                                    className={`px-2 py-0.5 rounded-md text-[9px] font-mono font-bold transition-all whitespace-nowrap cursor-pointer border ${
+                                    className={`px-2 py-0.5 rounded-md text-[9px] font-mono font-bold transition-all whitespace-nowrap cursor-pointer border flex items-center gap-1 ${
                                         isSelected
                                             ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
                                             : 'bg-background-surface text-text-secondary hover:text-text-primary border-border-subtle'
                                     }`}
                                 >
-                                    {f.label}
+                                    {IconComp && <IconComp size={10} />}
+                                    <span>{f.label}</span>
                                 </button>
                             );
                         })}

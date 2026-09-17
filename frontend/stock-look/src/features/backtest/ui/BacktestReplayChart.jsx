@@ -197,7 +197,8 @@ export default function BacktestReplayChart({
         }
 
         // 2. Dedicated Lower Sub-Indicator (Oscillator / Flow)
-        const showOsc = ['PNCO', 'IFDI', 'HEAD_TO_HEAD'].includes(activeUnit);
+        const hasCustomLab = Boolean(indicators?.customLab && Array.isArray(indicators.customLab) && indicators.customLab.length > 0);
+        const showOsc = ['PNCO', 'IFDI', 'HEAD_TO_HEAD', 'CUSTOM_LAB'].includes(activeUnit) || hasCustomLab;
         if (showOsc) {
             chartRef.current.priceScale('right').applyOptions({
                 scaleMargins: { top: 0.05, bottom: 0.28 },
@@ -223,6 +224,12 @@ export default function BacktestReplayChart({
                     .map(p => ({ time: p.time, value: p.value }))
                     .filter(d => visibleTimes.has(d.time));
                 oscSeriesRef.current?.setData(ifdiData);
+            } else if (hasCustomLab) {
+                oscSeriesRef.current?.applyOptions({ color: '#f97316' });
+                const labData = (indicators.customLab || [])
+                    .map(p => ({ time: p.time, value: typeof p === 'object' ? (p.value ?? p.val ?? 0) : Number(p) }))
+                    .filter(d => visibleTimes.has(d.time));
+                oscSeriesRef.current?.setData(labData);
             }
         } else {
             // Full height candles when no sub-oscillator is active

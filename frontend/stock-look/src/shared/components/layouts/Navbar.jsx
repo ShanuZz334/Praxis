@@ -15,7 +15,7 @@
  * - Rendered by DashboardLayout on desktop viewports.
  */
 
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useCallback } from "react";
 import { FiBell, FiSettings, FiCrosshair } from "react-icons/fi";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "@/shared/context/ThemeContext";
@@ -24,8 +24,11 @@ import { usePaiWidget } from "@/shared/context/PaiWidgetContext";
 import { useNotificationStore } from "@/shared/context/NotificationContext";
 import DetachableInstrumentSelector from "@/shared/components/controls/DetachableInstrumentSelector";
 import CalculatorWidget from "@/shared/components/controls/CalculatorWidget";
-import { Calculator, FlaskConical } from "lucide-react";
+import { Calculator, FlaskConical, BrainCircuit } from "lucide-react";
 import { MdPointOfSale } from "react-icons/md";
+import { useDataRegistry } from "@/shared/context/DataRegistryContext";
+import { updateGlobalInsightCache } from "@/shared/components/ui/AiInsightSection";
+import { toast } from "sonner";
 
 import { FO_INDICES, FO_EQUITIES } from '@/shared/utils/foInstruments';
 import nseLogo from "@/assets/images/nse.png";
@@ -40,10 +43,20 @@ import { upstoxService } from "@/shared/services/upstoxService";
 import { useVoice } from "@/shared/context/VoiceContext";
 import OrderTicket from "@/features/trading/ui/OrderTicket";
 
+const ANALYSIS_PAGES = {
+  '/dashboard/fundamental': { module: 'Fundamentals', pageId: 'fundamentals', label: 'Fundamental Intelligence' },
+  '/dashboard/technical':   { module: 'Technical',    pageId: 'technical',    label: 'Technical Confluence' },
+  '/dashboard/options':     { module: 'Options',      pageId: 'options',      label: 'Options Structure' },
+  '/dashboard/events':      { module: 'Events',       pageId: 'events',       label: 'Corporate Events' },
+  '/dashboard/foreign':     { module: 'Global',       pageId: 'foreign',      label: 'Global Macro Cues' },
+};
+
 const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isDashboardPage = location.pathname === '/dashboard/home' || location.pathname === '/dashboard';
+  const currentAnalysisPage = Object.entries(ANALYSIS_PAGES).find(([path]) => location.pathname.startsWith(path));
+  const isAnalysisPage = Boolean(currentAnalysisPage);
   const { theme, useOrbNav } = useTheme();
   const { isStandbyMode, toggleStandby } = useVoice();
   const { unreadCount } = useNotificationStore();
@@ -70,6 +83,107 @@ const Navbar = ({ onToggleSidebar }) => {
   }, []);
 
   const { livePrices: prices, selectedInstrument, filteredInstruments, globalOrderTicket, setGlobalOrderTicket } = useDashboardContext();
+  const { getPageStructuredData, getPageSnapshot } = useDataRegistry();
+  const [isSyncingTelemetry, setIsSyncingTelemetry] = useState(false);
+  const [recentlySyncedModule, setRecentlySyncedModule] = useState(null);
+
+  const handleDirectTelemetrySync = useCallback(() => {
+    if (!currentAnalysisPage) return;
+    const [, pageInfo] = currentAnalysisPage;
+    const { module, pageId, label } = pageInfo;
+
+    setIsSyncingTelemetry(true);
+
+    try {
+      const isIndex = selectedInstrument?.startsWith('NSE_INDEX|');
+      let targetId = 'praxis_composite_header';
+      if (pageId === 'fundamentals') targetId = isIndex ? 'fundamentals_index_header' : 'fundamentals_company_header';
+      else if (pageId === 'technical') targetId = isIndex ? 'technical_index_header' : 'technical_company_header';
+      else if (pageId === 'options') targetId = 'options_header';
+      else if (pageId === 'events') targetId = 'events_header';
+      else if (pageId === 'foreign') targetId = 'foreign_header';
+
+      // Symbol resolution
+      let cleanSymbol = selectedInstrument?.split('|').pop() || selectedInstrument || 'NIFTY';
+      const allInst = [...FO_INDICES, ...FO_EQUITIES];
+      const match = allInst.find(i => i.value === selectedInstrument);
+      if (match) cleanSymbol = match.label;
+
+      let symbolSuffix = cleanSymbol;
+      if (pageId === 'foreign') symbolSuffix = 'GLOBAL';
+      if (pageId === 'events') symbolSuffix = 'EVENTS';
+
+      const cacheKey = `${targetId}_${symbolSuffix}`;
+
+      // Pull structured page data from DataRegistry
+      const structured = getPageStructuredData ? getPageStructuredData(pageId) : null;
+      const snapshot = getPageSnapshot ? getPageSnapshot(pageId) : {};
+
+      const compScore = structured?.compositeScore ?? 75;
+      const regime = compScore >= 65 ? 'Bullish' : compScore <= 45 ? 'Bearish' : 'Neutral';
+
+      // Build compact, institutional telemetry narrative for Future Vision
+      const cardSummaries = [];
+      if (structured?.sections) {
+        structured.sections.forEach(sec => {
+          (sec.cards || []).forEach(c => {
+            if (c.value != null || c.signal != null) {
+              const valStr = typeof c.value === 'number' ? c.value.toFixed(2) : (c.value ?? '');
+              cardSummaries.push(`${c.displayName || c.id}: ${valStr}${c.signal ? ` (${c.signal})` : ''}`);
+            }
+          });
+        });
+      }
+
+      // If no cards registered yet, fallback to snapshot entries
+      if (cardSummaries.length === 0 && snapshot) {
+        Object.entries(snapshot).forEach(([id, snap]) => {
+          if (snap.value != null || snap.score != null) {
+            cardSummaries.push(`${snap.displayName || id}: ${snap.value ?? ''}${snap.score != null ? ` (Score: ${snap.score})` : ''}`);
+          }
+        });
+      }
+
+      const telemetrySummary = `[INSTITUTIONAL TELEMETRY SYNTHESIS: ${module.toUpperCase()}] Instrument: ${symbolSuffix} | Composite Score: ${compScore}/100 (${regime}). Metrics: ${cardSummaries.slice(0, 15).join(' | ') || 'Live metrics synchronized.'}`;
+
+      // Commit directly to global insight cache (both memory & localStorage)
+      updateGlobalInsightCache(cacheKey, {
+        score: compScore,
+        symbol: symbolSuffix,
+        regime,
+        insightText: telemetrySummary,
+        timestamp: Date.now(),
+        isDirectTelemetrySync: true
+      });
+
+      // Broadcast event so any mounted page header AI insight updates immediately without waiting
+      window.dispatchEvent(new CustomEvent('praxis:fv:telemetry-synced', {
+        detail: {
+          cacheKey,
+          module,
+          targetId,
+          symbol: symbolSuffix,
+          score: compScore,
+          regime,
+          text: telemetrySummary
+        }
+      }));
+
+      // Visual feedback
+      setRecentlySyncedModule(module);
+      setTimeout(() => setRecentlySyncedModule(null), 3000);
+
+      toast.success(`${label} Synced to Future Vision`, {
+        description: `Verified telemetry for ${symbolSuffix} committed directly to Future Vision context.`,
+        duration: 3500
+      });
+    } catch (err) {
+      console.error('[Navbar] Telemetry direct sync error:', err);
+      toast.error('Failed to sync telemetry', { description: err.message });
+    } finally {
+      setIsSyncingTelemetry(false);
+    }
+  }, [currentAnalysisPage, selectedInstrument, getPageStructuredData, getPageSnapshot]);
 
   const getResolvedPrice = (instrumentKey) => {
     let priceData = prices?.[instrumentKey];
@@ -391,6 +505,31 @@ const Navbar = ({ onToggleSidebar }) => {
             title="Backtesting Workshop"
           >
             <FlaskConical className="w-[18px] h-[18px] transition-transform hover:scale-110" />
+          </button>
+        )}
+
+        {/* Future Vision Direct Telemetry Sync — Positioned Directly Under the Tickets Icon, ONLY on Analysis Pages */}
+        {isAnalysisPage && (
+          <button
+            onClick={handleDirectTelemetrySync}
+            disabled={isSyncingTelemetry}
+            className={`
+              relative
+              w-[30px] h-[30px] flex items-center justify-center rounded-xl
+              transition-all
+              active:scale-95
+              ${isSyncingTelemetry
+                ? 'bg-accent-primary/20 text-accent-primary animate-pulse'
+                : recentlySyncedModule
+                  ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 ring-1 ring-emerald-500/20'
+                  : 'text-text-tertiary hover:text-accent-primary hover:bg-background-surface/80'}
+            `}
+            title={`Direct Sync to Future Vision (${currentAnalysisPage[1].label})`}
+          >
+            <BrainCircuit className={`w-[18px] h-[18px] transition-transform hover:scale-110 ${isSyncingTelemetry ? 'animate-spin' : ''}`} />
+            {recentlySyncedModule && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full ring-2 ring-background-app" />
+            )}
           </button>
         )}
       </div>
