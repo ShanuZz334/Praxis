@@ -14,10 +14,10 @@
       "lastCalled": "2026-09-17T18:23:01.037Z"
     },
     "groq::openai/gpt-oss-120b": {
-      "requests": 3,
-      "tokensIn": 12807,
-      "tokensOut": 8285,
-      "lastCalled": "2026-09-17T21:42:15.555Z"
+      "requests": 4,
+      "tokensIn": 19103,
+      "tokensOut": 11308,
+      "lastCalled": "2026-09-17T22:23:29.685Z"
     },
     "groq::qwen/qwen3.8-27b": {
       "requests": 4,
@@ -43,9 +43,9 @@
     "remainingRequests": 999,
     "resetRequests": "1m26.4s",
     "limitTokens": 8000,
-    "remainingTokens": 4342,
-    "resetTokens": "27.435s",
-    "updatedAt": 1789681335549
+    "remainingTokens": 805,
+    "resetTokens": "53.962s",
+    "updatedAt": 1789683809675
   },
   "groq2LiveHeaders": {
     "limitRequests": 1000,

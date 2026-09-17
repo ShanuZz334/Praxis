@@ -11,8 +11,13 @@ const PaiMessageBubble = memo(function PaiMessageBubble({ role, content, onRegen
     const [copied, setCopied] = useState(false);
 
     let displayModel = model;
-    if (displayModel && displayModel.includes('/')) {
-        displayModel = displayModel.split('/').pop();
+    if (displayModel) {
+        if (displayModel.includes('Ensemble')) {
+            // Preserve multi-model ensemble string while stripping vendor prefixes (e.g. openai/gpt-oss-120b -> gpt-oss-120b)
+            displayModel = displayModel.replace(/[a-zA-Z0-9_-]+\//g, '');
+        } else if (displayModel.includes('/')) {
+            displayModel = displayModel.split('/').pop();
+        }
     }
     
     let timeString = null;

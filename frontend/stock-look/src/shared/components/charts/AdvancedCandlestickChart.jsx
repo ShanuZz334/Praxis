@@ -45,6 +45,13 @@ const getMsTimestamp = (timeObj) => {
     return 0;
 };
 
+const CANONICAL_ENSEMBLE_MODELS = [
+    { model_id: 'chronos_bolt', defaultWeight: 0.25, label: 'Chronos-Bolt (Amazon)' },
+    { model_id: 'kronos', defaultWeight: 0.25, label: 'Kronos (AAAI 2026)' },
+    { model_id: 'naive_baseline', defaultWeight: 0.30, label: 'Naive Baseline' },
+    { model_id: 'lag_llama', defaultWeight: 0.20, label: 'Lag-Llama' },
+];
+
 export default React.memo(function AdvancedCandlestickChart({
     data = DEFAULT_DATA,
     liveCandle = null,
@@ -440,20 +447,20 @@ export default React.memo(function AdvancedCandlestickChart({
 
         // ── Future Vision Ghost Candle Series (Inserted here so it draws under main candles) ──
         ghostCandleSeriesRef.current = chart.addSeries(CandlestickSeries, {
-            upColor:         'rgba(139, 92, 246, 0.40)', 
-            downColor:       'rgba(244, 63, 94, 0.40)',            
+            upColor:         'rgba(16, 185, 129, 0.42)', 
+            downColor:       'rgba(244, 63, 94, 0.42)',            
             borderVisible:   true,
-            borderUpColor:   '#c084fc',
+            borderUpColor:   '#10b981',
             borderDownColor: '#f43f5e',
-            wickUpColor:     '#c084fc',
-            wickDownColor:   '#f472b6',
+            wickUpColor:     '#34d399',
+            wickDownColor:   '#fb7185',
             priceLineVisible:      false,
             lastValueVisible:      false,
             crosshairMarkerVisible: false,
         });
 
         ghostUpperConeRef.current = chart.addSeries(LineSeries, {
-            color: 'rgba(192, 132, 252, 0.35)',
+            color: 'rgba(52, 211, 153, 0.65)',
             lineWidth: 1,
             lineStyle: 2,
             priceLineVisible: false,
@@ -462,7 +469,7 @@ export default React.memo(function AdvancedCandlestickChart({
         });
 
         ghostLowerConeRef.current = chart.addSeries(LineSeries, {
-            color: 'rgba(244, 114, 182, 0.35)',
+            color: 'rgba(251, 113, 133, 0.65)',
             lineWidth: 1,
             lineStyle: 2,
             priceLineVisible: false,
@@ -680,7 +687,7 @@ export default React.memo(function AdvancedCandlestickChart({
                         y: param.point.y,
                         title: isUp ? 'AI Forecast (Bullish)' : 'AI Forecast (Bearish)',
                         text: `O: ${Number(ghostForEval.open).toFixed(2)}  H: ${Number(ghostForEval.high).toFixed(2)}  L: ${Number(ghostForEval.low).toFixed(2)}  C: ${Number(ghostForEval.close).toFixed(2)}`,
-                        color: isUp ? '#c084fc' : '#f472b6'
+                        color: isUp ? '#10b981' : '#f43f5e'
                     });
                 } else {
                     setGhostTooltip(null);
@@ -994,25 +1001,26 @@ export default React.memo(function AdvancedCandlestickChart({
                     // ── BACKGROUND REFERENCE CANDLE MODE ──
                     // Real market candle renders on top. Predicted candle acts as an underlying reference watermark.
                     if (isUp) {
-                        candleColor = 'rgba(139, 92, 246, 0.16)'; // Soft translucent violet watermark
-                        borderColor = 'rgba(192, 132, 252, 0.45)'; // Subtle neon lavender outline
-                        wickColor   = 'rgba(192, 132, 252, 0.45)'; // Subtle neon lavender wick
+                        candleColor = 'rgba(16, 185, 129, 0.16)'; // Soft translucent emerald watermark
+                        borderColor = 'rgba(16, 185, 129, 0.45)'; // Subtle neon emerald outline
+                        wickColor   = 'rgba(52, 211, 153, 0.45)'; // Subtle mint wick
                     } else {
-                        candleColor = 'rgba(244, 63, 94, 0.16)';  // Soft translucent rose watermark
-                        borderColor = 'rgba(244, 114, 182, 0.45)'; // Subtle neon rose outline
-                        wickColor   = 'rgba(244, 114, 182, 0.45)'; // Subtle neon rose wick
+                        candleColor = 'rgba(244, 63, 94, 0.16)';  // Soft translucent ruby-rose watermark
+                        borderColor = 'rgba(244, 63, 94, 0.45)';  // Subtle neon rose outline
+                        wickColor   = 'rgba(251, 113, 133, 0.45)'; // Subtle coral wick
                     }
                 } else {
                     // ── ACTIVE FUTURE FORECAST CANDLE MODE ──
-                    // Distinct institutional AI palette: high clarity, glowing neon border, zero green/red confusion.
+                    // Top-notch institutional dual-color palette matching platform design language:
+                    // Luminous Translucent Emerald (Bullish) vs Vibrant Electric Ruby-Rose (Bearish)
                     if (isUp) {
-                        candleColor = 'rgba(139, 92, 246, 0.40)'; // Luminous translucent violet body
-                        borderColor = '#c084fc';                  // Crisp neon lavender border
-                        wickColor   = '#c084fc';                  // Crisp neon lavender wick
+                        candleColor = 'rgba(16, 185, 129, 0.42)'; // Luminous translucent emerald body
+                        borderColor = '#10b981';                  // Crisp vibrant emerald border
+                        wickColor   = '#34d399';                  // High-visibility mint/emerald wick
                     } else {
-                        candleColor = 'rgba(244, 63, 94, 0.40)';  // Luminous translucent neon rose body
-                        borderColor = '#f43f5e';                  // Crisp electric rose border
-                        wickColor   = '#f472b6';                  // Crisp electric rose wick
+                        candleColor = 'rgba(244, 63, 94, 0.42)';  // Luminous translucent ruby-rose body
+                        borderColor = '#f43f5e';                  // Crisp vibrant ruby-rose border
+                        wickColor   = '#fb7185';                  // High-visibility coral/rose wick
                     }
                 }
 
@@ -2938,122 +2946,128 @@ export default React.memo(function AdvancedCandlestickChart({
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: -6, scale: 0.96 }}
                                         transition={{ duration: 0.15 }}
-                                        className="absolute top-full right-0 mt-1.5 w-80 bg-white/95 dark:bg-[#121622]/95 backdrop-blur-xl border border-slate-200 dark:border-border-default rounded-xl shadow-2xl p-3 z-50 pointer-events-auto"
+                                        className="absolute top-full right-0 mt-1.5 w-[600px] sm:w-[650px] max-w-[calc(100vw-24px)] bg-white/95 dark:bg-[#0d121f]/95 backdrop-blur-xl border border-slate-200 dark:border-border-default rounded-xl shadow-2xl p-3 z-50 pointer-events-auto"
                                         onClick={e => e.stopPropagation()}
                                     >
+                                        {/* Header Row with Title, Regime Badge & Status */}
                                         <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-slate-200 dark:border-border-subtle">
-                                            <div className="flex items-center gap-1.5">
+                                            <div className="flex items-center gap-2">
                                                 <Sparkles size={13} className="text-violet-500 dark:text-violet-400" />
                                                 <span className="text-xs font-bold text-text-primary uppercase tracking-wide">Praxis AI Intelligence</span>
+                                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
+                                                    {fvRegime || 'CHOPPY'}
+                                                </span>
                                             </div>
-                                            <button 
-                                                onClick={() => setShowAiFlyout(false)} 
-                                                className="text-text-tertiary hover:text-text-primary p-0.5 rounded"
-                                            >
-                                                <X size={12} />
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                {fvEdge && (
+                                                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border flex items-center gap-1 ${
+                                                        fvEdge.edge_detected
+                                                            ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                                                            : 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
+                                                    }`} title={fvEdge.reason}>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${fvEdge.edge_detected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                                                        {fvEdge.edge_detected ? 'ALPHA EDGE' : 'NOISE DOMINATES'}
+                                                    </span>
+                                                )}
+                                                <button 
+                                                    onClick={() => setShowAiFlyout(false)} 
+                                                    className="text-text-tertiary hover:text-text-primary p-0.5 rounded transition-colors"
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            </div>
                                         </div>
 
-                                        {/* Section 1: Directional Bias */}
-                                        {fvBias && (() => {
-                                            const isBull = fvBias === 'bullish';
-                                            const isBear = fvBias === 'bearish';
-                                            const biasColor = isBull ? 'text-emerald-600 dark:text-emerald-400' : isBear ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400';
-                                            const confidence = fvSessionRef.current?.candles
-                                                ? Math.round(fvSessionRef.current.candles.reduce((a, c) => a + c.confidence, 0) / fvSessionRef.current.candles.length)
-                                                : null;
-                                            const confBarColor = confidence >= 70 ? 'bg-emerald-500 dark:bg-emerald-400' : confidence >= 50 ? 'bg-amber-500 dark:bg-amber-400' : 'bg-rose-500 dark:bg-rose-400';
+                                        {/* 2-Column Responsive Cockpit Grid */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                            {/* ── COLUMN 1: Predictive Bias, Foundation Ensemble & Controls ── */}
+                                            <div className="flex flex-col gap-2">
+                                                {/* Directional Bias */}
+                                                {fvBias && (() => {
+                                                    const isBull = fvBias === 'bullish';
+                                                    const isBear = fvBias === 'bearish';
+                                                    const biasColor = isBull ? 'text-emerald-600 dark:text-emerald-400' : isBear ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400';
+                                                    const confidence = fvSessionRef.current?.candles
+                                                        ? Math.round(fvSessionRef.current.candles.reduce((a, c) => a + c.confidence, 0) / fvSessionRef.current.candles.length)
+                                                        : null;
+                                                    const confBarColor = confidence >= 70 ? 'bg-emerald-500 dark:bg-emerald-400' : confidence >= 50 ? 'bg-amber-500 dark:bg-amber-400' : 'bg-rose-500 dark:bg-rose-400';
 
-                                            return (
-                                                <div className="mb-3 p-2 rounded-lg bg-slate-50 dark:bg-background-surface/80 border border-slate-200 dark:border-border-subtle">
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <span className="text-[9px] uppercase font-bold text-text-tertiary">Directional Bias</span>
-                                                        <span className={`text-[11px] font-bold font-mono ${biasColor}`}>
-                                                            AI {fvBias.toUpperCase()}
-                                                        </span>
-                                                    </div>
-                                                    {confidence !== null && (
-                                                        <div className="flex flex-col gap-1 mt-1.5">
-                                                            <div className="flex justify-between items-center text-[10px] font-mono">
-                                                                <span className="text-text-tertiary text-[9px]">Confidence</span>
-                                                                <span className="text-violet-600 dark:text-violet-300 font-bold">{confidence}%</span>
-                                                            </div>
-                                                            <div className="h-1 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
-                                                                <div className={`h-full rounded-full ${confBarColor} transition-all duration-500`} style={{ width: `${confidence}%` }} />
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {fvPAE?.scores?.length > 0 && (
-                                                        <div className="flex flex-col gap-1 mt-1.5 pt-1 border-t border-slate-200 dark:border-border-subtle/60 text-[10px] font-mono">
-                                                            <div className="flex justify-between items-center">
-                                                                <span className="text-text-tertiary text-[9px]">Directional Accuracy</span>
-                                                                <span className="text-blue-600 dark:text-blue-400 font-bold">
-                                                                    {Math.round(fvPAE.scores.reduce((a, b) => a + b.da, 0) / fvPAE.scores.length * 100)}%
-                                                                    <span className="text-text-tertiary font-normal ml-1">({fvPAE.scores.length} bars)</span>
+                                                    return (
+                                                        <div className="p-2 rounded-lg bg-slate-50 dark:bg-background-surface/80 border border-slate-200 dark:border-border-subtle">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-[9px] uppercase font-bold text-text-tertiary">Directional Bias</span>
+                                                                <span className={`text-[11px] font-bold font-mono ${biasColor}`}>
+                                                                    AI {fvBias.toUpperCase()}
                                                                 </span>
                                                             </div>
-                                                            {(() => {
-                                                                const validScores = fvPAE.scores.filter(s => typeof s.errorPct === 'number');
-                                                                if (validScores.length === 0) return null;
-                                                                const avgErr = Math.round(validScores.reduce((a, b) => a + b.errorPct, 0) / validScores.length);
-                                                                const avgAcc = 100 - avgErr;
-                                                                const errColor = avgErr <= 25 ? 'text-emerald-600 dark:text-emerald-400' : avgErr <= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400';
-                                                                return (
+                                                            {confidence !== null && (
+                                                                <div className="flex flex-col gap-1 mt-1.5">
+                                                                    <div className="flex justify-between items-center text-[10px] font-mono">
+                                                                        <span className="text-text-tertiary text-[9px]">Confidence</span>
+                                                                        <span className="text-violet-600 dark:text-violet-300 font-bold">{confidence}%</span>
+                                                                    </div>
+                                                                    <div className="h-1 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+                                                                        <div className={`h-full rounded-full ${confBarColor} transition-all duration-500`} style={{ width: `${confidence}%` }} />
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {fvPAE?.scores?.length > 0 && (
+                                                                <div className="flex flex-col gap-1 mt-1.5 pt-1 border-t border-slate-200 dark:border-border-subtle/60 text-[10px] font-mono">
                                                                     <div className="flex justify-between items-center">
-                                                                        <span className="text-text-tertiary text-[9px]">Mean Candle Error</span>
-                                                                        <span className={`font-bold ${errColor}`}>
-                                                                            {avgErr}%
+                                                                        <span className="text-text-tertiary text-[9px]">Directional Accuracy</span>
+                                                                        <span className="text-blue-600 dark:text-blue-400 font-bold">
+                                                                            {Math.round(fvPAE.scores.reduce((a, b) => a + b.da, 0) / fvPAE.scores.length * 100)}%
+                                                                            <span className="text-text-tertiary font-normal ml-1">({fvPAE.scores.length} bars)</span>
                                                                         </span>
                                                                     </div>
-                                                                );
-                                                            })()}
+                                                                    {(() => {
+                                                                        const validScores = fvPAE.scores.filter(s => typeof s.errorPct === 'number');
+                                                                        if (validScores.length === 0) return null;
+                                                                        const avgErr = Math.round(validScores.reduce((a, b) => a + b.errorPct, 0) / validScores.length);
+                                                                        const errColor = avgErr <= 25 ? 'text-emerald-600 dark:text-emerald-400' : avgErr <= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400';
+                                                                        return (
+                                                                            <div className="flex justify-between items-center">
+                                                                                <span className="text-text-tertiary text-[9px]">Mean Candle Error</span>
+                                                                                <span className={`font-bold ${errColor}`}>
+                                                                                    {avgErr}%
+                                                                                </span>
+                                                                            </div>
+                                                                        );
+                                                                    })()}
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })()}
+                                                    );
+                                                })()}
 
-                                        {/* Section: Foundation Model Ensemble, Conformal Calibration & Friction Drag */}
-                                        {(fvActive || fvModelWeights?.length > 0 || fvEdge) && (
-                                            <div className="mb-3 p-2 rounded-lg bg-slate-50 dark:bg-background-surface/80 border border-slate-200 dark:border-border-subtle flex flex-col gap-2">
-                                                {/* Header: Regime & Edge Status */}
-                                                <div className="flex items-center justify-between pb-1 border-b border-slate-200 dark:border-border-subtle/60">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <span className="text-[9px] uppercase font-bold text-text-tertiary">Regime</span>
-                                                        <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
-                                                            {fvRegime || 'CHOPPY'}
-                                                        </span>
-                                                    </div>
-                                                    {fvEdge && (
-                                                        <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border flex items-center gap-1 ${
-                                                            fvEdge.edge_detected
-                                                                ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-                                                                : 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
-                                                        }`} title={fvEdge.reason}>
-                                                            <span className={`w-1.5 h-1.5 rounded-full ${fvEdge.edge_detected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                                                            {fvEdge.edge_detected ? 'ALPHA EDGE' : 'NOISE DOMINATES'}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* Model Weights Breakdown */}
-                                                {fvModelWeights && fvModelWeights.length > 0 && (
-                                                    <div className="flex flex-col gap-1.5">
+                                                {/* Foundation Model Ensemble & Conformal Weights */}
+                                                {(fvActive || fvModelWeights?.length > 0 || fvEdge) && (
+                                                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-background-surface/80 border border-slate-200 dark:border-border-subtle flex flex-col gap-1.5">
                                                         <div className="flex items-center justify-between text-[9px] text-text-tertiary font-mono">
                                                             <span className="uppercase font-bold">Hedge Ensemble Weights</span>
                                                             <span>λ = {fvConformalMultiplier ? Number(fvConformalMultiplier).toFixed(3) : '1.000'}x</span>
                                                         </div>
                                                         <div className="flex flex-col gap-1">
-                                                            {fvModelWeights
-                                                                .filter(mw => mw.model_id !== 'future_vision') // LLM tracked separately below
-                                                                .map((mw, idx) => {
-                                                                    const pct = Math.round((mw.weight || 0) * 100);
+                                                            {(() => {
+                                                                const rawWeights = (fvModelWeights || []).filter(mw => mw.model_id !== 'future_vision');
+                                                                const existingMap = new Map(rawWeights.map(w => [w.model_id, w.weight]));
+                                                                
+                                                                // Always guarantee all 4 canonical foundation models are displayed
+                                                                const displayList = CANONICAL_ENSEMBLE_MODELS.map(cm => {
+                                                                    const wt = existingMap.has(cm.model_id) ? existingMap.get(cm.model_id) : cm.defaultWeight;
+                                                                    return {
+                                                                        model_id: cm.model_id,
+                                                                        weight: wt,
+                                                                        label: cm.label
+                                                                    };
+                                                                });
+
+                                                                const totalWt = displayList.reduce((acc, m) => acc + (m.weight || 0), 0);
+
+                                                                return displayList.map((mw, idx) => {
+                                                                    const pct = Math.round((totalWt > 0 ? (mw.weight / totalWt) : 0.25) * 100);
                                                                     const isStandby = mw.model_id === 'lag_llama' && pct <= 10;
-                                                                    const label = mw.model_id === 'chronos_bolt' ? 'Chronos-Bolt (Amazon)'
-                                                                        : mw.model_id === 'kronos' ? 'Kronos (AAAI 2026)'
-                                                                        : mw.model_id === 'naive_baseline' ? 'Naive Baseline'
-                                                                        : mw.model_id === 'lag_llama' ? (isStandby ? 'Lag-Llama (Standby)' : 'Lag-Llama')
-                                                                        : mw.model_id;
+                                                                    const label = mw.model_id === 'lag_llama' ? (isStandby ? 'Lag-Llama (Standby)' : 'Lag-Llama') : mw.label;
                                                                     const isLeading = fvEdge?.leading_model === mw.model_id;
                                                                     return (
                                                                         <div key={idx} className="flex flex-col gap-0.5">
@@ -3076,7 +3090,8 @@ export default React.memo(function AdvancedCandlestickChart({
                                                                             </div>
                                                                         </div>
                                                                     );
-                                                                })}
+                                                                });
+                                                            })()}
                                                             {/* Master LLM Agent — fixed 45% synthesis weight */}
                                                             <div className="flex flex-col gap-0.5 mt-0.5 pt-0.5 border-t border-border-subtle/40">
                                                                 <div className="flex justify-between items-center text-[9px] font-mono">
@@ -3093,10 +3108,78 @@ export default React.memo(function AdvancedCandlestickChart({
                                                     </div>
                                                 )}
 
+                                                {/* Future Vision Predictive Controls */}
+                                                <div className="p-2 rounded-lg bg-slate-50 dark:bg-background-surface/80 border border-slate-200 dark:border-border-subtle flex flex-col gap-1.5">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-[9px] uppercase font-bold text-text-tertiary tracking-wider flex items-center gap-1">
+                                                            <Telescope size={11} className="text-violet-500 dark:text-violet-400" />
+                                                            Future Vision Engine
+                                                        </span>
+                                                        {fvActive && (
+                                                            <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                                                                fvHasFutureCandles 
+                                                                    ? 'text-violet-600 dark:text-violet-400 bg-violet-500/10 border-violet-500/20' 
+                                                                    : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                                                            }`}>
+                                                                {fvHasFutureCandles ? `${fvSessionRef.current?.candles?.length || 7} BARS PREDICTED` : 'FULFILLED'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-1.5">
+                                                        <button
+                                                            onClick={() => triggerFutureVision(Boolean(fvActive && fvHasFutureCandles))}
+                                                            disabled={fvLoading}
+                                                            className={`py-1.5 px-2 rounded-lg text-[10px] font-bold tracking-wide transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer ${
+                                                                fvLoading 
+                                                                    ? 'bg-violet-600/30 text-violet-300 cursor-wait border border-violet-500/30' 
+                                                                    : 'bg-violet-600 hover:bg-violet-500 text-white border border-violet-500/50 hover:shadow-[0_0_12px_rgba(139,92,246,0.4)]'
+                                                            }`}
+                                                            title={(fvActive && fvHasFutureCandles) ? "Regenerate and blend forecast with fresh AI inference" : "Generate a single 7-bar AI predictive forecast on demand"}
+                                                        >
+                                                            {fvLoading ? (
+                                                                <>
+                                                                    <Loader size="tiny" color="purple" />
+                                                                    <span>Predicting...</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Sparkles size={11} />
+                                                                    <span>{(fvActive && fvHasFutureCandles) ? 'Optimize & Blend' : 'Manual Predict'}</span>
+                                                                </>
+                                                            )}
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => {
+                                                                setFvAutoMode(p => {
+                                                                    const next = !p;
+                                                                    updatePAEAutoMode(instrumentKey, timeframe, next);
+                                                                    if (next && (!fvActive || !fvHasFutureCandles)) triggerFutureVision(false);
+                                                                    return next;
+                                                                });
+                                                            }}
+                                                            className={`py-1.5 px-2 rounded-lg text-[10px] font-bold tracking-wide transition-all flex items-center justify-center gap-1.5 border cursor-pointer ${
+                                                                fvAutoMode 
+                                                                    ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.5)]' 
+                                                                    : 'bg-slate-100 dark:bg-background-surface/80 hover:bg-slate-200 dark:hover:bg-background-surface text-text-secondary hover:text-text-primary border-slate-200 dark:border-border-subtle'
+                                                            }`}
+                                                            title="Automatically generates new predictions on every candle close"
+                                                        >
+                                                            <Telescope size={11} />
+                                                            <span>Auto: {fvAutoMode ? 'ON' : 'OFF'}</span>
+                                                            {fvAutoMode && <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* ── COLUMN 2: Execution Friction, Net Edge & Active Formations ── */}
+                                            <div className="flex flex-col gap-2 h-full min-h-0">
                                                 {/* Execution Friction & Net Edge Box */}
                                                 {fvFriction && (
-                                                    <div className="pt-1.5 border-t border-slate-200 dark:border-border-subtle/60 flex flex-col gap-1 text-[10px] font-mono">
-                                                        <div className="flex justify-between items-center">
+                                                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-background-surface/80 border border-slate-200 dark:border-border-subtle flex flex-col gap-1.5 text-[10px] font-mono shrink-0">
+                                                        <div className="flex justify-between items-center pb-1 border-b border-slate-200 dark:border-border-subtle/60">
                                                             <span className="text-text-tertiary text-[9px] uppercase font-bold">Execution Friction</span>
                                                             <span className="text-text-secondary">{fvFriction.friction_drag_pct}% ({fvFriction.friction_breakdown?.mode || 'NSE'})</span>
                                                         </div>
@@ -3119,115 +3202,49 @@ export default React.memo(function AdvancedCandlestickChart({
                                                         </div>
                                                     </div>
                                                 )}
-                                            </div>
-                                        )}
 
-                                        {/* Section 2: Pattern Recognition Formations */}
-                                        {patternScore && (
-                                            <div className="mb-3 p-2 rounded-lg bg-slate-50 dark:bg-background-surface/80 border border-slate-200 dark:border-border-subtle">
-                                                <div className="flex justify-between items-center mb-1.5">
-                                                    <span className="text-[9px] uppercase font-bold text-text-tertiary">Active Formations</span>
-                                                    <span className={`text-[10px] font-bold font-mono ${
-                                                        patternScore.score > 2 ? 'text-emerald-600 dark:text-emerald-400' :
-                                                        patternScore.score < -2 ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'
-                                                    }`}>
-                                                        {patternScore.score > 0 ? '+' : ''}{patternScore.score} ({patternScore.label})
-                                                    </span>
-                                                </div>
-                                                {patternScore.activePatterns.length > 0 ? (
-                                                    <div className="flex flex-col gap-1 max-h-32 overflow-y-auto custom-scrollbar pr-0.5">
-                                                        {patternScore.activePatterns.map((p, i) => {
-                                                            const isSelected = hoveredPattern?.id === p.id && hoveredPattern?.time === p.time;
-                                                            return (
-                                                                <div 
-                                                                    key={i} 
-                                                                    onClick={() => setHoveredPattern(isSelected ? null : p)}
-                                                                    className={`flex items-center justify-between text-[10px] px-1.5 py-1 rounded cursor-pointer transition-colors ${isSelected ? 'bg-slate-200/70 dark:bg-white/10' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`}
-                                                                >
-                                                                    <span className={`font-medium ${p.dir > 0 ? 'text-emerald-600 dark:text-emerald-400' : p.dir < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-text-tertiary'}`}>
-                                                                        {p.name}
-                                                                    </span>
-                                                                    <div className="flex items-center gap-1.5 font-mono text-[9px]">
-                                                                        <span className={p.contribution > 0 ? 'text-emerald-600 dark:text-emerald-400' : p.contribution < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'}>
-                                                                            {p.contribution > 0 ? '+' : ''}{p.contribution}
-                                                                        </span>
-                                                                        <span className="text-text-tertiary">({p.age}b)</span>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
+                                                {/* Pattern Recognition Formations */}
+                                                {patternScore && (
+                                                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-background-surface/80 border border-slate-200 dark:border-border-subtle flex-1 flex flex-col min-h-0">
+                                                        <div className="flex justify-between items-center mb-1.5 pb-1 border-b border-slate-200 dark:border-border-subtle/60 shrink-0">
+                                                            <span className="text-[9px] uppercase font-bold text-text-tertiary">Active Formations</span>
+                                                            <span className={`text-[10px] font-bold font-mono ${
+                                                                patternScore.score > 2 ? 'text-emerald-600 dark:text-emerald-400' :
+                                                                patternScore.score < -2 ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'
+                                                            }`}>
+                                                                {patternScore.score > 0 ? '+' : ''}{patternScore.score} ({patternScore.label})
+                                                            </span>
+                                                        </div>
+                                                        {patternScore.activePatterns.length > 0 ? (
+                                                            <div className="flex-1 flex flex-col gap-1 overflow-y-auto custom-scrollbar pr-0.5 min-h-0">
+                                                                {patternScore.activePatterns.map((p, i) => {
+                                                                    const isSelected = hoveredPattern?.id === p.id && hoveredPattern?.time === p.time;
+                                                                    return (
+                                                                        <div 
+                                                                            key={i} 
+                                                                            onClick={() => setHoveredPattern(isSelected ? null : p)}
+                                                                            className={`flex items-center justify-between text-[10px] px-1.5 py-1 rounded cursor-pointer transition-colors shrink-0 ${isSelected ? 'bg-slate-200/70 dark:bg-white/10' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                                                                        >
+                                                                            <span className={`font-medium ${p.dir > 0 ? 'text-emerald-600 dark:text-emerald-400' : p.dir < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-text-tertiary'}`}>
+                                                                                {p.name}
+                                                                            </span>
+                                                                            <div className="flex items-center gap-1.5 font-mono text-[9px]">
+                                                                                <span className={p.contribution > 0 ? 'text-emerald-600 dark:text-emerald-400' : p.contribution < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'}>
+                                                                                    {p.contribution > 0 ? '+' : ''}{p.contribution}
+                                                                                </span>
+                                                                                <span className="text-text-tertiary">({p.age}b)</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex-1 flex items-center justify-center text-[10px] text-text-tertiary italic py-2 text-center">
+                                                                No active structural patterns detected.
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                ) : (
-                                                    <div className="text-[10px] text-text-tertiary italic">No active structural patterns detected.</div>
                                                 )}
-                                            </div>
-                                        )}
-
-                                        {/* Section 3: Future Vision Predictive Engine (Manual Single-Time + Continuous Auto Mode) */}
-                                        <div className="pt-2 border-t border-slate-200 dark:border-border-subtle flex flex-col gap-2">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[9px] uppercase font-bold text-text-tertiary tracking-wider flex items-center gap-1">
-                                                    <Telescope size={11} className="text-violet-500 dark:text-violet-400" />
-                                                    Future Vision AI Engine
-                                                </span>
-                                                {fvActive && (
-                                                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
-                                                        fvHasFutureCandles 
-                                                            ? 'text-violet-600 dark:text-violet-400 bg-violet-500/10 border-violet-500/20' 
-                                                            : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-                                                    }`}>
-                                                        {fvHasFutureCandles ? `${fvSessionRef.current?.candles?.length || 7} BARS PREDICTED` : 'ALL BARS FULFILLED'}
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {/* Dual Controls: Manual Single-Time Generate + Auto-Mode Toggle */}
-                                            <div className="grid grid-cols-2 gap-1.5">
-                                                {/* Manual Single-Time Predict Button */}
-                                                <button
-                                                    onClick={() => triggerFutureVision(Boolean(fvActive && fvHasFutureCandles))}
-                                                    disabled={fvLoading}
-                                                    className={`py-1.5 px-2 rounded-lg text-[10px] font-bold tracking-wide transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer ${
-                                                        fvLoading 
-                                                            ? 'bg-violet-600/30 text-violet-300 cursor-wait border border-violet-500/30' 
-                                                            : 'bg-violet-600 hover:bg-violet-500 text-white border border-violet-500/50 hover:shadow-[0_0_12px_rgba(139,92,246,0.4)]'
-                                                    }`}
-                                                    title={(fvActive && fvHasFutureCandles) ? "Regenerate and blend forecast with fresh AI inference" : "Generate a single 7-bar AI predictive forecast on demand"}
-                                                >
-                                                    {fvLoading ? (
-                                                        <>
-                                                            <Loader size="tiny" color="purple" />
-                                                            <span>Predicting...</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Sparkles size={11} />
-                                                            <span>{(fvActive && fvHasFutureCandles) ? 'Optimize & Blend' : 'Manual Predict'}</span>
-                                                        </>
-                                                    )}
-                                                </button>
-
-                                                {/* Continuous Auto Mode Toggle Button */}
-                                                <button
-                                                    onClick={() => {
-                                                        setFvAutoMode(p => {
-                                                            const next = !p;
-                                                            updatePAEAutoMode(instrumentKey, timeframe, next);
-                                                            if (next && (!fvActive || !fvHasFutureCandles)) triggerFutureVision(false);
-                                                            return next;
-                                                        });
-                                                    }}
-                                                    className={`py-1.5 px-2 rounded-lg text-[10px] font-bold tracking-wide transition-all flex items-center justify-center gap-1.5 border cursor-pointer ${
-                                                        fvAutoMode 
-                                                            ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.5)]' 
-                                                            : 'bg-slate-100 dark:bg-background-surface/80 hover:bg-slate-200 dark:hover:bg-background-surface text-text-secondary hover:text-text-primary border-slate-200 dark:border-border-subtle'
-                                                    }`}
-                                                    title="Automatically generates new predictions on every candle close"
-                                                >
-                                                    <Telescope size={11} />
-                                                    <span>Auto: {fvAutoMode ? 'ON' : 'OFF'}</span>
-                                                    {fvAutoMode && <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />}
-                                                </button>
                                             </div>
                                         </div>
                                     </motion.div>

@@ -21,6 +21,7 @@ import { DebouncedOverrideInput } from "@/shared/components/ui/Inputs/DebouncedO
 import { useGlobalComposite, ID_TO_TITLE_GLOBAL } from "../engine/useGlobalComposite";
 import { useDataFreshness } from '@/shared/hooks/useDataFreshness';
 import { useAiSync } from "@/shared/hooks/useAiSync";
+import { useDataRegistry } from "@/shared/context/DataRegistryContext";
 import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/confidenceEngine";
 import { useGlobalApiData } from "../data/useGlobalApiData";
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
@@ -268,6 +269,26 @@ export default function ForeignPage() {
             cards: cardsForHeader
         }
     );
+
+    const { registerBulk } = useDataRegistry();
+
+    // Register all Global Macro cards with DataRegistry for Future Vision telemetry syncer
+    React.useEffect(() => {
+        if (cardsForHeader && cardsForHeader.length > 0 && typeof registerBulk === 'function') {
+            const snapshots = {};
+            cardsForHeader.forEach(c => {
+                const rawVal = mergedLiveData[c.id]?.value ?? mergedLiveData[c.id] ?? manualOverrides[c.id] ?? null;
+                snapshots[c.id] = {
+                    displayName: c.module,
+                    score: c.score,
+                    value: rawVal,
+                    signal: c.normalized === 1 ? 'BULLISH' : c.normalized === -1 ? 'BEARISH' : 'NEUTRAL',
+                    credit: c.credit
+                };
+            });
+            registerBulk('foreign', snapshots);
+        }
+    }, [cardsForHeader, mergedLiveData, manualOverrides, registerBulk]);
 
     if (loading && Object.keys(liveApiData || {}).length === 0 && !hasLiveOrManualData) {
         return (

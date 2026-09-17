@@ -44,11 +44,13 @@ import { useVoice } from "@/shared/context/VoiceContext";
 import OrderTicket from "@/features/trading/ui/OrderTicket";
 
 const ANALYSIS_PAGES = {
-  '/dashboard/fundamental': { module: 'Fundamentals', pageId: 'fundamentals', label: 'Fundamental Intelligence' },
-  '/dashboard/technical':   { module: 'Technical',    pageId: 'technical',    label: 'Technical Confluence' },
-  '/dashboard/options':     { module: 'Options',      pageId: 'options',      label: 'Options Structure' },
-  '/dashboard/events':      { module: 'Events',       pageId: 'events',       label: 'Corporate Events' },
-  '/dashboard/foreign':     { module: 'Global',       pageId: 'foreign',      label: 'Global Macro Cues' },
+  '/dashboard/fundamental':     { module: 'Fundamentals', pageId: 'fundamentals', label: 'Fundamental Intelligence' },
+  '/dashboard/technical':       { module: 'Technical',    pageId: 'technical',    label: 'Technical Confluence' },
+  '/dashboard/options':         { module: 'Options',      pageId: 'options',      label: 'Options Structure' },
+  '/dashboard/events':          { module: 'Events',       pageId: 'events',       label: 'Corporate Events' },
+  '/dashboard/foreign':         { module: 'Global',       pageId: 'foreign',      label: 'Global Macro Cues' },
+  '/dashboard/globalstructure': { module: 'Global',       pageId: 'foreign',      label: 'Global Macro Cues' },
+  '/dashboard/global':          { module: 'Global',       pageId: 'foreign',      label: 'Global Macro Cues' },
 };
 
 const Navbar = ({ onToggleSidebar }) => {

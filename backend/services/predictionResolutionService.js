@@ -56,12 +56,48 @@ export function normalizeTimeframe(tf) {
 export function getModelWeights(instrument, timeframe, regime = 'CHOPPY') {
     const tf = normalizeTimeframe(timeframe);
     try {
+        // 1. Purge any obsolete 'future_vision' entries from the Hedge ensemble weights pool
+        try {
+            db.prepare(`DELETE FROM model_weights WHERE model_id = 'future_vision'`).run();
+        } catch (_) {}
+
         const stmt = db.prepare(`
             SELECT model_id, weight, n_resolved, rolling_loss_20
             FROM model_weights
             WHERE instrument = ? AND timeframe = ? AND regime = ?
         `);
-        const rows = stmt.all(instrument, tf, regime);
+        let rows = stmt.all(instrument, tf, regime);
+
+        // 2. Backfill any missing default foundation models
+        const presentModelIds = new Set(rows.map(r => r.model_id));
+        const missingModels = DEFAULT_MODELS.filter(mId => !presentModelIds.has(mId));
+
+        if (missingModels.length > 0) {
+            const insertStmt = db.prepare(`
+                INSERT OR IGNORE INTO model_weights (model_id, instrument, timeframe, regime, weight, n_resolved)
+                VALUES (?, ?, ?, ?, ?, 0)
+            `);
+            for (const mId of missingModels) {
+                const w = DEFAULT_WEIGHTS[mId] ?? (1.0 / DEFAULT_MODELS.length);
+                insertStmt.run(mId, instrument, tf, regime, w);
+            }
+            rows = stmt.all(instrument, tf, regime);
+        }
+
+        // 3. If records have zero resolutions (cold start), ensure calibrated defaults
+        const allUnresolved = rows.every(r => (r.n_resolved || 0) === 0);
+        if (allUnresolved && rows.length === DEFAULT_MODELS.length) {
+            const hasLegacyStale = rows.some(r => Math.abs((r.weight || 0) - (DEFAULT_WEIGHTS[r.model_id] ?? 0.25)) > 0.05);
+            if (hasLegacyStale) {
+                const updateStmt = db.prepare(`
+                    UPDATE model_weights SET weight = ? WHERE model_id = ? AND instrument = ? AND timeframe = ? AND regime = ?
+                `);
+                for (const mId of DEFAULT_MODELS) {
+                    updateStmt.run(DEFAULT_WEIGHTS[mId] ?? 0.25, mId, instrument, tf, regime);
+                }
+                rows = stmt.all(instrument, tf, regime);
+            }
+        }
 
         if (rows.length > 0) {
             // Renormalize stored weights

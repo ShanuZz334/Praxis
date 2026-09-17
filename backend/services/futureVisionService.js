@@ -291,7 +291,10 @@ export async function runFutureVisionPrediction(contextPayload, instrumentKey, t
         calibratedCombined = ensembleQuantiles[0] || null;
 
         // Blend mathematical foundation forecasts with LLM qualitative structure
-        parsed.candles = parsed.candles.slice(0, horizonBars).map((c, i) => {
+        const blendedCandles = [];
+        const rawSlice = parsed.candles.slice(0, horizonBars);
+        for (let i = 0; i < rawSlice.length; i++) {
+            const c = rawSlice[i];
             const eq = ensembleQuantiles[i];
             const ensClose = eq?.close?.q50;
             let blendedClose = c.close;
@@ -301,29 +304,33 @@ export async function runFutureVisionPrediction(contextPayload, instrumentKey, t
             }
 
             let openPrice = c.open;
-            if (i > 0) {
-                openPrice = parsed.candles[i - 1].close;
+            if (i > 0 && blendedCandles[i - 1]) {
+                openPrice = blendedCandles[i - 1].close;
             }
 
             const highPrice = Math.max(c.high, openPrice, blendedClose, eq?.high?.q50 ?? 0);
             const lowPrice = Math.min(c.low, openPrice, blendedClose, eq?.low?.q50 ?? highPrice * 0.99);
+            const isBull = blendedClose >= openPrice;
+            const direction = isBull ? 'bullish' : 'bearish';
 
-            return {
+            blendedCandles.push({
                 ...c,
                 open: openPrice,
                 high: Number(highPrice.toFixed(2)),
                 low: Number(lowPrice.toFixed(2)),
                 close: blendedClose,
-                q10: eq?.close?.q10 ? Number(eq.close.q10.toFixed(2)) : c.low,
-                q25: eq?.close?.q25 ? Number(eq.close.q25.toFixed(2)) : c.low,
+                direction,
+                q10: eq?.close?.q10 ? Number(eq.close.q10.toFixed(2)) : lowPrice,
+                q25: eq?.close?.q25 ? Number(eq.close.q25.toFixed(2)) : lowPrice,
                 q50: eq?.close?.q50 ? Number(eq.close.q50.toFixed(2)) : blendedClose,
-                q75: eq?.close?.q75 ? Number(eq.close.q75.toFixed(2)) : c.high,
-                q90: eq?.close?.q90 ? Number(eq.close.q90.toFixed(2)) : c.high,
+                q75: eq?.close?.q75 ? Number(eq.close.q75.toFixed(2)) : highPrice,
+                q90: eq?.close?.q90 ? Number(eq.close.q90.toFixed(2)) : highPrice,
                 kronosQ50: kMember?.candles?.[i]?.close?.q50 ? Number(kMember.candles[i].close.q50.toFixed(2)) : null,
                 chronosQ50: cMember?.candles?.[i]?.close?.q50 ? Number(cMember.candles[i].close.q50.toFixed(2)) : null,
                 baselineQ50: bMember?.candles?.[i]?.close?.q50 ? Number(bMember.candles[i].close.q50.toFixed(2)) : null,
-            };
-        });
+            });
+        }
+        parsed.candles = blendedCandles;
 
         // Record member predictions asynchronously to local DB
         const targetTime = _estimateTargetCandleTime(timeframe);
