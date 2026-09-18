@@ -122,25 +122,29 @@ export function DashboardProvider({ children }) {
     }, [additionalCharts]);
     
     // Live Prices State
-    const [livePrices, setLivePrices] = useState({
-        "NSE_INDEX|Nifty 50": { ltp: 0, close: 0, status: 'neutral', netChange: 0, pctChange: 0 },
-        "NSE_INDEX|Nifty Bank": { ltp: 0, close: 0, status: 'neutral', netChange: 0, pctChange: 0 }
+    const [livePrices, setLivePrices] = useState(() => {
+        const initPrices = {
+            "NSE_INDEX|Nifty 50": { ltp: 0, close: 0, status: 'neutral', netChange: 0, pctChange: 0 },
+            "NSE_INDEX|Nifty Bank": { ltp: 0, close: 0, status: 'neutral', netChange: 0, pctChange: 0 }
+        };
+        if (typeof window !== 'undefined') {
+            window.PRAXIS_LIVE_PRICES = initPrices;
+        }
+        return initPrices;
     });
 
-    // Sync instrument when category changes
+    // Keep selectedCategory synchronized with whatever instrument is actually selected,
+    // without ever auto-selecting unwanted instruments or firing unneeded data fetches.
     useEffect(() => {
-        if (selectedCategory === "Indices") {
-            if (!FO_INDICES.find(i => i.value === selectedInstrument)) {
-                setSelectedInstrument("");
-                setSelectedExpiry("");
-            }
-        } else {
-            if (!FO_EQUITIES.find(i => i.value === selectedInstrument)) {
-                setSelectedInstrument("");
-                setSelectedExpiry("");
-            }
+        if (!selectedInstrument) return;
+        const isIndex = selectedInstrument.startsWith('NSE_INDEX|') || 
+                        selectedInstrument.startsWith('BSE_INDEX|') || 
+                        FO_INDICES.some(i => i.value === selectedInstrument);
+        const derivedCategory = isIndex ? "Indices" : "Companies";
+        if (selectedCategory !== derivedCategory) {
+            setSelectedCategory(derivedCategory);
         }
-    }, [selectedCategory]);
+    }, [selectedInstrument]);
 
     // Fetch expiries whenever instrument changes
     useEffect(() => {
@@ -183,7 +187,7 @@ export function DashboardProvider({ children }) {
         try { return JSON.parse(localStorage.getItem('dash_fiiDiiFlow')) || null; } catch { return null; }
     });
     const [smartlists, setSmartlists] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('dash_smartlists')) || null; } catch { return null; }
+        try { return JSON.parse(localStorage.getItem('dash_smartlists')) || {}; } catch { return {}; }
     });
     const [sectors, setSectors] = useState(() => {
         try { return JSON.parse(localStorage.getItem('dash_sectors')) || null; } catch { return null; }
@@ -194,7 +198,7 @@ export function DashboardProvider({ children }) {
 
     // Keep localStorage in sync for instant restore (SQLite handles durability on the backend)
     useEffect(() => { if (fiiDiiFlow) localStorage.setItem('dash_fiiDiiFlow', JSON.stringify(fiiDiiFlow)); }, [fiiDiiFlow]);
-    useEffect(() => { if (smartlists) localStorage.setItem('dash_smartlists', JSON.stringify(smartlists)); }, [smartlists]);
+    useEffect(() => { if (smartlists && Object.keys(smartlists).length > 0) localStorage.setItem('dash_smartlists', JSON.stringify(smartlists)); }, [smartlists]);
     useEffect(() => { if (sectors) localStorage.setItem('dash_sectors', JSON.stringify(sectors)); }, [sectors]);
     useEffect(() => { if (marketNews) localStorage.setItem('dash_marketNews', JSON.stringify(marketNews)); }, [marketNews]);
 
@@ -280,21 +284,32 @@ export function DashboardProvider({ children }) {
                 // Clear the queue after processing
                 pendingUpdatesRef.current = {};
 
+                if (hasChanges && typeof window !== 'undefined') {
+                    window.PRAXIS_LIVE_PRICES = nextPrices;
+                }
                 return hasChanges ? nextPrices : prev;
             });
         }, 2000);
 
         const handleFiiDii = (data) => setFiiDiiFlow(data);
         const handleSmartlists = (data) => {
+            if (!data) return;
             if (data && (data.options || data.futures)) {
-                const map = {};
+                const map = {
+                    MOST_ACTIVE: [],
+                    OI_GAINERS: [],
+                    IV_GAINERS: [],
+                    PREMIUM: []
+                };
                 const allItems = [...(data.options || []), ...(data.futures || [])];
                 allItems.forEach(item => {
-                    if (!map[item.category]) map[item.category] = [];
-                    map[item.category].push(item);
+                    if (item.category) {
+                        if (!map[item.category]) map[item.category] = [];
+                        map[item.category].push(item);
+                    }
                 });
                 setSmartlists(map);
-            } else {
+            } else if (typeof data === 'object') {
                 setSmartlists(data);
             }
         };

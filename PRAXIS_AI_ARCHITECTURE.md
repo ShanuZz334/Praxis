@@ -384,7 +384,7 @@ The command center of Praxis. Provides a 360° view of the user's financial univ
 | FII/DII flow data | NSE / Cron | Every 30 min |
 | Sector performance | Upstox / Calculated | Every 5 min |
 | News headlines | News API / Cron | Every 15 min |
-| Global market indices | Alpha Vantage / Cron | Every 30 min |
+| Global market indices | Yahoo Finance / Cron | Every 30 min |
 
 #### Outputs
 | Output | AI Involvement | Format |
@@ -806,7 +806,7 @@ Comprehensive event intelligence system that captures, classifies, scores, and p
 | IPO calendar | NSE, SEBI filings | Daily |
 | Global conflicts | News APIs, geopolitical feeds | Every 30 min |
 | Weather events | OpenWeatherMap API | Every 2 hours |
-| Commodity prices | Alpha Vantage, commodity APIs | Every 15 min |
+| Commodity prices | Yahoo Finance, commodity APIs | Every 15 min |
 | Political events | News APIs | Every 30 min |
 
 #### Event Classification Schema
@@ -949,7 +949,7 @@ Track and analyze macroeconomic indicators for India and globally. Provide AI-ge
 | FII/DII Flows | NSE/NSDL | Daily |
 | US macro (Fed Rate, CPI, NFP) | FRED API | Per release |
 | Global PMIs | Trading Economics | Monthly |
-| Commodity Prices (Crude, Gold) | Alpha Vantage / Free APIs | Daily |
+| Commodity Prices (Crude, Gold) | Yahoo Finance / Free APIs | Daily |
 | INR/USD Exchange Rate | Upstox / Forex API | Real-time |
 
 #### Outputs
@@ -2404,8 +2404,7 @@ graph TB
 | **Angel One SmartAPI** | Real-time quotes, Historical, F&O | Moderate | ★★★★★ | Best alternative free API |
 | **DhanHQ API** | Trading + Data (free with 25 trades/month) | Moderate | ★★★★★ | Good options chain API |
 | **FYERS API** | Real-time + Historical | Moderate | ★★★★ | Free for account holders |
-| **Alpha Vantage** | Global stocks, Forex, Crypto, News | 25 req/day (free) | ★★ | Good for global data |
-| **Yahoo Finance (unofficial)** | Global stocks, fundamentals | Unofficial | ★★★ | Unreliable, may break |
+| **Yahoo Finance (unofficial)** | Global stocks, fundamentals, commodities | Unofficial | ★★★★ | Primary macro & commodity source |
 
 #### News APIs
 

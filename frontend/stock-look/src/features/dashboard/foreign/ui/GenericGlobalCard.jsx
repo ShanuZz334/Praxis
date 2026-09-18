@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCard';
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
+import { cleanNum } from '@/lib/utils';
 import { ID_TO_TITLE_GLOBAL } from '../engine/useGlobalComposite';
 
 export default function GenericGlobalCard({ id, label, engineData, resolveTime, isLive }) {
@@ -11,28 +12,42 @@ export default function GenericGlobalCard({ id, label, engineData, resolveTime, 
     const hasValue = rawValue !== null && rawValue !== undefined && rawValue !== '';
     let displayValue = '--';
     if (hasValue) {
-        const parsed = parseFloat(rawValue);
-        if (id === 'us_10y_yield') {
-            // Yield: show as percentage
+        const parsed = cleanNum(rawValue);
+        if (parsed === null) {
+            displayValue = rawValue?.toString() || '--';
+        } else if (id === 'us_10y_yield') {
             displayValue = `${parsed.toFixed(2)}%`;
         } else if (id === 'vix' || id === 'move') {
             displayValue = parsed.toFixed(2);
-        } else if (['sp_futures', 'nasdaq_futures', 'dow_futures', 'nikkei', 'ftse', 'dax', 'hangseng', 'shanghai', 'cac40', 'eurostoxx'].includes(id)) {
-            // Index levels: comma-separated, 2 decimal places
-            displayValue = isNaN(parsed) ? rawValue : parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        } else if (['sp_futures', 'nasdaq_futures', 'dow_futures', 'dow_jones'].includes(id)) {
+            displayValue = `$${parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        } else if (id === 'nikkei') {
+            displayValue = `¥${parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        } else if (id === 'ftse') {
+            displayValue = `£${parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        } else if (['dax', 'cac40', 'eurostoxx'].includes(id)) {
+            displayValue = `€${parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        } else if (id === 'hangseng') {
+            displayValue = `HK$${parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        } else if (id === 'shanghai') {
+            displayValue = `¥${parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        } else if (id === 'usd_inr') {
+            displayValue = `₹${parsed.toFixed(2)}`;
+        } else if (id === 'usdjpy') {
+            displayValue = `¥${parsed.toFixed(2)}`;
+        } else if (id === 'eurusd') {
+            displayValue = `$${parsed.toFixed(4)}`;
+        } else if (id === 'dxy') {
+            displayValue = parsed.toFixed(2);
         } else if (id === 'copper') {
-            // HG=F returns in $/lb — show as $/lb, convert from cents if needed
             const v = parsed > 10 ? parsed / 100 : parsed;
             displayValue = `$${v.toFixed(2)}/lb`;
-        } else if (['gold', 'silver', 'natgas', 'crude', 'bitcoin', 'aluminum'].includes(id)) {
-            displayValue = `$${parsed.toFixed(2)}`;
+        } else if (['gold', 'silver', 'natgas', 'crude', 'bitcoin', 'ethereum', 'aluminum'].includes(id)) {
+            displayValue = `$${parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         } else if (id === 'wheat') {
-            // ZW=F in cents/bushel
             displayValue = `${parsed.toFixed(2)} ¢/bu`;
-        } else if (['dxy', 'eurusd', 'usdjpy', 'usd_inr'].includes(id)) {
-            displayValue = parsed.toFixed(4);
         } else {
-            displayValue = parsed.toFixed(2);
+            displayValue = parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
     }
 

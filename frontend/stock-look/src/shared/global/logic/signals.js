@@ -58,6 +58,9 @@ export function getSignalState(normalized = 0) {
  * Used for Main Gauge / Composite Scores
  */
 export function getCompositeState(score = 0) {
+    if (score === null || score === undefined || isNaN(score)) {
+        return { label: "AWAITING DATA", className: "text-slate-400 font-medium", color: "#64748B" };
+    }
     if (score >= 90) return { label: "EXCEPTIONAL", className: "text-[var(--color-praxis-blue)] font-extrabold tracking-tight", color: PRAXIS_COLORS.status7.exceptional };
     if (score >= 75) return { label: "STRONG", className: "text-[var(--color-praxis-green)] font-bold", color: PRAXIS_COLORS.status7.strong };
     if (score >= 60) return { label: "CONSTRUCTIVE", className: "text-[#22C55E] font-bold", color: PRAXIS_COLORS.status7.constructive };

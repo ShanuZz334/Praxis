@@ -107,9 +107,10 @@ export async function executeWithFallback(routePlan, providers, requestConfig) {
     // Safety Net Emergency Fallback:
     // If all planned routes were circuit-open or failed, attempt a clean call to high-availability providers (Gemini or Groq)
     const emergencyCandidates = [
-        { provider: 'gemini', model: 'gemini-3.5-flash-lite' },
-        { provider: 'gemini', model: 'gemini-3.5-flash' },
-        { provider: 'groq', model: 'groq/compound-mini' }
+        { provider: 'gemini', model: 'gemini-2.5-flash' },
+        { provider: 'gemini', model: 'gemini-2.0-flash' },
+        { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+        { provider: 'groq', model: 'llama-3.1-8b-instant' }
     ];
 
     for (const emer of emergencyCandidates) {

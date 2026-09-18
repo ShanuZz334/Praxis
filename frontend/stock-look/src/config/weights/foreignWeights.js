@@ -17,38 +17,32 @@ import { TRADING_MODES } from '../tradingModes.js';
 // =============================
 
 export const FOREIGN_WEIGHTS = {
-    // Currency (4 indicators)
-    'dxy':            0.10,
-    'usd_inr':        0.09,
-    'eurusd':         0.07,
-    'usdjpy':         0.07,
+    // Currency (3 indicators - sum: 0.21)
+    'dxy':            0.09,
+    'usd_inr':        0.08,
+    'usdjpy':         0.04,
 
-    // Global Indices (9 indicators)
+    // Global Indices (7 indicators - sum: 0.39)
     'sp_futures':     0.09,
     'nasdaq_futures': 0.08,
-    'dow_futures':    0.07,
-    'nikkei':         0.07,
-    'ftse':           0.06,
-    'dax':            0.06,
-    'hangseng':       0.05,
-    'shanghai':       0.05,
-    'cac40':          0.05,
-    'eurostoxx':      0.05,
+    'nikkei':         0.05,
+    'dax':            0.05,
+    'ftse':           0.04,
+    'hangseng':       0.04,
+    'shanghai':       0.04,
 
-    // Commodities (7 indicators)
-    'crude':          0.08,
-    'gold':           0.08,
-    'copper':         0.06,
-    'silver':         0.05,
-    'natgas':         0.05,
-    'wheat':          0.04,
-    'aluminum':       0.04,
+    // Commodities (5 indicators - sum: 0.19)
+    'crude':          0.06,
+    'gold':           0.05,
+    'copper':         0.03,
+    'silver':         0.03,
+    'natgas':         0.02,
 
-    // Rates & Volatility (4 indicators)
-    'us_10y_yield':   0.10,
-    'vix':            0.09,
-    'move':           0.07,
-    'bitcoin':        0.05,
+    // Rates & Volatility (4 indicators - sum: 0.21)
+    'us_10y_yield':   0.08,
+    'vix':            0.06,
+    'move':           0.04,
+    'bitcoin':        0.03,
 };
 
 // =============================
@@ -72,8 +66,6 @@ export const MODE_WEIGHT_MULTIPLIERS = {
         // Fast-moving futures less relevant positionally
         nasdaq_futures: 0.80,  // Short-term tech momentum not useful for positional
         natgas:         0.80,
-        wheat:          0.75,
-        aluminum:       0.75,
     },
 
     // SWING: Balanced — no multipliers
@@ -84,7 +76,6 @@ export const MODE_WEIGHT_MULTIPLIERS = {
         // US Futures amplified — most reactive intraday signals
         sp_futures:     1.40,  // S&P futures lead intraday Indian market direction
         nasdaq_futures: 1.35,  // Nasdaq futures drive intraday tech sentiment
-        dow_futures:    1.25,
         // Volatility amplified — instant risk-on/off read
         vix:            1.35,  // VIX spike = immediate risk-off across all markets
         // Currency amplified — FX pairs move fast intraday
@@ -95,10 +86,6 @@ export const MODE_WEIGHT_MULTIPLIERS = {
         // Slow macro signals dampened — they don't move intraday
         us_10y_yield:   0.70,  // Yield barely moves intraday
         move:           0.65,  // MOVE index is a weekly metric
-        wheat:          0.60,  // Agricultural commodities irrelevant intraday
-        aluminum:       0.60,
-        cac40:          0.80,  // European markets close by Indian afternoon
-        eurostoxx:      0.80,
     },
 };
 

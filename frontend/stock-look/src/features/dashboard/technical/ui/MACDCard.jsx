@@ -6,7 +6,7 @@ import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreMACDCard } from '../engine/TechnicalCompositeEngine';
 
-export default function MACDCard({ cardId, data = null, lastUpdated, tradingMode = 'swing', indicatorParams, onOpenSettings }) {
+export default function MACDCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing', indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.macd.id);
     
     const settingsConfig = [
@@ -16,7 +16,10 @@ export default function MACDCard({ cardId, data = null, lastUpdated, tradingMode
     ];
 
     // Resolve current value
-    const currentValueObj = data?.macd ?? null;
+    const isLiveData = data?.macd !== undefined && data?.macd !== null && data?.macd?.histogram !== undefined && data?.macd?.histogram !== null;
+    const isManual = !isLiveData && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' && !isNaN(Number(manualOverride));
+    const currentValueObj = isLiveData ? data.macd : (isManual ? { histogram: Number(manualOverride), MACD: Number(manualOverride), signal: 0 } : null);
+    const mode = isLiveData ? "AUTO" : (isManual ? "MANUAL" : "AUTO");
 
     const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreMACDCard(currentValueObj), 'macd', tradingMode);
 
@@ -30,10 +33,10 @@ export default function MACDCard({ cardId, data = null, lastUpdated, tradingMode
             config={{ 
                 title: "MACD", 
                 category: "Trend & Momentum", 
-                mode: "AUTO", 
+                mode, 
                 creditScore: configData.creditScore, 
-                updateTime: lastUpdated ?? "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel,
                 settingsConfig,
                 onSettingsClick: () => onOpenSettings?.(settingsConfig)
@@ -47,7 +50,8 @@ export default function MACDCard({ cardId, data = null, lastUpdated, tradingMode
                 score, 
                 bias, 
                 confidence, 
-                impactWeight: configData.impactWeight 
+                impactWeight: configData.impactWeight,
+                isManual
             }}
             chartData={{ points: data?.history || [], valueKey: "value", valueName: "MACD Histogram" }}
             insights={{ 

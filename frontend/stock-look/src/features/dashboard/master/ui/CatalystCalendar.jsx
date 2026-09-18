@@ -50,7 +50,8 @@ const CatalystCalendar = React.memo(function CatalystCalendar({ marketNews: prop
                 {newsItems.length === 0 ? (
                     <div className="text-[10px] text-text-tertiary px-2">No recent news found for tracked instruments.</div>
                 ) : newsItems.map((news, i) => {
-                    const pubDate = new Date(news.published_time);
+                    const rawTime = Number(news.published_time);
+                    const pubDate = new Date(!isNaN(rawTime) && rawTime < 1e11 ? rawTime * 1000 : (rawTime || news.published_time));
                     const now = new Date();
                     const isToday = pubDate.toDateString() === now.toDateString();
                     

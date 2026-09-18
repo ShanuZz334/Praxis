@@ -39,23 +39,77 @@ const INTER_CALL_DELAY = 2500;  // ms between batches (rate-limit protection)
 const MAX_PER_CYCLE    = 25;    // Max new articles to process per polling cycle
 
 // ============================================================
-// State
+// State & Deduplication Buffers
 // ============================================================
 let isProcessing = false;
 let processedArticleLinks = new Set(); // In-memory dedup cache (backed by DB)
 let processedHeadlines = new Set();    // Secondary dedup by exact headline
+let recentHeadlinesBuffer = [];        // Rolling semantic dedup buffer: { headline, tokens, timestamp }
+
+const STOP_WORDS = new Set([
+    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has", "he",
+    "in", "is", "it", "its", "of", "on", "that", "the", "to", "was", "were", "will",
+    "with", "up", "down", "over", "into", "amid", "after", "says", "said", "about"
+]);
+
+export function tokenizeHeadline(text) {
+    if (!text || typeof text !== "string") return new Set();
+    const words = text
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, " ")
+        .split(/\s+/)
+        .filter(w => w.length > 2 && !STOP_WORDS.has(w));
+    return new Set(words);
+}
+
+export function calculateJaccardSimilarity(setA, setB) {
+    if (!setA.size || !setB.size) return 0;
+    let intersection = 0;
+    for (const item of setA) {
+        if (setB.has(item)) intersection++;
+    }
+    const union = setA.size + setB.size - intersection;
+    return union > 0 ? intersection / union : 0;
+}
+
+export function isSemanticDuplicate(newHeadline, maxAgeHours = 6, threshold = 0.65) {
+    const now = Date.now();
+    // Prune buffer older than 24 hours
+    recentHeadlinesBuffer = recentHeadlinesBuffer.filter(item => (now - item.timestamp) < 24 * 60 * 60 * 1000);
+
+    const newTokens = tokenizeHeadline(newHeadline);
+    if (newTokens.size < 3) return false;
+
+    for (const item of recentHeadlinesBuffer) {
+        if ((now - item.timestamp) <= maxAgeHours * 60 * 60 * 1000) {
+            const similarity = calculateJaccardSimilarity(newTokens, item.tokens);
+            if (similarity >= threshold) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 /**
- * Loads already-processed article links from DB into memory set on startup.
+ * Loads already-processed article links and recent headlines from DB on startup.
  */
 function loadProcessedLinks() {
     try {
         const rows = db.prepare(`
-            SELECT headline, reasoning, source_url FROM market_events
+            SELECT headline, reasoning, source_url, created_at, published_time FROM market_events ORDER BY created_at DESC LIMIT 200
         `).all();
         
         rows.forEach(r => {
-            if (r.headline) processedHeadlines.add(r.headline.trim());
+            if (r.headline) {
+                processedHeadlines.add(r.headline.trim());
+                const date = r.published_time ? new Date(r.published_time) : new Date(r.created_at || Date.now());
+                recentHeadlinesBuffer.push({
+                    headline: r.headline,
+                    tokens: tokenizeHeadline(r.headline),
+                    timestamp: date.getTime()
+                });
+            }
             if (r.source_url) processedArticleLinks.add(r.source_url);
             
             // Legacy fallback if article_link was embedded in reasoning
@@ -64,7 +118,7 @@ function loadProcessedLinks() {
                 if (match) processedArticleLinks.add(match[1]);
             }
         });
-        console.log(`[AutoProcessor] Loaded ${processedArticleLinks.size} processed URLs and ${processedHeadlines.size} headlines from DB`);
+        console.log(`[AutoProcessor] Loaded ${processedArticleLinks.size} processed URLs and ${recentHeadlinesBuffer.length} recent headlines for semantic deduplication`);
     } catch (e) {
         // source_url column may not exist yet — handled gracefully
         console.log("[AutoProcessor] Initialized with empty processed-links cache");
@@ -111,9 +165,13 @@ async function processNewsArticle(newsItem, useFewShot = true) {
 
     if (!heading) return null;
 
-    // 1. Skip if already processed (check both URL and exact headline)
+    // 1. Skip if already processed (check URL, exact headline, and semantic similarity)
     if (article_link && processedArticleLinks.has(article_link)) return null;
     if (processedHeadlines.has(heading.trim())) return null;
+    if (isSemanticDuplicate(heading, 6, 0.65)) {
+        console.log(`[AutoProcessor] ⏭️ Skipped syndicated duplicate: "${heading.slice(0, 50)}"`);
+        return null;
+    }
 
     // 2. Skip if article is older than MAX_AGE_HOURS
     const pubTime = published_time ? new Date(published_time * 1000) : null;
@@ -190,14 +248,16 @@ async function processNewsArticle(newsItem, useFewShot = true) {
             return null;
         }
 
-        // 10. Save to DB (with hashtags)
+        // 10. Save to DB (with hashtags and published_time)
+        const publishedIso = pubTime ? pubTime.toISOString() : new Date().toISOString();
         const stmt = db.prepare(`
             INSERT INTO market_events (
                 headline, summary, category, sub_category, source,
+                published_time,
                 sentiment, importance, severity, override_mode,
                 confidence, affected_assets, event_score, horizon, reasoning,
                 instrument_type, key_data_points, source_url, ttl_hours, hashtags
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         const info = stmt.run(
@@ -206,6 +266,7 @@ async function processNewsArticle(newsItem, useFewShot = true) {
             finalCategory,
             sanitized.sub_category   || null,
             sanitized.source         || "Market News (Auto)",
+            publishedIso,
             sanitized.sentiment      || "Neutral",
             sanitized.importance     || "Medium",
             sanitized.severity       || "Normal",
@@ -222,10 +283,14 @@ async function processNewsArticle(newsItem, useFewShot = true) {
             sanitized.hashtags && sanitized.hashtags.length > 0 ? JSON.stringify(sanitized.hashtags) : "[]"
         );
 
-        // 11. Mark as processed
         if (article_link) processedArticleLinks.add(article_link);
         processedHeadlines.add(heading.trim());
         if (sanitized.headline) processedHeadlines.add(sanitized.headline.trim());
+        recentHeadlinesBuffer.push({
+            headline: finalHeadline,
+            tokens: tokenizeHeadline(finalHeadline),
+            timestamp: Date.now()
+        });
 
         console.log(`[AutoProcessor] ✅ Saved event: "${finalHeadline.slice(0, 60)}" | Score: ${sanitized.event_score} | Category: ${finalCategory} | Assets: ${(sanitized.affected_assets || []).join(",")}`);
         return info.lastInsertRowid;

@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { useTheme } from "@/shared/context/ThemeContext";
 import PaiChatArea from "@/features/dashboard/pai/ui/PaiChatArea";
 
-export default function AiInsightModal({ open, onClose, targetId }) {
+export default function AiInsightModal({ open, onClose, targetId, symbol, initialInsight }) {
     const { theme } = useTheme();
 
     useEffect(() => {
@@ -20,9 +20,15 @@ export default function AiInsightModal({ open, onClose, targetId }) {
 
     if (!open || !targetId) return null;
 
-    const formattedTitle = targetId
+    const displaySym = symbol ? (symbol.includes('|') ? symbol.split('|').pop() : symbol) : null;
+    const cleanModuleName = targetId
+        .replace(/_header$/, '')
         .replace(/_/g, ' ')
         .replace(/\b\w/g, c => c.toUpperCase());
+
+    const formattedTitle = displaySym
+        ? `${displaySym} — ${cleanModuleName} Intelligence`
+        : `${cleanModuleName} Intelligence`;
 
     return createPortal(
         <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 ${theme}`}>
@@ -58,9 +64,11 @@ export default function AiInsightModal({ open, onClose, targetId }) {
                 </button>
                 <PaiChatArea 
                     activeChatId={targetId} 
-                    chatTitle={`${formattedTitle} Insight`} 
+                    chatTitle={formattedTitle} 
                     chatType="header" 
                     isPopup={true}
+                    initialInsight={initialInsight}
+                    stockSymbol={symbol}
                 />
             </div>
         </div>,

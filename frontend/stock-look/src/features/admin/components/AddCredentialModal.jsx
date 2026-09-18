@@ -8,7 +8,6 @@ const PROVIDERS = [
     { value: "FMP", label: "Financial Modeling Prep" },
     { value: "TWELVEDATA", label: "Twelve Data" },
     { value: "UPSTOX", label: "Upstox (Official)" },
-    { value: "ALPHAVANTAGE", label: "Alpha Vantage" },
     { value: "POLYGON", label: "Polygon.io" },
     { value: "FRED", label: "Federal Reserve (FRED)" },
     { value: "NEWSAPI", label: "NewsAPI.org" }

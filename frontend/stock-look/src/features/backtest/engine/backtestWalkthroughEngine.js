@@ -250,7 +250,16 @@ export function diagnoseMathematicalLeaks(summary = {}, config = {}, trades = []
 
     // Leak 5: Friction & Slippage Drag
     const isIndianRealistic = config.costModel === 'INDIAN_REALISTIC';
-    const frictionValue = Number(config.slippagePct || 0) + Number(config.brokeragePerTrade || 0) + (isIndianRealistic ? 0.08 : 0);
+    let frictionValue = 0;
+    if (isIndianRealistic) {
+        frictionValue = 0.08 + Number(config.slippagePct || 0) + Number(config.brokeragePerTrade || 0);
+    } else if (config.costModel && typeof config.costModel === 'object') {
+        const fee = Number(config.costModel.feePerOrderPct || config.costModel.brokeragePerTrade || config.costModel.fee || 0);
+        const slip = Number(config.costModel.slippagePct || config.costModel.slippage || 0);
+        frictionValue = (fee + slip) * 2;
+    } else {
+        frictionValue = Number(config.slippagePct || 0) + Number(config.brokeragePerTrade || 0);
+    }
     if (frictionValue > 0) {
         const totalTrades = summary.totalTrades || 0;
         leaks.push({

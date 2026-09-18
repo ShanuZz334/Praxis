@@ -71,8 +71,9 @@ export default function WalletPage() {
 
 
     const { totalUnrealized, totalRealized, todayPnL } = useMemo(() => {
-        const ur = positions.reduce((s, p) => s + (p.unrealised ?? p.unrealized_pnl ?? 0), 0);
-        const re = positions.reduce((s, p) => s + (p.realised   ?? p.realized_pnl  ?? 0), 0);
+        const posList = Array.isArray(positions) ? positions : [];
+        const ur = posList.reduce((s, p) => s + (p.unrealised ?? p.unrealized_pnl ?? 0), 0);
+        const re = posList.reduce((s, p) => s + (p.realised   ?? p.realized_pnl  ?? 0), 0);
         return { totalUnrealized: ur, totalRealized: re, todayPnL: ur + re };
     }, [positions]);
 

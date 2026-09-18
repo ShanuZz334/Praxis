@@ -41,7 +41,7 @@ export const protect = async (req, res, next) => {
         return res.status(401).json({ message: "Not authorized, no token" });
     }
 
-    if (token === "demo-token-123456") {
+    if (process.env.NODE_ENV !== 'production' && token === "demo-token-123456") {
         req.user = {
             _id: "demo_user_id_123",
             fullName: "Demo User",

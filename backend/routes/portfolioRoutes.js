@@ -14,8 +14,12 @@ import axios from "axios";
 import db from "../config/localDb.js";
 import { getUpstoxAuthForMode, getExecutionMode } from "../utils/upstoxAuthHelper.js";
 import { syncHoldings } from "../services/upstoxPortfolio.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+
+// Enforce JWT authentication on all portfolio, funds, and holdings routes
+router.use(protect);
 
 /** Helper — determines active mode and returns headers and baseUrl */
 const getActiveHeaders = async () => {

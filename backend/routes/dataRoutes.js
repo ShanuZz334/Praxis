@@ -46,21 +46,18 @@ export const invalidateGlobalCache = () => {
 const SYMBOL_MAP = {
     // Currency
     "dxy": "DX-Y.NYB",
-    "eurusd": "EURUSD=X",
     "usdjpy": "JPY=X",
     "usd_inr": "USDINR=X",
 
-    // Global Indices
+    // Global Indices / US Markets
     "sp_futures": "ES=F",
     "nasdaq_futures": "NQ=F",
-    "dow_futures": "YM=F",
+    "dow_jones": "YM=F",
     "nikkei": "^N225",
     "ftse": "^FTSE",
     "dax": "^GDAXI",
     "hangseng": "^HSI",
     "shanghai": "000001.SS",
-    "cac40": "^FCHI",
-    "eurostoxx": "^STOXX50E",
 
     // Commodities
     "gold": "GC=F",
@@ -68,8 +65,6 @@ const SYMBOL_MAP = {
     "crude": "CL=F",
     "copper": "HG=F",
     "natgas": "NG=F",
-    "wheat": "ZW=F",
-    "aluminum": "ALI=F",
 
     // Crypto
     "bitcoin": "BTC-USD",
@@ -212,5 +207,29 @@ router.post("/storage-optimize", async (req, res) => {
     }
 });
 
+router.get("/news", async (req, res) => {
+    try {
+        const { moneycontrolService } = await import("../services/moneycontrolService.js");
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const news = await moneycontrolService.getLatestNews(limit);
+        res.json({ success: true, count: news.length, data: news });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+router.get("/screener/:symbol", async (req, res) => {
+    try {
+        const { screenerService } = await import("../services/screenerService.js");
+        const { symbol } = req.params;
+        const details = await screenerService.getCompanyDetails(symbol);
+        if (!details) return res.status(404).json({ success: false, message: "Company not found or scrape failed" });
+        res.json({ success: true, data: details });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 export default router;
+
 

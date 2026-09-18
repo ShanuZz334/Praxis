@@ -20,8 +20,15 @@ import {
     scoreSupportCard,
     scoreVolumeSmaCard,
     scoreVwapCard,
-    scoreWilliamsRCard
-} from '../../../technical/engine/TechnicalCompositeEngine';
+    scoreWilliamsRCard,
+    scoreBetaCard,
+    scoreTrendlineCard,
+    scoreBreadthRatioCard,
+    scoreADLineCard,
+    scoreMcClellanCard,
+    scoreNhnlCard,
+    scoreTrinCard
+} from '../../../../technical/engine/TechnicalCompositeEngine.js';
 
 export function resolveTechnical(cardDef, rawTechnicals, currentPrice) {
     if (!rawTechnicals) return { hasLiveData: false, status: 'missing', reason: 'No upstream data' };
@@ -32,9 +39,11 @@ export function resolveTechnical(cardDef, rawTechnicals, currentPrice) {
     let result = { hasLiveData: false, reason: 'Algorithm unavailable' };
 
     switch (cardDef.id) {
-        case 'adx':
-            if (t.adx) result = { hasLiveData: true, value: JSON.stringify(t.adx), score: scoreADXCard(t.adx).score };
+        case 'adx': {
+            const adxBull = t.adx?.pdi !== undefined ? t.adx.pdi >= t.adx.mdi : (p && t.ema_50 ? p >= t.ema_50 : null);
+            if (t.adx) result = { hasLiveData: true, value: JSON.stringify(t.adx), score: scoreADXCard(t.adx, adxBull).score };
             break;
+        }
         case 'atr':
             if (t.atr && p) result = { hasLiveData: true, value: JSON.stringify(t.atr), score: scoreATRCard(t.atr, p).score };
             break;
@@ -56,18 +65,24 @@ export function resolveTechnical(cardDef, rawTechnicals, currentPrice) {
         case 'fibonacci':
             if (t.fibonacci && p) result = { hasLiveData: true, value: JSON.stringify(t.fibonacci), score: scoreFibonacciCard(t.fibonacci, p).score };
             break;
-        case 'kc_20_2':
-            if (t.kc_20_2) result = { hasLiveData: true, value: JSON.stringify(t.kc_20_2), score: scoreKCCard(t.kc_20_2).score };
+        case 'kc':
+        case 'kc_20_2': {
+            const kcVal = t.kc || t.kc_20_2;
+            if (kcVal) result = { hasLiveData: true, value: JSON.stringify(kcVal), score: scoreKCCard(kcVal, p).score };
             break;
+        }
         case 'macd':
             if (t.macd) result = { hasLiveData: true, value: JSON.stringify(t.macd), score: scoreMACDCard(t.macd).score };
             break;
         case 'obv':
-            if (t.obv) result = { hasLiveData: true, value: JSON.stringify(t.obv), score: scoreObvCard(t.obv).score };
+            if (t.obv) result = { hasLiveData: true, value: JSON.stringify(t.obv), score: scoreObvCard(t.obv, t.obv_sma, t.volume_sma).score };
             break;
-        case 'pivot_points':
-            if (t.pivot_points && p) result = { hasLiveData: true, value: JSON.stringify(t.pivot_points), score: scorePivotCard(t.pivot_points, p).score };
+        case 'pivot':
+        case 'pivot_points': {
+            const pivVal = t.pivot || t.pivot_points;
+            if (pivVal && p) result = { hasLiveData: true, value: JSON.stringify(pivVal), score: scorePivotCard(pivVal, p).score };
             break;
+        }
         case 'resistance':
             if (t.resistance && p) result = { hasLiveData: true, value: JSON.stringify(t.resistance), score: scoreResistanceCard(t.resistance, p).score };
             break;
@@ -90,13 +105,48 @@ export function resolveTechnical(cardDef, rawTechnicals, currentPrice) {
             if (t.support && p) result = { hasLiveData: true, value: JSON.stringify(t.support), score: scoreSupportCard(t.support, p).score };
             break;
         case 'volume_sma':
-            if (t.volume_sma) result = { hasLiveData: true, value: JSON.stringify(t.volume_sma), score: scoreVolumeSmaCard(t.volume_sma).score };
+            if (t.volume_sma) result = { hasLiveData: true, value: JSON.stringify(t.volume_sma), score: scoreVolumeSmaCard(t.volume_sma, t.current_volume, p, t.open_price).score };
             break;
         case 'vwap':
             if (t.vwap && p) result = { hasLiveData: true, value: JSON.stringify(t.vwap), score: scoreVwapCard(t.vwap, p).score };
             break;
         case 'williams_r':
             if (t.williams_r) result = { hasLiveData: true, value: JSON.stringify(t.williams_r), score: scoreWilliamsRCard(t.williams_r).score };
+            break;
+        case 'trendline':
+            if (t.trendline) result = { hasLiveData: true, value: JSON.stringify(t.trendline), score: scoreTrendlineCard(t.trendline).score };
+            break;
+        case 'beta':
+        case 'beta_correlation':
+            if (t.beta !== undefined && t.beta !== null) {
+                const bVal = typeof t.beta === 'object' ? t.beta.value ?? t.beta.beta : t.beta;
+                result = { hasLiveData: true, value: JSON.stringify(t.beta), score: scoreBetaCard(bVal).score };
+            }
+            break;
+        case 'breadth_ratio':
+            if (t.breadth_ratio !== undefined && t.breadth_ratio !== null) {
+                result = { hasLiveData: true, value: JSON.stringify(t.breadth_ratio), score: scoreBreadthRatioCard(t.breadth_ratio).score };
+            }
+            break;
+        case 'ad_line':
+            if (t.ad_line !== undefined && t.ad_line !== null) {
+                result = { hasLiveData: true, value: JSON.stringify(t.ad_line), score: scoreADLineCard(t.ad_line).score };
+            }
+            break;
+        case 'mcclellan':
+            if (t.mcclellan !== undefined && t.mcclellan !== null) {
+                result = { hasLiveData: true, value: JSON.stringify(t.mcclellan), score: scoreMcClellanCard(t.mcclellan).score };
+            }
+            break;
+        case 'nh_nl':
+            if (t.nh_nl !== undefined && t.nh_nl !== null) {
+                result = { hasLiveData: true, value: JSON.stringify(t.nh_nl), score: scoreNhnlCard(t.nh_nl).score };
+            }
+            break;
+        case 'trin':
+            if (t.trin !== undefined && t.trin !== null) {
+                result = { hasLiveData: true, value: JSON.stringify(t.trin), score: scoreTrinCard(t.trin).score };
+            }
             break;
         default:
             result = { hasLiveData: false, reason: 'Algorithm unavailable for ' + cardDef.id };

@@ -16,6 +16,7 @@ export default function TrinCard({ cardId, data = null, manualOverride, lastUpda
     const rawScoreObj = scoreTrinCard(currentValue);
     const { score, bias, confidence, aiInsight } = { ...rawScoreObj, ...applyModeAdjustment(rawScoreObj, 'trin', tradingMode) };
 
+    const isManual = manualOverride !== null && manualOverride !== undefined && manualOverride !== '';
     const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) : '--';
     
     return (
@@ -24,10 +25,10 @@ export default function TrinCard({ cardId, data = null, manualOverride, lastUpda
             config={{ 
                 title: "TRIN (Arms Index)", 
                 category: "Market Breadth", 
-                mode: "MANUAL",
+                mode: isManual ? "MANUAL" : "AUTO",
                 creditScore: configData.creditScore, 
-                updateTime: lastUpdated ?? "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(false) : (lastUpdated || "--:--"), 
+                source: isManual ? "Manual" : configData.source, 
                 aiModel: configData.aiModel 
             }}
             data={{ 
@@ -36,7 +37,8 @@ export default function TrinCard({ cardId, data = null, manualOverride, lastUpda
                 score, 
                 bias, 
                 confidence, 
-                impactWeight: configData.impactWeight 
+                impactWeight: configData.impactWeight,
+                isManual
             }}
             chartData={{ points: data?.history || [], valueKey: "value", valueName: "TRIN" }}
             insights={{ aiInsight: aiInsight, whyItMatters: ["Provides context on volume and market breadth.", "Crucial for confirming trend strength."] }}

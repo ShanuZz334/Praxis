@@ -1094,6 +1094,52 @@ export function subscribeToCustomIndicators(callback) {
 
 const COMPILED_FN_CACHE = new Map();
 
+const FORBIDDEN_SECURITY_TOKENS = [
+    'window',
+    'document',
+    'fetch',
+    'XMLHttpRequest',
+    'WebSocket',
+    'localStorage',
+    'sessionStorage',
+    'indexedDB',
+    'eval',
+    'Function',
+    'importScripts',
+    'globalThis',
+    'process',
+    'require',
+    'top',
+    'parent',
+    'cookie',
+];
+
+/**
+ * Validates custom indicator script for security violations.
+ * Blocks DOM access, network calls, token exfiltration, and arbitrary execution.
+ */
+export function validateIndicatorSecurity(code) {
+    if (!code || typeof code !== 'string') {
+        return { valid: false, error: 'Code must be a non-empty string.' };
+    }
+    // Strip comments and string literals to prevent false alarms in descriptive text
+    const strippedCode = code
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*/g, '')
+        .replace(/(['"`])(?:\\.|(?!\1)[^\\])*\1/g, '""');
+
+    for (const token of FORBIDDEN_SECURITY_TOKENS) {
+        const regex = new RegExp(`\\b${token}\\b`);
+        if (regex.test(strippedCode)) {
+            return {
+                valid: false,
+                error: `Security Sandbox Violation: Disallowed token "${token}" detected. Custom indicators must be pure mathematical functions without DOM, storage, or network access.`,
+            };
+        }
+    }
+    return { valid: true };
+}
+
 /**
  * Compiles custom indicator JavaScript code into an executable sandboxed function.
  * @param {string} code 
@@ -1104,10 +1150,30 @@ export function getCompiledLabFunction(code) {
     if (COMPILED_FN_CACHE.has(code)) {
         return COMPILED_FN_CACHE.get(code);
     }
+
+    const secCheck = validateIndicatorSecurity(code);
+    if (!secCheck.valid) {
+        console.warn(`[customIndicatorRegistry] ${secCheck.error}`);
+        return null;
+    }
+
     try {
         let fn;
+        const sandboxPreamble = `
+            "use strict";
+            const window = undefined;
+            const document = undefined;
+            const fetch = undefined;
+            const XMLHttpRequest = undefined;
+            const WebSocket = undefined;
+            const localStorage = undefined;
+            const sessionStorage = undefined;
+            const globalThis = undefined;
+        `;
+
         if (/function\s+indicator\s*\(/.test(code)) {
             fn = new Function('candles', 'activeMode', `
+${sandboxPreamble}
 ${code}
 const res = indicator(candles);
 if (res && typeof res === 'object' && !Array.isArray(res)) {
@@ -1118,9 +1184,10 @@ if (res && typeof res === 'object' && !Array.isArray(res)) {
 return Array.isArray(res) ? res : [];
 `);
         } else if (/^\s*return\b/.test(code)) {
-            fn = new Function('candles', 'activeMode', code);
+            fn = new Function('candles', 'activeMode', `${sandboxPreamble}\n${code}`);
         } else {
             fn = new Function('candles', 'activeMode', `
+${sandboxPreamble}
 ${code}
 if (typeof indicator === 'function') {
     const res = indicator(candles);

@@ -20,9 +20,9 @@
 // =============================
 
 import { optionsSections as baseSections } from '../../../../config/weights/optionsSectionWeights.js';
-import { getNonMasterGaugeLabel, getNonMasterRegimeLabel } from '@/shared/global/logic/labelMappings';
-import { getOptionsWeights } from '@/config/weights/optionsWeights';
-import { TRADING_MODES } from '@/config/tradingModes';
+import { getNonMasterGaugeLabel, getNonMasterRegimeLabel } from '../../../../shared/global/logic/labelMappings.js';
+import { getOptionsWeights } from '../../../../config/weights/optionsWeights.js';
+import { TRADING_MODES } from '../../../../config/tradingModes.js';
 
 // Re-export for backward compatibility
 export const optionsSections = baseSections;
@@ -41,12 +41,12 @@ export function calculatePositioningScore(metrics, mode = TRADING_MODES.SWING) {
     // Fetch active weights based on mode
     const activeWeights = getOptionsWeights(mode);
 
-    // Map internal keys to config IDs and get their relative weights
+    // Map internal keys to active indicator weights from optionsWeights.js
     const componentWeights = {
-        delta: activeWeights.net_delta || 0.12,
-        gamma: activeWeights.net_gamma || 0.10,
-        pcr: activeWeights.pcr || 0.10,
-        skew: activeWeights.iv_skew || 0.12,
+        delta: activeWeights.delta || 0.12,
+        gamma: activeWeights.gamma || 0.10,
+        pcr: activeWeights.pcr_oi || 0.12,
+        skew: activeWeights.atm_iv || 0.08,
         maxPain: activeWeights.max_pain || 0.12
     };
 
@@ -59,12 +59,14 @@ export function calculatePositioningScore(metrics, mode = TRADING_MODES.SWING) {
 
     // 2. Put/Call OI Imbalance (PCR)
     const pcr = metrics.pcr || 1;
-    const normPCR = Math.min(100, Math.max(0, (pcr - 0.5) * 100));
+    let normPCR = 50;
+    if (pcr > 1.25) normPCR = Math.min(85, 50 + (pcr - 1.25) * 60);
+    else if (pcr < 0.95) normPCR = Math.max(15, 50 - (0.95 - pcr) * 80);
 
-    // 3. Mocked components for Gamma/Skew (Placeholder)
-    const gammaExposure = 55; // Neutral-ish
-    const ivSkew = 45; // Slightly bearish skew
-    const maxPainDist = 60; // Fairly close
+    // 3. Components for Gamma/Skew/MaxPain
+    const gammaExposure = metrics.gammaExposure ?? 50;
+    const ivSkew = metrics.ivSkew ?? 50;
+    const maxPainDist = metrics.maxPainDist ?? 50;
 
     // FORMULA: Normalized Weighted Average
     let rawScore = (
@@ -76,11 +78,11 @@ export function calculatePositioningScore(metrics, mode = TRADING_MODES.SWING) {
     ) / (totalW || 1);
 
     // Contextual Adjustment (Spot vs Max Pain)
-    if (metrics.spot > metrics.maxPain) rawScore += 2;
+    if (metrics.spot > metrics.maxPain) rawScore -= 2; // Pull down if above max pain
+    else if (metrics.spot < metrics.maxPain) rawScore += 2; // Pull up if below max pain
 
     const finalScore = Math.min(100, Math.max(0, rawScore));
     // High-Precision Confidence (Weighted Variance Damping)
-    // Measures alignment between Greeks, PCR, and Max Pain positioning.
     const components = [
         { val: normDelta, w: componentWeights.delta / totalW },
         { val: gammaExposure, w: componentWeights.gamma / totalW },
@@ -101,10 +103,10 @@ export function calculatePositioningScore(metrics, mode = TRADING_MODES.SWING) {
         prevScore,
         details: {
             netDelta: netDelta,
-            gammaFlip: metrics.maxPain + 50, // Mock
-            putWall: metrics.maxPain - 100,
-            callWall: metrics.maxPain + 200,
-            ivRank: null,
+            gammaFlip: metrics.gammaFlip ?? (metrics.maxPain ? metrics.maxPain : 0),
+            putWall: metrics.putWall ?? (metrics.maxPain ? metrics.maxPain - 100 : 0),
+            callWall: metrics.callWall ?? (metrics.maxPain ? metrics.maxPain + 100 : 0),
+            ivRank: metrics.ivRank ?? null,
             breakdown: [
                 { label: "Net Delta", val: normDelta > 50 ? "Bullish" : "Bearish", color: normDelta > 50 ? "text-green-400" : "text-red-400" },
                 { label: "Gamma", val: "Neutral", color: "text-blue-400" },

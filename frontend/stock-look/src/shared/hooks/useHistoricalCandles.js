@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { useDashboardContext } from '@/shared/context/DashboardContext';
+import { toUpstoxTimeframe, toTimeframeMinutes } from '@/shared/constants/timeframes';
 
 /**
  * useHistoricalCandles
@@ -47,7 +48,7 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
         setLiveCandle(null); // Clear stale live candle
         try {
             const response = await axiosInstance.get('/api/v1/upstox/candles', {
-                params: { instrument: instrumentKey, timeframe, limit: getLimit(timeframe) }
+                params: { instrument: instrumentKey, timeframe: toUpstoxTimeframe(timeframe), limit: getLimit(timeframe) }
             });
             if (isMounted && response.data?.success) {
                 const candleList = response.data.data || [];
@@ -76,14 +77,15 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
     };
 
     const pollBackfillStatus = (isMounted) => {
-        if (timeframe === 'day' || timeframe === 'week' || timeframe === 'month') return;
+        const upstoxTf = toUpstoxTimeframe(timeframe);
+        if (upstoxTf === 'day' || upstoxTf === 'week' || upstoxTf === 'month') return;
         if (backfillPollRef.current) clearInterval(backfillPollRef.current);
 
         backfillPollRef.current = setInterval(async () => {
             if (!isMounted) return;
             try {
                 const res = await axiosInstance.get('/api/v1/upstox/candles/backfill-status', {
-                    params: { instrument: instrumentKey, timeframe }
+                    params: { instrument: instrumentKey, timeframe: upstoxTf }
                 });
                 if (!isMounted) return;
                 const status = res.data;
@@ -137,16 +139,8 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
     // or null for daily/weekly/monthly (which don't need live boundary tracking).
     const _getTimeframeSec = (tf) => {
         if (!tf) return null;
-        const map = {
-            '1m': 60, '1minute': 60,
-            '3m': 180, '3minute': 180,
-            '5m': 300, '5minute': 300,
-            '10m': 600, '10minute': 600,
-            '15m': 900, '15minute': 900,
-            '30m': 1800, '30minute': 1800,
-            '1h': 3600, '60m': 3600, '1hour': 3600,
-        };
-        return map[tf.toLowerCase().trim()] ?? null;
+        const minutes = toTimeframeMinutes(tf);
+        return minutes ? minutes * 60 : null;
     };
 
     // Returns the Unix-seconds start of the candle that contains `nowMs`,
@@ -185,9 +179,7 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
         const lastHistorical = data[data.length - 1];
 
         setLiveCandle(prevLive => {
-            // ── Candle boundary detection ─────────────────────────────────────
-            // For intraday timeframes, check whether wall-clock has crossed into
-            // a new bar. If so, open a brand-new candle instead of patching the old one.
+            // ── Candle boundary detection (FB-005 & FB-006 Fixes) ────────────────
             const tfSec = _getTimeframeSec(timeframe);
             if (tfSec) {
                 const currentCandleStartSec = _alignedCandleStart(now, tfSec);
@@ -196,11 +188,14 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
                     : Math.floor(new Date(lastHistorical.time).getTime() / 1000);
 
                 if (currentCandleStartSec && currentCandleStartSec > lastHistoricalTimeSec) {
-                    // GUARD: Only spawn a fresh candle on the VERY FIRST tick of this new
-                    // boundary. If prevLive already has this timestamp, the bar is already
-                    // open — fall through to the normal OHLC-accumulation logic below.
                     if (!prevLive || prevLive.time !== currentCandleStartSec) {
-                        // First tick of a genuinely new bar — spawn a fresh OHLCV candle
+                        // FB-005 Fix: Commit completed prevLive candle into data state so it is never lost
+                        if (prevLive && prevLive.time < currentCandleStartSec) {
+                            setData(prevData => {
+                                if (prevData.some(c => c.time === prevLive.time)) return prevData;
+                                return [...prevData, prevLive];
+                            });
+                        }
                         lastLiveUpdateRef.current = now;
                         return {
                             time:   currentCandleStartSec,
@@ -208,13 +203,36 @@ export function useHistoricalCandles(instrumentKey, timeframe) {
                             high:   tick.ltp,
                             low:    tick.ltp,
                             close:  tick.ltp,
-                            volume: 0, // Fresh bar starts at 0, never full-day cumulative volume
+                            volume: 0,
                         };
                     }
-                    // else: prevLive is already at this boundary — accumulate below
+                }
+            } else if (timeframe === 'day' || timeframe === '1D' || timeframe === 'daily') {
+                // FB-006 Fix: Daily timeframe live candle handling
+                const istOffsetMs = 5.5 * 60 * 60 * 1000;
+                const todayIstStr = new Date(now + istOffsetMs).toISOString().split('T')[0];
+                const lastHistDateStr = typeof lastHistorical.time === 'string'
+                    ? (lastHistorical.time.includes('T') ? new Date(new Date(lastHistorical.time).getTime() + istOffsetMs).toISOString().split('T')[0] : lastHistorical.time)
+                    : new Date((lastHistorical.time * 1000) + istOffsetMs).toISOString().split('T')[0];
+
+                if (todayIstStr > lastHistDateStr) {
+                    const todayTime = typeof lastHistorical.time === 'string' && !lastHistorical.time.includes('T')
+                        ? todayIstStr
+                        : (typeof lastHistorical.time === 'number' ? Math.floor(new Date(`${todayIstStr}T03:45:00.000Z`).getTime() / 1000) : `${todayIstStr}T03:45:00.000Z`);
+
+                    if (!prevLive || prevLive.time !== todayTime) {
+                        lastLiveUpdateRef.current = now;
+                        return {
+                            time:   todayTime,
+                            open:   tick.open || tick.ltp,
+                            high:   tick.high || tick.ltp,
+                            low:    tick.low  || tick.ltp,
+                            close:  tick.ltp,
+                            volume: tick.volume || 0,
+                        };
+                    }
                 }
             }
-
             // ── Same bar — update the running candle ──────────────────────────
             const base = prevLive || lastHistorical;
 

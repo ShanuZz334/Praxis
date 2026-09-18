@@ -7,6 +7,7 @@ import * as groq from './providers/groqProvider.js';
 import * as gemini from './providers/geminiProvider.js';
 import * as openrouter from './providers/openrouterProvider.js';
 import * as zai from './providers/zaiProvider.js';
+import * as deepseek from './providers/deepseekProvider.js';
 
 import { validateInput } from './guardrails/inputGuard.js';
 import { responseCache } from './cache/responseCache.js';
@@ -19,7 +20,8 @@ const providers = {
     groq,
     gemini,
     openrouter,
-    zai
+    zai,
+    deepseek
 };
 
 // Bug 31 Fix: Sanitize user input to prevent prompt injection via control tokens
@@ -29,6 +31,7 @@ function sanitizeInput(text) {
 }
 
 export const aiGateway = {
+    providers,
     async process(request) {
         try {
             validateInput(request);

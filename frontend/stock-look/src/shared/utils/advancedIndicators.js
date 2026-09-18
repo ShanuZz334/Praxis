@@ -230,15 +230,29 @@ export function calculateIchimoku(data, conversionPeriod = 9, basePeriod = 26, s
     const finalSpanA = [];
     const finalSpanB = [];
     
-    for (const item of spanA) {
-        if (item.index < data.length) {
-            finalSpanA.push({ time: data[item.index].time, value: item.value });
+    const lastItem = data[data.length - 1];
+    const prevItem = data.length > 1 ? data[data.length - 2] : null;
+    let intervalSec = 86400;
+    if (lastItem && prevItem) {
+        const tLast = typeof lastItem.time === 'number' ? lastItem.time : Math.floor(new Date(lastItem.time).getTime() / 1000);
+        const tPrev = typeof prevItem.time === 'number' ? prevItem.time : Math.floor(new Date(prevItem.time).getTime() / 1000);
+        if (tLast > tPrev) intervalSec = Math.max(60, tLast - tPrev);
+    }
+    const getForwardTime = (idx) => {
+        if (idx < data.length) return data[idx].time;
+        const stepsAhead = idx - (data.length - 1);
+        if (typeof lastItem.time === 'number') {
+            return lastItem.time + stepsAhead * intervalSec;
         }
+        const lastMs = new Date(lastItem.time).getTime();
+        return new Date(lastMs + stepsAhead * intervalSec * 1000).toISOString().split('T')[0];
+    };
+
+    for (const item of spanA) {
+        finalSpanA.push({ time: getForwardTime(item.index), value: item.value });
     }
     for (const item of spanB) {
-        if (item.index < data.length) {
-            finalSpanB.push({ time: data[item.index].time, value: item.value });
-        }
+        finalSpanB.push({ time: getForwardTime(item.index), value: item.value });
     }
     
     return { tenkan, kijun, spanA: finalSpanA, spanB: finalSpanB };
@@ -283,19 +297,22 @@ export function calculateAutoFib(data, lookback = null) {
         ? data.slice(-lookback)
         : data;
 
-    let high = -Infinity;
-    let low = Infinity;
+    let high = -Infinity, highIdx = -1;
+    let low = Infinity, lowIdx = -1;
     
-    for (const d of subset) {
-        if (d.high > high) high = d.high;
-        if (d.low < low) low = d.low;
+    for (let i = 0; i < subset.length; i++) {
+        const d = subset[i];
+        if (d.high > high) { high = d.high; highIdx = i; }
+        if (d.low < low) { low = d.low; lowIdx = i; }
     }
     
     const diff = high - low;
     if (diff <= 0) return null;
 
+    const isUptrend = lowIdx < highIdx;
+
     return {
-        levels: [
+        levels: isUptrend ? [
             { price: high, label: '0%' },
             { price: high - diff * 0.236, label: '23.6%' },
             { price: high - diff * 0.382, label: '38.2%' },
@@ -303,6 +320,14 @@ export function calculateAutoFib(data, lookback = null) {
             { price: high - diff * 0.618, label: '61.8%' },
             { price: high - diff * 0.786, label: '78.6%' },
             { price: low, label: '100%' }
+        ] : [
+            { price: low, label: '0%' },
+            { price: low + diff * 0.236, label: '23.6%' },
+            { price: low + diff * 0.382, label: '38.2%' },
+            { price: low + diff * 0.5, label: '50%' },
+            { price: low + diff * 0.618, label: '61.8%' },
+            { price: low + diff * 0.786, label: '78.6%' },
+            { price: high, label: '100%' }
         ]
     };
 }
@@ -323,6 +348,11 @@ export function calculateRSIDivergence(data, period = 14) {
     let avgGain = gains / period;
     let avgLoss = losses / period;
     const pMinus1 = period - 1;
+
+    // FA-005 Fix: Emit initial RSI point at index `period`
+    let initRs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    let initRsi = avgLoss === 0 ? 100 : 100 - (100 / (1 + initRs));
+    rsiSeries.push({ time: data[period].time, value: initRsi });
     
     for (let i = period + 1; i < data.length; i++) {
         const diff = data[i].close - data[i-1].close;
@@ -332,8 +362,7 @@ export function calculateRSIDivergence(data, period = 14) {
         avgGain = (avgGain * pMinus1 + gain) / period;
         avgLoss = (avgLoss * pMinus1 + loss) / period;
         
-        let rs = avgGain / (avgLoss === 0 ? 1 : avgLoss);
-        let rsi = 100 - (100 / (1 + rs));
+        let rsi = avgLoss === 0 ? 100 : 100 - (100 / (1 + (avgGain / avgLoss)));
         
         rsiSeries.push({ time: data[i].time, value: rsi });
     }

@@ -4,10 +4,11 @@ import { getIndicatorConfig } from '../../../../shared/config/indicatorConfig.js
 
 export const ID_TO_TITLE_GLOBAL = {
     dxy: "US Dollar Index", usd_inr: "USD/INR", crude: "Brent Crude", gold: "Gold", silver: "Silver",
-    us_10y_yield: "US 10Y Yield", sp_futures: "S&P 500 Futures", nasdaq_futures: "Nasdaq Futures", dow_futures: "Dow Jones Futures",
-    vix: "CBOE VIX", bitcoin: "Bitcoin", eurusd: "EUR/USD", usdjpy: "USD/JPY", nikkei: "Nikkei 225", ftse: "FTSE 100",
-    dax: "DAX", hangseng: "Hang Seng", shanghai: "Shanghai Composite", cac40: "CAC 40", eurostoxx: "Euro Stoxx 50",
-    copper: "Copper", natgas: "Natural Gas", wheat: "Wheat", aluminum: "Aluminum", move: "MOVE Index"
+    us_10y_yield: "US 10Y Yield", sp_futures: "S&P 500 Futures", nasdaq_futures: "Nasdaq Futures",
+    dow_jones: "Dow Jones",
+    vix: "CBOE VIX", bitcoin: "Bitcoin", ethereum: "Ethereum", usdjpy: "USD/JPY", nikkei: "Nikkei 225", ftse: "FTSE 100",
+    dax: "DAX", hangseng: "Hang Seng", shanghai: "Shanghai Composite",
+    copper: "Copper", natgas: "Natural Gas", move: "MOVE Index"
 };
 
 function weightedHarmonicMean(items) {
@@ -49,7 +50,7 @@ function clamp(val, lo = 0, hi = 100) {
 }
 
 
-// ΓöÇΓöÇΓöÇ Section Computations ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── Section Computations ──────────────────────────────────────────────────
 function computeGlobalSections(scores) {
     const g = (id) => {
         const s = scores[id]?.score;
@@ -58,21 +59,18 @@ function computeGlobalSections(scores) {
 
     // Currency (Weighted Mean)
     const currency = weightedMean([
-        { score: g('dxy'), weight: 0.40 },
-        { score: g('usd_inr'), weight: 0.30 },
-        { score: g('eurusd'), weight: 0.15 },
+        { score: g('dxy'), weight: 0.50 },
+        { score: g('usd_inr'), weight: 0.35 },
         { score: g('usdjpy'), weight: 0.15 }
     ]);
 
     // Commodities (Trimmed Weighted Mean)
     const commodities = trimmedWeightedMean([
-        { score: g('crude'), weight: 0.25 },
-        { score: g('gold'), weight: 0.20 },
-        { score: g('silver'), weight: 0.15 },
-        { score: g('copper'), weight: 0.15 },
-        { score: g('natgas'), weight: 0.10 },
-        { score: g('wheat'), weight: 0.05 },
-        { score: g('aluminum'), weight: 0.10 }
+        { score: g('crude'), weight: 0.35 },
+        { score: g('gold'), weight: 0.25 },
+        { score: g('copper'), weight: 0.20 },
+        { score: g('silver'), weight: 0.10 },
+        { score: g('natgas'), weight: 0.10 }
     ]);
 
     // Rates & Volatility (Min-Anchored Blend)
@@ -96,40 +94,38 @@ function computeGlobalSections(scores) {
     const us_markets = weightedHarmonicMean([
         { score: g('sp_futures'), weight: 0.45 },
         { score: g('nasdaq_futures'), weight: 0.35 },
-        { score: g('dow_futures'), weight: 0.20 }
+        { score: g('dow_jones'), weight: 0.20 }
     ]);
 
-    // Digital Assets (Direct Score)
-    const digital_assets = g('bitcoin');
+    // Digital Assets (Weighted Mean)
+    const digital_assets = weightedMean([
+        { score: g('bitcoin'), weight: 0.70 },
+        { score: g('ethereum'), weight: 0.30 }
+    ]);
 
-    
     // Global Indices (Trimmed Weighted Mean)
     const global_indices = trimmedWeightedMean([
-        { score: g('nikkei'), weight: 0.20 },
-        { score: g('ftse'), weight: 0.15 },
-        { score: g('dax'), weight: 0.15 },
-        { score: g('hangseng'), weight: 0.15 },
+        { score: g('nikkei'), weight: 0.25 },
+        { score: g('dax'), weight: 0.25 },
+        { score: g('hangseng'), weight: 0.20 },
         { score: g('shanghai'), weight: 0.15 },
-        { score: g('cac40'), weight: 0.10 },
-        { score: g('eurostoxx'), weight: 0.10 }
+        { score: g('ftse'), weight: 0.15 }
     ]);
 
     return { currency, commodities, rates, us_markets, digital_assets, global_indices };
 }
 
-
-// ΓöÇΓöÇΓöÇ Composite Score & Engine ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ─── Composite Score & Engine ────────────────────────────────────────────────
 export const computeGlobalComposite = (scores) => {
-    
     const raw = computeGlobalSections(scores);
 
     const sectionsArray = [
         { id: 'currency',       label: 'Currency',           shortLabel: 'CUR', score: raw.currency !== null ? clamp(Math.round(raw.currency)) : null, weight: 0.20 },
-        { id: 'commodities',    label: 'Commodities',        shortLabel: 'COM', score: raw.commodities !== null ? clamp(Math.round(raw.commodities)) : null, weight: 0.20 },
+        { id: 'commodities',    label: 'Commodities',        shortLabel: 'COM', score: raw.commodities !== null ? clamp(Math.round(raw.commodities)) : null, weight: 0.15 },
         { id: 'rates',          label: 'Rates & Vol',        shortLabel: 'RAT', score: raw.rates !== null ? clamp(Math.round(raw.rates)) : null, weight: 0.25 },
         { id: 'us_markets',     label: 'US Markets',         shortLabel: 'USM', score: raw.us_markets !== null ? clamp(Math.round(raw.us_markets)) : null, weight: 0.25 },
         { id: 'digital_assets', label: 'Digital Assets',     shortLabel: 'DIG', score: raw.digital_assets !== null ? clamp(Math.round(raw.digital_assets)) : null, weight: 0.05 },
-        { id: 'global_indices', label: 'Global Indices',     shortLabel: 'GLO', score: raw.global_indices !== null ? clamp(Math.round(raw.global_indices)) : null, weight: 0.15 }
+        { id: 'global_indices', label: 'Global Indices',     shortLabel: 'GLO', score: raw.global_indices !== null ? clamp(Math.round(raw.global_indices)) : null, weight: 0.10 }
     ];
 
     const validSections = sectionsArray.filter(s => s.score !== null);
@@ -153,7 +149,6 @@ export const computeGlobalComposite = (scores) => {
         .filter(([id, scoreData]) => scoreData && scoreData.score !== null && !isNaN(scoreData.score))
         .map(([id, scoreData]) => {
             const score = scoreData.score;
-            // Very rough mapping of weights for individual items inside global
             let weight = 5.0; 
             if (id === 'dxy' || id === 'us_10y_yield' || id === 'vix') weight = 8.0;
             if (id === 'sp_futures' || id === 'nasdaq_futures') weight = 7.0;
@@ -169,11 +164,9 @@ export const computeGlobalComposite = (scores) => {
             id: s.id, 
             label: s.label, 
             value: s.score, 
-            sub: `${Math.round(s.weight * 100)}% weight ┬╖ ${getIndicatorColor(s.score).label}` 
+            sub: `${Math.round(s.weight * 100)}% weight · ${getIndicatorColor(s.score).label}` 
         }));
 
-    // Risk: Score <= 40 (Bearish threshold). 
-    // Impact = (Deviation from 50) * Configured Impact Weight
     const riskImpact = (s) => (50 - s.score) * s.weight;
     const risks = sectionsArray
         .filter(s => s.score !== null && s.score <= 40)
@@ -183,7 +176,7 @@ export const computeGlobalComposite = (scores) => {
             id: s.id, 
             label: s.label, 
             value: s.score, 
-            sub: `${Math.round(s.weight * 100)}% weight ┬╖ ${getIndicatorColor(s.score).label}` 
+            sub: `${Math.round(s.weight * 100)}% weight · ${getIndicatorColor(s.score).label}` 
         }));
 
     const compositeColor = getCompositeColor(finalScore);
@@ -210,48 +203,37 @@ export const computeGlobalComposite = (scores) => {
         regime.description = "Deep risk-off signal. Macro crisis indicators active.";
     }
 
-    return {
-        sections: sectionsArray,
-        compositeScore: finalScore,
-        regime,
-        risks,
-        tailwinds,
-        rawScores: {
-            dxy: scores.dxy?.score ?? null,
-            usd_inr: scores.usd_inr?.score ?? null,
-            crude: scores.crude?.score ?? null,
-            gold: scores.gold?.score ?? null,
-            silver: scores.silver?.score ?? null,
-            us_10y_yield: scores.us_10y_yield?.score ?? null,
-            sp_futures: scores.sp_futures?.score ?? null,
-            nasdaq_futures: scores.nasdaq_futures?.score ?? null,
-            dow_futures: scores.dow_futures?.score ?? null,
-            vix: scores.vix?.score ?? null,
-            bitcoin: scores.bitcoin?.score ?? null,
-            eurusd: scores.eurusd?.score ?? null,
-            usdjpy: scores.usdjpy?.score ?? null,
-            nikkei: scores.nikkei?.score ?? null,
-            ftse: scores.ftse?.score ?? null,
-            dax: scores.dax?.score ?? null,
-            hangseng: scores.hangseng?.score ?? null,
-            shanghai: scores.shanghai?.score ?? null,
-            cac40: scores.cac40?.score ?? null,
-            eurostoxx: scores.eurostoxx?.score ?? null,
-            copper: scores.copper?.score ?? null,
-            natgas: scores.natgas?.score ?? null,
-            wheat: scores.wheat?.score ?? null,
-            aluminum: scores.aluminum?.score ?? null,
-            move: scores.move?.score ?? null
-        }
+    const SECTION_MAPPING = {
+        dxy: 'Currency', usd_inr: 'Currency', usdjpy: 'Currency',
+        crude: 'Commodities', gold: 'Commodities', silver: 'Commodities', copper: 'Commodities', natgas: 'Commodities',
+        us_10y_yield: 'Rates & Vol', vix: 'Rates & Vol', move: 'Rates & Vol',
+        sp_futures: 'US Markets', nasdaq_futures: 'US Markets', dow_jones: 'US Markets',
+        bitcoin: 'Digital Assets', ethereum: 'Digital Assets',
+        nikkei: 'Global Indices', ftse: 'Global Indices', dax: 'Global Indices', hangseng: 'Global Indices', shanghai: 'Global Indices'
     };
 
-    const SECTION_MAPPING = {
-        dxy: 'Currency', usd_inr: 'Currency', eurusd: 'Currency', usdjpy: 'Currency',
-        crude: 'Commodities', gold: 'Commodities', silver: 'Commodities', copper: 'Commodities', natgas: 'Commodities', wheat: 'Commodities', aluminum: 'Commodities',
-        us_10y_yield: 'Rates & Vol', vix: 'Rates & Vol', move: 'Rates & Vol',
-        sp_futures: 'US Markets', nasdaq_futures: 'US Markets', dow_futures: 'US Markets',
-        bitcoin: 'Digital Assets',
-        nikkei: 'Global Indices', ftse: 'Global Indices', dax: 'Global Indices', hangseng: 'Global Indices', shanghai: 'Global Indices', cac40: 'Global Indices', eurostoxx: 'Global Indices'
+    const rawScores = {
+        dxy: scores.dxy?.score ?? null,
+        usd_inr: scores.usd_inr?.score ?? null,
+        crude: scores.crude?.score ?? null,
+        gold: scores.gold?.score ?? null,
+        silver: scores.silver?.score ?? null,
+        us_10y_yield: scores.us_10y_yield?.score ?? null,
+        sp_futures: scores.sp_futures?.score ?? null,
+        nasdaq_futures: scores.nasdaq_futures?.score ?? null,
+        dow_jones: scores.dow_jones?.score ?? null,
+        vix: scores.vix?.score ?? null,
+        bitcoin: scores.bitcoin?.score ?? null,
+        ethereum: scores.ethereum?.score ?? null,
+        usdjpy: scores.usdjpy?.score ?? null,
+        nikkei: scores.nikkei?.score ?? null,
+        ftse: scores.ftse?.score ?? null,
+        dax: scores.dax?.score ?? null,
+        hangseng: scores.hangseng?.score ?? null,
+        shanghai: scores.shanghai?.score ?? null,
+        copper: scores.copper?.score ?? null,
+        natgas: scores.natgas?.score ?? null,
+        move: scores.move?.score ?? null
     };
 
     const sectionsMap = {};
@@ -264,7 +246,7 @@ export const computeGlobalComposite = (scores) => {
         };
     });
 
-    Object.entries(result.rawScores).forEach(([id, score]) => {
+    Object.entries(rawScores).forEach(([id, score]) => {
         if (score === null || score === undefined || isNaN(score)) return;
         const secName = SECTION_MAPPING[id] || 'General';
         if (sectionsMap[secName]) {
@@ -282,14 +264,19 @@ export const computeGlobalComposite = (scores) => {
         }
     });
 
-    result.nestedTreePayload = {
-        engines: [{
-            name: "Global Macro",
-            score: finalScore,
-            sections: Object.values(sectionsMap)
-        }]
+    return {
+        sections: sectionsArray,
+        compositeScore: finalScore,
+        regime,
+        risks,
+        tailwinds,
+        rawScores,
+        nestedTreePayload: {
+            engines: [{
+                name: "Global Macro",
+                score: finalScore,
+                sections: Object.values(sectionsMap)
+            }]
+        }
     };
-
-    return result;
 };
-

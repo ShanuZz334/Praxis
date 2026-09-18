@@ -527,7 +527,7 @@ router.get("/option-chain", async (req, res) => {
                 const pcrOi = totalCeOi > 0 ? parseFloat((totalPeOi / totalCeOi).toFixed(4)) : null;
                 const pcrVol = totalCeVol > 0 ? parseFloat((totalPeVol / totalCeVol).toFixed(4)) : null;
 
-                db.prepare(`
+                const upsertOptionsCache = db.prepare(`
                     INSERT INTO options_cache (
                         instrument_key, expiry, spot_price, total_call_oi, total_put_oi,
                         oi_change_call, oi_change_put, pcr_oi, pcr_volume, atm_strike, chain_json, updated_at
@@ -539,7 +539,16 @@ router.get("/option-chain", async (req, res) => {
                         oi_change_call=excluded.oi_change_call, oi_change_put=excluded.oi_change_put,
                         pcr_oi=excluded.pcr_oi, pcr_volume=excluded.pcr_volume, atm_strike=excluded.atm_strike,
                         chain_json=excluded.chain_json, updated_at=CURRENT_TIMESTAMP
-                `).run(
+                `);
+
+                // Save expiry-specific key to preserve across weekly/monthly expiries
+                upsertOptionsCache.run(
+                    `${instrument_key}_${expiry_date}`, expiry_date, spot, totalCeOi, totalPeOi,
+                    totalCeOiChange, totalPeOiChange, pcrOi, pcrVol, atmStrike, JSON.stringify(data)
+                );
+
+                // Also update the primary instrument entry for background queries
+                upsertOptionsCache.run(
                     instrument_key, expiry_date, spot, totalCeOi, totalPeOi,
                     totalCeOiChange, totalPeOiChange, pcrOi, pcrVol, atmStrike, JSON.stringify(data)
                 );

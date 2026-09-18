@@ -3,20 +3,23 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
+import { scoreVega, generateVegaInsight } from '../engine/optionsScoringEngine';
 
 export default function VegaCard({ cardId, liveData = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.vega.id);
     
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
-    const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);
+    const isManual = !isLiveData && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' && !isNaN(Number(manualOverride));
+    const rawValue = isLiveData ? liveData.currentValue : (isManual ? Number(manualOverride) : null);
 
+    const manualCalculated = isManual ? scoreVega(rawValue, 15, 24000) : null;
     const currentIV = isLiveData && liveData.impliedVol ? `${liveData.impliedVol.toFixed(2)}%` : '--%';
-    const ivSensitivity = isLiveData ? liveData.exposure : '--';
-    const rawScore = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
-    const rawBias  = isLiveData ? liveData.bias  : 'Neutral';
+    const ivSensitivity = isLiveData ? liveData.exposure : (manualCalculated?.exposure || '--');
+    const rawScore = isLiveData ? liveData.score : (manualCalculated ? manualCalculated.score : null);
+    const rawBias  = isLiveData ? liveData.bias  : (manualCalculated ? manualCalculated.bias : 'Neutral');
     const { score, bias } = { ...{ score: rawScore, bias: rawBias }, ...applyModeAdjustment({ score: rawScore, bias: rawBias }, 'vega', tradingMode) };
-    const confidence = isLiveData ? liveData.confidence : "0%";
-    const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Waiting for market data...");
+    const confidence = isLiveData ? (liveData.confidence || "95%") : (isManual ? "85%" : "0%");
+    const aiInsightText = isLiveData ? liveData.aiInsight : (isManual ? generateVegaInsight(rawValue, manualCalculated?.exposure) : "Waiting for market data...");
 
     const displayValue = rawValue !== null && rawValue !== '--' ? parseFloat(rawValue).toFixed(2) : '--';
 
@@ -41,7 +44,8 @@ export default function VegaCard({ cardId, liveData = null, manualOverride, last
                 score, 
                 bias, 
                 confidence, 
-                impactWeight: configData.impactWeight 
+                impactWeight: configData.impactWeight,
+                isManual
             }}
             chartData={null}
             insights={{ 

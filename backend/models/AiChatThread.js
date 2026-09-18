@@ -65,6 +65,13 @@ const aiChatThreadSchema = new mongoose.Schema({
         required: true,
         index: true
     },
+    // The specific stock/index this thread belongs to (null for global/market-wide contexts)
+    instrumentKey: {
+        type: String,
+        default: null,
+        index: true,
+        trim: true
+    },
     // Ordered list of exchanges
     entries: [threadEntrySchema],
     // Limit entries in DB to last 100 to keep it lean
@@ -74,7 +81,7 @@ const aiChatThreadSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-// Compound unique index: one thread per (targetId + scope + userId)
-aiChatThreadSchema.index({ targetId: 1, scope: 1, userId: 1 }, { unique: true });
+// Compound unique index: one thread per (targetId + instrumentKey + scope + userId)
+aiChatThreadSchema.index({ targetId: 1, instrumentKey: 1, scope: 1, userId: 1 }, { unique: true });
 
 export default mongoose.models.AiChatThread || mongoose.model('AiChatThread', aiChatThreadSchema);

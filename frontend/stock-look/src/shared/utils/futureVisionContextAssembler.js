@@ -485,6 +485,58 @@ function _computeFundamentalBlock(f) {
     // Macro anchors
     if (f.repoRate != null) lines.push(`RBI Repo Rate   : ${_f2(f.repoRate)}% — ${f.repoRate > 6 ? 'Elevated (tightening environment)' : 'Accommodative (growth supportive)'}`);
 
+    // 10-Year Audited Financial Statements Trajectory (Direct Sync)
+    const fin10 = f.financials10Year || f.screener?.financials10Year;
+    if (fin10) {
+        const pl = fin10.profitLoss;
+        const bs = fin10.balanceSheet;
+        const comp = fin10.compoundedGrowth;
+
+        lines.push(`\n[10-YEAR AUDITED FINANCIAL STATEMENTS TRAJECTORY]`);
+
+        if (comp && Object.keys(comp).length > 0) {
+            const cagrParts = [];
+            if (comp.salesGrowth?.periods) {
+                const p = comp.salesGrowth.periods;
+                cagrParts.push(`Sales CAGR (10Y: ${p['10 Years:'] || '--'}, 5Y: ${p['5 Years:'] || '--'}, 3Y: ${p['3 Years:'] || '--'})`);
+            }
+            if (comp.profitGrowth?.periods) {
+                const p = comp.profitGrowth.periods;
+                cagrParts.push(`Profit CAGR (10Y: ${p['10 Years:'] || '--'}, 5Y: ${p['5 Years:'] || '--'}, 3Y: ${p['3 Years:'] || '--'})`);
+            }
+            if (comp.roe?.periods) {
+                const p = comp.roe.periods;
+                cagrParts.push(`ROE Track Record (10Y: ${p['10 Years:'] || '--'}, 5Y: ${p['5 Years:'] || '--'}, Last Yr: ${p['Last Year:'] || p['Last Year'] || '--'})`);
+            }
+            if (cagrParts.length) {
+                lines.push(`Compounding Trajectory : ${cagrParts.join(' | ')}`);
+            }
+        }
+
+        if (pl?.years?.length && pl.rows) {
+            const firstYr = pl.years[0];
+            const lastYr = pl.years[pl.years.length - 1];
+            const salesRow = pl.rows['Sales'] || pl.rows['Revenue'];
+            const netProfitRow = pl.rows['Net Profit'];
+            const opmRow = pl.rows['OPM %'];
+
+            if (salesRow?.length && netProfitRow?.length) {
+                const startSales = salesRow[0], endSales = salesRow[salesRow.length - 1];
+                const startProfit = netProfitRow[0], endProfit = netProfitRow[netProfitRow.length - 1];
+                lines.push(`10Y Revenue Scale      : ₹${startSales} Cr (${firstYr}) → ₹${endSales} Cr (${lastYr})`);
+                lines.push(`10Y Net Profit Scale   : ₹${startProfit} Cr (${firstYr}) → ₹${endProfit} Cr (${lastYr})`);
+                if (opmRow?.length) {
+                    lines.push(`Operating Margin (OPM) : ${opmRow[0]} (${firstYr}) → ${opmRow[opmRow.length - 1]} (${lastYr})`);
+                }
+            }
+        }
+
+        if (bs?.rows?.['Total Assets']?.length && bs.years?.length) {
+            const ta = bs.rows['Total Assets'];
+            lines.push(`Balance Sheet Scale    : Total Assets expanded from ₹${ta[0]} Cr to ₹${ta[ta.length - 1]} Cr over ${bs.years.length} periods`);
+        }
+    }
+
     if (!lines.length) return 'Fundamental data fields are present but all null. Omit fundamentals from prediction rationale.';
     return lines.join('\n');
 }
@@ -521,8 +573,9 @@ function _computeEventBlock(events, horizonBars, timeframe) {
 }
 
 function _computeSessionBlock(tradingMode, timeframe, horizonBars) {
+    // FA-001 Fix: Use UTC methods on the IST-shifted date to guarantee true IST across all client timezones
     const nowIST = new Date(Date.now() + (5.5 * 3600000));
-    const h = nowIST.getHours(), m = nowIST.getMinutes();
+    const h = nowIST.getUTCHours(), m = nowIST.getUTCMinutes();
 
     let session, sessionNote;
     if      (h < 9 || (h === 9 && m < 0))  { session = 'Pre-Market'; sessionNote = 'Market has not opened. Overnight sentiment and global cues dominate first candle.'; }

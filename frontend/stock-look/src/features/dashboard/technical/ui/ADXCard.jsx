@@ -6,17 +6,24 @@ import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreADXCard } from '../engine/TechnicalCompositeEngine';
 
-export default function ADXCard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings, tradingMode = 'swing' }) {
+export default function ADXCard({ cardId, data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.adx.id);
     
     const settingsConfig = [
         { id: "adx_period", label: "ADX Period", type: "number", min: 5, max: 50, default: 14 }
     ];
     
-    // Resolve current value
-    const currentValueObj = data?.adx ?? null;
+    // Resolve current value from live data or manual override
+    const isLiveData = !!(data?.adx && data.adx.value !== undefined && data.adx.value !== null);
+    const isManual = !isLiveData && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' && !isNaN(Number(manualOverride));
+    const currentValueObj = isLiveData ? data.adx : (isManual ? { value: Number(manualOverride) } : null);
+    const mode = isLiveData ? "AUTO" : (isManual ? "MANUAL" : "AUTO");
 
-    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreADXCard(currentValueObj), 'adx', tradingMode);
+    const isBullish = currentValueObj?.pdi !== undefined && currentValueObj?.mdi !== undefined
+        ? Number(currentValueObj.pdi) >= Number(currentValueObj.mdi)
+        : (data?.supertrend ? data.supertrend.direction === 1 : (data?.current_price && data?.ema_50 ? data.current_price >= data.ema_50 : null));
+
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreADXCard(currentValueObj, isBullish), 'adx', tradingMode);
 
     const displayValue = currentValueObj !== null && currentValueObj.value !== undefined ? parseFloat(currentValueObj.value).toFixed(2) : '--';
     
@@ -26,10 +33,10 @@ export default function ADXCard({ cardId, data = null, lastUpdated, indicatorPar
             config={{ 
                 title: "ADX", 
                 category: "Trend", 
-                mode: "AUTO", 
+                mode, 
                 creditScore: configData.creditScore, 
-                updateTime: lastUpdated ?? "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel,
                 settingsConfig,
                 onSettingsClick: () => onOpenSettings?.(settingsConfig)
@@ -40,7 +47,8 @@ export default function ADXCard({ cardId, data = null, lastUpdated, indicatorPar
                 score, 
                 bias, 
                 confidence, 
-                impactWeight: configData.impactWeight 
+                impactWeight: configData.impactWeight,
+                isManual
             }}
             chartData={{ points: data?.history || [], valueKey: "value", valueName: "ADX" }}
             insights={{ 

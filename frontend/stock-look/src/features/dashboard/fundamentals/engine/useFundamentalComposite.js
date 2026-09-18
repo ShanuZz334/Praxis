@@ -31,10 +31,25 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
     // We store the latest valid score for each indicator here
     const scoresRef = useRef({});
     const prevInstrumentRef = useRef(instrumentKey);
+    const prevInstrumentTypeRef = useRef(instrumentType);
 
     const debounceTimerRef = useRef(null);
 
     useEffect(() => {
+        // Automatically clear scores and cancel pending debounces when instrument or category changes
+        if (prevInstrumentRef.current !== instrumentKey || prevInstrumentTypeRef.current !== instrumentType) {
+            prevInstrumentRef.current = instrumentKey;
+            prevInstrumentTypeRef.current = instrumentType;
+            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+            scoresRef.current = {};
+            const isIndex = instrumentType === 'Indices';
+            const newRes = isIndex 
+                ? computeIndexComposite({}, tradingMode)
+                : computeCompanyComposite({}, tradingMode);
+            setResult({ ...newRes, rawScores: {} });
+            return;
+        }
+
         // Compute function wraps the correct mode
         const scheduleRecompute = () => {
             if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
@@ -75,6 +90,13 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
             // card_id is now exactly the metric ID (e.g., 'crude', 'nifty_pe') because IndicatorCard sends resolvedCardId
             const metricId = card_id;
             
+            // Guard: Ensure metric belongs to the active category (prevent cross-mode card leaks)
+            const isIndex = instrumentType === 'Indices';
+            const validMap = isIndex ? INDEX_CARD_TO_SECTION_MAP : COMPANY_CARD_TO_SECTION_MAP;
+            if (!validMap[metricId]) {
+                return;
+            }
+            
             if (metricId) {
                 if (score === undefined || score === null || score === '--' || score === '') {
                     // Remove from composite engine if value was deleted
@@ -97,21 +119,11 @@ export function useFundamentalComposite(instrumentType, instrumentKey) {
         // Recompute on mount / category change to clear or refresh
         scheduleRecompute();
 
-        return () => window.removeEventListener('ai-snapshot', handleSnapshot);
+        return () => {
+            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+            window.removeEventListener('ai-snapshot', handleSnapshot);
+        };
     }, [instrumentType, instrumentKey, tradingMode]);
-
-    // Automatically clear scores when instrument changes to avoid stale composite
-    useEffect(() => {
-        if (prevInstrumentRef.current !== instrumentKey) {
-            prevInstrumentRef.current = instrumentKey;
-            scoresRef.current = {};
-            const isIndex = instrumentType === 'Indices';
-            const newRes = isIndex 
-                ? computeIndexComposite({}, tradingMode)
-                : computeCompanyComposite({}, tradingMode);
-            setResult(newRes);
-        }
-    }, [instrumentKey, instrumentType]);
 
     const resetScores = () => {
         scoresRef.current = {};

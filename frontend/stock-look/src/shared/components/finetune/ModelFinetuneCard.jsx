@@ -11,6 +11,7 @@ import {
     Clock, ShieldAlert, Cpu, ChevronDown, ChevronUp, History, Info
 } from 'lucide-react';
 import axiosInstance from '@/shared/utils/axiosInstance';
+import { toast } from 'sonner';
 
 export default function ModelFinetuneCard({
     instrument = 'NSE_INDEX|Nifty 50',
@@ -19,6 +20,7 @@ export default function ModelFinetuneCard({
 }) {
     const [statusData, setStatusData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [retrainingModel, setRetrainingModel] = useState(null);
     const [expandedHistoryModel, setExpandedHistoryModel] = useState(null);
     const [historyData, setHistoryData] = useState({});
@@ -33,25 +35,43 @@ export default function ModelFinetuneCard({
         setLoading(true);
     }, [instrument, timeframe]);
 
-    const fetchStatus = useCallback(async () => {
+    const fetchStatus = useCallback(async (isManual = false) => {
+        if (isManual) {
+            setIsRefreshing(true);
+        }
+        const startTime = Date.now();
         try {
             const res = await axiosInstance.get('/api/v1/finetune/status', {
                 params: { instrument, timeframe }
             });
             if (res.data && res.data.success) {
                 setStatusData(res.data);
-                setLastChecked(new Date().toLocaleTimeString());
+                const timeStr = new Date().toLocaleTimeString();
+                setLastChecked(timeStr);
+                if (isManual) {
+                    toast.success(`Fine-tuning status updated (${timeStr})`, { id: 'finetune-status' });
+                }
             }
         } catch (err) {
             console.error('Error fetching finetune status:', err);
+            if (isManual) {
+                toast.error('Failed to update fine-tuning status', { id: 'finetune-status' });
+            }
         } finally {
             setLoading(false);
+            if (isManual) {
+                const elapsed = Date.now() - startTime;
+                const remaining = Math.max(0, 500 - elapsed);
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                }, remaining);
+            }
         }
     }, [instrument, timeframe]);
 
     useEffect(() => {
-        fetchStatus();
-        const interval = setInterval(fetchStatus, 8000);
+        fetchStatus(false);
+        const interval = setInterval(() => fetchStatus(false), 8000);
         return () => clearInterval(interval);
     }, [fetchStatus]);
 
@@ -226,12 +246,16 @@ export default function ModelFinetuneCard({
 
                     <button
                         type="button"
-                        onClick={fetchStatus}
-                        disabled={loading}
-                        className="p-1.5 rounded-lg bg-background-surface hover:bg-background-hover border border-border-subtle text-text-secondary hover:text-text-primary transition cursor-pointer"
+                        onClick={() => fetchStatus(true)}
+                        disabled={isRefreshing}
+                        className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center justify-center active:scale-90 ${
+                            isRefreshing
+                                ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+                                : 'bg-background-surface hover:bg-background-hover border-border-subtle text-text-secondary hover:text-text-primary hover:border-text-secondary/40'
+                        }`}
                         title="Refresh Status"
                     >
-                        <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+                        <RefreshCw size={13} className={isRefreshing ? 'animate-spin text-indigo-400' : ''} />
                     </button>
 
                     {onClose && (

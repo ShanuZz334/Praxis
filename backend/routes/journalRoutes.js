@@ -18,6 +18,12 @@ router.get("/holidays", async (req, res) => {
     }
 });
 
+const getUserId = (req) => {
+    if (req.user?._id) return String(req.user._id);
+    if (req.headers['x-user-id']) return String(req.headers['x-user-id']);
+    return 'default_user';
+};
+
 /**
  * GET /api/v1/journal/notes?date=YYYY-MM-DD
  * Fetch journal notes for a specific date.
@@ -27,8 +33,14 @@ router.get("/notes", (req, res) => {
         const { date } = req.query;
         if (!date) return res.status(400).json({ error: "Date parameter is required" });
 
-        const stmt = db.prepare(`SELECT * FROM journal_notes WHERE date = ?`);
-        const note = stmt.get(date);
+        const userId = getUserId(req);
+        const stmt = db.prepare(`
+            SELECT * FROM journal_notes 
+            WHERE date = ? AND (user_id = ? OR user_id = 'default_user') 
+            ORDER BY CASE WHEN user_id = ? THEN 0 ELSE 1 END 
+            LIMIT 1
+        `);
+        const note = stmt.get(date, userId, userId);
 
         if (note) {
             const normalized = {
@@ -60,6 +72,7 @@ router.post("/notes", (req, res) => {
         const date = req.body.date;
         if (!date) return res.status(400).json({ error: "Date is required in body" });
 
+        const userId = getUserId(req);
         const premarket = req.body.premarket ?? req.body.preMarket ?? req.body.weeklyReview ?? '';
         const inmarket = req.body.inmarket ?? req.body.inMarket ?? req.body.marketAnalysis ?? '';
         const postmarket = req.body.postmarket ?? req.body.postMarket ?? '';
@@ -71,9 +84,10 @@ router.post("/notes", (req, res) => {
         const images = typeof req.body.images === 'string' ? req.body.images : JSON.stringify(req.body.images || []);
 
         const stmt = db.prepare(`
-            INSERT INTO journal_notes (date, premarket, inmarket, postmarket, lessons, mood, tags, compliance_score, ai_insights, images)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO journal_notes (date, user_id, premarket, inmarket, postmarket, lessons, mood, tags, compliance_score, ai_insights, images)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(date) DO UPDATE SET
+                user_id=excluded.user_id,
                 premarket=excluded.premarket,
                 inmarket=excluded.inmarket,
                 postmarket=excluded.postmarket,
@@ -88,6 +102,7 @@ router.post("/notes", (req, res) => {
 
         stmt.run(
             date, 
+            userId,
             premarket, 
             inmarket, 
             postmarket, 

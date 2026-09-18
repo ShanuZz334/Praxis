@@ -26,7 +26,7 @@ import { computeOptionsInstitutionalComposite } from '../../frontend/stock-look/
 import { computePortfolioMetrics } from '../../frontend/stock-look/src/shared/global/logic/eventsEngine.js';
 import { computeGlobalComposite } from '../../frontend/stock-look/src/features/dashboard/foreign/engine/globalCompositeMath.js';
 import { FOREIGN_WEIGHTS } from '../../frontend/stock-look/src/config/weights/foreignWeights.js';
-import { scoreDXY, scoreUSDINR, scoreCrude, scoreGold, scoreSilver, scoreUS10Y, scoreSPFutures, scoreNasdaqFutures, scoreDowFutures, scoreVIX, scoreBitcoin, scoreEurusd, scoreUsdjpy, scoreNikkei, scoreFtse, scoreDax, scoreHangseng, scoreShanghai, scoreCac40, scoreEurostoxx, scoreCopper, scoreNatgas, scoreWheat, scoreAluminum, scoreMove } from '../../frontend/stock-look/src/features/dashboard/foreign/engine/globalScoringEngine.js';
+import { scoreDXY, scoreUSDINR, scoreCrude, scoreGold, scoreSilver, scoreUS10Y, scoreSPFutures, scoreNasdaqFutures, scoreDowFutures, scoreVIX, scoreBitcoin, scoreEthereum, scoreUsdjpy, scoreNikkei, scoreFtse, scoreDax, scoreHangseng, scoreShanghai, scoreCopper, scoreNatgas, scoreMove } from '../../frontend/stock-look/src/features/dashboard/foreign/engine/globalScoringEngine.js';
 
 import { fetchAndCacheGlobalData } from '../routes/dataRoutes.js';
 
@@ -83,17 +83,17 @@ function getTechnicalTimeframe() {
 
 /**
  * Guard: returns true if enough time has passed since the last run for this module,
- * given the current trading mode's cadence.
+ * given the current trading mode's cadence. Does NOT advance timestamp until lock acquired.
  */
 function shouldRun(module) {
     const mode = getTradingMode();
     const cadence = MODE_CADENCES[mode]?.[module] ?? MODE_CADENCES.swing[module];
-    const elapsed = Date.now() - lastRun[module];
-    if (elapsed >= cadence) {
-        lastRun[module] = Date.now();
-        return true;
-    }
-    return false;
+    const elapsed = Date.now() - (lastRun[module] || 0);
+    return elapsed >= cadence;
+}
+
+function recordRun(module) {
+    lastRun[module] = Date.now();
 }
 
 // ── Prepared statements ─────────────────────────────────────────────────────
@@ -152,6 +152,7 @@ export async function runTechnicalIntelligence(instrumentKeys = null, force = fa
     if (!force && !shouldRun('tech')) return;
     if (isRunning.tech) return;
     isRunning.tech = true;
+    recordRun('tech');
     try {
         const mode = getTradingMode();
         const timeframe = getTechnicalTimeframe();
@@ -346,6 +347,7 @@ export async function runOptionsIntelligence(instrumentKeys = null, force = fals
     if (!force && !shouldRun('options')) return;
     if (isRunning.options) return;
     isRunning.options = true;
+    recordRun('options');
     try {
         const allKeys = (Array.isArray(instrumentKeys) && instrumentKeys.length > 0)
             ? instrumentKeys
@@ -504,6 +506,7 @@ export async function runGlobalIntelligence(force = false) {
     if (!force && !shouldRun('global')) return;
     if (isRunning.global) return;
     isRunning.global = true;
+    recordRun('global');
     console.log(`[BG Intel] Running Global Intelligence (force: ${force})...`);
     try {
         let rows = db.prepare(
@@ -526,10 +529,10 @@ export async function runGlobalIntelligence(force = false) {
 
         const SCORE_MAP = {
             dxy: scoreDXY, usd_inr: scoreUSDINR, crude: scoreCrude, gold: scoreGold, silver: scoreSilver,
-            us_10y_yield: scoreUS10Y, sp_futures: scoreSPFutures, nasdaq_futures: scoreNasdaqFutures, dow_futures: scoreDowFutures,
-            vix: scoreVIX, bitcoin: scoreBitcoin, eurusd: scoreEurusd, usdjpy: scoreUsdjpy, nikkei: scoreNikkei,
-            ftse: scoreFtse, dax: scoreDax, hangseng: scoreHangseng, shanghai: scoreShanghai, cac40: scoreCac40,
-            eurostoxx: scoreEurostoxx, copper: scoreCopper, natgas: scoreNatgas, wheat: scoreWheat, aluminum: scoreAluminum, move: scoreMove
+            us_10y_yield: scoreUS10Y, sp_futures: scoreSPFutures, nasdaq_futures: scoreNasdaqFutures,
+            dow_jones: scoreDowFutures, vix: scoreVIX, bitcoin: scoreBitcoin, ethereum: scoreEthereum,
+            usdjpy: scoreUsdjpy, nikkei: scoreNikkei, ftse: scoreFtse, dax: scoreDax, hangseng: scoreHangseng,
+            shanghai: scoreShanghai, copper: scoreCopper, natgas: scoreNatgas, move: scoreMove
         };
 
         const globalScores = {};
@@ -619,6 +622,7 @@ export async function runEventsIntelligence(force = false) {
     if (!force && !shouldRun('events')) return;
     if (isRunning.events) return;
     isRunning.events = true;
+    recordRun('events');
     console.log(`[BG Intel] Running Events Intelligence (force: ${force})...`);
     try {
         const newsItems = db.prepare(
@@ -677,13 +681,16 @@ export async function runEventsIntelligence(force = false) {
                 }
             );
             broadcast('intelligence:snapshot', {
-                instrument_key: 'EVENTS',
+                instrument_key: 'GLOBAL',
                 events: {
                     composite_score: score,
                     regime: 'Neutral',
                     counts: evtCounts,
                     tailwinds: [],
-                    risks: []
+                    risks: [],
+                    volatility_pressure: 0,
+                    total_kinetic_energy: 0,
+                    has_systemic_event: false
                 }
             });
             return;
@@ -739,7 +746,9 @@ export async function runEventsIntelligence(force = false) {
                 compositeScore: score,
                 regime: { label: score > 60 ? 'Positive' : score < 40 ? 'Negative' : 'Neutral' },
                 tailwinds: evtTailwinds,
-                risks: evtRisks
+                risks: evtRisks,
+                volatilityPressure: metrics.volatilityPressure || 0,
+                totalKineticEnergy: metrics.totalKineticEnergy || 0
             }
         );
 
@@ -750,6 +759,8 @@ export async function runEventsIntelligence(force = false) {
             insertCardScoreHistory('GLOBAL', "Events", "Cards", cardId, nowIso, norm, numScore);
         }
 
+        const hasSystemic = (liveItems || []).some(e => e.severity === 'Systemic') || ((metrics.volatilityPressure || 0) >= 60);
+
         broadcast('intelligence:snapshot', {
             instrument_key: 'GLOBAL',
             events: { 
@@ -757,11 +768,14 @@ export async function runEventsIntelligence(force = false) {
                 regime: score > 60 ? 'Positive' : score < 40 ? 'Negative' : 'Neutral',
                 counts: evtCounts,
                 tailwinds: evtTailwinds,
-                risks: evtRisks
+                risks: evtRisks,
+                volatility_pressure: metrics.volatilityPressure || 0,
+                total_kinetic_energy: metrics.totalKineticEnergy || 0,
+                has_systemic_event: hasSystemic
             }
         });
 
-        console.log(`[BG Intel] EVT: ${score} (${liveItems.length} live events, mode: ${tradingMode})`);
+        console.log(`[BG Intel] EVT: ${score} (${liveItems.length} live events, mode: ${tradingMode}, volPressure: ${metrics.volatilityPressure || 0})`);
     } catch (err) {
         console.error('[BG Intel] Events failed:', err.message);
     } finally {

@@ -72,13 +72,13 @@ export const SOURCE_REGISTRY = {
     eur_usd: { sourceType: 'unofficial_scrape', primaryProvider: 'Frankfurter', fallbackChain: ['last_known_good', 'manual_override'], staleness: { maxAgeMinutes: 1440 } },
     usd_jpy: { sourceType: 'unofficial_scrape', primaryProvider: 'Frankfurter', fallbackChain: ['last_known_good', 'manual_override'], staleness: { maxAgeMinutes: 1440 } },
 
-    // Alpha Vantage (Rate Limited)
-    dxy: { sourceType: 'unofficial_scrape', primaryProvider: 'Alpha Vantage', fallbackChain: ['last_known_good', 'manual_override'], rateLimitBudget: { requestsPerDay: 25, requestsPerMinute: 5 }, staleness: { maxAgeMinutes: 1440 } },
-    gold: { sourceType: 'unofficial_scrape', primaryProvider: 'Alpha Vantage', fallbackChain: ['last_known_good', 'manual_override'], rateLimitBudget: { requestsPerDay: 25, requestsPerMinute: 5 }, staleness: { maxAgeMinutes: 1440 } },
-    silver: { sourceType: 'unofficial_scrape', primaryProvider: 'Alpha Vantage', fallbackChain: ['last_known_good', 'manual_override'], rateLimitBudget: { requestsPerDay: 25, requestsPerMinute: 5 }, staleness: { maxAgeMinutes: 1440 } },
-    copper: { sourceType: 'unofficial_scrape', primaryProvider: 'Alpha Vantage', fallbackChain: ['last_known_good', 'manual_override'], rateLimitBudget: { requestsPerDay: 25, requestsPerMinute: 5 }, staleness: { maxAgeMinutes: 1440 } },
-    natural_gas: { sourceType: 'unofficial_scrape', primaryProvider: 'Alpha Vantage', fallbackChain: ['last_known_good', 'manual_override'], rateLimitBudget: { requestsPerDay: 25, requestsPerMinute: 5 }, staleness: { maxAgeMinutes: 1440 } },
-    wheat: { sourceType: 'unofficial_scrape', primaryProvider: 'Alpha Vantage', fallbackChain: ['last_known_good', 'manual_override'], rateLimitBudget: { requestsPerDay: 25, requestsPerMinute: 5 }, staleness: { maxAgeMinutes: 1440 } },
+    // Yahoo Finance Commodities & Macro
+    dxy: { sourceType: 'unofficial_scrape', primaryProvider: 'Yahoo Finance', fallbackChain: ['last_known_good', 'manual_override'], staleness: { maxAgeMinutes: 1440 } },
+    gold: { sourceType: 'unofficial_scrape', primaryProvider: 'Yahoo Finance', fallbackChain: ['last_known_good', 'manual_override'], staleness: { maxAgeMinutes: 1440 } },
+    silver: { sourceType: 'unofficial_scrape', primaryProvider: 'Yahoo Finance', fallbackChain: ['last_known_good', 'manual_override'], staleness: { maxAgeMinutes: 1440 } },
+    copper: { sourceType: 'unofficial_scrape', primaryProvider: 'Yahoo Finance', fallbackChain: ['last_known_good', 'manual_override'], staleness: { maxAgeMinutes: 1440 } },
+    natural_gas: { sourceType: 'unofficial_scrape', primaryProvider: 'Yahoo Finance', fallbackChain: ['last_known_good', 'manual_override'], staleness: { maxAgeMinutes: 1440 } },
+    wheat: { sourceType: 'unofficial_scrape', primaryProvider: 'Yahoo Finance', fallbackChain: ['last_known_good', 'manual_override'], staleness: { maxAgeMinutes: 1440 } },
 
     // CoinGecko
     bitcoin: { sourceType: 'unofficial_scrape', primaryProvider: 'CoinGecko', fallbackChain: ['last_known_good', 'manual_override'], staleness: { maxAgeMinutes: 15 } },

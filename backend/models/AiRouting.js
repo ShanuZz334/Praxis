@@ -32,6 +32,21 @@ const aiRoutingSchema = new mongoose.Schema({
         // Defaults to the best tier3_complex model available if not explicitly set.
         providerId: { type: String, default: null },
         modelId:    { type: String, default: null },
+        ensembleModels: {
+            type: [String],
+            default: ['master_llm', 'kronos', 'chronos_bolt', 'naive_baseline']
+        },
+        ensembleWeights: {
+            type: mongoose.Schema.Types.Mixed,
+            default: {
+                master_llm: 0.45,
+                kronos: 0.25,
+                chronos_bolt: 0.20,
+                naive_baseline: 0.10,
+                lag_llama: 0.00
+            }
+        },
+        autoWeighting: { type: Boolean, default: true }
     },
     permissions: {
         readPortfolio: { type: Boolean, default: true },

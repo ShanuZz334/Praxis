@@ -14,24 +14,27 @@ export default function BBCard({ cardId, data = null, manualOverride, lastUpdate
         { id: "bb_stddev", label: "BB StdDev", type: "number", min: 0.1, max: 5, default: 2 }
     ];
 
-    // Resolve current value from live backend data
-    const valObj = data?.bb_20_2 || null;
+    // Resolve current value from live backend data or manual override
+    const isLiveData = !!(data?.bb_20_2 && data.bb_20_2.pb !== undefined && data.bb_20_2.pb !== null);
+    const isManual = !isLiveData && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' && !isNaN(Number(manualOverride));
+    const valObj = isLiveData ? data.bb_20_2 : (isManual ? { pb: Number(manualOverride) } : null);
+    const mode = isLiveData ? "AUTO" : (isManual ? "MANUAL" : "AUTO");
 
     const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreBBCard(valObj), 'bb_20_2', tradingMode);
 
     const formatPrice = (v) => (v !== null && v !== undefined && !isNaN(v) ? "₹" + parseFloat(v).toFixed(2) : '--');
     const formatPercent = (v) => (v !== null && v !== undefined && !isNaN(v) ? (parseFloat(v) * 100).toFixed(2) + '%' : '--');
 
-return (
+    return (
         <IndicatorCard
             cardId={cardId}
             config={{ 
                 title: "Bollinger Bands", 
                 category: "Volatility", 
-                mode: "AUTO", 
+                mode, 
                 creditScore: configData.creditScore, 
-                updateTime: lastUpdated ?? "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel,
                 settingsConfig,
                 onSettingsClick: () => onOpenSettings?.(settingsConfig)
@@ -46,7 +49,8 @@ return (
                 score, 
                 bias, 
                 confidence, 
-                impactWeight: configData.impactWeight 
+                impactWeight: configData.impactWeight,
+                isManual 
             }}
             chartData={{ points: data?.history || [], valueKey: "value", valueName: "BB Score" }}
             insights={{ 

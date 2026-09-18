@@ -55,17 +55,18 @@ function safeLog(S, K) {
 
 // ─── Main Greeks Calculator ───────────────────────────────────────────────────
 /**
- * Calculate Black-Scholes Greeks.
+ * Calculate Black-Scholes Greeks with Merton continuous dividend extension.
  *
  * @param {number} S     - Underlying spot price (e.g. 24207)
  * @param {number} K     - Strike price (e.g. 24200)
  * @param {number} T     - Time to expiry in YEARS (e.g. 2/365 for 2 days)
- * @param {number} r     - Risk-free rate as decimal (e.g. 0.07 for 7%)
- * @param {number} v     - Implied Volatility as decimal (e.g. 0.1504 for 15.04%)
- * @param {string} type  - 'call' or 'put'
+ * @param {number} [r=0.068] - Risk-free rate as decimal (6.8% Indian T-bill baseline)
+ * @param {number} [v=0.15]  - Implied Volatility as decimal (e.g. 0.1504 for 15.04%)
+ * @param {string} [type='call']  - 'call' or 'put'
+ * @param {number} [q=0.012] - Continuous dividend yield (1.2% Indian index baseline)
  * @returns {{ delta, gamma, theta, vega }}
  */
-export function calculateGreeks(S, K, T, r, v, type = 'call') {
+export function calculateGreeks(S, K, T, r = 0.068, v = 0.15, type = 'call', q = 0.012) {
     // ── Guard: Missing or invalid inputs ───────────────────────────────────────
     if (!S || !K || S <= 0 || K <= 0) {
         return { delta: 0, gamma: 0, theta: 0, vega: 0 };
@@ -85,31 +86,35 @@ export function calculateGreeks(S, K, T, r, v, type = 'call') {
     const t = Math.max(30 / (365 * 24 * 3600), T);
 
     const sqrtT = Math.sqrt(t);
-    const d1 = (safeLog(S, K) + (r + 0.5 * vol * vol) * t) / (vol * sqrtT);
+    const d1 = (safeLog(S, K) + (r - q + 0.5 * vol * vol) * t) / (vol * sqrtT);
     const d2 = d1 - vol * sqrtT;
 
     const nd1  = nd(d1);
     const cnd1 = cnd(d1);
     const cnd2 = cnd(d2);
+    const discQ = Math.exp(-q * t);
+    const discR = Math.exp(-r * t);
 
     // ── Greeks ────────────────────────────────────────────────────────────────
     let delta, theta;
-    const gamma = nd1 / (S * vol * sqrtT);
+    const gamma = (discQ * nd1) / (S * vol * sqrtT);
     // Vega: change in option value per 1% move in IV (divide by 100)
-    const vega  = (S * nd1 * sqrtT) / 100;
+    const vega  = (S * discQ * nd1 * sqrtT) / 100;
 
     if (type === 'call') {
-        delta = cnd1;
+        delta = discQ * cnd1;
         // Theta: annualized → divide by 365 for daily decay
         theta = (
-            -(S * nd1 * vol) / (2 * sqrtT)
-            - r * K * Math.exp(-r * t) * cnd2
+            -(S * discQ * nd1 * vol) / (2 * sqrtT)
+            - r * K * discR * cnd2
+            + q * S * discQ * cnd1
         ) / 365;
     } else {
-        delta = cnd1 - 1;
+        delta = discQ * (cnd1 - 1);
         theta = (
-            -(S * nd1 * vol) / (2 * sqrtT)
-            + r * K * Math.exp(-r * t) * cnd(-d2)
+            -(S * discQ * nd1 * vol) / (2 * sqrtT)
+            + r * K * discR * cnd(-d2)
+            - q * S * discQ * cnd(-d1)
         ) / 365;
     }
 
@@ -182,10 +187,75 @@ export function resolveGreeks(upstoxGreeks, upstoxIv, S, K, T, type = 'call', fa
     const iv = (upstoxIv && upstoxIv > 0) ? upstoxIv : fallbackIv;
     const vol = iv / 100.0; // Convert % to decimal
 
-    const greeks = calculateGreeks(S, K, T, 0.07, vol, type);
+    const greeks = calculateGreeks(S, K, T, 0.068, vol, type, 0.012);
     return {
         ...greeks,
         iv,
         source: 'calculated',
     };
+}
+
+// ─── Dealer Gamma Exposure (GEX) & Market Impact ──────────────────────────────
+/**
+ * Computes Net Dealer Gamma Exposure (GEX) across all strikes.
+ * Under standard street assumptions: market makers are long puts and short calls.
+ *
+ * @param {Array} chainData - Option chain array
+ * @param {number} spotPrice - Current underlying price
+ * @param {number} [lotSize=25] - Standard lot size
+ * @returns {{ totalGex: number, gammaFlip: number, isPositive: boolean }}
+ */
+export function calculateNetGex(chainData, spotPrice, lotSize = 25) {
+    if (!chainData || !Array.isArray(chainData) || chainData.length === 0 || !spotPrice) {
+        return { totalGex: 0, gammaFlip: spotPrice || 0, isPositive: true };
+    }
+
+    let totalGex = 0;
+    let closestFlipStrike = spotPrice;
+    let minGexMagnitude = Infinity;
+
+    chainData.forEach(row => {
+        const callOi = row.call?.oi || 0;
+        const putOi = row.put?.oi || 0;
+        const callGamma = row.call?.gamma || 0;
+        const putGamma = row.put?.gamma || 0;
+
+        // GEX = (Call OI * Call Gamma - Put OI * Put Gamma) * S^2 * 0.01 * lotSize
+        const strikeGex = (callOi * callGamma - putOi * putGamma) * Math.pow(spotPrice, 2) * 0.01 * lotSize;
+        totalGex += strikeGex;
+
+        if (Math.abs(strikeGex) < minGexMagnitude) {
+            minGexMagnitude = Math.abs(strikeGex);
+            closestFlipStrike = row.strike;
+        }
+    });
+
+    return {
+        totalGex: Math.round(totalGex),
+        gammaFlip: closestFlipStrike,
+        isPositive: totalGex >= 0
+    };
+}
+
+// ─── Net Delta Exposure ───────────────────────────────────────────────────────
+/**
+ * Computes Net Delta across the active chain.
+ *
+ * @param {Array} chainData - Option chain array
+ * @returns {number} Net Delta in contracts
+ */
+export function calculateNetDelta(chainData) {
+    if (!chainData || !Array.isArray(chainData) || chainData.length === 0) return 0;
+
+    let netDelta = 0;
+    chainData.forEach(row => {
+        const callOi = row.call?.oi || 0;
+        const putOi = row.put?.oi || 0;
+        const callDelta = row.call?.delta || 0;
+        const putDelta = row.put?.delta || 0;
+
+        netDelta += (callOi * callDelta) + (putOi * putDelta);
+    });
+
+    return Math.round(netDelta);
 }

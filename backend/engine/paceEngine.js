@@ -3,12 +3,12 @@
  * @purpose Praxis Adaptive Calibration Engine (PACE)
  *
  * Permanent, compounding reinforcement-style learning for Future Vision.
- * All calibration data stored in SQLite — survives restarts, browser clears, etc.
+ * All calibration data stored in SQLite ï¿½ survives restarts, browser clears, etc.
  *
  * Three learning mechanisms:
- *  1. updateCalibrationProfile() — accumulates bar scores into permanent SQLite DB
- *  2. getCalibrationProfile()    — returns full profile for system prompt injection
- *  3. applyBiasCorrection()      — post-processes raw AI candles before rendering
+ *  1. updateCalibrationProfile() ï¿½ accumulates bar scores into permanent SQLite DB
+ *  2. getCalibrationProfile()    ï¿½ returns full profile for system prompt injection
+ *  3. applyBiasCorrection()      ï¿½ post-processes raw AI candles before rendering
  *
  * Bayesian shrinkage: correction_strength = min(1.0, bars_scored / 20)
  *   Starts at 0%, ramps to 100% correction after 20 scored bars.
@@ -53,8 +53,8 @@ function ensureTable(db) {
  * Update the calibration profile with a newly scored bar.
  * @param {string} instrumentKey
  * @param {string} timeframe
- * @param {object} barScore  — { da, mapeClose, hlError, closeBias }
- * @param {string} regime    — 'calm' | 'normal' | 'volatile'
+ * @param {object} barScore  ï¿½ { da, mapeClose, hlError, closeBias }
+ * @param {string} regime    ï¿½ 'calm' | 'normal' | 'volatile'
  */
 export function updateCalibrationProfile(instrumentKey, timeframe, barScore, regime = 'normal') {
     const db = getDb();
@@ -147,7 +147,7 @@ export function getCalibrationProfile(instrumentKey, timeframe) {
 
 /**
  * Apply mathematical bias correction to raw AI-output candles BEFORE rendering.
- * This is deterministic and permanent — does not depend on the AI model.
+ * This is deterministic and permanent ï¿½ does not depend on the AI model.
  */
 export function applyBiasCorrection(candles, profile) {
     if (!profile || !candles?.length) return candles;
@@ -155,7 +155,7 @@ export function applyBiasCorrection(candles, profile) {
     const { avgCloseBias, avgHlError, correctionStrength } = profile;
     const closeDelta  = -(avgCloseBias * correctionStrength);
 
-    // Range correction factor — clamp between 50% and 200% to avoid extremes
+    // Range correction factor ï¿½ clamp between 50% and 200% to avoid extremes
     const rangeFactor = avgHlError > 0
         ? Math.max(0.5, 1 - (avgHlError / 100) * correctionStrength)
         : Math.min(2.0, 1 + (Math.abs(avgHlError) / 100) * correctionStrength);
@@ -163,11 +163,11 @@ export function applyBiasCorrection(candles, profile) {
     return candles.map(c => {
         const corrClose = parseFloat((c.close + closeDelta).toFixed(2));
         const corrOpen  = parseFloat((c.open  + closeDelta).toFixed(2));
-        const rawHalf   = (c.high - c.low) / 2;
+        const rawHalf   = Math.max(0.01, (c.high - c.low) / 2);
         const newHalf   = rawHalf * rangeFactor;
         const mid       = (corrClose + corrOpen) / 2;
-        const corrHigh  = parseFloat((mid + newHalf).toFixed(2));
-        const corrLow   = parseFloat((mid - newHalf).toFixed(2));
+        const corrHigh  = parseFloat(Math.max(mid + newHalf, corrOpen, corrClose).toFixed(2));
+        const corrLow   = parseFloat(Math.min(mid - newHalf, corrOpen, corrClose).toFixed(2));
 
         return {
             ...c,
@@ -185,33 +185,33 @@ export function applyBiasCorrection(candles, profile) {
  * Format profile as a string block for AI system prompt injection (Block 0).
  */
 export function formatProfileForPrompt(profile) {
-    if (!profile) return 'No calibration data yet — this is the first prediction for this instrument/timeframe.';
+    if (!profile) return 'No calibration data yet ï¿½ this is the first prediction for this instrument/timeframe.';
 
     const { instrumentKey, timeframe, barsScored, sessionsScored,
             avgCloseBias, avgHlError, avgMape, avgDa,
             bullishDa, bearishDa, correctionStrength, regimeBreakdown } = profile;
 
-    const biasDir = avgCloseBias >  0.2 ? `OVERESTIMATES by +${avgCloseBias.toFixed(2)} (correct DOWNWARD before generating JSON)`
-                  : avgCloseBias < -0.2 ? `UNDERESTIMATES by ${Math.abs(avgCloseBias).toFixed(2)} (correct UPWARD before generating JSON)`
-                  : 'Close bias is NEUTRAL — no correction needed';
+    const biasDir = avgCloseBias >  0.2 ? `Model historically tends to OVERESTIMATE by +${avgCloseBias.toFixed(2)} (directional bias to watch)`
+                  : avgCloseBias < -0.2 ? `Model historically tends to UNDERESTIMATE by ${Math.abs(avgCloseBias).toFixed(2)} (directional bias to watch)`
+                  : 'Close bias is NEUTRAL - no correction needed';
 
-    const hlDir = avgHlError >  5 ? `Candles are ${avgHlError.toFixed(1)}% too WIDE — NARROW your H-L range by ~${avgHlError.toFixed(0)}%`
-               : avgHlError < -5 ? `Candles are ${Math.abs(avgHlError).toFixed(1)}% too NARROW — WIDEN your H-L range by ~${Math.abs(avgHlError).toFixed(0)}%`
-               : 'H-L range accuracy is GOOD — no correction needed';
+    const hlDir = avgHlError >  5 ? `Candles are ${avgHlError.toFixed(1)}% too WIDE ï¿½ NARROW your H-L range by ~${avgHlError.toFixed(0)}%`
+               : avgHlError < -5 ? `Candles are ${Math.abs(avgHlError).toFixed(1)}% too NARROW ï¿½ WIDEN your H-L range by ~${Math.abs(avgHlError).toFixed(0)}%`
+               : 'H-L range accuracy is GOOD ï¿½ no correction needed';
 
     const corrPct = (correctionStrength * 100).toFixed(0);
     const regimeLines = regimeBreakdown?.map(r =>
         `  ${(r.regime || 'normal').padEnd(10)} | ${r.bars_scored} bars | MAPE ${Number(r.avg_mape || 0).toFixed(2)}% | CloseDrift ${Number(r.avg_close_bias || 0) >= 0 ? '+' : ''}${Number(r.avg_close_bias || 0).toFixed(2)}`
     ).join('\n') ?? '  No regime data yet.';
 
-    return `=== YOUR PACE CALIBRATION PROFILE (PERMANENT MEMORY — DO NOT IGNORE) ===
+    return `=== YOUR PACE CALIBRATION PROFILE (PERMANENT MEMORY ï¿½ DO NOT IGNORE) ===
 Instrument    : ${instrumentKey}
 Timeframe     : ${timeframe}
 Bars Scored   : ${barsScored} (across ${sessionsScored} sessions)
 Correction    : ${corrPct}% strength active (reaches 100% after 20 scored bars)
 
 YOUR HISTORICAL ACCURACY:
-  Overall DA   : ${avgDa.toFixed(1)}% (${avgDa >= 65 ? 'STRONG' : avgDa >= 50 ? 'MODERATE' : 'WEAK — improve directional reasoning'})
+  Overall DA   : ${avgDa.toFixed(1)}% (${avgDa >= 65 ? 'STRONG' : avgDa >= 50 ? 'MODERATE' : 'WEAK ï¿½ improve directional reasoning'})
   Bullish DA   : ${bullishDa ? bullishDa + '%' : 'N/A (not enough data)'}
   Bearish DA   : ${bearishDa ? bearishDa + '%' : 'N/A (not enough data)'}
   Avg MAPE     : ${avgMape.toFixed(2)}%
@@ -223,10 +223,10 @@ SYSTEMATIC ERRORS YOU MUST CORRECT:
 REGIME PERFORMANCE:
 ${regimeLines}
 
-CRITICAL INSTRUCTION: A ${corrPct}% mathematical bias correction has ALREADY been applied 
-to your raw output prices by the post-processing layer. YOU must ADDITIONALLY apply the 
-same logic in your chain-of-thought before writing the JSON, because the math layer cannot 
-fix directional errors or timing — only you can. Correct both close prices AND direction 
+CRITICAL INSTRUCTION: A ${corrPct}% mathematical bias correction will be applied
+deterministically to output prices by the PACE post-processing layer. Do NOT manually subtract
+or add numerical price offsets to the JSON values (the post-processor handles price levels).
+Focus your chain-of-thought on directional conviction, inflection timing, and risk levels
 based on which DA (bullish/bearish) is weaker above.
 ===`;
 }

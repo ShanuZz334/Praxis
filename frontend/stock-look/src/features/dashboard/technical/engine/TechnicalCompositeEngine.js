@@ -7,21 +7,20 @@ export const TITLE_TO_ID = {
     'EMA 20': CARD_REGISTRY.ema_20.id,
     'EMA 50': CARD_REGISTRY.ema_50.id,
     'EMA 200': CARD_REGISTRY.ema_200.id,
-    'SMA 50': CARD_REGISTRY.sma_50.id,
-    'SMA 200': CARD_REGISTRY.sma_200.id,
     'ADX (14)': CARD_REGISTRY.adx.id,
+    'ADX': CARD_REGISTRY.adx.id,
     'Supertrend': CARD_REGISTRY.supertrend.id,
+    'Beta Correlation': CARD_REGISTRY.beta_correlation.id,
+    'Beta': CARD_REGISTRY.beta_correlation.id,
 
     // Momentum
     'RSI (14)': CARD_REGISTRY.rsi.id,
     'Stoch RSI': CARD_REGISTRY.stoch_rsi.id,
     'MACD': CARD_REGISTRY.macd.id,
-    'Williams %R': CARD_REGISTRY.williams_r.id,
 
     // Volatility
     'Bollinger Bands': CARD_REGISTRY.bb_20_2.id,
     'ATR': CARD_REGISTRY.atr.id,
-    'Keltner Channels': CARD_REGISTRY.kc.id,
 
     // Volume
     'Volume SMA': CARD_REGISTRY.volume_sma.id,
@@ -38,19 +37,17 @@ export const TITLE_TO_ID = {
 
     // Breadth
     'Breadth Ratio (ADR)':  CARD_REGISTRY.breadth_ratio.id,
-    'McClellan Osc':        CARD_REGISTRY.mcclellan.id,
     'A/D Line':             CARD_REGISTRY.ad_line.id,
-    'New Highs / Lows':     CARD_REGISTRY.nh_nl.id,
-    'TRIN (Arms)':          CARD_REGISTRY.trin.id
+    'New Highs / Lows':     CARD_REGISTRY.nh_nl.id
 };
 
 export const TECHNICAL_CARD_MAP = {
-    [CARD_REGISTRY.ema_20.id]: 'Trend', [CARD_REGISTRY.ema_50.id]: 'Trend', [CARD_REGISTRY.ema_200.id]: 'Trend', [CARD_REGISTRY.sma_50.id]: 'Trend', [CARD_REGISTRY.sma_200.id]: 'Trend', [CARD_REGISTRY.supertrend.id]: 'Trend', [CARD_REGISTRY.adx.id]: 'Trend', [CARD_REGISTRY.beta_correlation.id]: 'Trend',
-    [CARD_REGISTRY.rsi.id]: 'Momentum', [CARD_REGISTRY.macd.id]: 'Momentum', [CARD_REGISTRY.stoch_rsi.id]: 'Momentum', [CARD_REGISTRY.williams_r.id]: 'Momentum',
-    [CARD_REGISTRY.bb_20_2.id]: 'Volatility', [CARD_REGISTRY.kc.id]: 'Volatility', [CARD_REGISTRY.atr.id]: 'Volatility',
+    [CARD_REGISTRY.ema_20.id]: 'Trend', [CARD_REGISTRY.ema_50.id]: 'Trend', [CARD_REGISTRY.ema_200.id]: 'Trend', [CARD_REGISTRY.supertrend.id]: 'Trend', [CARD_REGISTRY.adx.id]: 'Trend', [CARD_REGISTRY.beta_correlation.id]: 'Trend',
+    [CARD_REGISTRY.rsi.id]: 'Momentum', [CARD_REGISTRY.macd.id]: 'Momentum', [CARD_REGISTRY.stoch_rsi.id]: 'Momentum',
+    [CARD_REGISTRY.bb_20_2.id]: 'Volatility', [CARD_REGISTRY.atr.id]: 'Volatility',
     [CARD_REGISTRY.volume_sma.id]: 'Volume', [CARD_REGISTRY.obv.id]: 'Volume', [CARD_REGISTRY.cmf.id]: 'Volume', [CARD_REGISTRY.vwap.id]: 'Volume',
     [CARD_REGISTRY.support.id]: 'Structure', [CARD_REGISTRY.resistance.id]: 'Structure', [CARD_REGISTRY.pivot.id]: 'Structure', [CARD_REGISTRY.fibonacci.id]: 'Structure', [CARD_REGISTRY.trendline.id]: 'Structure',
-    [CARD_REGISTRY.breadth_ratio.id]: 'Breadth', [CARD_REGISTRY.mcclellan.id]: 'Breadth', [CARD_REGISTRY.ad_line.id]: 'Breadth', [CARD_REGISTRY.nh_nl.id]: 'Breadth', [CARD_REGISTRY.trin.id]: 'Breadth'
+    [CARD_REGISTRY.breadth_ratio.id]: 'Breadth', [CARD_REGISTRY.ad_line.id]: 'Breadth', [CARD_REGISTRY.nh_nl.id]: 'Breadth'
 };
 
 export const ID_TO_TITLE = Object.entries(CARD_REGISTRY).reduce((acc, [key, conf]) => {
@@ -87,9 +84,8 @@ function weightedMean(items) {
 function trimmedWeightedMean(items) {
     const valid = items.filter(({ score }) => score !== null && !isNaN(score));
     if (!valid.length) return null;
-    if (valid.length <= 2) return weightedMean(valid);
-    const sorted = [...valid].sort((a, b) => a.score - b.score);
-    return weightedMean(sorted.slice(1));
+    // MD-08 Fix: Use symmetric unbiased weighted mean instead of asymmetric one-sided lowest-score drop
+    return weightedMean(valid);
 }
 
 function computeSections(scores) {
@@ -98,28 +94,28 @@ function computeSections(scores) {
         return (s !== undefined && s !== null && !isNaN(Number(s))) ? Number(s) : null;
     };
 
-    // Trend: Geometric Mean (trends must align/compound)
+    // Trend: Geometric Mean (trends must align/compound) - Optimized: Standardized on EMA 20/50/200 tri-factor
     const trend = weightedGeometricMean([
-        { score: g(CARD_REGISTRY.ema_20.id), weight: 0.2 },
-        { score: g(CARD_REGISTRY.ema_50.id), weight: 0.3 },
-        { score: g(CARD_REGISTRY.ema_200.id), weight: 0.4 },
-        { score: g(CARD_REGISTRY.supertrend.id), weight: 0.1 }
+        { score: g(CARD_REGISTRY.ema_20.id), weight: 0.22 },
+        { score: g(CARD_REGISTRY.ema_50.id), weight: 0.24 },
+        { score: g(CARD_REGISTRY.ema_200.id), weight: 0.24 },
+        { score: g(CARD_REGISTRY.supertrend.id), weight: 0.12 },
+        { score: g(CARD_REGISTRY.adx.id), weight: 0.10 },
+        { score: g(CARD_REGISTRY.beta_correlation.id), weight: 0.08 }
     ]);
 
-    // Momentum: Trimmed Mean (smooths out extreme outlier oscillators)
-    const momentum = trimmedWeightedMean([
-        { score: g(CARD_REGISTRY.rsi.id), weight: 0.35 },
-        { score: g(CARD_REGISTRY.macd.id), weight: 0.35 },
-        { score: g(CARD_REGISTRY.stoch_rsi.id), weight: 0.15 },
-        { score: g(CARD_REGISTRY.williams_r.id), weight: 0.15 }
+    // Momentum: Weighted Mean - Optimized: Focused on RSI, MACD, Stoch RSI
+    const momentum = weightedMean([
+        { score: g(CARD_REGISTRY.rsi.id), weight: 0.45 },
+        { score: g(CARD_REGISTRY.macd.id), weight: 0.40 },
+        { score: g(CARD_REGISTRY.stoch_rsi.id), weight: 0.15 }
     ]);
 
-    // Volatility: Harmonic Mean (penalizes extreme volatility states)
+    // Volatility: Harmonic Mean (penalizes extreme volatility states) - BB + ATR + KC
     const volatility = weightedHarmonicMean([
-        { score: g(CARD_REGISTRY.bb_20_2.id), weight: 0.5 },
-        { score: g(CARD_REGISTRY.kc.id), weight: 0.3 },
-        { score: g(CARD_REGISTRY.atr.id), weight: 0.2 },
-
+        { score: g(CARD_REGISTRY.bb_20_2.id), weight: 0.45 },
+        { score: g(CARD_REGISTRY.atr.id), weight: 0.35 },
+        { score: g(CARD_REGISTRY.kc?.id || 'kc'), weight: 0.20 }
     ]);
 
     // Volume: Standard Weighted Mean
@@ -139,13 +135,11 @@ function computeSections(scores) {
         { score: g(CARD_REGISTRY.fibonacci.id), weight: 0.15 }
     ]);
 
-    // Breadth: Direct macro proxy
+    // Breadth: Direct macro proxy - Optimized: Automated Advance/Decline and High/Low feeds
     const breadth = weightedGeometricMean([
-        { score: g(CARD_REGISTRY.breadth_ratio.id), weight: 0.35 },
-        { score: g(CARD_REGISTRY.mcclellan.id), weight: 0.25 },
-        { score: g(CARD_REGISTRY.ad_line.id), weight: 0.2 },
-        { score: g(CARD_REGISTRY.nh_nl.id), weight: 0.1 },
-        { score: g(CARD_REGISTRY.trin.id), weight: 0.1 }
+        { score: g(CARD_REGISTRY.breadth_ratio.id), weight: 0.45 },
+        { score: g(CARD_REGISTRY.ad_line.id), weight: 0.35 },
+        { score: g(CARD_REGISTRY.nh_nl.id), weight: 0.20 }
     ]);
 
     return { trend, momentum, volatility, volume, structure, breadth };
@@ -153,7 +147,7 @@ function computeSections(scores) {
 
 export function computeTechnicalComposite(scoresData, isIndex = false, tradingMode = 'swing') {
     if (!scoresData || Object.keys(scoresData).length === 0) {
-        return { compositeScore: 0, regime: { label: 'Awaiting Data', color: 'text-slate-400' }, sections: [], rawSections: {}, cardScores: {} };
+        return { compositeScore: null, regime: { label: 'Awaiting Data', color: 'text-slate-400' }, sections: [], rawSections: {}, cardScores: {} };
     }
 
     const scores = scoresData;
@@ -228,7 +222,12 @@ function buildTechnicalNestedPayload(result, scores, isIndex) {
 
     Object.entries(scores).forEach(([id, score]) => {
         if (score === null || score === undefined || isNaN(score)) return;
-        const secName = TECHNICAL_CARD_MAP[id] || 'General';
+        // Strict guard against cross-mode card leaks
+        if (isIndex && (id === 'beta_correlation' || id === 'volume_sma' || id === 'obv' || id === 'cmf' || id === 'vwap')) return;
+        if (!isIndex && (id === 'breadth_ratio' || id === 'ad_line' || id === 'nh_nl')) return;
+
+        const secName = TECHNICAL_CARD_MAP[id];
+        if (!secName) return;
         if (!sectionsMap[secName]) sectionsMap[secName] = { name: secName, score: 0, cards: [] };
         
         let normalized = 0;
@@ -286,7 +285,7 @@ export function scoreADLineCard(val) {
     return { score, bias, confidence: "85%", aiInsight: insight };
 }
 
-export function scoreADXCard(valObj) {
+export function scoreADXCard(valObj, isBullish = null) {
     if (valObj === null || valObj === undefined) return defaultReturn;
     
     const manualVal = parseFloat(valObj);
@@ -294,40 +293,113 @@ export function scoreADXCard(valObj) {
     
     if (!valObj || valObj.value === null || valObj.value === undefined || isNaN(valObj.value)) return defaultReturn;
     
-    const { prev } = valObj;
+    const { prev, pdi, mdi } = valObj;
     let val = Number(valObj.value);
-    let score = 50, bias = "Neutral", insight = "Trend is weak.";
     
+    // Directional orientation:
+    // 1. Explicit isBullish parameter takes precedence
+    // 2. +DI / -DI directional movement indicator polarity
+    // 3. Fallback: null (direction unknown)
+    let isBull = isBullish !== null ? Boolean(isBullish) : null;
+    if (isBull === null && pdi !== undefined && mdi !== undefined) {
+        isBull = Number(pdi) >= Number(mdi);
+    }
+
     const isRising = prev !== undefined && prev !== null ? val > prev : true;
     const velocity = prev !== undefined && prev !== null ? (val - prev).toFixed(2) : "0.00";
 
-    if (val > 25) { 
-        score = isRising ? 85 : 75; 
-        bias = isRising ? "Strong Trend" : "Fading Trend"; 
-        insight = `ADX is actively elevated at ${val.toFixed(2)}. ${isRising ? 'The trend is accelerating (Velocity: +'+velocity+').' : 'The trend is strong but losing momentum (Velocity: '+velocity+').'}`; 
-    }
-    else if (val > 20) { 
-        score = isRising ? 65 : 45; 
-        bias = "Developing Trend"; 
-        insight = `ADX is at ${val.toFixed(2)}, approaching the trend threshold. ${isRising ? 'Momentum is building.' : 'Trend structure is deteriorating.'}`; 
+    let score = 50, bias = "Choppy / Ranging", insight = "Trend is weak.";
+
+    if (val > 25) {
+        // Strong Trend Regime (Institutional: directional strength)
+        if (isBull === true) {
+            score = isRising ? 85 : 75;
+            bias = isRising ? "Strong Bullish Trend" : "Fading Bullish Trend";
+            insight = `ADX is elevated at ${val.toFixed(2)} with positive directional bias. ${isRising ? 'Uptrend is accelerating with strong institutional conviction (Velocity: +' + velocity + ').' : 'Uptrend is robust but losing velocity (Velocity: ' + velocity + ').'}`;
+        } else if (isBull === false) {
+            score = isRising ? 15 : 25;
+            bias = isRising ? "Strong Bearish Trend" : "Fading Bearish Trend";
+            insight = `ADX is elevated at ${val.toFixed(2)} with negative directional bias. ${isRising ? 'Downtrend is accelerating with severe institutional selling pressure (Velocity: +' + velocity + ').' : 'Downtrend remains active but velocity is decelerating (Velocity: ' + velocity + ').'}`;
+        } else {
+            // Direction unconfirmed: score trend strength with neutral bias
+            score = isRising ? 75 : 65;
+            bias = isRising ? "Strong Trend" : "Fading Trend";
+            insight = `ADX is actively elevated at ${val.toFixed(2)}. ${isRising ? 'Trend is accelerating (Velocity: +' + velocity + ').' : 'Trend is strong but losing velocity (Velocity: ' + velocity + ').'}`;
+        }
+    } else if (val > 20) {
+        // Developing Trend Regime
+        if (isBull === true) {
+            score = isRising ? 65 : 55;
+            bias = "Developing Bullish Trend";
+            insight = `ADX is at ${val.toFixed(2)}, building upward trend momentum. ${isRising ? 'Bullish continuation probability is rising.' : 'Bullish momentum is stabilizing.'}`;
+        } else if (isBull === false) {
+            score = isRising ? 35 : 45;
+            bias = "Developing Bearish Trend";
+            insight = `ADX is at ${val.toFixed(2)}, building downward trend momentum. ${isRising ? 'Bearish continuation probability is rising.' : 'Bearish pressure is stabilizing.'}`;
+        } else {
+            score = isRising ? 60 : 45;
+            bias = "Developing Trend";
+            insight = `ADX is at ${val.toFixed(2)}, approaching the trend threshold. ${isRising ? 'Directional momentum is building.' : 'Trend structure is deteriorating.'}`;
+        }
     } else {
-        score = 40;
-        bias = "Choppy / Range";
-        insight = `ADX is extremely low (${val.toFixed(2)}), indicating a lack of directional conviction. Avoid trend-following strategies.`;
+        // Range-bound / Chop Regime
+        score = 50;
+        bias = "Choppy / Non-Trending";
+        insight = `ADX is at ${val.toFixed(2)}, below the trending threshold of 20. Market is consolidating in a range. Avoid aggressive breakout/trend-following systems.`;
     }
-    return { score, bias, confidence: "75%", aiInsight: insight };
+
+    return { score, bias, confidence: "80%", aiInsight: insight };
 }
 
-export function scoreATRCard(val, currentPrice) {
+export function scoreATRCard(val, currentPrice, atrBaseline = null) {
     if (val === null || val === undefined || isNaN(val) || !currentPrice) return defaultReturn;
-    const atrPct = (val / currentPrice) * 100;
-    
-    let score = 50, bias = "Normal Volatility", insight = `Average True Range is ${val.toFixed(2)} points (${atrPct.toFixed(2)}% of price).`;
-    if (atrPct > 2.5) { score = 80; bias = "Extreme Volatility"; insight += " The market is experiencing extreme price swings. Avoid tight stop losses."; }
-    else if (atrPct > 1.5) { score = 65; bias = "High Volatility"; insight += " Volatility is elevated. Breakout strategies tend to perform well in this regime."; }
-    else if (atrPct < 0.5) { score = 20; bias = "Low Volatility"; insight += " Volatility is extremely compressed. A major directional breakout is highly probable soon."; }
-    else { score = 40; bias = "Moderate Volatility"; insight += " Price action is moving within a normal historical range."; }
-    
+    const atr = Number(val);
+    const price = Number(currentPrice);
+    const atrPct = (atr / price) * 100;
+
+    let score = 50, bias = "Normal Volatility", insight = `Average True Range is ${atr.toFixed(2)} points (${atrPct.toFixed(2)}% of price).`;
+
+    // Continuous scaling to avoid cliff jumps and harmonic-mean distortion
+    if (atrBaseline && Number(atrBaseline) > 0) {
+        const ratio = atr / Number(atrBaseline);
+        if (ratio > 1.5) {
+            score = Math.min(85, Math.round(75 + (ratio - 1.5) * 20));
+            bias = "High Volatility Expansion";
+            insight += " Volatility has expanded significantly above historical baseline. Wider stops required.";
+        } else if (ratio > 1.0) {
+            score = Math.round(55 + (ratio - 1.0) * 40);
+            bias = "Moderate Volatility";
+            insight += " Volatility is slightly above average. Healthy expansion for swing continuation.";
+        } else if (ratio >= 0.7) {
+            score = Math.round(45 + ((ratio - 0.7) / 0.3) * 10);
+            bias = "Normal Volatility";
+            insight += " Volatility is moving within normal historical parameters.";
+        } else {
+            score = Math.max(35, Math.round(45 - ((0.7 - ratio) / 0.7) * 10));
+            bias = "Volatility Compression";
+            insight += " Volatility is heavily compressed. High probability of imminent explosive expansion.";
+        }
+    } else {
+        // Piecewise continuous percentage scaling
+        if (atrPct >= 3.0) {
+            score = Math.min(85, Math.round(75 + ((atrPct - 3.0) / 2.0) * 10));
+            bias = "Extreme Volatility";
+            insight += " The market is experiencing extreme price swings. Reduce position sizing and avoid tight stops.";
+        } else if (atrPct >= 1.8) {
+            score = Math.round(65 + ((atrPct - 1.8) / 1.2) * 10);
+            bias = "High Volatility";
+            insight += " Volatility is elevated. Trend breakout setups have favorable range expansion.";
+        } else if (atrPct >= 0.8) {
+            score = Math.round(50 + ((atrPct - 0.8) / 1.0) * 15);
+            bias = "Normal Volatility";
+            insight += " Volatility is balanced within standard institutional trading ranges.";
+        } else {
+            score = Math.max(40, Math.round(50 - ((0.8 - atrPct) / 0.8) * 10));
+            bias = "Low Volatility / Compression";
+            insight += " Volatility is compressed below 0.8%. A major directional volatility breakout is approaching.";
+        }
+    }
+
     return { score, bias, confidence: "80%", aiInsight: insight };
 }
 
@@ -335,12 +407,31 @@ export function scoreBBCard(valObj) {
     if (!valObj || valObj.pb === undefined) return defaultReturn;
     const { pb } = valObj;
     let score = 50, bias = "Neutral", insight = "Trading within Bollinger Bands.";
-    if (pb > 1.0) { score = 20; bias = "Overbought"; insight = "Price has broken above the upper Bollinger Band. Reversal possible or strong trend starting."; }
-    else if (pb < 0.0) { score = 80; bias = "Oversold"; insight = "Price has broken below the lower Bollinger Band. Bounce possible or strong downtrend starting."; }
-    else if (pb >= 0.8) { score = 30; bias = "Near Upper Band"; insight = "Price is pushing near the upper band."; }
-    else if (pb <= 0.2) { score = 70; bias = "Near Lower Band"; insight = "Price is pushing near the lower band."; }
-    else if (pb > 0.5) { score = 40; bias = "Slightly Bearish"; insight = "Price is in the upper half of the Bollinger Bands, slightly overextended."; }
-    else { score = 60; bias = "Slightly Bullish"; insight = "Price is in the lower half of the Bollinger Bands, slightly discounted."; }
+    if (pb > 1.0) { 
+        score = 65; 
+        bias = "Upper Band Breakout"; 
+        insight = `Price has broken above the upper Bollinger Band (%B: ${Number(pb).toFixed(2)}). Strong breakout momentum active, though watch for exhaustion.`; 
+    } else if (pb < 0.0) { 
+        score = 30; 
+        bias = "Lower Band Breakdown"; 
+        insight = `Price has broken below the lower Bollinger Band (%B: ${Number(pb).toFixed(2)}). Downside momentum dominant with breakdown risk.`; 
+    } else if (pb >= 0.8) { 
+        score = 70; 
+        bias = "Near Upper Band"; 
+        insight = "Price is pushing near the upper band with strong buyer demand."; 
+    } else if (pb <= 0.2) { 
+        score = 35; 
+        bias = "Near Lower Band"; 
+        insight = "Price is pushing near the lower band with persistent selling pressure."; 
+    } else if (pb > 0.5) { 
+        score = 55; 
+        bias = "Upper Half"; 
+        insight = "Price is trading in the upper half of the Bollinger Bands, maintaining positive bias."; 
+    } else { 
+        score = 45; 
+        bias = "Lower Half"; 
+        insight = "Price is trading in the lower half of the Bollinger Bands, maintaining soft bias."; 
+    }
     return { score, bias, confidence: "80%", aiInsight: insight };
 }
 
@@ -381,6 +472,8 @@ export function scoreCmfCard(val) {
 function evaluateMA(val, price, period, type = "EMA") {
     if (val === null || val === undefined || isNaN(val) || !price || isNaN(price)) return defaultReturn;
     
+    val = Number(val);
+    price = Number(price);
     const diffPct = ((price - val) / val) * 100;
     
     // Institutional threshold scaling: Longer periods require wider percentage thresholds
@@ -391,36 +484,42 @@ function evaluateMA(val, price, period, type = "EMA") {
     let score = 50, bias = "Neutral", insight = `Trading near the ${period} ${type}.`;
     let confidence = "70%";
 
-    if (diffPct >= extendedThresh) { 
-        score = 85; 
-        bias = "Strong Bullish"; 
+    if (diffPct >= extendedThresh) {
+        // Continuous asymptotic approach to 90 (starts at 80 at extendedThresh)
+        score = Math.min(90, Math.round(80 + Math.min(1.0, (diffPct - extendedThresh) / extendedThresh) * 10));
+        bias = "Strong Bullish";
         confidence = "85%";
-        insight = `Price is significantly extended (+${diffPct.toFixed(2)}%) above the ${period} ${type}. Momentum is robust, but monitor for mean-reversion.`;
-    } else if (diffPct > testThresh) { 
-        score = 65; 
-        bias = "Bullish"; 
+        insight = `Price is significantly extended (+${diffPct.toFixed(2)}%) above the ${period} ${type}. Strong momentum is active, but monitor for mean-reversion exhaustion.`;
+    } else if (diffPct > testThresh) {
+        // Continuous transition from 60 at testThresh up to 80 at extendedThresh
+        score = Math.round(60 + ((diffPct - testThresh) / (extendedThresh - testThresh)) * 20);
+        bias = "Bullish";
         confidence = "75%";
-        insight = `Price is trending healthily above the ${period} ${type}, establishing a solid directional advantage for buyers.`;
-    } else if (diffPct >= 0 && diffPct <= testThresh) {
-        score = 55;
+        insight = `Price is trending healthily (+${diffPct.toFixed(2)}%) above the ${period} ${type}, establishing a solid directional advantage for buyers.`;
+    } else if (diffPct >= 0) {
+        // Continuous transition from 50 at 0 up to 60 at testThresh
+        score = Math.round(50 + (diffPct / testThresh) * 10);
         bias = "Neutral-Bullish";
         confidence = "60%";
-        insight = `Price is compressing just above the ${period} ${type}. This acts as a critical dynamic support pivot testing buyer conviction.`;
-    } else if (diffPct > -testThresh && diffPct < 0) {
-        score = 45;
+        insight = `Price is compressing (+${diffPct.toFixed(2)}%) just above the ${period} ${type}. Dynamic support is holding buyer conviction.`;
+    } else if (diffPct >= -testThresh) {
+        // Continuous transition from 50 at 0 down to 40 at -testThresh
+        score = Math.round(50 - (Math.abs(diffPct) / testThresh) * 10);
         bias = "Neutral-Bearish";
         confidence = "60%";
-        insight = `Price is struggling just below the ${period} ${type}, which is actively serving as immediate dynamic overhead resistance.`;
-    } else if (diffPct <= -extendedThresh) { 
-        score = 15; 
-        bias = "Strong Bearish"; 
+        insight = `Price is testing immediate dynamic overhead resistance at the ${period} ${type} (${diffPct.toFixed(2)}%).`;
+    } else if (diffPct > -extendedThresh) {
+        // Continuous transition from 40 down to 20 at -extendedThresh
+        score = Math.round(40 - ((Math.abs(diffPct) - testThresh) / (extendedThresh - testThresh)) * 20);
+        bias = "Bearish";
+        confidence = "75%";
+        insight = `Price is established below the ${period} ${type} (${diffPct.toFixed(2)}%), confirming sustained directional control for sellers.`;
+    } else {
+        // Continuous asymptotic approach to 10 (starts at 20 at -extendedThresh)
+        score = Math.max(10, Math.round(20 - Math.min(1.0, (Math.abs(diffPct) - extendedThresh) / extendedThresh) * 10));
+        bias = "Strong Bearish";
         confidence = "85%";
         insight = `Price is heavily depressed (${diffPct.toFixed(2)}%) below the ${period} ${type}. Market structure is severely impaired by sustained supply.`;
-    } else if (diffPct <= -testThresh) { 
-        score = 35; 
-        bias = "Bearish"; 
-        confidence = "75%";
-        insight = `Price is established below the ${period} ${type}, confirming a clear and sustained directional advantage for sellers.`;
     }
 
     return { score, bias, confidence, aiInsight: insight };
@@ -577,23 +676,40 @@ export function scoreNhnlCard(val) {
     return { score, bias, confidence: "80%", aiInsight: insight };
 }
 
-export function scoreObvCard(val, sma) {
-    if (val === null || val === undefined || isNaN(val) || !sma) return defaultReturn;
-    let score = 50, bias = "Neutral", insight = "OBV tracking normal.";
-    const diffPct = ((val - sma) / Math.abs(sma || 1)) * 100;
+export function scoreObvCard(val, sma, volumeSma = null) {
+    if (val === null || val === undefined || isNaN(val) || sma === null || sma === undefined || isNaN(sma)) return defaultReturn;
+    val = Number(val);
+    sma = Number(sma);
     
-    if (diffPct > 5) { 
-        score = 85; bias = "Strong Bullish"; 
-        insight = "OBV is surging well above its moving average. Massive volume supports the buyers."; 
-    } else if (diffPct > 0) { 
-        score = 65; bias = "Bullish"; 
-        insight = "OBV is trending positively above its average, confirming upward price action."; 
-    } else if (diffPct < -5) { 
-        score = 15; bias = "Strong Bearish"; 
-        insight = "OBV has collapsed below its moving average. Heavy volume confirms the downside move."; 
-    } else { 
-        score = 35; bias = "Bearish"; 
-        insight = "OBV is drifting below its average, suggesting fading demand."; 
+    let score = 50, bias = "Neutral", insight = "OBV tracking normal.";
+    
+    // Institutional normalization:
+    // When volumeSma is available, normalize displacement (val - sma) against average daily volume.
+    // Over a 20-period lookback, excess volume accumulation > 1.5-2x average daily volume represents strong institutional bias.
+    let normMetric = 0;
+    if (volumeSma && Number(volumeSma) > 0) {
+        normMetric = (val - sma) / Number(volumeSma);
+    } else {
+        // Safe clamped denominator to prevent near-zero singularity when cumulative OBV crosses 0
+        const safeDenom = Math.max(Math.abs(sma), 100000);
+        normMetric = ((val - sma) / safeDenom) * 20;
+    }
+    
+    if (normMetric > 1.5) { 
+        score = 85; bias = "Strong Bullish Accumulation"; 
+        insight = "OBV is surging well above its moving average. Strong institutional accumulation confirms buyer dominance."; 
+    } else if (normMetric > 0.3) { 
+        score = 65; bias = "Bullish Accumulation"; 
+        insight = "OBV is trending positively above its average, confirming orderly accumulation."; 
+    } else if (normMetric < -1.5) { 
+        score = 15; bias = "Strong Bearish Distribution"; 
+        insight = "OBV has broken down sharply below its moving average. Institutional distribution confirms heavy selling pressure."; 
+    } else if (normMetric < -0.3) { 
+        score = 35; bias = "Bearish Distribution"; 
+        insight = "OBV is drifting below its average, indicating persistent supply overhead."; 
+    } else {
+        score = 50; bias = "Balanced Money Flow";
+        insight = "OBV is closely tracking its moving average. Supply and demand volumes are currently in equilibrium.";
     }
     return { score, bias, confidence: "75%", aiInsight: insight };
 }
@@ -655,32 +771,46 @@ export function scoreResistanceCard(val, currentPrice) {
     return { score, bias, confidence: "85%", aiInsight: insight };
 }
 
+export function scoreBetaCard(val) {
+    return scoreBetaCorrelationCard(val);
+}
+
 export function scoreRSICard(val) {
     if (val === null || val === undefined || isNaN(val)) return defaultReturn;
     val = Number(val);
-    let score = 50, bias = "Neutral", insight = "RSI is neutral.";
+    let score = 50, bias = "Neutral", insight = "RSI is in neutral equilibrium.";
     
-    if (val >= 80) { 
-        score = 15; bias = "Extreme Overbought"; 
-        insight = `RSI at ${val.toFixed(2)}. Extreme overbought condition. High probability of an immediate mean-reversion pullback.`; 
-    } else if (val >= 70) { 
-        score = 30; bias = "Overbought"; 
-        insight = `RSI at ${val.toFixed(2)}. The asset is heavily bought. Momentum is strong but susceptible to profit-taking.`; 
-    } else if (val > 50) { 
-        score = 75; bias = "Bullish Zone"; 
-        insight = `RSI at ${val.toFixed(2)}. Price is operating in a healthy bullish momentum regime.`; 
-    } else if (val === 50) {
-        score = 50; bias = "Neutral"; 
-        insight = `RSI at exactly 50. Absolute momentum equilibrium.`;
-    } else if (val > 30) { 
-        score = 25; bias = "Bearish Zone"; 
-        insight = `RSI at ${val.toFixed(2)}. Price is operating in a negative momentum regime controlled by sellers.`; 
-    } else if (val > 20) { 
-        score = 80; bias = "Oversold"; 
-        insight = `RSI at ${val.toFixed(2)}. The asset is heavily oversold. Downside exhaustion is likely approaching.`; 
+    // MD-09 Fix: Continuous piecewise scoring without cliffs
+    if (val >= 85) {
+        // Severe overextension - mean reversion risk
+        score = Math.round(35 - ((Math.min(100, val) - 85) / 15) * 15);
+        bias = "Extreme Overbought";
+        insight = `RSI at ${val.toFixed(2)}. Extreme overbought territory. Elevated probability of sharp mean-reversion consolidation.`;
+    } else if (val >= 70) {
+        // Bullish momentum with emerging overbought caution (graceful transition from 75 down to 35)
+        score = Math.round(75 - ((val - 70) / 15) * 40);
+        bias = "Overbought Momentum";
+        insight = `RSI at ${val.toFixed(2)}. Strong bullish momentum with extended conditions. Trail stop-losses closely.`;
+    } else if (val >= 50) {
+        // Bullish momentum acceleration (50 up to 75 at RSI 70)
+        score = Math.round(50 + ((val - 50) / 20) * 25);
+        bias = "Bullish Zone";
+        insight = `RSI at ${val.toFixed(2)}. Asset is operating in a healthy constructive momentum expansion.`;
+    } else if (val >= 35) {
+        // Bearish momentum decay (50 down to 25 at RSI 35)
+        score = Math.round(50 - ((50 - val) / 15) * 25);
+        bias = "Bearish Zone";
+        insight = `RSI at ${val.toFixed(2)}. Price momentum is suppressed below median equilibrium.`;
+    } else if (val >= 20) {
+        // Deep oversold / relief bounce setup (25 up to 60 at RSI 20)
+        score = Math.round(25 + ((35 - val) / 15) * 35);
+        bias = "Oversold";
+        insight = `RSI at ${val.toFixed(2)}. Oversold conditions developing; selling velocity decelerating.`;
     } else {
-        score = 90; bias = "Extreme Oversold"; 
-        insight = `RSI at ${val.toFixed(2)}. Extreme capitulation zone. High probability of an imminent relief bounce.`; 
+        // Extreme capitulation (60 up to 85 at RSI 0)
+        score = Math.round(60 + ((20 - Math.max(0, val)) / 20) * 25);
+        bias = "Extreme Oversold";
+        insight = `RSI at ${val.toFixed(2)}. Extreme capitulation zone with strong potential for violent relief rebound.`;
     }
     
     return { score, bias, confidence: "85%", aiInsight: insight };
@@ -848,16 +978,64 @@ export function scoreTrinCard(val) {
 }
 
 
-export function scoreVolumeSmaCard(volumeSma, currentVolume) {
+export function scoreVolumeSmaCard(volumeSma, currentVolume, currentPrice = null, openPrice = null) {
     if (volumeSma === null || volumeSma === undefined || isNaN(volumeSma) || !currentVolume) return defaultReturn;
-    let score = 50, bias = "Normal", aiInsightText = "Waiting for data...";
-    const ratio = currentVolume / volumeSma;
-    if (ratio > 2.0) { score = 90; bias = "Exceptional Activity"; aiInsightText = "Volume is double the average. Strong institutional interest."; }
-    else if (ratio > 1.2) { score = 75; bias = "High Participation"; aiInsightText = "Above average volume confirms the current price action."; }
-    else if (ratio > 0.8) { score = 50; bias = "Normal"; aiInsightText = "Volume is hovering around its historical average."; }
-    else if (ratio > 0.5) { score = 35; bias = "Low Participation"; aiInsightText = "Volume is below average, suggesting a lack of conviction."; }
-    else { score = 20; bias = "Very Low Participation"; aiInsightText = "Extremely low volume. The current move lacks institutional backing."; }
-    return { score, bias, confidence: "70%", aiInsight: aiInsightText };
+    
+    const vSma = Number(volumeSma);
+    const cVol = Number(currentVolume);
+    if (vSma <= 0) return defaultReturn;
+    
+    const ratio = cVol / vSma;
+    let isUpCandle = null;
+    if (currentPrice !== null && openPrice !== null && !isNaN(Number(currentPrice)) && !isNaN(Number(openPrice))) {
+        isUpCandle = Number(currentPrice) >= Number(openPrice);
+    }
+
+    let score = 50, bias = "Normal Participation", aiInsightText = "Volume is tracking near historical average.";
+
+    if (ratio >= 2.0) {
+        if (isUpCandle === true) {
+            score = 90;
+            bias = "Institutional Accumulation";
+            aiInsightText = `Volume is massive (${ratio.toFixed(1)}x average) on an advancing session. Heavy institutional buying confirms the rally.`;
+        } else if (isUpCandle === false) {
+            score = 15;
+            bias = "Panic Liquidation / Distribution";
+            aiInsightText = `Volume is massive (${ratio.toFixed(1)}x average) on a declining session. Heavy institutional distribution confirms intense selling pressure.`;
+        } else {
+            score = 80;
+            bias = "Exceptional Volume Activity";
+            aiInsightText = `Volume is ${ratio.toFixed(1)}x average, confirming exceptional market turnover.`;
+        }
+    } else if (ratio >= 1.2) {
+        if (isUpCandle === true) {
+            score = 75;
+            bias = "Bullish Accumulation";
+            aiInsightText = `Above-average volume (${ratio.toFixed(1)}x) supports the upside move with healthy buyer participation.`;
+        } else if (isUpCandle === false) {
+            score = 30;
+            bias = "Bearish Selling Pressure";
+            aiInsightText = `Above-average volume (${ratio.toFixed(1)}x) on a down day signals active distribution and supply overhead.`;
+        } else {
+            score = 65;
+            bias = "High Participation";
+            aiInsightText = `Above-average volume (${ratio.toFixed(1)}x) confirms current price action conviction.`;
+        }
+    } else if (ratio >= 0.8) {
+        score = 50;
+        bias = "Normal Participation";
+        aiInsightText = `Volume is running at ${ratio.toFixed(1)}x of its 20-period average, in line with normal market turnover.`;
+    } else if (ratio >= 0.5) {
+        score = 40;
+        bias = "Low Participation";
+        aiInsightText = `Volume is below average (${ratio.toFixed(1)}x), suggesting a lack of institutional conviction.`;
+    } else {
+        score = 25;
+        bias = "Extremely Thin Volume";
+        aiInsightText = `Volume is extremely depressed (${ratio.toFixed(1)}x). Price movement lacks institutional liquidity and is vulnerable to false breakouts.`;
+    }
+
+    return { score, bias, confidence: "80%", aiInsight: aiInsightText };
 }
 
 export function scoreVwapCard(vwapVal, currentPrice) {
@@ -875,18 +1053,28 @@ export function scoreWilliamsRCard(val) {
     val = Number(val);
     let score = 50, bias = "Neutral", insight = "Neutral momentum.";
     
-    if (val > -20) { 
-        score = 20; bias = "Overbought"; 
-        insight = `Williams %R reads ${val.toFixed(2)}. The asset is trading near the absolute top of its recent high-low range. Highly overbought.`; 
-    } else if (val < -80) { 
-        score = 80; bias = "Oversold"; 
-        insight = `Williams %R reads ${val.toFixed(2)}. The asset is pinned near the absolute bottom of its recent range. Highly oversold.`; 
-    } else if (val > -50) {
-        score = 60; bias = "Bullish Bias";
-        insight = `Trading in the upper half of the lookback range (${val.toFixed(2)}). Buyers maintain slight control.`;
+    // Institutional momentum interpretation:
+    // Williams %R measures close location relative to 14-day high-low range (0 to -100)
+    // 0 to -20: Bullish momentum zone (pinned to highs)
+    // -20 to -50: Upper half of range (bullish bias)
+    // -50 to -80: Lower half of range (bearish bias)
+    // -80 to -100: Bearish momentum zone (pinned to lows)
+    if (val >= -15) {
+        score = 75;
+        bias = "Strong Bullish Momentum";
+        insight = `Williams %R is pinned near recent highs (${val.toFixed(2)}%). Robust buyer momentum is driving the advance.`;
+    } else if (val >= -50) {
+        score = Math.round(55 + ((val + 50) / 35) * 20);
+        bias = "Bullish Bias";
+        insight = `Trading in the upper half of the 14-day range (${val.toFixed(2)}%). Buyers maintain continuous control.`;
+    } else if (val >= -85) {
+        score = Math.round(30 + ((val + 85) / 35) * 20);
+        bias = "Bearish Bias";
+        insight = `Trading in the lower half of the 14-day range (${val.toFixed(2)}%). Sellers maintain continuous control.`;
     } else {
-        score = 40; bias = "Bearish Bias";
-        insight = `Trading in the lower half of the lookback range (${val.toFixed(2)}). Sellers maintain slight control.`;
+        score = 25;
+        bias = "Strong Bearish Momentum";
+        insight = `Williams %R is pinned near recent lows (${val.toFixed(2)}%). Heavy downward momentum indicates dominant selling pressure.`;
     }
     
     return { score, bias, confidence: "80%", aiInsight: insight };
@@ -909,7 +1097,6 @@ export function scoreBetaCorrelationCard(val) {
         score = 50; bias = "Market Beta"; insight = `Beta is near market average (${val.toFixed(2)}). Stock tracks Nifty closely.`;
     }
     
-    // Beta isn't necessarily Bullish/Bearish intrinsically, but higher beta in an uptrend gives it a higher 'trend amplification' score.
     return { score, bias, confidence: "90%", aiInsight: insight };
 }
 

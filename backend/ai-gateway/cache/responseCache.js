@@ -14,6 +14,7 @@ function generateHash(request) {
     const hashData = stableStringify({
         taskType: request.taskType,
         prompt: request.prompt,
+        systemInstruction: request.systemInstruction || '',
         data: request.data,
         targetModel: request.targetModel,
         temperature: request.temperature,

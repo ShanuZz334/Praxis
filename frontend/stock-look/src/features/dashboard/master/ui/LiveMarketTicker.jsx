@@ -4,7 +4,7 @@ import { useDashboardContext } from "@/shared/context/DashboardContext";
 
 const TICKER_KEYS = [
     { key: "NSE_INDEX|India VIX", label: "INDIA VIX", prefix: "", suffix: "" },
-    { key: "GLOBAL_INDICATOR|USDINR", label: "USDINR", prefix: "$", suffix: "" },
+    { key: "GLOBAL_INDICATOR|USDINR", label: "USDINR", prefix: "₹", suffix: "" },
     { key: "GLOBAL_INDICATOR|BZUSD", label: "BRENT CRUDE", prefix: "$", suffix: "" },
     { key: "GLOBAL_INDICATOR|DXY", label: "DXY", prefix: "", suffix: "" },
     { key: "GLOBAL_INDICATOR|US10Y", label: "US 10Y", prefix: "", suffix: "%" },

@@ -53,7 +53,8 @@ export default function CurrentRatioCard({ cardId, data, manualOverride, lastUpd
     const configData = getIndicatorConfig(CARD_REGISTRY.current_ratio.id);
 
     // 4. Centralized Scoring via scoringEngine.js
-    const { score = 0, bias = 'Neutral' } = currentRatio !== null ? applyModeAdjustment(scoreCurrentRatio(currentRatio), 'current_ratio', tradingMode) : {};
+    const sectorName = data?.company_profile?.sector || data?.sector || '';
+    const { score = 0, bias = 'Neutral' } = currentRatio !== null ? applyModeAdjustment(scoreCurrentRatio(currentRatio, sectorName), 'current_ratio', tradingMode) : {};
     const aiInsightText = currentRatio !== null
         ? (generateAiInsightCurrentRatioCard ? generateAiInsightCurrentRatioCard(currentRatio, sectorRatio) : 'No insights available.')
         : 'Waiting for insight...';

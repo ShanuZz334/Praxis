@@ -39,6 +39,9 @@ const DEFAULT_SYSTEM_INSTRUCTION = (targetId, displayName) => {
     if (targetId && PAGE_HEADER_DEFAULTS[targetId]) {
         return PAGE_HEADER_DEFAULTS[targetId];
     }
+    if (targetId && targetId.includes('historical_financials')) {
+        return `You are Praxis, an elite institutional equity research analyst and corporate financial auditor. Analyze the 10-year historical trajectory and financial statement metrics for {stockSymbol}. Provide an institutional insight strictly between 5 and 6 lines. Focus on structural trends, inflection points in revenue/margins, balance sheet durability, capital allocation efficiency, and long-term compounding quality. Be direct, dense, analytical, and actionable. No generic pleasantries.`;
+    }
     return `You are Praxis, an elite Indian financial market analyst AI. Generate a single, concise, actionable insight about the ${displayName} indicator for the given stock/index. Focus on what the current value means for near-term price action. Be direct. Max 2 sentences.`;
 };
 
@@ -84,6 +87,12 @@ function parseAdditionalContext(contextStr) {
         else if (rawKey === 'midband')      result.midBand = val;
         else if (rawKey === 'overbought')   result.overbought = val;
         else if (rawKey === 'oversold')     result.oversold = val;
+        else if (rawKey === 'fiitrend3y')   result.fiiTrend3Y = val;
+        else if (rawKey === 'diitrend3y')   result.diiTrend3Y = val;
+        else if (rawKey === 'peermedianpe') result.peerMedianPE = val;
+        else if (rawKey === 'peerrank')     result.peerRank = val;
+        else if (rawKey === 'salescagr5y')  result.salesCagr5Y = val;
+        else if (rawKey === 'proscons')     result.prosCons = val;
         else if (rawKey.startsWith('sector') && !result.sectorValue) {
             result.sectorValue = val; // e.g. "Sector P/E: 21.5x"
         }
@@ -205,12 +214,52 @@ router.get('/thread/:targetId', async (req, res) => {
     try {
         const { targetId } = req.params;
         const scope = req.query.scope || 'card';
+        const rawKey = req.query.instrumentKey || req.query.stockSymbol || null;
         const userId = req.user._id;
 
-        const thread = await AiChatThread.findOne({ targetId, scope, userId }).lean();
+        const candidateKeys = [];
+        if (rawKey) {
+            candidateKeys.push(rawKey);
+            if (rawKey.includes('|')) {
+                const token = rawKey.split('|').pop();
+                if (token) candidateKeys.push(token);
+            }
+        }
+
+        // 1. Try matching any candidate key
+        let thread = null;
+        if (candidateKeys.length > 0) {
+            thread = await AiChatThread.findOne({
+                targetId,
+                scope,
+                userId,
+                instrumentKey: { $in: candidateKeys }
+            }).sort({ updatedAt: -1 }).lean();
+        }
+
+        // 2. If not found, check for unkeyed (null/undefined/'') thread
+        if (!thread) {
+            thread = await AiChatThread.findOne({
+                targetId,
+                scope,
+                userId,
+                instrumentKey: { $in: [null, undefined, ''] }
+            }).sort({ updatedAt: -1 }).lean();
+        }
+
+        // 3. If still not found for page/header scope, return the most recent thread for this targetId
+        if (!thread && (scope === 'page' || targetId.endsWith('_header'))) {
+            thread = await AiChatThread.findOne({
+                targetId,
+                scope,
+                userId
+            }).sort({ updatedAt: -1 }).lean();
+        }
+
         res.json({
             targetId,
             scope,
+            instrumentKey: thread?.instrumentKey || rawKey,
             entries: thread?.entries || [],
             entryCount: thread?.entryCount || 0
         });
@@ -226,7 +275,8 @@ router.get('/thread/:targetId', async (req, res) => {
 router.post('/thread/:targetId', async (req, res) => {
     try {
         const { targetId } = req.params;
-        const { scope = 'card', entries } = req.body;
+        const { scope = 'card', entries, instrumentKey: rawInstrumentKey, stockSymbol } = req.body;
+        const instrumentKey = rawInstrumentKey || stockSymbol || null;
         const userId = req.user._id;
 
         if (!entries || !Array.isArray(entries) || entries.length === 0) {
@@ -234,7 +284,7 @@ router.post('/thread/:targetId', async (req, res) => {
         }
 
         const thread = await AiChatThread.findOneAndUpdate(
-            { targetId, scope, userId },
+            { targetId, scope, userId, instrumentKey },
             {
                 $push: { entries: { $each: entries, $slice: -100 } }, // keep last 100
                 $inc: { entryCount: entries.length }
@@ -257,10 +307,16 @@ router.delete('/thread/:targetId', async (req, res) => {
     try {
         const { targetId } = req.params;
         const scope = req.query.scope || 'card';
+        const instrumentKey = req.query.instrumentKey || req.query.stockSymbol || null;
         const userId = req.user._id;
 
+        const query = { targetId, scope, userId };
+        if (instrumentKey) {
+            query.instrumentKey = instrumentKey;
+        }
+
         await AiChatThread.findOneAndUpdate(
-            { targetId, scope, userId },
+            query,
             { $set: { entries: [], entryCount: 0 } }
         );
         res.json({ success: true });
@@ -401,13 +457,16 @@ function summarizePageData(pageData) {
             }
             lines.push(sectionLine);
         });
+        if (pageData.screener) {
+            lines.push(formatScreenerSummary(pageData.screener));
+        }
         return lines.join('\n');
     }
 
     // Shape 2: DataRegistry flat card map { [cardId]: { displayName, value, score, signal } }
     if (typeof pageData === 'object' && !Array.isArray(pageData)) {
         const entries = Object.entries(pageData)
-            .filter(([, v]) => v && typeof v === 'object' && v.value != null)
+            .filter(([k, v]) => k !== 'screener' && v && typeof v === 'object' && v.value != null)
             .map(([id, v]) => {
                 const sig = v.signal || 'N/A';
                 const sc  = v.score != null ? `${v.score}/100` : '?/100';
@@ -415,10 +474,44 @@ function summarizePageData(pageData) {
                 if (v.additionalContext) line += ` | ${v.additionalContext}`;
                 return line;
             });
+        if (pageData.screener) {
+            entries.push(formatScreenerSummary(pageData.screener));
+        }
         return entries.length > 0 ? entries.join('\n') : null;
     }
 
     return null;
+}
+
+function formatScreenerSummary(sc) {
+    if (!sc) return '';
+    const lines = ['\n--- SCREENER INSTITUTIONAL CONTEXT ---'];
+    if (sc.shareholdingTrend?.categories) {
+        const cats = sc.shareholdingTrend.categories;
+        const qtrs = sc.shareholdingTrend.quarters || [];
+        const latestQ = qtrs[qtrs.length - 1] || 'Latest';
+        const oldestQ = qtrs[0] || 'Oldest';
+        const fiiLatest = cats['FIIs']?.[cats['FIIs'].length - 1];
+        const fiiOldest = cats['FIIs']?.[0];
+        const diiLatest = cats['DIIs']?.[cats['DIIs'].length - 1];
+        const diiOldest = cats['DIIs']?.[0];
+        if (fiiLatest !== undefined && fiiOldest !== undefined) {
+            const fiiShift = (fiiLatest - fiiOldest).toFixed(2);
+            const diiShift = (diiLatest - diiOldest).toFixed(2);
+            lines.push(`12-Qtr Institutional Shift (${oldestQ} -> ${latestQ}): FII ${fiiShift > 0 ? '+' : ''}${fiiShift}% (now ${fiiLatest}%), DII ${diiShift > 0 ? '+' : ''}${diiShift}% (now ${diiLatest}%)`);
+        }
+    }
+    if (Array.isArray(sc.peers) && sc.peers.length > 0) {
+        const topPeers = sc.peers.slice(0, 5).map(p => `${p.companyName}(PE: ${p.pe}x, ROCE: ${p.rocePct}%)`).join('; ');
+        lines.push(`Domestic Sector Peers: ${topPeers}`);
+    }
+    if (Array.isArray(sc.pros) && sc.pros.length > 0) {
+        lines.push(`Key Strengths: ${sc.pros.slice(0, 2).join('; ')}`);
+    }
+    if (Array.isArray(sc.cons) && sc.cons.length > 0) {
+        lines.push(`Key Risks: ${sc.cons.slice(0, 2).join('; ')}`);
+    }
+    return lines.join('\n');
 }
 
 router.post('/generate/:targetId', async (req, res) => {
@@ -482,6 +575,12 @@ router.post('/generate/:targetId', async (req, res) => {
             midBand:           parsedCtx.midBand    || null,
             overbought:        parsedCtx.overbought || null,
             oversold:          parsedCtx.oversold   || null,
+            fiiTrend3Y:        parsedCtx.fiiTrend3Y   || null,
+            diiTrend3Y:        parsedCtx.diiTrend3Y   || null,
+            peerMedianPE:      parsedCtx.peerMedianPE || null,
+            peerRank:          parsedCtx.peerRank     || null,
+            salesCagr5Y:       parsedCtx.salesCagr5Y  || null,
+            prosCons:          parsedCtx.prosCons     || null,
         });
 
         // 2. Build the user message with real card data
@@ -533,13 +632,26 @@ router.post('/generate/:targetId', async (req, res) => {
             const tokenCeiling = Math.max(1536, Math.floor(numVerbosity * 3.5));
             dynamicMaxTokens = Math.min(8192, Math.max(savedPrompt?.maxTokens || 0, tokenCeiling));
 
-            if (numVerbosity <= 100) {
+            const isSynthesisOrMaster = targetId === 'praxis_composite_header' || targetId.includes('master');
+            if (targetId.includes('historical_financials')) {
+                verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Generate EXACTLY 5 to 6 concise, dense, analytical lines of institutional insight covering the 10-year trajectory, inflection points, and capital efficiency. Do NOT exceed 6 lines and do NOT write fewer than 5 lines. No intro filler.]`;
+            } else if (isSynthesisOrMaster) {
+                // Master Dashboard composite synthesis requires multi-point structured breakdown
+                verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Provide a structured, actionable synthesis across all active market drivers. Use clean bullet points.]`;
+            } else if (numVerbosity <= 100) {
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Generate EXACTLY 1 to 2 short sentences total (maximum ${numVerbosity} words). NO MORE. Be extremely concise and ensure you finish your thought completely without cutting off.]`;
             } else if (numVerbosity >= 350) {
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Provide a detailed, comprehensive analysis spanning multiple paragraphs. You MUST strictly limit your entire response to approximately ${numVerbosity} words. To prevent being cut off, you MUST write a final, natural concluding paragraph well before reaching this word limit.]`;
             } else {
                 // Default / medium
                 verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: You MUST generate EXACTLY ONE SINGLE PARAGRAPH (maximum ${numVerbosity} words). Do NOT use any line breaks or multiple paragraphs. The entire response must be a single block of text and must be a complete thought.]`;
+            }
+        }
+
+        if (isHeaderTarget) {
+            dynamicMaxTokens = Math.max(dynamicMaxTokens, 2048);
+            if (!isSynthesisOrMaster && (!verbosityInstruction || numVerbosity < 150)) {
+                verbosityInstruction = `\n\n[CRITICAL REQUIREMENT: Provide an executive institutional synthesis covering market regime, primary directional drivers, and tactical setups. Finish your analysis completely with a clean conclusion.]`;
             }
         }
         
@@ -566,7 +678,7 @@ router.post('/generate/:targetId', async (req, res) => {
         // 4. Persist to thread (fire-and-forget style — don't block response)
         if (insight) {
             AiChatThread.findOneAndUpdate(
-                { targetId, scope, userId },
+                { targetId, scope, userId, instrumentKey: stockSymbol || null },
                 {
                     $push: {
                         entries: {
@@ -692,7 +804,10 @@ router.post('/chat/:targetId', async (req, res) => {
         systemInstruction += `\n\nSYSTEM COMMANDS DIRECTORY: You are equipped with a real-time command interception engine in the frontend UI. If the user asks what you can do, tell them they can instantly control the platform using the following commands. IMPORTANT: The frontend UI intercepts these commands automatically. DO NOT output XML tool calls, JSON, or code to execute these commands. Just reply naturally to the user or tell them what to type:\n- Theme Control: "switch to dark mode", "light theme", "toggle theme"\n- Navigation: "go to fundamentals", "open technicals", "go to options", "open global markets", "go to events"\n- Instrument Switching: "switch to Nifty 50", "load Reliance"\n- AI Control: "choose level X", "switch to global mode", "clear chat", "reset model"\n- Voice Control: "mute voice", "stop speaking", "enable voice"\n- Trading Horizon: "switch to intraday/swing/positional"`;
 
         // 2. Fetch thread history
-        const thread = await AiChatThread.findOne({ targetId, scope, userId }).lean();
+        const instrumentKey = contextData?.selectedInstrument || req.body.instrumentKey || req.body.stockSymbol || null;
+        const threadQuery = { targetId, scope, userId };
+        if (instrumentKey) threadQuery.instrumentKey = instrumentKey;
+        const thread = await AiChatThread.findOne(threadQuery).lean();
         // Take last 6 messages to strictly conserve context window size limits
         const history = thread?.entries?.slice(-6) || [];
 
@@ -759,20 +874,21 @@ router.post('/chat/:targetId', async (req, res) => {
 
         // 4. Persist to thread
         if (insight) {
+            const recordedScore = contextData?.score ?? contextData?.selectedInstrumentPrice ?? contextData?.value ?? null;
             await AiChatThread.findOneAndUpdate(
-                { targetId, scope, userId },
+                { targetId, scope, userId, instrumentKey },
                 {
                     $push: {
                         entries: {
                             $each: [
-                                { role: 'user', content: message, cardValue: contextData?.score, timestamp: new Date() },
+                                { role: 'user', content: message, cardValue: recordedScore, timestamp: new Date() },
                                 {
                                     role: 'assistant',
                                     content: insight,
                                     model: response.model,
                                     provider: response.provider,
                                     latencyMs: response.latencyMs,
-                                    cardValue: contextData?.score,
+                                    cardValue: recordedScore,
                                     timestamp: new Date()
                                 }
                             ],

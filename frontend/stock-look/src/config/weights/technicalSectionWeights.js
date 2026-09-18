@@ -52,7 +52,7 @@ export const TECHNICAL_SECTION_MODE_PROFILES = {
         Momentum:   0.15,   // Oscillators less critical on weekly timeframe
         Volatility: 0.10,   // Context only
         Structure:  0.20,   // S/R, Fibonacci levels matter for entries/exits
-        Volume:     0.10,   // Less relevant on daily/weekly chart
+        Volume:     0.15,   // Volume context on positional chart
         Breadth:    0.15,   // Market participation still matters for index trades
     },
 
@@ -65,7 +65,7 @@ export const TECHNICAL_SECTION_MODE_PROFILES = {
         Volatility: 0.15,
         Structure:  0.15,
         Volume:     0.15,
-        Breadth:    0.20,
+        Breadth:    0.15,
     },
 
     // ── INTRADAY ────────────────────────────────────────────────────────────

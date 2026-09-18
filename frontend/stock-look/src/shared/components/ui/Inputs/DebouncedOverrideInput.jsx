@@ -6,11 +6,14 @@ export const DebouncedOverrideInput = ({ label, overrideKey, value, onChange, la
     const [localValue, setLocalValue] = useState(value ?? "");
     const [progress, setProgress] = useState(null);
     const hasNotifiedRef = useRef(false);
+    const isFocusedRef = useRef(false);
     const { addNotification, setActiveOverrideRequest, removeNotification } = useNotificationStore();
 
     useEffect(() => {
-        // Only update local state if we aren't actively typing
-        setLocalValue(value ?? "");
+        // Only update local state from props if user is not actively typing
+        if (!isFocusedRef.current) {
+            setLocalValue(value ?? "");
+        }
         if (value !== null && value !== undefined) {
             hasNotifiedRef.current = false;
         }
@@ -101,7 +104,11 @@ export const DebouncedOverrideInput = ({ label, overrideKey, value, onChange, la
                     type="text"
                     value={localValue}
                     onChange={(e) => setLocalValue(e.target.value)}
-                    onBlur={commitChange}
+                    onFocus={() => { isFocusedRef.current = true; }}
+                    onBlur={() => {
+                        isFocusedRef.current = false;
+                        commitChange();
+                    }}
                     onKeyDown={handleKeyDown}
                     className="bg-background-surface border border-border-subtle rounded px-2 py-1 text-xs text-text-primary focus:outline-none focus:border-blue-500 w-full"
                 />

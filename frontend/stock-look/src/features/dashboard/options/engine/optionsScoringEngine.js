@@ -23,26 +23,26 @@ export function scorePcrOi(pcr) {
 
     let score, bias, sentiment;
 
-    if (pcr > 1.40) {
-        bias = "Contrarian Bearish";
-        score = normalize(pcr, 1.40, 2.00, 85, 100);
-        sentiment = "Extremely Overbought";
-    } else if (pcr > 1.05 && pcr <= 1.40) {
+    if (pcr > 1.65) {
+        bias = "Overbought (Reversal Watch)";
+        score = normalize(pcr, 1.65, 2.20, 75, 55);
+        sentiment = "Extreme Put Writing / Overextended";
+    } else if (pcr > 1.25 && pcr <= 1.65) {
         bias = "Bullish";
-        score = normalize(pcr, 1.05, 1.40, 50, 85);
-        sentiment = "Bullish Support";
-    } else if (pcr >= 0.85 && pcr <= 1.05) {
+        score = normalize(pcr, 1.25, 1.65, 55, 80);
+        sentiment = "Solid Put Writing Floor";
+    } else if (pcr >= 0.95 && pcr <= 1.25) {
         bias = "Neutral";
-        score = normalize(pcr, 0.85, 1.05, 45, 55);
-        sentiment = "Balanced";
-    } else if (pcr >= 0.60 && pcr < 0.85) {
+        score = normalize(pcr, 0.95, 1.25, 45, 55);
+        sentiment = "Balanced Indian Market Baseline";
+    } else if (pcr >= 0.70 && pcr < 0.95) {
         bias = "Bearish";
-        score = normalize(pcr, 0.60, 0.85, 15, 45);
-        sentiment = "Bearish Resistance";
+        score = normalize(pcr, 0.70, 0.95, 20, 45);
+        sentiment = "Call Writing Resistance";
     } else {
-        bias = "Contrarian Bullish";
-        score = normalize(pcr, 0.20, 0.60, 0, 15);
-        sentiment = "Extremely Oversold";
+        bias = "Oversold (Short Squeeze Watch)";
+        score = normalize(pcr, 0.30, 0.70, 35, 20);
+        sentiment = "Extreme Call Concentration";
     }
     
     return { score: Math.round(score), bias, sentiment };
@@ -51,14 +51,16 @@ export function scorePcrOi(pcr) {
 export function generatePcrOiInsight(pcr, bias) {
     if (pcr === undefined || pcr === null || isNaN(pcr) || pcr === 0) return "Awaiting PCR data from chain.";
     
-    if (bias.includes("Contrarian")) {
-        return `PCR at ${pcr.toFixed(2)} indicates extreme positioning. Reversal risks are highly elevated as the market may be too heavily skewed one-way.`;
+    if (bias && (bias.includes("Overbought") || bias.includes("Reversal"))) {
+        return `PCR at ${pcr.toFixed(2)} indicates extreme put concentration. Institutional floor is strong, but overextension poses pullback risk.`;
+    } else if (bias && bias.includes("Oversold")) {
+        return `PCR at ${pcr.toFixed(2)} signals heavy call crowding. While bearish overhead exists, extreme oversold levels create high risk of violent short covering.`;
     } else if (bias === "Bullish") {
-        return `Heavy put writing (PCR ${pcr.toFixed(2)}) forms a strong floor. Option writers are defending lower levels.`;
+        return `Active put writing (PCR ${pcr.toFixed(2)}) forms a strong floor. Option writers are actively defending lower strikes.`;
     } else if (bias === "Bearish") {
-        return `Call writers dominate (PCR ${pcr.toFixed(2)}), creating overhead supply and resistance against upward momentum.`;
+        return `Call writers dominate (PCR ${pcr.toFixed(2)}), capping upward momentum with overhead supply.`;
     }
-    return `PCR is perfectly balanced at ${pcr.toFixed(2)}, indicating a tug-of-war between option writers with no clear directional edge.`;
+    return `PCR is balanced at ${pcr.toFixed(2)}, aligned with standard Indian market baseline with no extreme directional skew.`;
 }
 
 
@@ -101,27 +103,27 @@ export function generatePcrVolumeInsight(pcrVol, bias) {
 
 
 // ==========================================
-// 3. Greeks: Delta Scoring (ATM Call)
+// 3. Greeks: Delta Scoring (ATM Call / Net Delta)
 // ==========================================
 export function scoreDelta(delta) {
     if (delta === undefined || delta === null || isNaN(delta)) return { score: 50, bias: "Neutral", moneyness: "Unknown" };
     
-    // Assuming ATM Call Delta (typically ~0.50)
+    // Smooth continuous delta scoring centered at 0.50
     let score = 50;
     let bias = "Neutral";
     let moneyness = "ATM";
 
-    if (delta > 0.65) {
+    if (delta > 0.60) {
         bias = "Bullish";
-        score = 80;
+        score = Math.min(90, Math.round(50 + (delta - 0.50) * 80));
         moneyness = "ITM";
-    } else if (delta >= 0.40 && delta <= 0.65) {
+    } else if (delta >= 0.40 && delta <= 0.60) {
         bias = "Neutral";
-        score = 50;
+        score = Math.round(50 + (delta - 0.50) * 50);
         moneyness = "ATM";
     } else {
         bias = "Bearish";
-        score = 20;
+        score = Math.max(15, Math.round(50 - (0.50 - delta) * 70));
         moneyness = "OTM";
     }
     
@@ -131,8 +133,8 @@ export function scoreDelta(delta) {
 export function generateDeltaInsight(delta, bias) {
     if (delta === undefined || delta === null || isNaN(delta)) return "Awaiting Greeks data.";
     
-    if (bias === "Bullish") return `Delta at ${delta.toFixed(3)} indicates the closest strike has pushed ITM, reflecting strong bullish momentum.`;
-    if (bias === "Bearish") return `Delta at ${delta.toFixed(3)} indicates the closest strike is slipping OTM, reflecting fading momentum.`;
+    if (bias === "Bullish") return `Delta at ${delta.toFixed(3)} indicates the contract has pushed ITM, reflecting strong directional bullish momentum.`;
+    if (bias === "Bearish") return `Delta at ${delta.toFixed(3)} indicates the contract is slipping OTM, reflecting fading upside velocity.`;
     return `Delta near 0.50 confirms true At-The-Money positioning with balanced directional exposure.`;
 }
 
@@ -140,7 +142,7 @@ export function generateDeltaInsight(delta, bias) {
 // ==========================================
 // 4. Greeks: Gamma Scoring (ATM Call)
 // ==========================================
-export function scoreGamma(gamma, spotPrice) {
+export function scoreGamma(gamma, spotPrice, dte = null) {
     if (gamma === undefined || gamma === null || isNaN(gamma) || !spotPrice) return { score: 50, bias: "Neutral", riskLevel: "Normal" };
     
     let score = 50;
@@ -148,49 +150,60 @@ export function scoreGamma(gamma, spotPrice) {
     let riskLevel = "Normal";
 
     const gamma1Pct = Math.abs(gamma) * (spotPrice * 0.01);
+    // DTE normalization factor (prevents artificial 0 DTE explosion)
+    const effectiveDte = dte ? Math.max(0.5, dte) : 5;
+    const dteScale = Math.sqrt(5 / effectiveDte);
+    const normalizedGamma = gamma1Pct / dteScale;
 
-    if (gamma1Pct > 0.15) {
+    if (normalizedGamma > 0.15) {
         bias = "High Volatility Risk";
-        score = 85;
+        score = 80;
         riskLevel = "Extreme";
-    } else if (gamma1Pct > 0.08) {
+    } else if (normalizedGamma > 0.08) {
         bias = "Elevated Sensitivity";
-        score = 70;
+        score = 65;
         riskLevel = "High";
     } else {
         bias = "Stable";
-        score = 40;
+        score = 45;
         riskLevel = "Low";
     }
     
-    return { score, bias, riskLevel };
+    return { score, bias, riskLevel, normalizedGamma: parseFloat(normalizedGamma.toFixed(4)) };
 }
 
 export function generateGammaInsight(gamma, riskLevel) {
     if (gamma === undefined || gamma === null || isNaN(gamma)) return "Awaiting Gamma data.";
     
-    if (riskLevel === "Extreme" || riskLevel === "High") return `High Gamma (${gamma.toFixed(4)}) means Delta will change rapidly. Expect violent price swings on small spot moves.`;
-    return `Low Gamma (${gamma.toFixed(4)}) implies steady Delta transitions with lower risk of sudden price explosions.`;
+    if (riskLevel === "Extreme" || riskLevel === "High") return `Elevated Gamma (${gamma.toFixed(4)}) means Delta will change rapidly. Expect violent sensitivity on small underlying moves.`;
+    return `Stable Gamma (${gamma.toFixed(4)}) implies smooth Delta transitions with contained rehedging risk.`;
 }
 
 
 // ==========================================
 // 5. Greeks: Theta Scoring (ATM Call)
 // ==========================================
-export function scoreTheta(theta, spotPrice) {
-    if (theta === undefined || theta === null || isNaN(theta) || !spotPrice) return { score: 50, bias: "Neutral", decayPace: "Normal" };
+export function scoreTheta(theta, spotPrice, optionPremium = null, dte = null) {
+    if (theta === undefined || theta === null || isNaN(theta) || (!spotPrice && !optionPremium)) return { score: 50, bias: "Neutral", decayPace: "Normal" };
     
     let score = 50;
     let bias = "Neutral";
     let decayPace = "Normal";
 
-    const thetaPct = (Math.abs(theta) / spotPrice) * 100;
+    // Normalize by option premium if available, else fall back to spot price equivalent
+    const effectivePremium = (optionPremium && optionPremium > 0) ? optionPremium : (spotPrice ? spotPrice * 0.005 : 100);
+    const thetaPct = (Math.abs(theta) / effectivePremium) * 100;
+    
+    // DTE normalization factor for natural 1/sqrt(T) time acceleration
+    const effectiveDte = dte ? Math.max(0.5, dte) : 5;
+    const dteNormFactor = Math.sqrt(effectiveDte / 5);
+    const adjustedDecay = thetaPct * dteNormFactor;
 
-    if (thetaPct > 0.10) {
+    if (adjustedDecay > 15) {
         bias = "Seller's Market";
         score = 80; 
         decayPace = "Accelerated";
-    } else if (thetaPct > 0.04) {
+    } else if (adjustedDecay > 6) {
         bias = "Neutral";
         score = 50;
         decayPace = "Moderate";
@@ -200,34 +213,35 @@ export function scoreTheta(theta, spotPrice) {
         decayPace = "Slow";
     }
     
-    return { score, bias, decayPace };
+    return { score, bias, decayPace, decayPct: parseFloat(thetaPct.toFixed(2)) };
 }
 
 export function generateThetaInsight(theta, decayPace) {
     if (theta === undefined || theta === null || isNaN(theta)) return "Awaiting Theta data.";
     
-    if (decayPace === "Accelerated") return `Severe time decay (${theta.toFixed(2)}/day). Options will rapidly lose value if spot price stalls. Highly favorable for Option Writers.`;
-    return `Moderate time decay (${theta.toFixed(2)}/day). Buyers have breathing room, but writers collect steady premium.`;
+    if (decayPace === "Accelerated") return `Severe time decay (${theta.toFixed(2)}/day). Options will rapidly erode value if spot stalls. Highly favorable for premium writers.`;
+    return `Controlled time decay (${theta.toFixed(2)}/day). Option buyers have breathing room while writers collect steady premium.`;
 }
 
 
 // ==========================================
 // 6. Greeks: Vega Scoring (ATM Call)
 // ==========================================
-export function scoreVega(vega, iv, spotPrice) {
+export function scoreVega(vega, iv, spotPrice, optionPremium = null, dte = null) {
     if (vega === undefined || vega === null || isNaN(vega) || !spotPrice) return { score: 50, bias: "Neutral", exposure: "Normal" };
     
     let score = 50;
     let bias = "Neutral";
     let exposure = "Normal";
 
-    const vegaPct = (vega / spotPrice) * 100;
+    const effectivePremium = (optionPremium && optionPremium > 0) ? optionPremium : (spotPrice * 0.005);
+    const vegaPct = (vega / effectivePremium) * 100;
 
-    if (vegaPct > 0.06) {
+    if (vegaPct > 12) {
         bias = "High IV Sensitivity";
         score = 75;
         exposure = "High";
-    } else if (vegaPct > 0.02) {
+    } else if (vegaPct > 4) {
         bias = "Moderate Sensitivity";
         score = 50;
         exposure = "Moderate";
@@ -237,14 +251,14 @@ export function scoreVega(vega, iv, spotPrice) {
         exposure = "Low";
     }
     
-    return { score, bias, exposure };
+    return { score, bias, exposure, vegaPct: parseFloat(vegaPct.toFixed(2)) };
 }
 
 export function generateVegaInsight(vega, exposure) {
     if (vega === undefined || vega === null || isNaN(vega)) return "Awaiting Vega data.";
     
-    if (exposure === "High") return `High Vega (${vega.toFixed(2)}) means premium will expand/contract significantly with any shifts in Implied Volatility (IV).`;
-    return `Lower Vega (${vega.toFixed(2)}) implies premium is relatively insulated from minor IV fluctuations.`;
+    if (exposure === "High") return `High Vega (${vega.toFixed(2)}) means option value will expand/contract significantly with any shifts in Implied Volatility (IV).`;
+    return `Lower Vega (${vega.toFixed(2)}) implies option value is relatively insulated from minor IV fluctuations.`;
 }
 
 
@@ -359,28 +373,38 @@ export function gradeOIChange(chainData, instrumentKey, historicalSnapshots = {}
 
 export function gradeAtmIv(atmIv) {
     if (atmIv === undefined || atmIv === null || isNaN(atmIv)) return null;
-    let score = 50; let bias = "Neutral"; let aiInsight = "Volatility is balanced.";
-    if (atmIv > 30) { score = 85; bias = "Bearish"; aiInsight = "High ATM IV indicates expensive premiums and elevated market fear."; }
-    else if (atmIv > 18) { score = 65; bias = "Cautious"; aiInsight = "Elevated ATM IV suggests expecting moderate price swings."; }
-    else if (atmIv < 12) { score = 20; bias = "Bullish"; aiInsight = "Low ATM IV indicates cheap options and low market fear."; }
+    let score = 50; let bias = "Neutral"; let aiInsight = "Volatility is in a balanced equilibrium range.";
+    if (atmIv > 28) { 
+        score = 25; 
+        bias = "Bearish (High Fear)"; 
+        aiInsight = "High ATM IV indicates expensive premiums and elevated market fear / risk pricing."; 
+    } else if (atmIv > 18) { 
+        score = 40; 
+        bias = "Elevated Volatility"; 
+        aiInsight = "Elevated ATM IV suggests the market anticipates substantial price swings."; 
+    } else if (atmIv < 12) { 
+        score = 75; 
+        bias = "Bullish (Complacent / Stable)"; 
+        aiInsight = "Low ATM IV indicates cheap options and tranquil market sentiment."; 
+    }
     return { currentValue: atmIv, score, bias, confidence: "95%", aiInsight };
 }
 
 export function gradeIvRank(ivRank) {
     if (ivRank === undefined || ivRank === null || isNaN(ivRank)) return null;
     let score = 50; let bias = "Neutral"; let aiInsight = "IV Rank is near its historical median.";
-    if (ivRank > 80) { score = 90; bias = "Contrarian Bearish"; aiInsight = "Extreme IV Rank. Option selling is highly favorable."; }
-    else if (ivRank > 50) { score = 70; bias = "Bearish"; aiInsight = "Elevated IV Rank favors premium sellers over buyers."; }
-    else if (ivRank < 20) { score = 20; bias = "Bullish"; aiInsight = "Extremely low IV Rank. Option buying is statistically favorable."; }
+    if (ivRank > 80) { score = 30; bias = "Extreme High IV"; aiInsight = "Extreme IV Rank. Options are expensive; mean-reversion compression favored."; }
+    else if (ivRank > 55) { score = 42; bias = "Elevated IV"; aiInsight = "Elevated IV Rank favors premium sellers over buyers."; }
+    else if (ivRank < 20) { score = 75; bias = "Low IV"; aiInsight = "Extremely low IV Rank. Options are cheap; volatility expansion favored."; }
     return { currentValue: ivRank, score, bias, confidence: "95%", aiInsight };
 }
 
 export function gradeIvPercentile(ivPercentile) {
     if (ivPercentile === undefined || ivPercentile === null || isNaN(ivPercentile)) return null;
     let score = 50; let bias = "Neutral"; let aiInsight = "IV Percentile shows standard volatility distribution.";
-    if (ivPercentile > 80) { score = 90; bias = "Contrarian Bearish"; aiInsight = "IV is higher than 80% of the past year. High mean-reversion probability."; }
-    else if (ivPercentile > 50) { score = 65; bias = "Bearish"; aiInsight = "IV is in the upper half of its yearly range."; }
-    else if (ivPercentile < 20) { score = 20; bias = "Bullish"; aiInsight = "IV is lower than 80% of the past year. Volatility expansion likely."; }
+    if (ivPercentile > 80) { score = 30; bias = "Extreme High Percentile"; aiInsight = "IV is higher than 80% of the past year. Elevated fear and risk premium."; }
+    else if (ivPercentile > 55) { score = 42; bias = "Upper Half Percentile"; aiInsight = "IV is in the upper half of its yearly historical distribution."; }
+    else if (ivPercentile < 20) { score = 75; bias = "Low Percentile"; aiInsight = "IV is lower than 80% of the past year. Calm conditions with low option cost."; }
     return { currentValue: ivPercentile, score, bias, confidence: "95%", aiInsight };
 }
 
@@ -393,17 +417,21 @@ export function gradeMaxPain(chainData, spotPrice) {
     
     chainData.forEach(targetStrike => {
         let currentPain = 0;
+        const K = targetStrike.strike;
         chainData.forEach(row => {
-            if (row.call?.oi && targetStrike.strike < row.strike) {
-                currentPain += row.call.oi * (row.strike - targetStrike.strike);
+            // Textbook Intrinsic Payoff:
+            // Calls are in-the-money when target expiry price K > row.strike
+            if (row.call?.oi && K > row.strike) {
+                currentPain += (K - row.strike) * row.call.oi;
             }
-            if (row.put?.oi && targetStrike.strike > row.strike) {
-                currentPain += row.put.oi * (targetStrike.strike - row.strike);
+            // Puts are in-the-money when target expiry price K < row.strike
+            if (row.put?.oi && K < row.strike) {
+                currentPain += (row.strike - K) * row.put.oi;
             }
         });
         if (currentPain < minPain) {
             minPain = currentPain;
-            maxPainStrike = targetStrike.strike;
+            maxPainStrike = K;
         }
     });
 
@@ -412,13 +440,147 @@ export function gradeMaxPain(chainData, spotPrice) {
     const diff = spotPrice - maxPainStrike;
     const diffPct = (Math.abs(diff) / spotPrice) * 100;
     
-    let score = 50; let bias = "Neutral";
-    if (diffPct > 2) { score = 80; bias = diff > 0 ? "Bearish Pull" : "Bullish Pull"; }
-    else if (diffPct > 0.5) { score = 65; bias = diff > 0 ? "Bearish Pull" : "Bullish Pull"; }
+    // Continuous, polarity-aligned scoring:
+    // If spot > maxPain (diff > 0): Gravitational pull down towards strike (Bearish Pull) -> score < 50
+    // If spot < maxPain (diff < 0): Gravitational pull up towards strike (Bullish Pull) -> score > 50
+    let score = 50; 
+    let bias = "Neutral";
+    if (diffPct >= 0.15 || Math.abs(diff) >= 25) {
+        if (diff > 0) {
+            bias = "Bearish Pull";
+            score = Math.max(15, Math.round(50 - Math.min(35, Math.max(5, diffPct * 25))));
+        } else {
+            bias = "Bullish Pull";
+            score = Math.min(85, Math.round(50 + Math.min(35, Math.max(5, diffPct * 25))));
+        }
+    }
     
-    const aiInsight = `Spot is ${Math.abs(diff).toFixed(1)} (${diffPct.toFixed(2)}%) away from Max Pain (${maxPainStrike}). Expect gravitational pull towards this level by expiry.`;
+    const aiInsight = `Spot is ${Math.abs(diff).toFixed(1)} (${diffPct.toFixed(2)}%) away from Max Pain (${maxPainStrike}). Gravitational magnet effect is ${bias}.`;
     
     return { currentValue: maxPainStrike, distance: diffPct, diff, score, bias, confidence: "90%", aiInsight };
+}
+
+export function gradeExpectedMove(chainData, spotPrice, atmIv = 15, dte = 5) {
+    if (!spotPrice || spotPrice <= 0) return null;
+    
+    let expectedMove = 0;
+    let method = "ATM IV";
+    
+    // Attempt 1: From ATM Straddle in chainData
+    if (Array.isArray(chainData) && chainData.length > 0) {
+        let closestStrike = -1;
+        let minDiff = Infinity;
+        chainData.forEach(row => {
+            if (row.strike != null) {
+                const diff = Math.abs(row.strike - spotPrice);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestStrike = row.strike;
+                }
+            }
+        });
+        const atmRow = chainData.find(r => r.strike === closestStrike);
+        const callLtp = Number(atmRow?.call?.ltp) || 0;
+        const putLtp = Number(atmRow?.put?.ltp) || 0;
+        const straddlePrice = callLtp + putLtp;
+        if (straddlePrice > 0) {
+            expectedMove = straddlePrice * 0.85;
+            method = "ATM Straddle";
+        }
+    }
+    
+    // Attempt 2: 1-sigma Black-Scholes lognormal model
+    if (expectedMove <= 0 && atmIv > 0) {
+        const safeDte = Math.max(0.5, dte || 5);
+        const T = safeDte / 365.0;
+        expectedMove = spotPrice * (atmIv / 100.0) * Math.sqrt(T);
+        method = "Black-Scholes 1σ";
+    }
+
+    if (expectedMove <= 0) return null;
+
+    const upperBand = spotPrice + expectedMove;
+    const lowerBand = spotPrice - expectedMove;
+    const emPct = (expectedMove / spotPrice) * 100;
+
+    let score = 55;
+    let bias = "Range-Bound";
+    if (emPct > 0) {
+        score = 60;
+        bias = "Contained Range";
+    }
+
+    const aiInsight = `Implied ${method} Expected Move is ±₹${expectedMove.toFixed(1)} (${emPct.toFixed(2)}%), establishing an expiry range of ₹${lowerBand.toFixed(0)} – ₹${upperBand.toFixed(0)}. Positioning is ${bias}.`;
+
+    return {
+        currentValue: expectedMove,
+        upperBand,
+        lowerBand,
+        emPct,
+        method,
+        score,
+        bias,
+        confidence: "92%",
+        aiInsight
+    };
+}
+
+export function gradeGEX(chainData, spotPrice) {
+    if (!Array.isArray(chainData) || chainData.length === 0 || !spotPrice || spotPrice <= 0) return null;
+
+    let totalGexRupees = 0;
+    let totalCallGex = 0;
+    let totalPutGex = 0;
+
+    chainData.forEach(row => {
+        const S = spotPrice;
+        const callOi = Number(row.call?.oi) || 0;
+        const putOi = Number(row.put?.oi) || 0;
+        
+        let gamma = Number(row.call?.gamma || row.gamma) || 0;
+        if (gamma <= 0 && row.strike) {
+            const moneyness = Math.log(S / row.strike);
+            const sigma = 0.15 * Math.sqrt(5 / 365);
+            gamma = (1 / (S * sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow(moneyness / sigma, 2));
+        }
+
+        if (gamma > 0) {
+            const cGex = callOi * gamma * S * 100;
+            const pGex = putOi * gamma * S * 100;
+            totalCallGex += cGex;
+            totalPutGex += pGex;
+            totalGexRupees += (cGex - pGex);
+        }
+    });
+
+    const netGexCr = totalGexRupees / 10000000;
+    let score = 50;
+    let bias = "Neutral Gamma";
+    let regime = "Neutral Flip Zone";
+
+    if (netGexCr > 0.5) {
+        score = Math.min(85, Math.round(55 + Math.min(30, netGexCr * 5)));
+        bias = "Long Gamma (Volatility Suppressed)";
+        regime = "Positive Gamma";
+    } else if (netGexCr < -0.5) {
+        score = Math.max(15, Math.round(45 - Math.min(30, Math.abs(netGexCr) * 5)));
+        bias = "Short Gamma (Volatility Accelerated)";
+        regime = "Negative Gamma";
+    }
+
+    const aiInsight = `Net Dealer Gamma Exposure is ${netGexCr >= 0 ? '+' : ''}${netGexCr.toFixed(2)} Cr per 1% move. Market is operating in a ${regime} regime (${bias}).`;
+
+    return {
+        currentValue: netGexCr,
+        netGexCr,
+        totalCallGexCr: totalCallGex / 10000000,
+        totalPutGexCr: totalPutGex / 10000000,
+        regime,
+        score,
+        bias,
+        confidence: "90%",
+        aiInsight
+    };
 }
 
 // ==========================================
@@ -469,28 +631,33 @@ export function computeOptionsInstitutionalComposite(chainData, spotPrice, instr
     const callGamma = atmRow?.call?.gamma || 0;
     const callTheta = atmRow?.call?.theta || 0;
     const callVega  = atmRow?.call?.vega  || 0;
-    const iv = atmRow?.iv || atmRow?.call?.iv || 15;
+    const iv        = atmRow?.iv || 15;
+    const callLtp   = atmRow?.call?.ltp || 0;
 
-    const c_call_oi  = gradeTotalCallOI(chainData, instrumentKey, historicalSnapshots);
-    const c_put_oi   = gradeTotalPutOI(chainData, instrumentKey, historicalSnapshots);
+    const estimatedIvRank = Math.min(100, Math.max(0, Math.round(((iv - 11.0) / (25.0 - 11.0)) * 100)));
+
     const c_oi_chg   = gradeOIChange(chainData, instrumentKey, historicalSnapshots);
+    const c_total_call_oi = gradeTotalCallOI(chainData, instrumentKey, historicalSnapshots);
+    const c_total_put_oi  = gradeTotalPutOI(chainData, instrumentKey, historicalSnapshots);
     const c_pcr_oi   = scorePcrOi(pcrOiValue);
     const c_pcr_vol  = scorePcrVolume(pcrVolValue);
     const c_delta    = scoreDelta(callDelta);
     const c_gamma    = scoreGamma(callGamma, spotPrice);
-    const c_theta    = scoreTheta(callTheta, spotPrice);
-    const c_vega     = scoreVega(callVega, iv, spotPrice);
+    const c_theta    = scoreTheta(callTheta, spotPrice, callLtp);
+    const c_vega     = scoreVega(callVega, iv, spotPrice, callLtp);
     const c_atm_iv   = gradeAtmIv(iv);
-    const c_iv_rank  = gradeIvRank(50);
-    const c_iv_pct   = gradeIvPercentile(50);
+    const c_iv_rank  = gradeIvRank(estimatedIvRank);
+    const c_iv_pct   = gradeIvPercentile(estimatedIvRank);
     const c_max_pain = gradeMaxPain(chainData, spotPrice);
+    const c_expected_move = gradeExpectedMove(chainData, spotPrice, iv);
+    const c_gex      = gradeGEX(chainData, spotPrice);
 
     const safeScore = (obj) => (obj && obj.score != null && !isNaN(obj.score)) ? Math.round(obj.score) : null;
 
     const cardScores = {
-        total_call_oi: safeScore(c_call_oi),
-        total_put_oi: safeScore(c_put_oi),
         oi_change: safeScore(c_oi_chg),
+        total_call_oi: safeScore(c_total_call_oi),
+        total_put_oi: safeScore(c_total_put_oi),
         pcr_oi: safeScore(c_pcr_oi),
         pcr_volume: safeScore(c_pcr_vol),
         delta: safeScore(c_delta),
@@ -499,8 +666,9 @@ export function computeOptionsInstitutionalComposite(chainData, spotPrice, instr
         vega: safeScore(c_vega),
         atm_iv: safeScore(c_atm_iv),
         iv_rank: safeScore(c_iv_rank) ?? 50,
-        iv_percentile: safeScore(c_iv_pct) ?? 50,
-        max_pain: safeScore(c_max_pain)
+        max_pain: safeScore(c_max_pain),
+        expected_move: safeScore(c_expected_move),
+        gex: safeScore(c_gex)
     };
 
     const avg = (...keys) => {
@@ -510,11 +678,11 @@ export function computeOptionsInstitutionalComposite(chainData, spotPrice, instr
     };
 
     const sections = [
-        { id: 'Open Interest',      label: 'Open Interest',      shortLabel: 'OI',  score: avg('total_call_oi', 'total_put_oi', 'oi_change'), weight: 0.25 },
-        { id: 'Put-Call Ratio',     label: 'Put-Call Ratio',     shortLabel: 'PCR', score: avg('pcr_oi', 'pcr_volume'),                       weight: 0.20 },
-        { id: 'Greeks',             label: 'Greeks',             shortLabel: 'GRK', score: avg('delta', 'gamma', 'theta', 'vega'),             weight: 0.20 },
-        { id: 'Market Positioning', label: 'Market Positioning', shortLabel: 'POS', score: avg('max_pain'),                                   weight: 0.20 },
-        { id: 'Volatility',         label: 'Volatility',         shortLabel: 'VOL', score: avg('atm_iv', 'iv_rank', 'iv_percentile'),          weight: 0.15 },
+        { id: 'Open Interest',      label: 'Open Interest',      shortLabel: 'OI',  score: avg('oi_change', 'total_call_oi', 'total_put_oi'), weight: 0.20 },
+        { id: 'Put-Call Ratio',     label: 'Put-Call Ratio',     shortLabel: 'PCR', score: avg('pcr_oi', 'pcr_volume'), weight: 0.30 },
+        { id: 'Greeks',             label: 'Greeks',             shortLabel: 'GRK', score: avg('delta', 'gamma', 'theta', 'vega'), weight: 0.20 },
+        { id: 'Volatility',         label: 'Volatility',         shortLabel: 'VOL', score: avg('atm_iv', 'iv_rank'), weight: 0.20 },
+        { id: 'Market Positioning', label: 'Market Positioning', shortLabel: 'POS', score: avg('max_pain', 'expected_move', 'gex'), weight: 0.10 },
     ];
 
     const validSections = sections.filter(s => s.score !== null);

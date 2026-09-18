@@ -18,22 +18,18 @@ export function computeFundamentalsForAI(rawData, instrumentKey, instrumentType 
     const evResult = scorers.scoreEVEbitda(ext.currentEVEbitda, ext.sectorEVEbitda);
     const divResult = scorers.scoreDividendYield(ext.currentDivYield, ext.bondYield);
     const epsResult = scorers.scoreEPSGrowth(ext.epsCAGR, ext.latestYoY, ext.positiveYears, ext.totalPeriods);
-    const deResult = scorers.scoreDebtToEquity(ext.currentDE, ext.sectorDE);
+    const deResult = scorers.scoreDebtToEquity(ext.currentDE, ext.sectorDE, ext.sector);
     const roeResult = scorers.scoreROE(ext.currentROE, ext.sectorROE);
     const roceResult = scorers.scoreROCE(ext.currentROCE, ext.sectorROCE);
-    const roaResult = scorers.scoreROA(ext.currentROA, ext.sectorROA);
+    const roaResult = scorers.scoreROA(ext.currentROA, ext.sectorROA, ext.sector);
     const netMarginResult = scorers.scoreNetMargin(ext.currentNetMargin, ext.sectorNetMargin);
     const opMarginResult = scorers.scoreOperatingMargin(ext.currentOpMargin, ext.sectorOpMargin);
-    const crResult = scorers.scoreCurrentRatio(ext.currentRatio, ext.sectorCurrentRatio);
+    const crResult = scorers.scoreCurrentRatio(ext.currentRatio, ext.sector);
     const icResult = scorers.scoreInterestCoverage(ext.interestCoverage, ext.sectorCoverage);
     
     let fpeResult = { score: null, bias: 'Neutral' };
     if (ext.forwardPE) {
         fpeResult = scorers.scoreForwardPE(ext.forwardPE, ext.currentPE);
-        // Guard against anomalous distortion dragging harmonic mean below 25
-        if (fpeResult.score !== null && fpeResult.score < 25) {
-            fpeResult.score = 35;
-        }
     }
 
     const eyResult = scorers.scoreEarningsYield(ext.currentEarningsYield, null, ext.bondYield);

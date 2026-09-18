@@ -656,6 +656,7 @@ export const initLocalDb = () => {
             finished_at                 DATETIME,
             promoted_at                 DATETIME,
             retired_at                  DATETIME,
+            heartbeat_at                DATETIME,
             UNIQUE(model_id, instrument, timeframe, version_num)
         );
         CREATE INDEX IF NOT EXISTS idx_finetune_versions_lookup ON finetune_versions(model_id, instrument, timeframe, status);
@@ -702,6 +703,20 @@ export const initLocalDb = () => {
             val_loss            REAL,
             created_at          DATETIME DEFAULT CURRENT_TIMESTAMP
         );
+
+        -- 44. Fine-Tune Training Log (Real-time epoch-by-epoch progress)
+        CREATE TABLE IF NOT EXISTS finetune_training_log (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            version_id      INTEGER NOT NULL REFERENCES finetune_versions(id) ON DELETE CASCADE,
+            epoch           INTEGER NOT NULL,
+            train_loss      REAL,
+            val_pinball     REAL,
+            learning_rate   REAL,
+            grad_norm       REAL,
+            elapsed_sec     REAL,
+            logged_at       DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_training_log_version ON finetune_training_log(version_id, epoch);
     `);
 
 
@@ -732,6 +747,27 @@ export const initLocalDb = () => {
 
     try {
         db.exec(`ALTER TABLE model_weights ADD COLUMN probation_started_at DATETIME;`);
+    } catch (e) {}
+
+    // Multi-tenant user_id support for journal notes and overrides
+    try {
+        db.exec(`ALTER TABLE journal_notes ADD COLUMN user_id TEXT DEFAULT 'default_user';`);
+    } catch (e) {}
+
+    try {
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_journal_notes_user_date ON journal_notes(user_id, date);`);
+    } catch (e) {}
+
+    try {
+        db.exec(`ALTER TABLE user_overrides ADD COLUMN user_id TEXT DEFAULT 'default_user';`);
+    } catch (e) {}
+
+    try {
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_user_overrides_lookup ON user_overrides(user_id, module_key, instrument_key, field_key);`);
+    } catch (e) {}
+
+    try {
+        db.exec(`ALTER TABLE finetune_versions ADD COLUMN heartbeat_at DATETIME;`);
     } catch (e) {}
 
     console.log("✅ SQLite Tables Initialized");

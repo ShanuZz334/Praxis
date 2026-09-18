@@ -36,7 +36,7 @@ export function useDataFreshness(liveData, manualOverrides, manualOverrideTimes,
 
         return `Offline Sync`;
 
-    }, [manualOverrides, manualOverrideTimes, isMarketOpen, fetchFrequency, formatTime]);
+    }, [liveData, manualOverrides, manualOverrideTimes, isMarketOpen, fetchFrequency, formatTime]);
 
     return resolveTime;
 }

@@ -1,18 +1,24 @@
 # Praxis Dashboard - Master Card Inventory
 
-|  # | Card | Page | Data Source | Applicability |
+> **Inventory Status**: Synchronized with active production codebase across all 5 dashboard modules. Includes active Keltner Channel (Volatility), Corporate Actions (Company Fundamentals), Dow Jones Futures & Ethereum (Foreign / Global Macro), and multi-metric Open Interest options composition. Pruned deprecated duplicates (SMA 50, SMA 200, Williams %R, TRIN, McClellan Osc, IV Percentile, CAC 40, Euro Stoxx 50, Wheat, Aluminum) remain archived.
+
+---
+
+## 1. Fundamentals — Index & Macro (32 Indicators)
+
+| # | Card | Page | Data Source | Applicability |
 | -: | --- | --- | --- | --- |
-|  1 | Nifty P/E | Fundamentals | Manual | Index Only |
-|  2 | Nifty P/B | Fundamentals | Manual | Index Only |
-|  3 | M-Cap to GDP | Fundamentals | Manual | Index Only |
-|  4 | Earnings Yield | Fundamentals | Manual (Index) / Auto (Company) | Both |
-|  5 | Dividend Yield | Fundamentals | Manual | Both |
-|  6 | EPS YoY | Fundamentals | Manual | Index Only |
-|  7 | Forward EPS | Fundamentals | Manual | Index Only |
-|  8 | Earnings Revision | Fundamentals | Manual | Index Only |
-|  9 | Sector Earnings | Fundamentals | Manual | Index Only |
+| 1 | Nifty P/E | Fundamentals | Manual | Index Only |
+| 2 | Nifty P/B | Fundamentals | Manual | Index Only |
+| 3 | M-Cap to GDP | Fundamentals | Manual | Index Only |
+| 4 | Earnings Yield | Fundamentals | Manual (Index) / Auto (Company) | Both |
+| 5 | Dividend Yield | Fundamentals | Manual | Both |
+| 6 | EPS YoY | Fundamentals | Manual | Index Only |
+| 7 | Forward EPS | Fundamentals | Manual | Index Only |
+| 8 | Earnings Revision | Fundamentals | Manual | Index Only |
+| 9 | Sector Earnings | Fundamentals | Manual | Index Only |
 | 10 | Profit Margin | Fundamentals | Manual | Index Only |
-| 11 | GDP Growth | Fundamentals | Manual | Both |
+| 11 | GDP Growth | Fundamentals | Manual | Index Only |
 | 12 | CPI Inflation | Fundamentals | Manual | Index Only |
 | 13 | Repo Rate | Fundamentals | Manual | Index Only |
 | 14 | Policy Stance | Fundamentals | Manual | Index Only |
@@ -23,127 +29,172 @@
 | 19 | FII Trend | Fundamentals | Auto (Live SQLite) / Manual | Index Only |
 | 20 | Advance / Decline | Fundamentals | Auto (Live NSE) / Manual | Index Only |
 | 21 | Sector Valuation | Fundamentals | Manual | Index Only |
-| 24 | Sector Growth | Fundamentals | Manual | Index Only |
-| 25 | Sector Concentration | Fundamentals | Manual | Index Only |
-| 26 | Cyclical / Defensive | Fundamentals | Manual | Index Only |
-| 27 | MACD Momentum | Fundamentals | Manual | Index Only |
-| 28 | 200 DMA Stretch | Fundamentals | Manual | Index Only |
-| 29 | Credit Growth | Fundamentals | Auto (FRED/RBI) / Manual | Index Only |
-| 30 | Corporate Debt | Fundamentals | Auto (FRED/RBI) / Manual | Index Only |
-| 31 | Policy Tailwinds | Fundamentals | Manual | Index Only |
-| 32 | India VIX | Fundamentals | Auto | Index Only |
-| 33 | Crude Oil | Fundamentals | Manual | Index Only |
-| 34 | Global Liquidity | Fundamentals | Manual | Index Only |
+| 22 | Sector Growth | Fundamentals | Manual | Index Only |
+| 23 | Sector Concentration | Fundamentals | Manual | Index Only |
+| 24 | Cyclical / Defensive | Fundamentals | Manual | Index Only |
+| 25 | MACD Momentum | Fundamentals | Manual | Index Only |
+| 26 | 200 DMA Stretch | Fundamentals | Manual | Index Only |
+| 27 | Credit Growth | Fundamentals | Auto (FRED/RBI) / Manual | Index Only |
+| 28 | Corporate Debt | Fundamentals | Auto (FRED/RBI) / Manual | Index Only |
+| 29 | Policy Tailwinds | Fundamentals | Manual | Index Only |
+| 30 | India VIX | Fundamentals | Auto | Index Only |
+| 31 | Crude Oil | Fundamentals | Manual | Index Only |
+| 32 | Global Liquidity | Fundamentals | Manual | Index Only |
 
-| 38 | EMA 20 | Technical Analysis | Auto | Both |
-| 39 | EMA 50 | Technical Analysis | Auto | Both |
-| 40 | EMA 200 | Technical Analysis | Auto | Both |
-| 41 | SMA 50 | Technical Analysis | Auto | Both |
-| 42 | SMA 200 | Technical Analysis | Auto | Both |
-| 43 | ADX | Technical Analysis | Auto | Both |
-| 44 | Supertrend | Technical Analysis | Auto | Both |
-| 45 | RSI | Technical Analysis | Auto | Both |
-| 46 | MACD | Technical Analysis | Auto | Both |
-| 47 | Stochastic RSI | Technical Analysis | Auto | Both |
-| 48 | Williams %R | Technical Analysis | Auto | Both |
-| 49 | Bollinger Bands | Technical Analysis | Auto | Both |
-| 50 | Average True Range (ATR) | Technical Analysis | Auto | Both |
-| 51 | Keltner Channel | Technical Analysis | Auto | Both |
-| 52 | Advance / Decline Line | Technical Analysis | Manual | Index Only |
-| 53 | New High / New Low | Technical Analysis | Manual | Index Only |
-| 54 | Market Breadth Ratio | Technical Analysis | Manual | Index Only |
-| 55 | TRIN (Arms Index) | Technical Analysis | Manual | Index Only |
-| 56 | McClellan Oscillator | Technical Analysis | Manual | Index Only |
-| 57 | Support Level | Technical Analysis | Auto | Both |
-| 58 | Resistance Level | Technical Analysis | Auto | Both |
-| 59 | Trendline | Technical Analysis | Manual | Both |
-| 60 | Pivot Points | Technical Analysis | Auto | Both |
-| 61 | Fibonacci Retracement | Technical Analysis | Auto | Both |
-| 62 | Total Call Open Interest | Options Analysis | Auto | Both |
-| 63 | Total Put Open Interest | Options Analysis | Auto | Both |
-| 64 | Open Interest Change | Options Analysis | Auto | Both |
-| 65 | Put-Call Ratio (OI) | Options Analysis | Auto | Both |
-| 66 | Put-Call Ratio (Volume) | Options Analysis | Auto | Both |
-| 67 | Delta | Options Analysis | Auto | Both |
-| 68 | Gamma | Options Analysis | Auto | Both |
-| 69 | Theta | Options Analysis | Auto | Both |
-| 70 | Vega | Options Analysis | Auto | Both |
-| 71 | At-the-Money Implied Volatility | Options Analysis | Auto | Both |
-| 72 | IV Rank | Options Analysis | Manual | Both |
-| 73 | IV Percentile | Options Analysis | Manual | Both |
-| 74 | Max Pain | Options Analysis | Auto | Both |
-| 75 | US Dollar Index | Foreign Markets | Manual | Both |
-| 76 | USD/INR Exchange Rate | Foreign Markets | Auto | Both |
-| 77 | EUR/USD | Foreign Markets | Manual | Both |
-| 78 | USD/JPY | Foreign Markets | Manual | Both |
-| 79 | Nikkei 225 | Foreign Markets | Manual | Both |
-| 80 | FTSE 100 | Foreign Markets | Manual | Both |
-| 81 | DAX 40 | Foreign Markets | Manual | Both |
-| 82 | Hang Seng | Foreign Markets | Manual | Both |
-| 83 | Shanghai Composite | Foreign Markets | Manual | Both |
-| 84 | CAC 40 | Foreign Markets | Manual | Both |
-| 85 | Euro Stoxx 50 | Foreign Markets | Manual | Both |
-| 86 | Brent Crude Oil | Foreign Markets | Auto | Both |
-| 87 | Gold | Foreign Markets | Manual | Both |
-| 88 | Silver | Foreign Markets | Manual | Both |
-| 89 | Copper | Foreign Markets | Manual | Both |
-| 90 | Natural Gas | Foreign Markets | Manual | Both |
-| 91 | Wheat | Foreign Markets | Manual | Both |
-| 92 | Aluminum | Foreign Markets | Manual | Both |
-| 93 | US 10-Year Treasury Yield | Foreign Markets | Manual | Both |
-| 94 | MOVE Index | Foreign Markets | Manual | Both |
-| 95 | S&P 500 Futures | Foreign Markets | Manual | Both |
-| 96 | Nasdaq Futures | Foreign Markets | Manual | Both |
-| 97 | Dow Jones Futures | Foreign Markets | Manual | Both |
-| 98 | CBOE Volatility Index (VIX) | Foreign Markets | Manual | Both |
-| 99 | Bitcoin (BTC/USD) | Foreign Markets | Manual | Both |
-| 100 | Forward P/E | Fundamentals | Auto | Company Only |
-| 101 | EV/EBITDA | Fundamentals | Auto | Company Only |
-| 102 | P/E Ratio | Fundamentals | Auto | Company Only |
-| 103 | P/B Ratio | Fundamentals | Auto | Company Only |
-| 104 | Relative Valuation | Fundamentals | Auto | Company Only |
-| 105 | Revenue Growth | Fundamentals | Auto | Company Only |
-| 106 | EPS Growth | Fundamentals | Auto | Company Only |
-| 107 | Profit Growth | Fundamentals | Auto | Company Only |
-| 108 | FII / DII Flow | Fundamentals | Auto | Company Only |
-| 109 | Earnings Trend | Fundamentals | Auto | Company Only |
-| 110 | ROA | Fundamentals | Auto | Company Only |
-| 111 | ROE | Fundamentals | Auto | Company Only |
-| 112 | Operating Margin | Fundamentals | Auto | Company Only |
-| 113 | ROCE | Fundamentals | Auto | Company Only |
-| 114 | Net Margin | Fundamentals | Manual | Company Only |
-| 115 | Free Cash Flow | Fundamentals | Auto | Company Only |
+---
 
-| 51 | ProDesk Action Signal | Options | Auto (Engine) | Both |
-| 52 | Options Chain Table | Options | Upstox | Both |
-| 53 | Options History Chart | Options | Auto | Both |
-| 54 | ATM IV | Options | Upstox | Both |
-| 55 | IV Rank | Options | Auto / Manual | Both |
-| 56 | IV Percentile | Options | Auto / Manual | Both |
-| 57 | Total Call OI | Options | Upstox | Both |
-| 58 | Total Put OI | Options | Upstox | Both |
-| 59 | OI Change | Options | Upstox | Both |
-| 60 | Delta | Options | Auto (Engine) | Both |
-| 61 | Gamma | Options | Auto (Engine) | Both |
-| 62 | Theta | Options | Auto (Engine) | Both |
-| 63 | Vega | Options | Auto (Engine) | Both |
-| 64 | PCR OI | Options | Auto (Engine) | Both |
-| 65 | PCR Volume | Options | Auto (Engine) | Both |
-| 66 | Max Pain | Options | Auto (Engine) | Both |
-| 134 | 7-Candle AI Predictor Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
-| 135 | Pattern Recognition Engine Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
-| 136 | Composite Pattern Score Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
-| 137 | PNCO Confluence Oscillator Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
-| 138 | AAVB Adaptive Volatility Bands Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
-| 139 | IFDI Institutional Flow Divergence Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
-| 140 | Tri-Factor Head-to-Head Confluence Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
-| 141 | Custom Multi-Factor Strategy Combo Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
-| 142 | Backtest Interactive Replay Chart | Backtesting Workshop | Lightweight Charts v5 | Both |
-| 143 | Backtest Live Performance Scorecard & Event Log | Backtesting Workshop | Auto (Engine) | Both |
-| 144 | Backtest Equity Curve & Drawdown Analysis | Backtesting Workshop | Auto (Engine) | Both |
-| 145 | Custom Indicator Lab & Sandboxed Compiler | Backtesting Workshop | Auto (Node.js VM) | Both |
-| 146 | Multi-Factor Strategy Builder & Rule Canvas | Strategy Builder | Auto (Confluence Engine) | Both |
-| 147 | Live Chart Strategy Signals & Arrow Markers | Chart Section | Auto (Confluence Engine) | Both |
-| 148 | Live Chart Custom Plotted Lab Indicators | Chart Section | Auto (Node.js Sandbox) | Both |
-| 149 | Dynamic & Detachable Testable Units Grid | Backtesting Workshop | Dynamic Registry (localStorage) | Both |
-| 150 | AI Foundation Model Auto-Fine-Tuning Studio & Audit History | Backtesting Workshop | Auto (SQLite / PyTorch Subprocess) | Both |
+## 2. Fundamentals — Company (25 Indicators)
+
+| # | Card | Page | Data Source | Applicability |
+| -: | --- | --- | --- | --- |
+| 33 | P/E Ratio | Fundamentals | Auto | Company Only |
+| 34 | Forward P/E | Fundamentals | Auto | Company Only |
+| 35 | P/B Ratio | Fundamentals | Auto | Company Only |
+| 36 | EV/EBITDA | Fundamentals | Auto | Company Only |
+| 37 | Relative Valuation | Fundamentals | Auto | Company Only |
+| 38 | Revenue Growth | Fundamentals | Auto | Company Only |
+| 39 | EPS Growth | Fundamentals | Auto | Company Only |
+| 40 | Profit Growth | Fundamentals | Auto | Company Only |
+| 41 | ROE | Fundamentals | Auto | Company Only |
+| 42 | ROCE | Fundamentals | Auto | Company Only |
+| 43 | ROA | Fundamentals | Auto | Company Only |
+| 44 | Net Margin | Fundamentals | Auto | Company Only |
+| 45 | Operating Margin | Fundamentals | Auto | Company Only |
+| 46 | Debt to Equity | Fundamentals | Auto | Company Only |
+| 47 | Free Cash Flow | Fundamentals | Auto | Company Only |
+| 48 | Current Ratio | Fundamentals | Auto | Company Only |
+| 49 | Interest Coverage | Fundamentals | Auto | Company Only |
+| 50 | Promoter Holding | Fundamentals | Auto | Company Only |
+| 51 | Smart Money Flow | Fundamentals | Auto | Company Only |
+| 52 | Cash Conversion Cycle | Fundamentals | Auto (Yahoo) | Company Only |
+| 53 | Analyst Consensus | Fundamentals | Auto (Yahoo) | Company Only |
+| 54 | Shareholding Trend | Fundamentals | Auto (Screener.in 12Q) | Company Only |
+| 55 | Sector Peer Multiples | Fundamentals | Auto (Screener.in Peers) | Company Only |
+| 56 | Corporate Actions | Fundamentals | Auto | Company Only |
+| 57 | 10Y Financial Statements | Fundamentals | Auto (Screener.in 10Y) | Company Only |
+
+---
+
+## 3. Technical Analysis (23 Cards)
+
+| # | Card | Page | Data Source | Applicability |
+| -: | --- | --- | --- | --- |
+| 57 | EMA 20 | Technical Analysis | Auto | Both |
+| 58 | EMA 50 | Technical Analysis | Auto | Both |
+| 59 | EMA 200 | Technical Analysis | Auto | Both |
+| 60 | ADX (14) | Technical Analysis | Auto | Both |
+| 61 | Supertrend | Technical Analysis | Auto | Both |
+| 62 | Beta Correlation | Technical Analysis | Auto | Company Only |
+| 63 | RSI (14) | Technical Analysis | Auto | Both |
+| 64 | MACD | Technical Analysis | Auto | Both |
+| 65 | Stochastic RSI | Technical Analysis | Auto | Both |
+| 66 | Bollinger Bands | Technical Analysis | Auto | Both |
+| 67 | Average True Range (ATR) | Technical Analysis | Auto | Both |
+| 68 | Keltner Channel | Technical Analysis | Auto | Both |
+| 69 | Volume SMA | Technical Analysis | Auto | Company Only |
+| 70 | OBV | Technical Analysis | Auto | Company Only |
+| 71 | CMF | Technical Analysis | Auto | Company Only |
+| 72 | VWAP | Technical Analysis | Auto | Company Only |
+| 73 | Support Level | Technical Analysis | Auto | Both |
+| 74 | Resistance Level | Technical Analysis | Auto | Both |
+| 75 | Trendline | Technical Analysis | Manual | Both |
+| 76 | Pivot Points | Technical Analysis | Auto | Both |
+| 77 | Fibonacci Retracement | Technical Analysis | Auto | Both |
+| 78 | Advance / Decline Line | Technical Analysis | Manual | Index Only |
+| 79 | New High / New Low | Technical Analysis | Manual | Index Only |
+| 80 | Market Breadth Ratio | Technical Analysis | Manual | Index Only |
+
+---
+
+## 4. Options Analysis (14 Cards + 3 Widgets)
+
+| # | Card | Page | Data Source | Applicability |
+| -: | --- | --- | --- | --- |
+| 81 | ProDesk Action Signal | Options | Auto (Engine) | Both |
+| 82 | Options Chain Table | Options | Upstox | Both |
+| 83 | Options History Chart | Options | Auto | Both |
+| 84 | Open Interest Change | Options | Upstox | Both |
+| 85 | Total Call Open Interest | Options | Upstox / Manual | Both |
+| 86 | Total Put Open Interest | Options | Upstox / Manual | Both |
+| 87 | Put-Call Ratio (OI) | Options | Auto (Engine) | Both |
+| 88 | Put-Call Ratio (Volume) | Options | Auto (Engine) | Both |
+| 89 | Delta | Options | Auto (Engine) | Both |
+| 90 | Gamma | Options | Auto (Engine) | Both |
+| 91 | Theta | Options | Auto (Engine) | Both |
+| 92 | Vega | Options | Auto (Engine) | Both |
+| 93 | At-the-Money Implied Volatility | Options | Upstox | Both |
+| 94 | IV Rank | Options | Auto / Manual | Both |
+| 95 | Max Pain | Options | Auto (Engine) | Both |
+| 96 | Expected Move | Options | Auto (Engine) / Manual | Both |
+| 97 | Gamma Exposure (GEX) | Options | Auto (Engine) / Manual | Both |
+
+---
+
+## 5. Foreign / Global Macro (21 Indicators)
+
+| # | Card | Page | Data Source | Applicability |
+| -: | --- | --- | --- | --- |
+| 98 | US Dollar Index (DXY) | Foreign Markets | Yahoo / Manual | Both |
+| 99 | USD/INR Exchange Rate | Foreign Markets | Upstox / Yahoo | Both |
+| 100 | USD/JPY | Foreign Markets | Yahoo / Manual | Both |
+| 101 | S&P 500 Futures | Foreign Markets | Yahoo / Manual | Both |
+| 102 | Nasdaq Futures | Foreign Markets | Yahoo / Manual | Both |
+| 103 | Dow Jones Futures | Foreign Markets | Yahoo / Manual | Both |
+| 104 | Nikkei 225 | Foreign Markets | Yahoo / Manual | Both |
+| 105 | FTSE 100 | Foreign Markets | Yahoo / Manual | Both |
+| 106 | DAX 40 | Foreign Markets | Yahoo / Manual | Both |
+| 107 | Hang Seng | Foreign Markets | Yahoo / Manual | Both |
+| 108 | Shanghai Composite | Foreign Markets | Yahoo / Manual | Both |
+| 109 | Brent Crude Oil | Foreign Markets | Upstox / Yahoo | Both |
+| 110 | Gold | Foreign Markets | Upstox / Yahoo | Both |
+| 111 | Silver | Foreign Markets | Upstox / Yahoo | Both |
+| 112 | Copper | Foreign Markets | Yahoo / Manual | Both |
+| 113 | Natural Gas | Foreign Markets | Yahoo / Manual | Both |
+| 114 | US 10-Year Treasury Yield | Foreign Markets | Yahoo / FRED | Both |
+| 115 | CBOE Volatility Index (VIX) | Foreign Markets | Yahoo / Manual | Both |
+| 116 | MOVE Index | Foreign Markets | Yahoo / Manual | Both |
+| 117 | Bitcoin (BTC/USD) | Foreign Markets | CoinGecko / Yahoo | Both |
+| 118 | Ethereum (ETH/USD) | Foreign Markets | CoinGecko / Yahoo | Both |
+
+---
+
+## 6. Backtesting Workshop & Strategy Builder (18 Components)
+
+| # | Component | Module | Implementation | Applicability |
+| -: | --- | --- | --- | --- |
+| 119 | 7-Candle AI Predictor Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 120 | Pattern Recognition Engine Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 121 | Composite Pattern Score Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 122 | PNCO Confluence Oscillator Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 123 | AAVB Adaptive Volatility Bands Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 124 | IFDI Institutional Flow Divergence Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 125 | Tri-Factor Head-to-Head Confluence Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 126 | Custom Multi-Factor Strategy Combo Backtest | Backtesting Workshop | Auto (Upstox Historical) | Both |
+| 127 | Backtest Interactive Replay Chart | Backtesting Workshop | Lightweight Charts v5 | Both |
+| 128 | Backtest Live Performance Scorecard & Event Log | Backtesting Workshop | Auto (Engine) | Both |
+| 129 | Backtest Equity Curve & Drawdown Analysis | Backtesting Workshop | Auto (Engine) | Both |
+| 130 | Custom Indicator Lab & Sandboxed Compiler | Backtesting Workshop | Auto (Node.js VM) | Both |
+| 131 | Multi-Factor Strategy Builder & Rule Canvas | Strategy Builder | Auto (Confluence Engine) | Both |
+| 132 | Live Chart Strategy Signals & Arrow Markers | Chart Section | Auto (Confluence Engine) | Both |
+| 133 | Live Chart Custom Plotted Lab Indicators | Chart Section | Auto (Node.js Sandbox) | Both |
+| 134 | Dynamic & Detachable Testable Units Grid | Backtesting Workshop | Dynamic Registry (localStorage) | Both |
+| 135 | AI Foundation Model Auto-Fine-Tuning Studio & Audit History | Backtesting Workshop | Auto (SQLite / PyTorch Subprocess) | Both |
+| 136 | Future Vision Predictive Models & Multi-Model Ensemble Mixer | PAI Settings | Auto (Hybrid Multi-Model Gateway) | Both |
+
+---
+
+## 7. Events & Macro Intelligence (10 Cards & Widgets)
+
+| # | Component / Card | Page | Data Source | Applicability |
+| -: | --- | --- | --- | --- |
+| 137 | Event Institutional Gauge & Regime Meter | Events | Auto (PES-7 Engine) | Both |
+| 138 | Geopolitical Shock Card | Events | Auto / Manual | Both |
+| 139 | Macro Economic Pulse Card | Events | Auto / Manual | Both |
+| 140 | Monetary Policy Stance Card | Events | Auto / Manual | Both |
+| 141 | Corporate & Earnings Catalysts Card | Events | Auto / Manual | Both |
+| 142 | Regulatory & Legal Actions Card | Events | Auto / Manual | Both |
+| 143 | Global Commodity Shocks Card | Events | Auto / Manual | Both |
+| 144 | Instrument Focus Mode Radar & Beta Transmission | Events | Auto (Asset Beta Matrix) | Both |
+| 145 | Institutional News Wire & Deduplicated Stream | Events | Auto (Jaccard Filter / RSS) | Both |
+| 146 | PES-7 Factor Decomposition Inspector | Events | Auto (PES-7 Math Engine) | Both |
+

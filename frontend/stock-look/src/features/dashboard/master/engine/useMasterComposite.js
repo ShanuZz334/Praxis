@@ -78,7 +78,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
     const [techState, setTechState] = useState(null);
 
     // Spot Price for options
-    const baseSpotPrice = livePrices?.[selectedInstrument]?.ltp || 24000;
+    const baseSpotPrice = livePrices?.[selectedInstrument]?.ltp || (isIndex ? (selectedInstrument?.includes('Bank') ? 51000 : 24000) : 2500);
 
     
     // Engine Refs
@@ -107,7 +107,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
     }, []);
 
     const { overrides: techOverrides } = useManualOverrides('technical', selectedInstrument || 'NSE_INDEX|Nifty 50', {});
-    const { overrides: fundOverrides } = useManualOverrides('fundamental', selectedInstrument || 'NSE_INDEX|Nifty 50', {});
+    const { overrides: fundOverrides } = useManualOverrides('fundamentals', selectedInstrument || 'NSE_INDEX|Nifty 50', {});
 
     // ── Backend Cron → Master Dashboard Live Bridge ────────────────────────────
     // When the backend cron computes new module scores (EVT, TECH), it broadcasts
@@ -195,21 +195,12 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                     return next;
                 }
 
-                // Fallback to localStorage if no socket detail
+                // Fallback to localStorage if no socket detail (strictly only TECH and EVENTS — FUND/OPT/GLOB must come from DB poll)
                 if (cached.technical?.score != null && !cached.technical.stale)
                     next.technical = { ...prev.technical, composite_score: cached.technical.score, regime_json: cached.technical.regime, updated_at: nowIso };
                 
                 if (cached.events?.score != null && !cached.events.stale)
                     next.events = { ...prev.events, composite_score: cached.events.score, updated_at: nowIso };
-                
-                if (cached.fundamental?.score != null && !cached.fundamental.stale)
-                    next.fundamental = { ...prev.fundamental, composite_score: cached.fundamental.score, regime_json: cached.fundamental.regime, updated_at: nowIso };
-                
-                if (cached.options?.score != null && !cached.options.stale)
-                    next.options = { ...prev.options, composite_score: cached.options.score, updated_at: nowIso };
-                
-                if (cached.global?.score != null && !cached.global.stale)
-                    next.global = { ...prev.global, composite_score: cached.global.score, regime_json: cached.global.regime, updated_at: nowIso };
                 
                 return next;
             });
@@ -393,14 +384,23 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             }
         };
 
-        fetchMasterData();
-        
-        // Master Dashboard doesn't need 1s polling, 10s is sufficient for high-level composite
-        const intervalId = setInterval(fetchMasterData, 10000);
+        let timeoutId;
+        const scheduleNext = () => {
+            if (!isMounted) return;
+            timeoutId = setTimeout(async () => {
+                if (!isMounted) return;
+                await fetchMasterData();
+                scheduleNext();
+            }, 10000);
+        };
+
+        fetchMasterData().finally(() => {
+            scheduleNext();
+        });
 
         return () => {
             isMounted = false;
-            clearInterval(intervalId);
+            if (timeoutId) clearTimeout(timeoutId);
         };
     }, [selectedInstrument, selectedExpiry, isIndex]);
 
@@ -458,7 +458,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             usd_inr:        livePrices?.['GLOBAL_INDICATOR|USDINR']?.ltp  || v('usd_inr'),
             crude:          livePrices?.['GLOBAL_INDICATOR|BZUSD']?.ltp   || v('crude'),
             gold:           livePrices?.['GLOBAL_INDICATOR|GOLD']?.ltp    || v('gold'),
-            silver:         livePrices?.['GLOBAL_INDICATOR|SILV']?.ltp    || v('silver'),
+            silver:         livePrices?.['GLOBAL_INDICATOR|SILVER']?.ltp  || livePrices?.['GLOBAL_INDICATOR|SILV']?.ltp || v('silver'),
             us_10y_yield:   livePrices?.['GLOBAL_INDICATOR|US10Y']?.ltp   || v('us_10y_yield'),
             sp_futures:     livePrices?.['GLOBAL_INDICATOR|ES1']?.ltp     || v('sp_futures'),
             nasdaq_futures: livePrices?.['GLOBAL_INDICATOR|NQ1']?.ltp     || v('nasdaq_futures'),
@@ -496,6 +496,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
     }, [extraData.marketNews, extraData.tradingMode]);
 
     const prevStableScoresRef = useRef(null);
+    const prevRegimeRef = useRef(null);
 
     // Final Aggregation
     const masterScores = useMemo(() => {
@@ -505,8 +506,8 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             return prevStableScoresRef.current;
         }
 
-        // Guard helper: treat 0 and null as absent — both mean "no real data yet"
-        const validScore = (v) => (v != null && v > 0) ? v : null;
+        // MD-19 Fix: Treat 0 as valid score (crash scenarios), exclude null/undefined/NaN
+        const validScore = (v) => (v !== null && v !== undefined && !isNaN(Number(v)) && Number(v) >= 0) ? Number(v) : null;
 
         const getCardCount = (dbItem) => {
             if (!dbItem) return 0;
@@ -516,63 +517,56 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             try { return Object.keys(JSON.parse(c)).length; } catch { return 0; }
         };
 
-        // Time-aware freshness check: if DB is older than maxAgeMinutes, prefer LIVE engine computation
+        // MD-16 Fix: unparseable timestamp returns false (not assumed fresh)
         const isFresh = (dbItem, maxAgeMinutes = 60) => {
             if (!dbItem) return false;
-            if (!dbItem.updated_at) return (dbItem.composite_score != null && dbItem.composite_score > 0);
+            if (!dbItem.updated_at) return (dbItem.composite_score !== null && dbItem.composite_score !== undefined && !isNaN(dbItem.composite_score) && dbItem.composite_score >= 0);
             let dateStr = String(dbItem.updated_at);
-            // Handle SQLite CURRENT_TIMESTAMP (YYYY-MM-DD HH:MM:SS) vs ISO strings
             if (!dateStr.includes('T') && !dateStr.includes('Z')) dateStr = dateStr.replace(' ', 'T') + 'Z';
             const dbDate = new Date(dateStr);
-            if (isNaN(dbDate.getTime())) return (dbItem.composite_score != null && dbItem.composite_score > 0);
+            if (isNaN(dbDate.getTime())) return false;
             return ((Date.now() - dbDate.getTime()) / 60000) < maxAgeMinutes;
         };
 
-        const getBestScore = (dbItem, engineScore, moduleType = 'general') => {
+        // MD-14, MD-15, MD-20, MD-21: Audit provenance and prioritize fresh live computation
+        const getProvenance = (dbItem, engineScore, moduleType = 'general') => {
             const dbScore = validScore(dbItem?.composite_score);
             const liveScore = validScore(engineScore);
+            // MD-14 Fix: Options data staleness threshold tightened to 10 minutes
+            const maxAge = moduleType === 'fundamental' ? 1440 : moduleType === 'options' ? 10 : 60;
 
-            // Fundamentals: financial statement data is valid across days/weeks.
-            // If SQLite has a high-coverage snapshot (>= 20 cards) within 24h, DB is authoritative.
-            if (moduleType === 'fundamental' && dbScore && getCardCount(dbItem) >= 20 && isFresh(dbItem, 1440)) {
-                return dbScore;
+            let dateStr = dbItem?.updated_at ? String(dbItem.updated_at) : null;
+            if (dateStr && !dateStr.includes('T') && !dateStr.includes('Z')) dateStr = dateStr.replace(' ', 'T') + 'Z';
+            const dbDate = dateStr ? new Date(dateStr) : null;
+            const ageMinutes = (dbDate && !isNaN(dbDate.getTime())) ? Math.round((Date.now() - dbDate.getTime()) / 60000) : null;
+
+            // MD-20 & MD-21 Fix: Fresh live engine computation takes precedence over day-old DB cache
+            if (liveScore !== null) {
+                return { score: liveScore, source: 'live', ageMinutes: 0 };
             }
-
-            // 1. If DB is fresh and valid, use it (it is the authoritative score from individual pages or cron)
-            if (isFresh(dbItem, moduleType === 'fundamental' ? 1440 : 60) && dbScore) return dbScore;
-            // 2. Otherwise, if we have a live computation, use it (better to be slightly off than ancient)
-            if (liveScore) return liveScore;
-            // 3. Fallback to stale DB score if nothing else exists
-            return dbScore ?? null;
+            if (isFresh(dbItem, maxAge) && dbScore !== null) {
+                return { score: dbScore, source: 'db_fresh', ageMinutes: ageMinutes ?? 0 };
+            }
+            return { score: dbScore ?? null, source: dbScore !== null ? 'db_stale' : 'missing', ageMinutes };
         };
 
-        // FUND: DB-FIRST if rich snapshot exists (authoritative from FundamentalPage or cron), otherwise live engine
-        const fundScore = getBestScore(dbFallbackData?.fundamental, fundEngine?.compositeScore, 'fundamental');
+        const fundProv = getProvenance(dbFallbackData?.fundamental, fundEngine?.compositeScore, 'fundamental');
+        const techProv = getProvenance(dbFallbackData?.technical, techEngine?.compositeScore, 'technical');
+        const optProv  = getProvenance(dbFallbackData?.options, optionsEngine?.compositeScore, 'options');
+        const globProv = getProvenance(dbFallbackData?.global, globalEngine?.compositeScore, 'global');
+        const evtProv  = getProvenance(dbFallbackData?.events, evtLiveScore, 'events');
 
-        // TECH: DB-FIRST if fresh (backend cron is now 100% authoritative and live via socket), otherwise live engine
-        const techScore = getBestScore(dbFallbackData?.technical, techEngine?.compositeScore, 'technical');
-
-        // OPT: DB-FIRST if fresh (51 vs 38 due to expiry differences), otherwise live engine
-        const optScore = getBestScore(dbFallbackData?.options, optionsEngine?.compositeScore, 'options');
-
-        // GLOB: DB-FIRST if fresh (52 vs 59), otherwise live engine
-        const globScore = getBestScore(dbFallbackData?.global, globalEngine?.compositeScore, 'global');
-        // EVT: backend cron uses AI-enriched market_events (authoritative). evtLiveScore uses
-        // raw Upstox news which is noisier and scores differently. 
-        // DB-FIRST if fresh, otherwise live engine.
-        const evtScore = getBestScore(dbFallbackData?.events, evtLiveScore, 'events');
+        const fundScore = fundProv.score;
+        const techScore = techProv.score;
+        const optScore  = optProv.score;
+        const globScore = globProv.score;
+        const evtScore  = evtProv.score;
 
         // L1 Cache: Only persist scores that this master actually computed correctly.
-        // DO NOT write FUND or OPT — the master's headless engines produce wrong values for those
-        // and would poison the cache, overwriting the correct values the actual pages wrote.
         if (selectedInstrument) {
-            // TECH: master engine is correct and authoritative (same parser as Technical page)
-            if (techScore != null && techScore > 0) saveIntelScore('tech', selectedInstrument, techScore, techEngine?.regime?.label, 'live');
-            // EVT: only save if we got a real value from DB (not the raw news fallback)
-            if (dbFallbackData?.events?.composite_score != null && dbFallbackData.events.composite_score > 0)
+            if (techScore !== null && techScore >= 0) saveIntelScore('tech', selectedInstrument, techScore, techEngine?.regime?.label, 'live');
+            if (dbFallbackData?.events?.composite_score !== null && dbFallbackData.events.composite_score !== undefined && dbFallbackData.events.composite_score >= 0)
                 saveIntelScore('evt', 'GLOBAL', dbFallbackData.events.composite_score, null, 'live');
-            // NOTE: FUND, OPT, GLOB are NOT written here — master's headless engines compute
-            // with different/incomplete data. The individual pages are authoritative via useAiSync.
         }
 
         const scores = [
@@ -583,11 +577,16 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
             { id: 'global',      label: 'GLOB', rawScore: globScore }
         ];
 
-
-        const validScores = scores.filter(s => s.rawScore !== null && !isNaN(s.rawScore) && s.rawScore > 0);
+        // MD-19 Fix: Keep scores >= 0 (crash protection)
+        const validScores = scores.filter(s => s.rawScore !== null && !isNaN(s.rawScore) && s.rawScore >= 0);
         
         const moduleScoreMap = { TECH: techScore, OPT: optScore, FUND: fundScore, GLOB: globScore, EVT: evtScore };
-        const institutionalData = computeInstitutionalComposite(moduleScoreMap, extraData);
+        const institutionalData = computeInstitutionalComposite(moduleScoreMap, {
+            ...extraData,
+            tradingMode: extraData.tradingMode || 'swing',
+            hasSystemicEvent: extraData.hasSystemicEvent || dbFallbackData?.events?.has_systemic_event || false,
+            volatilityPressure: extraData.volatilityPressure || dbFallbackData?.events?.volatility_pressure || 0
+        });
         let praxisComposite = institutionalData.compositeScore;
 
         const getNormalized = (score) => {
@@ -775,7 +774,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
         engineSections.forEach(({ engine, sections }) => {
             if (!Array.isArray(sections)) return;
             sections.forEach(sec => {
-                if (sec.score === null || sec.score === undefined || isNaN(sec.score)) return;
+                if (sec.score === null || sec.score === undefined || isNaN(sec.score) || sec.score === 0) return;
                 const deviation = sec.score - 50;
                 let weight = sec.weight || 15; 
                 // Native engine section weights are mixed between 0.15 and 15
@@ -793,7 +792,7 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
 
         // 2. Treat Global and Events entire dashboards as Macro Sections
         const addMacroSection = (engineName, score, weight = 25) => {
-            if (score === null || score === undefined || isNaN(score)) return;
+            if (score === null || score === undefined || isNaN(score) || score === 0) return;
             const deviation = score - 50;
             const strength = deviation * weight;
             rankedSections.push({
@@ -837,22 +836,74 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                 sub: `Impact Score: ${(Math.abs(r.strength) / 100).toFixed(1)}x · [${r.engine}]`
             }));
 
-        const systemRegime = getCompositeState(Math.round(praxisComposite));
+        // MD-11 Fix: Regime Hysteresis to prevent 1-2 point oscillations from flipping labels
+        let systemRegime;
+        if (praxisComposite === null) {
+            systemRegime = { label: "AWAITING DATA", className: "text-slate-400 font-medium", color: "#64748B" };
+        } else {
+            const roundedComposite = Math.round(praxisComposite);
+            const rawRegime = getCompositeState(roundedComposite);
+            if (prevRegimeRef.current && prevRegimeRef.current.score !== undefined) {
+                const delta = Math.abs(roundedComposite - prevRegimeRef.current.score);
+                if (delta <= 1.5 && rawRegime.label !== prevRegimeRef.current.label) {
+                    systemRegime = prevRegimeRef.current;
+                } else {
+                    systemRegime = { ...rawRegime, score: roundedComposite };
+                    prevRegimeRef.current = systemRegime;
+                }
+            } else {
+                systemRegime = { ...rawRegime, score: roundedComposite };
+                prevRegimeRef.current = systemRegime;
+            }
+        }
 
         const activeModulesCount = validScores.length;
         const maxModules = 5;
         const coveragePercent = Math.round((activeModulesCount / maxModules) * 100);
 
+        // MD-17 Fix: Quality-weighted data confidence factoring freshness & coverage
+        let qualityConfidence = 0;
+        if (validScores.length > 0) {
+            const provMap = { fundamental: fundProv, technical: techProv, options: optProv, global: globProv, events: evtProv };
+            let weightSum = 0;
+            let qualitySum = 0;
+            validScores.forEach(vs => {
+                const prov = provMap[vs.id];
+                const freshnessMultiplier = prov?.source === 'live' ? 1.0 : prov?.source === 'db_fresh' ? 0.85 : 0.40;
+                const modWeight = institutionalData.activeWeights?.[vs.label] || 0.20;
+                weightSum += modWeight;
+                qualitySum += modWeight * freshnessMultiplier;
+            });
+            qualityConfidence = weightSum > 0 ? Math.round((qualitySum / weightSum) * 100) : 0;
+        }
+
+        // MD-15 & MD-22 Fix: Full provenance and audit trail
+        const allLive = validScores.length > 0 && validScores.every(s => [fundProv, techProv, optProv, globProv, evtProv].find(p => p.score === s.rawScore)?.source === 'live');
         const integrity = {
             coverageText: `${activeModulesCount}/${maxModules}`,
             coveragePercent,
             missingCards: totalMissing,
             missingBreakdown,
-            source: "Live Engines + DB Cache"
+            source: allLive ? "100% Live Engines" : "Hybrid (Live + DB Cache)",
+            moduleProvenance: {
+                TECH: techProv,
+                OPT: optProv,
+                FUND: fundProv,
+                GLOB: globProv,
+                EVT: evtProv
+            },
+            audit: {
+                baseScore: institutionalData.baseScore,
+                modifierImpact: institutionalData.modifierImpact,
+                modifierBreakdown: institutionalData.modifierBreakdown,
+                vixDistressApplied: institutionalData.vixDistressApplied,
+                activeWeights: institutionalData.activeWeights,
+                tradingMode: extraData.tradingMode || 'swing'
+            }
         };
 
         const result = {
-            praxisComposite: Math.round(praxisComposite),
+            praxisComposite: praxisComposite !== null ? Math.round(praxisComposite) : null,
             modifierImpact: institutionalData.modifierImpact,
             moduleScores: scores,
             sectionsForHeader,
@@ -874,15 +925,15 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
                         sections: engineData ? engineData.sections.map(s => ({
                             name: s.name || s.label || s.shortLabel || formatTitle(s.id),
                             score: s.score,
-                            cards: [] // We don't have individual cards at the master level nested tree to save space, backend can summarize sections
+                            cards: []
                         })) : []
                     };
                 })
             },
             regime: {
                 label: systemRegime.label,
-                description: `Aggregated from ${validScores.length} active Praxis modules.`,
-                confidence: Math.round((validScores.length / 5) * 100),
+                description: praxisComposite !== null ? `Aggregated from ${validScores.length} active Praxis modules.` : 'Awaiting market data pipeline initialization.',
+                confidence: qualityConfidence,
                 color: systemRegime.color
             },
             integrity

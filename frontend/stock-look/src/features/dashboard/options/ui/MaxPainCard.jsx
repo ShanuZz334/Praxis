@@ -25,7 +25,10 @@ export default function MaxPainCard({ cardId, liveData = null, manualOverride, l
         "Supports short-term market assessment."
     ];
 
-    const displayValue = rawValue !== null && rawValue !== '--' ? rawValue.toString() : '--';
+    const parsed = rawValue !== null && rawValue !== '--' ? parseFloat(rawValue.toString().replace(/,/g, '')) : NaN;
+    const displayValue = !isNaN(parsed) 
+        ? "₹" + parsed.toLocaleString('en-IN') 
+        : (rawValue !== null && rawValue !== '--' ? `₹${rawValue}` : '--');
 
     return (
         <IndicatorCard

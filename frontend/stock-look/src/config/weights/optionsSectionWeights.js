@@ -17,11 +17,11 @@ import { TRADING_MODES } from '../tradingModes.js';
 // =============================
 
 export const optionsSections = [
-    { id: 'Open Interest',      label: 'Open Interest',      w: 0.25 },
-    { id: 'Put-Call Ratio',     label: 'Put-Call Ratio',     w: 0.20 },
+    { id: 'Open Interest',      label: 'Open Interest',      w: 0.20 },
+    { id: 'Put-Call Ratio',     label: 'Put-Call Ratio',     w: 0.30 },
     { id: 'Greeks',             label: 'Greeks',             w: 0.20 },
-    { id: 'Volatility',         label: 'Volatility',         w: 0.15 },
-    { id: 'Market Positioning', label: 'Market Positioning', w: 0.20 },
+    { id: 'Volatility',         label: 'Volatility',         w: 0.20 },
+    { id: 'Market Positioning', label: 'Market Positioning', w: 0.10 },
 ];
 
 // =============================
@@ -56,7 +56,7 @@ export const SECTION_MODE_MULTIPLIERS = {
 // =============================
 
 /**
- * Gets section weights for a specific trading mode
+ * Gets section weights for a specific trading mode, normalized to sum to 1.00
  * @param {string} mode - Trading mode ('positional' | 'swing' | 'intraday')
  * @returns {Array} Section configuration with adjusted weights
  */
@@ -68,9 +68,15 @@ export const getOptionsSectionWeights = (mode = TRADING_MODES.SWING) => {
     const multipliers = SECTION_MODE_MULTIPLIERS[mode];
     if (!multipliers) return optionsSections;
 
-    return optionsSections.map(section => ({
+    const unnormalized = optionsSections.map(section => ({
         ...section,
         w: section.w * (multipliers[section.id] || 1.0)
+    }));
+
+    const totalW = unnormalized.reduce((sum, s) => sum + s.w, 0);
+    return unnormalized.map(s => ({
+        ...s,
+        w: totalW > 0 ? parseFloat((s.w / totalW).toFixed(4)) : s.w
     }));
 };
 

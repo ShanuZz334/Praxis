@@ -48,6 +48,26 @@ export function useTechnicalComposite(isIndex = false, instrumentKey = null) {
         }, 150);
     };
 
+    const prevInstrumentRef = useRef(instrumentKey);
+    const prevIsIndexRef = useRef(isIndex);
+
+    // Clear accumulated scores and cancel pending debounces when switching instruments or index/company category
+    useEffect(() => {
+        if (prevInstrumentRef.current !== instrumentKey || prevIsIndexRef.current !== isIndex) {
+            prevInstrumentRef.current = instrumentKey;
+            prevIsIndexRef.current = isIndex;
+            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+            scoresRef.current = {};
+            setCompositeData({
+                compositeScore: 50,
+                regime: { label: 'Loading...', color: 'text-slate-400' },
+                sections: [],
+                rawSections: {},
+                cardScores: {}
+            });
+        }
+    }, [instrumentKey, isIndex]);
+
     useEffect(() => {
         const handleSnapshot = (e) => {
             if (!e.detail) return;
@@ -58,6 +78,14 @@ export function useTechnicalComposite(isIndex = false, instrumentKey = null) {
             }
 
             const metricId = card_id;
+            
+            // Discard snapshots that do not belong to current mode (prevent leaks)
+            if (isIndex && (metricId === 'beta_correlation' || metricId === 'volume_sma' || metricId === 'obv' || metricId === 'cmf' || metricId === 'vwap')) {
+                return;
+            }
+            if (!isIndex && (metricId === 'breadth_ratio' || metricId === 'ad_line' || metricId === 'nh_nl')) {
+                return;
+            }
             
             if (metricId) {
                 if (score === undefined || score === null || score === '--' || score === '') {
@@ -79,7 +107,10 @@ export function useTechnicalComposite(isIndex = false, instrumentKey = null) {
         // Recompute immediately when tradingMode changes
         scheduleRecompute();
 
-        return () => window.removeEventListener('ai-snapshot', handleSnapshot);
+        return () => {
+            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+            window.removeEventListener('ai-snapshot', handleSnapshot);
+        };
     }, [isIndex, instrumentKey, tradingMode]);
 
     return useMemo(() => {

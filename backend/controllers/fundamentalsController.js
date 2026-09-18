@@ -6,6 +6,7 @@ import { getCache, setCache } from "../services/cacheService.js";
 import { yahooFinanceService } from "../services/yahooFinanceService.js";
 import { fredApiService } from "../services/fredApiService.js";
 import { rbiApiService } from "../services/rbiApiService.js";
+import { screenerService } from "../services/screenerService.js";
 
 import { getUpstoxLiveToken } from "../utils/upstoxAuthHelper.js";
 
@@ -111,21 +112,23 @@ export const getFundamentals = async (req, res) => {
             }
 
             if (tradingSymbol) {
-                // Fetch Yahoo External Metrics Live in PARALLEL to prevent 120s ECONNABORTED timeouts
+                // Fetch Yahoo External Metrics & Screener Institutional Data Live in PARALLEL to prevent 120s ECONNABORTED timeouts
                 const [
                     analystRes,
                     divRes,
                     capRes,
                     bookRes,
                     cccRes,
-                    covRes
+                    covRes,
+                    screenerRes
                 ] = await Promise.allSettled([
                     yahooFinanceService.getAnalystConsensus(tradingSymbol),
                     yahooFinanceService.getDividendYield(tradingSymbol),
                     yahooFinanceService.getMarketCap(tradingSymbol),
                     yahooFinanceService.getBookValue(tradingSymbol),
                     yahooFinanceService.getCashConversionCycle(tradingSymbol),
-                    yahooFinanceService.getInterestCoverage(tradingSymbol)
+                    yahooFinanceService.getInterestCoverage(tradingSymbol),
+                    screenerService.getCompanyDetails(tradingSymbol)
                 ]);
 
                 payload.analystConsensus = analystRes.status === 'fulfilled' ? analystRes.value : null;
@@ -135,6 +138,19 @@ export const getFundamentals = async (req, res) => {
                 payload.cashConversionCycle = cccRes.status === 'fulfilled' ? cccRes.value : null;
                 payload.interestCoverage = covRes.status === 'fulfilled' ? covRes.value : null;
                 
+                if (screenerRes.status === 'fulfilled' && screenerRes.value) {
+                    payload.screener = screenerRes.value;
+                    if (!payload.company_profile) payload.company_profile = {};
+                    if (!payload.company_profile.sector && screenerRes.value.sector?.sector) {
+                        payload.company_profile.sector = screenerRes.value.sector.sector;
+                    }
+                    if (!payload.company_profile.industry && screenerRes.value.sector?.industry) {
+                        payload.company_profile.industry = screenerRes.value.sector.industry;
+                    }
+                } else if (screenerRes.status === 'rejected') {
+                    console.warn(`[Fundamentals] Screener fetch rejected for ${tradingSymbol}:`, screenerRes.reason?.message);
+                }
+
                 if (analystRes.status === 'rejected') console.error("Failed to fetch Analyst Consensus:", analystRes.reason?.message);
             }
 

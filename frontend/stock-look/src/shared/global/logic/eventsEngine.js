@@ -15,7 +15,13 @@
  */
 
 import { TRADING_MODES } from '../../../config/tradingModes.js';
-import { getEventCategoryWeights, getEventHorizonWeights } from '../../../config/weights/eventsSectionWeights.js';
+import { 
+    getEventCategoryWeights, 
+    getEventHorizonWeights,
+    EVENT_CATEGORY_META,
+    DEFAULT_EVENT_SECTIONS
+} from '../../../config/weights/eventsSectionWeights.js';
+import { getSourceReliability } from '../../../config/reliability/eventsReliability.js';
 
 // ============================================================================================
 // SECTION 1: UI Color Constants & Definitions
@@ -179,16 +185,16 @@ export const PES7_WEIGHTS = {
         "Very Bearish":  -100.0
     },
     importance: {
-        "Low":      0.30,  // Low-importance noise barely moves the needle
-        "Medium":   0.55,
-        "High":     0.80,
+        "Low":      0.45,  // Routine noise carries perceptible baseline weight
+        "Medium":   0.65,
+        "High":     0.85,
         "Critical": 1.00   // Critical events carry full importance weight
     },
     severity: {
-        "Normal":     0.30,  // Routine events: minimal structural impact
-        "Important":  0.55,
-        "Major":      0.80,
-        "Systemic":   0.92,
+        "Normal":     0.45,  // Routine events: minimal structural impact
+        "Important":  0.65,
+        "Major":      0.85,
+        "Systemic":   0.95,
         "Black Swan": 1.00   // Market-defining events: full severity weight
     },
     horizon: {
@@ -244,18 +250,19 @@ export function getDisplayScore(rawScore) {
 /**
  * Computes the deterministic PES-7 Event Score (Institutional Grade v3).
  *
- * Formula: SentimentBase × Importance × Severity × HorizonWeight × ConfidenceSigmoid
+ * Formula: SentimentBase × Importance × Severity × HorizonWeight × ConfidenceSigmoid × SourceWeight
  * Internal scale: ±100  |  Display scale (via getDisplayScore): ±10
  *
  * The AI NEVER outputs event_score. This function is the sole source of truth.
  */
-export function computeEventScore(sentiment, importance, severity, confidence, horizon = "Positional") {
-    const sentWeight = PES7_WEIGHTS.sentiment[sentiment]   ?? 0.0;
-    const impMult    = PES7_WEIGHTS.importance[importance] ?? 0.55;
-    const sevMult    = PES7_WEIGHTS.severity[severity]     ?? 0.30;
-    const horizMult  = PES7_WEIGHTS.horizon[horizon]       ?? 1.00;
-    const confFactor = confidenceSigmoid(Math.max(0, Math.min(100, Number(confidence) || 60)));
-    const raw        = sentWeight * impMult * sevMult * horizMult * confFactor;
+export function computeEventScore(sentiment, importance, severity, confidence, horizon = "Positional", source = "Default") {
+    const sentWeight   = PES7_WEIGHTS.sentiment[sentiment]   ?? 0.0;
+    const impMult      = PES7_WEIGHTS.importance[importance] ?? 0.65;
+    const sevMult      = PES7_WEIGHTS.severity[severity]     ?? 0.45;
+    const horizMult    = PES7_WEIGHTS.horizon[horizon]       ?? 1.00;
+    const confFactor   = confidenceSigmoid(Math.max(0, Math.min(100, Number(confidence) || 60)));
+    const sourceWeight = getSourceReliability(source);
+    const raw          = sentWeight * impMult * sevMult * horizMult * confFactor * sourceWeight;
     return Math.round(Math.max(-100.0, Math.min(100.0, raw)) * 10) / 10;
 }
 
@@ -264,33 +271,36 @@ export function computeEventScore(sentiment, importance, severity, confidence, h
  * In institutional quant modeling, even if an event has a Neutral directional score (0.0),
  * its importance, severity, and confidence impart substantial market volatility kinetic energy.
  */
-export function computeEventImpactMagnitude(importance, severity, confidence, horizon = "Positional") {
-    const impMult    = PES7_WEIGHTS.importance[importance] ?? 0.55;
-    const sevMult    = PES7_WEIGHTS.severity[severity]     ?? 0.30;
-    const horizMult  = PES7_WEIGHTS.horizon[horizon]       ?? 1.00;
-    const confFactor = confidenceSigmoid(Math.max(0, Math.min(100, Number(confidence) || 60)));
-    const magnitude  = 100.0 * impMult * sevMult * (horizMult / 1.15) * confFactor;
+export function computeEventImpactMagnitude(importance, severity, confidence, horizon = "Positional", source = "Default") {
+    const impMult      = PES7_WEIGHTS.importance[importance] ?? 0.65;
+    const sevMult      = PES7_WEIGHTS.severity[severity]     ?? 0.45;
+    const horizMult    = PES7_WEIGHTS.horizon[horizon]       ?? 1.00;
+    const confFactor   = confidenceSigmoid(Math.max(0, Math.min(100, Number(confidence) || 60)));
+    const sourceWeight = getSourceReliability(source);
+    const magnitude    = 100.0 * impMult * sevMult * (horizMult / 1.15) * confFactor * sourceWeight;
     return Math.round(Math.max(0.0, Math.min(100.0, magnitude)) * 10) / 10;
 }
 
 /**
  * Returns a full PES-7 breakdown object for display in the UI / Diagnostics.
  */
-export function getPES7Breakdown(sentiment, importance, severity, confidence, horizon = "Positional") {
-    const sentWeight = PES7_WEIGHTS.sentiment[sentiment]   ?? 0.0;
-    const impMult    = PES7_WEIGHTS.importance[importance] ?? 0.55;
-    const sevMult    = PES7_WEIGHTS.severity[severity]     ?? 0.30;
-    const horizMult  = PES7_WEIGHTS.horizon[horizon]       ?? 1.00;
-    const confFactor = confidenceSigmoid(Math.max(0, Math.min(100, Number(confidence) || 60)));
-    const finalScore = computeEventScore(sentiment, importance, severity, confidence, horizon);
-    const impactMag  = computeEventImpactMagnitude(importance, severity, confidence, horizon);
+export function getPES7Breakdown(sentiment, importance, severity, confidence, horizon = "Positional", source = "Default") {
+    const sentWeight   = PES7_WEIGHTS.sentiment[sentiment]   ?? 0.0;
+    const impMult      = PES7_WEIGHTS.importance[importance] ?? 0.65;
+    const sevMult      = PES7_WEIGHTS.severity[severity]     ?? 0.45;
+    const horizMult    = PES7_WEIGHTS.horizon[horizon]       ?? 1.00;
+    const confFactor   = confidenceSigmoid(Math.max(0, Math.min(100, Number(confidence) || 60)));
+    const sourceWeight = getSourceReliability(source);
+    const finalScore   = computeEventScore(sentiment, importance, severity, confidence, horizon, source);
+    const impactMag    = computeEventImpactMagnitude(importance, severity, confidence, horizon, source);
     return {
         sentimentWeight:      sentWeight,
         importanceMultiplier: impMult,
         severityMultiplier:   sevMult,
         horizonMultiplier:    horizMult,
+        sourceMultiplier:     sourceWeight,
         confidenceFactor:     Math.round(confFactor * 1000) / 1000,
-        rawScore:             sentWeight * impMult * sevMult * horizMult * confFactor,
+        rawScore:             sentWeight * impMult * sevMult * horizMult * confFactor * sourceWeight,
         finalScore,
         displayScore:         getDisplayScore(finalScore),
         impactMagnitude:      impactMag,
@@ -924,8 +934,8 @@ export function validateAndSanitizeEvent(raw, originalHeading = "") {
     if (!VALID_SENTIMENTS.includes(raw.sentiment))   { errors.push(`invalid sentiment: ${raw.sentiment}`);   sanitized.sentiment      = "Neutral"; }
     if (!VALID_IMPORTANCE.includes(raw.importance))  { errors.push(`invalid importance: ${raw.importance}`); sanitized.importance     = "Medium"; }
     if (!VALID_SEVERITY.includes(raw.severity))      { errors.push(`invalid severity: ${raw.severity}`);     sanitized.severity       = "Normal"; }
-    if (!VALID_OVERRIDE.includes(raw.override_mode)) { sanitized.override_mode = "None"; }
-    if (!VALID_HORIZONS.includes(raw.horizon))       { sanitized.horizon       = "Swing"; }
+    const inputHorizon = raw.horizon || raw.time_horizon;
+    if (!VALID_HORIZONS.includes(inputHorizon)) { sanitized.horizon = "Swing"; } else { sanitized.horizon = inputHorizon; }
     if (!VALID_INSTRUMENTS.includes(raw.instrument_type)) { sanitized.instrument_type = "INDICES"; }
 
     // Logical consistency: Neutral sentiment cannot have Major+ severity
@@ -937,7 +947,18 @@ export function validateAndSanitizeEvent(raw, originalHeading = "") {
     sanitized.confidence      = Math.max(0, Math.min(100, Number(raw.confidence) || 60));
     sanitized.affected_assets = Array.isArray(sanitized.affected_assets) ? sanitized.affected_assets : [];
     sanitized.key_data_points = Array.isArray(sanitized.key_data_points)  ? sanitized.key_data_points  : [];
-    sanitized.ttl_hours       = Number.isInteger(Number(raw.ttl_hours)) ? Number(raw.ttl_hours) : 72; // Default to 72 hours (3 days)
+
+    // Horizon-anchored TTL allocation (default to empirical half-life if not specified)
+    const HORIZON_DEFAULT_TTL = {
+        "Intraday": 12,
+        "Swing": 72,
+        "Positional": 240,
+        "Structural": 720,
+        "Long Term": 2160
+    };
+    sanitized.ttl_hours = (Number.isInteger(Number(raw.ttl_hours)) && Number(raw.ttl_hours) > 0)
+        ? Number(raw.ttl_hours)
+        : (HORIZON_DEFAULT_TTL[sanitized.horizon] || 72);
 
     // Category validation & automatic fallback
     const matchedCat = EVENT_CATEGORIES.find(
@@ -1028,7 +1049,8 @@ export function validateAndSanitizeEvent(raw, originalHeading = "") {
         sanitized.importance,
         sanitized.severity,
         sanitized.confidence,
-        sanitized.horizon
+        sanitized.horizon,
+        sanitized.source
     );
 
     // Compute impact magnitude
@@ -1036,7 +1058,8 @@ export function validateAndSanitizeEvent(raw, originalHeading = "") {
         sanitized.importance,
         sanitized.severity,
         sanitized.confidence,
-        sanitized.horizon
+        sanitized.horizon,
+        sanitized.source
     );
 
     return {
@@ -1057,7 +1080,7 @@ export function validateAndSanitizeEvent(raw, originalHeading = "") {
  * - FX/Currency (USDINR depreciation): Inverts sign for IT & Pharma exporters (TCS, INFY, WIPRO, SUNPHARMA = -1.0).
  * - Interest Rates/Macro Policy (Rate Hikes): High sensitivity for Realty (1.3) vs Banks (0.8).
  */
-const ASSET_BETA_SENSITIVITIES = {
+export const ASSET_BETA_SENSITIVITIES = {
     COMMODITY: {
         "ONGC": -1.0,  // Upstream benefits from higher crude (reverses bearish commodity signal)
         "OIL": -1.0,
@@ -1097,7 +1120,7 @@ const ASSET_BETA_SENSITIVITIES = {
     }
 };
 
-function getAssetSensitivityMultiplier(asset, instrumentType) {
+export function getAssetSensitivityMultiplier(asset, instrumentType) {
     if (!asset || !instrumentType) return 1.0;
     const inst = ASSET_BETA_SENSITIVITIES[instrumentType];
     if (inst && inst[asset] !== undefined) {
@@ -1187,8 +1210,10 @@ export function extractInstitutionalImpacts(events) {
     return { tailwinds, headwinds };
 }
 
-export function computePortfolioMetrics(events, tradingMode = TRADING_MODES.SWING) {
-    if (!events || !Array.isArray(events)) return { totalWeight: 0, netMomentum: 0, eventCount: 0, activeSources: 0 };
+export function computePortfolioMetrics(events, tradingMode = TRADING_MODES.SWING, targetInstrument = null) {
+    if (!events || !Array.isArray(events)) {
+        return { totalWeight: "0.0", netMomentum: "0.0", netMomentumRaw: 0, compositeScore: 50, marketConfidence: 0, volatilityPressure: 0, eventCount: 0, activeSources: 0, sections: [] };
+    }
 
     // Resolve mode-aware weight multipliers (SWING = all 1.0, no behavior change)
     const horizonWeights  = getEventHorizonWeights(tradingMode);
@@ -1196,6 +1221,8 @@ export function computePortfolioMetrics(events, tradingMode = TRADING_MODES.SWIN
 
     let totalWeight = 0;
     let netMomentum = 0;
+    let totalMagnitude = 0;
+    let totalMagnitudeWeight = 0;
     const sources = new Set();
     // catMomentum tracks: net momentum, total weight, event count, and directional polarity
     const catMomentum = {};
@@ -1203,16 +1230,31 @@ export function computePortfolioMetrics(events, tradingMode = TRADING_MODES.SWIN
 
     events.forEach(ev => {
         const rawScore = Number(ev.event_score) || 0;
-        if (rawScore === 0) return;
 
         // Apply dynamic time decay — impact shrinks exponentially as event ages relative to TTL.
         const decayFactor = computeTimeDecay(ev.created_at, ev.published_time, ev.ttl_hours);
         if (decayFactor === 0) return; // Fully expired event: skip
 
+        // Track structural volatility magnitude (Omega) even if directional rawScore is 0
+        const mag = Number(ev.impact_magnitude) || computeEventImpactMagnitude(ev.importance, ev.severity, ev.confidence, ev.horizon, ev.source);
+        if (mag > 0) {
+            totalMagnitude += mag * decayFactor;
+            totalMagnitudeWeight += decayFactor;
+        }
+
+        if (rawScore === 0) return;
+
         // Apply horizon multiplier
         const horizonMult = horizonWeights[ev.horizon] ?? 1.0;
 
-        const impact = rawScore * decayFactor * horizonMult;
+        // Apply Asset Beta Sensitivity Multiplier if targetInstrument is provided
+        let sensitivity = 1.0;
+        if (targetInstrument && typeof targetInstrument === 'string') {
+            const cleanTarget = targetInstrument.trim().toUpperCase();
+            sensitivity = getAssetSensitivityMultiplier(cleanTarget, ev.instrument_type);
+        }
+
+        const impact = rawScore * decayFactor * horizonMult * sensitivity;
         effectiveScores.push(Math.abs(impact));
         totalWeight += Math.abs(impact);
         netMomentum += impact;
@@ -1258,7 +1300,15 @@ export function computePortfolioMetrics(events, tradingMode = TRADING_MODES.SWIN
     }
     const concentrationPenalty = sumSquaredShares > 0.65 ? 0.88 : 1.0;
 
-    const compositeScore = Math.round(50 + 50 * consensus * volumeActivation * divergencePenalty * concentrationPenalty);
+    // Structural Volatility Kinetic Pressure (Omega)
+    const volatilityPressure = totalMagnitudeWeight > 0 
+        ? Math.round((totalMagnitude / totalMagnitudeWeight) * 10) / 10 
+        : 0;
+
+    // When market volatility pressure is elevated, damp directional overconfidence
+    const volDamping = volatilityPressure > 60 ? 0.88 : 1.0;
+
+    const compositeScore = Math.round(50 + 50 * consensus * volumeActivation * divergencePenalty * concentrationPenalty * volDamping);
 
     // ─────────────────────────────────────────────────────────────────────────
     // SECTION / CATEGORY SCORES — Institutional Grade
@@ -1272,15 +1322,44 @@ export function computePortfolioMetrics(events, tradingMode = TRADING_MODES.SWIN
         catMomentum[cat].weight   *= catMult;
     });
 
-    const sortedCats = Object.keys(catMomentum).sort((a, b) => Math.abs(catMomentum[b].momentum) - Math.abs(catMomentum[a].momentum));
-    const topCats = sortedCats.slice(0, 6); // Top 6 fits the GlobalHeader perfectly
+    const activeSortedCats = Object.keys(catMomentum)
+        .filter(cat => catMomentum[cat].count > 0)
+        .sort((a, b) => Math.abs(catMomentum[b].momentum) - Math.abs(catMomentum[a].momentum));
+
+    // Combine active categories with default core categories to guarantee exactly 6 tubes in GlobalHeader
+    const selectedCats = [...activeSortedCats];
+    for (const coreCat of DEFAULT_EVENT_SECTIONS) {
+        if (selectedCats.length >= 6) break;
+        if (!selectedCats.includes(coreCat)) {
+            selectedCats.push(coreCat);
+        }
+    }
+    const topCats = selectedCats.slice(0, 6);
 
     const sections = topCats.map(cat => {
-        const rawMomentum  = catMomentum[cat].momentum;
-        const catWeight    = catMomentum[cat].weight;
-        const catCount     = catMomentum[cat].count;
-        const bullishCount = catMomentum[cat].bullishCount;
-        const bearishCount = catMomentum[cat].bearishCount;
+        const data = catMomentum[cat];
+        const meta = EVENT_CATEGORY_META[cat] || {
+            label: cat,
+            shortLabel: cat.substring(0, 3).toUpperCase()
+        };
+        const catWeightMult = categoryWeights[cat] ?? 1.0;
+
+        if (!data || data.count === 0) {
+            return {
+                id:         cat.toLowerCase(),
+                label:      meta.label,
+                shortLabel: meta.shortLabel,
+                score:      null,
+                weight:     catWeightMult,
+                count:      0
+            };
+        }
+
+        const rawMomentum  = data.momentum;
+        const catWeight    = data.weight;
+        const catCount     = data.count;
+        const bullishCount = data.bullishCount;
+        const bearishCount = data.bearishCount;
 
         // 1. Category Consensus (-1.0 to +1.0)
         // Directional alignment within this category.
@@ -1308,8 +1387,11 @@ export function computePortfolioMetrics(events, tradingMode = TRADING_MODES.SWIN
 
         return {
             id:         cat.toLowerCase(),
-            shortLabel: cat.substring(0, 4).toUpperCase(),
-            score:      Math.max(0, Math.min(100, catScore))
+            label:      meta.label,
+            shortLabel: meta.shortLabel,
+            score:      Math.max(0, Math.min(100, catScore)),
+            weight:     catWeightMult,
+            count:      catCount
         };
     });
 
@@ -1342,6 +1424,7 @@ export function computePortfolioMetrics(events, tradingMode = TRADING_MODES.SWIN
         netMomentumRaw: netMomentum / 10,
         compositeScore: Math.max(0, Math.min(100, compositeScore)),
         marketConfidence,
+        volatilityPressure,
         eventCount: events.length,
         activeSources: sources.size,
         sections

@@ -125,8 +125,27 @@ export function promoteStrategy(id) {
     }
 }
 
+// ─── Cryptographic Provenance & CRC32 Verification ──────────────────────────
+
+const CRC32_TABLE = new Uint32Array(256);
+for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let j = 0; j < 8; j++) {
+        c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+    }
+    CRC32_TABLE[i] = c;
+}
+
+export function computeConfigChecksum(str) {
+    let crc = 0 ^ (-1);
+    for (let i = 0; i < str.length; i++) {
+        crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ str.charCodeAt(i)) & 0xFF];
+    }
+    return ((crc ^ (-1)) >>> 0).toString(16).padStart(8, '0').toUpperCase();
+}
+
 /**
- * Exports a strategy into a portable, versioned Praxis JSON package.
+ * Exports a strategy into a portable, versioned Praxis JSON package with cryptographic provenance.
  * @param {Object|string} strategyOrId 
  * @returns {Object} Export package object
  */
@@ -142,27 +161,38 @@ export function exportStrategy(strategyOrId) {
         throw new Error('Strategy not found or invalid strategy payload for export.');
     }
 
+    const canonicalCore = {
+        name: target.name || 'Unnamed Strategy',
+        nickname: target.nickname || 'STRAT',
+        description: target.description || '',
+        mode: target.mode || 'swing',
+        entryDirection: target.entryDirection || 'LONG',
+        volatileTimer: target.volatileTimer || 5,
+        rules: Array.isArray(target.rules) ? target.rules : [],
+        exitRule: target.exitRule || {
+            type: 'TARGET_STOP',
+            targetPct: 2.5,
+            stopPct: 1.25,
+            horizonBars: 14,
+        },
+        instrument: target.instrument || 'NSE_INDEX|Nifty 50',
+        timeframe: target.timeframe || 'day',
+    };
+
+    const serialized = JSON.stringify(canonicalCore);
+    const checksum = computeConfigChecksum(serialized);
+
     return {
         schema: 'praxis_strategy_blueprint',
-        version: '2.0',
+        version: '3.0',
         exportedAt: new Date().toISOString(),
-        strategy: {
-            name: target.name || 'Unnamed Strategy',
-            nickname: target.nickname || 'STRAT',
-            description: target.description || '',
-            mode: target.mode || 'swing',
-            entryDirection: target.entryDirection || 'LONG',
-            volatileTimer: target.volatileTimer || 5,
-            rules: Array.isArray(target.rules) ? target.rules : [],
-            exitRule: target.exitRule || {
-                type: 'TARGET_STOP',
-                targetPct: 2.5,
-                stopPct: 1.25,
-                horizonBars: 14,
-            },
-            instrument: target.instrument || 'NSE_INDEX|Nifty 50',
-            timeframe: target.timeframe || 'day',
-        }
+        provenance: {
+            author: 'Shanif (Shanu)',
+            platform: 'Praxis Quantitative Studio',
+            engineVersion: '2.5.0-institutional',
+            checksum: `CRC32-${checksum}`,
+        },
+        strategy: canonicalCore,
     };
 }
 
@@ -194,6 +224,16 @@ export function importStrategy(payload) {
 
     if (!Array.isArray(rawStrat.rules)) {
         throw new Error('Invalid strategy package: "rules" must be an array.');
+    }
+
+    // Cryptographic checksum verification if packaged in schema 3.0
+    let checksumVerified = false;
+    if (parsed.provenance?.checksum && parsed.strategy) {
+        const calculated = `CRC32-${computeConfigChecksum(JSON.stringify(parsed.strategy))}`;
+        checksumVerified = calculated === parsed.provenance.checksum;
+        if (!checksumVerified) {
+            console.warn(`[strategyRegistry] Checksum mismatch! Expected ${parsed.provenance.checksum}, calculated ${calculated}. Package may have been tampered with.`);
+        }
     }
 
     const importedStrategy = {
@@ -228,6 +268,7 @@ export function importStrategy(payload) {
         },
         instrument: rawStrat.instrument || 'NSE_INDEX|Nifty 50',
         timeframe: rawStrat.timeframe || 'day',
+        checksumVerified,
         promoted: false,
         importedAt: Date.now(),
     };

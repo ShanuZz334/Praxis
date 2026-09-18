@@ -30,7 +30,7 @@ export default function TotalPutOpenInterestCard({ cardId, liveData = null, manu
     const displayValue = rawValue !== null && rawValue !== '--' ? formatIndianNumber(rawValue) : '--';
 
     const details = [
-        { label: "Highest OI Strike", value: highestOIStrike !== '--' ? highestOIStrike.toLocaleString() : '--' },
+        { label: "Highest OI Strike", value: (highestOIStrike !== '--' && highestOIStrike != null) ? (isNaN(highestOIStrike) ? highestOIStrike : `₹${Number(highestOIStrike).toLocaleString('en-IN')}`) : '--' },
         { label: "Change", value: oiChange !== '--' ? (oiChange > 0 ? `+${formatIndianNumber(oiChange)}` : formatIndianNumber(oiChange)) : '--', color: oiChange > 0 ? "text-green-500" : (oiChange < 0 ? "text-red-500" : "") }
     ];
 

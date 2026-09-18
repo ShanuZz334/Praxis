@@ -24,18 +24,23 @@ export function useDrawings(instrumentKey, timeframe) {
         if (!instrumentKey || !timeframe) return;
         const local = load();
         setDrawings(local); // Immediately sync React state with current instrument/timeframe
-        if (local.length > 0) return; // Already have drawings in L1 — don't overwrite
 
+        // FC-004 Fix: Stale-while-revalidate pattern. Always query SQLite to reconcile latest drawings
+        let isCurrent = true;
         const params = new URLSearchParams({ instrument_key: instrumentKey, timeframe });
         fetch(`/api/v1/preferences/drawings?${params}`)
             .then(r => r.json())
             .then(res => {
-                if (res.status === 'success' && Array.isArray(res.data) && res.data.length > 0) {
-                    setDrawings(res.data);
-                    localStorage.setItem(storageKey, JSON.stringify(res.data));
+                if (isCurrent && res.status === 'success' && Array.isArray(res.data)) {
+                    if (JSON.stringify(res.data) !== JSON.stringify(local)) {
+                        setDrawings(res.data);
+                        try { localStorage.setItem(storageKey, JSON.stringify(res.data)); } catch {}
+                    }
                 }
             })
             .catch(() => {});
+
+        return () => { isCurrent = false; };
     }, [instrumentKey, timeframe, storageKey, load]);
 
     const save = (next) => {

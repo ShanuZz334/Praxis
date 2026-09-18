@@ -30,10 +30,10 @@ export default function IvRankCard({ cardId, liveData = null, manualOverride, la
             config={{
                 title: "IV Rank",
                 category: "Volatility",
-                mode: "MANUAL",
+                mode: isLiveData ? "AUTO" : "MANUAL",
                 creditScore: configData.creditScore,
-                updateTime: typeof lastUpdated === 'function' ? lastUpdated(false) : (lastUpdated || '--:--'),
-                source: "Manual",
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'),
+                source: isLiveData ? "Upstox Live Chain" : "Manual",
                 aiModel: configData.aiModel
             }}
             data={{

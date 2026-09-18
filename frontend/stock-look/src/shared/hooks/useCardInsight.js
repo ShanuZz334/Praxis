@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import axiosInstance from '@/shared/utils/axiosInstance';
 
 /**
@@ -20,11 +20,24 @@ export function useCardInsight(targetId) {
     const [error, setError] = useState(null);
     const [meta, setMeta] = useState(null); // { provider, model, latencyMs, usedCustomPrompt }
 
-    // Refs for throttling
+    // Refs for lifecycle, race protection, and throttling
     const mountedRef = useRef(true);
     const lastExecuteRef = useRef(0);
     const timeoutRef = useRef(null);
     const latestArgsRef = useRef(null);
+    const latestRequestIdRef = useRef(0);
+
+    // Lifecycle cleanup: cancel trailing timers and prevent unmounted state updates
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
+        };
+    }, []);
 
     const executeGenerate = useCallback(async (options) => {
         const {
@@ -45,6 +58,7 @@ export function useCardInsight(targetId) {
             return;
         }
 
+        const requestId = ++latestRequestIdRef.current;
         setIsLoading(true);
         setError(null);
 
@@ -54,7 +68,7 @@ export function useCardInsight(targetId) {
                 { value, displayName, stockSymbol, scope, additionalContext, pageData }
             );
 
-            if (!mountedRef.current) return;
+            if (!mountedRef.current || requestId !== latestRequestIdRef.current) return;
 
             if (res.data?.insight) {
                 setInsight(res.data.insight);
@@ -69,17 +83,19 @@ export function useCardInsight(targetId) {
                 setInsight(null);
             }
         } catch (err) {
-            if (!mountedRef.current) return;
+            if (!mountedRef.current || requestId !== latestRequestIdRef.current) return;
             console.error(`[useCardInsight] Error for ${targetId}:`, err.message);
             setError(err.response?.data?.error || err.message);
         } finally {
-            if (mountedRef.current) setIsLoading(false);
+            if (mountedRef.current && requestId === latestRequestIdRef.current) {
+                setIsLoading(false);
+            }
         }
     }, [targetId]);
 
     /**
      * generate — public facing function that throttles calls to executeGenerate.
-     * Ensures we only hit the AI once every 10 seconds max.
+     * Ensures we only hit the AI once every 10 seconds max, unless forced by user click.
      */
     const generate = useCallback((options = {}) => {
         if (!targetId) {
@@ -87,12 +103,13 @@ export function useCardInsight(targetId) {
             return;
         }
 
+        const isForce = options.isForce === true;
         const now = Date.now();
         const timeSinceLast = now - lastExecuteRef.current;
         latestArgsRef.current = options;
 
-        if (timeSinceLast >= 10000) {
-            // It's been over 10s, fire immediately
+        if (isForce || timeSinceLast >= 10000) {
+            // Force click or over 10s, fire immediately
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current);
                 timeoutRef.current = null;

@@ -6,7 +6,7 @@ import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreStochRSICard } from '../engine/TechnicalCompositeEngine';
 
-export default function StochRSICard({ cardId, data = null, lastUpdated, tradingMode = 'swing', indicatorParams, onOpenSettings }) {
+export default function StochRSICard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing', indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.stoch_rsi.id);
     
     const settingsConfig = [
@@ -16,8 +16,11 @@ export default function StochRSICard({ cardId, data = null, lastUpdated, trading
         { id: "stoch_d_period", label: "%D Smoothing", type: "number", min: 1, max: 20, default: 3 }
     ];
 
-    // Resolve current value
-    const currentValueObj = data?.stoch_rsi ?? null;
+    // Resolve current value from live data or manual override
+    const isLiveData = !!(data?.stoch_rsi && data.stoch_rsi.k !== undefined && data.stoch_rsi.k !== null);
+    const isManual = !isLiveData && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' && !isNaN(Number(manualOverride));
+    const currentValueObj = isLiveData ? data.stoch_rsi : (isManual ? { k: Number(manualOverride), d: Number(manualOverride) } : null);
+    const mode = isLiveData ? "AUTO" : (isManual ? "MANUAL" : "AUTO");
 
     const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreStochRSICard(currentValueObj), 'stoch_rsi', tradingMode);
 
@@ -30,10 +33,10 @@ export default function StochRSICard({ cardId, data = null, lastUpdated, trading
             config={{ 
                 title: "Stochastic RSI", 
                 category: "Momentum", 
-                mode: "AUTO", 
+                mode, 
                 creditScore: configData.creditScore, 
-                updateTime: lastUpdated ?? "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel,
                 settingsConfig,
                 onSettingsClick: () => onOpenSettings?.(settingsConfig)
@@ -46,7 +49,8 @@ export default function StochRSICard({ cardId, data = null, lastUpdated, trading
                 score, 
                 bias, 
                 confidence, 
-                impactWeight: configData.impactWeight 
+                impactWeight: configData.impactWeight,
+                isManual
             }}
             chartData={{ points: data?.history || [], valueKey: "value", valueName: "StochRSI" }}
             insights={{ 

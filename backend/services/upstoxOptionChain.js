@@ -95,11 +95,21 @@ export const fetchOptionChain = async (instrumentKey, expiryDate) => {
         
         const insertAll = db.transaction((items) => {
             for (const c of items) {
+                const ceOi = c.call_options?.market_data?.oi || 0;
+                const peOi = c.put_options?.market_data?.oi || 0;
+
+                // Save initial baseline for today (INSERT OR IGNORE preserves the morning opening value)
+                insertBaselineStmt.run(instrumentKey, expiryDate, c.strike_price, today, ceOi, peOi);
+
+                const baseline = getBaselineStmt.get(instrumentKey, expiryDate, c.strike_price, today);
+                const ceOiChange = c.call_options?.market_data?.oi_change ?? (baseline ? ceOi - baseline.ce_oi : 0);
+                const peOiChange = c.put_options?.market_data?.oi_change ?? (baseline ? peOi - baseline.pe_oi : 0);
+
                 insertOptionChainStmt.run(
                     instrumentKey, expiryDate, c.strike_price, c.underlying_spot_price,
                     c.call_options?.market_data?.ltp, c.put_options?.market_data?.ltp,
-                    c.call_options?.market_data?.oi, c.put_options?.market_data?.oi,
-                    c.call_options?.market_data?.oi_change, c.put_options?.market_data?.oi_change,
+                    ceOi, peOi,
+                    ceOiChange, peOiChange,
                     c.call_options?.market_data?.volume, c.put_options?.market_data?.volume,
                     c.call_options?.instrument_key, c.put_options?.instrument_key
                 );

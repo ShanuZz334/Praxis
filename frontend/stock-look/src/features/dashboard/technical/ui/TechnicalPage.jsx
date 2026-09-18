@@ -20,9 +20,9 @@ import { computeCardConfidence, computeHeaderConfidence } from "@/shared/engine/
 import { formatTimestampWithDate } from "@/shared/utils/formatters";
 
 const DEFAULT_OVERRIDES = {
-    ad_line: null, mcclellan: null, nh_nl: null, trin: null,
+    ad_line: null, nh_nl: null,
     support: null, resistance: null, trendline: null, fibonacci: null, pivot: null,
-    kc: null, cmf: null, breadth_ratio: null
+    cmf: null, breadth_ratio: null
 };
 
 // Wrapper to automatically inject timer configs
@@ -41,25 +41,22 @@ export default function TechnicalPage() {
     const isIndex = selectedCategory === 'Indices';
 
     const cards = [
-        // Trend
+        // Trend (Optimized: Removed duplicate SMA 50 & SMA 200 to prevent 72% moving average bias)
         { id: "ema_20", category: "Trend" },
         { id: "ema_50", category: "Trend" },
         { id: "ema_200", category: "Trend" },
-        { id: "sma_50", category: "Trend" },
-        { id: "sma_200", category: "Trend" },
         { id: "adx", category: "Trend" },
         { id: "supertrend", category: "Trend" },
         ...(!isIndex ? [{ id: "beta_correlation", category: "Trend" }] : []),
-        // Momentum
+        // Momentum (Optimized: Removed Williams %R which is mathematically identical to Fast Stochastic)
         { id: "rsi", category: "Momentum" },
         { id: "macd", category: "Momentum" },
         { id: "stoch_rsi", category: "Momentum" },
-        { id: "williams_r", category: "Momentum" },
         // Volatility
         { id: "bb_20_2", category: "Volatility" },
         { id: "atr", category: "Volatility" },
         { id: "kc", category: "Volatility" },
-        // Volume / Breadth
+        // Volume / Breadth (Optimized: Removed unpopulated manual stubs McClellan and TRIN)
         ...(!isIndex ? [
             { id: "cmf", category: "Volume" },
             { id: "volume_sma", category: "Volume" },
@@ -67,10 +64,8 @@ export default function TechnicalPage() {
             { id: "vwap", category: "Volume" }
         ] : [
             { id: "breadth_ratio", category: "Breadth" },
-            { id: "mcclellan", category: "Breadth" },
             { id: "ad_line", category: "Breadth" },
-            { id: "nh_nl", category: "Breadth" },
-            { id: "trin", category: "Breadth" }
+            { id: "nh_nl", category: "Breadth" }
         ]),
         // Structure
         { id: "support", category: "Structure" },
@@ -111,8 +106,7 @@ export default function TechnicalPage() {
         rsi_period: 14,
         macd_fast: 12, macd_slow: 26, macd_signal: 9,
         stoch_rsi_period: 14, stoch_period: 14, stoch_k_period: 3, stoch_d_period: 3,
-        williams_period: 14,
-        bb_period: 20, bb_stddev: 2, atr_period: 14, kc_period: 20, kc_multiplier: 1.5, kc_atr_period: 10
+        bb_period: 20, bb_stddev: 2, atr_period: 14
     });
     const [activeSettingsConfig, setActiveSettingsConfig] = useState(null);
 
@@ -277,16 +271,14 @@ export default function TechnicalPage() {
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6">
                 {/* Structure & Breadth */}
-                {((isIndex && (!hasData('ad_line') || !hasData('mcclellan') || !hasData('nh_nl') || !hasData('trin'))) || !hasData('support') || !hasData('resistance') || !hasData('trendline') || !hasData('fibonacci') || !hasData('pivot')) && (
+                {((isIndex && (!hasData('ad_line') || !hasData('nh_nl'))) || !hasData('support') || !hasData('resistance') || !hasData('trendline') || !hasData('fibonacci') || !hasData('pivot')) && (
                     <div className="space-y-2">
                         <div className="text-xs font-bold text-yellow-500 mb-2">Structure & Breadth</div>
                         {isIndex && (
                             <>
                                 {!hasData('breadth_ratio') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Breadth Ratio" overrideKey="breadth_ratio" value={manualOverrides.breadth_ratio} onChange={handleOverrideChange} info="Market Breadth Ratio (Advances / Declines). Realistic range: 0.1 to 5.0." />}
                                 {!hasData('ad_line') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="A/D Line" overrideKey="ad_line" value={manualOverrides.ad_line} onChange={handleOverrideChange} info="Cumulative Advance-Decline Line." />}
-                                {!hasData('mcclellan') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="McClellan Osc" overrideKey="mcclellan" value={manualOverrides.mcclellan} onChange={handleOverrideChange} info="McClellan Oscillator measures market breadth momentum. Realistic range: -150 to +150." />}
                                 {!hasData('nh_nl') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="New Highs / Lows" overrideKey="nh_nl" value={manualOverrides.nh_nl} onChange={handleOverrideChange} info="Net New Highs minus New Lows." />}
-                                {!hasData('trin') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="TRIN (Arms Index)" overrideKey="trin" value={manualOverrides.trin} onChange={handleOverrideChange} info="TRIN (Arms Index) measures market volatility. Below 1 is bullish, above 1 is bearish. Realistic range: 0.5 to 2.5." />}
                             </>
                         )}
                         {!hasData('support') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Support" overrideKey="support" value={manualOverrides.support} onChange={handleOverrideChange} info="Major structural support level price." />}
@@ -297,13 +289,12 @@ export default function TechnicalPage() {
                     </div>
                 )}
  
-                {/* Volatility & Custom */}
-                {(!hasData('kc') || !hasData('beta_correlation') || (!isIndex && !hasData('cmf'))) && (
+                {/* Volatility & Advanced (Company Only) */}
+                {!isIndex && (!hasData('beta_correlation') || !hasData('cmf')) && (
                     <div className="space-y-2">
                         <div className="text-xs font-bold text-purple-500 mb-2">Volatility & Advanced</div>
-                        {!hasData('kc') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Keltner Channels" overrideKey="kc" value={manualOverrides.kc} onChange={handleOverrideChange} info="Keltner Channels upper band value." />}
                         {!hasData('beta_correlation') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Beta (vs Nifty)" overrideKey="beta_correlation" value={manualOverrides.beta_correlation} onChange={handleOverrideChange} info="Beta correlation to benchmark. >1 is volatile, <1 is defensive." />}
-                        {!isIndex && !hasData('cmf') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="CMF" overrideKey="cmf" value={manualOverrides.cmf} onChange={handleOverrideChange} info="Chaikin Money Flow measures buying/selling pressure. Range: -1 to +1." />}
+                        {!hasData('cmf') && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="CMF" overrideKey="cmf" value={manualOverrides.cmf} onChange={handleOverrideChange} info="Chaikin Money Flow measures buying/selling pressure. Range: -1 to +1." />}
                     </div>
                 )}
             </div>

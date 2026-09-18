@@ -1,5 +1,5 @@
 /**
- * In-memory tracker for external API rate limits (e.g., Alpha Vantage free tier: 25/day, 5/min)
+ * In-memory tracker for external API rate limits (e.g., daily and minute quotas)
  */
 class RateLimitBudgetTracker {
     constructor() {
@@ -25,7 +25,7 @@ class RateLimitBudgetTracker {
 
     /**
      * Check if a request can proceed and consume 1 quota if allowed.
-     * @param {string} sourceId - e.g., 'Alpha Vantage'
+     * @param {string} sourceId - e.g., external provider ID
      * @param {Object} limits - { requestsPerDay, requestsPerMinute }
      * @returns {boolean} True if allowed, False if budget exhausted
      */

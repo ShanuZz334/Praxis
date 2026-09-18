@@ -11,7 +11,6 @@ import { technicalSections } from "@/features/dashboard/technical/engine/technic
 import RSICard from './RSICard';
 import MACDCard from './MACDCard';
 import StochRSICard from './StochRSICard';
-import WilliamsRCard from './WilliamsRCard';
 import BBCard from "./BBCard";
 import ATRCard from "./ATRCard";
 import KCCard from "./KCCard";
@@ -27,23 +26,19 @@ import FibonacciCard from "./FibonacciCard";
 import EMA20Card from "./EMA20Card";
 import EMA50Card from "./EMA50Card";
 import EMA200Card from "./EMA200Card";
-import SMA50Card from "./SMA50Card";
-import SMA200Card from "./SMA200Card";
 import ADXCard from "./ADXCard";
 import SupertrendCard from "./SupertrendCard";
 import BreadthRatioCard from "./BreadthRatioCard";
-import McClellanCard from "./McClellanCard";
 import ADLineCard from "./ADLineCard";
 import NhnlCard from "./NhnlCard";
-import TrinCard from "./TrinCard";
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import BetaCorrelationCard from "./BetaCorrelationCard";
 
 const HARDCODED_IDS = [
-    CARD_REGISTRY.rsi.id,CARD_REGISTRY.macd.id,CARD_REGISTRY.stoch_rsi.id,CARD_REGISTRY.williams_r.id,CARD_REGISTRY.bb_20_2.id,CARD_REGISTRY.atr.id,CARD_REGISTRY.kc.id,CARD_REGISTRY.cmf.id,
+    CARD_REGISTRY.rsi.id,CARD_REGISTRY.macd.id,CARD_REGISTRY.stoch_rsi.id,CARD_REGISTRY.bb_20_2.id,CARD_REGISTRY.atr.id,CARD_REGISTRY.kc.id,CARD_REGISTRY.cmf.id,
     CARD_REGISTRY.volume_sma.id,CARD_REGISTRY.obv.id,CARD_REGISTRY.vwap.id,CARD_REGISTRY.support.id,CARD_REGISTRY.resistance.id,CARD_REGISTRY.trendline.id,CARD_REGISTRY.pivot.id,
-    CARD_REGISTRY.fibonacci.id,CARD_REGISTRY.ema_20.id,CARD_REGISTRY.ema_50.id,CARD_REGISTRY.ema_200.id,CARD_REGISTRY.sma_50.id,CARD_REGISTRY.sma_200.id,CARD_REGISTRY.adx.id,
-    CARD_REGISTRY.supertrend.id,CARD_REGISTRY.breadth_ratio.id,CARD_REGISTRY.mcclellan.id,CARD_REGISTRY.ad_line.id,CARD_REGISTRY.nh_nl.id,CARD_REGISTRY.trin.id,
+    CARD_REGISTRY.fibonacci.id,CARD_REGISTRY.ema_20.id,CARD_REGISTRY.ema_50.id,CARD_REGISTRY.ema_200.id,CARD_REGISTRY.adx.id,
+    CARD_REGISTRY.supertrend.id,CARD_REGISTRY.breadth_ratio.id,CARD_REGISTRY.ad_line.id,CARD_REGISTRY.nh_nl.id,
     CARD_REGISTRY.beta_correlation.id
 ];
 
@@ -129,39 +124,34 @@ export default function TechnicalGrid({
 
             {viewMode === "flat" ? (() => {
                 const renderList = [
-                    { id: CARD_REGISTRY.rsi.id,          node: <RSICard cardId={CARD_REGISTRY.rsi.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.rsi} lastUpdated={resolveTime(!!data?.rsi, CARD_REGISTRY.rsi.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
-                    { id: CARD_REGISTRY.macd.id,         node: <MACDCard cardId={CARD_REGISTRY.macd.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.macd} lastUpdated={resolveTime(!!data?.macd, CARD_REGISTRY.macd.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
-                    { id: CARD_REGISTRY.stoch_rsi.id,    node: <StochRSICard cardId={CARD_REGISTRY.stoch_rsi.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.stoch_rsi} lastUpdated={resolveTime(!!data?.stoch_rsi, CARD_REGISTRY.stoch_rsi.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
-                    { id: CARD_REGISTRY.williams_r.id,   node: <WilliamsRCard cardId={CARD_REGISTRY.williams_r.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.williams_r} lastUpdated={resolveTime(!!data?.williams_r, CARD_REGISTRY.williams_r.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
-                    { id: CARD_REGISTRY.bb_20_2.id,      node: <BBCard cardId={CARD_REGISTRY.bb_20_2.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.bb_20_2} lastUpdated={resolveTime(!!data?.bb_20_2, CARD_REGISTRY.bb_20_2.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
-                    { id: CARD_REGISTRY.atr.id,          node: <ATRCard cardId={CARD_REGISTRY.atr.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.atr} lastUpdated={resolveTime(!!data?.atr, CARD_REGISTRY.atr.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
-                    { id: CARD_REGISTRY.kc.id,           node: <KCCard cardId={CARD_REGISTRY.kc.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.kc} lastUpdated={resolveTime(!!data?.kc, CARD_REGISTRY.kc.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: CARD_REGISTRY.rsi.id,          node: <RSICard cardId={CARD_REGISTRY.rsi.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.rsi} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.rsi.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: CARD_REGISTRY.macd.id,         node: <MACDCard cardId={CARD_REGISTRY.macd.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.macd} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.macd.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: CARD_REGISTRY.stoch_rsi.id,    node: <StochRSICard cardId={CARD_REGISTRY.stoch_rsi.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.stoch_rsi} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.stoch_rsi.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: CARD_REGISTRY.bb_20_2.id,      node: <BBCard cardId={CARD_REGISTRY.bb_20_2.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.bb_20_2} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.bb_20_2.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: CARD_REGISTRY.atr.id,          node: <ATRCard cardId={CARD_REGISTRY.atr.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.atr} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.atr.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: CARD_REGISTRY.kc.id,           node: <KCCard cardId={CARD_REGISTRY.kc.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.kc} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.kc.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
                     ...(!isIndex ? [
-                        { id: CARD_REGISTRY.cmf.id,          node: <CmfCard cardId={CARD_REGISTRY.cmf.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.cmf} lastUpdated={resolveTime(!!data?.cmf, CARD_REGISTRY.cmf.id)} /> },
-                        { id: CARD_REGISTRY.volume_sma.id,   node: <VolumeSmaCard cardId={CARD_REGISTRY.volume_sma.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.volume_sma} lastUpdated={resolveTime(!!data?.volume_sma, CARD_REGISTRY.volume_sma.id)} /> },
-                        { id: CARD_REGISTRY.obv.id,          node: <ObvCard cardId={CARD_REGISTRY.obv.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.obv} lastUpdated={resolveTime(!!data?.obv, CARD_REGISTRY.obv.id)} /> },
-                        { id: CARD_REGISTRY.vwap.id,         node: <VwapCard cardId={CARD_REGISTRY.vwap.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.vwap} lastUpdated={resolveTime(!!data?.vwap, CARD_REGISTRY.vwap.id)} /> },
+                        { id: CARD_REGISTRY.cmf.id,          node: <CmfCard cardId={CARD_REGISTRY.cmf.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.cmf} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.cmf.id)} /> },
+                        { id: CARD_REGISTRY.volume_sma.id,   node: <VolumeSmaCard cardId={CARD_REGISTRY.volume_sma.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.volume_sma} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.volume_sma.id)} /> },
+                        { id: CARD_REGISTRY.obv.id,          node: <ObvCard cardId={CARD_REGISTRY.obv.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.obv} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.obv.id)} /> },
+                        { id: CARD_REGISTRY.vwap.id,         node: <VwapCard cardId={CARD_REGISTRY.vwap.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.vwap} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.vwap.id)} /> },
                     ] : []),
-                    { id: CARD_REGISTRY.support.id,      node: <SupportCard cardId={CARD_REGISTRY.support.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.support} lastUpdated={resolveTime(!!data?.support, CARD_REGISTRY.support.id)} /> },
-                    { id: CARD_REGISTRY.resistance.id,   node: <ResistanceCard cardId={CARD_REGISTRY.resistance.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.resistance} lastUpdated={resolveTime(!!data?.resistance, CARD_REGISTRY.resistance.id)} /> },
-                    { id: CARD_REGISTRY.trendline.id,    node: <TrendlineCard cardId={CARD_REGISTRY.trendline.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.trendline} lastUpdated={resolveTime(!!data?.trendline, CARD_REGISTRY.trendline.id)} /> },
-                    { id: CARD_REGISTRY.pivot.id,        node: <PivotCard cardId={CARD_REGISTRY.pivot.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.pivot} lastUpdated={resolveTime(!!data?.pivot, CARD_REGISTRY.pivot.id)} /> },
-                    { id: CARD_REGISTRY.fibonacci.id,    node: <FibonacciCard cardId={CARD_REGISTRY.fibonacci.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.fibonacci} lastUpdated={resolveTime(!!data?.fibonacci, CARD_REGISTRY.fibonacci.id)} /> },
-                    { id: CARD_REGISTRY.ema_20.id,       node: <EMA20Card cardId={CARD_REGISTRY.ema_20.id} data={data} tradingMode={tradingMode} lastUpdated={resolveTime(!!data?.ema_20, CARD_REGISTRY.ema_20.id)} /> },
-                    { id: CARD_REGISTRY.ema_50.id,       node: <EMA50Card cardId={CARD_REGISTRY.ema_50.id} data={data} tradingMode={tradingMode} lastUpdated={resolveTime(!!data?.ema_50, CARD_REGISTRY.ema_50.id)} /> },
-                    { id: CARD_REGISTRY.ema_200.id,      node: <EMA200Card cardId={CARD_REGISTRY.ema_200.id} data={data} tradingMode={tradingMode} lastUpdated={resolveTime(!!data?.ema_200, CARD_REGISTRY.ema_200.id)} /> },
-                    { id: CARD_REGISTRY.sma_50.id,       node: <SMA50Card cardId={CARD_REGISTRY.sma_50.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.sma_50} lastUpdated={resolveTime(!!data?.sma_50, CARD_REGISTRY.sma_50.id)} /> },
-                    { id: CARD_REGISTRY.sma_200.id,      node: <SMA200Card cardId={CARD_REGISTRY.sma_200.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.sma_200} lastUpdated={resolveTime(!!data?.sma_200, CARD_REGISTRY.sma_200.id)} /> },
-                    { id: CARD_REGISTRY.adx.id,          node: <ADXCard cardId={CARD_REGISTRY.adx.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.adx} lastUpdated={resolveTime(!!data?.adx, CARD_REGISTRY.adx.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
-                    { id: CARD_REGISTRY.supertrend.id,   node: <SupertrendCard cardId={CARD_REGISTRY.supertrend.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.supertrend} lastUpdated={resolveTime(!!data?.supertrend, CARD_REGISTRY.supertrend.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: CARD_REGISTRY.support.id,      node: <SupportCard cardId={CARD_REGISTRY.support.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.support} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.support.id)} /> },
+                    { id: CARD_REGISTRY.resistance.id,   node: <ResistanceCard cardId={CARD_REGISTRY.resistance.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.resistance} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.resistance.id)} /> },
+                    { id: CARD_REGISTRY.trendline.id,    node: <TrendlineCard cardId={CARD_REGISTRY.trendline.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.trendline} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.trendline.id)} /> },
+                    { id: CARD_REGISTRY.pivot.id,        node: <PivotCard cardId={CARD_REGISTRY.pivot.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.pivot} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.pivot.id)} /> },
+                    { id: CARD_REGISTRY.fibonacci.id,    node: <FibonacciCard cardId={CARD_REGISTRY.fibonacci.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.fibonacci} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.fibonacci.id)} /> },
+                    { id: CARD_REGISTRY.ema_20.id,       node: <EMA20Card cardId={CARD_REGISTRY.ema_20.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.ema_20} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.ema_20.id)} /> },
+                    { id: CARD_REGISTRY.ema_50.id,       node: <EMA50Card cardId={CARD_REGISTRY.ema_50.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.ema_50} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.ema_50.id)} /> },
+                    { id: CARD_REGISTRY.ema_200.id,      node: <EMA200Card cardId={CARD_REGISTRY.ema_200.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.ema_200} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.ema_200.id)} /> },
+                    { id: CARD_REGISTRY.adx.id,          node: <ADXCard cardId={CARD_REGISTRY.adx.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.adx} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.adx.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
+                    { id: CARD_REGISTRY.supertrend.id,   node: <SupertrendCard cardId={CARD_REGISTRY.supertrend.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.supertrend} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.supertrend.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} /> },
                     ...(isIndex ? [
-                        { id: CARD_REGISTRY.breadth_ratio.id, node: <BreadthRatioCard cardId={CARD_REGISTRY.breadth_ratio.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.breadth_ratio} lastUpdated={resolveTime(data?.breadth?.breadthRatio !== undefined && data?.breadth?.breadthRatio !== null, CARD_REGISTRY.breadth_ratio.id)} /> },
-                        { id: CARD_REGISTRY.mcclellan.id,    node: <McClellanCard cardId={CARD_REGISTRY.mcclellan.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.mcclellan} lastUpdated={resolveTime(!!data?.mcclellan, CARD_REGISTRY.mcclellan.id)} /> },
-                        { id: CARD_REGISTRY.ad_line.id,      node: <ADLineCard cardId={CARD_REGISTRY.ad_line.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.ad_line} lastUpdated={resolveTime(data?.breadth?.netAdvances !== undefined && data?.breadth?.netAdvances !== null, CARD_REGISTRY.ad_line.id)} /> },
-                        { id: CARD_REGISTRY.nh_nl.id,        node: <NhnlCard cardId={CARD_REGISTRY.nh_nl.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.nh_nl} lastUpdated={resolveTime(data?.breadth?.nhnlRatio !== undefined && data?.breadth?.nhnlRatio !== null, CARD_REGISTRY.nh_nl.id)} /> },
-                        { id: CARD_REGISTRY.trin.id,         node: <TrinCard cardId={CARD_REGISTRY.trin.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.trin} lastUpdated={resolveTime(!!data?.trin, CARD_REGISTRY.trin.id)} /> }
+                        { id: CARD_REGISTRY.breadth_ratio.id, node: <BreadthRatioCard cardId={CARD_REGISTRY.breadth_ratio.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.breadth_ratio} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.breadth_ratio.id)} /> },
+                        { id: CARD_REGISTRY.ad_line.id,      node: <ADLineCard cardId={CARD_REGISTRY.ad_line.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.ad_line} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.ad_line.id)} /> },
+                        { id: CARD_REGISTRY.nh_nl.id,        node: <NhnlCard cardId={CARD_REGISTRY.nh_nl.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.nh_nl} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.nh_nl.id)} /> }
                     ] : []),
-                    { id: CARD_REGISTRY.beta_correlation.id, node: <BetaCorrelationCard cardId={CARD_REGISTRY.beta_correlation.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.beta_correlation} lastUpdated={resolveTime(!!data?.beta, CARD_REGISTRY.beta_correlation.id)} /> }
+                    { id: CARD_REGISTRY.beta_correlation.id, node: <BetaCorrelationCard cardId={CARD_REGISTRY.beta_correlation.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.beta_correlation} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.beta_correlation.id)} /> }
                 ];
                 const excludeIds = renderList.map(item => item.id);
                 const flatWithData = renderList.map(item => {
@@ -190,14 +180,13 @@ export default function TechnicalGrid({
             })() : (
                 <div className="space-y-6 md:space-y-10">
                     {SECTION_ORDER.map((section) => {
-                        const hardcodedCounts = { 'Trend':7, 'Momentum':4, 'Volatility':4, 'Volume':4, 'Structure':5, 'Breadth':5 };
                         const expectedIds = {
-                            'Trend': [CARD_REGISTRY.ema_20.id, CARD_REGISTRY.ema_50.id, CARD_REGISTRY.ema_200.id, CARD_REGISTRY.sma_50.id, CARD_REGISTRY.sma_200.id, CARD_REGISTRY.adx.id, CARD_REGISTRY.supertrend.id, CARD_REGISTRY.beta_correlation.id],
-                            'Momentum': [CARD_REGISTRY.rsi.id, CARD_REGISTRY.macd.id, CARD_REGISTRY.stoch_rsi.id, CARD_REGISTRY.williams_r.id],
+                            'Trend': [CARD_REGISTRY.ema_20.id, CARD_REGISTRY.ema_50.id, CARD_REGISTRY.ema_200.id, CARD_REGISTRY.adx.id, CARD_REGISTRY.supertrend.id, CARD_REGISTRY.beta_correlation.id],
+                            'Momentum': [CARD_REGISTRY.rsi.id, CARD_REGISTRY.macd.id, CARD_REGISTRY.stoch_rsi.id],
                             'Volatility': [CARD_REGISTRY.bb_20_2.id, CARD_REGISTRY.atr.id, CARD_REGISTRY.kc.id],
                             'Volume': isIndex ? [] : [CARD_REGISTRY.cmf.id, CARD_REGISTRY.volume_sma.id, CARD_REGISTRY.obv.id, CARD_REGISTRY.vwap.id],
                             'Structure': [CARD_REGISTRY.support.id, CARD_REGISTRY.resistance.id, CARD_REGISTRY.trendline.id, CARD_REGISTRY.pivot.id, CARD_REGISTRY.fibonacci.id],
-                            'Breadth': isIndex ? [CARD_REGISTRY.ad_line.id, CARD_REGISTRY.nh_nl.id, CARD_REGISTRY.breadth_ratio.id, CARD_REGISTRY.trin.id, CARD_REGISTRY.mcclellan.id] : []
+                            'Breadth': isIndex ? [CARD_REGISTRY.ad_line.id, CARD_REGISTRY.nh_nl.id, CARD_REGISTRY.breadth_ratio.id] : []
                         }[section] || [];
 
                         const rawList = grouped[section];
@@ -218,45 +207,40 @@ export default function TechnicalGrid({
                                 </div>
                                 <div className={gridClass}>
                                     {section === 'Trend' && (<>
-                                        <EMA20Card cardId={CARD_REGISTRY.ema_20.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.ema_20} lastUpdated={resolveTime(!!data?.ema_20, CARD_REGISTRY.ema_20.id)} />
-                                        <EMA50Card cardId={CARD_REGISTRY.ema_50.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.ema_50} lastUpdated={resolveTime(!!data?.ema_50, CARD_REGISTRY.ema_50.id)} />
-                                        <EMA200Card cardId={CARD_REGISTRY.ema_200.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.ema_200} lastUpdated={resolveTime(!!data?.ema_200, CARD_REGISTRY.ema_200.id)} />
-                                        <SMA50Card cardId={CARD_REGISTRY.sma_50.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.sma_50} lastUpdated={resolveTime(!!data?.sma_50, CARD_REGISTRY.sma_50.id)} />
-                                        <SMA200Card cardId={CARD_REGISTRY.sma_200.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.sma_200} lastUpdated={resolveTime(!!data?.sma_200, CARD_REGISTRY.sma_200.id)} />
-                                        <ADXCard cardId={CARD_REGISTRY.adx.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.adx} lastUpdated={resolveTime(!!data?.adx, CARD_REGISTRY.adx.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <SupertrendCard cardId={CARD_REGISTRY.supertrend.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.supertrend} lastUpdated={resolveTime(!!data?.supertrend, CARD_REGISTRY.supertrend.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <BetaCorrelationCard cardId={CARD_REGISTRY.beta_correlation.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.beta_correlation} lastUpdated={resolveTime(!!data?.beta, CARD_REGISTRY.beta_correlation.id)} />
+                                        <EMA20Card cardId={CARD_REGISTRY.ema_20.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.ema_20} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.ema_20.id)} />
+                                        <EMA50Card cardId={CARD_REGISTRY.ema_50.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.ema_50} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.ema_50.id)} />
+                                        <EMA200Card cardId={CARD_REGISTRY.ema_200.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.ema_200} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.ema_200.id)} />
+                                        <ADXCard cardId={CARD_REGISTRY.adx.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.adx} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.adx.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <SupertrendCard cardId={CARD_REGISTRY.supertrend.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.supertrend} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.supertrend.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <BetaCorrelationCard cardId={CARD_REGISTRY.beta_correlation.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.beta_correlation} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.beta_correlation.id)} />
                                     </>)}
                                     {section === 'Momentum' && (<>
-                                        <RSICard cardId={CARD_REGISTRY.rsi.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.rsi} lastUpdated={resolveTime(!!data?.rsi, CARD_REGISTRY.rsi.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <MACDCard cardId={CARD_REGISTRY.macd.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.macd} lastUpdated={resolveTime(!!data?.macd, CARD_REGISTRY.macd.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <StochRSICard cardId={CARD_REGISTRY.stoch_rsi.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.stoch_rsi} lastUpdated={resolveTime(!!data?.stoch_rsi, CARD_REGISTRY.stoch_rsi.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <WilliamsRCard cardId={CARD_REGISTRY.williams_r.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.williams_r} lastUpdated={resolveTime(!!data?.williams_r, CARD_REGISTRY.williams_r.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <RSICard cardId={CARD_REGISTRY.rsi.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.rsi} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.rsi.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <MACDCard cardId={CARD_REGISTRY.macd.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.macd} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.macd.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <StochRSICard cardId={CARD_REGISTRY.stoch_rsi.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.stoch_rsi} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.stoch_rsi.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
                                     </>)}
                                     {section === 'Volatility' && (<>
-                                        <BBCard cardId={CARD_REGISTRY.bb_20_2.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.bb_20_2} lastUpdated={resolveTime(!!data?.bb_20_2, CARD_REGISTRY.bb_20_2.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <ATRCard cardId={CARD_REGISTRY.atr.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.atr} lastUpdated={resolveTime(!!data?.atr, CARD_REGISTRY.atr.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
-                                        <KCCard cardId={CARD_REGISTRY.kc.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.kc} lastUpdated={resolveTime(!!data?.kc, CARD_REGISTRY.kc.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <BBCard cardId={CARD_REGISTRY.bb_20_2.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.bb_20_2} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.bb_20_2.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <ATRCard cardId={CARD_REGISTRY.atr.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.atr} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.atr.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
+                                        <KCCard cardId={CARD_REGISTRY.kc.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.kc} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.kc.id)} indicatorParams={indicatorParams} onOpenSettings={onOpenSettings} />
                                     </>)}
                                     {section === 'Volume' && (<>
-                                        <CmfCard cardId={CARD_REGISTRY.cmf.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.cmf} lastUpdated={resolveTime(!!data?.cmf, CARD_REGISTRY.cmf.id)} />
-                                        <VolumeSmaCard cardId={CARD_REGISTRY.volume_sma.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.volume_sma} lastUpdated={resolveTime(!!data?.volume_sma, CARD_REGISTRY.volume_sma.id)} />
-                                        <ObvCard cardId={CARD_REGISTRY.obv.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.obv} lastUpdated={resolveTime(!!data?.obv, CARD_REGISTRY.obv.id)} />
-                                        <VwapCard cardId={CARD_REGISTRY.vwap.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.vwap} lastUpdated={resolveTime(!!data?.vwap, CARD_REGISTRY.vwap.id)} />
+                                        <CmfCard cardId={CARD_REGISTRY.cmf.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.cmf} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.cmf.id)} />
+                                        <VolumeSmaCard cardId={CARD_REGISTRY.volume_sma.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.volume_sma} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.volume_sma.id)} />
+                                        <ObvCard cardId={CARD_REGISTRY.obv.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.obv} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.obv.id)} />
+                                        <VwapCard cardId={CARD_REGISTRY.vwap.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.vwap} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.vwap.id)} />
                                     </>)}
                                     {section === 'Structure' && (<>
-                                        <SupportCard cardId={CARD_REGISTRY.support.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.support} lastUpdated={resolveTime(!!data?.support, CARD_REGISTRY.support.id)} />
-                                        <ResistanceCard cardId={CARD_REGISTRY.resistance.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.resistance} lastUpdated={resolveTime(!!data?.resistance, CARD_REGISTRY.resistance.id)} />
-                                        <TrendlineCard cardId={CARD_REGISTRY.trendline.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.trendline} lastUpdated={resolveTime(!!data?.trendline, CARD_REGISTRY.trendline.id)} />
-                                        <PivotCard cardId={CARD_REGISTRY.pivot.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.pivot} lastUpdated={resolveTime(!!data?.pivot, CARD_REGISTRY.pivot.id)} />
-                                        <FibonacciCard cardId={CARD_REGISTRY.fibonacci.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.fibonacci} lastUpdated={resolveTime(!!data?.fibonacci, CARD_REGISTRY.fibonacci.id)} />
+                                        <SupportCard cardId={CARD_REGISTRY.support.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.support} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.support.id)} />
+                                        <ResistanceCard cardId={CARD_REGISTRY.resistance.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.resistance} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.resistance.id)} />
+                                        <TrendlineCard cardId={CARD_REGISTRY.trendline.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.trendline} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.trendline.id)} />
+                                        <PivotCard cardId={CARD_REGISTRY.pivot.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.pivot} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.pivot.id)} />
+                                        <FibonacciCard cardId={CARD_REGISTRY.fibonacci.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.fibonacci} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.fibonacci.id)} />
                                     </>)}
                                     {section === 'Breadth' && (<>
-                                        <ADLineCard cardId={CARD_REGISTRY.ad_line.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.ad_line} lastUpdated={resolveTime(data?.breadth?.netAdvances !== undefined && data?.breadth?.netAdvances !== null, CARD_REGISTRY.ad_line.id)} />
-                                        <NhnlCard cardId={CARD_REGISTRY.nh_nl.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.nh_nl} lastUpdated={resolveTime(data?.breadth?.nhnlRatio !== undefined && data?.breadth?.nhnlRatio !== null, CARD_REGISTRY.nh_nl.id)} />
-                                        <BreadthRatioCard cardId={CARD_REGISTRY.breadth_ratio.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.breadth_ratio} lastUpdated={resolveTime(data?.breadth?.breadthRatio !== undefined && data?.breadth?.breadthRatio !== null, CARD_REGISTRY.breadth_ratio.id)} />
-                                        <TrinCard cardId={CARD_REGISTRY.trin.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.trin} lastUpdated={resolveTime(!!data?.trin, CARD_REGISTRY.trin.id)} />
-                                        <McClellanCard cardId={CARD_REGISTRY.mcclellan.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.mcclellan} lastUpdated={resolveTime(!!data?.mcclellan, CARD_REGISTRY.mcclellan.id)} />
+                                        <ADLineCard cardId={CARD_REGISTRY.ad_line.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.ad_line} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.ad_line.id)} />
+                                        <NhnlCard cardId={CARD_REGISTRY.nh_nl.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.nh_nl} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.nh_nl.id)} />
+                                        <BreadthRatioCard cardId={CARD_REGISTRY.breadth_ratio.id} data={data} tradingMode={tradingMode} manualOverride={manualOverrides?.breadth_ratio} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.breadth_ratio.id)} />
                                     </>)}
                                     {sectionCards.filter(card => !HARDCODED_IDS.includes(card.id) && !card.id.startsWith('dummy_')).map(card => (
                                         <TechnicalCard key={card.id} card={card} onClick={() => onCardClick(card)} />

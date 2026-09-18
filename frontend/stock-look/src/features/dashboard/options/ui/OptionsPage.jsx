@@ -133,14 +133,42 @@ export default function OptionsPage() {
     };
 
     const metrics = useMemo(() => {
-        const ivRank = manualOverrides?.iv_rank !== undefined && manualOverrides?.iv_rank !== null && manualOverrides?.iv_rank !== '' ? Number(manualOverrides.iv_rank) : null;
-        if (!chainData || chainData.length === 0) return { pcr: 1.0, maxPain: spotPrice, ivRank: ivRank };
+        const manualIvRank = manualOverrides?.iv_rank !== undefined && manualOverrides?.iv_rank !== null && manualOverrides?.iv_rank !== '' ? Number(manualOverrides.iv_rank) : null;
+        
+        let calculatedIvRank = null;
+        if (chainData && chainData.length > 0) {
+            let closestDiff = Infinity;
+            let atmRow = null;
+            chainData.forEach(r => {
+                if (spotPrice && r.strike) {
+                    const diff = Math.abs(r.strike - spotPrice);
+                    if (diff < closestDiff) {
+                        closestDiff = diff;
+                        atmRow = r;
+                    }
+                }
+            });
+            const atmIv = atmRow?.call?.iv || atmRow?.put?.iv || atmRow?.iv || 15.0;
+            const instrStr = typeof selectedInstrument === 'string'
+                ? selectedInstrument
+                : (selectedInstrument?.value || selectedInstrument?.label || '');
+            const isIndex = instrStr.includes('INDEX') || instrStr.includes('NIFTY');
+            const lowBound = isIndex ? 10.5 : 16.0;
+            const highBound = isIndex ? 24.5 : 42.0;
+            calculatedIvRank = Math.min(100, Math.max(0, Math.round(((atmIv - lowBound) / (highBound - lowBound)) * 100)));
+        }
+
+        const effectiveIvRank = manualIvRank !== null ? manualIvRank : calculatedIvRank;
+
+        if (!chainData || chainData.length === 0) {
+            return { pcr: 1.0, maxPain: spotPrice, ivRank: effectiveIvRank, isManualIvRank: manualIvRank !== null };
+        }
         
         const pcr = calculatePCR(chainData);
         const maxPain = calculateMaxPain(chainData);
         
-        return { pcr, maxPain, ivRank: ivRank };
-    }, [chainData, spotPrice, manualOverrides]);
+        return { pcr, maxPain, ivRank: effectiveIvRank, isManualIvRank: manualIvRank !== null };
+    }, [chainData, spotPrice, manualOverrides, selectedInstrument]);
 
     // 4. WebSocket Listener for Live Greeks
     useEffect(() => {
@@ -376,14 +404,14 @@ export default function OptionsPage() {
 
     // 3. Generate Pro Desk picks using the engine
     const proDeskData = useMemo(() => {
-        if (!chainData || chainData.length === 0) return { goldenStrikes: [], categories: {} };
+        if (!chainData || chainData.length === 0) return { goldenStrikes: { calls: [], puts: [] }, categories: {} };
         try {
-            return generateProDeskPicks(chainData, spotPrice, idealPremium);
+            return generateProDeskPicks(chainData, spotPrice, idealPremium, selectedExpiry);
         } catch (e) {
             console.error("Error generating pro desk picks:", e);
-            return { goldenStrikes: [], categories: {} };
+            return { goldenStrikes: { calls: [], puts: [] }, categories: {} };
         }
-    }, [chainData, spotPrice, idealPremium]);
+    }, [chainData, spotPrice, idealPremium, selectedExpiry]);
 
     // Phase 2 Fix B: Register options widgets into DataRegistry so @Options Chain, @ProDesk, @Options History resolve
     useEffect(() => {
@@ -499,17 +527,40 @@ export default function OptionsPage() {
         aiInsight: engineAiInsight,
         cardScores,
         nestedTreePayload
-    } = useOptionsCompositeScore(compositeData, selectedInstrument, metrics, proDeskData?.categories, spotPrice);
+    } = useOptionsCompositeScore(compositeData, selectedInstrument, metrics, proDeskData?.categories, spotPrice, false, tradingMode);
 
-    const resolveTime = useDataFreshness(chainData?.length > 0, manualOverrides, manualOverrideTimes, isMarketOpen, formatTime, "1s");
+    const liveOptionsData = useMemo(() => {
+        if (!chainData || chainData.length === 0) return null;
+        return {
+            oi_change: compositeData?.oiChange?.currentValue,
+            total_call_oi: compositeData?.totalCallOI?.currentValue,
+            total_put_oi: compositeData?.totalPutOI?.currentValue,
+            pcr_oi: compositeData?.pcrOi?.currentValue,
+            pcr_volume: compositeData?.pcrVolume?.currentValue,
+            delta: compositeData?.atmGreeks?.delta?.currentValue,
+            gamma: compositeData?.atmGreeks?.gamma?.currentValue,
+            theta: compositeData?.atmGreeks?.theta?.currentValue,
+            vega: compositeData?.atmGreeks?.vega?.currentValue,
+            atm_iv: compositeData?.volatility?.atmIv?.currentValue,
+            max_pain: compositeData?.maxPain?.strike,
+            expected_move: compositeData?.expectedMove?.currentValue,
+            gex: compositeData?.gex?.currentValue
+        };
+    }, [chainData, compositeData]);
+
+    const resolveTime = useDataFreshness(liveOptionsData, manualOverrides, manualOverrideTimes, isMarketOpen, formatTime, "1s");
 
     // Build cardsForHeader — mirrors TechnicalPage cardsForHeader logic
-        const OPTIONS_CARD_IDS = new Set([
-        CARD_REGISTRY.total_call_oi.id, CARD_REGISTRY.total_put_oi.id, CARD_REGISTRY.oi_change.id,
+    const OPTIONS_CARD_IDS = new Set([
+        CARD_REGISTRY.oi_change.id,
+        CARD_REGISTRY.total_call_oi.id,
+        CARD_REGISTRY.total_put_oi.id,
         CARD_REGISTRY.pcr_oi.id, CARD_REGISTRY.pcr_volume.id,
         CARD_REGISTRY.delta.id, CARD_REGISTRY.gamma.id, CARD_REGISTRY.theta.id, CARD_REGISTRY.vega.id,
-        CARD_REGISTRY.atm_iv.id, CARD_REGISTRY.iv_rank.id, CARD_REGISTRY.iv_percentile.id,
-        CARD_REGISTRY.max_pain.id
+        CARD_REGISTRY.atm_iv.id, CARD_REGISTRY.iv_rank.id,
+        CARD_REGISTRY.max_pain.id,
+        CARD_REGISTRY.expected_move.id,
+        CARD_REGISTRY.gex.id
     ]);
 
     const cardsForHeader = Object.entries(cardScores || {})
@@ -570,10 +621,7 @@ export default function OptionsPage() {
 
     const hasAtmIv = compositeData?.volatility?.atmIv?.currentValue !== undefined && compositeData?.volatility?.atmIv?.currentValue !== null && !isNaN(compositeData?.volatility?.atmIv?.currentValue);
     const hasIvRank = compositeData?.volatility?.ivRank?.currentValue !== undefined && compositeData?.volatility?.ivRank?.currentValue !== null && !isNaN(compositeData?.volatility?.ivRank?.currentValue);
-    const hasIvPercentile = compositeData?.volatility?.ivPercentile?.currentValue !== undefined && compositeData?.volatility?.ivPercentile?.currentValue !== null && !isNaN(compositeData?.volatility?.ivPercentile?.currentValue);
     const hasMaxPain = compositeData?.maxPain?.currentValue !== undefined && compositeData?.maxPain?.currentValue !== null && !isNaN(compositeData?.maxPain?.currentValue);
-    const hasTotalCallOI = compositeData?.totalCallOI?.currentValue !== undefined && compositeData?.totalCallOI?.currentValue !== null && !isNaN(compositeData?.totalCallOI?.currentValue);
-    const hasTotalPutOI = compositeData?.totalPutOI?.currentValue !== undefined && compositeData?.totalPutOI?.currentValue !== null && !isNaN(compositeData?.totalPutOI?.currentValue);
     const hasOiChange = compositeData?.oiChange?.currentValue !== undefined && compositeData?.oiChange?.currentValue !== null && !isNaN(compositeData?.oiChange?.currentValue);
     const hasPcrOi = compositeData?.pcrOi?.currentValue !== undefined && compositeData?.pcrOi?.currentValue !== null && !isNaN(compositeData?.pcrOi?.currentValue);
     const hasPcrVolume = compositeData?.pcrVolume?.currentValue !== undefined && compositeData?.pcrVolume?.currentValue !== null && !isNaN(compositeData?.pcrVolume?.currentValue);
@@ -581,6 +629,10 @@ export default function OptionsPage() {
     const hasGamma = compositeData?.atmGreeks?.gamma?.currentValue !== undefined && compositeData?.atmGreeks?.gamma?.currentValue !== null && !isNaN(compositeData?.atmGreeks?.gamma?.currentValue);
     const hasTheta = compositeData?.atmGreeks?.theta?.currentValue !== undefined && compositeData?.atmGreeks?.theta?.currentValue !== null && !isNaN(compositeData?.atmGreeks?.theta?.currentValue);
     const hasVega = compositeData?.atmGreeks?.vega?.currentValue !== undefined && compositeData?.atmGreeks?.vega?.currentValue !== null && !isNaN(compositeData?.atmGreeks?.vega?.currentValue);
+    const hasTotalCallOi = compositeData?.totalCallOI?.currentValue !== undefined && compositeData?.totalCallOI?.currentValue !== null && !isNaN(compositeData?.totalCallOI?.currentValue);
+    const hasTotalPutOi = compositeData?.totalPutOI?.currentValue !== undefined && compositeData?.totalPutOI?.currentValue !== null && !isNaN(compositeData?.totalPutOI?.currentValue);
+    const hasExpectedMove = compositeData?.expectedMove?.currentValue !== undefined && compositeData?.expectedMove?.currentValue !== null && !isNaN(compositeData?.expectedMove?.currentValue);
+    const hasGex = compositeData?.gex?.currentValue !== undefined && compositeData?.gex?.currentValue !== null && !isNaN(compositeData?.gex?.currentValue);
 
     const optionsManualForm = (
         <div className="space-y-6">
@@ -602,20 +654,21 @@ export default function OptionsPage() {
                 <div className="space-y-2">
                     <div className="text-xs font-bold text-emerald-500 mb-2">Volatility Settings</div>
                     {!hasIvRank && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="IV Rank (%)" overrideKey={CARD_REGISTRY.iv_rank.id} value={manualOverrides.iv_rank} onChange={handleOverrideChange} info="IV Rank measures current IV relative to its 1-year high/low. (0-100%)" />}
-                    {!hasIvPercentile && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="IV Percentile (%)" overrideKey={CARD_REGISTRY.iv_percentile.id} value={manualOverrides.iv_percentile} onChange={handleOverrideChange} info="Percentage of days over the past year where IV was lower than current IV. (0-100%)" />}
-                    {(!hasIvRank || !hasIvPercentile) && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Lookback (Days)" overrideKey="iv_lookback" value={manualOverrides.iv_lookback} onChange={handleOverrideChange} info="Number of days used for historical volatility calculation (usually 252 for 1-year)." />}
+                    {!hasIvRank && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Lookback (Days)" overrideKey="iv_lookback" value={manualOverrides.iv_lookback} onChange={handleOverrideChange} info="Number of days used for historical volatility calculation (usually 252 for 1-year)." />}
                     {!hasAtmIv && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="ATM IV (%)" overrideKey={CARD_REGISTRY.atm_iv.id} value={manualOverrides.atm_iv} onChange={handleOverrideChange} info="At-The-Money Implied Volatility." />}
                 </div>
 
-                {(!hasTotalCallOI || !hasTotalPutOI || !hasOiChange || !hasMaxPain || !hasPcrOi || !hasPcrVolume) && (
+                {(!hasOiChange || !hasTotalCallOi || !hasTotalPutOi || !hasMaxPain || !hasExpectedMove || !hasGex || !hasPcrOi || !hasPcrVolume) && (
                     <div className="space-y-2">
                         <div className="text-xs font-bold text-blue-500 mb-2">Open Interest & Positioning</div>
-                        {!hasTotalCallOI && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Total Call OI" overrideKey={CARD_REGISTRY.total_call_oi.id} value={manualOverrides.total_call_oi} onChange={handleOverrideChange} info="Cumulative Call Open Interest across all strikes." />}
-                        {!hasTotalPutOI && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Total Put OI" overrideKey={CARD_REGISTRY.total_put_oi.id} value={manualOverrides.total_put_oi} onChange={handleOverrideChange} info="Cumulative Put Open Interest across all strikes." />}
                         {!hasOiChange && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="OI Change" overrideKey={CARD_REGISTRY.oi_change.id} value={manualOverrides.oi_change} onChange={handleOverrideChange} info="Net change in Open Interest for the day." />}
+                        {!hasTotalCallOi && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Total Call OI" overrideKey={CARD_REGISTRY.total_call_oi.id} value={manualOverrides.total_call_oi} onChange={handleOverrideChange} info="Total call contracts open across the chain." />}
+                        {!hasTotalPutOi && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Total Put OI" overrideKey={CARD_REGISTRY.total_put_oi.id} value={manualOverrides.total_put_oi} onChange={handleOverrideChange} info="Total put contracts open across the chain." />}
                         {!hasPcrOi && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="PCR (OI)" overrideKey={CARD_REGISTRY.pcr_oi.id} value={manualOverrides.pcr_oi} onChange={handleOverrideChange} info="Put-Call Ratio based on Open Interest. >1 is bearish, <1 is bullish." />}
                         {!hasPcrVolume && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="PCR (Volume)" overrideKey={CARD_REGISTRY.pcr_volume.id} value={manualOverrides.pcr_volume} onChange={handleOverrideChange} info="Put-Call Ratio based on Trading Volume." />}
                         {!hasMaxPain && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Max Pain Strike" overrideKey={CARD_REGISTRY.max_pain.id} value={manualOverrides.max_pain} onChange={handleOverrideChange} info="The strike price with the most open options contracts." />}
+                        {!hasExpectedMove && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Expected Move (₹)" overrideKey={CARD_REGISTRY.expected_move.id} value={manualOverrides.expected_move} onChange={handleOverrideChange} info="Market-implied 1-standard-deviation price move until expiry." />}
+                        {!hasGex && <TimerOverrideInput manualLastUpdated={manualOverrideTimes} expiryConfigs={expiryConfigs} label="Net GEX (₹ Cr)" overrideKey={CARD_REGISTRY.gex.id} value={manualOverrides.gex} onChange={handleOverrideChange} info="Net Gamma Exposure per 1% move." />}
                     </div>
                 )}
 
@@ -689,11 +742,11 @@ export default function OptionsPage() {
                                     value={idealPremium}
                                     onChange={(v) => setIdealPremium(Number(v))}
                                     options={[
-                                        { label: "Deep OTM (₹15)", value: 15 },
-                                        { label: "Retail Sweet (₹30)", value: 30 },
-                                        { label: "Balanced (₹45)", value: 45 },
-                                        { label: "High Delta (₹80)", value: 80 },
-                                        { label: "ITM Safe (₹150)", value: 150 }
+                                        { label: "Deep OTM  (Δ 0.10–0.22)", value: 15 },
+                                        { label: "Retail Sweet  (Δ 0.22–0.38)", value: 30 },
+                                        { label: "Balanced  (Δ 0.38–0.56)", value: 45 },
+                                        { label: "High Delta  (Δ 0.56–0.78)", value: 80 },
+                                        { label: "ITM Safe  (Δ 0.78–0.95)", value: 150 }
                                     ]}
                                 />
                             </div>
@@ -741,7 +794,7 @@ export default function OptionsPage() {
             </div>
 
             {/* Live Metrics Grid */}
-            {chainData.length > 0 && (
+            {((chainData && chainData.length > 0) || Object.values(manualOverrides || {}).some(v => v !== null && v !== undefined && v !== '')) && (
                 <>
                     <div className="w-full h-px bg-white/5 my-6" />
                     <OptionsGrid

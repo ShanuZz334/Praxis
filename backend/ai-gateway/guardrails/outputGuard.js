@@ -74,7 +74,7 @@ export function validateOutput(text, jsonMode, schema) {
         if (firstIdx !== -1 && lastIdx !== -1) {
             // If the model cut off, lastIdx might be a random closing bracket, not the real end.
             // But let's try the bounded slice first.
-            clean = clean.substring(firstIdx, Math.max(lastIdx + 1, clean.length)).trim();
+            clean = clean.substring(firstIdx, lastIdx + 1).trim();
         } else if (firstIdx !== -1) {
             clean = clean.substring(firstIdx).trim();
         }

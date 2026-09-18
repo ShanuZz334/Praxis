@@ -6,12 +6,15 @@ import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreEMA200Card } from '../engine/TechnicalCompositeEngine';
 
-export default function EMA200Card({ cardId, data = null, lastUpdated, tradingMode = 'swing' }) {
+export default function EMA200Card({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.ema_200.id);
     
-    // Resolve current value
-    const currentValue = data?.ema_200 ?? null;
+    // Resolve current value from live data or manual override
     const currentPrice = data?.current_price ?? null;
+    const isLiveData = data?.ema_200 !== undefined && data?.ema_200 !== null && !isNaN(Number(data.ema_200));
+    const isManual = !isLiveData && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' && !isNaN(Number(manualOverride));
+    const currentValue = isLiveData ? Number(data.ema_200) : (isManual ? Number(manualOverride) : null);
+    const mode = isLiveData ? "AUTO" : (isManual ? "MANUAL" : "AUTO");
 
     const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreEMA200Card(currentValue, currentPrice), 'ema_200', tradingMode);
 
@@ -20,14 +23,23 @@ export default function EMA200Card({ cardId, data = null, lastUpdated, tradingMo
     return (
         <IndicatorCard
             cardId={cardId}
-            config={{ title: "EMA 200", category: "Trend", mode: "AUTO", creditScore: configData.creditScore, updateTime: lastUpdated ?? "--:--", source: configData.source, aiModel: configData.aiModel }}
+            config={{ 
+                title: "EMA 200", 
+                category: "Trend", 
+                mode, 
+                creditScore: configData.creditScore, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || "--:--"), 
+                source: isLiveData ? configData.source : "Manual", 
+                aiModel: configData.aiModel 
+            }}
             data={{ 
                 currentValueObj: { label: "Value", value: displayValue }, 
                 details: [], 
                 score, 
                 bias, 
                 confidence, 
-                impactWeight: configData.impactWeight 
+                impactWeight: configData.impactWeight,
+                isManual
             }}
             chartData={{ points: data?.history || [], valueKey: "value", valueName: "EMA 200" }}
             insights={{ 

@@ -133,7 +133,10 @@ export function blendRollingForecasts(oldCandles, newCandles, options = {}) {
         blended.push(bar0);
 
         const oldRemaining = oldCandles.slice(1);
-        const newRemaining = newCandles;
+        // FA-010 Fix: When regenerating on the same active bar, slice newRemaining to align horizons
+        const isSameAnchor = (newCandles[0]?.time && oldCandles[0]?.time && newCandles[0].time === oldCandles[0].time)
+            || (oldCandles.length === newCandles.length);
+        const newRemaining = isSameAnchor ? newCandles.slice(1) : newCandles;
 
         const totalToProcess = Math.min(maxHorizon - 1, Math.max(oldRemaining.length, newRemaining.length));
 
@@ -145,7 +148,7 @@ export function blendRollingForecasts(oldCandles, newCandles, options = {}) {
             if (O && N) {
                 // Both old and new predictions exist for this horizon slot
                 const hO = j + 2;
-                const hN = j + 1;
+                const hN = isSameAnchor ? (j + 2) : (j + 1);
 
                 const { wOld, wNew } = calculateBayesianKalmanWeights(
                     hO, hN,

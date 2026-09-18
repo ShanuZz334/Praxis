@@ -16,17 +16,23 @@ export default function ADLineCard({ cardId, data = null, manualOverride, lastUp
 
     const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreADLineCard(currentValue), 'ad_line', tradingMode);
 
-    const displayValue = currentValue !== null && !isNaN(currentValue) ? parseFloat(currentValue).toFixed(2) : '--';
-return (
+    const isManual = !isLiveData && manualOverride !== null && manualOverride !== undefined && manualOverride !== '';
+
+    const num = (currentValue !== null && currentValue !== undefined && currentValue !== '') ? Number(currentValue) : null;
+    const displayValue = num !== null && !isNaN(num)
+        ? (num > 0 ? `+${num.toLocaleString()}` : `${num.toLocaleString()}`)
+        : '--';
+
+    return (
         <IndicatorCard
             cardId={cardId}
             config={{ 
                 title: "Advance / Decline Line", 
                 category: "Market Breadth", 
-                mode: isLiveData ? "AUTO" : "MANUAL",
+                mode: isLiveData ? "AUTO" : (isManual ? "MANUAL" : "AUTO"),
                 creditScore: configData.creditScore, 
-                updateTime: lastUpdated ?? "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || "--:--"), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel 
             }}
             data={{ 
@@ -35,7 +41,8 @@ return (
                 score, 
                 bias, 
                 confidence, 
-                impactWeight: configData.impactWeight 
+                impactWeight: configData.impactWeight,
+                isManual
             }}
             chartData={{ points: [], valueKey: "value", valueName: "A/D Line" }}
             insights={{ aiInsight: aiInsight, whyItMatters: ["Provides context on volume and market breadth.", "Crucial for confirming trend strength."] }}

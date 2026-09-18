@@ -31,21 +31,12 @@ export const POSITIONAL_WEIGHTS = {
                 revenue_growth:     0.35,
                 profit_growth:      0.20,
             },
-            macro: {
-                gdp_growth:         1.00,
-            },
-            liquidity: {
-                fii_dii_flow:       0.30,
-                dividend_yield:     0.70,
-            },
             ownership: {
-                promoter_holding:   0.40,
-                smart_money_flow:   0.25,
-                earnings_quality:   0.20,
-                corporate_actions:  0.15,
-            },
-            sector: {
-                earnings_trend:     1.00,
+                promoter_holding:   0.30,
+                shareholding_trend: 0.25,
+                smart_money_flow:   0.20,
+                earnings_quality:   0.15,
+                corporate_actions:  0.10,
             },
             corporate: {
                 roe:                0.25,
@@ -63,14 +54,11 @@ export const POSITIONAL_WEIGHTS = {
             },
         },
         composite: {
-            valuation:  0.25,
+            valuation:  0.30,
             earnings:   0.25,
             corporate:  0.20,
-            global:     0.12,
-            ownership:  0.08,
-            macro:      0.05,
-            liquidity:  0.03,
-            sector:     0.02,
+            global:     0.15,
+            ownership:  0.10,
         },
         penalties: {
             corporate_quality_gate: {
@@ -110,8 +98,8 @@ export const POSITIONAL_WEIGHTS = {
                 mf_flows:       0.20,
             },
             sector: {
-                advance_decline:    0.25,
-                sector_dashboard:   0.75,
+                advance_decline:    0.50,
+                sector_dashboard:   0.50,
             },
             corporate: {
                 credit_growth:      0.50,
@@ -167,21 +155,12 @@ export const INTRADAY_WEIGHTS = {
                 revenue_growth:     0.30,
                 profit_growth:      0.40,
             },
-            macro: {
-                gdp_growth:         1.00,
-            },
-            liquidity: {
-                fii_dii_flow:       0.75,
-                dividend_yield:     0.25,
-            },
             ownership: {
                 promoter_holding:   0.15,
-                smart_money_flow:   0.55,
-                earnings_quality:   0.15,
-                corporate_actions:  0.15,
-            },
-            sector: {
-                earnings_trend:     1.00,
+                shareholding_trend: 0.15,
+                smart_money_flow:   0.50,
+                earnings_quality:   0.10,
+                corporate_actions:  0.10,
             },
             corporate: {
                 roe:                0.15,
@@ -199,14 +178,11 @@ export const INTRADAY_WEIGHTS = {
             },
         },
         composite: {
-            liquidity:  0.25,
-            sector:     0.18,
-            corporate:  0.12,
-            ownership:  0.12,
-            global:     0.12,
-            valuation:  0.10,
-            earnings:   0.07,
-            macro:      0.04,
+            ownership:  0.30,
+            earnings:   0.25,
+            corporate:  0.15,
+            global:     0.15,
+            valuation:  0.15,
         },
         penalties: {
             corporate_quality_gate: {

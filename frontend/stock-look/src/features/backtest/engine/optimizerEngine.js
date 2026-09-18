@@ -8,20 +8,65 @@
 
 import { runBacktest, precalculateBacktestIndicators, TIMEFRAME_DEFAULTS } from './backtestEngine.js';
 
+// ─── High Precision Normal CDF for Statistical Significance ─────────────────
+
+function normalCdf(x) {
+    const b1 = 0.319381530;
+    const b2 = -0.356563782;
+    const b3 = 1.781477937;
+    const b4 = -1.821255978;
+    const b5 = 1.330274429;
+    const p = 0.2316419;
+    const c = 0.39894228;
+
+    if (x >= 0.0) {
+        const t = 1.0 / (1.0 + p * x);
+        return 1.0 - c * Math.exp(-x * x / 2.0) * t * (t * (t * (t * (t * b5 + b4) + b3) + b2) + b1);
+    } else {
+        const t = 1.0 / (1.0 - p * x);
+        return c * Math.exp(-x * x / 2.0) * t * (t * (t * (t * (t * b5 + b4) + b3) + b2) + b1);
+    }
+}
+
+/**
+ * Calculates Probabilistic Sharpe Ratio (PSR) under non-normal returns.
+ * Marcos Lopez de Prado (2012)
+ */
+export function calculateProbabilisticSharpeRatio(observedSharpe, benchmarkSharpe = 0, nReturns = 100, skewness = 0, kurtosis = 3) {
+    if (nReturns <= 2) return 0.5;
+    const srDiff = observedSharpe - benchmarkSharpe;
+    const denominator = Math.sqrt(Math.max(0.0001, 1 - skewness * observedSharpe + ((kurtosis - 1) / 4) * Math.pow(observedSharpe, 2)));
+    const z = (srDiff * Math.sqrt(nReturns - 1)) / denominator;
+    return Math.max(0, Math.min(1, normalCdf(z)));
+}
+
+/**
+ * Calculates Deflated Sharpe Ratio (DSR) discounting for multiple testing / selection bias.
+ * Marcos Lopez de Prado & David Bailey (2014)
+ */
+export function calculateDeflatedSharpeRatio(observedSharpe, numTrials = 50, varSharpe = 0.25, nReturns = 100, skewness = 0, kurtosis = 3) {
+    if (numTrials <= 1) return calculateProbabilisticSharpeRatio(observedSharpe, 0, nReturns, skewness, kurtosis);
+    const gamma = 0.5772156649; // Euler-Mascheroni constant
+    const eMax = Math.sqrt(varSharpe) * ((1 - gamma) * Math.sqrt(2 * Math.log(numTrials)) + gamma * Math.sqrt(2 * Math.log(numTrials * Math.exp(1))));
+    return calculateProbabilisticSharpeRatio(observedSharpe, Math.max(0, eMax), nReturns, skewness, kurtosis);
+}
+
 // ─── Multi-Objective Fitness Evaluator ────────────────────────────────────────
 
 export function computeCandidateFitness(res) {
     const { summary, walkForward } = res;
-    if (!summary || summary.totalTrades < 2) return -999;
+    // Strictly score candidates based on In-Sample statistics to prevent Out-Of-Sample snooping
+    const targetSummary = walkForward?.inSample || summary;
+    if (!targetSummary || targetSummary.totalTrades < 2) return -999;
 
-    const nTrades = summary.totalTrades || 0;
-    const pf = summary.profitFactor || 0;
-    const rawWr = summary.winRate || 0;
-    const ret = summary.netReturnPct || 0;
-    const dd = summary.maxDrawdownPct || 0;
-    const sharpe = summary.sharpeRatio || 0;
-    const sortino = summary.sortinoRatio || 0;
-    const realizedRR = summary.realizedRR || 1.0;
+    const nTrades = targetSummary.totalTrades || 0;
+    const pf = targetSummary.profitFactor || 0;
+    const rawWr = targetSummary.winRate || 0;
+    const ret = targetSummary.netReturnPct || 0;
+    const dd = targetSummary.maxDrawdownPct || 0;
+    const sharpe = targetSummary.sharpeRatio || 0;
+    const sortino = targetSummary.sortinoRatio || 0;
+    const realizedRR = targetSummary.realizedRR || 1.0;
     const oosRatio = walkForward?.efficiencyRatio || 1.0;
 
     // Bayesian Shrinkage: Shrink win rate toward 50% prior for small samples (m = 12 pseudo-trades)
@@ -37,7 +82,7 @@ export function computeCandidateFitness(res) {
     const ddPenalty = dd > 12 ? Math.pow((dd - 12) / 4, 1.8) * 0.5 : 0;
 
     // Critical Edge Leak Disqualification: Trades prematurely timing out at horizon with weak returns
-    const horizonAnalysis = summary.horizonExpiryAnalysis;
+    const horizonAnalysis = targetSummary.horizonExpiryAnalysis;
     const isLeak = horizonAnalysis?.isMajorDrag;
     const leakPenalty = isLeak 
         ? 150.0 // Heavy disqualifying penalty ensuring leaking setups cannot rank as champions
@@ -503,7 +548,7 @@ export function generateCandidateConfigs(baseConfig) {
         }
     } else {
         // DYNAMIC CUSTOM UNIT / CUSTOM LAB OPTIMIZATION SWEEP
-        const baseThreshold = Number(baseConfig.customThreshold || 25);
+        const baseThreshold = Number(baseConfig.customThreshold || baseConfig.defaultThreshold || 25);
         const thresholdDeltas = [-10, 0, 10];
 
         for (const delta of thresholdDeltas) {

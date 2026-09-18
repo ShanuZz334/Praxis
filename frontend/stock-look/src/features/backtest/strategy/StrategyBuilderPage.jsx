@@ -1840,6 +1840,10 @@ export default function StrategyBuilderPage() {
                         walkForward={simulationResult?.walkForward || null}
                         trades={simulationResult?.trades || []}
                         activeUnit="STRATEGY"
+                        monteCarlo={simulationResult?.monteCarlo || null}
+                        marketRegimes={simulationResult?.marketRegimes || null}
+                        optionsBacktest={simulationResult?.optionsBacktest || null}
+                        quantitativeAudit={simulationResult?.quantitativeAudit || null}
                         savedRuns={savedStrategies.map(s => ({
                             id: s.id,
                             name: s.name,

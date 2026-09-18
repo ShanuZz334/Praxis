@@ -90,3 +90,51 @@ export const formatTimestampWithDate = (ts, { includeSeconds = false, hour12 = t
     return `${dateStr}, ${timeStr}`;
 };
 
+/**
+ * Canonical Market Bias Enum
+ */
+export const MARKET_BIAS = Object.freeze({
+    BULLISH: 'BULLISH',
+    BEARISH: 'BEARISH',
+    NEUTRAL: 'NEUTRAL'
+});
+
+/**
+ * Normalizes any bias string or variant to standard uppercase 'BULLISH' | 'BEARISH' | 'NEUTRAL'.
+ * 
+ * @param {string|null|undefined} rawBias
+ * @returns {'BULLISH' | 'BEARISH' | 'NEUTRAL'}
+ */
+export const normalizeBias = (rawBias) => {
+    if (!rawBias || typeof rawBias !== 'string') return MARKET_BIAS.NEUTRAL;
+    const lower = rawBias.trim().toLowerCase();
+    if (lower.includes('bull') || lower.includes('positive') || lower.includes('buy') || lower.includes('long')) {
+        return MARKET_BIAS.BULLISH;
+    }
+    if (lower.includes('bear') || lower.includes('negative') || lower.includes('sell') || lower.includes('short')) {
+        return MARKET_BIAS.BEARISH;
+    }
+    return MARKET_BIAS.NEUTRAL;
+};
+
+/**
+ * Formats bias into human-friendly string ('Bullish', 'Bearish', 'Neutral' or uppercase).
+ * 
+ * @param {string|null|undefined} rawBias
+ * @param {Object} [options]
+ * @param {boolean} [options.titleCase=true]
+ * @returns {string}
+ */
+export const formatBias = (rawBias, { titleCase = true } = {}) => {
+    const normalized = normalizeBias(rawBias);
+    if (!titleCase) return normalized;
+    switch (normalized) {
+        case MARKET_BIAS.BULLISH: return 'Bullish';
+        case MARKET_BIAS.BEARISH: return 'Bearish';
+        case MARKET_BIAS.NEUTRAL:
+        default:
+            return 'Neutral';
+    }
+};
+
+

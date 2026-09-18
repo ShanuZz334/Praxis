@@ -4,13 +4,49 @@ export const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
 // Helper: resolve a score from an absolute bands array in FUNDAMENTAL_THRESHOLDS
 // Band format: { below?, above?, else?, score }
-function resolveBand(value, bands) {
+function resolveBand(value, bands, allowNegative = true, negativeScore = 5) {
+    if (value === null || value === undefined || isNaN(value)) return null;
+    if (!allowNegative && value < 0) return negativeScore;
     for (const band of bands) {
         if (band.else) return band.score;
         if (band.below !== undefined && value < band.below) return band.score;
         if (band.above !== undefined && value > band.above) return band.score;
     }
     return bands[bands.length - 1].score;
+}
+
+/**
+ * Robust institutional CAGR calculator handling positive compounding, turnarounds,
+ * and contractions into losses.
+ */
+export function calculateRobustCAGR(first, last, totalPeriods, baseAnchor = 10) {
+    if (first === null || last === null || isNaN(first) || isNaN(last) || !totalPeriods || totalPeriods <= 0) return null;
+    
+    // Normal positive compounding
+    if (first > 0 && last > 0) {
+        return (Math.pow(last / first, 1 / totalPeriods) - 1) * 100;
+    }
+    
+    // Turnaround: Negative/Zero to Positive
+    if (first <= 0 && last > 0) {
+        const netGain = last - first;
+        const normalizedBase = Math.abs(first) + baseAnchor;
+        return (netGain / normalizedBase) * 100; // Returns positive turnaround rate
+    }
+    
+    // Contraction into Loss: Positive to Negative
+    if (first > 0 && last <= 0) {
+        const netLoss = last - first;
+        return (netLoss / first) * 100; // Returns negative contraction rate
+    }
+    
+    // Chronic loss: Negative to Negative
+    if (last > first) {
+        // Narrowing loss
+        return ((last - first) / (Math.abs(first) + baseAnchor)) * 100;
+    }
+    // Deepening loss
+    return -40.0;
 }
 
 export function scoreADRatio(adRatio) {
@@ -78,9 +114,23 @@ export function scoreADRatio(adRatio) {
     return { score: finalScore, bias, confidence, breadthZone, signalType };
 }
 
-export function scoreDebtToEquity(currentDE, sectorDE) {
+export function scoreDebtToEquity(currentDE, sectorDE, sectorName = '') {
     if (currentDE === null || isNaN(currentDE)) {
         return { score: null, bias: 'Neutral', confidence: 0, leverageZone: 'Unknown' };
+    }
+
+    const resolvedSector = typeof sectorDE === 'string' ? sectorDE : (sectorName || '');
+    const resolvedSectorDE = typeof sectorDE === 'number' ? sectorDE : null;
+
+    // Financial institutions (Banks, NBFCs, Insurance) operate on leverage by business model
+    const isFinancial = /bank|finance|nbfc|insurance|financial/i.test(resolvedSector);
+    if (isFinancial) {
+        return { score: 50, bias: 'Neutral', confidence: 70, leverageZone: 'Financial Institution (D/E Non-Applicable)' };
+    }
+
+    // Negative D/E indicates negative equity (accumulated losses exceed share capital)
+    if (currentDE < 0) {
+        return { score: 5, bias: 'Strong Bearish', confidence: 95, leverageZone: 'Negative Net Worth / Severe Insolvency' };
     }
 
     const T = FUNDAMENTAL_THRESHOLDS.debt_to_equity;
@@ -93,9 +143,9 @@ export function scoreDebtToEquity(currentDE, sectorDE) {
     // ── Factor 2: Relative vs Sector D/E ─────────────────────────────────
     let f2Score = f1Score;
     let hasSector = false;
-    if (sectorDE !== null && !isNaN(sectorDE) && sectorDE > 0) {
+    if (resolvedSectorDE !== null && !isNaN(resolvedSectorDE) && resolvedSectorDE > 0) {
         hasSector = true;
-        const ratio = currentDE / sectorDE;
+        const ratio = currentDE / resolvedSectorDE;
         f2Score = resolveBand(ratio, T.sectorRatioBands);
     }
 
@@ -326,16 +376,32 @@ export function scoreForwardPE(currentFwdPE, currentPE) {
         return { score: null, bias: 'Neutral', confidence: 60 };
     }
 
+    const trailingPE = (typeof currentPE === 'object' && currentPE !== null)
+        ? (currentPE.trailingPE ?? currentPE.currentPE ?? null)
+        : currentPE;
+
     const T = FUNDAMENTAL_THRESHOLDS.forward_pe;
 
-    if (currentPE === null || currentPE === undefined || isNaN(currentPE)) {
+    // Projected loss next year: strictly bearish
+    if (currentFwdPE <= 0) {
+        return { score: 5, bias: 'Strong Bearish', confidence: 85, valuationZone: 'Projected Net Loss' };
+    }
+
+    if (trailingPE === null || trailingPE === undefined || isNaN(trailingPE)) {
         // Absolute Forward PE scoring if Trailing PE is missing
-        const absScore = resolveBand(currentFwdPE, T.absoluteBands);
+        const absScore = resolveBand(currentFwdPE, T.absoluteBands, false, 5);
         return { score: absScore, bias: applyBiasMap(absScore, T.biasMap), confidence: T.confidence.absoluteOnly };
     }
 
-    // Relative scoring: Forward PE vs Trailing PE
-    const growthPremium = (currentPE - currentFwdPE) / currentPE; // Positive means Fwd PE is lower (growth)
+    // Turnaround: trailing loss transitioning to forward profit
+    if (trailingPE <= 0 && currentFwdPE > 0) {
+        const absScore = resolveBand(currentFwdPE, T.absoluteBands, false, 5);
+        const turnaroundScore = Math.max(75, Math.min(95, absScore + 15));
+        return { score: turnaroundScore, bias: applyBiasMap(turnaroundScore, T.biasMap), confidence: 85, valuationZone: 'Turnaround to Profitability', isTurnaround: true };
+    }
+
+    // Relative scoring: Forward PE vs Trailing PE (both positive)
+    const growthPremium = (trailingPE - currentFwdPE) / trailingPE; // Positive means Fwd PE is lower (growth)
 
     let relScore = 50;
     if (growthPremium > 0.30)       relScore = 95;
@@ -797,44 +863,56 @@ export function scoreOperatingMargin(currentMargin, sectorMargin) {
 }
 
 export function scorePBRatio(currentPB, historicalPB, sectorPB) {
-    if (!currentPB) {
+    if (currentPB === null || currentPB === undefined || isNaN(currentPB)) {
         return { score: null, bias: "Unknown", confidence: 0 };
     }
 
+    // Negative Book Value implies negative net worth (insolvent / severe distress)
+    if (currentPB <= 0) {
+        return { score: 0, bias: 'Strong Bearish', confidence: '95%', valuationZone: 'Negative Net Worth / Insolvency' };
+    }
+
     const T = FUNDAMENTAL_THRESHOLDS.pb_ratio;
-    let score = 50;
+
+    // ── Factor 1: Absolute Bands (or Historical if available) ─────────────
+    let f1Score = resolveBand(currentPB, T.absoluteBands, false, 0);
     let conditionsMet = 0;
 
-    if (historicalPB) {
+    if (historicalPB && !isNaN(historicalPB) && historicalPB > 0) {
         conditionsMet++;
-        if (currentPB <= historicalPB * 0.7) score += 30;
-        else if (currentPB < historicalPB * 0.95) score += 15;
-        else if (currentPB >= historicalPB * 1.3) score -= 30;
-        else if (currentPB > historicalPB * 1.05) score -= 15;
+        if (currentPB <= historicalPB * 0.7) f1Score = Math.min(100, f1Score + 20);
+        else if (currentPB < historicalPB * 0.95) f1Score = Math.min(100, f1Score + 10);
+        else if (currentPB >= historicalPB * 1.3) f1Score = Math.max(0, f1Score - 20);
+        else if (currentPB > historicalPB * 1.05) f1Score = Math.max(0, f1Score - 10);
     }
 
-    if (sectorPB) {
+    // ── Factor 2: Sector Comparison ───────────────────────────────────────
+    let f2Score = f1Score;
+    let hasSector = false;
+    if (sectorPB && !isNaN(sectorPB) && sectorPB > 0) {
+        hasSector = true;
         conditionsMet++;
-        if (currentPB <= sectorPB * 0.8) score += 15;
-        else if (currentPB < sectorPB * 0.95) score += 5;
-        else if (currentPB >= sectorPB * 1.2) score -= 15;
-        else if (currentPB > sectorPB * 1.05) score -= 5;
+        const ratio = currentPB / sectorPB;
+        f2Score = resolveBand(ratio, T.sectorRatioBands);
     }
 
-    score = Math.max(0, Math.min(100, score));
-    const bias = applyBiasMap(score, T.biasMap);
+    const fw = hasSector ? T.factorWeights.withSector : T.factorWeights.withoutSector;
+    const blended = hasSector ? (f1Score * fw.f1) + (f2Score * fw.f2) : f1Score;
+    const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
+    const bias = applyBiasMap(finalScore, T.biasMap);
+    const confidence = hasSector ? '90%' : (historicalPB ? '75%' : '65%');
 
-    let confidence;
-    if (conditionsMet === 2) confidence = "90%";
-    else if (conditionsMet === 1) confidence = "70%";
-    else confidence = "40%";
-
-    return { score, bias, confidence };
+    return { score: finalScore, bias, confidence };
 }
 
 export function scorePERatio(currentPE, historicalAvg, sectorPE) {
     if (currentPE === null || currentPE === undefined || isNaN(currentPE)) {
         return { score: null, bias: 'Neutral', confidence: 60 };
+    }
+
+    // CRITICAL DEFENSE: Negative P/E represents operational loss
+    if (currentPE <= 0) {
+        return { score: 5, bias: 'Strong Bearish', confidence: 90, valuationZone: 'Loss Making / Distressed' };
     }
 
     const T = FUNDAMENTAL_THRESHOLDS.pe_ratio;
@@ -845,7 +923,7 @@ export function scorePERatio(currentPE, historicalAvg, sectorPE) {
         const deviation = (currentPE - historicalAvg) / historicalAvg;
         f1Score = Math.max(0, Math.min(100, 50 - (deviation * T.deviationMultiplier)));
     } else {
-        f1Score = resolveBand(currentPE, T.absoluteBands);
+        f1Score = resolveBand(currentPE, T.absoluteBands, false, 5);
     }
 
     // ── Factor 2: vs Sector PE (0–100) ────────────────────────────────────
@@ -858,7 +936,7 @@ export function scorePERatio(currentPE, historicalAvg, sectorPE) {
     }
 
     // ── Factor 3: Absolute PE Safety Bands (0–100) ────────────────────────
-    const f3Score = resolveBand(currentPE, T.safetyBands);
+    const f3Score = resolveBand(currentPE, T.safetyBands, false, 5);
 
     // ── Blend Factors ──────────────────────────────────────────────────────
     const fw = hasSector ? T.factorWeights.withSector : T.factorWeights.withoutSector;
@@ -1670,9 +1748,14 @@ export function scoreEVEbitda(currentEV, sectorEV) {
         return { score: null, bias: 'Neutral', confidence: 0, valuationZone: 'Unknown' };
     }
 
+    // Negative EV/EBITDA represents operating cash burn / negative operational profit
+    if (currentEV <= 0) {
+        return { score: 5, bias: 'Strong Bearish', confidence: 90, valuationZone: 'Negative EBITDA / Operating Loss' };
+    }
+
     const T = FUNDAMENTAL_THRESHOLDS.ev_ebitda;
 
-    const band1 = T.absoluteBands.find(b => b.else || (b.below !== undefined && currentEV < b.below));
+    const band1 = T.absoluteBands.find(b => b.else || (b.below !== undefined && currentEV >= 0 && currentEV < b.below));
     const f1Score = band1?.score ?? 5;
     const valuationZone = band1?.zone ?? 'Highly Overvalued';
 
@@ -1712,26 +1795,42 @@ export function generateAiInsightEVEbitdaCard(currentEV, sectorEV, valuationZone
     return text;
 }
 
-export function scoreROA(currentROA, sectorROA) {
+export function scoreROA(currentROA, sectorROA, sectorName = '') {
     if (currentROA === null || isNaN(currentROA)) {
         return { score: null, bias: 'Neutral', confidence: 0, efficiencyZone: 'Unknown' };
     }
 
+    const resolvedSector = typeof sectorROA === 'string' ? sectorROA : (sectorName || '');
+    const resolvedSectorROA = typeof sectorROA === 'number' ? sectorROA : null;
+    const isFinancial = /bank|finance|nbfc|insurance|financial/i.test(resolvedSector);
     const T = FUNDAMENTAL_THRESHOLDS.roa;
 
-    const band1 = T.absoluteBands.find(b => b.else || (b.above !== undefined && currentROA > b.above));
-    const f1Score       = band1?.score ?? 15;
-    const efficiencyZone = band1?.zone ?? 'Asset Destroyer';
+    let f1Score;
+    let efficiencyZone;
+    if (isFinancial) {
+        // Banking ROA calibration: > 2.0% is world class, > 1.4% is strong, > 0.9% is adequate, < 0.5% is stressed
+        if (currentROA >= 2.0) { f1Score = 95; efficiencyZone = 'World-Class Banking Return'; }
+        else if (currentROA >= 1.4) { f1Score = 85; efficiencyZone = 'Strong Banking Return'; }
+        else if (currentROA >= 0.9) { f1Score = 70; efficiencyZone = 'Adequate Banking Return'; }
+        else if (currentROA >= 0.5) { f1Score = 45; efficiencyZone = 'Sub-Par Banking Return'; }
+        else if (currentROA > 0) { f1Score = 25; efficiencyZone = 'Stressed Asset Margin'; }
+        else { f1Score = 5; efficiencyZone = 'Asset Destroyer / Loss Making'; }
+    } else {
+        const band1 = T.absoluteBands.find(b => b.else || (b.above !== undefined && currentROA > b.above));
+        f1Score       = band1?.score ?? 15;
+        efficiencyZone = band1?.zone ?? 'Asset Destroyer';
+    }
 
     let f2Score = f1Score;
     let hasSector = false;
-    if (sectorROA !== null && !isNaN(sectorROA) && sectorROA !== 0) {
+    if (resolvedSectorROA !== null && !isNaN(resolvedSectorROA) && resolvedSectorROA !== 0) {
         hasSector = true;
-        const diff = currentROA - sectorROA;
-        if (diff > 5) f2Score = 95;
-        else if (diff > 2) f2Score = 80;
-        else if (diff > -2) f2Score = 60;
-        else if (diff > -5) f2Score = 40;
+        const diff = currentROA - resolvedSectorROA;
+        const scaledDiff = isFinancial ? diff * 3.0 : diff; // Scale diff for banks where a 0.5% spread is significant
+        if (scaledDiff > 5) f2Score = 95;
+        else if (scaledDiff > 2) f2Score = 80;
+        else if (scaledDiff > -2) f2Score = 60;
+        else if (scaledDiff > -5) f2Score = 40;
         else f2Score = 15;
     }
 
@@ -2401,9 +2500,13 @@ export function generateAiInsightSectorDashboard(score, adv, val, growth, cyc) {
     return parts.length > 0 ? parts.join(' ') : 'Sector metrics indicate normalized rotational behavior.';
 }
 
-export function scoreCurrentRatio(currentRatio) {
+export function scoreCurrentRatio(currentRatio, sectorName = '') {
     if (currentRatio === null || isNaN(currentRatio)) {
         return { score: null, bias: 'Neutral', confidence: 0 };
+    }
+    const isFinancial = /bank|finance|nbfc|insurance|financial/i.test(sectorName || '');
+    if (isFinancial) {
+        return { score: 50, bias: 'Neutral', confidence: 60, label: 'Financial Institution (CR Non-Applicable)' };
     }
     const T = FUNDAMENTAL_THRESHOLDS.current_ratio;
     const band = T.absoluteBands.find(b => b.else || (b.above !== undefined && currentRatio > b.above));
@@ -2454,4 +2557,222 @@ export function scoreAnalystConsensus(consensusObj) {
          rec.includes('underperform')? 28 : 15);
     const confidence = consensusObj.analysts ? Math.min(100, consensusObj.analysts * 5) : T.confidence.always;
     return { score, bias: applyBiasMap(score, T.biasMap), confidence };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 12-QUARTER INSTITUTIONAL SHAREHOLDING ENGINE
+// ══════════════════════════════════════════════════════════════════════════════
+
+export function scoreShareholdingTrend(trendData, manualScore = null) {
+    if (manualScore !== null && !isNaN(manualScore)) {
+        const score = Math.max(0, Math.min(100, Math.round(manualScore)));
+        const bias = score >= 65 ? 'Bullish' : score <= 35 ? 'Bearish' : 'Neutral';
+        return { score, bias, confidence: 60, trendZone: 'Manual Override', fiiDelta: 0, diiDelta: 0, instNetDelta: 0 };
+    }
+
+    if (!trendData || !trendData.categories || !trendData.quarters || trendData.quarters.length === 0) {
+        return { score: null, bias: 'Neutral', confidence: 0, trendZone: 'No Data', fiiDelta: null, diiDelta: null, instNetDelta: null };
+    }
+
+    const cats = trendData.categories;
+    const fiiArr = cats['FIIs'] || cats['FII'] || [];
+    const diiArr = cats['DIIs'] || cats['DII'] || [];
+    const promArr = cats['Promoters'] || cats['Promoter'] || [];
+    const pubArr = cats['Public'] || [];
+
+    const getLatest = (arr) => arr.length > 0 ? arr[arr.length - 1] : null;
+    const getOldest = (arr) => arr.length > 0 ? arr[0] : null;
+
+    const latestFII = getLatest(fiiArr);
+    const oldestFII = getOldest(fiiArr);
+    const latestDII = getLatest(diiArr);
+    const oldestDII = getOldest(diiArr);
+    const latestProm = getLatest(promArr);
+    const oldestProm = getOldest(promArr);
+
+    const fiiDelta = (latestFII !== null && oldestFII !== null) ? Number((latestFII - oldestFII).toFixed(2)) : 0;
+    const diiDelta = (latestDII !== null && oldestDII !== null) ? Number((latestDII - oldestDII).toFixed(2)) : 0;
+    const promDelta = (latestProm !== null && oldestProm !== null) ? Number((latestProm - oldestProm).toFixed(2)) : 0;
+    const instNetDelta = Number((fiiDelta + diiDelta).toFixed(2));
+
+    // Factor 1: Institutional Flow Momentum (45%)
+    let f1Score = 50;
+    if (instNetDelta > 4.0)        f1Score = 92; // Massive smart money accumulation
+    else if (instNetDelta > 2.0)   f1Score = 82; // Strong institutional buying
+    else if (instNetDelta > 0.5)   f1Score = 68; // Moderate institutional accumulation
+    else if (instNetDelta >= -0.5) f1Score = 52; // Neutral / stable institutional base
+    else if (instNetDelta >= -2.0) f1Score = 38; // Moderate institutional selling
+    else if (instNetDelta >= -4.0) f1Score = 22; // Substantial institutional liquidation
+    else                           f1Score = 10; // Severe institutional exit
+
+    // Factor 2: Promoter Stability & Magnitude (35%)
+    let f2Score = 50;
+    const pLevel = latestProm !== null ? latestProm : 50;
+    if (pLevel >= 65)        f2Score = 85;
+    else if (pLevel >= 50)   f2Score = 75;
+    else if (pLevel >= 35)   f2Score = 60;
+    else if (pLevel >= 20)   f2Score = 45;
+    else                     f2Score = 30;
+
+    // Penalty for promoter stake reduction
+    if (promDelta < -3.0) f2Score = Math.max(10, f2Score - 20);
+    else if (promDelta < -1.0) f2Score = Math.max(15, f2Score - 10);
+    else if (promDelta > 1.0) f2Score = Math.min(100, f2Score + 10);
+
+    // Factor 3: Absorption Divergence (20%)
+    let f3Score = 50;
+    if (fiiDelta < -1.0 && diiDelta > Math.abs(fiiDelta) * 0.8) {
+        f3Score = 65; // DII absorbing FII selling cushions the stock
+    } else if (fiiDelta > 1.0 && diiDelta > 0) {
+        f3Score = 90; // Dual institutional buying
+    } else if (fiiDelta < -1.0 && diiDelta < -0.5) {
+        f3Score = 15; // Both domestic and foreign institutions dumping
+    }
+
+    const blended = (f1Score * 0.45) + (f2Score * 0.35) + (f3Score * 0.20);
+    const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
+    const bias = finalScore >= 65 ? 'Bullish' : finalScore <= 40 ? 'Bearish' : 'Neutral';
+
+    let trendZone = 'Stable Ownership';
+    if (instNetDelta > 2.0) trendZone = 'Institutional Accumulation';
+    else if (instNetDelta < -2.0) trendZone = 'Institutional Distribution';
+    else if (fiiDelta < -1.0 && diiDelta > 1.0) trendZone = 'DII Absorbing FII Selling';
+    else if (fiiDelta > 1.0 && diiDelta < -1.0) trendZone = 'FII Inflow with DII Profit Taking';
+
+    const confidence = trendData.quarters.length >= 8 ? 95 : 75;
+
+    return {
+        score: finalScore,
+        bias,
+        confidence,
+        trendZone,
+        fiiDelta,
+        diiDelta,
+        promDelta,
+        instNetDelta,
+        latestFII,
+        latestDII,
+        latestProm
+    };
+}
+
+export function generateAiInsightShareholdingTrend(trendData, scoreObj) {
+    if (!scoreObj || scoreObj.score === null) return "Institutional shareholding data unavailable.";
+    const { fiiDelta, diiDelta, instNetDelta, latestFII, latestDII, latestProm, trendZone } = scoreObj;
+    const quarters = trendData?.quarters || [];
+    const spanStr = quarters.length > 0 ? `${quarters[0]} to ${quarters[quarters.length - 1]}` : '12 quarters';
+
+    if (trendZone === 'DII Absorbing FII Selling') {
+        return `Over ${spanStr}, domestic institutions (DIIs) expanded their stake by +${diiDelta.toFixed(2)}% to ${latestDII}%, fully absorbing FII selling of ${fiiDelta.toFixed(2)}%. This creates strong domestic floor support despite foreign outflows.`;
+    }
+    if (trendZone === 'Institutional Accumulation') {
+        return `Combined institutional ownership expanded by +${instNetDelta.toFixed(2)}% across ${spanStr} (FII: ${fiiDelta > 0 ? '+' : ''}${fiiDelta.toFixed(2)}%, DII: ${diiDelta > 0 ? '+' : ''}${diiDelta.toFixed(2)}%). Sustained smart-money accumulation provides high structural tailwinds.`;
+    }
+    if (trendZone === 'Institutional Distribution') {
+        return `Institutions have steadily trimmed equity by ${instNetDelta.toFixed(2)}% over ${spanStr}. Total institutional stake sits at ${( (latestFII || 0) + (latestDII || 0) ).toFixed(2)}%, indicating caution among smart-money market participants.`;
+    }
+    return `Ownership remains balanced over ${spanStr}. Promoters hold ${latestProm ?? '--'}%, while FIIs hold ${latestFII ?? '--'}% and DIIs hold ${latestDII ?? '--'}% with net institutional change of ${instNetDelta > 0 ? '+' : ''}${instNetDelta.toFixed(2)}%.`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTOR PEER MULTIPLES ENGINE
+// ══════════════════════════════════════════════════════════════════════════════
+
+export function scorePeerValuation(stockPE, peers = [], stockROCE = null, manualScore = null) {
+    if (manualScore !== null && !isNaN(manualScore)) {
+        const score = Math.max(0, Math.min(100, Math.round(manualScore)));
+        const bias = score >= 65 ? 'Bullish' : score <= 35 ? 'Bearish' : 'Neutral';
+        return { score, bias, confidence: 60, valuationLabel: 'Manual Override', peDiffPct: 0, medianPE: null, peerCount: 0 };
+    }
+
+    if (!stockPE || isNaN(stockPE) || !Array.isArray(peers) || peers.length === 0) {
+        return { score: null, bias: 'Neutral', confidence: 0, valuationLabel: 'No Data', peDiffPct: null, medianPE: null, peerCount: 0 };
+    }
+
+    // Filter valid peer P/Es
+    const validPEs = peers.map(p => parseFloat(p.pe)).filter(p => !isNaN(p) && p > 0).sort((a, b) => a - b);
+    if (validPEs.length === 0) {
+        return { score: null, bias: 'Neutral', confidence: 0, valuationLabel: 'No Peer P/E', peDiffPct: null, medianPE: null, peerCount: 0 };
+    }
+
+    // Calculate median peer P/E
+    const mid = Math.floor(validPEs.length / 2);
+    const medianPE = validPEs.length % 2 !== 0 ? validPEs[mid] : (validPEs[mid - 1] + validPEs[mid]) / 2;
+
+    const peDiffPct = ((stockPE - medianPE) / medianPE) * 100;
+
+    // Filter valid peer ROCEs
+    const validROCEs = peers.map(p => parseFloat(p.rocePct)).filter(r => !isNaN(r)).sort((a, b) => a - b);
+    const medianROCE = validROCEs.length > 0 ? (validROCEs.length % 2 !== 0 ? validROCEs[Math.floor(validROCEs.length / 2)] : (validROCEs[Math.floor(validROCEs.length / 2) - 1] + validROCEs[Math.floor(validROCEs.length / 2)]) / 2) : null;
+
+    // Factor 1: Valuation Multiple relative to Peer Median (60%)
+    let f1Score = 50;
+    if (peDiffPct < -35)        f1Score = 90; // Deep discount to peers
+    else if (peDiffPct < -15)   f1Score = 80; // Attractive discount
+    else if (peDiffPct <= 10)   f1Score = 60; // Fairly valued relative to peers
+    else if (peDiffPct <= 30)   f1Score = 45; // Moderate premium
+    else if (peDiffPct <= 60)   f1Score = 30; // High premium
+    else                        f1Score = 15; // Stretched valuation relative to domestic peers
+
+    // Factor 2: Quality Justification via ROCE (40%)
+    let f2Score = 50;
+    if (stockROCE !== null && !isNaN(stockROCE) && medianROCE !== null) {
+        const roceSpread = stockROCE - medianROCE;
+        if (roceSpread > 8.0)        f2Score = 90; // Superior operational efficiency
+        else if (roceSpread > 3.0)   f2Score = 75;
+        else if (roceSpread >= -3.0)  f2Score = 55;
+        else if (roceSpread >= -8.0)  f2Score = 35;
+        else                         f2Score = 20; // Inferior return profile
+    } else {
+        f2Score = f1Score; // Fallback to multiple only
+    }
+
+    const blended = (f1Score * 0.60) + (f2Score * 0.40);
+    const finalScore = Math.round(Math.max(0, Math.min(100, blended)));
+    const bias = finalScore >= 65 ? 'Bullish' : finalScore <= 40 ? 'Bearish' : 'Neutral';
+
+    let valuationLabel = 'In Line with Peers';
+    if (peDiffPct < -20 && (stockROCE === null || stockROCE >= (medianROCE || 0))) {
+        valuationLabel = 'Deep Value vs Peers';
+    } else if (peDiffPct < -10) {
+        valuationLabel = 'Discounted to Sector';
+    } else if (peDiffPct > 30 && stockROCE !== null && stockROCE < (medianROCE || 0)) {
+        valuationLabel = 'Overvalued vs Peers';
+    } else if (peDiffPct > 20) {
+        valuationLabel = 'Premium Multiple';
+    }
+
+    const confidence = validPEs.length >= 5 ? 90 : 70;
+
+    return {
+        score: finalScore,
+        bias,
+        confidence,
+        valuationLabel,
+        peDiffPct: Number(peDiffPct.toFixed(1)),
+        medianPE: Number(medianPE.toFixed(2)),
+        medianROCE: medianROCE !== null ? Number(medianROCE.toFixed(2)) : null,
+        peerCount: validPEs.length
+    };
+}
+
+export function generateAiInsightPeerMultiples(stockSymbol, stockPE, medianPE, peDiffPct, stockROCE, medianROCE, valuationLabel) {
+    if (!stockPE || !medianPE) return "Peer comparison data unavailable.";
+    const diffAbs = Math.abs(peDiffPct).toFixed(1);
+    const premiumOrDiscount = peDiffPct >= 0 ? `${diffAbs}% premium` : `${diffAbs}% discount`;
+
+    if (stockROCE !== null && medianROCE !== null) {
+        const roceSpread = (stockROCE - medianROCE).toFixed(1);
+        if (peDiffPct < 0 && stockROCE >= medianROCE) {
+            return `${stockSymbol} trades at a ${premiumOrDiscount} to its domestic industry median P/E (${stockPE.toFixed(1)}x vs ${medianPE.toFixed(1)}x) while delivering superior capital efficiency (${stockROCE.toFixed(1)}% ROCE vs ${medianROCE.toFixed(1)}% median). This represents exceptional risk-adjusted value.`;
+        }
+        if (peDiffPct > 0 && stockROCE >= medianROCE + 5) {
+            return `${stockSymbol} trades at a ${premiumOrDiscount} to sector peers (${stockPE.toFixed(1)}x vs ${medianPE.toFixed(1)}x), justifiable given its market leadership and ${roceSpread}% superior ROCE spread over the industry median.`;
+        }
+        if (peDiffPct > 0 && stockROCE < medianROCE) {
+            return `${stockSymbol} trades at an elevated ${premiumOrDiscount} (${stockPE.toFixed(1)}x vs ${medianPE.toFixed(1)}x) despite generating lower ROCE than domestic peers (${stockROCE.toFixed(1)}% vs ${medianROCE.toFixed(1)}%). Valuation appears stretched relative to peers.`;
+        }
+    }
+
+    return `${stockSymbol} trades at a ${premiumOrDiscount} compared to domestic sector peers (P/E of ${stockPE.toFixed(1)}x vs industry median of ${medianPE.toFixed(1)}x across peers).`;
 }

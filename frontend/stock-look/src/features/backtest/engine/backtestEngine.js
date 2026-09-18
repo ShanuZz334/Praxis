@@ -15,6 +15,11 @@ import { calculatePNCO, calculateAAVB, calculateIFDI } from '../../dashboard/tec
 import { getCustomIndicators, evaluateCustomLabSeries } from '../lab/customIndicatorRegistry.js';
 import { SIGNAL_DEFINITIONS } from '../strategy/strategySignalDefinitions.js';
 import { evaluateStrategyRulesAtBar, precalculateStrategySeries } from '../strategy/strategyEngine.js';
+import { calculateRoundTripTransactionCosts, INDIAN_INSTRUMENT_TYPES } from './institutionalFeeEngine.js';
+import { runMonteCarloSimulation } from './monteCarloEngine.js';
+import { analyzeRegimePerformance } from './marketRegimeEngine.js';
+import { runOptionsStrategyBacktest } from './optionsBacktestEngine.js';
+import { evaluateInstitutionalAudit } from './quantitativeAuditEngine.js';
 
 // ─── Timeframe Volatility Profiles ─────────────────────────────────────────
 
@@ -120,21 +125,71 @@ export function precalculateBacktestIndicators(candles) {
     };
 }
 
+export function sanitizeCandles(rawCandles) {
+    if (!Array.isArray(rawCandles) || rawCandles.length === 0) return { candles: [], integrityScore: 100, badBarsCount: 0 };
+
+    const sorted = [...rawCandles].sort((a, b) => {
+        const ta = typeof a.time === 'number' && a.time < 1e11 ? a.time * 1000 : new Date(a.time).getTime();
+        const tb = typeof b.time === 'number' && b.time < 1e11 ? b.time * 1000 : new Date(b.time).getTime();
+        return ta - tb;
+    });
+
+    const seenTimes = new Set();
+    const clean = [];
+    let badBars = 0;
+
+    for (let i = 0; i < sorted.length; i++) {
+        const c = sorted[i];
+        if (!c || c.close === undefined || c.close === null || isNaN(c.close) || c.close <= 0) {
+            badBars++;
+            continue;
+        }
+
+        const t = c.time;
+        if (seenTimes.has(t)) {
+            badBars++;
+            continue;
+        }
+        seenTimes.add(t);
+
+        const open = Number(c.open) || c.close;
+        const close = Number(c.close);
+        const high = Math.max(Number(c.high) || close, open, close);
+        const low = Math.min(Number(c.low) || close, open, close);
+        const volume = Math.max(0, Number(c.volume) || 0);
+
+        clean.push({
+            ...c,
+            time: t,
+            open,
+            high,
+            low,
+            close,
+            volume,
+        });
+    }
+
+    const integrityScore = sorted.length > 0 ? Math.round(((sorted.length - badBars) / sorted.length) * 1000) / 10 : 100;
+    return { candles: clean, integrityScore, badBarsCount: badBars };
+}
+
 /**
  * Executes a full backtest simulation on an OHLCV candlestick dataset.
  *
- * @param {Array} candles - OHLCV array
+ * @param {Array} rawCandles - OHLCV array
  * @param {Object} userConfig - Configuration options
  * @param {Object} [precalc=null] - Optional precalculated indicators cache
  * @returns {Object} Full backtest results { summary, trades, equityCurve, calibration, walkForward, indicators }
  */
-export function runBacktest(candles, userConfig = {}, precalc = null) {
+export function runBacktest(rawCandles, userConfig = {}, precalc = null) {
     const config = { ...DEFAULT_BACKTEST_CONFIG, ...userConfig };
     config.exitRule = { ...DEFAULT_BACKTEST_CONFIG.exitRule, ...(userConfig.exitRule || {}) };
     config.walkForward = { ...DEFAULT_BACKTEST_CONFIG.walkForward, ...(userConfig.walkForward || {}) };
     config.customRules = { ...DEFAULT_BACKTEST_CONFIG.customRules, ...(userConfig.customRules || {}) };
 
-    if (!candles || candles.length < 5) {
+    const { candles, integrityScore, badBarsCount } = sanitizeCandles(rawCandles);
+
+    if (!candles || candles.length < 20) {
         return {
             summary: getEmptySummary(),
             trades: [],
@@ -220,14 +275,15 @@ export function runBacktest(candles, userConfig = {}, precalc = null) {
 
     // 2. Scan and evaluate signals
     const trades = [];
+    const directionalSignals = [];
     const minLookback = 20;
 
     let activeTrade = null;
     let lastPatternScore = 0;
 
-    for (let i = minLookback; i < n - 1; i++) {
+    for (let i = minLookback; i < n; i++) {
         const currentCandle = candles[i];
-        const nextCandle = candles[i + 1];
+        const nextCandle = i + 1 < n ? candles[i + 1] : null;
 
         // If currently in a trade, evaluate exits
         if (activeTrade) {
@@ -237,6 +293,11 @@ export function runBacktest(candles, userConfig = {}, precalc = null) {
                 activeTrade = null;
             }
             continue; // Prevent overlapping trade re-entry on same bar
+        }
+
+        // On the final candle (i === n - 1), do not generate new orders if NEXT_BAR_OPEN requires i + 1
+        if (i >= n - 1 && config.slippageModel === 'NEXT_BAR_OPEN') {
+            continue;
         }
 
         // Generate signal at bar i
@@ -253,6 +314,15 @@ export function runBacktest(candles, userConfig = {}, precalc = null) {
 
         if (!signal || signal.dummy) continue;
 
+        // Record detected directional signal for multi-leg options modeling & signal tracking
+        directionalSignals.push({
+            index: i,
+            direction: signal.direction,
+            type: signal.type,
+            label: signal.label,
+            candle: currentCandle,
+        });
+
         // Signal Quality & Conviction Filter (prunes low-confidence noise setups)
         if (config.minConfidence && (signal.confidence || 0) < config.minConfidence) {
             continue;
@@ -260,14 +330,14 @@ export function runBacktest(candles, userConfig = {}, precalc = null) {
 
         // Determine Entry Fill Price
         const entryPrice = config.slippageModel === 'NEXT_BAR_OPEN'
-            ? nextCandle.open
+            ? (nextCandle ? nextCandle.open : currentCandle.close)
             : currentCandle.close;
 
         const entryTime = config.slippageModel === 'NEXT_BAR_OPEN'
-            ? nextCandle.time
+            ? (nextCandle ? nextCandle.time : currentCandle.time)
             : currentCandle.time;
 
-        const entryBarIndex = config.slippageModel === 'NEXT_BAR_OPEN' ? i + 1 : i;
+        const entryBarIndex = (config.slippageModel === 'NEXT_BAR_OPEN' && nextCandle) ? i + 1 : i;
 
         activeTrade = {
             id: `trade_${trades.length + 1}`,
@@ -304,6 +374,40 @@ export function runBacktest(candles, userConfig = {}, precalc = null) {
         config
     );
 
+    // 4. Monte Carlo Robustness Resampling (2,000 Resamples, Block Resampling)
+    const initialCapital = config.initialCapital || 100000;
+    const monteCarlo = runMonteCarloSimulation(trades, initialCapital, {
+        iterations: config.mcIterations || 2000,
+        blockSize: config.mcBlockSize || 5,
+    });
+
+    // 5. Market Regime Analysis (Bull/Bear/Chop/Crisis/Low-Vol Matrix)
+    const marketRegimes = analyzeRegimePerformance(candles, trades);
+
+    // 6. Options Strategy Backtest (Merton BSM Multi-Leg Replication)
+    const optStratType = config.optionsStrategyType || (summary.shortCount > summary.longCount ? 'BEAR_PUT_SPREAD' : 'BULL_CALL_SPREAD');
+    const optionsBacktest = runOptionsStrategyBacktest(candles, directionalSignals, {
+        strategyType: optStratType,
+        targetDte: config.optionsTargetDte || 14,
+        baselineIvPct: config.optionsIvPct || 18.0,
+        lotSize: config.optionsLotSize || 50,
+        riskFreeRatePct: config.riskFreeRatePct || 7.0,
+        profitTargetPct: config.optionsProfitTargetPct || 50.0,
+        stopLossPct: config.optionsStopLossPct || 60.0,
+    });
+
+    // 7. Full 500-Point Institutional Quantitative Audit across 28 Categories
+    const quantitativeAudit = evaluateInstitutionalAudit({
+        summary,
+        trades,
+        equityCurve,
+        walkForward: walkForwardSummary,
+        monteCarlo,
+        marketRegimes,
+        optionsBacktest,
+        config,
+    });
+
     return {
         config,
         summary,
@@ -311,6 +415,10 @@ export function runBacktest(candles, userConfig = {}, precalc = null) {
         trades,
         equityCurve,
         calibration,
+        monteCarlo,
+        marketRegimes,
+        optionsBacktest,
+        quantitativeAudit,
         indicators: {
             pnco: pncoData,
             aavb: aavbData,
@@ -413,8 +521,13 @@ function detectSignalAtBar(i, candles, config, dataMaps) {
         }
         if (!analysis || !analysis.activePatterns || analysis.activePatterns.length === 0) return null;
 
-        // Find freshly formed pattern on this bar (age <= 1)
-        const latest = analysis.activePatterns.find(p => p.age <= 1 && !p.invalidated);
+        // Find freshly formed pattern on this bar (single-bar age <= 1, structural age <= pivotLen + 1)
+        const pivotLen = mode === 'positional' ? 10 : mode === 'swing' ? 5 : 3;
+        const latest = analysis.activePatterns.find(p => {
+            if (p.invalidated) return false;
+            const maxAllowedAge = (p.len > 2 || p.stopLevel !== undefined) ? (pivotLen + 1) : 1;
+            return p.age <= maxAllowedAge;
+        });
         if (!latest) return null;
 
         if (config.selectedPattern !== 'ALL' && latest.id !== config.selectedPattern) {
@@ -598,7 +711,7 @@ function detectSignalAtBar(i, candles, config, dataMaps) {
         const series = dataMaps.standardIndicatorSeries;
         const cond = indDef.presetConditions?.[0];
         if (cond) {
-            const thresh = cond.hasThreshold ? (cond.thresholdConfig?.defaultThreshold) : undefined;
+            const thresh = cond.hasThreshold ? (config.customThreshold ?? cond.thresholdConfig?.defaultThreshold) : undefined;
             const isBuy = typeof cond.checkBuy === 'function' && cond.checkBuy(series[i], series[i - 1], currentCandle, prevCandle, thresh);
             const isSell = typeof cond.checkSell === 'function' && cond.checkSell(series[i], series[i - 1], currentCandle, prevCandle, thresh);
 
@@ -659,8 +772,8 @@ function detectSignalAtBar(i, candles, config, dataMaps) {
         const prev = map.get(prevCandle.time);
         if (curr === undefined || curr === null || prev === undefined || prev === null) return null;
 
-        const currVal = typeof curr === 'object' ? (curr.value ?? curr.val ?? 0) : Number(curr);
-        const prevVal = typeof prev === 'object' ? (prev.value ?? prev.val ?? 0) : Number(prev);
+        const currVal = (curr !== null && typeof curr === 'object') ? (curr.value ?? curr.val ?? (typeof curr[Object.keys(curr)[0]] === 'number' ? curr[Object.keys(curr)[0]] : 0)) : Number(curr);
+        const prevVal = (prev !== null && typeof prev === 'object') ? (prev.value ?? prev.val ?? (typeof prev[Object.keys(prev)[0]] === 'number' ? prev[Object.keys(prev)[0]] : 0)) : Number(prev);
 
         const customDef = dataMaps.customUnitDef;
         const activeMode = config.mode || 'swing';
@@ -748,7 +861,7 @@ export function evaluateTradeExit(trade, candles, currentIdx, exitRule, costMode
         const currHighPct = ((trade.entryPrice - candle.low) / trade.entryPrice) * 100;
         const currLowPct = ((trade.entryPrice - candle.high) / trade.entryPrice) * 100;
         trade.mfePct = Math.max(trade.mfePct || 0, currHighPct);
-        trade.maePct = Math.min(trade.maePct || 0, -Math.abs(currLowPct));
+        trade.maePct = Math.min(trade.maePct || 0, Math.min(0, currLowPct));
     }
 
     // 1. Target & Stop Check
@@ -765,9 +878,23 @@ export function evaluateTradeExit(trade, candles, currentIdx, exitRule, costMode
             const targetPrice = trade.entryPrice * (1 + targetPct);
             const stopPrice = trade.entryPrice * (1 - stopPct);
 
+            let trailStopPrice = null;
+            if (exitRule.type === 'TRAILING_STOP') {
+                const trailPct = (exitRule.trailingStopPct || 1.0) / 100;
+                const priorPeak = trade.highestPrice;
+                const peakGain = (priorPeak - trade.entryPrice) / trade.entryPrice;
+                if (peakGain >= Math.max(0.01, trailPct * 0.8)) {
+                    trailStopPrice = priorPeak * (1 - trailPct);
+                }
+            }
+
+            const isTrailingActive = trailStopPrice !== null && trailStopPrice > stopPrice;
+            const effectiveStopPrice = isTrailingActive ? trailStopPrice : stopPrice;
+            const stopExitReason = isTrailingActive ? 'TRAILING_STOP' : (stopPct === 0 ? 'BREAKEVEN' : 'STOP');
+
             // A. True Gap Openings Execution (fills at actual market open if gapped beyond level)
-            if (candle.open <= stopPrice) {
-                closeTrade(trade, candle.open, candle.time, currentIdx, stopPct === 0 ? 'BREAKEVEN' : 'STOP', costModel);
+            if (candle.open <= effectiveStopPrice) {
+                closeTrade(trade, candle.open, candle.time, currentIdx, stopExitReason, costModel);
                 return true;
             }
             if (candle.open >= targetPrice) {
@@ -777,17 +904,12 @@ export function evaluateTradeExit(trade, candles, currentIdx, exitRule, costMode
 
             // B. Intra-Bar Price Range Check
             const isTargetHit = candle.high >= targetPrice;
-            const isStopHit = candle.low <= stopPrice;
+            const isStopHit = candle.low <= effectiveStopPrice;
 
             // Conflict resolution: if both touched within same candle
+            // Institutional conservative worst-case execution: Stop Loss takes priority to eliminate look-ahead optimism bias
             if (isTargetHit && isStopHit) {
-                const distToStop = Math.abs(candle.open - stopPrice);
-                const distToTarget = Math.abs(targetPrice - candle.open);
-                if (distToStop <= distToTarget && candle.close < candle.open) {
-                    closeTrade(trade, stopPrice, candle.time, currentIdx, stopPct === 0 ? 'BREAKEVEN' : 'STOP', costModel);
-                } else {
-                    closeTrade(trade, targetPrice, candle.time, currentIdx, 'TARGET', costModel);
-                }
+                closeTrade(trade, effectiveStopPrice, candle.time, currentIdx, stopExitReason, costModel);
                 return true;
             }
 
@@ -796,43 +918,34 @@ export function evaluateTradeExit(trade, candles, currentIdx, exitRule, costMode
                 return true;
             }
             if (isStopHit) {
-                closeTrade(trade, stopPrice, candle.time, currentIdx, stopPct === 0 ? 'BREAKEVEN' : 'STOP', costModel);
+                closeTrade(trade, effectiveStopPrice, candle.time, currentIdx, stopExitReason, costModel);
                 return true;
             }
 
-            // C. Trailing Stop (Long) — Sequence: test prior established peak first, then update
-            if (exitRule.type === 'TRAILING_STOP') {
-                const trailPct = (exitRule.trailingStopPct || 1.0) / 100;
-                const priorPeak = trade.highestPrice;
-                const peakGain = (priorPeak - trade.entryPrice) / trade.entryPrice;
-
-                if (peakGain >= Math.max(0.01, trailPct * 0.8)) {
-                    const trailStopPrice = priorPeak * (1 - trailPct);
-                    if (candle.open <= trailStopPrice) {
-                        closeTrade(trade, candle.open, candle.time, currentIdx, 'TRAILING_STOP', costModel);
-                        return true;
-                    }
-                    const dropFromPeak = (priorPeak - candle.low) / priorPeak;
-                    if (dropFromPeak >= trailPct) {
-                        closeTrade(trade, trailStopPrice, candle.time, currentIdx, 'TRAILING_STOP', costModel);
-                        return true;
-                    }
-                }
-
-                trade.highestPrice = Math.max(trade.highestPrice, candle.high);
-                trade.lowestPrice = Math.min(trade.lowestPrice, candle.low);
-            } else {
-                trade.highestPrice = Math.max(trade.highestPrice, candle.high);
-                trade.lowestPrice = Math.min(trade.lowestPrice, candle.low);
-            }
+            trade.highestPrice = Math.max(trade.highestPrice, candle.high);
+            trade.lowestPrice = Math.min(trade.lowestPrice, candle.low);
         } else {
             // Short trade
             const targetPrice = trade.entryPrice * (1 - targetPct);
             const stopPrice = trade.entryPrice * (1 + stopPct);
 
+            let trailStopPrice = null;
+            if (exitRule.type === 'TRAILING_STOP') {
+                const trailPct = (exitRule.trailingStopPct || 1.0) / 100;
+                const priorTrough = trade.lowestPrice;
+                const peakGain = (trade.entryPrice - priorTrough) / trade.entryPrice;
+                if (peakGain >= Math.max(0.01, trailPct * 0.8)) {
+                    trailStopPrice = priorTrough * (1 + trailPct);
+                }
+            }
+
+            const isTrailingActive = trailStopPrice !== null && trailStopPrice < stopPrice;
+            const effectiveStopPrice = isTrailingActive ? trailStopPrice : stopPrice;
+            const stopExitReason = isTrailingActive ? 'TRAILING_STOP' : (stopPct === 0 ? 'BREAKEVEN' : 'STOP');
+
             // A. True Gap Openings Execution
-            if (candle.open >= stopPrice) {
-                closeTrade(trade, candle.open, candle.time, currentIdx, stopPct === 0 ? 'BREAKEVEN' : 'STOP', costModel);
+            if (candle.open >= effectiveStopPrice) {
+                closeTrade(trade, candle.open, candle.time, currentIdx, stopExitReason, costModel);
                 return true;
             }
             if (candle.open <= targetPrice) {
@@ -842,16 +955,10 @@ export function evaluateTradeExit(trade, candles, currentIdx, exitRule, costMode
 
             // B. Intra-Bar Price Range Check
             const isTargetHit = candle.low <= targetPrice;
-            const isStopHit = candle.high >= stopPrice;
+            const isStopHit = candle.high >= effectiveStopPrice;
 
             if (isTargetHit && isStopHit) {
-                const distToStop = Math.abs(stopPrice - candle.open);
-                const distToTarget = Math.abs(candle.open - targetPrice);
-                if (distToStop <= distToTarget && candle.close > candle.open) {
-                    closeTrade(trade, stopPrice, candle.time, currentIdx, stopPct === 0 ? 'BREAKEVEN' : 'STOP', costModel);
-                } else {
-                    closeTrade(trade, targetPrice, candle.time, currentIdx, 'TARGET', costModel);
-                }
+                closeTrade(trade, effectiveStopPrice, candle.time, currentIdx, stopExitReason, costModel);
                 return true;
             }
 
@@ -860,35 +967,12 @@ export function evaluateTradeExit(trade, candles, currentIdx, exitRule, costMode
                 return true;
             }
             if (isStopHit) {
-                closeTrade(trade, stopPrice, candle.time, currentIdx, stopPct === 0 ? 'BREAKEVEN' : 'STOP', costModel);
+                closeTrade(trade, effectiveStopPrice, candle.time, currentIdx, stopExitReason, costModel);
                 return true;
             }
 
-            // C. Trailing Stop (Short)
-            if (exitRule.type === 'TRAILING_STOP') {
-                const trailPct = (exitRule.trailingStopPct || 1.0) / 100;
-                const priorTrough = trade.lowestPrice;
-                const peakGain = (trade.entryPrice - priorTrough) / trade.entryPrice;
-
-                if (peakGain >= Math.max(0.01, trailPct * 0.8)) {
-                    const trailStopPrice = priorTrough * (1 + trailPct);
-                    if (candle.open >= trailStopPrice) {
-                        closeTrade(trade, candle.open, candle.time, currentIdx, 'TRAILING_STOP', costModel);
-                        return true;
-                    }
-                    const bounceFromTrough = (candle.high - priorTrough) / priorTrough;
-                    if (bounceFromTrough >= trailPct) {
-                        closeTrade(trade, trailStopPrice, candle.time, currentIdx, 'TRAILING_STOP', costModel);
-                        return true;
-                    }
-                }
-
-                trade.highestPrice = Math.max(trade.highestPrice, candle.high);
-                trade.lowestPrice = Math.min(trade.lowestPrice, candle.low);
-            } else {
-                trade.highestPrice = Math.max(trade.highestPrice, candle.high);
-                trade.lowestPrice = Math.min(trade.lowestPrice, candle.low);
-            }
+            trade.highestPrice = Math.max(trade.highestPrice, candle.high);
+            trade.lowestPrice = Math.min(trade.lowestPrice, candle.low);
         }
     } else {
         trade.highestPrice = Math.max(trade.highestPrice, candle.high);
@@ -934,20 +1018,38 @@ export function closeTrade(trade, exitPrice, exitTime, exitBarIndex, reason, cos
     trade.exitBarIndex = exitBarIndex;
     trade.exitReason = reason;
 
-    // Calculate Friction / Transaction Cost
+    // Calculate Friction / Transaction Cost via Institutional Indian Fee Model
     let frictionPct = 0;
-    if (costModel === 'INDIAN_REALISTIC') {
-        frictionPct = 0.08; 
+    let feeBreakdown = null;
+
+    if (costModel === 'INDIAN_REALISTIC' || (costModel && typeof costModel === 'object')) {
+        const feeData = calculateRoundTripTransactionCosts({
+            entryPrice: trade.entryPrice,
+            exitPrice: trade.exitPrice,
+            quantity: trade.quantity || 1,
+            direction: trade.direction || 1,
+            atr: trade.entryAtr || 0,
+        }, typeof costModel === 'object' ? costModel : {});
+
+        frictionPct = feeData.totalCostPct;
+        feeBreakdown = feeData;
+    } else if (costModel === 'NONE') {
+        frictionPct = 0;
     }
 
     const rawReturn = ((trade.exitPrice - trade.entryPrice) / trade.entryPrice) * 100 * trade.direction;
     trade.rawReturnPct = Math.round(rawReturn * 100) / 100;
     trade.frictionPct = frictionPct;
+    trade.feeDetails = feeBreakdown;
     trade.returnPct = Math.round((rawReturn - frictionPct) * 100) / 100;
 
-    if (trade.returnPct > 0) trade.outcome = 'WIN';
-    else if (trade.returnPct === 0) trade.outcome = 'BREAKEVEN';
-    else trade.outcome = 'LOSS';
+    if (reason === 'BREAKEVEN' || Math.abs(rawReturn) < 0.001) {
+        trade.outcome = 'BREAKEVEN';
+    } else if (trade.returnPct > 0) {
+        trade.outcome = 'WIN';
+    } else {
+        trade.outcome = 'LOSS';
+    }
 }
 
 // ─── Scorecard & Performance Metrics Calculation ───────────────────────────
@@ -982,7 +1084,7 @@ export function calculateExpectedCalibrationError(buckets = []) {
             countedSamples += b.sampleSize;
         }
     });
-    if (countedSamples === 0) return 0;
+    if (countedSamples === 0) return null;
     return Math.round((weightedErrorSum / countedSamples) * 10) / 10;
 }
 
@@ -1231,6 +1333,231 @@ export function computeCalibration(trades = [], calibBuckets = {}) {
     return result;
 }
 
+// ─── Continuous Mark-to-Market (MTM) & Underwater Drawdown Engine ──────────
+
+export function buildContinuousMTMEquityCurve(trades, candles, initialCapital = 100000, config = {}) {
+    const n = candles.length;
+    if (n === 0) return { continuousEquity: [], mtmMaxDrawdownPct: 0, ulcerIndex: 0, topDrawdowns: [], dailyReturns: [], benchReturns: [] };
+
+    const firstClose = (candles[0]?.close && candles[0].close > 0) ? candles[0].close : 1;
+    const posSizePct = Math.max(5, Math.min(100, config.positionSizePct || 100));
+    const sizingModel = config.sizingModel || 'PERCENT_EQUITY';
+
+    const tradesByEntry = new Map();
+    trades.forEach(t => tradesByEntry.set(t.entryBarIndex, t));
+
+    let capital = initialCapital;
+    let peakCapital = initialCapital;
+    let maxDrawdownPct = 0;
+    let activeTrade = null;
+    let activeAllocated = 0;
+
+    const continuousEquity = [];
+    const dailyReturns = [];
+    const benchReturns = [];
+
+    let ddSumSq = 0;
+    let currentDdStartBar = 0;
+    let currentDdTrough = 0;
+    let currentDdTroughBar = 0;
+    const completedDrawdowns = [];
+
+    for (let i = 0; i < n; i++) {
+        const c = candles[i];
+        const close = c.close;
+        const prevEquity = continuousEquity.length > 0 ? continuousEquity[continuousEquity.length - 1].equity : initialCapital;
+
+        if (activeTrade && activeTrade.exitBarIndex === i) {
+            const realizedPnl = activeTrade.realizedPnl !== undefined 
+                ? activeTrade.realizedPnl 
+                : activeAllocated * (activeTrade.returnPct / 100);
+            capital = Math.max(0, capital + realizedPnl);
+            activeTrade = null;
+            activeAllocated = 0;
+        }
+
+        if (!activeTrade && tradesByEntry.has(i)) {
+            activeTrade = tradesByEntry.get(i);
+            let allocated = capital * (posSizePct / 100);
+            if (sizingModel === 'FIXED_CAPITAL' || sizingModel === 'FIXED_CASH') {
+                allocated = Math.min(capital, initialCapital * (posSizePct / 100));
+            } else if (sizingModel === 'KELLY') {
+                const k = 0.15; // standard Half-Kelly allocation
+                allocated = capital * k;
+            } else if (sizingModel === 'ATR_RISK') {
+                const slPct = Math.max(0.005, (config.exitRule?.stopPct || 1.25) / 100);
+                allocated = Math.min(capital, (capital * 0.015) / slPct);
+            }
+            activeAllocated = Math.max(0, allocated);
+        }
+
+        let currentEquity = capital;
+        if (activeTrade && i >= activeTrade.entryBarIndex && i <= activeTrade.exitBarIndex) {
+            const rawReturnPct = ((close - activeTrade.entryPrice) / activeTrade.entryPrice) * 100 * activeTrade.direction;
+            const unrealizedPnl = activeAllocated * (rawReturnPct / 100);
+            currentEquity = Math.max(0, capital + unrealizedPnl);
+        }
+
+        if (currentEquity > peakCapital) {
+            if (currentDdTrough > 1.0) {
+                completedDrawdowns.push({
+                    startBar: currentDdStartBar,
+                    startTime: candles[currentDdStartBar]?.time,
+                    troughBar: currentDdTroughBar,
+                    troughTime: candles[currentDdTroughBar]?.time,
+                    recoveryBar: i,
+                    recoveryTime: c.time,
+                    depthPct: Math.round(currentDdTrough * 10) / 10,
+                    durationBars: i - currentDdStartBar,
+                });
+            }
+            peakCapital = currentEquity;
+            currentDdStartBar = i;
+            currentDdTrough = 0;
+            currentDdTroughBar = i;
+        }
+
+        const currentDdPct = peakCapital > 0 ? ((peakCapital - currentEquity) / peakCapital) * 100 : 0;
+        if (currentDdPct > currentDdTrough) {
+            currentDdTrough = currentDdPct;
+            currentDdTroughBar = i;
+        }
+        if (currentDdPct > maxDrawdownPct) maxDrawdownPct = currentDdPct;
+        ddSumSq += Math.pow(currentDdPct, 2);
+
+        const benchEquity = Math.round(initialCapital * (close / firstClose));
+
+        if (i > 0) {
+            const rDaily = prevEquity > 0 ? ((currentEquity - prevEquity) / prevEquity) * 100 : 0;
+            const prevClose = candles[i - 1].close;
+            const rBench = prevClose > 0 ? ((close - prevClose) / prevClose) * 100 : 0;
+            dailyReturns.push(rDaily);
+            benchReturns.push(rBench);
+        }
+
+        continuousEquity.push({
+            time: c.time,
+            equity: Math.round(currentEquity),
+            pnlPct: Math.round(((currentEquity - initialCapital) / initialCapital) * 1000) / 10,
+            drawdown: Math.round(currentDdPct * 10) / 10,
+            benchmarkEquity: benchEquity,
+            isTradeOpen: Boolean(activeTrade),
+        });
+    }
+
+    const ulcerIndex = Math.round(Math.sqrt(ddSumSq / Math.max(1, n)) * 10) / 10;
+    const topDrawdowns = completedDrawdowns.sort((a, b) => b.depthPct - a.depthPct).slice(0, 5);
+
+    return {
+        continuousEquity,
+        mtmMaxDrawdownPct: Math.round(maxDrawdownPct * 10) / 10,
+        ulcerIndex,
+        topDrawdowns,
+        dailyReturns,
+        benchReturns,
+    };
+}
+
+export function computeAdvancedQuantRisk(dailyReturns, benchReturns, cagr, totalTrades) {
+    const M = dailyReturns.length;
+    if (M < 2) {
+        return {
+            dailySharpeRatio: 0,
+            dailySortinoRatio: 0,
+            alpha: 0,
+            beta: 1.0,
+            rSquared: 0,
+            trackingError: 0,
+            informationRatio: 0,
+            treynorRatio: 0,
+            var95: 0,
+            var99: 0,
+            cvar95: 0,
+            tailRatio: 1.0,
+            gainToPainRatio: 1.0,
+            sqn: 0,
+        };
+    }
+
+    const rfAnnual = 7.0;
+    const rfDaily = rfAnnual / 252;
+
+    const meanD = dailyReturns.reduce((a, b) => a + b, 0) / M;
+    const varianceD = dailyReturns.reduce((acc, r) => acc + Math.pow(r - meanD, 2), 0) / (M - 1);
+    const stdD = Math.sqrt(varianceD);
+
+    const dailySharpeRatio = stdD > 0
+        ? Math.round(((meanD - rfDaily) / stdD) * Math.sqrt(252) * 100) / 100
+        : 0;
+
+    const downsideVar = dailyReturns.reduce((acc, r) => acc + (r < rfDaily ? Math.pow(r - rfDaily, 2) : 0), 0) / (M - 1);
+    const downsideStd = Math.sqrt(downsideVar);
+    const dailySortinoRatio = downsideStd > 0
+        ? Math.round(((meanD - rfDaily) / downsideStd) * Math.sqrt(252) * 100) / 100
+        : (meanD > rfDaily ? 99.9 : 0);
+
+    const meanB = benchReturns.reduce((a, b) => a + b, 0) / M;
+    const varB = benchReturns.reduce((acc, r) => acc + Math.pow(r - meanB, 2), 0) / (M - 1);
+    let covPB = 0;
+    for (let k = 0; k < M; k++) {
+        covPB += (dailyReturns[k] - meanD) * (benchReturns[k] - meanB);
+    }
+    covPB /= (M - 1);
+
+    const beta = varB > 0 ? Math.round((covPB / varB) * 100) / 100 : 1.0;
+    const alpha = Math.round(((meanD - rfDaily) - beta * (meanB - rfDaily)) * 252 * 10) / 10;
+    const stdB = Math.sqrt(varB);
+    const corr = (stdD > 0 && stdB > 0) ? covPB / (stdD * stdB) : 0;
+    const rSquared = Math.round(Math.pow(corr, 2) * 100) / 100;
+
+    const diffs = dailyReturns.map((r, k) => r - (benchReturns[k] || 0));
+    const meanDiff = diffs.reduce((a, b) => a + b, 0) / M;
+    const varDiff = diffs.reduce((acc, d) => acc + Math.pow(d - meanDiff, 2), 0) / (M - 1);
+    const trackingError = Math.round(Math.sqrt(varDiff) * Math.sqrt(252) * 10) / 10;
+    const informationRatio = trackingError > 0 ? Math.round(((meanDiff * 252) / trackingError) * 100) / 100 : 0;
+    const treynorRatio = beta !== 0 ? Math.round(((cagr - rfAnnual) / beta) * 100) / 100 : 0;
+
+    const sortedReturns = [...dailyReturns].sort((a, b) => a - b);
+    const var95 = Math.round(Math.max(0, -(meanD - 1.645 * stdD)) * 10) / 10;
+    const var99 = Math.round(Math.max(0, -(meanD - 2.326 * stdD)) * 10) / 10;
+
+    const p5Idx = Math.max(1, Math.floor(M * 0.05));
+    const worst5Pct = sortedReturns.slice(0, p5Idx);
+    const cvar95 = worst5Pct.length > 0
+        ? Math.round(Math.abs(worst5Pct.reduce((a, b) => a + b, 0) / worst5Pct.length) * 10) / 10
+        : var95;
+
+    const p95Idx = Math.min(M - 1, Math.floor(M * 0.95));
+    const p5Val = Math.abs(sortedReturns[p5Idx] || -0.01);
+    const p95Val = Math.abs(sortedReturns[p95Idx] || 0.01);
+    const tailRatio = p5Val > 0 ? Math.round((p95Val / p5Val) * 100) / 100 : 1.0;
+
+    const grossGains = dailyReturns.filter(r => r > 0).reduce((a, b) => a + b, 0);
+    const grossLosses = Math.abs(dailyReturns.filter(r => r < 0).reduce((a, b) => a + b, 0));
+    const gainToPainRatio = grossLosses > 0 ? Math.round((grossGains / grossLosses) * 100) / 100 : 99.9;
+
+    const sqn = (totalTrades >= 3 && stdD > 0)
+        ? Math.round((Math.sqrt(totalTrades) * (meanD / stdD)) * 100) / 100
+        : 0;
+
+    return {
+        dailySharpeRatio,
+        dailySortinoRatio,
+        alpha,
+        beta,
+        rSquared,
+        trackingError,
+        informationRatio,
+        treynorRatio,
+        var95,
+        var99,
+        cvar95,
+        tailRatio,
+        gainToPainRatio,
+        sqn,
+    };
+}
+
 export function computeBacktestMetrics(trades, candles, initialCapital = 100000, splitIndex, config = {}) {
     if (!trades || trades.length === 0) {
         const emptyResult = [];
@@ -1303,8 +1630,26 @@ export function computeBacktestMetrics(trades, candles, initialCapital = 100000,
             return;
         }
 
-        const allocatedBase = isFixedSizing ? initialCapital : capital;
-        const allocated = Math.max(0, allocatedBase * (posSizePct / 100));
+        const sizingModel = config.sizingModel || 'PERCENT_EQUITY';
+        let allocated = 0;
+        if (sizingModel === 'FIXED_CAPITAL' || sizingModel === 'FIXED_CASH') {
+            allocated = Math.min(capital, initialCapital * (posSizePct / 100));
+        } else if (sizingModel === 'KELLY') {
+            const wr = idx > 0 ? wins / idx : 0.5;
+            const avgW = wins > 0 ? grossGains / wins : 1;
+            const avgL = losses > 0 ? grossLosses / losses : 1;
+            const b = avgL > 0 ? avgW / avgL : 1;
+            const f = Math.max(0.05, Math.min(0.25, (wr * (b + 1) - 1) / b * 0.5));
+            allocated = capital * f;
+        } else if (sizingModel === 'ATR_RISK') {
+            const riskAmount = capital * 0.015;
+            const slPct = Math.max(0.005, (config.exitRule?.stopPct || 1.25) / 100);
+            allocated = Math.min(capital, riskAmount / slPct);
+        } else if (sizingModel === 'VOLATILITY_TARGETING') {
+            allocated = Math.min(capital, capital * 0.85);
+        } else {
+            allocated = Math.max(0, (isFixedSizing ? initialCapital : capital) * (posSizePct / 100));
+        }
         const tradePnl = allocated * (trade.returnPct / 100);
         
         capital = Math.max(0, capital + tradePnl);
@@ -1381,7 +1726,8 @@ export function computeBacktestMetrics(trades, candles, initialCapital = 100000,
 
     const totalTrades = trades.length;
     const decisiveTrades = wins + losses;
-    const winRate = decisiveTrades > 0 ? (wins / decisiveTrades) * 100 : 0;
+    const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
+    const decisiveWinRate = decisiveTrades > 0 ? (wins / decisiveTrades) * 100 : 0;
     const profitFactor = grossLosses > 0 ? grossGains / grossLosses : grossGains > 0 ? 99.9 : 0;
     const netReturnPct = ((capital - initialCapital) / initialCapital) * 100;
     
@@ -1392,13 +1738,15 @@ export function computeBacktestMetrics(trades, candles, initialCapital = 100000,
     const avgLossPct = lossTrades.length > 0 ? Math.abs(lossTrades.reduce((acc, t) => acc + t.returnPct, 0) / lossTrades.length) : 0;
     const realizedRR = avgLossPct > 0 ? avgWinPct / avgLossPct : avgWinPct > 0 ? 99.9 : 1.0;
 
-    // Mathematical Expectancy
-    const winProb = winRate / 100;
-    const lossProb = decisiveTrades > 0 ? losses / decisiveTrades : 0;
+    // Mathematical Expectancy (normalized symmetrically across total trades)
+    const winProb = totalTrades > 0 ? wins / totalTrades : 0;
+    const lossProb = totalTrades > 0 ? losses / totalTrades : 0;
     const expectancy = (winProb * avgWinPct) - (lossProb * avgLossPct);
 
     // Fractional Half-Kelly Criterion Recommendation (capped at 25% max risk)
-    const rawKelly = realizedRR > 0 ? (winProb - ((1 - winProb) / realizedRR)) : 0;
+    // Using decisive win rate when calculating Kelly ratio to avoid breakeven distortion on payoff odds
+    const decisiveWinProb = decisiveTrades > 0 ? wins / decisiveTrades : 0;
+    const rawKelly = realizedRR > 0 ? (decisiveWinProb - ((1 - decisiveWinProb) / realizedRR)) : 0;
     const kellyPct = Math.max(0, Math.min(25, Math.round(rawKelly * 0.5 * 100)));
 
     // Time horizon in years
@@ -1406,44 +1754,8 @@ export function computeBacktestMetrics(trades, candles, initialCapital = 100000,
     const endMs = new Date(typeof candles[candles.length - 1].time === 'number' && candles[candles.length - 1].time < 1e11 ? candles[candles.length - 1].time * 1000 : candles[candles.length - 1].time).getTime();
     const years = Math.max(0.1, (endMs - startMs) / (365.25 * 24 * 3600 * 1000));
 
-    // Periodic Daily Mark-to-Market Sharpe & Sortino (annualized by sqrt(252))
-    const periodicReturns = [];
-    if (equityCurve.length > 1) {
-        for (let k = 1; k < equityCurve.length; k++) {
-            const prevEq = equityCurve[k - 1].equity;
-            const currEq = equityCurve[k].equity;
-            if (prevEq > 0) {
-                periodicReturns.push(((currEq - prevEq) / prevEq) * 100);
-            }
-        }
-    }
-
-    const periodicMean = periodicReturns.length > 0
-        ? periodicReturns.reduce((acc, r) => acc + r, 0) / periodicReturns.length
-        : 0;
-    const periodicVar = periodicReturns.length > 1
-        ? periodicReturns.reduce((acc, r) => acc + Math.pow(r - periodicMean, 2), 0) / (periodicReturns.length - 1)
-        : 0;
-    const periodicStd = Math.sqrt(periodicVar);
-
-    const rfAnnual = 7.0; // 7.0% Indian G-Sec Risk-Free rate
-    const tradesPerYear = years > 0 ? totalTrades / years : 0;
-    // Adapt annualization factor to trading frequency: sqrt(trades/year) bounded to [1, 252]
-    const annualizationFactor = Math.sqrt(Math.max(1, Math.min(252, tradesPerYear)));
-    const rfPerTrade = tradesPerYear > 0 ? rfAnnual / Math.max(1, tradesPerYear) : (rfAnnual / 252);
-
-    const sharpeRatio = periodicStd > 0
-        ? Math.round(((periodicMean - rfPerTrade) / periodicStd) * annualizationFactor * 100) / 100
-        : 0;
-
-    const downsideVar = periodicReturns.length > 1
-        ? periodicReturns.reduce((acc, r) => acc + (r < rfPerTrade ? Math.pow(r - rfPerTrade, 2) : 0), 0) / (periodicReturns.length - 1)
-        : 0;
-    const downsideStd = Math.sqrt(downsideVar);
-
-    const sortinoRatio = downsideStd > 0
-        ? Math.round(((periodicMean - rfPerTrade) / downsideStd) * annualizationFactor * 100) / 100
-        : 0;
+    // ─── Continuous MTM Equity Curve & Advanced Quantitative Risk Engine ────
+    const { continuousEquity, mtmMaxDrawdownPct, ulcerIndex, topDrawdowns, dailyReturns, benchReturns } = buildContinuousMTMEquityCurve(trades, candles, initialCapital, config);
 
     // CAGR (Compound Annual Growth Rate) with safety bounds for short durations (< 180 days)
     let cagr = 0;
@@ -1451,12 +1763,40 @@ export function computeBacktestMetrics(trades, candles, initialCapital = 100000,
         cagr = Math.round((Math.pow(capital / initialCapital, 1 / years) - 1) * 1000) / 10;
         cagr = Math.max(-100, Math.min(1000, cagr));
     } else if (initialCapital > 0) {
-        // Report non-annualized period return for horizons under 6 months
         cagr = Math.round(netReturnPct * 10) / 10;
     }
 
-    // Calmar Ratio
-    const calmarRatio = maxDrawdownPct > 0 ? Math.round((cagr / maxDrawdownPct) * 100) / 100 : cagr > 0 ? 99.9 : 0;
+    const quantMetrics = computeAdvancedQuantRisk(dailyReturns, benchReturns, cagr, totalTrades);
+    const effectiveSharpe = quantMetrics.dailySharpeRatio || 0;
+    const effectiveSortino = quantMetrics.dailySortinoRatio || 0;
+    const effectiveMaxDd = Math.max(maxDrawdownPct, mtmMaxDrawdownPct);
+    const calmarRatio = effectiveMaxDd > 0 ? Math.round((cagr / effectiveMaxDd) * 100) / 100 : cagr > 0 ? 99.9 : 0;
+    const martinRatio = ulcerIndex > 0 ? Math.round(((cagr - 7.0) / ulcerIndex) * 100) / 100 : 0;
+
+    // Itemized Indian Statutory Fee Breakdown
+    let totalBrokerage = 0, totalStt = 0, totalStampDuty = 0, totalExchangeFees = 0, totalSebi = 0, totalGst = 0, totalSlippage = 0;
+    trades.forEach(t => {
+        if (t.feeDetails) {
+            totalBrokerage += t.feeDetails.brokerage || 0;
+            totalStt += t.feeDetails.stt || 0;
+            totalStampDuty += t.feeDetails.stampDuty || 0;
+            totalExchangeFees += t.feeDetails.exchangeFee || 0;
+            totalSebi += t.feeDetails.sebiFee || 0;
+            totalGst += t.feeDetails.gst || 0;
+            totalSlippage += t.feeDetails.slippageAmount || 0;
+        }
+    });
+    const feeBreakdown = {
+        totalBrokerage: Math.round(totalBrokerage * 100) / 100,
+        totalStt: Math.round(totalStt * 100) / 100,
+        totalStampDuty: Math.round(totalStampDuty * 100) / 100,
+        totalExchangeFees: Math.round(totalExchangeFees * 100) / 100,
+        totalSebi: Math.round(totalSebi * 100) / 100,
+        totalGst: Math.round(totalGst * 100) / 100,
+        totalSlippage: Math.round(totalSlippage * 100) / 100,
+        totalStatutoryCharges: Math.round((totalStt + totalStampDuty + totalExchangeFees + totalSebi + totalGst) * 100) / 100,
+        totalTransactionFriction: Math.round((totalBrokerage + totalStt + totalStampDuty + totalExchangeFees + totalSebi + totalGst + totalSlippage) * 100) / 100,
+    };
 
     const avgTradeReturn = trades.reduce((acc, t) => acc + t.returnPct, 0) / totalTrades;
     const bestTrade = trades.reduce((max, t) => t.returnPct > max ? t.returnPct : max, -Infinity);
@@ -1513,7 +1853,7 @@ export function computeBacktestMetrics(trades, candles, initialCapital = 100000,
         const losses = Math.abs(list.filter(t => t.returnPct < 0).reduce((acc, t) => acc + t.returnPct, 0));
         return {
             count: list.length,
-            winRate: Math.round((w / (w + l || 1)) * 1000) / 10,
+            winRate: list.length > 0 ? Math.round((w / list.length) * 1000) / 10 : 0,
             netReturnPct: Math.round(sumRet * 10) / 10,
             profitFactor: losses > 0 ? Math.round((gains / losses) * 100) / 100 : gains > 0 ? 99.9 : 0,
         };
@@ -1525,18 +1865,40 @@ export function computeBacktestMetrics(trades, candles, initialCapital = 100000,
         losses,
         breakEvens,
         winRate: Math.round(winRate * 10) / 10,
+        decisiveWinRate: Math.round(decisiveWinRate * 10) / 10,
         profitFactor: Math.round(profitFactor * 100) / 100,
-        sharpeRatio,
-        sortinoRatio,
+        sharpeRatio: effectiveSharpe,
+        sortinoRatio: effectiveSortino,
+        dailySharpeRatio: quantMetrics.dailySharpeRatio,
+        dailySortinoRatio: quantMetrics.dailySortinoRatio,
+        dailyMtmSharpe: quantMetrics.dailySharpeRatio,
+        dailySortino: quantMetrics.dailySortinoRatio,
         cagr,
         calmarRatio,
+        martinRatio,
+        ulcerIndex,
         realizedRR: Math.round(realizedRR * 100) / 100,
         expectancy: Math.round(expectancy * 100) / 100,
         kellyPct,
         maxConsecutiveWins,
         maxConsecutiveLosses,
         netReturnPct: Math.round(netReturnPct * 10) / 10,
-        maxDrawdownPct: Math.round(maxDrawdownPct * 10) / 10,
+        maxDrawdownPct: Math.round(effectiveMaxDd * 10) / 10,
+        mtmMaxDrawdownPct: Math.round(mtmMaxDrawdownPct * 10) / 10,
+        alpha: quantMetrics.alpha,
+        beta: quantMetrics.beta,
+        rSquared: quantMetrics.rSquared,
+        trackingError: quantMetrics.trackingError,
+        informationRatio: quantMetrics.informationRatio,
+        treynorRatio: quantMetrics.treynorRatio,
+        var95: quantMetrics.var95,
+        var99: quantMetrics.var99,
+        cvar95: quantMetrics.cvar95,
+        tailRatio: quantMetrics.tailRatio,
+        gainToPainRatio: quantMetrics.gainToPainRatio,
+        sqn: quantMetrics.sqn,
+        topDrawdowns,
+        feeBreakdown,
         avgTradeReturn: Math.round(avgTradeReturn * 100) / 100,
         avgWinPct: Math.round(avgWinPct * 100) / 100,
         avgLossPct: Math.round(avgLossPct * 100) / 100,
@@ -1552,15 +1914,11 @@ export function computeBacktestMetrics(trades, candles, initialCapital = 100000,
         yearsCovered: Math.round(years * 10) / 10,
         exitBreakdown,
         yearlyBreakdown,
+        continuousEquity,
         // Edge Leak Analysis for Horizon Expiries
         horizonExpiryAnalysis: (() => {
             const h = exitBreakdown.find(e => e.reason === 'HORIZON_EXPIRY');
             if (!h || h.count === 0) return null;
-            // A "leak" only occurs when the user is in TARGET_STOP mode but has
-            // enableHorizonTimeout ON — meaning trades are prematurely timing out
-            // instead of hitting their intended profit targets/stop losses.
-            // In pure HORIZON mode, 100% HORIZON_EXPIRY exits is intentional
-            // and correct — it must NEVER be flagged as a leak.
             const isIntentionalHorizonMode = config.exitRule?.type === 'HORIZON';
             const isPrematureTimeoutActive = config.exitRule?.type === 'TARGET_STOP' && config.exitRule?.enableHorizonTimeout === true;
             return {
@@ -1571,21 +1929,23 @@ export function computeBacktestMetrics(trades, candles, initialCapital = 100000,
                 horizonBars: config.exitRule?.horizonBars || 14,
                 isIntentionalHorizonMode,
                 isPrematureTimeoutActive,
-                // Only flag as drag if: user is in TARGET_STOP mode with timeout enabled,
-                // more than 25% of exits timed out prematurely, AND avg return is below 0.5%
                 isMajorDrag: isPrematureTimeoutActive && h.pctOfTotal > 25 && h.avgReturnPct < 0.5,
             };
         })(),
-        // Guardrail: Flag statistical edge validity
         isSampleReliable: totalTrades >= 20,
         guardrailWarning: totalTrades < 20 ? `Low sample size (N = ${totalTrades} < 20). Results are not statistically verified.` : null,
     };
 
+    const inSampleMetrics = calcSubset(inSampleTrades);
+    const outSampleMetrics = calcSubset(outSampleTrades);
+    const isPf = (inSampleMetrics.profitFactor > 0 && isFinite(inSampleMetrics.profitFactor)) ? inSampleMetrics.profitFactor : 1;
+    const oosPf = (outSampleMetrics.profitFactor > 0 && isFinite(outSampleMetrics.profitFactor)) ? outSampleMetrics.profitFactor : 0;
+
     const walkForwardSummary = {
-        inSample: calcSubset(inSampleTrades),
-        outOfSample: calcSubset(outSampleTrades),
+        inSample: inSampleMetrics,
+        outOfSample: outSampleMetrics,
         efficiencyRatio: outSampleTrades.length && inSampleTrades.length
-            ? Math.round((calcSubset(outSampleTrades).winRate / (calcSubset(inSampleTrades).winRate || 1)) * 100) / 100
+            ? Math.round((oosPf / isPf) * 100) / 100
             : 1.0,
     };
 

@@ -5,15 +5,18 @@ import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 import { scoreRSICard } from '../engine/TechnicalCompositeEngine';
 
-export default function RSICard({ cardId, data = null, lastUpdated, tradingMode = 'swing', indicatorParams, onOpenSettings }) {
+export default function RSICard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing', indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.rsi.id);
     
     const settingsConfig = [
         { id: "rsi_period", label: "RSI Period", type: "number", min: 2, max: 50, default: 14 }
     ];
 
-    // Resolve current value
-    const currentValue = data?.rsi ?? null;
+    // Resolve current value from live data or manual override
+    const isLiveData = data?.rsi !== undefined && data?.rsi !== null && !isNaN(Number(data.rsi));
+    const isManual = !isLiveData && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' && !isNaN(Number(manualOverride));
+    const currentValue = isLiveData ? Number(data.rsi) : (isManual ? Number(manualOverride) : null);
+    const mode = isLiveData ? "AUTO" : (isManual ? "MANUAL" : "AUTO");
 
     const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreRSICard(currentValue), 'rsi', tradingMode);
 
@@ -25,10 +28,10 @@ export default function RSICard({ cardId, data = null, lastUpdated, tradingMode 
             config={{ 
                 title: "RSI", 
                 category: "Momentum", 
-                mode: "AUTO", 
+                mode, 
                 creditScore: configData.creditScore, 
-                updateTime: lastUpdated ?? "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel,
                 settingsConfig,
                 onSettingsClick: () => onOpenSettings?.(settingsConfig)
@@ -39,7 +42,8 @@ export default function RSICard({ cardId, data = null, lastUpdated, tradingMode 
                 score, 
                 bias, 
                 confidence, 
-                impactWeight: configData.impactWeight 
+                impactWeight: configData.impactWeight,
+                isManual
             }}
             chartData={{ points: data?.history || [], valueKey: "value", valueName: "RSI" }}
             insights={{ 

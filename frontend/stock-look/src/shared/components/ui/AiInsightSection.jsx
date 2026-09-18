@@ -106,6 +106,8 @@ export default function AiInsightSection({
     // Track last generated state to avoid redundant re-calls on minor fluctuations
     const lastStateRef = useRef({ score: null, symbol: null, regime: null });
     const hasGeneratedRef = useRef(false);
+    const intervalRef = useRef(null);
+    const prevInsightRef = useRef(null);
     const [displayedText, setDisplayedText] = useState("");
     const [isRestoredFromCache, setIsRestoredFromCache] = useState(false);
     const [lastGeneratedAt, setLastGeneratedAt] = useState(null);
@@ -144,16 +146,22 @@ export default function AiInsightSection({
     const currentSymbol = resolveReadableSymbol(stockSymbol) || "Market";
     const cacheKey = `${targetId}_${currentSymbol}`;
 
+    const isTelemetryDump = (text) => typeof text === 'string' && (text.includes('Metrics:') || text.includes('[INSTITUTIONAL TELEMETRY SYNTHESIS'));
+
     useEffect(() => {
         const cached = globalInsightCache[cacheKey];
         if (cached) {
-            // Restore state to prevent auto-trigger when switching tabs
-            hasGeneratedRef.current = true;
-            lastStateRef.current = { score: cached.score, symbol: cached.symbol, regime: cached.regime };
-            setDisplayedText(cached.insightText);
-            setLastGeneratedAt(cached.timestamp || null);
-            setIsRestoredFromCache(true);
-            return;
+            if (isTelemetryDump(cached.insightText)) {
+                delete globalInsightCache[cacheKey];
+            } else {
+                // Restore clean state to prevent auto-trigger when switching tabs
+                hasGeneratedRef.current = true;
+                lastStateRef.current = { score: cached.score, symbol: cached.symbol, regime: cached.regime };
+                setDisplayedText(cached.insightText);
+                setLastGeneratedAt(cached.timestamp || null);
+                setIsRestoredFromCache(true);
+                return;
+            }
         }
 
         // Check localStorage directly in case globalInsightCache wasn't hydrated
@@ -161,19 +169,25 @@ export default function AiInsightSection({
             const storedCache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
             if (storedCache[cacheKey]) {
                 const c = storedCache[cacheKey];
-                globalInsightCache[cacheKey] = c;
-                hasGeneratedRef.current = true;
-                lastStateRef.current = { score: c.score, symbol: c.symbol, regime: c.regime };
-                setDisplayedText(c.insightText);
-                setLastGeneratedAt(c.timestamp || null);
-                setIsRestoredFromCache(true);
-                return;
+                if (isTelemetryDump(c.insightText)) {
+                    delete storedCache[cacheKey];
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(storedCache));
+                } else {
+                    globalInsightCache[cacheKey] = c;
+                    hasGeneratedRef.current = true;
+                    lastStateRef.current = { score: c.score, symbol: c.symbol, regime: c.regime };
+                    setDisplayedText(c.insightText);
+                    setLastGeneratedAt(c.timestamp || null);
+                    setIsRestoredFromCache(true);
+                    return;
+                }
             }
         } catch {}
 
         // Fallback: fetch persisted thread entry from SQLite backend if available
         let isCurrent = true;
-        axiosInstance.get(`/api/v1/ai-prompts/thread/${targetId}?scope=page`)
+        const symbolQuery = currentSymbol ? `&stockSymbol=${encodeURIComponent(currentSymbol)}` : '';
+        axiosInstance.get(`/api/v1/ai-prompts/thread/${targetId}?scope=page${symbolQuery}`)
             .then(res => {
                 if (!isCurrent) return;
                 const entries = res.data?.entries || [];
@@ -188,6 +202,13 @@ export default function AiInsightSection({
             })
             .catch(() => {});
 
+        // Clear any running typewriter interval to prevent ghost updates on symbol switch
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+        prevInsightRef.current = null;
+
         // Reset state for new cache key so it can correctly generate
         hasGeneratedRef.current = false;
         lastStateRef.current = { score: null, symbol: null, regime: null };
@@ -196,7 +217,7 @@ export default function AiInsightSection({
         setIsRestoredFromCache(false);
 
         return () => { isCurrent = false; };
-    }, [cacheKey, targetId]);
+    }, [cacheKey, targetId, currentSymbol]);
 
     const triggerGenerate = useCallback((forceOrEvent) => {
         if (score === null || score === undefined) return;
@@ -227,8 +248,9 @@ export default function AiInsightSection({
         const isSymbolChange = currentSymbol !== lastSymbol;
         const isRegimeChange = actionType !== lastRegime;
         
-        // Ignore drops to exactly 0 unless forced, as they are usually websocket data-loading blips
-        if (currentScore === 0 && !isForce) return;
+        // Ignore drops to exactly 0 during initial websocket load if data has not populated yet
+        const isDataPopulated = coveragePercent >= 75 && ((cards && cards.length > 0) || (sections && sections.length > 0) || masterPayload != null);
+        if (currentScore === 0 && !isForce && !isDataPopulated) return;
 
         if (!isForce && hasGeneratedRef.current && !isSignificantScoreChange && !isSymbolChange && !isRegimeChange) {
             return; // Cache hit: change is too minor to warrant a new AI insight
@@ -262,12 +284,29 @@ export default function AiInsightSection({
                 neutrals != null ? `Neutrals: ${neutrals}` : null,
             ];
 
+        // ── 10-Year Audited Statements Trajectory (Fundamental Header Integration)
+        let fin10Trajectory = null;
+        const fin10 = masterPayload?.financials10Year || masterPayload?.screener?.financials10Year;
+        if (fin10) {
+            const comp = fin10.compoundedGrowth;
+            const pl = fin10.profitLoss;
+            const parts = [];
+            if (comp?.salesGrowth?.periods?.['10 Years:']) parts.push(`10Y Sales CAGR: ${comp.salesGrowth.periods['10 Years:']}`);
+            if (comp?.profitGrowth?.periods?.['10 Years:']) parts.push(`10Y Profit CAGR: ${comp.profitGrowth.periods['10 Years:']}`);
+            if (pl?.rows?.['OPM %']?.length) {
+                const opm = pl.rows['OPM %'];
+                parts.push(`OPM: ${opm[0]} → ${opm[opm.length - 1]}`);
+            }
+            if (parts.length) fin10Trajectory = `10Y Track Record: ${parts.join(' | ')}`;
+        }
+
         // ── Fix: use exact key names that parseAdditionalContext() expects ────────
         const contextLines = [
             `Regime: ${actionType}`,
             confidence != null ? `Confidence: ${confidence}%` : null,
             `Score: ${currentScore.toFixed(0)}`,
             ...breadthBlock,
+            fin10Trajectory,
             ...engineScoreLines,
         ].filter(Boolean).join(" | ");
 
@@ -325,7 +364,7 @@ export default function AiInsightSection({
     useEffect(() => {
         const handleTelemetrySynced = (e) => {
             const detail = e.detail;
-            if (detail && detail.cacheKey === cacheKey) {
+            if (detail && detail.cacheKey === cacheKey && !isTelemetryDump(detail.text)) {
                 hasGeneratedRef.current = true;
                 lastStateRef.current = { score: detail.score, symbol: detail.symbol, regime: detail.regime };
                 setDisplayedText(detail.text);
@@ -356,8 +395,6 @@ export default function AiInsightSection({
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
-    const intervalRef = useRef(null);
-    const prevInsightRef = useRef(null);
 
     // Extract insight, stripping out markdown formatting like ### and **
     const cleanInsight = insight ? insight.replace(/[#*]/g, '').trim() : "";
@@ -372,7 +409,10 @@ export default function AiInsightSection({
         setLastGeneratedAt(Date.now());
 
         // Clear previous interval
-        if (intervalRef.current) clearInterval(intervalRef.current);
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
         
         setDisplayedText(""); // Reset text for typing effect
         setIsRestoredFromCache(false); // We just generated a new one, so type it out!
@@ -383,11 +423,19 @@ export default function AiInsightSection({
                 setDisplayedText(cleanInsight.substring(0, i + 1));
                 i++;
             } else {
-                clearInterval(intervalRef.current);
+                if (intervalRef.current) {
+                    clearInterval(intervalRef.current);
+                    intervalRef.current = null;
+                }
             }
         }, 8);
 
-        return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+        return () => { 
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+        };
     }, [cleanInsight]);
 
     // Separate effect for saving to global in-memory cache (tab switch prevention)
@@ -654,7 +702,9 @@ export default function AiInsightSection({
         <AiInsightModal 
             open={isModalOpen} 
             onClose={handleCloseModal} 
-            targetId={targetId} 
+            targetId={targetId}
+            symbol={currentSymbol}
+            initialInsight={cleanInsight || displayedText}
         />
         </>
     );

@@ -33,6 +33,14 @@ export default function MFFlowsCard({ cardId, data, manualOverride, lastUpdated 
     
     const aiInsightText = generateAiInsightMFFlows(scoreObj, currentValue);
 
+    const formatFlow = (val) => {
+        if (val === null || val === undefined || val === '') return '--';
+        const n = cleanNum(val);
+        if (n === null) return val;
+        const sign = n >= 0 ? '+' : '-';
+        return `${sign}₹${Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Cr`;
+    };
+
     return (
         <IndicatorCard
             cardId={cardId}
@@ -46,7 +54,7 @@ export default function MFFlowsCard({ cardId, data, manualOverride, lastUpdated 
                 aiModel: configData?.aiModel || 'Qwen3 8B'
             }}
             data={{
-                currentValueObj: { label: 'Flows', value: currentValue !== null ? (typeof currentValue === 'number' ? currentValue.toFixed(2) + ' Cr' : currentValue + ' Cr') : '--' },
+                currentValueObj: { label: 'Flows', value: formatFlow(currentValue) },
                 details: [],
                 score: score ?? null,
                 bias: bias || 'Neutral',

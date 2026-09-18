@@ -62,14 +62,14 @@ const DEFAULT_OVERRIDES = {
     // ─── COMPANY OVERRIDES ───
     // Valuation
     pe_ratio: null, forward_pe: null, ev_ebitda: null, pb_ratio: null, earnings_yield: null, relative_valuation: null,
+    peer_multiples: null,
     face_value: null,
     analyst_consensus_rating: null, analyst_target_price: null, analyst_count: null,
+    dividend_yield: null,
     // Earnings
-    eps_growth: null, revenue_growth: null, profit_growth: null,
-    // Sector/Macro
-    dividend_yield: null, earnings_trend: null, gdp_growth: null,
-    // Liquidity/Ownership
-    fii_dii_flow: null, promoter_holding: null, smart_money_flow: null, earnings_quality: null,
+    eps_growth: null, revenue_growth: null, profit_growth: null, forward_eps: null,
+    // Ownership
+    shareholding_trend: null, promoter_holding: null, smart_money_flow: null, earnings_quality: null,
     // Corporate Health
     roe: null, roce: null, roa: null, net_margin: null, operating_margin: null,
     inventory_days: null, receivable_days: null, payable_days: null,
@@ -80,7 +80,7 @@ const DEFAULT_OVERRIDES = {
     // Valuation
     nifty_pe: null, nifty_pb: null, mcap_gdp: null, // earnings_yield shared
     // Earnings
-    eps_yoy: null, forward_eps: null, sector_earnings: null, profit_margin: null,
+    eps_yoy: null, sector_earnings: null, profit_margin: null,
     // Macro
     gdp: null, cpi: null, repo: null, fiscal_deficit: null,
     // Liquidity
@@ -143,22 +143,14 @@ export default function FundamentalPage() {
     { id: "pb_ratio", category: "Valuation" },
     { id: "earnings_yield", category: "Valuation" },
     { id: "relative_valuation", category: "Valuation" },
+    { id: "peer_multiples", category: "Valuation" },
     { id: "analyst_consensus", category: "Valuation" },
-    // Peer Comparison (Moved to CompanySnapshotWidget)
-    // Sector (Context)
-    { id: "earnings_trend", category: "Sector" },
-    // Liquidity
-    { id: "fii_dii_flow", category: "Liquidity" },
-    { id: "dividend_yield", category: "Liquidity" },
+    { id: "dividend_yield", category: "Valuation" },
     // Earnings
     { id: "eps_growth", category: "Earnings" },
     { id: "revenue_growth", category: "Earnings" },
     { id: "profit_growth", category: "Earnings" },
-    { id: "eps_yoy", category: "Earnings" },
     { id: "forward_eps", category: "Earnings" },
-    { id: "profit_margin", category: "Earnings" },
-    // Macro
-    { id: "gdp_growth", category: "Macro" },
     // Corporate
     { id: "roe", category: "Corporate" },
     { id: "roce", category: "Corporate" },
@@ -173,13 +165,14 @@ export default function FundamentalPage() {
     { id: "current_ratio", category: "Balance Sheet" },
     // Ownership
     { id: "promoter_holding", category: "Ownership" },
+    { id: "shareholding_trend", category: "Ownership" },
     { id: "smart_money_flow", category: "Ownership" },
     { id: "earnings_quality", category: "Ownership" },
     { id: "corporate_actions", category: "Ownership" },
   ];
 
   // Standardized Manual Overrides Hook
-  const { overrides: manualOverrides, lastUpdated: manualLastUpdated, expiryConfigs, handleChange: handleOverrideChange, handleClearAll } = useManualOverrides('v2', selectedInstrument, DEFAULT_OVERRIDES);
+  const { overrides: manualOverrides, lastUpdated: manualLastUpdated, expiryConfigs, handleChange: handleOverrideChange, handleClearAll } = useManualOverrides('fundamentals', selectedInstrument, DEFAULT_OVERRIDES);
 
   // Context manages auto-updating instrument when category changes
 
@@ -286,6 +279,16 @@ export default function FundamentalPage() {
       if (livePrices && livePrices[selectedInstrument] && livePrices[selectedInstrument].ltp) {
           if (!data.quote) data.quote = {};
           data.quote.last_price = livePrices[selectedInstrument].ltp;
+      }
+
+      if (rawFundamentalsData?.screener) {
+          data.screener = rawFundamentalsData.screener;
+          try {
+              if (selectedInstrument) {
+                  localStorage.setItem(`praxis_screener_${selectedInstrument}`, JSON.stringify(rawFundamentalsData.screener));
+              }
+              localStorage.setItem('praxis_screener_latest', JSON.stringify(rawFundamentalsData.screener));
+          } catch (e) {}
       }
 
       return data;
@@ -481,6 +484,8 @@ export default function FundamentalPage() {
   const hasReceivableDays = extractRatioExists(['receivable days']);
   const hasPayableDays = extractRatioExists(['payable days']);
   
+  const hasShareholdingTrend = !!(fundamentalsData?.screener?.shareholdingTrend?.quarters?.length);
+  const hasPeerMultiples = !!(fundamentalsData?.screener?.peers?.length);
 
   // ------------------------------------------
 
@@ -580,10 +585,10 @@ export default function FundamentalPage() {
               </div>
           ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6 items-start">
-                  {/* Valuation & Macro */}
-                  {(!hasMarketCap || !hasDividendYield || !hasPeRatio || !hasForwardPe || !hasEvEbitda || !hasRelativeValuation || !hasFaceValue || !hasGdpGrowth || !hasConsensusRating || !hasTargetPrice || !hasAnalystCount) && (
+                  {/* Valuation */}
+                  {(!hasMarketCap || !hasDividendYield || !hasPeRatio || !hasForwardPe || !hasEvEbitda || !hasRelativeValuation || !hasPeerMultiples || !hasFaceValue || !hasConsensusRating || !hasTargetPrice || !hasAnalystCount) && (
                       <div className="space-y-3 break-inside-avoid mb-6">
-                          <div className="text-[10px] font-bold text-blue-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Valuation & Macro</div>
+                          <div className="text-[10px] font-bold text-blue-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Valuation</div>
                           {!hasMarketCap && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Market Cap (Cr)" overrideKey="market_cap" value={manualOverrides.market_cap} onChange={handleOverrideChange} info="Market Capitalization in Crores (INR). Enter absolute value (e.g., 50000). Realistic range: 100 to 2000000." />}
                           {!hasDividendYield && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Dividend Yield (%)" overrideKey="dividend_yield" value={manualOverrides.dividend_yield} onChange={handleOverrideChange} info="Dividend Yield in percent (%). Enter absolute value (e.g., 1.5). Realistic range: 0 to 10." />}
                           
@@ -591,24 +596,23 @@ export default function FundamentalPage() {
                           {!hasForwardPe && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Forward P/E (x)" overrideKey="forward_pe" value={manualOverrides.forward_pe} onChange={handleOverrideChange} info="Forward P/E Ratio. Enter absolute value (e.g., 22.0). Realistic range: 5 to 100." />}
                           {!hasEvEbitda && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="EV/EBITDA (x)" overrideKey="ev_ebitda" value={manualOverrides.ev_ebitda} onChange={handleOverrideChange} info="Enterprise Value to EBITDA Ratio. Enter absolute value (e.g., 12.5). Realistic range: 2 to 50." />}
                           {!hasRelativeValuation && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Rel. Valuation (x)" overrideKey="relative_valuation" value={manualOverrides.relative_valuation} onChange={handleOverrideChange} info="Relative Valuation premium/discount in percent (%). Enter negative for discount (e.g., -15). Realistic range: -50 to +100." />}
+                          {!hasPeerMultiples && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Peer Valuation (%)" overrideKey="peer_multiples" value={manualOverrides.peer_multiples} onChange={handleOverrideChange} info="Peer Valuation premium or discount vs domestic peers in percent (%). Enter negative for discount (e.g. -12.5)." />}
                           {!hasFaceValue && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Face Value (₹)" overrideKey="face_value" value={manualOverrides.face_value} onChange={handleOverrideChange} info="Face Value of the stock in INR. Usually ₹1, ₹2, ₹5, or ₹10. Enter absolute value (e.g., 10)." />}
-                          {!hasGdpGrowth && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="GDP Growth (%)" overrideKey="gdp_growth" value={manualOverrides.gdp_growth} onChange={handleOverrideChange} info="GDP Growth in percent (%). Enter absolute value (e.g., 7.2). Realistic range: -5 to +12." />}
                           {!hasConsensusRating && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Consensus Rating" overrideKey="analyst_consensus_rating" value={manualOverrides.analyst_consensus_rating} onChange={handleOverrideChange} info="Consensus Rating. Enter 1 (Strong Buy), 2 (Buy), 3 (Hold), 4 (Sell), or 5 (Strong Sell)." />}
                           {!hasTargetPrice && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Target Price" overrideKey="analyst_target_price" value={manualOverrides.analyst_target_price} onChange={handleOverrideChange} info="Analyst Target Price in INR. Enter absolute value (e.g., 1500)." />}
                           {!hasAnalystCount && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Analyst Count" overrideKey="analyst_count" value={manualOverrides.analyst_count} onChange={handleOverrideChange} info="Number of analysts covering the stock. Enter absolute integer (e.g., 12)." />}
                       </div>
                   )}
 
-                  {/* Earnings & Flows */}
-                  {(!hasEpsGrowth || !hasRevenueGrowth || !hasProfitGrowth || !hasEpsYoy || !hasForwardEps || !hasProfitMargin || !hasSmartMoneyFlow) && (
+                  {/* Earnings & Ownership */}
+                  {(!hasEpsGrowth || !hasRevenueGrowth || !hasProfitGrowth || !hasForwardEps || !hasSmartMoneyFlow || !hasShareholdingTrend) && (
                       <div className="space-y-3 break-inside-avoid mb-6">
-                          <div className="text-[10px] font-bold text-orange-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Earnings & Flows</div>
+                          <div className="text-[10px] font-bold text-orange-500 mb-2 border-b border-border-default pb-1 uppercase tracking-wider">Earnings & Ownership</div>
                           {!hasEpsGrowth && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="EPS Growth (%)" overrideKey="eps_growth" value={manualOverrides.eps_growth} onChange={handleOverrideChange} info="EPS Growth in percent (%). Enter absolute value (e.g., 15.5). Realistic range: -50 to +100." />}
                           {!hasRevenueGrowth && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Revenue Growth (%)" overrideKey="revenue_growth" value={manualOverrides.revenue_growth} onChange={handleOverrideChange} info="Revenue Growth in percent (%). Enter absolute value (e.g., 12.0). Realistic range: -20 to +100." />}
                           {!hasProfitGrowth && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Profit Growth (%)" overrideKey="profit_growth" value={manualOverrides.profit_growth} onChange={handleOverrideChange} info="Profit Growth in percent (%). Enter absolute value (e.g., 18.5). Realistic range: -50 to +200." />}
-                          {!hasEpsYoy && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="EPS YoY (%)" overrideKey="eps_yoy" value={manualOverrides.eps_yoy} onChange={handleOverrideChange} info="EPS Year-over-Year Growth in percent (%). Enter absolute value (e.g., 14.0). Realistic range: -50 to +100." />}
                           {!hasForwardEps && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Forward EPS" overrideKey="forward_eps" value={manualOverrides.forward_eps} onChange={handleOverrideChange} info="Forward EPS (Earnings Per Share) in INR. Enter absolute value (e.g., 45.50)." />}
-                          {!hasProfitMargin && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Profit Margin (%)" overrideKey="profit_margin" value={manualOverrides.profit_margin} onChange={handleOverrideChange} info="Profit Margin in percent (%). Enter absolute value (e.g., 12.5). Realistic range: -20 to +50." />}
+                          {!hasShareholdingTrend && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Shareholding Trend" overrideKey="shareholding_trend" value={manualOverrides.shareholding_trend} onChange={handleOverrideChange} info="12-quarter institutional holding trend score (0-100)." />}
                           {!hasSmartMoneyFlow && <TimerOverrideInput manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} label="Smart Money Flow" overrideKey="smart_money_flow" value={manualOverrides.smart_money_flow} onChange={handleOverrideChange} info="Smart Money Flow index/percent. Enter absolute value (e.g., 65). Realistic range: 0 to 100." />}
                       </div>
                   )}
@@ -698,7 +702,8 @@ export default function FundamentalPage() {
       "Fundamentals", 
       {
           ...compositeData,
-          cards: cardsForHeader
+          cards: cardsForHeader,
+          screener: fundamentalsData?.screener || null
       }
   );
 
@@ -739,7 +744,11 @@ export default function FundamentalPage() {
               cards={cardsForHeader}
               totalCredits={totalCredits}
               enableBreakdown={true}
-              masterPayload={compositeData.nestedTreePayload}
+              masterPayload={{
+                  ...(compositeData.nestedTreePayload || {}),
+                  screener: fundamentalsData?.screener || null,
+                  financials10Year: fundamentalsData?.screener?.financials10Year || null
+              }}
               syncId={{ instrumentKey: selectedInstrument, category: 'fundamental' }}
               infoContent={fundamentalManualForm}
               controls={{

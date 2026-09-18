@@ -7,7 +7,7 @@ import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { computeCardConfidence } from '@/shared/engine/confidenceEngine';
 import { scoreNiftyPE, generateAiInsightNiftyPE } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
-export default function NiftyPECard({ data, manualOverride, lastUpdated }) {
+export default function NiftyPECard({ cardId, data, manualOverride, lastUpdated }) {
     // 1. Live Data Extraction (Upstox / NSE)
     const peObj = (Array.isArray(data?.ratios) ? data.ratios : []).find(r => ['p/e', 'pe', 'pe ratio'].includes(r.name?.toLowerCase()));
     let extractedValue = peObj?.company_value ? cleanNum(peObj.company_value) : null;
@@ -35,7 +35,7 @@ export default function NiftyPECard({ data, manualOverride, lastUpdated }) {
 
     return (
         <IndicatorCard
-            cardId="nifty_pe"
+            cardId={cardId || CARD_REGISTRY.nifty_pe.id}
             config={{
                 title: 'Nifty P/E',
 

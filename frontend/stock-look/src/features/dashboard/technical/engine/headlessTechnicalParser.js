@@ -47,10 +47,12 @@ export function parseHeadlessTechnicals(rawTechnicals, currentPrice, manualOverr
         if (!rawTechnicals && !useOverride) return { success: false, reason: "No upstream data" };
         
         switch (id) {
-            case 'adx':
-                if (useOverride) return { success: true, valueObj: overrideVal, score: scoreADXCard(overrideVal).score };
-                if (t.adx) return { success: true, valueObj: t.adx, score: scoreADXCard(t.adx).score };
+            case 'adx': {
+                const adxBull = t.adx?.pdi !== undefined ? t.adx.pdi >= t.adx.mdi : (p && t.ema_50 ? p >= t.ema_50 : null);
+                if (useOverride) return { success: true, valueObj: overrideVal, score: scoreADXCard(overrideVal, adxBull).score };
+                if (t.adx) return { success: true, valueObj: t.adx, score: scoreADXCard(t.adx, adxBull).score };
                 break;
+            }
             case 'atr':
                 if (useOverride && p) return { success: true, valueObj: overrideVal, score: scoreATRCard(overrideVal, p).score };
                 if (t.atr && p) return { success: true, valueObj: t.atr, score: scoreATRCard(t.atr, p).score };
@@ -88,8 +90,8 @@ export function parseHeadlessTechnicals(rawTechnicals, currentPrice, manualOverr
                 if (t.macd) return { success: true, valueObj: t.macd, score: scoreMACDCard(t.macd).score };
                 break;
             case 'obv':
-                if (useOverride && t.obv_sma) return { success: true, valueObj: overrideVal, score: scoreObvCard(overrideVal, t.obv_sma).score };
-                if (t.obv && t.obv_sma) return { success: true, valueObj: t.obv, score: scoreObvCard(t.obv, t.obv_sma).score };
+                if (useOverride && t.obv_sma) return { success: true, valueObj: overrideVal, score: scoreObvCard(overrideVal, t.obv_sma, t.volume_sma).score };
+                if (t.obv && t.obv_sma) return { success: true, valueObj: t.obv, score: scoreObvCard(t.obv, t.obv_sma, t.volume_sma).score };
                 break;
             case 'pivot':
                 if (useOverride && p) return { success: true, valueObj: overrideVal, score: scorePivotCard(overrideVal, p).score };
@@ -124,8 +126,8 @@ export function parseHeadlessTechnicals(rawTechnicals, currentPrice, manualOverr
                 if (t.support && p) return { success: true, valueObj: t.support, score: scoreSupportCard(t.support, p).score };
                 break;
             case 'volume_sma':
-                if (useOverride && t.current_volume) return { success: true, valueObj: overrideVal, score: scoreVolumeSmaCard(overrideVal, t.current_volume).score };
-                if (t.volume_sma && t.current_volume) return { success: true, valueObj: t.volume_sma, score: scoreVolumeSmaCard(t.volume_sma, t.current_volume).score };
+                if (useOverride && t.current_volume) return { success: true, valueObj: overrideVal, score: scoreVolumeSmaCard(overrideVal, t.current_volume, p, t.open_price).score };
+                if (t.volume_sma && t.current_volume) return { success: true, valueObj: t.volume_sma, score: scoreVolumeSmaCard(t.volume_sma, t.current_volume, p, t.open_price).score };
                 break;
             case 'vwap':
                 if (useOverride && p) return { success: true, valueObj: overrideVal, score: scoreVwapCard(overrideVal, p).score };
@@ -135,21 +137,26 @@ export function parseHeadlessTechnicals(rawTechnicals, currentPrice, manualOverr
                 if (useOverride) return { success: true, valueObj: overrideVal, score: scoreWilliamsRCard(overrideVal).score };
                 if (t.williams_r) return { success: true, valueObj: t.williams_r, score: scoreWilliamsRCard(t.williams_r).score };
                 break;
-            // Additional overrides specifically for Breadth which might not be generated from Headless Upstox response
+            // Breadth cards supporting both live API data and manual overrides
             case 'breadth_ratio':
                 if (useOverride) return { success: true, valueObj: overrideVal, score: scoreBreadthRatioCard(overrideVal).score };
+                if (t.breadth_ratio !== undefined && t.breadth_ratio !== null) return { success: true, valueObj: t.breadth_ratio, score: scoreBreadthRatioCard(t.breadth_ratio).score };
                 break;
             case 'ad_line':
                 if (useOverride) return { success: true, valueObj: overrideVal, score: scoreADLineCard(overrideVal).score };
+                if (t.ad_line !== undefined && t.ad_line !== null) return { success: true, valueObj: t.ad_line, score: scoreADLineCard(t.ad_line).score };
                 break;
             case 'mcclellan':
                 if (useOverride) return { success: true, valueObj: overrideVal, score: scoreMcClellanCard(overrideVal).score };
+                if (t.mcclellan !== undefined && t.mcclellan !== null) return { success: true, valueObj: t.mcclellan, score: scoreMcClellanCard(t.mcclellan).score };
                 break;
             case 'nh_nl':
                 if (useOverride) return { success: true, valueObj: overrideVal, score: scoreNhnlCard(overrideVal).score };
+                if (t.nh_nl !== undefined && t.nh_nl !== null) return { success: true, valueObj: t.nh_nl, score: scoreNhnlCard(t.nh_nl).score };
                 break;
             case 'trin':
                 if (useOverride) return { success: true, valueObj: overrideVal, score: scoreTrinCard(overrideVal).score };
+                if (t.trin !== undefined && t.trin !== null) return { success: true, valueObj: t.trin, score: scoreTrinCard(t.trin).score };
                 break;
             case 'trendline':
                 if (useOverride) return { success: true, valueObj: overrideVal, score: scoreTrendlineCard(overrideVal).score };

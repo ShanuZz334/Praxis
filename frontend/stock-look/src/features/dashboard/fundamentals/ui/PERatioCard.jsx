@@ -20,7 +20,7 @@ export default function PERatioCard({ cardId, data = null, manualOverride, lastU
     );
     const parsedPE = upstoxPEObj?.company_value ? cleanNum(upstoxPEObj.company_value) : null;
 
-    const isLiveData = parsedPE !== null && !isNaN(parsedPE) && parsedPE > 0;
+    const isLiveData = parsedPE !== null && !isNaN(parsedPE) && parsedPE !== 0;
     const currentPE  = isLiveData ? parsedPE : (manualOverride ?? null);
 
     // ── Step 2: Resolve Sector PE (Live from Upstox) ──────────

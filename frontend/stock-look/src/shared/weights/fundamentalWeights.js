@@ -51,24 +51,12 @@ export const FUNDAMENTAL_WEIGHTS = {
                 profit_growth:      0.25,
             },
 
-            macro: {
-                gdp_growth:         1.00,
-            },
-
-            liquidity: {
-                fii_dii_flow:       0.50,
-                dividend_yield:     0.50,
-            },
-
             ownership: {
-                promoter_holding:   0.35,
-                smart_money_flow:   0.35,
+                promoter_holding:   0.25,
+                shareholding_trend: 0.25,
+                smart_money_flow:   0.25,
                 earnings_quality:   0.15,
-                corporate_actions:  0.15,
-            },
-
-            sector: {
-                earnings_trend:     1.00,
+                corporate_actions:  0.10,
             },
 
             corporate: {
@@ -94,14 +82,11 @@ export const FUNDAMENTAL_WEIGHTS = {
          * These drive how much each section pulls on the final 0–100 composite.
          */
         composite: {
-            valuation:        0.20,
-            earnings:         0.22,
-            macro:            0.05,
-            liquidity:        0.07,
-            ownership:        0.10,
-            sector:           0.08,
-            corporate:        0.18,
-            global:           0.10,   // 'global' id = Financial Health section
+            valuation:        0.25,
+            earnings:         0.25,
+            corporate:        0.20,
+            global:           0.15,   // 'global' id = Financial Health / Balance Sheet section
+            ownership:        0.15,
         },
 
         /**
@@ -159,8 +144,8 @@ export const FUNDAMENTAL_WEIGHTS = {
             },
 
             sector: {
-                advance_decline:    0.30,
-                sector_dashboard:   0.70,
+                advance_decline:    0.50,
+                sector_dashboard:   0.50,
             },
 
             corporate: {
@@ -186,7 +171,7 @@ export const FUNDAMENTAL_WEIGHTS = {
             liquidity:  0.20,
             sector:     0.10,
             corporate:  0.05,
-            global:     0.05,    // VIX-dominated section
+            global:     0.10,    // VIX-dominated section (sums to 1.00)
         },
 
         /**

@@ -144,7 +144,7 @@ function calculateLinearRegression(prices, period = 50) {
 /**
  * Fetch the latest N candles from SQLite for the given instrument.
  */
-export function getHistoricalCandles(instrumentKey, limit = 500, timeframe = 'day') {
+export function getHistoricalCandles(instrumentKey, limit = 800, timeframe = 'day') {
     const stmt = db.prepare(`
         SELECT timestamp, open, high, low, close, volume
         FROM candles
@@ -213,8 +213,43 @@ export function calculateNativeBeta(stockCandles, niftyCandles) {
 /**
  * Run technical indicator algorithms on the historical data.
  */
+/**
+ * FA-006 Fix: Session-Anchored VWAP (matches chartUtils.js frontend implementation)
+ */
+function calculateSessionAnchoredVWAP(candles) {
+    if (!candles || candles.length === 0) return [];
+    let cumulativeVolume = 0;
+    let cumulativeVolumePrice = 0;
+    const vwapSeries = [];
+    let currentAnchorKey = null;
+
+    const getAnchorKey = (time) => {
+        if (!time) return null;
+        const d = typeof time === "number" ? new Date(time * 1000) : new Date(time);
+        if (isNaN(d.getTime())) return null;
+        const istD = new Date(d.getTime() + (5.5 * 3600000));
+        return `${istD.getUTCFullYear()}-${istD.getUTCMonth()}-${istD.getUTCDate()}`;
+    };
+
+    for (let i = 0; i < candles.length; i++) {
+        const item = candles[i];
+        const anchorKey = getAnchorKey(item.timestamp || item.time);
+        if (anchorKey && anchorKey !== currentAnchorKey) {
+            cumulativeVolume = 0;
+            cumulativeVolumePrice = 0;
+            currentAnchorKey = anchorKey;
+        }
+        const typicalPrice = (item.high + item.low + item.close) / 3;
+        const vol = item.volume && item.volume > 0 ? item.volume : 1;
+        cumulativeVolume += vol;
+        cumulativeVolumePrice += (typicalPrice * vol);
+        vwapSeries.push(cumulativeVolume > 0 ? cumulativeVolumePrice / cumulativeVolume : typicalPrice);
+    }
+    return vwapSeries;
+}
+
 export function calculateTechnicals(instrumentKey, liveQuote = null, timeframe = 'day', config = {}) {
-    const candles = getHistoricalCandles(instrumentKey, 500, timeframe);
+    const candles = getHistoricalCandles(instrumentKey, 800, timeframe);
     
     if (candles.length < 50) {
         return null; // Not enough data
@@ -259,6 +294,7 @@ export function calculateTechnicals(instrumentKey, liveQuote = null, timeframe =
         }
     }
 
+    const open = candles.map(c => c.open);
     const close = candles.map(c => c.close);
     const high = candles.map(c => c.high);
     const low = candles.map(c => c.low);
@@ -342,7 +378,7 @@ export function calculateTechnicals(instrumentKey, liveQuote = null, timeframe =
     // Volume
     const obv = OBV.calculate({ close, volume });
     const obvSma = SMA.calculate({ period: 20, values: obv });
-    const vwap = VWAP.calculate({ high, low, close, volume });
+    const vwap = calculateSessionAnchoredVWAP(candles); // FA-006: Session-anchored matching frontend chart
     const volumeSma = SMA.calculate({ period: 20, values: volume });
     
     const cmfPeriod = config.cmf_period || 20;
@@ -380,12 +416,37 @@ export function calculateTechnicals(instrumentKey, liveQuote = null, timeframe =
     }
 
     let pivot = null;
-    // Calculate pivot from the previously completed candle
-    const prevCandleIdx = close.length >= 2 ? close.length - 2 : null;
-    if (prevCandleIdx !== null) {
-        const ph = high[prevCandleIdx];
-        const pl = low[prevCandleIdx];
-        const pc = close[prevCandleIdx];
+    // Calculate Classical Floor Pivot from the previous completed daily session
+    let ph = null, pl = null, pc = null;
+    if (timeframe === 'day') {
+        const prevCandleIdx = close.length >= 2 ? close.length - 2 : null;
+        if (prevCandleIdx !== null) {
+            ph = high[prevCandleIdx];
+            pl = low[prevCandleIdx];
+            pc = close[prevCandleIdx];
+        }
+    } else {
+        // For intraday timeframes (1m, 5m, 15m, 1h), fetch daily session candles for true classical daily pivot
+        try {
+            const dailyCandles = getHistoricalCandles(instrumentKey, 10, 'day');
+            if (dailyCandles && dailyCandles.length >= 2) {
+                const prevDay = dailyCandles[dailyCandles.length - 2];
+                ph = prevDay.high;
+                pl = prevDay.low;
+                pc = prevDay.close;
+            }
+        } catch (e) {
+            // Fallback to previous candle if daily fetch fails
+        }
+        if (ph === null && close.length >= 2) {
+            const prevCandleIdx = close.length - 2;
+            ph = high[prevCandleIdx];
+            pl = low[prevCandleIdx];
+            pc = close[prevCandleIdx];
+        }
+    }
+
+    if (ph !== null && pl !== null && pc !== null) {
         const p = (ph + pl + pc) / 3;
         pivot = {
             p,
@@ -416,7 +477,9 @@ export function calculateTechnicals(instrumentKey, liveQuote = null, timeframe =
         sma_200: safeLast(sma200),
         adx: adx && adx.length >= 2 ? {
             value: adx[adx.length - 1].adx,
-            prev: adx[adx.length - 2].adx
+            prev: adx[adx.length - 2].adx,
+            pdi: adx[adx.length - 1].pdi,
+            mdi: adx[adx.length - 1].mdi
         } : null,
         supertrend: safeLast(supertrendArr),
 
@@ -448,6 +511,7 @@ export function calculateTechnicals(instrumentKey, liveQuote = null, timeframe =
         
         // Live Equivalents for Engines
         current_price: safeLast(close),
+        open_price: safeLast(open),
         current_volume: safeLast(volume),
 
         // Timestamp of the actual data used

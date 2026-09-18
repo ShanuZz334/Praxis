@@ -15,39 +15,43 @@ export default function KCCard({ cardId, data = null, manualOverride, lastUpdate
         { id: "kc_atr_period", label: "KC ATR Period", type: "number", min: 2, max: 100, default: 10 }
     ];
 
-    // Resolve current value from live backend data
-    const valObj = data?.kc || null;
+    // Resolve current value from live backend data or manual override
+    const isLiveData = !!(data?.kc && (data.kc.middle !== undefined || data.kc.upper !== undefined));
+    const isManual = !isLiveData && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' && !isNaN(Number(manualOverride));
+    const valObj = isLiveData ? data.kc : (isManual ? Number(manualOverride) : null);
     const currentPrice = data?.current_price || null;
+    const mode = isLiveData ? "AUTO" : (isManual ? "MANUAL" : "AUTO");
 
     const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreKCCard(valObj, currentPrice), 'kc', tradingMode);
 
     const formatVal = (v) => (v !== null && v !== undefined && !isNaN(v) ? "₹" + parseFloat(v).toFixed(2) : '--');
 
-return (
+    return (
         <IndicatorCard
             cardId={cardId}
             config={{ 
                 title: "Keltner Channel", 
                 category: "Volatility", 
-                mode: "AUTO", 
+                mode, 
                 creditScore: configData.creditScore, 
-                updateTime: lastUpdated ?? "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel,
                 settingsConfig,
                 onSettingsClick: () => onOpenSettings?.(settingsConfig)
             }}
             data={{ 
-                currentValueObj: null, 
+                currentValueObj: isManual ? { label: "Manual KC Middle", value: formatVal(valObj) } : null, 
                 details: [
                     {label: "Upper Channel", value: formatVal(valObj?.upper)}, 
-                    {label: "Middle Line", value: formatVal(valObj?.middle)}, 
+                    {label: "Middle Line", value: formatVal(isManual ? valObj : valObj?.middle)}, 
                     {label: "Lower Channel", value: formatVal(valObj?.lower)}
                 ], 
                 score, 
                 bias, 
                 confidence, 
-                impactWeight: configData.impactWeight 
+                impactWeight: configData.impactWeight,
+                isManual
             }}
             chartData={{ points: data?.history || [], valueKey: "value", valueName: "KC Score" }}
             insights={{ 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useMemo } from "react";
 import Card from "@/shared/components/common/Card";
 import { FundamentalContext } from "@/features/dashboard/fundamentals/ui/FundamentalContext";
 import { FlipContainer, FlipTrigger } from "@/shared/components/common/FlipContainer";
-import { Star, Lightbulb, Plus, BarChart2, Edit2, Check, Settings, Volume2 } from "lucide-react";
+import { Star, Lightbulb, Plus, Edit2, Check, Settings, Volume2 } from "lucide-react";
 import axiosInstance from "@/shared/utils/axiosInstance";
 import { useCardInsight } from "@/shared/hooks/useCardInsight";
 import { useDataRegistry } from "@/shared/context/DataRegistryContext";
@@ -11,17 +11,8 @@ import { useVoice } from "@/shared/context/VoiceContext";
 import { CARD_REGISTRY } from "@/shared/config/cardRegistry";
 import { FO_EQUITIES, FO_INDICES } from "@/shared/utils/foInstruments";
 import "@/features/dashboard/pai/ui/PaiLoader.css";
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ReferenceLine
-} from "recharts";
 import { cn, cleanNum } from "@/lib/utils";
+import { normalizeBias, formatBias, MARKET_BIAS } from "@/shared/utils/formatters";
 
 // =============================
 // Helper: Score Bar
@@ -198,15 +189,21 @@ function MetricsGrid({
         <div className="flex items-center gap-1.5">
           <span className={cn(
             "w-2 h-2 rounded-full",
-            bias?.toLowerCase().includes("bullish") ? "bg-green-500" : bias?.toLowerCase().includes("bearish") ? "bg-red-500" : "bg-yellow-500"
+            normalizeBias(bias) === MARKET_BIAS.BULLISH ? "bg-green-500" : normalizeBias(bias) === MARKET_BIAS.BEARISH ? "bg-red-500" : "bg-yellow-500"
           )} />
-          <span className="text-[11px] text-text-primary">{bias}</span>
+          <span className="text-[11px] text-text-primary">{bias ? formatBias(bias) : '--'}</span>
         </div>
       </div>
 
       <div className={rowClass}>
         <span className={labelClass}>Confidence</span>
-        <span className={valClass}>{confidence}</span>
+        <span className={valClass}>
+          {confidence === null || confidence === undefined || confidence === ''
+            ? '--'
+            : (typeof confidence === 'number'
+                ? `${Math.round(confidence)}%`
+                : (String(confidence).endsWith('%') ? confidence : `${confidence}%`))}
+        </span>
       </div>
 
       <div className={rowClass}>
@@ -219,62 +216,6 @@ function MetricsGrid({
   );
 }
 
-
-// =============================
-// Helper: Dual Chart
-// =============================
-function ValueChart({ data, valueKey, valueName }) {
-  if (!data || data.length === 0) {
-    return (
-      <div className="h-40 w-full mt-2 mb-4 flex flex-col items-center justify-center border border-dashed border-border-subtle rounded-lg bg-background-elevated/30">
-        <span className="text-[11px] font-mono text-text-tertiary">No Data Available</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full h-48 mt-2 relative">
-      <div className="absolute top-0 right-0 z-10 bg-background-elevated/80 px-2 py-1 rounded text-xs flex gap-3">
-        <div className="flex items-center gap-1">
-          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-          <span className="text-[9px] text-text-secondary font-mono">Metric</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-2 h-2 rounded-full bg-green-500"></div>
-          <span className="text-[9px] text-text-secondary font-mono">Engine Score</span>
-        </div>
-      </div>
-      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-        <LineChart data={data} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1f2937" />
-          <XAxis 
-            dataKey="date" 
-            stroke="#4b5563" 
-            fontSize={9} 
-            tickLine={false} 
-            axisLine={false}
-            tickFormatter={(val) => {
-               if(!val) return '';
-               // Assuming val is 'YYYY-MM-DD', convert to 'DD MMM'
-               const d = new Date(val);
-               return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-            }}
-          />
-          <YAxis yAxisId="left" stroke="#3b82f6" fontSize={9} tickLine={false} axisLine={false} hide />
-          <YAxis yAxisId="right" orientation="right" stroke="#22c55e" fontSize={9} tickLine={false} axisLine={false} domain={[0, 100]} hide />
-          <Tooltip 
-            contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '4px', fontSize: '10px' }}
-            formatter={(value) => (typeof value === 'number' ? value.toFixed(2) : value)}
-            labelFormatter={(label) => label}
-          />
-          <ReferenceLine yAxisId="right" y={50} stroke="#4b5563" strokeDasharray="3 3" />
-          <Line yAxisId="left" type="monotone" dataKey="raw_value" name={valueName || "Value"} stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6' }} />
-          <Line yAxisId="right" type="monotone" dataKey="score" name="Score" stroke="#22c55e" strokeWidth={2} dot={{ r: 3, fill: '#22c55e' }} />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
 
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -310,6 +251,11 @@ export const IndicatorCard = React.memo(function IndicatorCard({
 
   const context = useContext(FundamentalContext);
   
+  // Removed useDashboardContext() to prevent 50+ cards from re-rendering every 500ms!
+  // We now receive instrumentKey directly as a primitive prop from the parent Grid, or fall back to the global tracker.
+  const resolvedInstrument = instrumentKey || (typeof window !== 'undefined' ? window.PRAXIS_GLOBAL_INSTRUMENT : null) || context?.instrumentKey || "NSE_INDEX|Nifty 50";
+  const livePrices = typeof window !== 'undefined' ? window.PRAXIS_LIVE_PRICES : null;
+
   // Resolve unique ID for snapshots and AI routing
   const baseCardId = useMemo(() => {
     if (cardId) return cardId;
@@ -320,16 +266,17 @@ export const IndicatorCard = React.memo(function IndicatorCard({
   const resolvedCardId = useMemo(() => {
     const cardDef = CARD_REGISTRY[baseCardId];
     if (cardDef && cardDef.appliesTo === 'both') {
-      return context?.isIndex ? `${baseCardId}_index` : `${baseCardId}_company`;
+      const isIndex = context?.isIndex ?? (
+        typeof resolvedInstrument === 'string' && (
+          resolvedInstrument.startsWith('NSE_INDEX') ||
+          resolvedInstrument.includes('Nifty') ||
+          resolvedInstrument.includes('Bank')
+        )
+      );
+      return isIndex ? `${baseCardId}_index` : `${baseCardId}_company`;
     }
     return baseCardId;
-  }, [baseCardId, context?.isIndex]);
-
-  const historicalData = useMemo(() => {
-    if (!context?.snapshots) return null;
-    const snapshotKey = baseCardId;
-    return context.snapshots[snapshotKey] || null;
-  }, [context?.snapshots, baseCardId]);
+  }, [baseCardId, context?.isIndex, resolvedInstrument]);
 
   // ── Derive page context from card registry
   const resolvedPage = useMemo(() => {
@@ -383,11 +330,6 @@ export const IndicatorCard = React.memo(function IndicatorCard({
   }, [resolvedPage, baseCardId, data?.currentValueObj?.value, data?.score, data?.bias,
       data?.confidence, data?.impactWeight, config.title, config.creditScore, config.mode, register]);
 
-    // Removed useDashboardContext() to prevent 50+ cards from re-rendering every 500ms!
-    // We now receive instrumentKey directly as a primitive prop from the parent Grid, or fall back to the global tracker.
-    const resolvedInstrument = instrumentKey || window.PRAXIS_GLOBAL_INSTRUMENT || context?.instrumentKey || "NSE_INDEX|Nifty 50";
-    const livePrices = null; // Fallback
-
     useEffect(() => {
         const currentScore = data?.score !== undefined ? data.score : null;
         if (currentScore !== lastDispatchedScoreRef.current || resolvedInstrument !== lastDispatchedInstrumentRef.current) {
@@ -432,7 +374,8 @@ export const IndicatorCard = React.memo(function IndicatorCard({
       });
     }
 
-    const liveData = livePrices?.[resolvedInstrument];
+    const currentLivePrices = (typeof window !== 'undefined' && window.PRAXIS_LIVE_PRICES) || livePrices;
+    const liveData = currentLivePrices?.[resolvedInstrument];
     if (liveData) {
       const pct = liveData.ltp ? ((liveData.netChange / (liveData.ltp - liveData.netChange)) * 100).toFixed(2) : 0;
       contextLines.push(`Live Ticker: ₹${liveData.ltp || 'N/A'} (${liveData.netChange || 0}, ${pct}%)`);
@@ -445,7 +388,7 @@ export const IndicatorCard = React.memo(function IndicatorCard({
       scope: 'card',
       additionalContext: contextLines.length ? contextLines.join(' | ') : null
     });
-  }, [isExpanded, resolvedCardId, data?.currentValueObj?.value]);
+  }, [isExpanded, resolvedCardId, resolvedInstrument, data?.score, data?.currentValueObj?.value, config?.title]);
 
 
   // Reset insight when value changes
@@ -521,18 +464,13 @@ export const IndicatorCard = React.memo(function IndicatorCard({
 
               {/* Scrollable Container for Content */}
               <div 
-                className="h-[320px] overflow-y-auto pb-4 no-scrollbar"
+                className="max-h-[320px] overflow-y-auto pb-4 no-scrollbar"
                 onClick={(e) => e.stopPropagation()} // Let users interact with content (copy text, etc.)
               >
-                {/* Chart */}
-                <div className="pb-2">
-                  <ValueChart data={historicalData} valueName={chartData?.valueName} />
-                </div>
-
                 {/* AI Insight */}
                 {!(data.score === null || data.score === undefined || isNaN(parseFloat(data.score)) || data?.currentValueObj?.value === '--') && (
                   <>
-                    <div className="mt-4">
+                    <div className="pt-1">
                       <div className="flex items-center gap-1.5 mb-2">
                         <Star className="w-4 h-4 text-purple-400" />
                         <span className="text-[12px] font-bold text-purple-400">AI Insight</span>
@@ -605,9 +543,7 @@ export const IndicatorCard = React.memo(function IndicatorCard({
                   <span className="text-[10px] text-text-tertiary font-mono whitespace-nowrap">{typeof config.updateTime === 'function' ? config.updateTime(config.mode?.toUpperCase() !== 'MANUAL') : config.updateTime}</span>
                 </div>
 
-                <button className="text-text-tertiary hover:text-text-primary transition-colors p-1 -mr-2 shrink-0">
-                  <BarChart2 className="w-4 h-4" />
-                </button>
+                <div className="w-6 -mr-2 shrink-0" />
               </div>
 
             </motion.div>

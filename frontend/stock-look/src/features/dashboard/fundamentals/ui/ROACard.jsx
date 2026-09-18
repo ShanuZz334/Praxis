@@ -24,7 +24,8 @@ export default function ROACard({ cardId, data = null, manualOverride, lastUpdat
     const sectorROA = upstoxROAObj?.sector_value ? cleanNum(upstoxROAObj.sector_value) : null;
 
     // 3. Calculation Engine
-    const { score, bias, efficiencyZone } = applyModeAdjustment(scoreROA(currentROA, sectorROA), 'roa', tradingMode);
+    const sectorName = data?.company_profile?.sector || data?.sector || '';
+    const { score, bias, efficiencyZone } = applyModeAdjustment(scoreROA(currentROA, sectorROA, sectorName), 'roa', tradingMode);
     const cCard = computeCardConfidence({
         hasLiveData: isLiveData,
         isManual: !!manualOverride && !isLiveData,

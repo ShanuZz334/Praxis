@@ -175,26 +175,65 @@ const RESPONSE_SCHEMA = {
 export async function runFutureVisionPrediction(contextPayload, instrumentKey, timeframe, horizonBars = 7, historicalCandles = null) {
     const routeHint = await _getRoutingHint();
 
-    // ── 1. Parse or Receive Authentic Historical Candles ──
+    // ── 1. Fetch Routing & Model Selection Configuration ──
+    const routing = await AiRouting.findOne({ isSingleton: true }).lean();
+    const fvConfig = routing?.futureVision || {};
+    const activeEnsembleModels = Array.isArray(fvConfig.ensembleModels) && fvConfig.ensembleModels.length > 0
+        ? fvConfig.ensembleModels
+        : ['master_llm', 'kronos', 'chronos_bolt', 'lag_llama', 'naive_baseline'];
+    const customWeights = fvConfig.ensembleWeights || { master_llm: 45, kronos: 25, chronos_bolt: 20, lag_llama: 15, naive_baseline: 10 };
+
+    const useMasterLlm = activeEnsembleModels.includes('master_llm');
+    const quantModelIds = ['kronos', 'chronos_bolt', 'lag_llama', 'naive_baseline'];
+    const activeQuantModels = activeEnsembleModels.filter(m => quantModelIds.includes(m));
+    const useQuantEnsemble = activeQuantModels.length > 0;
+
+    // Calculate normalized weights for all active models
+    const rawWeights = {};
+    let totalActiveWeight = 0;
+    activeEnsembleModels.forEach(m => {
+        const w = Number(customWeights[m]) > 0 ? Number(customWeights[m]) : (m === 'master_llm' ? 45 : m === 'kronos' ? 25 : m === 'chronos_bolt' ? 20 : m === 'lag_llama' ? 15 : 10);
+        rawWeights[m] = w;
+        totalActiveWeight += w;
+    });
+    if (totalActiveWeight <= 0) totalActiveWeight = 100;
+    const normWeights = {};
+    activeEnsembleModels.forEach(m => {
+        normWeights[m] = rawWeights[m] / totalActiveWeight;
+    });
+
+    // Normalized weights specifically for Python ensemble members
+    const pythonWeights = {};
+    let quantSum = 0;
+    activeQuantModels.forEach(m => {
+        quantSum += (rawWeights[m] || 1);
+    });
+    if (quantSum <= 0) quantSum = 1;
+    quantModelIds.forEach(m => {
+        pythonWeights[m] = activeQuantModels.includes(m) ? ((rawWeights[m] || 1) / quantSum) : 0;
+    });
+
+    // ── 2. Parse or Receive Authentic Historical Candles ──
     const histCandles = (Array.isArray(historicalCandles) && historicalCandles.length >= 10)
         ? historicalCandles
         : _extractCandlesFromPayload(contextPayload);
 
-    // ── 2. Run Local Python Foundation Model Ensemble (Kronos & Chronos-Bolt) ──
+    // ── 3. Run Local Python Foundation Model Ensemble if Enabled ──
     let ensembleResult = null;
     let conformalMultiplier = 1.0;
     let modelWeights = [];
     const calState = getCalibrationState(instrumentKey, timeframe);
     conformalMultiplier = calState.conformal_multiplier || 1.0;
 
-    if (histCandles && histCandles.length >= 10) {
+    if (useQuantEnsemble && histCandles && histCandles.length >= 10) {
         try {
-            console.log(`[FutureVision] Dispatching to Python foundation ensemble (Kronos & Chronos-Bolt) | ${histCandles.length} historical bars | horizon=${horizonBars}`);
+            console.log(`[FutureVision] Dispatching to Python foundation ensemble (${activeQuantModels.join(', ')}) | ${histCandles.length} historical bars | horizon=${horizonBars}`);
             ensembleResult = await callEnsembleService({
                 instrument: instrumentKey,
                 timeframe,
                 candles: histCandles.slice(-60),
                 horizon: horizonBars,
+                weights: pythonWeights
             });
             if (ensembleResult?.success && ensembleResult.ensemble?.candles?.length > 0) {
                 console.log(`[FutureVision] Python ensemble SUCCESS | regime=${ensembleResult.regime} | members=${ensembleResult.ensemble.n_members} | ${ensembleResult.total_ms.toFixed(0)}ms`);
@@ -204,70 +243,142 @@ export async function runFutureVisionPrediction(contextPayload, instrumentKey, t
         } catch (ensErr) {
             console.warn(`[FutureVision] Python ensemble execution error: ${ensErr.message}`);
         }
-    } else {
+    } else if (useQuantEnsemble) {
         console.warn(`[FutureVision] Insufficient historical candles for foundation models (found ${histCandles ? histCandles.length : 0} bars).`);
     }
 
-    // ── 3. Inject Foundation Models Consensus into Context Prompt ──
+    // ── 4. Inject Foundation Models Consensus into Context Prompt ──
     let enrichedPayload = contextPayload;
     const kMember = ensembleResult?.members?.find(m => m.model_id === 'kronos' && !m.error);
     const cMember = ensembleResult?.members?.find(m => m.model_id === 'chronos_bolt' && !m.error);
+    const lMember = ensembleResult?.members?.find(m => m.model_id === 'lag_llama' && !m.error);
     const bMember = ensembleResult?.members?.find(m => m.model_id === 'naive_baseline' && !m.error);
 
-    if (ensembleResult?.success && ensembleResult.ensemble?.candles?.length > 0) {
+    if (useMasterLlm && ensembleResult?.success && ensembleResult.ensemble?.candles?.length > 0) {
         let block = `\n================================================================================\n`;
-        block += `BLOCK 0B - LOCAL TIME-SERIES FOUNDATION MODEL CONSENSUS (KRONOS & CHRONOS-BOLT)\n`;
+        block += `BLOCK 0B - LOCAL TIME-SERIES FOUNDATION MODEL CONSENSUS (${activeQuantModels.map(m => m.toUpperCase()).join(' & ')})\n`;
         block += `================================================================================\n`;
-        block += `The on-premise quantitative foundation models (Kronos AAAI-2026 and Amazon Chronos-Bolt)\n`;
+        block += `The on-premise quantitative foundation models\n`;
         block += `have computed the following mathematical probabilistic trajectory:\n`;
         block += `- Market Regime Detected: ${ensembleResult.regime}\n`;
-        block += `- Local Model Weights: Kronos (${((ensembleResult.ensemble.member_weights?.kronos || 0.3125)*100).toFixed(1)}%), Chronos-Bolt (${((ensembleResult.ensemble.member_weights?.chronos_bolt || 0.3125)*100).toFixed(1)}%), Baseline (${((ensembleResult.ensemble.member_weights?.naive_baseline || 0.375)*100).toFixed(1)}%)\n\n`;
+        block += `- Active Quant Weights: ${activeQuantModels.map(m => `${m} (${((pythonWeights[m] || 0)*100).toFixed(1)}%)`).join(', ')}\n\n`;
         block += `Quantitative Trajectory Across ${horizonBars} Forward Bars:\n`;
 
         ensembleResult.ensemble.candles.slice(0, horizonBars).forEach((c, idx) => {
             const kC = kMember?.candles?.[idx]?.close?.q50 ? kMember.candles[idx].close.q50.toFixed(2) : 'N/A';
             const cC = cMember?.candles?.[idx]?.close?.q50 ? cMember.candles[idx].close.q50.toFixed(2) : 'N/A';
+            const lC = lMember?.candles?.[idx]?.close?.q50 ? lMember.candles[idx].close.q50.toFixed(2) : 'N/A';
             const ensC = c.close?.q50 ? c.close.q50.toFixed(2) : 'N/A';
             const q10 = c.close?.q10 ? c.close.q10.toFixed(2) : 'N/A';
             const q90 = c.close?.q90 ? c.close.q90.toFixed(2) : 'N/A';
-            block += `  Bar ${idx + 1}: Consensus Close=${ensC} | 80% Cone=[${q10} to ${q90}] | Kronos=${kC} | ChronosBolt=${cC}\n`;
+            block += `  Bar ${idx + 1}: Consensus Close=${ensC} | 80% Cone=[${q10} to ${q90}] | Kronos=${kC} | ChronosBolt=${cC} | LagLlama=${lC}\n`;
         });
 
         block += `\nCRITICAL INSTRUCTION: Reconcile your price action analysis with the above quantitative foundation consensus.\nAnchor predicted price levels around this mathematical baseline.\n`;
         enrichedPayload = block + '\n' + contextPayload;
     }
 
-    // ── 4. Dispatch to LLM Gateway ──
-    const gatewayRequest = {
-        taskType:           'future_vision_prediction',
-        systemInstruction:  SYSTEM_INSTRUCTION,
-        prompt:             enrichedPayload,
-        jsonMode:           true,
-        temperature:        0.2,
-        maxTokens:          8192,
-        ...(routeHint ? { explicitProvider: routeHint.providerId, explicitModel: routeHint.modelId } : {}),
-    };
+    // ── 5. Generate Predictions: LLM vs Direct Quantitative Consensus ──
+    let result = null;
+    let parsed = null;
 
-    console.log(`[FutureVision] Dispatching to gateway | instrument=${instrumentKey} | horizon=${horizonBars} | explicitRoute=${routeHint ? `${routeHint.providerId}::${routeHint.modelId}` : 'auto'}`);
+    if (useMasterLlm) {
+        const gatewayRequest = {
+            taskType:           'future_vision_prediction',
+            systemInstruction:  SYSTEM_INSTRUCTION,
+            prompt:             enrichedPayload,
+            jsonMode:           true,
+            temperature:        0.2,
+            maxTokens:          8192,
+            ...(routeHint ? { explicitProvider: routeHint.providerId, explicitModel: routeHint.modelId } : {}),
+        };
 
-    const result = await aiGateway.process(gatewayRequest);
+        console.log(`[FutureVision] Dispatching to gateway | instrument=${instrumentKey} | horizon=${horizonBars} | explicitRoute=${routeHint ? `${routeHint.providerId}::${routeHint.modelId}` : 'auto'}`);
 
-    if (result.error) {
-        throw new Error(`AI Gateway error for Future Vision: ${result.message || result.details || 'Unknown error'}`);
+        result = await aiGateway.process(gatewayRequest);
+
+        if (result.error) {
+            throw new Error(`AI Gateway error for Future Vision: ${result.message || result.details || 'Unknown error'}`);
+        }
+
+        const rawText = result.text || result.content || '';
+        if (!rawText) {
+            throw new Error('AI Gateway returned empty response for Future Vision prediction');
+        }
+
+        console.log(`[FutureVision] Response received | model=${result.model} | latency=${result.latencyMs}ms | chars=${rawText.length}`);
+        parsed = _parseAndValidate(rawText, horizonBars);
+    } else {
+        // Master LLM turned off by user: synthesize directly from quantitative ensemble or baseline
+        console.log(`[FutureVision] Master LLM disabled by user settings. Using pure quantitative ensemble [${activeQuantModels.join(', ')}].`);
+        const lastHist = histCandles && histCandles.length > 0 ? histCandles[histCandles.length - 1] : { close: 100, open: 100 };
+        const estAtr = Math.max(0.5, (lastHist.high || lastHist.close) - (lastHist.low || lastHist.close) || lastHist.close * 0.01);
+        
+        let quantCandles = [];
+        if (ensembleResult?.success && ensembleResult.ensemble?.candles?.length > 0) {
+            let prevC = lastHist.close;
+            quantCandles = ensembleResult.ensemble.candles.slice(0, horizonBars).map((ec, idx) => {
+                const openP = prevC;
+                const closeP = ec.close?.q50 ? Number(ec.close.q50.toFixed(2)) : openP;
+                const highP = ec.high?.q50 ? Number(Math.max(openP, closeP, ec.high.q50).toFixed(2)) : Math.max(openP, closeP) + estAtr * 0.3;
+                const lowP = ec.low?.q50 ? Number(Math.min(openP, closeP, ec.low.q50).toFixed(2)) : Math.min(openP, closeP) - estAtr * 0.3;
+                prevC = closeP;
+                return {
+                    bar: idx + 1,
+                    open: Number(openP.toFixed(2)),
+                    high: Number(highP.toFixed(2)),
+                    low: Number(lowP.toFixed(2)),
+                    close: Number(closeP.toFixed(2)),
+                    confidence: 78,
+                    direction: closeP >= openP ? 'bullish' : 'bearish',
+                    rationale: `Quantitative ensemble consensus (${activeQuantModels.join(' + ')})`
+                };
+            });
+        } else {
+            // Pure native JS baseline fallback
+            let prevC = lastHist.close;
+            for (let i = 0; i < horizonBars; i++) {
+                const baseQuantiles = generateNaiveBaseline({ close: prevC, open: prevC, high: prevC + estAtr, low: prevC - estAtr }, estAtr);
+                const closeP = Number((baseQuantiles.q50_c ?? baseQuantiles.close?.q50 ?? prevC).toFixed(2));
+                const openP = prevC;
+                const highP = Number((baseQuantiles.q50_h ?? (Math.max(openP, closeP) + estAtr * 0.3)).toFixed(2));
+                const lowP = Number((baseQuantiles.q50_l ?? (Math.min(openP, closeP) - estAtr * 0.3)).toFixed(2));
+                prevC = closeP;
+                quantCandles.push({
+                    bar: i + 1,
+                    open: openP,
+                    high: highP,
+                    low: lowP,
+                    close: closeP,
+                    confidence: 65,
+                    direction: closeP >= openP ? 'bullish' : 'bearish',
+                    rationale: `Statistical drift & ATR baseline fallback`
+                });
+            }
+        }
+
+        const isBull = quantCandles[0].close >= quantCandles[0].open;
+        parsed = {
+            reasoning_summary: `Direct quantitative ensemble forecast computed via [${activeQuantModels.join(', ')}] with zero qualitative LLM variance.`,
+            candles: quantCandles,
+            overall_bias: isBull ? 'bullish' : 'bearish',
+            key_support: Number(Math.min(...quantCandles.map(c => c.low)).toFixed(2)),
+            key_resistance: Number(Math.max(...quantCandles.map(c => c.high)).toFixed(2)),
+            key_risk: 'Macro momentum departure from statistical distribution cones',
+            volatility_regime: (ensembleResult?.regime || 'choppy').toLowerCase(),
+            predicted_at: new Date().toISOString()
+        };
+
+        result = {
+            model: `Quant Ensemble [${activeQuantModels.join(' + ')}]`,
+            latencyMs: ensembleResult?.total_ms || 15,
+            fallbackTriggered: false
+        };
     }
 
-    const rawText = result.text || result.content || '';
-    if (!rawText) {
-        throw new Error('AI Gateway returned empty response for Future Vision prediction');
-    }
-
-    console.log(`[FutureVision] Response received | model=${result.model} | latency=${result.latencyMs}ms | chars=${rawText.length}`);
-
-    const parsed = _parseAndValidate(rawText, horizonBars);
-    
     // ── 5. PACE Mathematical Bias Correction Layer ──
     const profile = getCalibrationProfile(instrumentKey, timeframe);
-    if (profile) {
+    if (profile && parsed?.candles) {
         parsed.candles = applyBiasCorrection(parsed.candles, profile);
         console.log(`[PACE] Applied Math Correction | Strength: ${(profile.correctionStrength*100).toFixed(0)}%`);
     }
@@ -276,7 +387,7 @@ export async function runFutureVisionPrediction(contextPayload, instrumentKey, t
     let calibratedCombined = null;
     let ensembleQuantiles = [];
 
-    const regime = (ensembleResult?.regime || parsed.volatility_regime || 'CHOPPY').toUpperCase();
+    const regime = (ensembleResult?.regime || parsed?.volatility_regime || 'CHOPPY').toUpperCase();
     modelWeights = getModelWeights(instrumentKey, timeframe, regime);
 
     if (ensembleResult?.success && ensembleResult.ensemble?.candles?.length > 0) {
@@ -290,17 +401,23 @@ export async function runFutureVisionPrediction(contextPayload, instrumentKey, t
         });
         calibratedCombined = ensembleQuantiles[0] || null;
 
-        // Blend mathematical foundation forecasts with LLM qualitative structure
+        // Dynamic multi-model blending between Quantitative Ensemble and Master LLM
         const blendedCandles = [];
-        const rawSlice = parsed.candles.slice(0, horizonBars);
+        const rawSlice = (parsed.candles || []).slice(0, horizonBars);
+        const llmRatio = useMasterLlm ? (normWeights['master_llm'] || 0) : 0;
+        const quantRatio = useQuantEnsemble ? (1 - llmRatio) : 0;
+
         for (let i = 0; i < rawSlice.length; i++) {
             const c = rawSlice[i];
             const eq = ensembleQuantiles[i];
             const ensClose = eq?.close?.q50;
             let blendedClose = c.close;
-            if (ensClose && !isNaN(ensClose) && ensClose > 0) {
-                // 55% Foundation Ensemble (Kronos + Chronos-Bolt) + 45% LLM Price Action
-                blendedClose = Number((0.55 * ensClose + 0.45 * c.close).toFixed(2));
+            if (ensClose && !isNaN(ensClose) && ensClose > 0 && useQuantEnsemble) {
+                blendedClose = useMasterLlm
+                    ? Number((quantRatio * ensClose + llmRatio * c.close).toFixed(2))
+                    : Number(ensClose.toFixed(2));
+            } else if (!useQuantEnsemble) {
+                blendedClose = Number(c.close.toFixed(2));
             }
 
             let openPrice = c.open;
@@ -308,8 +425,19 @@ export async function runFutureVisionPrediction(contextPayload, instrumentKey, t
                 openPrice = blendedCandles[i - 1].close;
             }
 
-            const highPrice = Math.max(c.high, openPrice, blendedClose, eq?.high?.q50 ?? 0);
-            const lowPrice = Math.min(c.low, openPrice, blendedClose, eq?.low?.q50 ?? highPrice * 0.99);
+            // Harmonize shadow ranges to prevent extreme artificial wicks (FC-005)
+            const llmRange = Math.max(0.01, c.high - c.low);
+            const ensRange = (eq?.high?.q50 && eq?.low?.q50) ? Math.max(0.01, eq.high.q50 - eq.low.q50) : llmRange;
+            const blendRange = (useMasterLlm && useQuantEnsemble)
+                ? (quantRatio * ensRange + llmRatio * llmRange)
+                : (useQuantEnsemble ? ensRange : llmRange);
+
+            const bodyMax = Math.max(openPrice, blendedClose);
+            const bodyMin = Math.min(openPrice, blendedClose);
+            const upWickRatio = Math.max(0, c.high - Math.max(c.open, c.close)) / llmRange;
+            const downWickRatio = Math.max(0, Math.min(c.open, c.close) - c.low) / llmRange;
+            const highPrice = Number(Math.max(bodyMax + (blendRange * upWickRatio), bodyMax).toFixed(2));
+            const lowPrice  = Number(Math.min(bodyMin - (blendRange * downWickRatio), bodyMin).toFixed(2));
             const isBull = blendedClose >= openPrice;
             const direction = isBull ? 'bullish' : 'bearish';
 
@@ -327,41 +455,43 @@ export async function runFutureVisionPrediction(contextPayload, instrumentKey, t
                 q90: eq?.close?.q90 ? Number(eq.close.q90.toFixed(2)) : highPrice,
                 kronosQ50: kMember?.candles?.[i]?.close?.q50 ? Number(kMember.candles[i].close.q50.toFixed(2)) : null,
                 chronosQ50: cMember?.candles?.[i]?.close?.q50 ? Number(cMember.candles[i].close.q50.toFixed(2)) : null,
+                lagLlamaQ50: lMember?.candles?.[i]?.close?.q50 ? Number(lMember.candles[i].close.q50.toFixed(2)) : null,
                 baselineQ50: bMember?.candles?.[i]?.close?.q50 ? Number(bMember.candles[i].close.q50.toFixed(2)) : null,
             });
         }
         parsed.candles = blendedCandles;
 
         // Record member predictions asynchronously to local DB
-        const targetTime = _estimateTargetCandleTime(timeframe);
-        const memberPreds = (ensembleResult.members || [])
-            .filter(m => !m.error && m.candles?.length > 0)
-            .map(m => ({
-                model_id: m.model_id,
-                weight: ensembleResult.ensemble.member_weights?.[m.model_id] ?? 0.25,
-                quantiles: m.candles[0],
-            }));
-
-        const firstCandle = parsed.candles[0];
-        const estAtr = firstCandle ? Math.max(Math.abs(firstCandle.high - firstCandle.low), firstCandle.close * 0.01) : 10.0;
-        if (firstCandle) {
-            const fvQuantiles = liftPointForecastToQuantiles(firstCandle, estAtr);
-            memberPreds.push({ model_id: 'future_vision', weight: 0, quantiles: fvQuantiles });
-        }
-
+        // Record member predictions for ALL horizon steps asynchronously to local DB (FA-011)
         Promise.resolve().then(() => {
-            recordPredictions({
-                instrument: instrumentKey,
-                timeframe,
-                predictedAt: parsed.predicted_at || new Date().toISOString(),
-                targetCandleTime: targetTime,
-                regime,
-                modelPredictions: memberPreds,
-                ensembleQuantiles: calibratedCombined,
-                featuresHash: `ensemble_${horizonBars}bars_${result.model || 'auto'}`
+            parsed.candles.forEach((candle, stepIdx) => {
+                const targetTime = _estimateTargetCandleTime(timeframe, stepIdx);
+                const memberPreds = (ensembleResult.members || [])
+                    .filter(m => !m.error && m.candles?.length > stepIdx)
+                    .map(m => ({
+                        model_id: m.model_id,
+                        weight: ensembleResult.ensemble.member_weights?.[m.model_id] ?? 0.25,
+                        quantiles: m.candles[stepIdx],
+                    }));
+
+                const estAtr = Math.max(Math.abs(candle.high - candle.low), candle.close * 0.01, 1.0);
+                const fvQuantiles = liftPointForecastToQuantiles(candle, estAtr);
+                memberPreds.push({ model_id: 'future_vision', weight: 0, quantiles: fvQuantiles });
+
+                const stepEq = ensembleResult.ensemble?.candles?.[stepIdx] || null;
+
+                recordPredictions({
+                    instrument: instrumentKey,
+                    timeframe,
+                    predictedAt: parsed.predicted_at || new Date().toISOString(),
+                    targetCandleTime: targetTime,
+                    regime,
+                    modelPredictions: memberPreds,
+                    ensembleQuantiles: stepEq,
+                    featuresHash: `ensemble_h${stepIdx + 1}_${horizonBars}bars_${result.model || 'auto'}`
+                });
             });
         }).catch(recErr => console.error('[PredictionEngine] Async prediction record failed:', recErr.message));
-
     } else {
         // Fallback: 2-member baseline combiner when python service is unavailable
         const firstCandle = parsed.candles && parsed.candles[0];
@@ -419,15 +549,16 @@ export async function runFutureVisionPrediction(contextPayload, instrumentKey, t
     }
 
     // ── 8. Formulate Unified Model Attribution Name ──
-    let modelUsed = result.model || 'unknown';
-    if (ensembleResult?.success) {
-        const localNames = [];
-        if (kMember && !kMember.error) localNames.push('Kronos-Small');
-        if (cMember && !cMember.error) localNames.push('Chronos-Bolt');
-        if (localNames.length > 0) {
-            modelUsed = `Praxis Hybrid Ensemble [${localNames.join(' + ')} + ${result.model || 'LLM'}]`;
-        }
-    }
+    const contributingModels = [];
+    if (useMasterLlm) contributingModels.push(result.model || 'Master LLM');
+    if (activeQuantModels.includes('kronos') && kMember && !kMember.error) contributingModels.push('Kronos');
+    if (activeQuantModels.includes('chronos_bolt') && cMember && !cMember.error) contributingModels.push('Chronos-Bolt');
+    if (activeQuantModels.includes('lag_llama') && lMember && !lMember.error) contributingModels.push('Lag-Llama');
+    if (activeQuantModels.includes('naive_baseline')) contributingModels.push('Baseline Drift');
+
+    let modelUsed = contributingModels.length > 1
+        ? `Praxis Ensemble [${contributingModels.join(' + ')}]`
+        : (contributingModels[0] || result.model || 'Praxis Multi-Model');
 
     return { 
         ...parsed, 
@@ -443,7 +574,12 @@ export async function runFutureVisionPrediction(contextPayload, instrumentKey, t
         regime,
         latencyMs: result.latencyMs,
         fallbackTriggered: result.fallbackTriggered || false,
-        fallbackReason: result.fallbackReason || null
+        fallbackReason: result.fallbackReason || null,
+        activeModels: activeEnsembleModels,
+        ensembleConfig: {
+            activeModels: activeEnsembleModels,
+            weights: normWeights
+        }
     };
 }
 
@@ -479,16 +615,32 @@ function _extractCandlesFromPayload(contextPayload) {
     return candles;
 }
 
-function _estimateTargetCandleTime(timeframe) {
+function _estimateTargetCandleTime(timeframe, stepIndex = 0) {
     const tf = normalizeTimeframe(timeframe);
     const now = new Date();
-    let msToAdd = 24 * 3600 * 1000;
-    if (tf === '1minute') msToAdd = 60 * 1000;
-    else if (tf === '5minute') msToAdd = 5 * 60 * 1000;
-    else if (tf === '15minute') msToAdd = 15 * 60 * 1000;
-    else if (tf === 'day') msToAdd = 24 * 3600 * 1000;
-    else if (tf === 'week') msToAdd = 7 * 24 * 3600 * 1000;
-    return new Date(now.getTime() + msToAdd).toISOString();
+    if (tf === 'day' || tf === 'week') {
+        let target = new Date(now.getTime());
+        const daysToAdd = stepIndex + 1;
+        let added = 0;
+        while (added < daysToAdd) {
+            target = new Date(target.getTime() + 24 * 3600 * 1000);
+            const istDate = new Date(target.getTime() + (5.5 * 3600000));
+            const istDay = istDate.getUTCDay();
+            if (istDay !== 0 && istDay !== 6) {
+                added++;
+            }
+        }
+        return target.toISOString();
+    }
+    let stepMs = 15 * 60 * 1000;
+    if (tf === '1minute') stepMs = 60 * 1000;
+    else if (tf === '3minute') stepMs = 3 * 60 * 1000;
+    else if (tf === '5minute') stepMs = 5 * 60 * 1000;
+    else if (tf === '15minute') stepMs = 15 * 60 * 1000;
+    else if (tf === '30minute') stepMs = 30 * 60 * 1000;
+    // Align now to candle interval boundary so prediction resolution accurately matches candle timestamps
+    const roundedNow = Math.floor(now.getTime() / stepMs) * stepMs;
+    return new Date(roundedNow + stepMs * (stepIndex + 1)).toISOString();
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -588,15 +740,18 @@ function _parseAndValidate(rawText, horizonBars) {
         }
     }
 
-    // G4: Price anchoring ±15% of first open
+    // G4: Price anchoring ±15% of first open (FB-004 fix: strict physical invariants)
     const firstOpen  = validated[0]?.open || 1;
     const maxAllowed = firstOpen * 1.15;
     const minAllowed = firstOpen * 0.85;
     validated.forEach(c => {
         c.open  = _round(Math.min(Math.max(c.open,  minAllowed), maxAllowed));
-        c.high  = _round(Math.min(c.high,  maxAllowed));
-        c.low   = _round(Math.max(c.low,   minAllowed));
+        c.high  = _round(Math.min(Math.max(c.high,  minAllowed), maxAllowed));
+        c.low   = _round(Math.min(Math.max(c.low,   minAllowed), maxAllowed));
         c.close = _round(Math.min(Math.max(c.close, minAllowed), maxAllowed));
+        c.high  = Math.max(c.high, c.open, c.close);
+        c.low   = Math.min(c.low, c.open, c.close);
+        if (c.low >= c.high) c.high = _round(c.low * 1.0005);
     });
 
     // G6: Anti-flat jitter
@@ -604,9 +759,10 @@ function _parseAndValidate(rawText, horizonBars) {
         if (validated[i-2].close === validated[i-1].close && validated[i-1].close === validated[i].close) {
             const j = validated[i].close * 0.0005;
             validated[i].close = _round(validated[i].close + (i % 2 === 0 ? j : -j));
+            validated[i].high  = Math.max(validated[i].high, validated[i].close);
+            validated[i].low   = Math.min(validated[i].low,  validated[i].close);
         }
     }
-
     return {
         candles:           validated,
         reasoning_summary: String(parsed.reasoning_summary || '').slice(0, 300),

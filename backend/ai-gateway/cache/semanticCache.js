@@ -19,15 +19,19 @@ function cosineSimilarity(vecA, vecB) {
 }
 
 // Helper for stable hashing
-function getStableHash(data) {
+export function getStableHash(data) {
     if (!data) return 'no_data';
-    let sortedData = data;
+    const stableStringify = (obj) => {
+        if (obj === null || typeof obj !== 'object') return JSON.stringify(obj);
+        if (Array.isArray(obj)) return `[${obj.map(stableStringify).join(',')}]`;
+        return `{${Object.keys(obj).sort().map(k => `"${k}":${stableStringify(obj[k])}`).join(',')}}`;
+    };
     try {
-        if (typeof data === 'object') {
-            sortedData = JSON.stringify(data, Object.keys(data).sort());
-        }
-    } catch(e) {}
-    return crypto.createHash('sha256').update(String(sortedData)).digest('hex');
+        const sortedData = stableStringify(data);
+        return crypto.createHash('sha256').update(String(sortedData)).digest('hex');
+    } catch(e) {
+        return crypto.createHash('sha256').update(String(data)).digest('hex');
+    }
 }
 
 export const semanticCache = {

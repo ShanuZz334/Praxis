@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const API_BASE = '/api/v1';
 
@@ -34,24 +34,58 @@ export function useManualOverrides(moduleKey, instrument, defaultOverrides) {
 
     // Load overrides from SQLite when module or instrument changes
     useEffect(() => {
+        // Synchronously reset state on instrument/module change to prevent state bleed
+        setOverrides({ ...defaultOverrides });
+        setLastUpdated({});
         if (!moduleKey || !instrument) return;
+
+        let isCancelled = false;
         const encodedKey = encodeURIComponent(instrument);
         fetch(`${API_BASE}/overrides/${moduleKey}/${encodedKey}`)
             .then(r => r.json())
             .then(res => {
+                if (isCancelled) return;
                 if (res.status === 'success' && res.data) {
                     const loaded = { ...defaultOverrides };
                     const times = {};
                     for (const [fieldKey, entry] of Object.entries(res.data)) {
                         loaded[fieldKey] = entry.value;
-                        times[fieldKey] = entry.updated_at ? new Date(entry.updated_at).getTime() : Date.now();
+                        if (entry.updated_at) {
+                            const raw = String(entry.updated_at);
+                            const isoString = (raw.endsWith('Z') || raw.includes('+')) ? raw : raw.replace(' ', 'T') + 'Z';
+                            times[fieldKey] = new Date(isoString).getTime();
+                        } else {
+                            times[fieldKey] = Date.now();
+                        }
                     }
                     setOverrides(loaded);
                     setLastUpdated(times);
                 }
             })
             .catch(e => console.warn('[useManualOverrides] Failed to load from SQLite:', e.message));
+
+        return () => { isCancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [moduleKey, instrument]);
+
+    // Listen for custom override update event (from OverrideUpdateModal)
+    useEffect(() => {
+        const handleOverrideEvent = (e) => {
+            const detail = e?.detail;
+            if (!detail) return;
+            const targetMod = (detail.moduleKey === 'v2' || detail.moduleKey === 'fundamental') ? 'fundamentals' : detail.moduleKey;
+            const currentMod = (moduleKey === 'v2' || moduleKey === 'fundamental') ? 'fundamentals' : moduleKey;
+
+            if (targetMod === currentMod && detail.instrument === instrument) {
+                const field = detail.field || detail.overrideKey || detail.fieldKey;
+                if (field) {
+                    setOverrides(prev => ({ ...prev, [field]: detail.value }));
+                    setLastUpdated(prev => ({ ...prev, [field]: Date.now() }));
+                }
+            }
+        };
+        window.addEventListener('praxis:override-updated', handleOverrideEvent);
+        return () => window.removeEventListener('praxis:override-updated', handleOverrideEvent);
     }, [moduleKey, instrument]);
 
     const handleChange = useCallback((key, val) => {

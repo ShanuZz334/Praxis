@@ -17,10 +17,66 @@ const __dirname = path.dirname(__filename);
 // Anchored paths to python venv and worker script
 // services -> backend (1) -> Praxis (2) -> ALLBACKUP (3) -> praxis-research
 const RESEARCH_DIR = path.resolve(__dirname, '..', '..', '..', 'praxis-research');
-const PYTHON_EXE = path.join(RESEARCH_DIR, '.venv', 'Scripts', 'python.exe');
+const isWin = process.platform === 'win32';
+const PYTHONW_EXE = path.join(RESEARCH_DIR, '.venv', isWin ? 'Scripts' : 'bin', isWin ? 'pythonw.exe' : 'python3');
+const PYTHON_CONSOLE_EXE = path.join(RESEARCH_DIR, '.venv', isWin ? 'Scripts' : 'bin', isWin ? 'python.exe' : 'python3');
+const PYTHON_EXE = (isWin && fs.existsSync(PYTHONW_EXE)) ? PYTHONW_EXE : PYTHON_CONSOLE_EXE;
 const WORKER_SCRIPT = path.join(RESEARCH_DIR, 'praxis-ensemble', 'finetune', 'worker.py');
 
 const DEFAULT_MODELS = ['kronos', 'chronos_bolt', 'lag_llama'];
+
+/**
+ * Automatically reconciles and recovers any stale or orphaned training jobs
+ * (e.g. if the backend or python worker was closed mid-training).
+ * Uses epoch heartbeat_at with 6-minute threshold and 35-minute hard timeout.
+ */
+function _reconcileStaleJobs() {
+    try {
+        const inProgressJobs = db.prepare(`
+            SELECT id, model_id, instrument, timeframe, started_at, heartbeat_at 
+            FROM finetune_versions 
+            WHERE status = 'TRAINING' OR status = 'VALIDATING'
+        `).all();
+
+        const MAX_HEARTBEAT_SILENCE_MS = 6 * 60 * 1000; // 6 minutes without heartbeat
+        const MAX_HARD_TRAINING_AGE_MS = 35 * 60 * 1000; // 35 minutes absolute hard cap
+        const now = Date.now();
+
+        for (const job of inProgressJobs) {
+            const startedUtc = job.started_at ? job.started_at.replace(' ', 'T') + 'Z' : null;
+            const startedMs = startedUtc ? new Date(startedUtc).getTime() : 0;
+            const ageMs = now - startedMs;
+
+            const heartbeatUtc = job.heartbeat_at ? job.heartbeat_at.replace(' ', 'T') + 'Z' : null;
+            const heartbeatMs = heartbeatUtc ? new Date(heartbeatUtc).getTime() : 0;
+            const heartbeatSilenceMs = heartbeatMs ? (now - heartbeatMs) : ageMs;
+
+            const isStaleByHeartbeat = heartbeatSilenceMs > MAX_HEARTBEAT_SILENCE_MS;
+            const isStaleByHardCap = ageMs > MAX_HARD_TRAINING_AGE_MS;
+
+            if (!startedMs || isNaN(startedMs) || isStaleByHeartbeat || isStaleByHardCap) {
+                const reason = isStaleByHardCap 
+                    ? `Job exceeded maximum allowed runtime (35m)` 
+                    : `No epoch heartbeat received for ${Math.round(heartbeatSilenceMs / 60000)}m`;
+                console.log(`[FinetuneService] Recovering stale job ${job.id} for ${job.model_id}: ${reason}`);
+                
+                db.prepare(`
+                    UPDATE finetune_versions 
+                    SET status = 'FAILED', rejection_reason = ?, finished_at = CURRENT_TIMESTAMP 
+                    WHERE id = ?
+                `).run(reason, job.id);
+
+                db.prepare(`
+                    UPDATE readiness_state 
+                    SET stage = 'READY_TO_TRAIN', eta_text = 'Ready to Train', blocker = ?, updated_at = CURRENT_TIMESTAMP 
+                    WHERE model_id = ? AND instrument = ? AND timeframe = ? AND stage IN ('TRAINING', 'VALIDATING')
+                `).run(reason, job.model_id, job.instrument, job.timeframe);
+            }
+        }
+    } catch (err) {
+        console.warn('[FinetuneService] Stale job reconciliation error:', err.message);
+    }
+}
 
 /**
  * Ensure readiness_state rows exist for this asset and timeframe.
@@ -50,6 +106,7 @@ function _ensureReadinessSeed(instrument, timeframe) {
 export function getFinetuneStatus(instrument = 'NSE_INDEX|Nifty 50', rawTimeframe = 'day') {
     const timeframe = normalizeTimeframe(rawTimeframe);
     try {
+        _reconcileStaleJobs();
         _ensureReadinessSeed(instrument, timeframe);
 
         const stmt = db.prepare(`
@@ -156,6 +213,9 @@ export function triggerFinetuneJob(model_id, instrument = 'NSE_INDEX|Nifty 50', 
                 return reject(new Error(`Fine-tune worker script not found at: ${WORKER_SCRIPT}`));
             }
 
+            // Clean up any dead/stale jobs before evaluating concurrency guard
+            _reconcileStaleJobs();
+
             // Check if training is already in progress
             const inProgress = db.prepare(`
                 SELECT id, version_num FROM finetune_versions 
@@ -178,7 +238,12 @@ export function triggerFinetuneJob(model_id, instrument = 'NSE_INDEX|Nifty 50', 
                     '--instrument', instrument,
                     '--timeframe', timeframe,
                 ],
-                { detached: true, stdio: 'ignore' }
+                {
+                    cwd: RESEARCH_DIR,
+                    detached: true,
+                    stdio: 'ignore',
+                    windowsHide: true
+                }
             );
 
             child.on('error', (err) => {

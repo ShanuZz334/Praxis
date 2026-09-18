@@ -6,15 +6,18 @@ import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreWilliamsRCard } from '../engine/TechnicalCompositeEngine';
 
-export default function WilliamsRCard({ cardId, data = null, lastUpdated, tradingMode = 'swing', indicatorParams, onOpenSettings }) {
+export default function WilliamsRCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing', indicatorParams, onOpenSettings }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.williams_r.id);
     
     const settingsConfig = [
         { id: "williams_period", label: "Lookback Period", type: "number", min: 1, max: 100, default: 14 }
     ];
 
-    // Resolve current value
-    const currentValue = data?.williams_r ?? null;
+    // Resolve current value from live data or manual override
+    const isLiveData = data?.williams_r !== undefined && data?.williams_r !== null && !isNaN(Number(data.williams_r));
+    const isManual = !isLiveData && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' && !isNaN(Number(manualOverride));
+    const currentValue = isLiveData ? Number(data.williams_r) : (isManual ? Number(manualOverride) : null);
+    const mode = isLiveData ? "AUTO" : (isManual ? "MANUAL" : "AUTO");
 
     const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreWilliamsRCard(currentValue), 'williams_r', tradingMode);
 
@@ -26,10 +29,10 @@ export default function WilliamsRCard({ cardId, data = null, lastUpdated, tradin
             config={{ 
                 title: "Williams %R", 
                 category: "Momentum", 
-                mode: "AUTO", 
+                mode, 
                 creditScore: configData.creditScore, 
-                updateTime: lastUpdated ?? "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel,
                 settingsConfig,
                 onSettingsClick: () => onOpenSettings?.(settingsConfig)
@@ -40,7 +43,8 @@ export default function WilliamsRCard({ cardId, data = null, lastUpdated, tradin
                 score, 
                 bias, 
                 confidence, 
-                impactWeight: configData.impactWeight 
+                impactWeight: configData.impactWeight,
+                isManual
             }}
             chartData={{ points: data?.history || [], valueKey: "value", valueName: "Williams %R" }}
             insights={{ 

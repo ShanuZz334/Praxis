@@ -146,28 +146,29 @@ const Navbar = ({ onToggleSidebar }) => {
         });
       }
 
-      const telemetrySummary = `[INSTITUTIONAL TELEMETRY SYNTHESIS: ${module.toUpperCase()}] Instrument: ${symbolSuffix} | Composite Score: ${compScore}/100 (${regime}). Metrics: ${cardSummaries.slice(0, 15).join(' | ') || 'Live metrics synchronized.'}`;
-
-      // Commit directly to global insight cache (both memory & localStorage)
-      updateGlobalInsightCache(cacheKey, {
-        score: compScore,
+      const fvTelemetryData = {
+        module,
         symbol: symbolSuffix,
+        score: compScore,
         regime,
-        insightText: telemetrySummary,
-        timestamp: Date.now(),
-        isDirectTelemetrySync: true
-      });
+        metrics: cardSummaries,
+        timestamp: Date.now()
+      };
+      try {
+        const fvCache = JSON.parse(localStorage.getItem('praxis_fv_telemetry_cache') || '{}');
+        fvCache[module] = fvTelemetryData;
+        localStorage.setItem('praxis_fv_telemetry_cache', JSON.stringify(fvCache));
+      } catch {}
 
-      // Broadcast event so any mounted page header AI insight updates immediately without waiting
-      window.dispatchEvent(new CustomEvent('praxis:fv:telemetry-synced', {
+      // Broadcast refresh event so any mounted page header AI insight regenerates cleanly
+      window.dispatchEvent(new CustomEvent('praxis:ai:force-refresh', {
         detail: {
           cacheKey,
           module,
           targetId,
           symbol: symbolSuffix,
           score: compScore,
-          regime,
-          text: telemetrySummary
+          regime
         }
       }));
 

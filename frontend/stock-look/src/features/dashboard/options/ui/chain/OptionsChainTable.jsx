@@ -135,21 +135,21 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect, on
                             const isFirstPutGolden = inPutZone && !prevPutInZone;
                             const isLastPutGolden = inPutZone && !nextPutInZone;
 
-                            // Border styling for Golden Zone (Calls)
+                            // Border styling for Golden Zone (Calls) — amber/gold institutional bracket
                             const callGoldenClasses = inCallZone 
-                                ? `border-l-2 border-l-blue-500 bg-blue-500/[0.04] border-r border-r-blue-500/20 ${
-                                    isFirstCallGolden ? 'border-t-2 border-t-blue-500 rounded-tl-lg' : 'border-t border-t-transparent'
+                                ? `border-l-2 border-l-amber-500 bg-amber-500/[0.05] border-r border-r-amber-500/20 ${
+                                    isFirstCallGolden ? 'border-t-2 border-t-amber-500 rounded-tl-md' : 'border-t border-t-transparent'
                                   } ${
-                                    isLastCallGolden ? 'border-b-2 border-b-blue-500 rounded-bl-lg' : 'border-b border-b-white/5'
+                                    isLastCallGolden ? 'border-b-2 border-b-amber-500 rounded-bl-md' : 'border-b border-b-amber-500/10'
                                   }` 
                                 : 'border-b border-border-default border-t border-t-transparent';
 
-                            // Border styling for Golden Zone (Puts)
+                            // Border styling for Golden Zone (Puts) — amber/gold institutional bracket
                             const putGoldenClasses = inPutZone 
-                                ? `border-r-2 border-r-blue-500 bg-blue-500/[0.04] border-l border-l-blue-500/20 ${
-                                    isFirstPutGolden ? 'border-t-2 border-t-blue-500 rounded-tr-lg' : 'border-t border-t-transparent'
+                                ? `border-r-2 border-r-amber-500 bg-amber-500/[0.05] border-l border-l-amber-500/20 ${
+                                    isFirstPutGolden ? 'border-t-2 border-t-amber-500 rounded-tr-md' : 'border-t border-t-transparent'
                                   } ${
-                                    isLastPutGolden ? 'border-b-2 border-b-blue-500 rounded-br-lg' : 'border-b border-b-white/5'
+                                    isLastPutGolden ? 'border-b-2 border-b-amber-500 rounded-br-md' : 'border-b border-b-amber-500/10'
                                   }` 
                                 : 'border-b border-border-default border-t border-t-transparent';
 
@@ -179,7 +179,7 @@ export default function OptionsChainTable({ chain, spotPrice, onOptionSelect, on
                                     </div>
 
                                     {/* STRIKE COLUMN */}
-                                    <div className={`w-14 lg:w-16 px-1 py-1.5 flex items-center justify-center font-bold font-mono border-x border-border-default ${isATM ? 'text-text-primary bg-blue-500/30' : 'text-text-secondary bg-background-surface/50'} ${inCallZone || inPutZone ? 'border-x-blue-500/20' : ''}`}>
+                                    <div className={`w-14 lg:w-16 px-1 py-1.5 flex items-center justify-center font-bold font-mono border-x border-border-default ${isATM ? 'text-text-primary bg-blue-500/30' : 'text-text-secondary bg-background-surface/50'} ${inCallZone || inPutZone ? 'border-x-amber-500/20' : ''}`}>
                                         {row.strike}
                                     </div>
 

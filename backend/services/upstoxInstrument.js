@@ -52,12 +52,14 @@ export const syncInstrumentMaster = async () => {
         const keys = Object.keys(instrumentsMap);
         console.log(`✅ Downloaded ${keys.length} instruments. Parsing and saving...`);
 
-        const insertAll = db.transaction((instruments) => {
-            for (const key of instruments) {
+        const chunkSize = 5000;
+        const insertBatch = db.transaction((batch) => {
+            for (const key of batch) {
                 const data = instrumentsMap[key];
+                if (!data || !data.instrument_key) continue;
                 insertInstrumentStmt.run(
                     data.instrument_key,
-                    data.tradingsymbol,
+                    data.trading_symbol || data.tradingsymbol || data.name || '',
                     data.name,
                     data.exchange,
                     data.segment,
@@ -77,8 +79,13 @@ export const syncInstrumentMaster = async () => {
             }
         });
 
-        // Execute transaction
-        insertAll(keys);
+        // Execute transactions in non-blocking chunked batches
+        for (let i = 0; i < keys.length; i += chunkSize) {
+            const batch = keys.slice(i, i + chunkSize);
+            insertBatch(batch);
+            // Yield to Node.js event loop between batches so concurrent queries and websocket pings are not blocked
+            await new Promise(resolve => setImmediate(resolve));
+        }
 
         console.log("✅ Instrument Master Sync Completed Successfully!");
 
@@ -88,12 +95,12 @@ export const syncInstrumentMaster = async () => {
 };
 
 /**
- * Initialize the cron job to run at 6:00 AM every morning.
+ * Initialize the cron job to run at 6:00 AM IST every morning.
  */
 export const initInstrumentCron = () => {
-    // 0 6 * * * means 6:00 AM every day
+    // 0 6 * * * means 6:00 AM IST every day
     cron.schedule("0 6 * * *", () => {
         syncInstrumentMaster();
-    });
-    console.log("⏱️ Instrument Master Sync Cron Job initialized (6:00 AM daily)");
+    }, { timezone: "Asia/Kolkata" });
+    console.log("⏱️ Instrument Master Sync Cron Job initialized (6:00 AM IST daily)");
 };

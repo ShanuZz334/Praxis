@@ -239,7 +239,7 @@ router.delete("/:id", (req, res) => {
  */
 router.post("/migrate-scores", (req, res) => {
     try {
-        const rows = db.prepare(`SELECT id, sentiment, importance, severity, confidence, horizon FROM market_events`).all();
+        const rows = db.prepare(`SELECT id, sentiment, importance, severity, confidence, horizon, source FROM market_events`).all();
 
         const updateStmt = db.prepare(`UPDATE market_events SET event_score = ? WHERE id = ?`);
 
@@ -252,13 +252,14 @@ router.post("/migrate-scores", (req, res) => {
                     skipped++;
                     continue;
                 }
-                // Re-compute with new formula including horizon
+                // Re-compute with new formula including horizon and source reliability
                 const newScore = computeEventScore(
                     row.sentiment,
                     row.importance,
                     row.severity,
                     row.confidence || 60,
-                    row.horizon || "Positional"
+                    row.horizon || "Positional",
+                    row.source || "Default"
                 );
                 updateStmt.run(newScore, row.id);
                 updated++;

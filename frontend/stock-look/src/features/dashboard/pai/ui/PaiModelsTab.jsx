@@ -442,6 +442,74 @@ function ModelSelectorDropdown({
     );
 }
 
+const DEFAULT_PREDICTION_MODELS = [
+    {
+        modelId: 'master_llm',
+        name: 'Master LLM Multi-Timeframe Oracle',
+        category: 'Qualitative LLM Synthesis',
+        provider: 'Dynamic Gateway (Gemini / Claude / DeepSeek / Groq)',
+        architecture: 'Multi-Perspective Contextual Order Flow & Macro Pattern Synthesis',
+        description: 'Synthesizes order flow, market structure, news sentiment, and multi-timeframe candle geometry into probabilistic price targets.',
+        defaultWeight: 45,
+        isReady: true,
+        status: 'online',
+        latencyBenchmark: '~400-850ms',
+        capabilities: ['Multimodal OHLCV Patterning', 'Macro & Event Absorption', 'Directional Regime Categorization']
+    },
+    {
+        modelId: 'kronos',
+        name: 'Kronos AAAI-2026',
+        category: 'Time-Series Transformer',
+        provider: 'FastAPI Microservice (PyTorch)',
+        architecture: 'Tokenized Candlestick Autoregression (100M+ Bars Equities/Crypto)',
+        description: 'Trained specifically on raw candlestick sequences for direct sub-interval generative distribution forecasting.',
+        defaultWeight: 25,
+        isReady: true,
+        status: 'online',
+        latencyBenchmark: '~250-600ms',
+        capabilities: ['Sub-candle Microstructure', 'Discrete Quantile Distribution', 'Tokenized Attention Mechanism']
+    },
+    {
+        modelId: 'chronos_bolt',
+        name: 'Amazon Chronos-Bolt Base',
+        category: 'Zero-Shot Time-Series Foundation',
+        provider: 'FastAPI Microservice (Amazon Science)',
+        architecture: 'Quantized T5 Univariate Forecaster (Probabilistic Quantiles)',
+        description: 'Pre-trained foundation model delivering high-precision zero-shot probabilistic trajectory projections.',
+        defaultWeight: 20,
+        isReady: true,
+        status: 'online',
+        latencyBenchmark: '~180-450ms',
+        capabilities: ['Zero-Shot Generalization', 'Quantile Interval Bounds (Q10-Q90)', 'Ultra-Low Variance Mean Reversion']
+    },
+    {
+        modelId: 'lag_llama',
+        name: 'Lag-Llama Foundation Forecaster',
+        category: 'Probabilistic Transformer',
+        provider: 'FastAPI Microservice (Morgan Stanley / Mila)',
+        architecture: 'Decoder-Only Transformer with Smoothed Lag Operations',
+        description: 'Specialized for distribution-based probabilistic time-series forecasting with continuous lag attention.',
+        defaultWeight: 15,
+        isReady: true,
+        status: 'online',
+        latencyBenchmark: '~300-750ms',
+        capabilities: ['Dynamic Lag Covariates', 'Student-t Distribution Modeling', 'Long-Tail Volatility Forecasting']
+    },
+    {
+        modelId: 'naive_baseline',
+        name: 'Geometric Volatility Drift',
+        category: 'Mathematical Safeguard Engine',
+        provider: 'Praxis Pure JS Engine (Embedded)',
+        architecture: 'Dynamic ATR Mean-Drift & Statistical Variance Anchor',
+        description: 'Ultra-fast statistical benchmark providing invariant ATR volatility bounds and cold-start fallback calibration.',
+        defaultWeight: 10,
+        isReady: true,
+        status: 'online',
+        latencyBenchmark: '< 1ms',
+        capabilities: ['Zero-Latency Math Fallback', 'Geometric Variance Containment', 'Vincentization Conformal Anchor']
+    }
+];
+
 export default function PaiModelsTab() {
     const [temperature, setTemperature] = useState(0.2);
     const [maxTokensShort, setMaxTokensShort] = useState(500);
@@ -456,6 +524,16 @@ export default function PaiModelsTab() {
     const [initialLoading, setInitialLoading] = useState(true);
     const [showAddForm, setShowAddForm] = useState(false);
     
+    // Future Vision Predictive Models & Ensemble State
+    const [predictionModels, setPredictionModels] = useState([]);
+    const [predictionConfig, setPredictionConfig] = useState({
+        ensembleModels: ['master_llm', 'kronos', 'chronos_bolt', 'lag_llama', 'naive_baseline'],
+        ensembleWeights: { master_llm: 45, kronos: 25, chronos_bolt: 20, lag_llama: 15, naive_baseline: 10 },
+        autoWeighting: true
+    });
+    const [testingModelId, setTestingModelId] = useState(null);
+    const [predictionBenchmarkResults, setPredictionBenchmarkResults] = useState({});
+
     // Custom UI states to replace native browser popups
     const [providerToDelete, setProviderToDelete] = useState(null);
     const [testingProviderId, setTestingProviderId] = useState(null);
@@ -494,7 +572,9 @@ export default function PaiModelsTab() {
                     fetchProviders(),
                     fetchTemplates(),
                     fetchRouting(),
-                    fetchLocalModels()
+                    fetchLocalModels(),
+                    fetchPredictionModels(),
+                    fetchPredictionConfig()
                 ]);
             } finally {
                 if (isMounted) {
@@ -511,12 +591,15 @@ export default function PaiModelsTab() {
             fetchProviders();
             fetchRouting();
             fetchLocalModels();
+            fetchPredictionModels();
+            fetchPredictionConfig();
         };
         window.addEventListener('ai_gateway_refresh', handleGatewayRefresh);
 
         // 25s continuous synchronization with gateway status
         const pollInterval = setInterval(() => {
             fetchProviders();
+            fetchPredictionModels();
         }, 25000);
 
         return () => {
@@ -571,6 +654,125 @@ export default function PaiModelsTab() {
             if (res.data) setLocalModels(res.data);
         } catch (e) {
             console.error(e);
+        }
+    };
+
+    const fetchPredictionModels = async () => {
+        try {
+            const res = await axiosInstance.get('/api/v1/ai-settings/prediction-models');
+            if (res.data?.models) {
+                setPredictionModels(res.data.models);
+            }
+        } catch (e) {
+            console.error('Failed to fetch prediction models:', e);
+        }
+    };
+
+    const fetchPredictionConfig = async () => {
+        try {
+            const res = await axiosInstance.get('/api/v1/ai-settings/prediction-models/config');
+            if (res.data) {
+                setPredictionConfig({
+                    ensembleModels: res.data.ensembleModels || ['master_llm', 'kronos', 'chronos_bolt', 'lag_llama', 'naive_baseline'],
+                    ensembleWeights: res.data.ensembleWeights || { master_llm: 45, kronos: 25, chronos_bolt: 20, lag_llama: 15, naive_baseline: 10 },
+                    autoWeighting: res.data.autoWeighting !== undefined ? res.data.autoWeighting : true
+                });
+            }
+        } catch (e) {
+            console.error('Failed to fetch prediction config:', e);
+        }
+    };
+
+    const handleTogglePredictionModel = async (modelId) => {
+        const currentSelected = predictionConfig.ensembleModels || [];
+        let updatedModels;
+        if (currentSelected.includes(modelId)) {
+            if (currentSelected.length <= 1) {
+                showToast('At least 1 prediction model must remain active.', 'error');
+                return;
+            }
+            updatedModels = currentSelected.filter(id => id !== modelId);
+        } else {
+            updatedModels = [...currentSelected, modelId];
+        }
+
+        const newConfig = {
+            ...predictionConfig,
+            ensembleModels: updatedModels
+        };
+        setPredictionConfig(newConfig);
+
+        try {
+            await axiosInstance.put('/api/v1/ai-settings/prediction-models/config', newConfig);
+            showToast(`${modelId} ${updatedModels.includes(modelId) ? 'activated' : 'deactivated'}`);
+        } catch (e) {
+            showToast('Failed to update prediction model selection', 'error');
+        }
+    };
+
+    const handlePredictionWeightChange = async (modelId, newWeight) => {
+        const newWeights = {
+            ...predictionConfig.ensembleWeights,
+            [modelId]: Number(newWeight)
+        };
+        const newConfig = {
+            ...predictionConfig,
+            ensembleWeights: newWeights,
+            autoWeighting: false
+        };
+        setPredictionConfig(newConfig);
+
+        try {
+            await axiosInstance.put('/api/v1/ai-settings/prediction-models/config', newConfig);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleToggleAutoWeighting = async () => {
+        const newAuto = !predictionConfig.autoWeighting;
+        const defaultWeights = { master_llm: 45, kronos: 25, chronos_bolt: 20, lag_llama: 15, naive_baseline: 10 };
+        const newConfig = {
+            ...predictionConfig,
+            autoWeighting: newAuto,
+            ...(newAuto ? { ensembleWeights: defaultWeights } : {})
+        };
+        setPredictionConfig(newConfig);
+
+        try {
+            await axiosInstance.put('/api/v1/ai-settings/prediction-models/config', newConfig);
+            showToast(`Auto Weighting ${newAuto ? 'enabled' : 'disabled'}`);
+        } catch (e) {
+            showToast('Failed to toggle auto weighting', 'error');
+        }
+    };
+
+    const handleTestPredictionModel = async (modelId) => {
+        try {
+            setTestingModelId(modelId);
+            const res = await axiosInstance.post(`/api/v1/ai-settings/prediction-models/${modelId}/test`);
+            const data = res.data;
+            if (data.success) {
+                setPredictionBenchmarkResults(prev => ({
+                    ...prev,
+                    [modelId]: { success: true, latencyMs: data.latencyMs, message: data.message || 'Operational' }
+                }));
+                showToast(`${modelId} benchmark: ${data.latencyMs}ms`, 'success');
+            } else {
+                setPredictionBenchmarkResults(prev => ({
+                    ...prev,
+                    [modelId]: { success: false, error: data.error || 'Check failed' }
+                }));
+                showToast(`${modelId} benchmark failed: ${data.error}`, 'error');
+            }
+        } catch (e) {
+            setPredictionBenchmarkResults(prev => ({
+                ...prev,
+                [modelId]: { success: false, error: e.message }
+            }));
+            showToast(`Benchmark error: ${e.message}`, 'error');
+        } finally {
+            setTestingModelId(null);
         }
     };
 
@@ -1204,11 +1406,229 @@ export default function PaiModelsTab() {
                                     searchable={true}
                                 />
 
-                                <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-violet-100/60 dark:bg-black/30 border border-violet-200/80 dark:border-white/[0.04] text-[11px] text-slate-600 dark:text-text-tertiary">
-                                    <Telescope size={13} className="text-violet-600 dark:text-violet-400 shrink-0" />
+                                <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-background-surface/50 border border-border-subtle text-[11px] text-text-tertiary">
+                                    <Telescope size={13} className="text-text-secondary shrink-0" />
                                     <span>
-                                        <strong className="text-slate-800 dark:text-text-secondary font-medium">Default (Auto):</strong> Automatically routes to the highest priority Level 5 (Reasoner) model for maximum quantitative intelligence.
+                                        <strong className="text-text-primary font-medium">Default (Auto):</strong> Automatically routes to the highest priority Level 5 (Reasoner) model for maximum quantitative intelligence.
                                     </span>
+                                </div>
+
+                                {/* ── Multi-Model Ensemble Selection & Dynamic Weight Mixing ── */}
+                                <div className="mt-5 pt-5 border-t border-border-subtle">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <Layers size={16} className="text-text-secondary" />
+                                            <div>
+                                                <h5 className="text-[13px] font-bold text-text-primary tracking-tight">
+                                                    Predictive Foundation Models & Generative Mixing
+                                                </h5>
+                                                <p className="text-[11px] text-text-tertiary">
+                                                    Select one or more specialized forecasting models. Multiple models will be blended into a unified probabilistic trajectory.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Auto-Weighting Rebalance Button */}
+                                        <button
+                                            type="button"
+                                            onClick={handleToggleAutoWeighting}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold tracking-wide border transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                                                predictionConfig.autoWeighting
+                                                    ? 'bg-background-elevated text-text-primary border-border-default shadow-xs'
+                                                    : 'bg-background-surface text-text-tertiary border-border-subtle hover:bg-background-elevated hover:text-text-secondary'
+                                            }`}
+                                            title="Automatically normalizes and rebalances model weights"
+                                        >
+                                            <SlidersHorizontal size={12} className={predictionConfig.autoWeighting ? 'text-emerald-500' : 'text-text-tertiary'} />
+                                            <span>Auto-Rebalance: {predictionConfig.autoWeighting ? 'ON' : 'OFF'}</span>
+                                            {predictionConfig.autoWeighting && (
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {/* Dynamic Percentage Distribution Bar */}
+                                    {(() => {
+                                        const activeIds = predictionConfig.ensembleModels || [];
+                                        const weights = predictionConfig.ensembleWeights || {};
+                                        const totalWeight = activeIds.reduce((sum, id) => sum + (Number(weights[id]) || 10), 0) || 1;
+                                        
+                                        const MODEL_PALETTE = {
+                                            master_llm: { color: 'bg-slate-600 dark:bg-slate-400', text: 'text-slate-600 dark:text-slate-300', label: 'Master LLM' },
+                                            kronos: { color: 'bg-blue-600 dark:bg-blue-500', text: 'text-blue-600 dark:text-blue-400', label: 'Kronos' },
+                                            chronos_bolt: { color: 'bg-indigo-600 dark:bg-indigo-400', text: 'text-indigo-600 dark:text-indigo-400', label: 'Chronos-Bolt' },
+                                            lag_llama: { color: 'bg-teal-600 dark:bg-teal-400', text: 'text-teal-600 dark:text-teal-400', label: 'Lag-Llama' },
+                                            naive_baseline: { color: 'bg-zinc-600 dark:bg-zinc-400', text: 'text-zinc-600 dark:text-zinc-400', label: 'Baseline Drift' }
+                                        };
+
+                                        return (
+                                            <div className="p-3 rounded-xl bg-background-surface/50 border border-border-subtle mb-4 space-y-2">
+                                                <div className="flex items-center justify-between text-[11px] font-mono text-text-secondary">
+                                                    <span>Ensemble Blending Ratio ({activeIds.length} Active Model{activeIds.length > 1 ? 's' : ''})</span>
+                                                    <span className="text-text-primary font-bold">{activeIds.length === 1 ? 'Single Model (100% Dedicated)' : 'Multi-Model Consensus'}</span>
+                                                </div>
+
+                                                <div className="h-2 w-full bg-background-app rounded-full overflow-hidden flex gap-0.5 p-0.5 border border-border-subtle">
+                                                    {activeIds.map(id => {
+                                                        const w = Number(weights[id]) || 10;
+                                                        const pct = ((w / totalWeight) * 100).toFixed(0);
+                                                        const pal = MODEL_PALETTE[id] || { color: 'bg-slate-500', label: id };
+                                                        return (
+                                                            <div
+                                                                key={id}
+                                                                style={{ width: `${pct}%` }}
+                                                                className={`${pal.color} h-full rounded-sm transition-all duration-300`}
+                                                                title={`${pal.label}: ${pct}%`}
+                                                            />
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                <div className="flex flex-wrap items-center gap-3 pt-1 text-[10px] font-mono">
+                                                    {activeIds.map(id => {
+                                                        const w = Number(weights[id]) || 10;
+                                                        const pct = ((w / totalWeight) * 100).toFixed(0);
+                                                        const pal = MODEL_PALETTE[id] || { text: 'text-text-secondary', label: id };
+                                                        return (
+                                                            <div key={id} className="flex items-center gap-1.5">
+                                                                <span className={`w-2 h-2 rounded-full ${MODEL_PALETTE[id]?.color || 'bg-slate-400'}`} />
+                                                                <span className="text-text-secondary">{pal.label}:</span>
+                                                                <span className={`font-bold ${pal.text}`}>{pct}%</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Model Cards Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                                        {(predictionModels.length > 0 ? predictionModels : DEFAULT_PREDICTION_MODELS).map((m) => {
+                                            const isSelected = (predictionConfig.ensembleModels || []).includes(m.modelId);
+                                            const isTesting = testingModelId === m.modelId;
+                                            const testRes = predictionBenchmarkResults[m.modelId];
+                                            const currentWeight = predictionConfig.ensembleWeights?.[m.modelId] || m.defaultWeight || 20;
+
+                                            const activeIds = predictionConfig.ensembleModels || [];
+                                            const totalWeight = activeIds.reduce((sum, id) => sum + (Number(predictionConfig.ensembleWeights?.[id]) || 10), 0) || 1;
+                                            const dynamicShare = isSelected ? Math.round(((currentWeight / totalWeight) * 100)) : 0;
+
+                                            return (
+                                                <div
+                                                    key={m.modelId}
+                                                    className={`p-4 rounded-xl border transition-all relative flex flex-col justify-between ${
+                                                        isSelected
+                                                            ? 'bg-background-card border-border-default shadow-xs'
+                                                            : 'bg-background-surface/30 border-border-subtle opacity-70 hover:opacity-90'
+                                                    }`}
+                                                >
+                                                    <div>
+                                                        {/* Top row: Checkbox + Name + Status */}
+                                                        <div className="flex items-start justify-between gap-2 mb-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleTogglePredictionModel(m.modelId)}
+                                                                className="flex items-center gap-2.5 text-left group cursor-pointer"
+                                                            >
+                                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                                                                    isSelected
+                                                                        ? 'bg-accent-primary border-accent-primary text-white'
+                                                                        : 'bg-background-surface border-border-default'
+                                                                }`}>
+                                                                    {isSelected && <Check size={11} className="stroke-[3]" />}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-[13px] font-bold text-text-primary tracking-tight group-hover:text-accent-primary transition-colors">
+                                                                        {m.name}
+                                                                    </div>
+                                                                    <div className="text-[10px] font-mono text-text-tertiary">
+                                                                        {m.category}
+                                                                    </div>
+                                                                </div>
+                                                            </button>
+
+                                                            <div className="flex flex-col items-end gap-1 shrink-0">
+                                                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold border ${
+                                                                    m.status === 'online'
+                                                                        ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                                                        : m.status === 'standby'
+                                                                        ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                                                        : 'bg-slate-500/10 text-text-tertiary border-border-subtle'
+                                                                }`}>
+                                                                    {m.status === 'online' ? '● READY' : m.status === 'standby' ? '◐ STANDBY' : '○ OFFLINE'}
+                                                                </span>
+                                                                {isSelected && (
+                                                                    <span className="text-[10px] font-mono font-bold text-text-secondary">
+                                                                        {dynamicShare}% Share
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Description & Specs */}
+                                                        <p className="text-[11px] text-text-secondary leading-relaxed mb-3">
+                                                            {m.description}
+                                                        </p>
+
+                                                        {/* Capability Pills */}
+                                                        {m.capabilities && m.capabilities.length > 0 && (
+                                                            <div className="flex flex-wrap gap-1 mb-3">
+                                                                {m.capabilities.map((cap, cIdx) => (
+                                                                    <span key={cIdx} className="px-1.5 py-0.5 rounded bg-background-surface border border-border-subtle text-[9px] font-mono text-text-tertiary">
+                                                                        {cap}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Bottom controls: Weight Slider + Test Benchmark */}
+                                                    <div className="space-y-3 pt-3 border-t border-border-subtle">
+                                                        {isSelected && !predictionConfig.autoWeighting && (
+                                                            <div className="space-y-1">
+                                                                <div className="flex justify-between items-center text-[10px] font-mono">
+                                                                    <span className="text-text-tertiary">Ensemble Weight:</span>
+                                                                    <span className="text-text-primary font-mono font-bold">{currentWeight} pts</span>
+                                                                </div>
+                                                                <input
+                                                                    type="range"
+                                                                    min="5"
+                                                                    max="100"
+                                                                    step="5"
+                                                                    value={currentWeight}
+                                                                    onChange={(e) => handlePredictionWeightChange(m.modelId, e.target.value)}
+                                                                    className="w-full accent-blue-500 h-1.5 bg-background-surface rounded-lg cursor-pointer"
+                                                                />
+                                                            </div>
+                                                        )}
+
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleTestPredictionModel(m.modelId)}
+                                                                disabled={isTesting}
+                                                                className="px-2.5 py-1.5 rounded-lg text-[10px] font-mono font-semibold bg-background-surface hover:bg-background-elevated text-text-secondary hover:text-text-primary border border-border-subtle transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                                            >
+                                                                {isTesting ? <Loader size={11} /> : <Zap size={11} className="text-amber-400" />}
+                                                                <span>{isTesting ? 'Testing...' : 'Test & Benchmark'}</span>
+                                                            </button>
+
+                                                            {testRes ? (
+                                                                <span className={`text-[10px] font-mono font-bold ${testRes.success ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                                    {testRes.success ? `⚡ ${testRes.latencyMs}ms` : 'Failed'}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[10px] font-mono text-text-tertiary">
+                                                                    {m.latencyBenchmark}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         );

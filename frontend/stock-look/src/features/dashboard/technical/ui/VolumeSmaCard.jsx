@@ -9,9 +9,13 @@ import { scoreVolumeSmaCard } from '../engine/TechnicalCompositeEngine';
 export default function VolumeSmaCard({ cardId, data = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.volume_sma.id);
     
-    const currentValue = data?.volume_sma ?? null;
+    // Resolve current value from live backend data or manual override
+    const isLiveData = data?.volume_sma !== undefined && data?.volume_sma !== null && !isNaN(Number(data.volume_sma));
+    const isManual = !isLiveData && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' && !isNaN(Number(manualOverride));
+    const currentValue = isLiveData ? Number(data.volume_sma) : (isManual ? Number(manualOverride) : null);
+    const mode = isLiveData ? "AUTO" : (isManual ? "MANUAL" : "AUTO");
 
-    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreVolumeSmaCard(data?.volume_sma, data?.current_volume), 'volume_sma', tradingMode);
+    const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreVolumeSmaCard(currentValue, data?.current_volume, data?.current_price, data?.open_price), 'volume_sma', tradingMode);
 
     const displayValue = currentValue !== null && !isNaN(currentValue) ? Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 2 }).format(currentValue) : '--';
     
@@ -21,10 +25,10 @@ export default function VolumeSmaCard({ cardId, data = null, manualOverride, las
             config={{
                 title: "Volume SMA (20)",
                 category: "Volume Analysis",
-                mode: "AUTO",
+                mode,
                 creditScore: configData.creditScore,
-                updateTime: lastUpdated ?? "--:--",
-                source: configData.source,
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || "--:--"),
+                source: isLiveData ? configData.source : "Manual",
                 aiModel: configData.aiModel
             }}
             data={{
@@ -35,7 +39,8 @@ export default function VolumeSmaCard({ cardId, data = null, manualOverride, las
                 score,
                 bias,
                 confidence,
-                impactWeight: configData.impactWeight
+                impactWeight: configData.impactWeight,
+                isManual
             }}
             chartData={{
                 points: data?.history || [],

@@ -25,6 +25,10 @@ function toPixel(p, chart, series) {
         let x = null;
         if (chart && p.time != null) {
             x = chart.timeScale().timeToCoordinate(p.time);
+            // FC-003 Fix: If off-screen, fall back to logicalToCoordinate to preserve virtual coordinate for line clipping
+            if (x == null && p.logical != null) {
+                x = chart.timeScale().logicalToCoordinate(p.logical);
+            }
         }
         if (x == null && chart && p.logical != null) {
             x = chart.timeScale().logicalToCoordinate(p.logical);
@@ -843,9 +847,10 @@ export default function DrawingCanvas({
         });
     }, [drawings, activeTool, activeColor, chartRef, candleSeriesRef]);
 
-    // Render efficiently only when the chart moves or mouse interacts, eliminating idle CPU drain
+    // Render efficiently when the chart moves, mouse interacts, or price scale is dragged
     useEffect(() => {
         const chart = chartRef.current;
+        const container = containerRef?.current;
         if (!chart) return;
         
         const handleUpdate = () => render();
@@ -853,13 +858,38 @@ export default function DrawingCanvas({
         chart.timeScale().subscribeVisibleTimeRangeChange(handleUpdate);
         chart.timeScale().subscribeVisibleLogicalRangeChange(handleUpdate);
         chart.subscribeCrosshairMove(handleUpdate);
+
+        // FC-002 Fix: Listen to mouse events on container to redraw while dragging price scale
+        let isDraggingPrice = false;
+        const handleMouseDown = (e) => {
+            const rect = container?.getBoundingClientRect();
+            if (rect && (e.clientX - rect.left) > (rect.width - 70)) {
+                isDraggingPrice = true;
+            }
+        };
+        const handleMouseMove = () => {
+            if (isDraggingPrice) handleUpdate();
+        };
+        const handleMouseUp = () => {
+            if (isDraggingPrice) {
+                isDraggingPrice = false;
+                handleUpdate();
+            }
+        };
+
+        container?.addEventListener('mousedown', handleMouseDown);
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
         
         return () => {
             chart.timeScale().unsubscribeVisibleTimeRangeChange(handleUpdate);
             chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleUpdate);
             chart.unsubscribeCrosshairMove(handleUpdate);
+            container?.removeEventListener('mousedown', handleMouseDown);
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [render, chartRef]);
+    }, [render, chartRef, containerRef]);
 
     // Hover detection
     const getHoveredId = useCallback((cx, cy) => {

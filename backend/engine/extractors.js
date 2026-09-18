@@ -327,6 +327,7 @@ export function extractFundamentalData(rawData, manualOverrides = {}) {
         patCAGR, patYoY, patPos, patTot,
         blendedPremium, cfoToNetProfit, hasCorporateActions,
         inventoryTurnover, receivablesTurnover, payablesTurnover,
-        indiaVix, analystConsensus
+        indiaVix, analystConsensus,
+        sector: rawData?.company_profile?.sector ?? rawData?.sector ?? ''
     };
 }

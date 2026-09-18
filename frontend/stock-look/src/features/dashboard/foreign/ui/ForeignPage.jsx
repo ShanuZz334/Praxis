@@ -38,23 +38,33 @@ const DEFAULT_OVERRIDES = {
     us_10y_yield: null,
     sp_futures: null,
     nasdaq_futures: null,
-    dow_futures: null,
+    dow_jones: null,
     vix: null,
     bitcoin: null,
-    eurusd: null,
+    ethereum: null,
     usdjpy: null,
     nikkei: null,
     ftse: null,
     dax: null,
     hangseng: null,
     shanghai: null,
-    cac40: null,
-    eurostoxx: null,
     copper: null,
     natgas: null,
-    wheat: null,
-    aluminum: null,
     move: null
+};
+
+// Wrapper defined outside render function to prevent focus loss (Rule 2)
+const TimerOverrideInput = ({ overrideKey, manualLastUpdated, expiryConfigs, ...props }) => {
+    return (
+        <DebouncedOverrideInput
+            {...props}
+            overrideKey={overrideKey}
+            lastUpdatedTimestamp={manualLastUpdated?.[overrideKey]}
+            expiryDuration={expiryConfigs?.[overrideKey] || expiryConfigs?.global_default}
+            instrument="global_macro"
+            moduleKey="global"
+        />
+    );
 };
 
 export default function ForeignPage() {
@@ -65,7 +75,7 @@ export default function ForeignPage() {
 
     const { livePrices } = useDashboardContext();
     const { tradingMode } = useTheme();
-    const { overrides: manualOverrides, lastUpdated: manualLastUpdated, handleChange: handleOverrideChange, handleClearAll } = useManualOverrides('global', 'global_macro', DEFAULT_OVERRIDES);
+    const { overrides: manualOverrides, lastUpdated: manualLastUpdated, expiryConfigs, handleChange: handleOverrideChange, handleClearAll } = useManualOverrides('global', 'global_macro', DEFAULT_OVERRIDES);
 
     // Extract Upstox live data
     const liveData = useMemo(() => {
@@ -78,7 +88,6 @@ export default function ForeignPage() {
             us_10y_yield: null, // Upstox doesn't stream this
             sp_futures: null,
             nasdaq_futures: null,
-            dow_futures: null,
             vix: null,
             bitcoin: null
         };
@@ -125,12 +134,12 @@ export default function ForeignPage() {
     // Calculate freshness correctly based on whether we have live data or manual overrides
     const resolveTime = useDataFreshness(mergedLiveData, manualOverrides, manualLastUpdated, isMarketOpen, formatTime, "1m");
 
-    const showCurrency = !mergedLiveData.dxy || !mergedLiveData.usd_inr || !mergedLiveData.eurusd || !mergedLiveData.usdjpy;
-    const showCommodities = !mergedLiveData.crude || !mergedLiveData.gold || !mergedLiveData.silver || !mergedLiveData.copper || !mergedLiveData.natgas || !mergedLiveData.wheat || !mergedLiveData.aluminum;
+    const showCurrency = !mergedLiveData.dxy || !mergedLiveData.usd_inr || !mergedLiveData.usdjpy;
+    const showCommodities = !mergedLiveData.crude || !mergedLiveData.gold || !mergedLiveData.silver || !mergedLiveData.copper || !mergedLiveData.natgas;
     const showRates = !mergedLiveData.us_10y_yield || !mergedLiveData.vix || !mergedLiveData.move;
-    const showUSMarkets = !mergedLiveData.sp_futures || !mergedLiveData.nasdaq_futures || !mergedLiveData.dow_futures;
-    const showDigitalAssets = !mergedLiveData.bitcoin;
-    const showGlobalIndices = !mergedLiveData.nikkei || !mergedLiveData.ftse || !mergedLiveData.dax || !mergedLiveData.hangseng || !mergedLiveData.shanghai || !mergedLiveData.cac40 || !mergedLiveData.eurostoxx;
+    const showUSMarkets = !mergedLiveData.sp_futures || !mergedLiveData.nasdaq_futures || !mergedLiveData.dow_jones;
+    const showDigitalAssets = !mergedLiveData.bitcoin || !mergedLiveData.ethereum;
+    const showGlobalIndices = !mergedLiveData.nikkei || !mergedLiveData.ftse || !mergedLiveData.dax || !mergedLiveData.hangseng || !mergedLiveData.shanghai;
     
     const showAnyManual = showCurrency || showCommodities || showRates || showUSMarkets || showDigitalAssets || showGlobalIndices;
 
@@ -163,61 +172,57 @@ export default function ForeignPage() {
                 {showCurrency && (
                     <div className="space-y-3">
                         <div className="text-xs font-bold text-emerald-500 mb-3 border-b border-border-default pb-2">Currency</div>
-                        {!mergedLiveData.dxy && <DebouncedOverrideInput label="US Dollar Index (DXY) (Points)" overrideKey="dxy" value={manualOverrides.dxy} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.usd_inr && <DebouncedOverrideInput label="USD/INR Rate (₹)" overrideKey="usd_inr" value={manualOverrides.usd_inr} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.eurusd && <DebouncedOverrideInput label="EUR/USD ($)" overrideKey="eurusd" value={manualOverrides.eurusd} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.usdjpy && <DebouncedOverrideInput label="USD/JPY (¥)" overrideKey="usdjpy" value={manualOverrides.usdjpy} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.dxy && <TimerOverrideInput label="US Dollar Index (DXY) (Points)" overrideKey="dxy" value={manualOverrides.dxy} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.usd_inr && <TimerOverrideInput label="USD/INR Rate (₹)" overrideKey="usd_inr" value={manualOverrides.usd_inr} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.usdjpy && <TimerOverrideInput label="USD/JPY (¥)" overrideKey="usdjpy" value={manualOverrides.usdjpy} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
                     </div>
                 )}
                 
                 {showCommodities && (
                     <div className="space-y-3">
                         <div className="text-xs font-bold text-yellow-500 mb-3 border-b border-border-default pb-2">Commodities</div>
-                        {!mergedLiveData.crude && <DebouncedOverrideInput label="Brent Crude Oil ($/bbl)" overrideKey="crude" value={manualOverrides.crude} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.gold && <DebouncedOverrideInput label="Gold ($/oz)" overrideKey="gold" value={manualOverrides.gold} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.silver && <DebouncedOverrideInput label="Silver ($/oz)" overrideKey="silver" value={manualOverrides.silver} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.copper && <DebouncedOverrideInput label="Copper ($/lb)" overrideKey="copper" value={manualOverrides.copper} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.natgas && <DebouncedOverrideInput label="Natural Gas ($/MMBtu)" overrideKey="natgas" value={manualOverrides.natgas} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.wheat && <DebouncedOverrideInput label="Wheat ($/bu)" overrideKey="wheat" value={manualOverrides.wheat} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.aluminum && <DebouncedOverrideInput label="Aluminum ($/ton)" overrideKey="aluminum" value={manualOverrides.aluminum} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.crude && <TimerOverrideInput label="Brent Crude Oil ($/bbl)" overrideKey="crude" value={manualOverrides.crude} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.gold && <TimerOverrideInput label="Gold ($/oz)" overrideKey="gold" value={manualOverrides.gold} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.silver && <TimerOverrideInput label="Silver ($/oz)" overrideKey="silver" value={manualOverrides.silver} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.copper && <TimerOverrideInput label="Copper ($/lb)" overrideKey="copper" value={manualOverrides.copper} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.natgas && <TimerOverrideInput label="Natural Gas ($/MMBtu)" overrideKey="natgas" value={manualOverrides.natgas} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
                     </div>
                 )}
 
                 {showRates && (
                     <div className="space-y-3">
                         <div className="text-xs font-bold text-purple-500 mb-3 border-b border-border-default pb-2">Rates & Volatility</div>
-                        {!mergedLiveData.us_10y_yield && <DebouncedOverrideInput label="US 10-Year Yield (%)" overrideKey="us_10y_yield" value={manualOverrides.us_10y_yield} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.vix && <DebouncedOverrideInput label="CBOE VIX (Absolute)" overrideKey="vix" value={manualOverrides.vix} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.move && <DebouncedOverrideInput label="MOVE Index" overrideKey="move" value={manualOverrides.move} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.us_10y_yield && <TimerOverrideInput label="US 10-Year Yield (%)" overrideKey="us_10y_yield" value={manualOverrides.us_10y_yield} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.vix && <TimerOverrideInput label="CBOE VIX (Absolute)" overrideKey="vix" value={manualOverrides.vix} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.move && <TimerOverrideInput label="MOVE Index" overrideKey="move" value={manualOverrides.move} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
                     </div>
                 )}
 
                 {showUSMarkets && (
                     <div className="space-y-3">
                         <div className="text-xs font-bold text-blue-500 mb-3 border-b border-border-default pb-2">US Markets</div>
-                        {!mergedLiveData.sp_futures && <DebouncedOverrideInput label="S&P 500 Futures ($/Points)" overrideKey="sp_futures" value={manualOverrides.sp_futures} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.nasdaq_futures && <DebouncedOverrideInput label="Nasdaq Futures ($/Points)" overrideKey="nasdaq_futures" value={manualOverrides.nasdaq_futures} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.dow_futures && <DebouncedOverrideInput label="Dow Jones Futures ($/Points)" overrideKey="dow_futures" value={manualOverrides.dow_futures} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.sp_futures && <TimerOverrideInput label="S&P 500 Futures ($/Points)" overrideKey="sp_futures" value={manualOverrides.sp_futures} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.nasdaq_futures && <TimerOverrideInput label="Nasdaq Futures ($/Points)" overrideKey="nasdaq_futures" value={manualOverrides.nasdaq_futures} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.dow_jones && <TimerOverrideInput label="Dow Jones Futures ($/Points)" overrideKey="dow_jones" value={manualOverrides.dow_jones} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
                     </div>
                 )}
 
                 {showDigitalAssets && (
                     <div className="space-y-3">
                         <div className="text-xs font-bold text-orange-400 mb-3 border-b border-border-default pb-2">Digital Assets</div>
-                        {!mergedLiveData.bitcoin && <DebouncedOverrideInput label="Bitcoin ($)" overrideKey="bitcoin" value={manualOverrides.bitcoin} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.bitcoin && <TimerOverrideInput label="Bitcoin ($)" overrideKey="bitcoin" value={manualOverrides.bitcoin} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.ethereum && <TimerOverrideInput label="Ethereum ($)" overrideKey="ethereum" value={manualOverrides.ethereum} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
                     </div>
                 )}
 
                 {showGlobalIndices && (
                     <div className="space-y-3">
                         <div className="text-xs font-bold text-indigo-400 mb-3 border-b border-border-default pb-2">Global Indices</div>
-                        {!mergedLiveData.nikkei && <DebouncedOverrideInput label="Nikkei 225 (¥ JPY)" overrideKey="nikkei" value={manualOverrides.nikkei} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.ftse && <DebouncedOverrideInput label="FTSE 100 (£ GBP)" overrideKey="ftse" value={manualOverrides.ftse} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.dax && <DebouncedOverrideInput label="DAX 40 (€ EUR)" overrideKey="dax" value={manualOverrides.dax} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.hangseng && <DebouncedOverrideInput label="Hang Seng (HK$ HKD)" overrideKey="hangseng" value={manualOverrides.hangseng} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.shanghai && <DebouncedOverrideInput label="Shanghai Comp (¥ CNY)" overrideKey="shanghai" value={manualOverrides.shanghai} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.cac40 && <DebouncedOverrideInput label="CAC 40 (€ EUR)" overrideKey="cac40" value={manualOverrides.cac40} onChange={handleOverrideChange} />}
-                        {!mergedLiveData.eurostoxx && <DebouncedOverrideInput label="Euro Stoxx 50 (€ EUR)" overrideKey="eurostoxx" value={manualOverrides.eurostoxx} onChange={handleOverrideChange} />}
+                        {!mergedLiveData.nikkei && <TimerOverrideInput label="Nikkei 225 (¥ JPY)" overrideKey="nikkei" value={manualOverrides.nikkei} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.ftse && <TimerOverrideInput label="FTSE 100 (£ GBP)" overrideKey="ftse" value={manualOverrides.ftse} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.dax && <TimerOverrideInput label="DAX 40 (€ EUR)" overrideKey="dax" value={manualOverrides.dax} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.hangseng && <TimerOverrideInput label="Hang Seng (HK$ HKD)" overrideKey="hangseng" value={manualOverrides.hangseng} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
+                        {!mergedLiveData.shanghai && <TimerOverrideInput label="Shanghai Comp (¥ CNY)" overrideKey="shanghai" value={manualOverrides.shanghai} onChange={handleOverrideChange} manualLastUpdated={manualLastUpdated} expiryConfigs={expiryConfigs} />}
                     </div>
                 )}
             </div>
@@ -225,7 +230,7 @@ export default function ForeignPage() {
     );
 
     // Dynamic Coverage & Credits Calculation
-    const maxCards = 25;
+    const maxCards = 21;
     const activeCardsCount = Object.values(compositeData.rawScores || {}).filter(v => v !== null && v !== undefined && !isNaN(v)).length;
     const coveragePercent = Math.min(100, Math.round((activeCardsCount / maxCards) * 100));
 
@@ -256,7 +261,7 @@ export default function ForeignPage() {
         });
 
     const totalCredits = cardsForHeader.reduce((acc, c) => acc + c.credit, 0);
-    const headerConfidence = computeHeaderConfidence(cardsForHeader, 25, 'foreign');
+    const headerConfidence = computeHeaderConfidence(cardsForHeader, maxCards, 'foreign');
 
     const hasLiveOrManualData = Object.values(mergedLiveData).some(v => v !== null && v !== undefined) || Object.values(manualOverrides).some(v => v !== null);
 

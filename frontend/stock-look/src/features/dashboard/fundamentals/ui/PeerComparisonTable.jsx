@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
-import { FundamentalContext } from '@/features/dashboard/fundamentals/ui/FundamentalContext';
 import axiosInstance from '@/shared/utils/axiosInstance';
 import { cn, cleanNum } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -14,11 +13,15 @@ const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 export default function PeerComparisonTable({ data, selectedInstrument }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [insightData, setInsightData] = useState({ isLoading: false, text: null, error: null, model: null });
-    const [peerRatios, setPeerRatios] = useState([]);
-    const [loadingPeers, setLoadingPeers] = useState(true);
+    const [fallbackPeerRatios, setFallbackPeerRatios] = useState([]);
+    const [loadingPeers, setLoadingPeers] = useState(false);
 
     const currentKey = selectedInstrument?.value || selectedInstrument || null;
-    const currentSymbol = FO_EQUITIES.find(e => e.value === currentKey)?.label || data?.company_profile?.company_name || currentKey?.split('|')[1] || "Current Stock";
+    const currentSymbol = FO_EQUITIES.find(e => e.value === currentKey)?.label || data?.company_profile?.company_name || data?.screener?.symbol || currentKey?.split('|')[1] || "Current Stock";
+
+    // 1. Primary Source: Live Screener Domestic Industry Peers Table
+    const screenerPeers = data?.screener?.peers || [];
+    const hasScreenerPeers = Array.isArray(screenerPeers) && screenerPeers.length > 0;
 
     const extractRatio = (ratios, names) => {
         if (!Array.isArray(ratios)) return null;
@@ -28,22 +31,24 @@ export default function PeerComparisonTable({ data, selectedInstrument }) {
 
     const currentStock = {
         symbol: currentSymbol,
-        pe: extractRatio(data?.ratios, ['p/e', 'pe ratio', 'price to earnings']),
-        pb: extractRatio(data?.ratios, ['p/b', 'pb ratio', 'price to book']),
-        roe: extractRatio(data?.ratios, ['roe', 'return on equity']),
-        de: extractRatio(data?.ratios, ['debt to equity', 'd/e']),
-        netMargin: extractRatio(data?.ratios, ['net margin', 'net profit margin', 'pat margin']),
+        cmp: data?.quote?.last_price || (data?.screener?.ratios?.['Current Price'] ? parseFloat(data.screener.ratios['Current Price']) : null),
+        pe: extractRatio(data?.ratios, ['p/e', 'pe ratio', 'price to earnings']) ?? (data?.screener?.ratios?.['Stock P/E'] ? parseFloat(data.screener.ratios['Stock P/E']) : null),
+        marketCapCr: data?.marketCap ?? (data?.screener?.ratios?.['Market Cap'] ? parseFloat(data.screener.ratios['Market Cap']) : null),
+        divYieldPct: data?.dividendYield ?? (data?.screener?.ratios?.['Dividend Yield'] ? parseFloat(data.screener.ratios['Dividend Yield']) : null),
+        rocePct: extractRatio(data?.ratios, ['roce', 'return on capital']) ?? (data?.screener?.ratios?.['ROCE'] ? parseFloat(data.screener.ratios['ROCE']) : null),
+        isCurrentStock: true
     };
 
+    // 2. Fallback: If no Screener peers, use legacy Upstox peer iteration
     useEffect(() => {
-        if (!currentKey) return;
+        if (hasScreenerPeers || !currentKey) return;
         let isSubscribed = true;
 
-        const fetchPeers = async () => {
+        const fetchFallbackPeers = async () => {
             const peerKeys = sectorPeers[currentKey] || [];
             if (peerKeys.length === 0) {
                 if (isSubscribed) {
-                    setPeerRatios([]);
+                    setFallbackPeerRatios([]);
                     setLoadingPeers(false);
                 }
                 return;
@@ -63,11 +68,11 @@ export default function PeerComparisonTable({ data, selectedInstrument }) {
 
                     const pMapped = {
                         symbol: pSymbol,
-                        pe: extractRatio(ratios, ['p/e', 'pe ratio', 'price to earnings']),
-                        pb: extractRatio(ratios, ['p/b', 'pb ratio', 'price to book']),
-                        roe: extractRatio(ratios, ['roe', 'return on equity']),
-                        de: extractRatio(ratios, ['debt to equity', 'd/e']),
-                        netMargin: extractRatio(ratios, ['net margin', 'net profit margin', 'pat margin']),
+                        cmp: pData?.quote?.last_price || null,
+                        pe: extractRatio(ratios, ['p/e', 'pe ratio']),
+                        marketCapCr: pData?.marketCap || null,
+                        divYieldPct: pData?.dividendYield || null,
+                        rocePct: extractRatio(ratios, ['roce']),
                     };
                     peerCache.set(peerKey, { timestamp: Date.now(), data: pMapped });
                     return pMapped;
@@ -79,23 +84,49 @@ export default function PeerComparisonTable({ data, selectedInstrument }) {
 
             const results = await Promise.all(promises);
             if (isSubscribed) {
-                setPeerRatios(results);
+                setFallbackPeerRatios(results);
                 setLoadingPeers(false);
             }
         };
 
-        fetchPeers();
+        fetchFallbackPeers();
 
         return () => { isSubscribed = false; };
-    }, [currentKey]);
+    }, [currentKey, hasScreenerPeers]);
 
-    const allPeers = [currentStock, ...peerRatios];
-    const peerKeys = sectorPeers[currentKey] || [];
-    
-    // Dynamic column visibility: Only show columns where at least one peer (or current stock) has data
-    const hasDE = allPeers.some(p => p.de !== null && p.de !== undefined);
-    const hasNetMargin = allPeers.some(p => p.netMargin !== null && p.netMargin !== undefined);
+    // Build unified peers array
+    const displayPeers = hasScreenerPeers
+        ? [
+            currentStock,
+            ...screenerPeers.map(p => ({
+                symbol: p.companyName,
+                cmp: parseFloat(p.cmp) || null,
+                pe: parseFloat(p.pe) || null,
+                marketCapCr: parseFloat(p.marketCapCr) || null,
+                divYieldPct: parseFloat(p.divYieldPct) || null,
+                rocePct: parseFloat(p.rocePct) || null,
+                qtrProfitVarPct: parseFloat(p.qtrProfitVarPct) || null,
+                isCurrentStock: false
+            }))
+          ]
+        : [currentStock, ...fallbackPeerRatios];
 
+    const formatNum = (num, suffix = '', isDec = true) => {
+        if (num === null || num === undefined || isNaN(num)) return '--';
+        return `${isDec ? Number(num).toFixed(2) : Math.round(num)}${suffix}`;
+    };
+
+    const formatMarketCap = (val) => {
+        if (val === null || val === undefined || isNaN(val)) return '--';
+        const n = Number(val);
+        const abs = Math.abs(n);
+        const sign = n < 0 ? '-' : '';
+        if (abs >= 100000) return `${sign}${(abs / 100000).toFixed(2)}L Cr`;
+        if (abs >= 1000) return `${sign}${(abs / 1000).toFixed(2)}k Cr`;
+        return `${sign}${abs.toFixed(0)} Cr`;
+    };
+
+    // AI Insight Trigger
     useEffect(() => {
         let isSubscribed = true;
         if (isExpanded && !insightData.text && !insightData.isLoading && !insightData.error && !loadingPeers) {
@@ -104,7 +135,7 @@ export default function PeerComparisonTable({ data, selectedInstrument }) {
             
             axiosInstance.post('/api/v1/intelligence/card-insight', {
                 metric: 'Peer Comparison',
-                value: allPeers, 
+                value: displayPeers, 
                 stockSymbol: currentSymbol || 'Unknown',
                 module: 'Fundamentals',
                 isPeerComparison: true
@@ -123,56 +154,85 @@ export default function PeerComparisonTable({ data, selectedInstrument }) {
             });
         }
         return () => { isSubscribed = false; };
-    }, [isExpanded, currentKey, loadingPeers]);
+    }, [isExpanded, currentKey, loadingPeers, displayPeers.length]);
 
-    const formatNum = (num, suffix = '') => {
-        if (num === null || num === undefined || isNaN(num)) return '--';
-        return `${Number(num).toFixed(2)}${suffix}`;
-    };
-
-    if (!currentKey || peerKeys.length === 0) {
-        return null; // Don't show the table at all in the snapshot if there are no configured peers
+    if (!hasScreenerPeers && (!currentKey || (sectorPeers[currentKey] || []).length === 0)) {
+        return null;
     }
+
     return (
         <div className="mt-6 pt-4 border-t border-border-subtle cursor-pointer" onDoubleClick={() => setIsExpanded(!isExpanded)}>
             <div className="flex justify-between items-center mb-3">
-                <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider">Peer Comparison</h3>
-                <div className="flex items-center gap-1.5" title="Curated List, Live Data">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                    <span className="text-[10px] font-mono font-bold tracking-wider text-text-primary uppercase">AUTO</span>
+                <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider">
+                        Domestic Industry Peer Comparison
+                    </h3>
+                    {data?.screener?.sector?.industry && (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-blue-950/40 border border-blue-800/40 text-blue-400 font-medium">
+                            {data.screener.sector.industry}
+                        </span>
+                    )}
+                </div>
+                <div className="flex items-center gap-1.5" title="Screener.in Live Pipeline">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] font-mono font-bold tracking-wider text-emerald-400 uppercase">
+                        {hasScreenerPeers ? 'LIVE SCREENER' : 'AUTO'}
+                    </span>
                 </div>
             </div>
             
-            <div className="overflow-x-auto custom-scrollbar relative">
+            <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="border-b border-border-default text-[10px] text-text-tertiary uppercase tracking-wider">
-                            <th className="pb-2 pr-4 font-medium">Company</th>
-                            <th className="pb-2 px-4 font-medium text-right">P/E</th>
-                            <th className="pb-2 px-4 font-medium text-right">P/B</th>
-                            <th className="pb-2 px-4 font-medium text-right">ROE</th>
-                            {hasDE && <th className="pb-2 px-4 font-medium text-right">D/E</th>}
-                            {hasNetMargin && <th className="pb-2 pl-4 font-medium text-right">Net Margin</th>}
+                        <tr className="border-b border-slate-800 text-[10px] text-text-tertiary uppercase tracking-wider">
+                            <th className="py-2.5 px-3 font-medium">Company</th>
+                            <th className="py-2.5 px-3 font-medium text-right">CMP (₹)</th>
+                            <th className="py-2.5 px-3 font-medium text-right">P/E</th>
+                            <th className="py-2.5 px-3 font-medium text-right">Market Cap (Cr)</th>
+                            <th className="py-2.5 px-3 font-medium text-right">Div Yield</th>
+                            <th className="py-2.5 px-3 font-medium text-right">ROCE</th>
+                            {hasScreenerPeers && <th className="py-2.5 px-3 font-medium text-right">Profit Var %</th>}
                         </tr>
                     </thead>
-                    <tbody className="text-xs">
-                        {allPeers.map((p, i) => {
-                            const isCurrent = i === 0;
+                    <tbody className="text-xs divide-y divide-slate-800/60">
+                        {displayPeers.map((p, i) => {
+                            const isCurrent = p.isCurrentStock || i === 0;
                             const isFailed = p.failed;
                             return (
-                                <tr key={p.symbol || i} className={cn("border-b border-border-subtle hover:bg-background-elevated/50 transition-colors", isCurrent && "bg-blue-900/10")}>
-                                    <td className="py-2.5 pr-4">
+                                <tr 
+                                    key={p.symbol || i} 
+                                    className={cn(
+                                        "hover:bg-background-elevated/50 transition-colors", 
+                                        isCurrent && "bg-blue-900/15 font-semibold"
+                                    )}
+                                >
+                                    <td className="py-2.5 px-3">
                                         <div className="flex items-center gap-2">
-                                            {isCurrent && <span className="w-1 h-1 rounded-full bg-blue-500 shrink-0" />}
-                                            <span className={cn("font-medium whitespace-nowrap", isCurrent ? "text-blue-400" : (isFailed ? "text-text-tertiary" : "text-text-secondary"))}>{p.symbol}</span>
+                                            {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />}
+                                            <span className={cn(
+                                                "whitespace-nowrap", 
+                                                isCurrent ? "text-blue-400 font-bold" : (isFailed ? "text-text-tertiary" : "text-text-secondary")
+                                            )}>
+                                                {p.symbol}
+                                            </span>
                                             {isCurrent && loadingPeers && <span className="w-3 h-3 ml-2 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />}
                                         </div>
                                     </td>
-                                    <td className="py-2.5 px-4 text-right font-mono text-text-secondary">{isFailed ? 'unavail' : formatNum(p.pe, 'x')}</td>
-                                    <td className="py-2.5 px-4 text-right font-mono text-text-secondary">{isFailed ? 'unavail' : formatNum(p.pb, 'x')}</td>
-                                    <td className="py-2.5 px-4 text-right font-mono text-text-secondary">{isFailed ? 'unavail' : formatNum(p.roe, '%')}</td>
-                                    {hasDE && <td className="py-2.5 px-4 text-right font-mono text-text-secondary">{isFailed ? 'unavail' : formatNum(p.de, 'x')}</td>}
-                                    {hasNetMargin && <td className="py-2.5 pl-4 text-right font-mono text-text-secondary">{isFailed ? 'unavail' : formatNum(p.netMargin, '%')}</td>}
+                                    <td className="py-2.5 px-3 text-right font-mono text-text-secondary">{p.cmp !== null && p.cmp !== undefined && !isNaN(p.cmp) ? `₹${formatNum(p.cmp, '')}` : '--'}</td>
+                                    <td className="py-2.5 px-3 text-right font-mono text-text-secondary">{isFailed ? 'unavail' : formatNum(p.pe, 'x')}</td>
+                                    <td className="py-2.5 px-3 text-right font-mono text-text-secondary" title={p.marketCapCr ? `₹${Number(p.marketCapCr).toLocaleString('en-IN')} Crores` : undefined}>
+                                        {formatMarketCap(p.marketCapCr)}
+                                    </td>
+                                    <td className="py-2.5 px-3 text-right font-mono text-text-secondary">{formatNum(p.divYieldPct, '%')}</td>
+                                    <td className="py-2.5 px-3 text-right font-mono text-text-secondary">{formatNum(p.rocePct, '%')}</td>
+                                    {hasScreenerPeers && (
+                                        <td className={cn(
+                                            "py-2.5 px-3 text-right font-mono",
+                                            p.qtrProfitVarPct > 0 ? "text-emerald-400" : (p.qtrProfitVarPct < 0 ? "text-rose-400" : "text-text-secondary")
+                                        )}>
+                                            {p.qtrProfitVarPct !== null && !isNaN(p.qtrProfitVarPct) ? `${p.qtrProfitVarPct > 0 ? '+' : ''}${p.qtrProfitVarPct.toFixed(1)}%` : '--'}
+                                        </td>
+                                    )}
                                 </tr>
                             );
                         })}

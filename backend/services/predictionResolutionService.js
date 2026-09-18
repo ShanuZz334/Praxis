@@ -37,11 +37,14 @@ const DEFAULT_WEIGHTS = {
 export function normalizeTimeframe(tf) {
     if (!tf) return 'day';
     const s = String(tf).toLowerCase().trim();
-    if (s === '1d' || s === 'd' || s === 'daily') return 'day';
-    if (s === '15m' || s === '15min') return '15minute';
-    if (s === '1m' || s === '1min') return '1minute';
-    if (s === '5m' || s === '5min') return '5minute';
-    if (s === '1w' || s === 'w' || s === 'weekly') return 'week';
+    if (s === '1m' || s === '1min' || s === '1minute') return '1minute';
+    if (s === '5m' || s === '5min' || s === '5minute') return '5minute';
+    if (s === '15m' || s === '15min' || s === '15minute') return '15minute';
+    if (s === '30m' || s === '30min' || s === '30minute') return '30minute';
+    if (s === '1h' || s === '60m' || s === '60min' || s === '1hour') return '1hour';
+    if (s === '1d' || s === 'd' || s === 'day' || s === 'daily') return 'day';
+    if (s === '1w' || s === 'w' || s === 'week' || s === 'weekly') return 'week';
+    if (s === '1mo' || s === 'month' || s === 'monthly') return 'month';
     return s;
 }
 
@@ -272,6 +275,8 @@ export function recordPredictions({
     }
 }
 
+let isResolving = false;
+
 /**
  * Resolve all pending predictions whose target candle has closed.
  * Fetches realized candle, scores pinball loss & conformity, and executes Hedge weight update.
@@ -279,20 +284,25 @@ export function recordPredictions({
  * @returns {Promise<{ resolvedCount: number, errorCount: number }>}
  */
 export async function resolvePendingPredictions() {
-    const nowIso = new Date().toISOString();
-
-    // Query pending predictions where target_candle_time <= now
-    const pendingQuery = db.prepare(`
-        SELECT * FROM predictions
-        WHERE status = 'PENDING' AND target_candle_time <= ?
-        ORDER BY target_candle_time ASC
-        LIMIT 200
-    `);
-
-    const pending = pendingQuery.all(nowIso);
-    if (pending.length === 0) {
-        return { resolvedCount: 0, errorCount: 0 };
+    if (isResolving) {
+        return { resolvedCount: 0, errorCount: 0, skipped: true };
     }
+    isResolving = true;
+    try {
+        const nowIso = new Date().toISOString();
+
+        // Query pending predictions where target_candle_time <= now
+        const pendingQuery = db.prepare(`
+            SELECT * FROM predictions
+            WHERE status = 'PENDING' AND target_candle_time <= ?
+            ORDER BY target_candle_time ASC
+            LIMIT 200
+        `);
+
+        const pending = pendingQuery.all(nowIso);
+        if (pending.length === 0) {
+            return { resolvedCount: 0, errorCount: 0 };
+        }
 
     let resolvedCount = 0;
     let errorCount = 0;
@@ -396,6 +406,9 @@ export async function resolvePendingPredictions() {
     }
 
     return { resolvedCount, errorCount };
+    } finally {
+        isResolving = false;
+    }
 }
 
 /**
@@ -465,21 +478,53 @@ function _findRealizedCandle(instrument, timeframe, targetTime) {
         let row = stmt.get(instrument, tf, targetTime);
         if (row) return row;
 
-        // Second attempt: candle matching date or close in range
-        const targetDate = targetTime.substring(0, 10);
-        stmt = db.prepare(`
-            SELECT open, high, low, close, timestamp
-            FROM candles
-            WHERE instrument_key = ? AND timeframe = ? AND timestamp LIKE ?
-            ORDER BY timestamp DESC
-            LIMIT 1
-        `);
-        row = stmt.get(instrument, tf, `${targetDate}%`);
-        if (row) return row;
+        // Second attempt: candle matching IST session date or close in range
+        const targetDateMs = new Date(targetTime).getTime();
+        const targetIstDate = !isNaN(targetDateMs)
+            ? new Date(targetDateMs + (5.5 * 3600000)).toISOString().substring(0, 10)
+            : targetTime.substring(0, 10);
 
-        // Third attempt: check quotes table if this is today's current session
-        const todayStr = new Date().toISOString().substring(0, 10);
-        if (targetDate === todayStr) {
+        if (tf === 'day' || tf === 'week') {
+            stmt = db.prepare(`
+                SELECT open, high, low, close, timestamp
+                FROM candles
+                WHERE instrument_key = ? 
+                  AND timeframe = ? 
+                  AND strftime('%Y-%m-%d', datetime(timestamp, '+330 minutes')) = ?
+                ORDER BY timestamp DESC
+                LIMIT 1
+            `);
+            row = stmt.get(instrument, tf, targetIstDate);
+            if (row) return row;
+        } else {
+            // For intraday, match timestamp prefix up to the minute or nearest completed candle
+            stmt = db.prepare(`
+                SELECT open, high, low, close, timestamp
+                FROM candles
+                WHERE instrument_key = ? AND timeframe = ? AND (timestamp LIKE ? OR timestamp <= ?)
+                ORDER BY timestamp DESC
+                LIMIT 1
+            `);
+            row = stmt.get(instrument, tf, `${targetTime.substring(0, 16)}%`, targetTime);
+            if (row) {
+                const candleMs = new Date(row.timestamp).getTime();
+                const targetMs = new Date(targetTime).getTime();
+                let stepMs = 15 * 60 * 1000;
+                if (tf === '1minute') stepMs = 60 * 1000;
+                else if (tf === '3minute') stepMs = 3 * 60 * 1000;
+                else if (tf === '5minute') stepMs = 5 * 60 * 1000;
+                else if (tf === '15minute') stepMs = 15 * 60 * 1000;
+                else if (tf === '30minute') stepMs = 30 * 60 * 1000;
+                else if (tf === 'hour' || tf === '60minute') stepMs = 60 * 60 * 1000;
+                if (Math.abs(candleMs - targetMs) <= stepMs * 2) {
+                    return row;
+                }
+            }
+        }
+
+        // Third attempt: check quotes table ONLY for daily timeframe during today's active session
+        const todayIst = new Date(Date.now() + (5.5 * 3600000)).toISOString().substring(0, 10);
+        if (tf === 'day' && targetIstDate === todayIst) {
             const qStmt = db.prepare(`SELECT open, high, low, close FROM quotes WHERE instrument_key = ?`);
             const qRow = qStmt.get(instrument);
             if (qRow && qRow.close > 0) {
@@ -517,22 +562,25 @@ function _applyHedgeUpdate(instrument, timeframe, regime, modelScores) {
         const newWeights = updateHedgeWeights(modelsForUpdate, DEFAULT_ETA);
 
         const updateStmt = db.prepare(`
-            INSERT INTO model_weights (model_id, instrument, timeframe, regime, weight, updated_at, rolling_loss_20, n_resolved)
-            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, 1)
+            INSERT INTO model_weights (model_id, instrument, timeframe, regime, weight, updated_at, rolling_loss_20, rolling_loss_100, n_resolved)
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, 1)
             ON CONFLICT(model_id, instrument, timeframe, regime)
             DO UPDATE SET
                 weight = excluded.weight,
                 updated_at = CURRENT_TIMESTAMP,
                 rolling_loss_20 = (rolling_loss_20 * 0.8) + (excluded.rolling_loss_20 * 0.2),
+                rolling_loss_100 = (rolling_loss_100 * 0.98) + (excluded.rolling_loss_100 * 0.02),
                 n_resolved = n_resolved + 1
         `);
 
         for (const nw of newWeights) {
             const scoreObj = modelScores.find(s => s.model_id === nw.model_id);
             const lossVal = scoreObj ? scoreObj.loss : 0;
-            updateStmt.run(nw.model_id, instrument, timeframe, regime, nw.weight, lossVal);
+            updateStmt.run(nw.model_id, instrument, timeframe, regime, nw.weight, lossVal, lossVal);
             // Check for live performance drift against validation baseline
             checkLiveDrift(nw.model_id, instrument, timeframe);
+            // Check if eligible to exit probation
+            checkProbationExit(nw.model_id, instrument, timeframe);
         }
     } catch (err) {
         console.error('[PredictionService] Error applying Hedge update:', err.message);
@@ -729,6 +777,62 @@ export function getActiveVersion(model_id, instrument, timeframe) {
 }
 
 /**
+ * Checks if a model on probation has demonstrated sustained live outperformance
+ * and is eligible to exit probation (graduating to full production status).
+ * Criteria:
+ * 1. Must currently be marked on probation (is_probation = 1)
+ * 2. Must have accumulated at least 50 resolved live predictions
+ * 3. Max rolling loss across regimes must not exceed 1.10x the validated pinball loss
+ */
+export function checkProbationExit(model_id, instrument, timeframe) {
+    const tf = normalizeTimeframe(timeframe);
+    try {
+        const probationRows = db.prepare(`
+            SELECT is_probation, n_resolved, rolling_loss_20
+            FROM model_weights
+            WHERE model_id = ? AND instrument = ? AND timeframe = ?
+        `).all(model_id, instrument, tf);
+
+        if (!probationRows.length || !probationRows.some(r => r.is_probation === 1)) {
+            return;
+        }
+
+        const totalResolved = probationRows.reduce((acc, r) => acc + (r.n_resolved || 0), 0);
+        if (totalResolved < 50) return; // Warm-up requirement
+
+        const activeVersion = db.prepare(`
+            SELECT fv.id, fv.val_pinball_loss
+            FROM active_versions av
+            JOIN finetune_versions fv ON av.active_version_id = fv.id
+            WHERE av.model_id = ? AND av.instrument = ? AND av.timeframe = ? AND fv.status = 'PROMOTED'
+        `).get(model_id, instrument, tf);
+
+        if (!activeVersion || !activeVersion.val_pinball_loss) return;
+
+        const maxRollingLoss = Math.max(...probationRows.map(r => r.rolling_loss_20 || 0));
+        const valLoss = activeVersion.val_pinball_loss;
+
+        if (maxRollingLoss <= valLoss * 1.10) {
+            db.prepare(`
+                UPDATE model_weights
+                SET is_probation = 0, updated_at = CURRENT_TIMESTAMP
+                WHERE model_id = ? AND instrument = ? AND timeframe = ?
+            `).run(model_id, instrument, tf);
+
+            db.prepare(`
+                UPDATE readiness_state
+                SET eta_text = 'Live in Production', updated_at = CURRENT_TIMESTAMP
+                WHERE model_id = ? AND instrument = ? AND timeframe = ?
+            `).run(model_id, instrument, tf);
+
+            console.log(`🎓 [PredictionService] Model ${model_id} on ${instrument} (${tf}) graduated from PROBATION with ${totalResolved} live resolutions.`);
+        }
+    } catch (err) {
+        console.error('[PredictionService] Error in checkProbationExit:', err.message);
+    }
+}
+
+/**
  * Evaluate if live performance has drifted significantly from the candidate's validation score.
  * If rolling 20-loss exceeds validation loss by > 25% (after >= 50 resolved samples),
  * triggers automatic rollback to eternal zero-shot base weights.
@@ -753,14 +857,17 @@ export function checkLiveDrift(model_id, instrument, timeframe) {
         if (maxResolved < 50) return; // Need at least 50 live resolved predictions before judging drift
 
         const valLoss = active.val_pinball_loss;
-        if (!valLoss || valLoss <= 0) return;
+        if (!valLoss || isNaN(valLoss) || valLoss <= 0) return;
+
+        const safeValLoss = Math.max(valLoss, 1e-6);
 
         // Check if rolling loss in any active regime exceeds val loss by 25%
         for (const rw of regimeWeights) {
             const rLoss = rw.rolling_loss_20 || 0;
-            if ((rw.n_resolved || 0) >= 20 && rLoss > valLoss * 1.25) {
-                const reason = `Live drift detected in [${rw.regime}]: rolling 20-loss (${rLoss.toFixed(4)}) > val loss * 1.25 (${(valLoss * 1.25).toFixed(4)})`;
-                revertToBase(model_id, instrument, tf, reason, rLoss, valLoss);
+            if (isNaN(rLoss)) continue;
+            if ((rw.n_resolved || 0) >= 20 && (rLoss / safeValLoss) > 1.25) {
+                const reason = `Live drift detected in [${rw.regime}]: rolling 20-loss (${rLoss.toFixed(4)}) > val loss * 1.25 (${(safeValLoss * 1.25).toFixed(4)})`;
+                revertToBase(model_id, instrument, tf, reason, rLoss, safeValLoss);
                 return;
             }
         }

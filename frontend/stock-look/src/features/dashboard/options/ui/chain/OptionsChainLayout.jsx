@@ -252,10 +252,13 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, baseSpotPr
 
                                 {/* IV RANK */}
                                 <div className="relative group border border-border-default/30 bg-background-surface/10 rounded-2xl p-4 shadow-sm hover:border-border-default/60 transition-all flex flex-col justify-between min-h-[90px]">
-                                    <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-amber-500" title="Manual Input" />
+                                    <div 
+                                        className={`absolute top-2 right-2 w-1.5 h-1.5 rounded-full ${metrics.isManualIvRank ? 'bg-amber-500' : 'bg-emerald-500'}`} 
+                                        title={metrics.isManualIvRank ? "Manual Input" : "Live Option Chain Calculation"} 
+                                    />
                                     <div className="flex items-center gap-1.5 mb-2">
                                         <span className="text-[11px] text-text-primary font-black tracking-widest uppercase">IV Rank</span>
-                                        <PortalTooltip content={<div className="text-xs text-text-secondary">Current Implied Volatility vs 1-Year Range. (Manual Override)</div>}>
+                                        <PortalTooltip content={<div className="text-xs text-text-secondary">{metrics.isManualIvRank ? "Current Implied Volatility vs 1-Year Range. (Manual Override)" : "Implied Volatility Rank calculated from live ATM option chain."}</div>}>
                                             <div className="p-0.5 rounded-full hover:bg-background-surface cursor-help transition-colors">
                                                 <svg className="w-3 h-3 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                             </div>
@@ -264,16 +267,22 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, baseSpotPr
                                     <div>
                                         <div className={`flex items-baseline gap-0.5 mb-2`}>
                                             <span 
-                                                className={`bg-transparent border-none outline-none text-xl font-mono font-black leading-none tracking-tight ${metrics.ivRank > 60 ? 'text-red-500' : metrics.ivRank < 30 ? 'text-emerald-500' : 'text-amber-500'}`}
+                                                className={`bg-transparent border-none outline-none text-xl font-mono font-black leading-none tracking-tight ${
+                                                    metrics.ivRank !== null && metrics.ivRank !== undefined 
+                                                        ? (metrics.ivRank > 60 ? 'text-red-500' : metrics.ivRank < 30 ? 'text-emerald-500' : 'text-amber-500') 
+                                                        : 'text-text-tertiary'
+                                                }`}
                                             >
-                                                {metrics.ivRank}
+                                                {metrics.ivRank !== null && metrics.ivRank !== undefined ? metrics.ivRank : '--'}
                                             </span>
                                             <span className="text-xs text-text-tertiary font-bold align-top">%</span>
                                         </div>
                                         <div className="w-full bg-background-surface h-1 rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full transition-all duration-700 ease-out ${metrics.ivRank > 60 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : metrics.ivRank < 30 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'}`}
-                                                style={{ width: `${Math.min(metrics.ivRank, 100)}%` }}
+                                                className={`h-full transition-all duration-700 ease-out ${
+                                                    metrics.ivRank > 60 ? 'bg-red-500' : metrics.ivRank < 30 ? 'bg-emerald-500' : 'bg-amber-500'
+                                                }`}
+                                                style={{ width: `${Math.min(metrics.ivRank || 0, 100)}%` }}
                                             />
                                         </div>
                                     </div>
@@ -327,10 +336,24 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, baseSpotPr
                     {(() => {
                         const renderPick = (title, pick, colorClass, borderClass, bgClass, labelColorClass) => {
                             if (!pick) return null;
+
+                            // Enriched metadata from new institutional engine
+                            const setupLabel = pick.flow?.label || null;
+                            const convictionScore = pick.score || null;
+                            const pop = pick.pop ?? null;
+
+                            // Setup badge colour based on quadrant
+                            const badgeColor = pick.flow?.quadrant === 'LONG_BUILDUP'   ? 'text-emerald-400 bg-emerald-500/10'
+                                             : pick.flow?.quadrant === 'SHORT_COVERING'  ? 'text-cyan-400 bg-cyan-500/10'
+                                             : pick.flow?.quadrant === 'SHORT_BUILDUP'   ? 'text-red-400 bg-red-500/10'
+                                             : pick.flow?.quadrant === 'LONG_UNWINDING'  ? 'text-orange-400 bg-orange-500/10'
+                                             : 'text-text-tertiary bg-white/5';
+
                             return (
                                 <div className="space-y-1 mt-2">
                                     <div className={`text-[10px] ${labelColorClass} font-bold uppercase`}>{title}</div>
-                                    <div className={`group p-3 ${bgClass} border ${borderClass} hover:opacity-80 rounded-lg transition-colors cursor-pointer`}
+                                    <div
+                                        className={`group p-2.5 ${bgClass} border ${borderClass} hover:opacity-80 rounded-lg transition-colors cursor-pointer`}
                                         onClick={() => setSelectedOption({ data: pick, type: pick.type, strike: pick.strike })}
                                         onDoubleClick={() => {
                                             if (pick?.instrument_key && onAddChart) {
@@ -341,18 +364,51 @@ export default function OptionsChainLayout({ chain, picks, spotPrice, baseSpotPr
                                             }
                                         }}
                                     >
+                                        {/* Row 1: Strike + LTP */}
                                         <div className="flex justify-between items-center mb-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-bold text-text-primary text-sm">{pick.strike} {pick.type === 'call' ? 'CE' : 'PE'}</span>
-                                            </div>
+                                            <span className="font-bold text-text-primary text-sm">{pick.strike} {pick.type === 'call' ? 'CE' : 'PE'}</span>
                                             <span className={`text-xs font-mono ${colorClass} font-bold`}>₹{Number(pick.ltp).toFixed(2)}</span>
                                         </div>
-                                        <div className="flex justify-between text-[10px] text-text-secondary font-medium">
+
+                                        {/* Row 2: Delta + CHG% */}
+                                        <div className="flex justify-between text-[10px] text-text-secondary font-medium mb-1.5">
                                             <span>Δ {(pick.delta || 0).toFixed(2)}</span>
                                             <span className={pick.oiChgPct > 0 ? 'text-emerald-500 font-bold' : pick.oiChgPct < 0 ? 'text-red-500 font-bold' : 'text-text-secondary'}>
                                                 CHG {pick.oiChgPct > 0 ? '+' : ''}{(pick.oiChgPct || 0).toFixed(2)}%
                                             </span>
                                         </div>
+
+                                        {/* Row 3: Setup badge + POP */}
+                                        <div className="flex justify-between items-center gap-1">
+                                            {setupLabel && (
+                                                <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wide ${badgeColor}`}>
+                                                    {setupLabel}
+                                                </span>
+                                            )}
+                                            {pop !== null && (
+                                                <span className="text-[9px] text-text-tertiary font-mono ml-auto">
+                                                    POP <span className="text-text-secondary font-bold">{pop}%</span>
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Row 4: Conviction score bar */}
+                                        {convictionScore !== null && (
+                                            <div className="mt-1.5">
+                                                <div className="flex justify-between items-center mb-0.5">
+                                                    <span className="text-[8px] text-text-tertiary uppercase tracking-wide">Score</span>
+                                                    <span className={`text-[9px] font-bold font-mono ${convictionScore >= 75 ? colorClass : convictionScore >= 50 ? 'text-text-secondary' : 'text-text-tertiary'}`}>
+                                                        {convictionScore}/100
+                                                    </span>
+                                                </div>
+                                                <div className="w-full h-0.5 bg-white/5 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full rounded-full bg-current transition-all"
+                                                        style={{ width: `${convictionScore}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );

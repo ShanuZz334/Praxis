@@ -105,9 +105,9 @@ export const scoreEurusd = (val, range = {}) => {
     const { min, max } = getDynamicBounds(1.03, 1.13, range);
     const score = normalize(v, min, max, false);
     const bias = getBias(score);
-    let insight = `EUR/USD at ${v.toFixed(4)} — dollar and euro in equilibrium within their recent range.`;
-    if (score >= 65) insight = `EUR/USD at ${v.toFixed(4)} — near its 52-week highs, signalling dollar weakness and supporting global risk appetite and EM inflows.`;
-    if (score <= 35) insight = `EUR/USD at ${v.toFixed(4)} — near its 52-week lows, reflecting European growth concerns and dollar dominance tightening global liquidity.`;
+    let insight = `EUR/USD at $${v.toFixed(4)} — dollar and euro in equilibrium within their recent range.`;
+    if (score >= 65) insight = `EUR/USD at $${v.toFixed(4)} — near its 52-week highs, signalling dollar weakness and supporting global risk appetite and EM inflows.`;
+    if (score <= 35) insight = `EUR/USD at $${v.toFixed(4)} — near its 52-week lows, reflecting European growth concerns and dollar dominance tightening global liquidity.`;
     return { score, bias, insight, confidence: 85, impact: "High" };
 };
 
@@ -133,11 +133,11 @@ export const scoreUsdjpy = (val, range = {}) => {
     }
     score = Math.min(score, 82); // Never give 100 — yen risk always exists
     const bias = getBias(score);
-    let insight = `USD/JPY at ${v.toFixed(1)} — yen carry trade in moderate territory.`;
-    if (score >= 65) insight = `USD/JPY at ${v.toFixed(1)} — near the stable mid-range of its 52-week band, carry trade conditions healthy without BOJ intervention risk.`;
+    let insight = `USD/JPY at ¥${v.toFixed(2)} — yen carry trade in moderate territory.`;
+    if (score >= 65) insight = `USD/JPY at ¥${v.toFixed(2)} — near the stable mid-range of its 52-week band, carry trade conditions healthy without BOJ intervention risk.`;
     if (score <= 35) insight = v > (range.hi52 || 158)
-        ? `USD/JPY at ${v.toFixed(1)} — at extreme highs of its range, BOJ intervention risk is elevated. A sudden yen reversal could trigger a global carry trade unwind.`
-        : `USD/JPY at ${v.toFixed(1)} — yen strengthening toward 52-week lows, carry trade unwinding. Global risk appetite may be under pressure.`;
+        ? `USD/JPY at ¥${v.toFixed(2)} — at extreme highs of its range, BOJ intervention risk is elevated. A sudden yen reversal could trigger a global carry trade unwind.`
+        : `USD/JPY at ¥${v.toFixed(2)} — yen strengthening toward 52-week lows, carry trade unwinding. Global risk appetite may be under pressure.`;
     return { score, bias, insight, confidence: 85, impact: "High" };
 };
 
@@ -315,9 +315,9 @@ export const scoreSPFutures = (val, range = {}) => {
     const { min, max } = getDynamicBounds(5000, 8000, range);
     const score = normalize(v, min, max, false);
     const bias = getBias(score);
-    let insight = `S&P at ${v.toLocaleString()} — US equities trending within their recent range.`;
-    if (score >= 65) insight = `S&P at ${v.toLocaleString()} — near 52-week highs, strong US markets signal global risk-on, typically supportive of FII inflows into Indian equities.`;
-    if (score <= 35) insight = `S&P at ${v.toLocaleString()} — near 52-week lows, US market weakness typically triggers global risk-off, reducing FII appetite for EM equities.`;
+    let insight = `S&P at $${v.toLocaleString()} — US equities trending within their recent range.`;
+    if (score >= 65) insight = `S&P at $${v.toLocaleString()} — near 52-week highs, strong US markets signal global risk-on, typically supportive of FII inflows into Indian equities.`;
+    if (score <= 35) insight = `S&P at $${v.toLocaleString()} — near 52-week lows, US market weakness typically triggers global risk-off, reducing FII appetite for EM equities.`;
     return { score, bias, insight, confidence: 92, impact: "High" };
 };
 
@@ -327,9 +327,9 @@ export const scoreNasdaqFutures = (val, range = {}) => {
     const { min, max } = getDynamicBounds(18000, 34000, range);
     const score = normalize(v, min, max, false);
     const bias = getBias(score);
-    let insight = `Nasdaq at ${v.toLocaleString()} — tech sentiment broadly healthy within recent range.`;
-    if (score >= 65) insight = `Nasdaq at ${v.toLocaleString()} — near 52-week highs, surging tech index drives global risk appetite, particularly bullish for Indian IT exporters.`;
-    if (score <= 35) insight = `Nasdaq at ${v.toLocaleString()} — near 52-week lows, tech weakness signals growth concerns, historically a headwind for Indian IT sector revenue visibility.`;
+    let insight = `Nasdaq at $${v.toLocaleString()} — tech sentiment broadly healthy within recent range.`;
+    if (score >= 65) insight = `Nasdaq at $${v.toLocaleString()} — near 52-week highs, surging tech index drives global risk appetite, particularly bullish for Indian IT exporters.`;
+    if (score <= 35) insight = `Nasdaq at $${v.toLocaleString()} — near 52-week lows, tech weakness signals growth concerns, historically a headwind for Indian IT sector revenue visibility.`;
     return { score, bias, insight, confidence: 88, impact: "High" };
 };
 
@@ -339,9 +339,9 @@ export const scoreDowFutures = (val, range = {}) => {
     const { min, max } = getDynamicBounds(38000, 60000, range);
     const score = normalize(v, min, max, false);
     const bias = getBias(score);
-    let insight = `Dow at ${v.toLocaleString()} — industrial and cyclical sector confidence steady.`;
-    if (score >= 65) insight = `Dow at ${v.toLocaleString()} — near 52-week highs, strong industrials signal healthy economic activity and supportive global capex.`;
-    if (score <= 35) insight = `Dow at ${v.toLocaleString()} — near 52-week lows, industrial weakness suggests cyclical slowdown.`;
+    let insight = `Dow at $${v.toLocaleString()} — industrial and cyclical sector confidence steady.`;
+    if (score >= 65) insight = `Dow at $${v.toLocaleString()} — near 52-week highs, strong industrials signal healthy economic activity and supportive global capex.`;
+    if (score <= 35) insight = `Dow at $${v.toLocaleString()} — near 52-week lows, industrial weakness suggests cyclical slowdown.`;
     return { score, bias, insight, confidence: 85, impact: "Moderate" };
 };
 
@@ -361,6 +361,18 @@ export const scoreBitcoin = (val, range = {}) => {
     return { score, bias, insight, confidence: 72, impact: "Moderate" };
 };
 
+export const scoreEthereum = (val, range = {}) => {
+    if (val === null || val === undefined || isNaN(val) || val === '') return null;
+    const v = typeof val === 'string' ? parseFloat(val.replace(/,/g, '')) : parseFloat(val);
+    const { min, max } = getDynamicBounds(2000, 6000, range);
+    const score = normalize(v, min, max, false);
+    const bias = getBias(score);
+    let insight = `Ethereum at $${v.toLocaleString()} — decentralized risk appetite in neutral territory.`;
+    if (score >= 65) insight = `Ethereum at $${v.toLocaleString()} — near 52-week highs, alt-crypto strength signals strong speculative risk tolerance and global liquidity.`;
+    if (score <= 35) insight = `Ethereum at $${v.toLocaleString()} — near 52-week lows, altcoin selloff reflects risk aversion across secondary speculative assets.`;
+    return { score, bias, insight, confidence: 70, impact: "Low" };
+};
+
 // =============================================================================
 // SECTION 6: GLOBAL EQUITY INDICES (absolute levels — higher = bullish)
 // =============================================================================
@@ -371,9 +383,9 @@ export const scoreNikkei = (val, range = {}) => {
     const { min, max } = getDynamicBounds(35000, 55000, range);
     const score = normalize(v, min, max, false);
     const bias = getBias(score);
-    let insight = `Nikkei at ${v.toLocaleString()} — Asian equity sentiment broadly constructive.`;
-    if (score >= 65) insight = `Nikkei at ${v.toLocaleString()} — near 52-week highs, confirming healthy Asian risk appetite and yen carry trade stability.`;
-    if (score <= 35) insight = `Nikkei at ${v.toLocaleString()} — near 52-week lows, Nikkei weakness often signals broader Asian risk aversion or yen carry unwind.`;
+    let insight = `Nikkei at ¥${v.toLocaleString()} — Asian equity sentiment broadly constructive.`;
+    if (score >= 65) insight = `Nikkei at ¥${v.toLocaleString()} — near 52-week highs, confirming healthy Asian risk appetite and yen carry trade stability.`;
+    if (score <= 35) insight = `Nikkei at ¥${v.toLocaleString()} — near 52-week lows, Nikkei weakness often signals broader Asian risk aversion or yen carry unwind.`;
     return { score, bias, insight, confidence: 83, impact: "High" };
 };
 
@@ -384,9 +396,9 @@ export const scoreFtse = (val, range = {}) => {
     const { min, max } = getDynamicBounds(7500, 12000, range);
     const score = normalize(v, min, max, false);
     const bias = getBias(score);
-    let insight = `FTSE at ${v.toLocaleString()} — UK equities tracking European macro conditions.`;
-    if (score >= 65) insight = `FTSE at ${v.toLocaleString()} — near 52-week highs, signal resilient European consumer and financial sector confidence.`;
-    if (score <= 35) insight = `FTSE at ${v.toLocaleString()} — near 52-week lows, FTSE weakness reflects European recession risk or Brexit headwinds.`;
+    let insight = `FTSE at £${v.toLocaleString()} — UK equities tracking European macro conditions.`;
+    if (score >= 65) insight = `FTSE at £${v.toLocaleString()} — near 52-week highs, signal resilient European consumer and financial sector confidence.`;
+    if (score <= 35) insight = `FTSE at £${v.toLocaleString()} — near 52-week lows, FTSE weakness reflects European recession risk or Brexit headwinds.`;
     return { score, bias, insight, confidence: 78, impact: "Moderate" };
 };
 
@@ -396,9 +408,9 @@ export const scoreDax = (val, range = {}) => {
     const { min, max } = getDynamicBounds(18000, 30000, range);
     const score = normalize(v, min, max, false);
     const bias = getBias(score);
-    let insight = `DAX at ${v.toLocaleString()} — Eurozone industrial health at moderate levels.`;
-    if (score >= 65) insight = `DAX at ${v.toLocaleString()} — near 52-week highs, recovering Eurozone manufacturing and export demand, globally bullish for cyclicals.`;
-    if (score <= 35) insight = `DAX at ${v.toLocaleString()} — near 52-week lows, reflecting Germany's industrial slowdown and Eurozone structural headwinds.`;
+    let insight = `DAX at €${v.toLocaleString()} — Eurozone industrial health at moderate levels.`;
+    if (score >= 65) insight = `DAX at €${v.toLocaleString()} — near 52-week highs, recovering Eurozone manufacturing and export demand, globally bullish for cyclicals.`;
+    if (score <= 35) insight = `DAX at €${v.toLocaleString()} — near 52-week lows, reflecting Germany's industrial slowdown and Eurozone structural headwinds.`;
     return { score, bias, insight, confidence: 78, impact: "Moderate" };
 };
 
@@ -408,9 +420,9 @@ export const scoreHangseng = (val, range = {}) => {
     const { min, max } = getDynamicBounds(16000, 30000, range);
     const score = normalize(v, min, max, false);
     const bias = getBias(score);
-    let insight = `Hang Seng at ${v.toLocaleString()} — China/HK equity sentiment at moderate optimism.`;
-    if (score >= 65) insight = `Hang Seng at ${v.toLocaleString()} — near 52-week highs, improving China growth expectations broadly benefit India as a correlated EM destination.`;
-    if (score <= 35) insight = `Hang Seng at ${v.toLocaleString()} — near 52-week lows, China property/debt concerns may trigger broad EM risk-off and FII outflows.`;
+    let insight = `Hang Seng at HK$${v.toLocaleString()} — China/HK equity sentiment at moderate optimism.`;
+    if (score >= 65) insight = `Hang Seng at HK$${v.toLocaleString()} — near 52-week highs, improving China growth expectations broadly benefit India as a correlated EM destination.`;
+    if (score <= 35) insight = `Hang Seng at HK$${v.toLocaleString()} — near 52-week lows, China property/debt concerns may trigger broad EM risk-off and FII outflows.`;
     return { score, bias, insight, confidence: 78, impact: "Moderate" };
 };
 
@@ -420,9 +432,9 @@ export const scoreShanghai = (val, range = {}) => {
     const { min, max } = getDynamicBounds(2800, 4200, range);
     const score = normalize(v, min, max, false);
     const bias = getBias(score);
-    let insight = `Shanghai Comp at ${v.toLocaleString()} — mainland China domestic confidence at moderate levels.`;
-    if (score >= 65) insight = `Shanghai at ${v.toLocaleString()} — near 52-week highs, effective stimulus transmission supporting regional trade flows.`;
-    if (score <= 35) insight = `Shanghai at ${v.toLocaleString()} — near 52-week lows, slowing domestic consumption and limited stimulus effectiveness.`;
+    let insight = `Shanghai Comp at ¥${v.toLocaleString()} — mainland China domestic confidence at moderate levels.`;
+    if (score >= 65) insight = `Shanghai at ¥${v.toLocaleString()} — near 52-week highs, effective stimulus transmission supporting regional trade flows.`;
+    if (score <= 35) insight = `Shanghai at ¥${v.toLocaleString()} — near 52-week lows, slowing domestic consumption and limited stimulus effectiveness.`;
     return { score, bias, insight, confidence: 75, impact: "Moderate" };
 };
 
@@ -432,9 +444,9 @@ export const scoreCac40 = (val, range = {}) => {
     const { min, max } = getDynamicBounds(7000, 10000, range);
     const score = normalize(v, min, max, false);
     const bias = getBias(score);
-    let insight = `CAC 40 at ${v.toLocaleString()} — French equities reflect Eurozone financial and luxury sector confidence.`;
-    if (score >= 65) insight = `CAC 40 at ${v.toLocaleString()} — near 52-week highs, healthy European luxury exports and financial sector profitability.`;
-    if (score <= 35) insight = `CAC 40 at ${v.toLocaleString()} — near 52-week lows, European political/fiscal risk or luxury spending slowdown.`;
+    let insight = `CAC 40 at €${v.toLocaleString()} — French equities reflect Eurozone financial and luxury sector confidence.`;
+    if (score >= 65) insight = `CAC 40 at €${v.toLocaleString()} — near 52-week highs, healthy European luxury exports and financial sector profitability.`;
+    if (score <= 35) insight = `CAC 40 at €${v.toLocaleString()} — near 52-week lows, European political/fiscal risk or luxury spending slowdown.`;
     return { score, bias, insight, confidence: 75, impact: "Moderate" };
 };
 
@@ -444,8 +456,8 @@ export const scoreEurostoxx = (val, range = {}) => {
     const { min, max } = getDynamicBounds(4500, 7500, range);
     const score = normalize(v, min, max, false);
     const bias = getBias(score);
-    let insight = `Euro Stoxx 50 at ${v.toLocaleString()} — broad EU equity performance reflects continental macro health.`;
-    if (score >= 65) insight = `Euro Stoxx at ${v.toLocaleString()} — near 52-week highs, broad European equity strength supports global portfolio allocation.`;
-    if (score <= 35) insight = `Euro Stoxx at ${v.toLocaleString()} — near 52-week lows, signalling Eurozone recession risks dampening global growth expectations.`;
+    let insight = `Euro Stoxx 50 at €${v.toLocaleString()} — broad EU equity performance reflects continental macro health.`;
+    if (score >= 65) insight = `Euro Stoxx at €${v.toLocaleString()} — near 52-week highs, broad European equity strength supports global portfolio allocation.`;
+    if (score <= 35) insight = `Euro Stoxx at €${v.toLocaleString()} — near 52-week lows, signalling Eurozone recession risks dampening global growth expectations.`;
     return { score, bias, insight, confidence: 75, impact: "Moderate" };
 };

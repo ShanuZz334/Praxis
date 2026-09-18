@@ -592,6 +592,24 @@ export const INDICATOR_CONFIG = {
         source: "NSE Option Chain",
         aiModel: "Qwen3 8B"
     },
+    expected_move: {
+        id: "expected_move",
+        title: "Expected Move",
+        category: "Options",
+        creditScore: 8,
+        impactWeight: "7.0%",
+        source: "NSE Option Chain / ATM Straddle",
+        aiModel: "Qwen3 8B"
+    },
+    gex: {
+        id: "gex",
+        title: "Gamma Exposure (GEX)",
+        category: "Options",
+        creditScore: 9,
+        impactWeight: "8.0%",
+        source: "NSE Option Chain / Dealer Gamma",
+        aiModel: "Qwen3 8B"
+    },
     total_call_oi: {
         id: "total_call_oi",
         title: "Total Call OI",

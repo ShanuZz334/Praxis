@@ -3,20 +3,23 @@ import { IndicatorCard } from '@/shared/components/ui/IndicatorCard/IndicatorCar
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
+import { scoreDelta, generateDeltaInsight } from '../engine/optionsScoringEngine';
 
 export default function DeltaCard({ cardId, liveData = null, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.delta.id);
     
     const isLiveData = liveData?.currentValue !== undefined && liveData?.currentValue !== null && liveData?.currentValue !== '--';
-    const rawValue = isLiveData ? liveData.currentValue : (manualOverride ?? null);
+    const isManual = !isLiveData && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' && !isNaN(Number(manualOverride));
+    const rawValue = isLiveData ? liveData.currentValue : (isManual ? Number(manualOverride) : null);
 
-    const optionType = isLiveData ? liveData.optionType : 'Call';
-    const moneyness = isLiveData ? liveData.moneyness : 'ATM';
-    const rawScore = isLiveData ? liveData.score : (rawValue !== null ? 50 : null);
-    const rawBias  = isLiveData ? liveData.bias  : 'Neutral';
+    const manualCalculated = isManual ? scoreDelta(rawValue) : null;
+    const optionType = isLiveData ? (liveData.optionType || 'Call') : 'Call';
+    const moneyness = isLiveData ? (liveData.moneyness || 'ATM') : (manualCalculated?.moneyness || 'ATM');
+    const rawScore = isLiveData ? liveData.score : (manualCalculated ? manualCalculated.score : null);
+    const rawBias  = isLiveData ? liveData.bias  : (manualCalculated ? manualCalculated.bias : 'Neutral');
     const { score, bias } = { ...{ score: rawScore, bias: rawBias }, ...applyModeAdjustment({ score: rawScore, bias: rawBias }, 'delta', tradingMode) };
-    const confidence = isLiveData ? liveData.confidence : "0%";
-    const aiInsightText = isLiveData ? liveData.aiInsight : (rawValue !== null ? "Manual override provided." : "Waiting for market data...");
+    const confidence = isLiveData ? (liveData.confidence || "98%") : (isManual ? "90%" : "0%");
+    const aiInsightText = isLiveData ? liveData.aiInsight : (isManual ? generateDeltaInsight(rawValue, bias) : "Waiting for market data...");
 
     const displayValue = rawValue !== null && rawValue !== '--' ? parseFloat(rawValue).toFixed(3) : '--';
 
@@ -41,7 +44,8 @@ export default function DeltaCard({ cardId, liveData = null, manualOverride, las
                 score, 
                 bias, 
                 confidence, 
-                impactWeight: configData.impactWeight 
+                impactWeight: configData.impactWeight,
+                isManual
             }}
             chartData={null}
             insights={{ 

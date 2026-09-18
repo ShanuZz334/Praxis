@@ -94,6 +94,15 @@ export const DEFAULT_BUILTIN_UNITS = [
         type: 'BUILTIN', 
         isDetachable: false 
     },
+    { 
+        id: 'OPTIONS_STRATEGY', 
+        label: 'Options Strategy (Merton BSM)', 
+        nickname: 'OPT', 
+        iconName: 'PieChart', 
+        desc: 'Multi-leg Black-Scholes Greeks, IV skew & expiry settlement', 
+        type: 'BUILTIN', 
+        isDetachable: false 
+    },
 ];
 
 /**

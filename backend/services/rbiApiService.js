@@ -1,26 +1,41 @@
-import axios from 'axios';
-import * as cheerio from 'cheerio';
+import { fredApiService } from './fredApiService.js';
 
 /**
- * Service for fetching macroeconomic data from RBI DBIE (Database on Indian Economy) or alternative sources.
- * Note: RBI DBIE is notoriously difficult to scrape reliably due to ASP.NET viewstates and CAPTCHAs.
- * This service provides the structural endpoints. If DBIE fails, these will throw and engage the fallback chain.
+ * Service for fetching macroeconomic data from Reserve Bank of India (RBI) indicators.
+ * Direct scraping of the legacy RBI DBIE portal is notoriously brittle due to ASP.NET viewstates and CAPTCHAs.
+ * This service leverages official Indian Central Bank series published via the FRED API (St. Louis Fed)
+ * as the primary reliable pipeline, with fallback chain engagement.
  */
 
 export const rbiApiService = {
     async getCPIInflation() {
-        // Placeholder for DBIE scrape or alternative API (e.g., MOSPI)
-        throw new Error('CPI Inflation fetch from RBI not fully implemented - engaging fallback.');
+        try {
+            const val = await fredApiService.getCPIInflation();
+            if (val !== null && !isNaN(val)) return val;
+        } catch (e) {
+            console.warn('[RBI Service] CPI Inflation fetch error:', e.message);
+        }
+        throw new Error('CPI Inflation fetch from RBI/FRED engaging fallback.');
     },
 
     async getRepoRate() {
-        // The repo rate is often published on the RBI home page.
-        // A simple scrape of the RBI homepage could work, but for stability we rely on the fallback wrapper.
-        throw new Error('Repo Rate fetch from RBI not fully implemented - engaging fallback.');
+        try {
+            const val = await fredApiService.getRepoRate();
+            if (val !== null && !isNaN(val)) return val;
+        } catch (e) {
+            console.warn('[RBI Service] Repo Rate fetch error:', e.message);
+        }
+        throw new Error('Repo Rate fetch from RBI/FRED engaging fallback.');
     },
 
     async getFiscalDeficit() {
-        throw new Error('Fiscal Deficit fetch from RBI not fully implemented - engaging fallback.');
+        try {
+            const val = await fredApiService.getFiscalDeficit();
+            if (val !== null && !isNaN(val)) return val;
+        } catch (e) {
+            console.warn('[RBI Service] Fiscal Deficit fetch error:', e.message);
+        }
+        throw new Error('Fiscal Deficit fetch from RBI/FRED engaging fallback.');
     },
 
     async getCreditGrowth() {

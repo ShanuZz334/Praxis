@@ -1,8 +1,12 @@
 import express from "express";
 import axios from "axios";
 import { getUpstoxAuthForMode, getExecutionMode } from "../utils/upstoxAuthHelper.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+
+// Enforce JWT authentication on all order placement and modification routes
+router.use(protect);
 
 /** Helper — determines active mode */
 const getActiveUpstoxAuth = async () => {

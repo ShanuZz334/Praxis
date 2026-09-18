@@ -584,6 +584,10 @@ export default function BacktestingWorkshop() {
                     onOpenOptimizer={() => setIsOptimizerOpen(true)}
                     onPlugLeakNow={handlePlugLeakDirectly}
                     isOpen={isRightOpen}
+                    monteCarlo={simulationResult?.monteCarlo || null}
+                    marketRegimes={simulationResult?.marketRegimes || null}
+                    optionsBacktest={simulationResult?.optionsBacktest || null}
+                    quantitativeAudit={simulationResult?.quantitativeAudit || null}
                 />
             </div>
 

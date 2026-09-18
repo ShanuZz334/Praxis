@@ -15,7 +15,7 @@ import { useVoice } from '@/shared/context/VoiceContext';
 import { useDataRegistry } from '@/shared/context/DataRegistryContext';
 import { useDashboardContext } from '@/shared/context/DashboardContext';
 
-export default function PaiChatArea({ activeChatId, chatTitle, chatType, refreshTrigger, isPopup = false }) {
+export default function PaiChatArea({ activeChatId, chatTitle, chatType, refreshTrigger, isPopup = false, initialInsight, stockSymbol }) {
     const navigate = useNavigate();
     const { theme, toggleTheme } = useTheme();
     const [messages, setMessages] = useState([]);
@@ -59,28 +59,63 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
         return () => unregisterListener(handleVoiceText);
     }, [registerListener, unregisterListener, activeChatId]);
 
-    // Fetch messages when chat changes (or refresh is triggered)
+    // Fetch messages when chat changes (or refresh is triggered or instrument changes)
     useEffect(() => {
         let isMounted = true;
         if (activeChatId) {
             const fetchHistory = async () => {
                 try {
                     const scope = chatType === 'header' || chatType === 'readonly' ? 'page' : 'card';
-                    const res = await axiosInstance.get(`/api/v1/ai-prompts/thread/${activeChatId}`, { params: { scope } });
-                    if (isMounted && res.data?.entries) {
-                        setMessages(res.data.entries.map((m, i) => ({
-                            id: i,
-                            role: m.role === 'assistant' ? 'ai' : m.role,
-                            content: m.content,
-                            provider: m.provider,
-                            model: m.model,
-                            latencyMs: m.latencyMs,
-                            timestamp: m.timestamp || m.createdAt || null
-                        })));
+                    const targetSymbol = stockSymbol || resolveReadableSymbol(selectedInstrument) || selectedInstrument || undefined;
+                    const res = await axiosInstance.get(`/api/v1/ai-prompts/thread/${activeChatId}`, { 
+                        params: { 
+                            scope,
+                            stockSymbol: targetSymbol,
+                            instrumentKey: selectedInstrument || undefined
+                        } 
+                    });
+                    if (isMounted) {
+                        const entries = res.data?.entries || [];
+                        if (entries.length > 0) {
+                            setMessages(entries.map((m, i) => ({
+                                id: i,
+                                role: m.role === 'assistant' ? 'ai' : m.role,
+                                content: m.content,
+                                provider: m.provider,
+                                model: m.model,
+                                latencyMs: m.latencyMs,
+                                timestamp: m.timestamp || m.createdAt || null
+                            })));
+                        } else if (initialInsight) {
+                            // Seed with current page insight so user isn't stuck on empty screen
+                            setMessages([{
+                                id: 'initial-header-insight',
+                                role: 'ai',
+                                content: initialInsight,
+                                provider: 'Praxis Engine',
+                                model: 'Synthesis',
+                                timestamp: Date.now()
+                            }]);
+                        } else {
+                            setMessages([]);
+                        }
                     }
                 } catch (err) {
                     console.error("Failed to fetch chat history:", err);
-                    if (isMounted) setMessages([]);
+                    if (isMounted) {
+                        if (initialInsight) {
+                            setMessages([{
+                                id: 'initial-header-insight',
+                                role: 'ai',
+                                content: initialInsight,
+                                provider: 'Praxis Engine',
+                                model: 'Synthesis',
+                                timestamp: Date.now()
+                            }]);
+                        } else {
+                            setMessages([]);
+                        }
+                    }
                 }
             };
             fetchHistory();
@@ -88,7 +123,7 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
             setMessages([]);
         }
         return () => { isMounted = false; };
-    }, [activeChatId, refreshTrigger, chatType]);
+    }, [activeChatId, refreshTrigger, chatType, selectedInstrument, stockSymbol, initialInsight]);
 
     // Fetch available AI models and smart routing defaults
     useEffect(() => {
@@ -213,6 +248,7 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
             companyName: selectedInstrument ? resolveReadableSymbol(selectedInstrument) : null,
             selectedInstrument: selectedInstrument || null,
             selectedInstrumentPrice: livePrices?.[selectedInstrument]?.ltp || null,
+            score: livePrices?.[selectedInstrument]?.ltp || null,
             nifty50: livePrices?.['NSE_INDEX|Nifty 50']?.ltp || null,
             bankNifty: livePrices?.['NSE_INDEX|Nifty Bank']?.ltp || null,
             pageSnapshot: scopePageId ? getPageSnapshot(scopePageId) : getMasterSnapshot()
@@ -233,6 +269,7 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
             const res = await axiosInstance.post(`/api/v1/ai-prompts/chat/${activeChatId}`, {
                 message: cleanText,
                 scope,
+                stockSymbol: selectedInstrument || null,
                 // Pass card snapshots so backend prepends [Live Card Data from Dashboard] block
                 cardSnapshots: cardSnapshots.length > 0 ? cardSnapshots : undefined,
                 contextData: autoContextData,
@@ -314,49 +351,65 @@ export default function PaiChatArea({ activeChatId, chatTitle, chatType, refresh
     return (
         <div className="flex-1 flex flex-col bg-background-app h-full relative">
             {/* Header Sticky */}
-            <div className="sticky top-0 z-10 h-[72px] px-6 grid grid-cols-3 items-center shrink-0">
-                <div className="flex justify-start">
-                    <h3 className="font-bold text-text-primary tracking-wide truncate">
-                        {chatTitle || 'Unknown Chat'}
-                    </h3>
+            {isPopup ? (
+                <div className="sticky top-0 z-10 h-[64px] px-6 flex items-center justify-between border-b border-border-subtle bg-background-app/80 backdrop-blur-md shrink-0 pr-16">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <img
+                            src={theme === 'dark' ? paiLogoDarkCenter : paiLogoLightCenter}
+                            alt="PAI Logo"
+                            className="h-8 w-auto object-contain opacity-90 shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                            <h3 className="font-bold text-text-primary text-sm tracking-wide truncate" title={chatTitle}>
+                                {chatTitle || 'Insight Intelligence'}
+                            </h3>
+                            <span className="text-[10px] font-mono text-text-tertiary">
+                                Interactive Quantitative Intelligence Thread
+                            </span>
+                        </div>
+                    </div>
                 </div>
+            ) : (
+                <div className="sticky top-0 z-10 h-[72px] px-6 grid grid-cols-3 items-center shrink-0">
+                    <div className="flex justify-start">
+                        <h3 className="font-bold text-text-primary tracking-wide truncate">
+                            {chatTitle || 'Unknown Chat'}
+                        </h3>
+                    </div>
 
-                <div className="flex justify-center items-center h-full">
-                    <img
-                        src={theme === 'dark' ? paiLogoDarkCenter : paiLogoLightCenter}
-                        alt="PAI Navbar Logo"
-                        className="h-12 w-auto object-contain opacity-90 transition-transform duration-300 hover:scale-110"
-                    />
-                </div>
+                    <div className="flex justify-center items-center h-full">
+                        <img
+                            src={theme === 'dark' ? paiLogoDarkCenter : paiLogoLightCenter}
+                            alt="PAI Navbar Logo"
+                            className="h-12 w-auto object-contain opacity-90 transition-transform duration-300 hover:scale-110"
+                        />
+                    </div>
 
-                <div className="flex justify-end items-center gap-1">
-                    {!isPopup && (
-                        <>
-                            <button
-                                onClick={toggleTheme}
-                                className="p-2 text-text-tertiary hover:text-text-primary transition-colors rounded-lg hover:bg-background-elevated"
-                                title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-                            >
-                                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                            </button>
-                            <button
-                                onClick={() => toggleStandby(!isStandbyMode)}
-                                className={`p-2 transition-colors rounded-lg hover:bg-background-elevated ${isStandbyMode ? 'text-orange-500' : 'text-text-tertiary hover:text-text-primary'}`}
-                                title="Hey Pai Standby Mode"
-                            >
-                                <Headset size={18} className={isStandbyMode ? 'animate-pulse' : ''} />
-                            </button>
-                            <button
-                                onClick={() => navigate('/dashboard/pai/settings')}
-                                className="p-2 text-text-tertiary hover:text-text-primary transition-colors rounded-lg hover:bg-background-elevated"
-                                title="PAI Settings"
-                            >
-                                <Settings size={18} />
-                            </button>
-                        </>
-                    )}
+                    <div className="flex justify-end items-center gap-1">
+                        <button
+                            onClick={toggleTheme}
+                            className="p-2 text-text-tertiary hover:text-text-primary transition-colors rounded-lg hover:bg-background-elevated"
+                            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+                        >
+                            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                        </button>
+                        <button
+                            onClick={() => toggleStandby(!isStandbyMode)}
+                            className={`p-2 transition-colors rounded-lg hover:bg-background-elevated ${isStandbyMode ? 'text-orange-500' : 'text-text-tertiary hover:text-text-primary'}`}
+                            title="Hey Pai Standby Mode"
+                        >
+                            <Headset size={18} className={isStandbyMode ? 'animate-pulse' : ''} />
+                        </button>
+                        <button
+                            onClick={() => navigate('/dashboard/pai/settings')}
+                            className="p-2 text-text-tertiary hover:text-text-primary transition-colors rounded-lg hover:bg-background-elevated"
+                            title="PAI Settings"
+                        >
+                            <Settings size={18} />
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Main Content Area */}
             {!activeChatId ? (

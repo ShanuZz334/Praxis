@@ -111,14 +111,18 @@ class AiQuotaTracker {
     }
 
     saveState() {
-        try {
-            if (!fs.existsSync(CACHE_DIR)) {
-                fs.mkdirSync(CACHE_DIR, { recursive: true });
+        if (this._saveTimer) return;
+        this._saveTimer = setTimeout(async () => {
+            this._saveTimer = null;
+            try {
+                if (!fs.existsSync(CACHE_DIR)) {
+                    await fs.promises.mkdir(CACHE_DIR, { recursive: true });
+                }
+                await fs.promises.writeFile(STATE_FILE, JSON.stringify(this.state, null, 2), 'utf8');
+            } catch (e) {
+                console.error('[aiQuotaTracker] Failed to save state:', e.message);
             }
-            fs.writeFileSync(STATE_FILE, JSON.stringify(this.state, null, 2), 'utf8');
-        } catch (e) {
-            console.error('[aiQuotaTracker] Failed to save state:', e.message);
-        }
+        }, 1000);
     }
 
     recordUsage({ provider, model, tokensIn = 0, tokensOut = 0 }) {

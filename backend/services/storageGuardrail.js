@@ -26,16 +26,18 @@ export const pruneRedundantCandles = () => {
             return { prunedRows: 0, affectedInstruments: 0 };
         }
 
+        // Only prune legacy deprecated shorthand timeframe aliases ('1m', '15m'),
+        // preserving canonical 5minute, 15minute, 30minute, 1hour required by Prediction Resolution & Technical Services
         const deleteRedundantStmt = db.prepare(`
             DELETE FROM candles 
             WHERE instrument_key = ? 
-            AND timeframe IN ('3minute', '5minute', '10minute', '15minute', '15m', '1m', '30minute', '1hour')
+            AND timeframe IN ('1m', '15m', '3m', '10m')
         `);
 
         const deleteRedundantStateStmt = db.prepare(`
             DELETE FROM backfill_state 
             WHERE instrument_key = ? 
-            AND timeframe IN ('3minute', '5minute', '10minute', '15minute', '15m', '1m', '30minute', '1hour')
+            AND timeframe IN ('1m', '15m', '3m', '10m')
         `);
 
         let totalPruned = 0;

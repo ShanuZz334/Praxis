@@ -133,7 +133,8 @@ const INITIAL_SECTIONS = [
                     { id: CARD_REGISTRY.free_cash_flow.id, title: 'Free Cash Flow', type: 'card' },
                     { id: CARD_REGISTRY.current_ratio.id, title: 'Current Ratio', type: 'card' },
                     { id: CARD_REGISTRY.credit_growth.id, title: 'Credit Growth', type: 'card' },
-                    { id: CARD_REGISTRY.corp_debt.id, title: 'Corporate Debt', type: 'card' }
+                    { id: CARD_REGISTRY.corp_debt.id, title: 'Corporate Debt', type: 'card' },
+                    { id: CARD_REGISTRY.historical_financials.id, title: '10Y Financial Statements', type: 'card' }
                 ]
             },
             {
@@ -217,8 +218,7 @@ const INITIAL_SECTIONS = [
                 chats: [
                     { id: CARD_REGISTRY.rsi.id, title: 'RSI', type: 'card' },
                     { id: CARD_REGISTRY.macd.id, title: 'MACD', type: 'card' },
-                    { id: CARD_REGISTRY.stoch_rsi.id, title: 'Stoch RSI', type: 'card' },
-                    { id: CARD_REGISTRY.williams_r.id, title: 'Williams %R', type: 'card' }
+                    { id: CARD_REGISTRY.stoch_rsi.id, title: 'Stoch RSI', type: 'card' }
                 ]
             },
             {
@@ -226,8 +226,7 @@ const INITIAL_SECTIONS = [
                 label: 'Volatility',
                 chats: [
                     { id: CARD_REGISTRY.bb_20_2.id, title: 'Bollinger Bands', type: 'card' },
-                    { id: CARD_REGISTRY.atr.id, title: 'ATR', type: 'card' },
-                    { id: CARD_REGISTRY.kc.id, title: 'Keltner Channel', type: 'card' }
+                    { id: CARD_REGISTRY.atr.id, title: 'ATR', type: 'card' }
                 ]
             },
             {
@@ -237,8 +236,6 @@ const INITIAL_SECTIONS = [
                     { id: CARD_REGISTRY.ema_20.id, title: 'EMA 20', type: 'card' },
                     { id: CARD_REGISTRY.ema_50.id, title: 'EMA 50', type: 'card' },
                     { id: CARD_REGISTRY.ema_200.id, title: 'EMA 200', type: 'card' },
-                    { id: CARD_REGISTRY.sma_50.id, title: 'SMA 50', type: 'card' },
-                    { id: CARD_REGISTRY.sma_200.id, title: 'SMA 200', type: 'card' },
                     { id: CARD_REGISTRY.adx.id, title: 'ADX', type: 'card' },
                     { id: CARD_REGISTRY.supertrend.id, title: 'Supertrend', type: 'card' }
                 ]
@@ -270,9 +267,7 @@ const INITIAL_SECTIONS = [
                 chats: [
                     { id: CARD_REGISTRY.ad_line.id, title: 'A/D Line', type: 'card' },
                     { id: CARD_REGISTRY.nh_nl.id, title: 'New Highs / New Lows', type: 'card' },
-                    { id: CARD_REGISTRY.breadth_ratio.id, title: 'Breadth Ratio', type: 'card' },
-                    { id: CARD_REGISTRY.trin.id, title: 'TRIN', type: 'card' },
-                    { id: CARD_REGISTRY.mcclellan.id, title: 'McClellan Oscillator', type: 'card' }
+                    { id: CARD_REGISTRY.breadth_ratio.id, title: 'Breadth Ratio', type: 'card' }
                 ]
             },
             {
@@ -302,16 +297,13 @@ const INITIAL_SECTIONS = [
                 label: 'Volatility',
                 chats: [
                     { id: CARD_REGISTRY.atm_iv.id, title: 'ATM IV', type: 'card' },
-                    { id: CARD_REGISTRY.iv_rank.id, title: 'IV Rank', type: 'card' },
-                    { id: CARD_REGISTRY.iv_percentile.id, title: 'IV Percentile', type: 'card' }
+                    { id: CARD_REGISTRY.iv_rank.id, title: 'IV Rank', type: 'card' }
                 ]
             },
             {
                 id: 'options_open_interest',
                 label: 'Open Interest',
                 chats: [
-                    { id: CARD_REGISTRY.total_call_oi.id, title: 'Total Call OI', type: 'card' },
-                    { id: CARD_REGISTRY.total_put_oi.id, title: 'Total Put OI', type: 'card' },
                     { id: CARD_REGISTRY.oi_change.id, title: 'OI Change', type: 'card' }
                 ]
             },
@@ -390,8 +382,7 @@ const INITIAL_SECTIONS = [
                 label: 'US Markets',
                 chats: [
                     { id: 'sp_futures', title: 'S&P 500', type: 'card' },
-                    { id: 'nasdaq_futures', title: 'Nasdaq 100', type: 'card' },
-                    { id: 'dow_futures', title: 'Dow Futures', type: 'card' }
+                    { id: 'nasdaq_futures', title: 'Nasdaq 100', type: 'card' }
                 ]
             },
             {
@@ -400,7 +391,6 @@ const INITIAL_SECTIONS = [
                 chats: [
                     { id: 'dxy', title: 'Dollar Index (DXY)', type: 'card' },
                     { id: 'usd_inr', title: 'USD/INR', type: 'card' },
-                    { id: 'eurusd', title: 'EUR/USD', type: 'card' },
                     { id: 'usdjpy', title: 'USD/JPY', type: 'card' }
                 ]
             },
@@ -421,9 +411,7 @@ const INITIAL_SECTIONS = [
                     { id: 'gold', title: 'Gold', type: 'card' },
                     { id: 'silver', title: 'Silver', type: 'card' },
                     { id: 'copper', title: 'Copper', type: 'card' },
-                    { id: 'natgas', title: 'Natural Gas', type: 'card' },
-                    { id: 'wheat', title: 'Wheat', type: 'card' },
-                    { id: 'aluminum', title: 'Aluminum', type: 'card' }
+                    { id: 'natgas', title: 'Natural Gas', type: 'card' }
                 ]
             },
             {
@@ -441,9 +429,7 @@ const INITIAL_SECTIONS = [
                     { id: 'ftse', title: 'FTSE 100', type: 'card' },
                     { id: 'dax', title: 'DAX 40', type: 'card' },
                     { id: 'hangseng', title: 'Hang Seng', type: 'card' },
-                    { id: 'shanghai', title: 'Shanghai Composite', type: 'card' },
-                    { id: 'cac40', title: 'CAC 40', type: 'card' },
-                    { id: 'eurostoxx', title: 'Euro Stoxx 50', type: 'card' }
+                    { id: 'shanghai', title: 'Shanghai Composite', type: 'card' }
                 ]
             }
         ]

@@ -316,9 +316,9 @@ export function calculateSupertrend(data, period = 10, multiplier = 3) {
             finalLower = prevFinalLower;
         }
         
-        if (prevSupertrend === 1 && close <= finalUpper) {
+        if (prevSupertrend === 1 && close <= finalLower) {
             supertrend = -1;
-        } else if (prevSupertrend === -1 && close >= finalLower) {
+        } else if (prevSupertrend === -1 && close >= finalUpper) {
             supertrend = 1;
         } else {
             supertrend = prevSupertrend;

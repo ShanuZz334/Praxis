@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDashboardContext } from '@/shared/context/DashboardContext';
 import { FO_INDICES, FO_EQUITIES } from '@/shared/utils/foInstruments';
@@ -20,12 +20,31 @@ export default function DetachableInstrumentSelector({ isOpen, onClose }) {
     const widgetRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
 
+    // Determine current instrument type
+    const isCurrentInstrumentCompany = selectedInstrument?.startsWith('NSE_EQ|') || 
+        selectedInstrument?.startsWith('BSE_EQ|') || 
+        FO_EQUITIES.some(e => e.value === selectedInstrument);
+
+    // Active category filter inside this selector widget
+    const [activeTab, setActiveTab] = useState(() => {
+        if (selectedCategory) return selectedCategory;
+        return isCurrentInstrumentCompany ? "Companies" : "Indices";
+    });
+
+    // When modal opens or selectedCategory changes, align activeTab
+    useEffect(() => {
+        if (isOpen && selectedCategory) {
+            setActiveTab(selectedCategory);
+        }
+    }, [isOpen, selectedCategory]);
+
     // Instrument Filtering based on Category
     const categories = [
         { label: "Indices", value: "Indices" },
         { label: "Companies", value: "Companies" }
     ];
-    const filteredInstruments = selectedCategory === "Indices" ? FO_INDICES : FO_EQUITIES;
+    const filteredInstruments = activeTab === "Indices" ? FO_INDICES : FO_EQUITIES;
+    const isCurrentInstrumentInActiveCategory = filteredInstruments.some(i => i.value === selectedInstrument);
 
     // Framer Motion Animation Variants
     const springTransition = { type: "spring", stiffness: 300, damping: 25 };
@@ -74,9 +93,9 @@ export default function DetachableInstrumentSelector({ isOpen, onClose }) {
                         {categories.map((c) => (
                             <button
                                 key={c.value}
-                                onClick={() => setSelectedCategory(c.value)}
+                                onClick={() => setActiveTab(c.value)}
                                 className={`flex-1 flex items-center justify-center px-4 h-full rounded-md text-sm font-bold transition-all ${
-                                    selectedCategory === c.value
+                                    activeTab === c.value
                                         ? "bg-blue-500/15 text-blue-400 border border-blue-500/30 shadow-sm"
                                         : "text-text-secondary hover:text-text-primary hover:bg-background-subtle border border-transparent"
                                 }`}
@@ -89,10 +108,14 @@ export default function DetachableInstrumentSelector({ isOpen, onClose }) {
                     {/* Instrument Selector */}
                     <div className="w-full relative z-[60]">
                         <UiverseDropdown
-                            value={selectedInstrument}
-                            onChange={(val) => setSelectedInstrument(val)}
+                            value={isCurrentInstrumentInActiveCategory ? selectedInstrument : ""}
+                            onChange={(val) => {
+                                setSelectedCategory(activeTab);
+                                setSelectedInstrument(val);
+                                setSelectedExpiry("");
+                            }}
                             options={filteredInstruments}
-                            placeholder={`Select ${selectedCategory}...`}
+                            placeholder={`Select ${activeTab === 'Companies' ? 'Company' : 'Index'}...`}
                             searchPlaceholder="Search instruments..."
                         />
                     </div>
@@ -100,15 +123,21 @@ export default function DetachableInstrumentSelector({ isOpen, onClose }) {
                     {/* Expiry Selector */}
                     <div className="w-full relative z-[50]">
                         <UiverseDropdown
-                            value={selectedExpiry}
+                            value={isCurrentInstrumentInActiveCategory ? selectedExpiry : ""}
                             onChange={(val) => setSelectedExpiry(val)}
-                            options={expiries.map(exp => ({
+                            options={isCurrentInstrumentInActiveCategory ? expiries.map(exp => ({
                                 label: new Date(exp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
                                 value: exp
-                            }))}
-                            placeholder={expiries.length === 0 ? "No Expiries (Market Closed)" : "Select Expiry..."}
+                            })) : []}
+                            placeholder={
+                                !isCurrentInstrumentInActiveCategory 
+                                    ? `Select a ${activeTab === 'Companies' ? 'company' : 'index'} first...`
+                                    : expiries.length === 0 
+                                        ? "No Expiries (Market Closed)" 
+                                        : "Select Expiry..."
+                            }
                             searchPlaceholder="Search expiry..."
-                            disabled={expiries.length === 0}
+                            disabled={!isCurrentInstrumentInActiveCategory || expiries.length === 0}
                         />
                     </div>
                 </div>

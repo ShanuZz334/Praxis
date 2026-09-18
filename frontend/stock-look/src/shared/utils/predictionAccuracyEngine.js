@@ -256,11 +256,13 @@ export function scoreClosedCandle(instrumentKey, timeframe, barIndexOrTime, real
     };
 
     if (!session.scores) session.scores = [];
-    // Guard against duplicate scoring of the same bar
-    const existingScoreIdx = session.scores.findIndex(sc => 
-        sc.barIndex === targetIdx || 
-        (sc.time && normalizeTimeKey(sc.time) === realKey)
-    );
+    // FC-006 Fix: Match strictly by unique timestamp key when available to avoid cross-session barIndex collisions
+    const existingScoreIdx = session.scores.findIndex(sc => {
+        if (sc.time && realKey) {
+            return normalizeTimeKey(sc.time) === realKey;
+        }
+        return sc.barIndex === targetIdx;
+    });
     if (existingScoreIdx >= 0) {
         session.scores[existingScoreIdx] = barScore;
     } else {

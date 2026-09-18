@@ -23,11 +23,6 @@ const PROVIDER_META = {
         desc: "Real-time Market Data Feed V3 & OAuth Integration",
         icon: Activity
     },
-    alphaVantage: {
-        name: "Alpha Vantage",
-        desc: "Global Equities, FX, and Crypto Intraday Feeds",
-        icon: Globe
-    },
     fred: {
         name: "FRED API",
         desc: "Federal Reserve Economic Data (Macro Indicators)",
@@ -95,58 +90,40 @@ const AdminDashboard = () => {
     const fetchProviderHealth = async () => {
         setLoading(true);
         try {
-            // Check Upstox Status
-            const upstoxStatus = await upstoxService.checkStatus();
-            
-            const liveProviders = [];
-            
-            const currentMode = upstoxStatus.mode || 'live';
-            setUpstoxMode(currentMode);
-
-            const isCurrentModeConnected = currentMode === 'live' ? upstoxStatus.liveConnected : upstoxStatus.sandboxConnected;
-
-            if (isCurrentModeConnected) {
-                liveProviders.push({ provider: "upstox", status: "UP", configured: true, latency: 45, mode: currentMode });
-            } else {
-                liveProviders.push({ provider: "upstox", status: "OFFLINE", configured: false, latency: 0, mode: currentMode });
+            // Check Upstox Status for mode
+            let currentMode = 'live';
+            try {
+                const upstoxStatus = await upstoxService.checkStatus();
+                currentMode = upstoxStatus.mode || 'live';
+                setUpstoxMode(currentMode);
+            } catch (authErr) {
+                console.warn("Could not resolve Upstox execution mode:", authErr.message);
             }
 
-            // Mock Health for other APIs
-            liveProviders.push({ provider: "alphaVantage", status: "UP", configured: true, latency: 120 });
-            liveProviders.push({ provider: "fred", status: "UP", configured: true, latency: 85 });
-            liveProviders.push({ provider: "yahoo", status: "UP", configured: true, latency: 210 });
-            liveProviders.push({ provider: "rbi", status: "UP", configured: true, latency: 60 });
-            liveProviders.push({ provider: "coinGecko", status: "UP", configured: true, latency: 95 });
-            liveProviders.push({ provider: "frankfurter", status: "UP", configured: true, latency: 55 });
-            liveProviders.push({ provider: "amfi", status: "UP", configured: true, latency: 110 });
-
-            // Mock Health for Scrapers
-            liveProviders.push({ provider: "nse", status: "UP", configured: true, latency: 320 });
-            liveProviders.push({ provider: "moneycontrol", status: "UP", configured: true, latency: 450 });
-            liveProviders.push({ provider: "screener", status: "UP", configured: true, latency: 280 });
-
-            setProviders(liveProviders);
+            // Real live health check across all providers via backend proxy
+            const response = await axiosInstance.get('/api/v1/health/all');
+            if (response.data && Array.isArray(response.data.providers)) {
+                const loadedProviders = response.data.providers.map(p => {
+                    if (p.provider === 'upstox') {
+                        return { ...p, mode: currentMode };
+                    }
+                    return p;
+                });
+                setProviders(loadedProviders);
+            }
         } catch (err) {
             console.error("Failed to fetch provider health:", err);
-            
-            const fallbackProviders = [];
-            fallbackProviders.push({ provider: "upstox", status: "OFFLINE", configured: false, latency: 0 });
-
-            // Mock Health for other APIs
-            fallbackProviders.push({ provider: "alphaVantage", status: "UP", configured: true, latency: 120 });
-            fallbackProviders.push({ provider: "fred", status: "UP", configured: true, latency: 85 });
-            fallbackProviders.push({ provider: "yahoo", status: "UP", configured: true, latency: 210 });
-            fallbackProviders.push({ provider: "rbi", status: "UP", configured: true, latency: 60 });
-            fallbackProviders.push({ provider: "coinGecko", status: "UP", configured: true, latency: 95 });
-            fallbackProviders.push({ provider: "frankfurter", status: "UP", configured: true, latency: 55 });
-            fallbackProviders.push({ provider: "amfi", status: "UP", configured: true, latency: 110 });
-
-            // Mock Health for Scrapers
-            fallbackProviders.push({ provider: "nse", status: "UP", configured: true, latency: 320 });
-            fallbackProviders.push({ provider: "moneycontrol", status: "UP", configured: true, latency: 450 });
-            fallbackProviders.push({ provider: "screener", status: "UP", configured: true, latency: 280 });
-
-            setProviders(fallbackProviders);
+            const fallbackList = [
+                "upstox", "fred", "yahoo", "rbi", "coinGecko", "frankfurter", "amfi",
+                "nse", "moneycontrol", "screener"
+            ].map(key => ({
+                provider: key,
+                status: "OFFLINE",
+                configured: false,
+                latency: 0,
+                sampleData: "Service unreachable"
+            }));
+            setProviders(fallbackList);
         } finally {
             setLoading(false);
         }
@@ -175,11 +152,11 @@ const AdminDashboard = () => {
             // Real network ping via backend proxy
             try {
                 const response = await axiosInstance.get(`/api/v1/health/ping/${providerKey}`);
-                const { latency, status, sampleData } = response.data;
+                const { latency, status, sampleData, error } = response.data;
                 
                 setProviders(prev => prev.map(p => {
                     if (p.provider === providerKey) {
-                        return { ...p, latency, status, sampleData, configured: true };
+                        return { ...p, latency, status, sampleData, error: error || (status === 'OFFLINE' ? sampleData : null), configured: status === 'UP' ? true : p.configured };
                     }
                     return p;
                 }));
@@ -188,7 +165,7 @@ const AdminDashboard = () => {
                 // Mark as offline if backend ping fails entirely
                 setProviders(prev => prev.map(p => {
                     if (p.provider === providerKey) {
-                        return { ...p, status: "OFFLINE", configured: false };
+                        return { ...p, status: "OFFLINE", error: err.response?.data?.error || err.message || "Connection failed", configured: false };
                     }
                     return p;
                 }));
@@ -361,7 +338,7 @@ const AdminDashboard = () => {
                                             checking={checkingProvider === key}
                                             onConfigure={() => {
                                                 if (key === "upstox") {
-                                                    upstoxService.login();
+                                                    upstoxService.login(upstoxMode);
                                                 } else {
                                                     setSelectedProvider(key);
                                                     setIsModalOpen(true);

@@ -1,14 +1,15 @@
 import { useMemo } from 'react';
 import { getIndicatorColor } from '@/shared/config/scoreColors';
 import { getOptionsRegime, getOptionsGauge } from './optionsHelper';
+import { getOptionsSectionWeights } from '@/config/weights/optionsSectionWeights';
 
 import { getIndicatorConfig } from '@/shared/config/indicatorConfig';
 import { CARD_REGISTRY } from '@/shared/config/cardRegistry';
 
-export function useOptionsCompositeScore(compositeData, instrumentKey, metrics = null, proDeskPicks = null, spotPrice = null, disableSync = false) {
+export function useOptionsCompositeScore(compositeData, instrumentKey, metrics = null, proDeskPicks = null, spotPrice = null, disableSync = false, tradingMode = 'swing') {
     return useMemo(() => {
         const empty = {
-            compositeScore: 0,
+            compositeScore: null,
             gauge: { label: '-', color: '#64748B' },
             regime: { label: '-', description: 'Awaiting options data...', color: '#64748B', confidence: 0 },
             sections: [],
@@ -24,9 +25,9 @@ export function useOptionsCompositeScore(compositeData, instrumentKey, metrics =
                 ? Math.round(obj.score) : null;
 
         const cardScores = {
+            [CARD_REGISTRY.oi_change.id]: safeScore(compositeData.oiChange),
             [CARD_REGISTRY.total_call_oi.id]: safeScore(compositeData.totalCallOI),
             [CARD_REGISTRY.total_put_oi.id]: safeScore(compositeData.totalPutOI),
-            [CARD_REGISTRY.oi_change.id]: safeScore(compositeData.oiChange),
             [CARD_REGISTRY.pcr_oi.id]: safeScore(compositeData.pcrOi),
             [CARD_REGISTRY.pcr_volume.id]: safeScore(compositeData.pcrVolume),
             [CARD_REGISTRY.delta.id]: safeScore(compositeData.atmGreeks?.delta),
@@ -35,8 +36,9 @@ export function useOptionsCompositeScore(compositeData, instrumentKey, metrics =
             [CARD_REGISTRY.vega.id]: safeScore(compositeData.atmGreeks?.vega),
             [CARD_REGISTRY.atm_iv.id]: safeScore(compositeData.volatility?.atmIv),
             [CARD_REGISTRY.iv_rank.id]: safeScore(compositeData.volatility?.ivRank),
-            [CARD_REGISTRY.iv_percentile.id]: safeScore(compositeData.volatility?.ivPercentile),
             [CARD_REGISTRY.max_pain.id]: safeScore(compositeData.maxPain),
+            [CARD_REGISTRY.expected_move.id]: safeScore(compositeData.expectedMove),
+            [CARD_REGISTRY.gex.id]: safeScore(compositeData.gex),
         };
 
         const cards = [];
@@ -50,7 +52,7 @@ export function useOptionsCompositeScore(compositeData, instrumentKey, metrics =
         };
 
         const addCard = (cardDef, valObj) => {
-            if (!valObj) return;
+            if (!valObj || !cardDef) return;
             const score = safeScore(valObj);
             const value = extractVal(valObj);
             if (value !== null) {
@@ -58,9 +60,9 @@ export function useOptionsCompositeScore(compositeData, instrumentKey, metrics =
             }
         };
 
+        addCard(CARD_REGISTRY.oi_change, compositeData.oiChange);
         addCard(CARD_REGISTRY.total_call_oi, compositeData.totalCallOI);
         addCard(CARD_REGISTRY.total_put_oi, compositeData.totalPutOI);
-        addCard(CARD_REGISTRY.oi_change, compositeData.oiChange);
         addCard(CARD_REGISTRY.pcr_oi, compositeData.pcrOi);
         addCard(CARD_REGISTRY.pcr_volume, compositeData.pcrVolume);
         addCard(CARD_REGISTRY.delta, compositeData.atmGreeks?.delta);
@@ -69,8 +71,9 @@ export function useOptionsCompositeScore(compositeData, instrumentKey, metrics =
         addCard(CARD_REGISTRY.vega, compositeData.atmGreeks?.vega);
         addCard(CARD_REGISTRY.atm_iv, compositeData.volatility?.atmIv);
         addCard(CARD_REGISTRY.iv_rank, compositeData.volatility?.ivRank);
-        addCard(CARD_REGISTRY.iv_percentile, compositeData.volatility?.ivPercentile);
         addCard(CARD_REGISTRY.max_pain, compositeData.maxPain);
+        addCard(CARD_REGISTRY.expected_move, compositeData.expectedMove);
+        addCard(CARD_REGISTRY.gex, compositeData.gex);
 
         // Also register complex widgets if we have data for them
         if (proDeskPicks) {
@@ -86,22 +89,28 @@ export function useOptionsCompositeScore(compositeData, instrumentKey, metrics =
             return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
         };
 
+        const activeSectionWeights = getOptionsSectionWeights(tradingMode);
+        const getSecWeight = (secId, fallback) => {
+            const found = activeSectionWeights?.find(s => s.id === secId);
+            return found ? found.w : fallback;
+        };
+
         const sectionsData = [
-            { id: 'Open Interest',      label: 'Open Interest',      shortLabel: 'OI',  score: avg(CARD_REGISTRY.total_call_oi.id, CARD_REGISTRY.total_put_oi.id, CARD_REGISTRY.oi_change.id), weight: 0.25 },
-            { id: 'Put-Call Ratio',     label: 'Put-Call Ratio',     shortLabel: 'PCR', score: avg(CARD_REGISTRY.pcr_oi.id, CARD_REGISTRY.pcr_volume.id),                       weight: 0.20 },
-            { id: 'Greeks',             label: 'Greeks',             shortLabel: 'GRK', score: avg(CARD_REGISTRY.delta.id, CARD_REGISTRY.gamma.id, CARD_REGISTRY.theta.id, CARD_REGISTRY.vega.id),             weight: 0.20 },
-            { id: 'Market Positioning', label: 'Market Positioning', shortLabel: 'POS', score: avg(CARD_REGISTRY.max_pain.id),                                   weight: 0.20 },
-            { id: 'Volatility',         label: 'Volatility',         shortLabel: 'VOL', score: avg(CARD_REGISTRY.atm_iv.id, CARD_REGISTRY.iv_rank.id, CARD_REGISTRY.iv_percentile.id),          weight: 0.15 },
+            { id: 'Open Interest',      label: 'Open Interest',      shortLabel: 'OI',  score: avg(CARD_REGISTRY.oi_change.id, CARD_REGISTRY.total_call_oi.id, CARD_REGISTRY.total_put_oi.id), weight: getSecWeight('Open Interest', 0.20) },
+            { id: 'Put-Call Ratio',     label: 'Put-Call Ratio',     shortLabel: 'PCR', score: avg(CARD_REGISTRY.pcr_oi.id, CARD_REGISTRY.pcr_volume.id),                                   weight: getSecWeight('Put-Call Ratio', 0.30) },
+            { id: 'Greeks',             label: 'Greeks',             shortLabel: 'GRK', score: avg(CARD_REGISTRY.delta.id, CARD_REGISTRY.gamma.id, CARD_REGISTRY.theta.id, CARD_REGISTRY.vega.id), weight: getSecWeight('Greeks', 0.20) },
+            { id: 'Volatility',         label: 'Volatility',         shortLabel: 'VOL', score: avg(CARD_REGISTRY.atm_iv.id, CARD_REGISTRY.iv_rank.id),                                     weight: getSecWeight('Volatility', 0.20) },
+            { id: 'Market Positioning', label: 'Market Positioning', shortLabel: 'POS', score: avg(CARD_REGISTRY.max_pain.id, CARD_REGISTRY.expected_move.id, CARD_REGISTRY.gex.id),               weight: getSecWeight('Market Positioning', 0.10) },
         ];
 
         const validSections = sectionsData.filter(s => s.score !== null);
-        let compositeScore = 0;
+        let compositeScore = null;
         if (validSections.length > 0) {
             const totalW = validSections.reduce((acc, s) => acc + s.weight, 0);
-            compositeScore = validSections.reduce((acc, s) => acc + (s.score * s.weight), 0) / totalW;
+            const comp = validSections.reduce((acc, s) => acc + (s.score * s.weight), 0) / totalW;
             const distressCount = validSections.filter(s => s.score < 25).length;
-            compositeScore = Math.max(0, compositeScore - distressCount * 3);
-            compositeScore = Math.min(100, Math.round(compositeScore));
+            const penalized = Math.max(0, comp - distressCount * 3);
+            compositeScore = Math.min(100, Math.round(penalized));
         }
 
         const gauge  = validSections.length > 0 ? getOptionsGauge(compositeScore) : { label: '-', color: '#64748B' };
@@ -170,11 +179,15 @@ export function useOptionsCompositeScore(compositeData, instrumentKey, metrics =
         });
 
         const SECTION_MAPPING = {
-            [CARD_REGISTRY.total_call_oi.id]: 'Open Interest', [CARD_REGISTRY.total_put_oi.id]: 'Open Interest', [CARD_REGISTRY.oi_change.id]: 'Open Interest',
+            [CARD_REGISTRY.oi_change.id]: 'Open Interest',
+            [CARD_REGISTRY.total_call_oi.id]: 'Open Interest',
+            [CARD_REGISTRY.total_put_oi.id]: 'Open Interest',
             [CARD_REGISTRY.pcr_oi.id]: 'Put-Call Ratio', [CARD_REGISTRY.pcr_volume.id]: 'Put-Call Ratio',
             [CARD_REGISTRY.delta.id]: 'Greeks', [CARD_REGISTRY.gamma.id]: 'Greeks', [CARD_REGISTRY.theta.id]: 'Greeks', [CARD_REGISTRY.vega.id]: 'Greeks',
-            [CARD_REGISTRY.atm_iv.id]: 'Volatility', [CARD_REGISTRY.iv_rank.id]: 'Volatility', [CARD_REGISTRY.iv_percentile.id]: 'Volatility',
-            [CARD_REGISTRY.max_pain.id]: 'Market Positioning'
+            [CARD_REGISTRY.atm_iv.id]: 'Volatility', [CARD_REGISTRY.iv_rank.id]: 'Volatility',
+            [CARD_REGISTRY.max_pain.id]: 'Market Positioning',
+            [CARD_REGISTRY.expected_move.id]: 'Market Positioning',
+            [CARD_REGISTRY.gex.id]: 'Market Positioning'
         };
 
         Object.entries(cardScores).forEach(([id, score]) => {
@@ -289,5 +302,5 @@ export function useOptionsCompositeScore(compositeData, instrumentKey, metrics =
         }
 
         return result;
-    }, [compositeData, instrumentKey, metrics, proDeskPicks, spotPrice, disableSync]);
+    }, [compositeData, instrumentKey, metrics, proDeskPicks, spotPrice, disableSync, tradingMode]);
 }

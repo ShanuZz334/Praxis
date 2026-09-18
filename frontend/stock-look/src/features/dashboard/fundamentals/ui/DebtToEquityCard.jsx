@@ -22,7 +22,7 @@ import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 import { scoreDebtToEquity, generateAiInsightDebtToEquityCard } from '@/features/dashboard/fundamentals/engine/scoringEngine';
 
 // ─── Main Component ─────────────────────────────────────────────────────────
-export default function DebtToEquityCard({ data, manualOverride, lastUpdated, tradingMode = 'swing' }) {
+export default function DebtToEquityCard({ cardId = CARD_REGISTRY.debt_to_equity.id, data, manualOverride, lastUpdated, tradingMode = 'swing' }) {
     let isManual = true;
     let extractedValue = null;
     let extractedSector = null;
@@ -65,9 +65,10 @@ export default function DebtToEquityCard({ data, manualOverride, lastUpdated, tr
         ? (manualOverride !== undefined && manualOverride !== null ? cleanNum(manualOverride) : null)
         : extractedValue;
     const sectorDE = isManual ? null : extractedSector;
+    const sectorName = data?.company_profile?.sector || data?.sector || '';
 
     const configData = getIndicatorConfig(CARD_REGISTRY.debt_to_equity.id);
-    const { score, bias, leverageZone } = applyModeAdjustment(scoreDebtToEquity(currentDE, sectorDE), 'debt_to_equity', tradingMode);
+    const { score, bias, leverageZone } = applyModeAdjustment(scoreDebtToEquity(currentDE, sectorDE, sectorName), 'debt_to_equity', tradingMode);
     
     const cCard = computeCardConfidence({
         hasLiveData: !isManual,
@@ -79,6 +80,7 @@ export default function DebtToEquityCard({ data, manualOverride, lastUpdated, tr
 
     return (
         <IndicatorCard
+            cardId={cardId || CARD_REGISTRY.debt_to_equity.id}
             config={{
                 title: 'Debt to Equity',
                 category: 'Financial Health',

@@ -135,7 +135,7 @@ export const SIGNAL_DEFINITIONS = {
                 hasThreshold: true,
                 thresholdConfig: { label: 'Overbought Level', defaultThreshold: 70, step: 1, min: 50, max: 95, unit: '' },
                 checkBuy: (val, prev, c, prevC, thresh = 70) => Number(val) > Number(thresh),
-                checkSell: (val, prev, c, prevC, thresh = 70) => Number(val) < (100 - Number(thresh))
+                checkSell: (val, prev, c, prevC, thresh = 70) => Number(val) > Number(thresh)
             },
             {
                 id: 'rsi_cross_above',
@@ -150,8 +150,8 @@ export const SIGNAL_DEFINITIONS = {
                 label: 'RSI Crosses Below Threshold',
                 hasThreshold: true,
                 thresholdConfig: { label: 'Threshold Level', defaultThreshold: 70, step: 1, min: 5, max: 95, unit: '' },
-                checkBuy: (val, prev, c, prevC, thresh = 70) => Number(prev) >= Number(thresh) && Number(val) < Number(thresh),
-                checkSell: (val, prev, c, prevC, thresh = 70) => Number(prev) <= (100 - Number(thresh)) && Number(val) > (100 - Number(thresh))
+                checkBuy: (val, prev, c, prevC, thresh = 70) => Number(prev) <= (100 - Number(thresh)) && Number(val) > (100 - Number(thresh)),
+                checkSell: (val, prev, c, prevC, thresh = 70) => Number(prev) >= Number(thresh) && Number(val) < Number(thresh)
             },
             {
                 id: 'rsi_above_midline',
@@ -164,8 +164,8 @@ export const SIGNAL_DEFINITIONS = {
                 id: 'rsi_below_midline',
                 label: 'RSI Below Midline (< 50)',
                 hasThreshold: false,
-                checkBuy: (val) => Number(val) < 50,
-                checkSell: (val) => Number(val) > 50
+                checkBuy: (val) => Number(val) > 50,
+                checkSell: (val) => Number(val) < 50
             }
         ]
     },
@@ -235,7 +235,7 @@ export const SIGNAL_DEFINITIONS = {
                 label: 'MACD Bearish Crossover (MACD < Signal)',
                 hasThreshold: false,
                 checkBuy: (curr, prev) => Boolean(curr && prev && prev.macd >= prev.signal && curr.macd < curr.signal),
-                checkSell: (curr, prev) => Boolean(curr && prev && prev.macd <= prev.signal && curr.macd > curr.signal)
+                checkSell: (curr, prev) => Boolean(curr && prev && prev.macd >= prev.signal && curr.macd < curr.signal)
             },
             {
                 id: 'macd_above_zero',
@@ -243,15 +243,15 @@ export const SIGNAL_DEFINITIONS = {
                 hasThreshold: true,
                 thresholdConfig: { label: 'MACD Level', defaultThreshold: 0, step: 0.5, min: -100, max: 100, unit: '' },
                 checkBuy: (curr, prev, c, prevC, thresh = 0) => Boolean(curr && curr.macd > Number(thresh)),
-                checkSell: (curr, prev, c, prevC, thresh = 0) => Boolean(curr && curr.macd < Number(thresh))
+                checkSell: (curr, prev, c, prevC, thresh = 0) => Boolean(curr && curr.macd < -Number(thresh))
             },
             {
                 id: 'macd_below_zero',
                 label: 'MACD Line Below Level (< Threshold)',
                 hasThreshold: true,
                 thresholdConfig: { label: 'MACD Level', defaultThreshold: 0, step: 0.5, min: -100, max: 100, unit: '' },
-                checkBuy: (curr, prev, c, prevC, thresh = 0) => Boolean(curr && curr.macd < Number(thresh)),
-                checkSell: (curr, prev, c, prevC, thresh = 0) => Boolean(curr && curr.macd > Number(thresh))
+                checkBuy: (curr, prev, c, prevC, thresh = 0) => Boolean(curr && curr.macd > Number(thresh)),
+                checkSell: (curr, prev, c, prevC, thresh = 0) => Boolean(curr && curr.macd < Number(thresh))
             },
             {
                 id: 'macd_hist_positive',
@@ -266,8 +266,8 @@ export const SIGNAL_DEFINITIONS = {
                 label: 'Histogram Decelerating (< Threshold)',
                 hasThreshold: true,
                 thresholdConfig: { label: 'Hist Threshold', defaultThreshold: 0, step: 0.2, min: -50, max: 50, unit: '' },
-                checkBuy: (curr, prev, c, prevC, thresh = 0) => Boolean(curr && curr.histogram < Number(thresh)),
-                checkSell: (curr, prev, c, prevC, thresh = 0) => Boolean(curr && curr.histogram > -Number(thresh))
+                checkBuy: (curr, prev, c, prevC, thresh = 0) => Boolean(curr && curr.histogram > Number(thresh)),
+                checkSell: (curr, prev, c, prevC, thresh = 0) => Boolean(curr && curr.histogram < Number(thresh))
             }
         ]
     },
@@ -428,8 +428,8 @@ export const SIGNAL_DEFINITIONS = {
                 id: 'price_below_ema20',
                 label: 'Price < EMA',
                 hasThreshold: false,
-                checkBuy: (val, prev, c) => c.close < val,
-                checkSell: (val, prev, c) => c.close > val
+                checkBuy: (val, prev, c) => c.close > val,
+                checkSell: (val, prev, c) => c.close < val
             },
             {
                 id: 'price_cross_above_ema20',
@@ -471,8 +471,8 @@ export const SIGNAL_DEFINITIONS = {
                 id: 'price_below_ema50',
                 label: 'Price < EMA',
                 hasThreshold: false,
-                checkBuy: (val, prev, c) => c.close < val,
-                checkSell: (val, prev, c) => c.close > val
+                checkBuy: (val, prev, c) => c.close > val,
+                checkSell: (val, prev, c) => c.close < val
             },
             {
                 id: 'price_cross_above_ema50',
@@ -514,8 +514,8 @@ export const SIGNAL_DEFINITIONS = {
                 id: 'price_below_ema200',
                 label: 'Price < EMA (Bear Market Regime)',
                 hasThreshold: false,
-                checkBuy: (val, prev, c) => c.close < val,
-                checkSell: (val, prev, c) => c.close > val
+                checkBuy: (val, prev, c) => c.close > val,
+                checkSell: (val, prev, c) => c.close < val
             },
             {
                 id: 'price_cross_above_ema200',
@@ -557,8 +557,8 @@ export const SIGNAL_DEFINITIONS = {
                 id: 'cross_20_below_50',
                 label: 'Fast EMA Crosses Below Slow EMA',
                 hasThreshold: false,
-                checkBuy: (curr, prev) => Boolean(curr && prev && prev.emaFast >= prev.emaSlow && curr.emaFast < curr.emaSlow),
-                checkSell: (curr, prev) => Boolean(curr && prev && prev.emaFast <= prev.emaSlow && curr.emaFast > curr.emaSlow)
+                checkBuy: (curr, prev) => Boolean(curr && prev && prev.emaFast <= prev.emaSlow && curr.emaFast > curr.emaSlow),
+                checkSell: (curr, prev) => Boolean(curr && prev && prev.emaFast >= prev.emaSlow && curr.emaFast < curr.emaSlow)
             },
             {
                 id: 'trend_20_above_50',
@@ -600,8 +600,8 @@ export const SIGNAL_DEFINITIONS = {
                 id: 'death_cross',
                 label: 'Death Cross (Fast EMA Crosses Below Slow EMA)',
                 hasThreshold: false,
-                checkBuy: (curr, prev) => Boolean(curr && prev && prev.emaFast >= prev.emaSlow && curr.emaFast < curr.emaSlow),
-                checkSell: (curr, prev) => Boolean(curr && prev && prev.emaFast <= prev.emaSlow && curr.emaFast > curr.emaSlow)
+                checkBuy: (curr, prev) => Boolean(curr && prev && prev.emaFast <= prev.emaSlow && curr.emaFast > curr.emaSlow),
+                checkSell: (curr, prev) => Boolean(curr && prev && prev.emaFast >= prev.emaSlow && curr.emaFast < curr.emaSlow)
             },
             {
                 id: 'bullish_stack',
@@ -819,8 +819,8 @@ export const SIGNAL_DEFINITIONS = {
                 id: 'supertrend_bearish_flip',
                 label: 'Supertrend Flips BEARISH (Fresh Sell)',
                 hasThreshold: false,
-                checkBuy: (curr, prev) => Boolean(curr && prev && prev.isUptrend && !curr.isUptrend),
-                checkSell: (curr, prev) => Boolean(curr && prev && !prev.isUptrend && curr.isUptrend)
+                checkBuy: (curr, prev) => Boolean(curr && prev && !prev.isUptrend && curr.isUptrend),
+                checkSell: (curr, prev) => Boolean(curr && prev && prev.isUptrend && !curr.isUptrend)
             },
             {
                 id: 'supertrend_is_bullish',
@@ -1039,11 +1039,18 @@ export const SIGNAL_DEFINITIONS = {
             if (n === 0) return [];
             const result = new Array(n).fill(null);
 
-            // Detect if dataset is intraday (< 20h interval between consecutive bars) or daily/swing
+            // Detect if dataset is intraday (< 20h median interval between consecutive bars) or daily/swing
             const isIntraday = n > 1 && (() => {
-                const t0 = typeof candles[0].time === 'number' && candles[0].time < 1e11 ? candles[0].time * 1000 : new Date(candles[0].time).getTime();
-                const t1 = typeof candles[1].time === 'number' && candles[1].time < 1e11 ? candles[1].time * 1000 : new Date(candles[1].time).getTime();
-                return Math.abs(t1 - t0) < 20 * 3600 * 1000;
+                const sampleCount = Math.min(n - 1, 10);
+                let intradayHits = 0;
+                for (let k = 0; k < sampleCount; k++) {
+                    const t0 = typeof candles[k].time === 'number' && candles[k].time < 1e11 ? candles[k].time * 1000 : new Date(candles[k].time).getTime();
+                    const t1 = typeof candles[k + 1].time === 'number' && candles[k + 1].time < 1e11 ? candles[k + 1].time * 1000 : new Date(candles[k + 1].time).getTime();
+                    if (Math.abs(t1 - t0) < 20 * 3600 * 1000) {
+                        intradayHits++;
+                    }
+                }
+                return intradayHits > (sampleCount / 2);
             })();
 
             if (isIntraday) {
@@ -1356,7 +1363,7 @@ export const SIGNAL_DEFINITIONS = {
                 label: 'Price Breaks Above Resistance',
                 hasThreshold: false,
                 checkBuy: (res, prev, c, prevC) => prevC.close <= res && c.close > res,
-                checkSell: (res, prev, c, prevC) => prevC.close >= res && c.close < res
+                checkSell: (res, prev, c, prevC) => prevC.close <= res && c.close > res
             },
             {
                 id: 'resistance_reject',
@@ -1367,7 +1374,10 @@ export const SIGNAL_DEFINITIONS = {
                     const buff = Number(thresh) / 100;
                     return c.high <= res * (1 + buff) && c.close < res;
                 },
-                checkSell: (res, prev, c) => c.close > res
+                checkSell: (res, prev, c, prevC, thresh = 1.0) => {
+                    const buff = Number(thresh) / 100;
+                    return c.high <= res * (1 + buff) && c.close < res;
+                }
             }
         ]
     },
@@ -1518,8 +1528,8 @@ export const SIGNAL_DEFINITIONS = {
                 label: 'Strong Bearish Candle (Body >= Threshold %)',
                 hasThreshold: true,
                 thresholdConfig: { label: 'Body Size', defaultThreshold: 0.75, step: 0.05, min: 0.1, max: 5.0, unit: '%' },
-                checkBuy: (v, prev, c, prevC, thresh = 0.75) => Boolean(v && !v.isBullish && v.bodyPct >= Number(thresh)),
-                checkSell: (v, prev, c, prevC, thresh = 0.75) => Boolean(v && v.isBullish && v.bodyPct >= Number(thresh))
+                checkBuy: (v, prev, c, prevC, thresh = 0.75) => Boolean(v && v.isBullish && v.bodyPct >= Number(thresh)),
+                checkSell: (v, prev, c, prevC, thresh = 0.75) => Boolean(v && !v.isBullish && v.bodyPct >= Number(thresh))
             },
             {
                 id: 'raw_doji_bar',

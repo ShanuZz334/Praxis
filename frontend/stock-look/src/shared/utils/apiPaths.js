@@ -20,7 +20,7 @@
 // Base URL Configuration
 // =============================
 
-export const BASE_URL = import.meta.env.VITE_API_URL || "";
+export const BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_API_URL : (typeof process !== 'undefined' && process.env ? process.env.VITE_API_URL : '')) || "";
 
 // =============================
 // API Endpoint Paths

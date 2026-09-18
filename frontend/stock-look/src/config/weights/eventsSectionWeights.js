@@ -111,3 +111,23 @@ export function getEventCategoryWeights(mode = TRADING_MODES.SWING) {
 export function getEventHorizonWeights(mode = TRADING_MODES.SWING) {
     return EVENT_HORIZON_MODE_WEIGHTS[mode] ?? EVENT_HORIZON_MODE_WEIGHTS[TRADING_MODES.SWING];
 }
+
+// ============================================================================================
+// CANONICAL SECTION DEFINITIONS FOR GLOBAL HEADER
+// ============================================================================================
+
+export const EVENT_CATEGORY_META = {
+    Macro:        { label: 'Macro',        shortLabel: 'MAC' },
+    Policy:       { label: 'Policy',       shortLabel: 'POL' },
+    Corporate:    { label: 'Corporate',    shortLabel: 'COR' },
+    Earnings:     { label: 'Earnings',     shortLabel: 'ERN' },
+    Geopolitical: { label: 'Geopolitical', shortLabel: 'GEO' },
+    Global:       { label: 'Global',       shortLabel: 'GLO' },
+    Commodities:  { label: 'Commodities',  shortLabel: 'COM' },
+    Currency:     { label: 'Currency',     shortLabel: 'CUR' },
+    Bonds:        { label: 'Bonds',        shortLabel: 'BND' },
+    Economy:      { label: 'Economy',      shortLabel: 'ECO' }
+};
+
+export const DEFAULT_EVENT_SECTIONS = ['Macro', 'Policy', 'Corporate', 'Earnings', 'Geopolitical', 'Global'];
+

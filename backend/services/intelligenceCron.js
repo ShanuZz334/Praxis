@@ -148,6 +148,24 @@ export const runFundamentalIntelligence = async (targetInstrument = null) => {
         }
         console.log(`[FundIntel] Processing ${trackedInstruments.length} instruments for fundamental analysis.`);
 
+        // 1b. Pre-fetch Macro Market-wide Data Once Per Iteration (VIX, GDP, FII/DII Flows)
+        let macroData = { vix: null, gdpGrowth: null, fiiFlow: null, diiFlow: null };
+        try {
+            const [vixVal, gdpVal, fiiDiiVal] = await Promise.all([
+                yahooFinanceService.getVix().catch(() => null),
+                fredApiService.getGDPGrowth().catch(() => null),
+                nseDataService.getFIIDIIFlows().catch(() => null)
+            ]);
+            macroData = {
+                vix: vixVal,
+                gdpGrowth: gdpVal,
+                fiiFlow: fiiDiiVal?.fiiFlow ?? null,
+                diiFlow: fiiDiiVal?.diiFlow ?? null
+            };
+        } catch (macroErr) {
+            console.warn("[FundIntel] Macro pre-fetch warning:", macroErr.message);
+        }
+
         for (const instrument of trackedInstruments) {
             console.log(`[FundIntel] Processing ${instrument.tradingSymbol}...`);
             
@@ -180,6 +198,8 @@ export const runFundamentalIntelligence = async (targetInstrument = null) => {
                 const yfTicker = await yahooFinanceService.searchByIsin(instrument.isin).catch(() => null);
                 if (yfTicker) {
                     symbol = yfTicker.replace('.NS', '').replace('.BO', '');
+                } else if (symbol && (symbol.includes(' LTD') || symbol.includes(' LIMITED'))) {
+                    symbol = symbol.replace(/ LTD\.?| LIMITED| INDIA/gi, '').trim().split(' ')[0];
                 }
             } else if (instrument.instrumentKey.includes('Nifty 50')) {
                 symbol = '^NSEI';
@@ -198,10 +218,10 @@ export const runFundamentalIntelligence = async (targetInstrument = null) => {
                 analystConsensusRes
             ] = await Promise.all([
                 isIndex ? Promise.resolve({ value: null, isFallback: false }) : fetchWithFallback(ik, 'forward_pe', () => yahooFinanceService.getForwardPE(symbol)),
-                fetchWithFallback(ik, 'india_vix', () => yahooFinanceService.getVix()),
-                fetchWithFallback(ik, 'gdp_growth', () => fredApiService.getGDPGrowth()),
-                fetchWithFallback(ik, 'fii_flow', () => nseDataService.getFIIDIIFlows().then(d => d ? d.fiiFlow : null)),
-                fetchWithFallback(ik, 'dii_flow', () => nseDataService.getFIIDIIFlows().then(d => d ? d.diiFlow : null)),
+                fetchWithFallback(ik, 'india_vix', () => macroData.vix !== null ? Promise.resolve(macroData.vix) : yahooFinanceService.getVix()),
+                fetchWithFallback(ik, 'gdp_growth', () => macroData.gdpGrowth !== null ? Promise.resolve(macroData.gdpGrowth) : fredApiService.getGDPGrowth()),
+                fetchWithFallback(ik, 'fii_flow', () => macroData.fiiFlow !== null ? Promise.resolve(macroData.fiiFlow) : nseDataService.getFIIDIIFlows().then(d => d ? d.fiiFlow : null)),
+                fetchWithFallback(ik, 'dii_flow', () => macroData.diiFlow !== null ? Promise.resolve(macroData.diiFlow) : nseDataService.getFIIDIIFlows().then(d => d ? d.diiFlow : null)),
                 isIndex ? Promise.resolve({ value: null, isFallback: false }) : fetchWithFallback(ik, 'analyst_consensus', () => yahooFinanceService.getAnalystConsensus(symbol))
             ]);
 
@@ -400,13 +420,10 @@ export const runFundamentalIntelligence = async (targetInstrument = null) => {
  * This ensures the Master Dashboard always has fresh scores regardless of which pages are open.
  */
 export const initIntelligenceCrons = () => {
-    // Fundamentals: Twice a day fixed (9:30 AM and 1:30 PM) + regular 15m cadence to keep data warm
-    cron.schedule("30 9,13 * * *", () => {
-        runFundamentalIntelligence().catch(e => console.error('[BG] Fund cron error:', e.message));
-    });
+    // Fundamentals: Regular 15m cadence to keep data warm throughout Indian market hours
     cron.schedule("*/15 * * * *", () => {
         runFundamentalIntelligence().catch(e => console.error('[BG] Fund cron error:', e.message));
-    });
+    }, { timezone: "Asia/Kolkata" });
 
     // ── Mode-aware heartbeat cron ───────────────────────────────────────────
     // Runs every 30 seconds. Each runner checks its own shouldRun() guard which
@@ -428,7 +445,7 @@ export const initIntelligenceCrons = () => {
         runOptionsIntelligence(PRIORITY_INSTRUMENTS).catch(e => console.error('[BG] Options error:', e.message));
         runGlobalIntelligence().catch(e => console.error('[BG] Global error:', e.message));
         runEventsIntelligence().catch(e => console.error('[BG] Events error:', e.message));
-    });
+    }, { timezone: "Asia/Kolkata" });
 
     // Startup warm-up: bypass shouldRun() guards and force an immediate run on server start
     // 5s delay ensures SQLite is fully initialized and caches are seeded from disk

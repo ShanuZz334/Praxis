@@ -21,13 +21,17 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const RESEARCH_DIR = path.resolve(__dirname, '..', '..', '..', 'praxis-research');
-const PYTHON_EXE = path.join(RESEARCH_DIR, '.venv', 'Scripts', 'python.exe');
+const isWin = process.platform === 'win32';
+const PYTHONW_EXE = path.join(RESEARCH_DIR, '.venv', isWin ? 'Scripts' : 'bin', isWin ? 'pythonw.exe' : 'python3');
+const PYTHON_CONSOLE_EXE = path.join(RESEARCH_DIR, '.venv', isWin ? 'Scripts' : 'bin', isWin ? 'python.exe' : 'python3');
+const PYTHON_EXE = (isWin && fs.existsSync(PYTHONW_EXE)) ? PYTHONW_EXE : PYTHON_CONSOLE_EXE;
 const RUN_SCRIPT = path.join(RESEARCH_DIR, 'run_ensemble.py');
 
 const ENSEMBLE_BASE_URL = process.env.ENSEMBLE_URL || 'http://127.0.0.1:7074';
 const FORECAST_TIMEOUT_MS = 120_000; // 2 minutes — CPU inference is slow
 
 let _spawnPromise = null;
+let _lastFailedSpawn = 0;
 
 /**
  * Ensures the Python ensemble microservice is running.
@@ -36,6 +40,11 @@ let _spawnPromise = null;
 export async function ensureEnsembleRunning() {
     const check = await getEnsembleReadiness();
     if (check.online) return check;
+
+    // Cooldown: Do not spam respawn attempts if it failed or timed out within the last 60 seconds
+    if (Date.now() - _lastFailedSpawn < 60_000) {
+        return { online: false, status: 'cooling_down', members: [] };
+    }
 
     if (_spawnPromise) return _spawnPromise;
 
@@ -67,9 +76,11 @@ export async function ensureEnsembleRunning() {
                 }
             }
             console.warn('[EnsembleService] Python ensemble service auto-start timed out waiting for readiness.');
+            _lastFailedSpawn = Date.now();
             return { online: false, status: 'timeout', members: [] };
         } catch (err) {
             console.error('[EnsembleService] Failed to auto-start python ensemble:', err.message);
+            _lastFailedSpawn = Date.now();
             return { online: false, status: 'error', error: err.message, members: [] };
         } finally {
             _spawnPromise = null;

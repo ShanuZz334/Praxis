@@ -148,8 +148,8 @@ export default function EventsPage() {
         [activeEvents]
     );
     const metrics = useMemo(
-        () => computePortfolioMetrics(activeEvents, tradingMode),
-        [activeEvents, tradingMode]
+        () => computePortfolioMetrics(activeEvents, tradingMode, isFocusMode ? instrumentLabel : null),
+        [activeEvents, tradingMode, isFocusMode, instrumentLabel]
     );
     const regime = useMemo(
         () => getCompositeState(metrics.compositeScore || 0),
@@ -159,12 +159,12 @@ export default function EventsPage() {
     // ── Persistence: write Events composite score to SQLite (header_data) + localStorage ──
     // This is the fix for the ONLY page that never persisted its score to the backend.
     // The Master Dashboard reads header_data.events.composite_score via /api/v1/snapshots/header.
-    useAiSync('GLOBAL', 'events', {
+    useAiSync('GLOBAL', 'Events', {
         compositeScore: metrics.compositeScore,
         regime: { label: regime?.label, color: regime?.color },
         tailwinds: tailwinds?.slice(0, 3).map(t => ({ id: t.id, label: t.label, value: t.sentiment })) || [],
         risks: headwinds?.slice(0, 3).map(h => ({ id: h.id, label: h.label, value: h.sentiment })) || [],
-        sections: []
+        sections: metrics.sections || []
     });
 
     // L1: also persist to localStorage for instant Master Dashboard hydration (even without backend)

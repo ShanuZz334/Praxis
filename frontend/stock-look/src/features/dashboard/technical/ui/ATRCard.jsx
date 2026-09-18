@@ -13,24 +13,27 @@ export default function ATRCard({ cardId, data = null, manualOverride, lastUpdat
         { id: "atr_period", label: "ATR Period", type: "number", min: 2, max: 100, default: 14 }
     ];
 
-    // Resolve current value from live backend data
-    const currentValue = data?.atr ?? null;
+    // Resolve current value from live backend data or manual override
+    const isLiveData = data?.atr !== undefined && data?.atr !== null && !isNaN(Number(data.atr));
+    const isManual = !isLiveData && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' && !isNaN(Number(manualOverride));
+    const currentValue = isLiveData ? Number(data.atr) : (isManual ? Number(manualOverride) : null);
     const currentPrice = data?.current_price ?? null;
+    const mode = isLiveData ? "AUTO" : (isManual ? "MANUAL" : "AUTO");
 
     const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreATRCard(currentValue, currentPrice), 'atr', tradingMode);
 
     const formatVal = (v) => (v !== null && v !== undefined && !isNaN(v) ? parseFloat(v).toFixed(2) : '--');
 
-return (
+    return (
         <IndicatorCard
             cardId={cardId}
             config={{ 
                 title: "Average True Range", 
                 category: "Volatility", 
-                mode: "AUTO", 
+                mode, 
                 creditScore: configData.creditScore, 
-                updateTime: lastUpdated ?? "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel,
                 settingsConfig,
                 onSettingsClick: () => onOpenSettings?.(settingsConfig)
@@ -43,7 +46,8 @@ return (
                 score, 
                 bias, 
                 confidence, 
-                impactWeight: configData.impactWeight 
+                impactWeight: configData.impactWeight,
+                isManual
             }}
             chartData={{ points: data?.history || [], valueKey: "value", valueName: "ATR Score" }}
             insights={{ 

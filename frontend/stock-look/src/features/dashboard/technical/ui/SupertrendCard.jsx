@@ -6,7 +6,7 @@ import { applyModeAdjustment } from '@/shared/thresholds/modeThresholds';
 
 import { scoreSupertrendCard } from '../engine/TechnicalCompositeEngine';
 
-export default function SupertrendCard({ cardId, data = null, lastUpdated, indicatorParams, onOpenSettings, tradingMode = 'swing' }) {
+export default function SupertrendCard({ cardId, data = null, manualOverride, lastUpdated, indicatorParams, onOpenSettings, tradingMode = 'swing' }) {
     const configData = getIndicatorConfig(CARD_REGISTRY.supertrend.id);
     
     const settingsConfig = [
@@ -14,13 +14,18 @@ export default function SupertrendCard({ cardId, data = null, lastUpdated, indic
         { id: "supertrend_multiplier", label: "Supertrend Multiplier", type: "number", min: 1, max: 10, default: 3 }
     ];
     
-    // Resolve current value
-    const currentValueObj = data?.supertrend ?? null;
+    // Resolve current value from live data or manual override
     const currentPrice = data?.current_price ?? null;
+    const isLiveData = !!(data?.supertrend && data.supertrend.value !== undefined && data.supertrend.value !== null);
+    const isManual = !isLiveData && manualOverride !== undefined && manualOverride !== null && manualOverride !== '' && !isNaN(Number(manualOverride));
+    const currentValueObj = isLiveData 
+        ? data.supertrend 
+        : (isManual ? { value: Number(manualOverride), isUptrend: currentPrice !== null ? currentPrice >= Number(manualOverride) : true } : null);
+    const mode = isLiveData ? "AUTO" : (isManual ? "MANUAL" : "AUTO");
 
     const { score, bias, confidence, aiInsight } = applyModeAdjustment(scoreSupertrendCard(currentValueObj, currentPrice), 'supertrend', tradingMode);
 
-    const displayValue = currentValueObj !== null && currentValueObj.value !== undefined ? parseFloat(currentValueObj.value).toFixed(2) : '--';
+    const displayValue = currentValueObj !== null && currentValueObj.value !== undefined ? "₹" + parseFloat(currentValueObj.value).toFixed(2) : '--';
     
     return (
         <IndicatorCard
@@ -28,10 +33,10 @@ export default function SupertrendCard({ cardId, data = null, lastUpdated, indic
             config={{ 
                 title: "Supertrend", 
                 category: "Trend", 
-                mode: "AUTO", 
+                mode, 
                 creditScore: configData.creditScore, 
-                updateTime: lastUpdated ?? "--:--", 
-                source: configData.source, 
+                updateTime: typeof lastUpdated === 'function' ? lastUpdated(isLiveData) : (lastUpdated || '--:--'), 
+                source: isLiveData ? configData.source : "Manual", 
                 aiModel: configData.aiModel,
                 settingsConfig,
                 onSettingsClick: () => onOpenSettings?.(settingsConfig)
@@ -42,7 +47,8 @@ export default function SupertrendCard({ cardId, data = null, lastUpdated, indic
                 score, 
                 bias, 
                 confidence, 
-                impactWeight: configData.impactWeight 
+                impactWeight: configData.impactWeight,
+                isManual
             }}
             chartData={{ points: data?.history || [], valueKey: "value", valueName: "Supertrend" }}
             insights={{ 

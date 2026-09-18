@@ -36,6 +36,8 @@ import PromoterHoldingCard from './PromoterHoldingCard';
 import SmartMoneyFlowCard from './SmartMoneyFlowCard';
 import EarningsQualityCard from './EarningsQualityCard';
 import RelativeValuationCard from './RelativeValuationCard';
+import ShareholdingTrendCard from './ShareholdingTrendCard';
+import PeerMultiplesCard from './PeerMultiplesCard';
 
 // Index legacy cards
 import AdvanceDeclineCard from './AdvanceDeclineCard';
@@ -83,6 +85,7 @@ const HARDCODED_IDS = new Set([
   CARD_REGISTRY.promoter_holding.id, CARD_REGISTRY.smart_money_flow.id, CARD_REGISTRY.earnings_quality.id,
   CARD_REGISTRY.relative_valuation.id, CARD_REGISTRY.eps_yoy.id, CARD_REGISTRY.forward_eps.id, CARD_REGISTRY.profit_margin.id,
   CARD_REGISTRY.analyst_consensus.id, CARD_REGISTRY.corporate_actions.id, CARD_REGISTRY.cash_conversion.id,
+  CARD_REGISTRY.shareholding_trend.id, CARD_REGISTRY.peer_multiples.id,
   // Index legacy
   CARD_REGISTRY.advance_decline.id, CARD_REGISTRY.india_vix.id,
   // New Index Cards & Macro
@@ -147,6 +150,8 @@ export default function FundamentalGrid({ cards, viewMode, sortMode = "score_des
         case CARD_REGISTRY.analyst_consensus.id: return <AnalystConsensusCard key={cardId} cardId={cardId} data={data} manualOverrides={manualOverrides} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
         case CARD_REGISTRY.corporate_actions.id: return <CorporateActionsCard key={cardId} cardId={cardId} data={data} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
         case CARD_REGISTRY.cash_conversion.id: return <CashConversionCycleCard key={cardId} cardId={cardId} data={data} manualOverrides={manualOverrides} lastUpdated={(isLive) => resolveTime(isLive, null)} />;
+        case CARD_REGISTRY.shareholding_trend.id: return <ShareholdingTrendCard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.shareholding_trend} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.shareholding_trend.id)} />;
+        case CARD_REGISTRY.peer_multiples.id: return <PeerMultiplesCard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.peer_multiples} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.peer_multiples.id)} />;
         case CARD_REGISTRY.nifty_pe.id: return <NiftyPECard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.nifty_pe} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.nifty_pe.id)} />;
         case CARD_REGISTRY.nifty_pb.id: return <NiftyPBCard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.nifty_pb} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.nifty_pb.id)} />;
         case CARD_REGISTRY.mcap_gdp.id: return <IndexMCapGDPCard key={cardId} cardId={cardId} data={data} manualOverride={manualOverrides?.mcap_gdp} lastUpdated={(isLive) => resolveTime(isLive, isLive ? null : CARD_REGISTRY.mcap_gdp.id)} />;

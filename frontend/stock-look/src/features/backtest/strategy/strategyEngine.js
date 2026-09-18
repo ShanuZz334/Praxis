@@ -125,11 +125,11 @@ function evaluateSingleRule(i, candles, rule, indicatorSeries, direction = 'LONG
                 const numCurr = typeof currVal === 'object' && currVal !== null ? currVal.value : Number(currVal);
                 const numPrev = typeof prevVal === 'object' && prevVal !== null ? prevVal.value : Number(prevVal);
 
-                if (direction === 'SHORT' && typeof activeRule.checkSell === 'function') {
-                    return Boolean(activeRule.checkSell(numCurr, numPrev, modeParams, currentCandle, prevCandle));
-                }
-                if (typeof activeRule.checkBuy === 'function') {
-                    return Boolean(activeRule.checkBuy(numCurr, numPrev, modeParams, currentCandle, prevCandle));
+                const evalBaked = direction === 'SHORT'
+                    ? (typeof activeRule.checkSell === 'function' ? activeRule.checkSell : activeRule.checkBuy)
+                    : (typeof activeRule.checkBuy === 'function' ? activeRule.checkBuy : activeRule.checkSell);
+                if (typeof evalBaked === 'function') {
+                    return Boolean(evalBaked(numCurr, numPrev, modeParams, currentCandle, prevCandle));
                 }
             }
         }
@@ -185,12 +185,11 @@ function evaluateSingleRule(i, candles, rule, indicatorSeries, direction = 'LONG
 
     const activeParams = rule.params || def.defaultParams || {};
 
-    if (direction === 'SHORT' && typeof cond.checkSell === 'function') {
-        return Boolean(cond.checkSell(currVal, prevVal, currentCandle, prevCandle, threshold, activeParams));
-    }
-
-    if (typeof cond.checkBuy === 'function') {
-        return Boolean(cond.checkBuy(currVal, prevVal, currentCandle, prevCandle, threshold, activeParams));
+    const evalCond = direction === 'SHORT'
+        ? (typeof cond.checkSell === 'function' ? cond.checkSell : cond.checkBuy)
+        : (typeof cond.checkBuy === 'function' ? cond.checkBuy : cond.checkSell);
+    if (typeof evalCond === 'function') {
+        return Boolean(evalCond(currVal, prevVal, currentCandle, prevCandle, threshold, activeParams));
     }
 
     return false;
@@ -342,9 +341,9 @@ export function runStrategyBacktest(candles, strategy, customLabSeriesMap = {}) 
     const minLookback = 20;
     let activeTrade = null;
 
-    for (let i = minLookback; i < n - 1; i++) {
+    for (let i = minLookback; i < n; i++) {
         const currentCandle = candles[i];
-        const nextCandle = candles[i + 1];
+        const nextCandle = i + 1 < n ? candles[i + 1] : null;
 
         // Exit evaluation for open positions
         if (activeTrade) {
@@ -356,13 +355,18 @@ export function runStrategyBacktest(candles, strategy, customLabSeriesMap = {}) 
             continue;
         }
 
+        // On final candle (i === n - 1), do not generate new orders if NEXT_BAR_OPEN requires i + 1
+        if (i >= n - 1 && slippageModel === 'NEXT_BAR_OPEN') {
+            continue;
+        }
+
         // Evaluate Strategy Compound Rules
         const isTriggered = evaluateStrategyRulesAtBar(i, candles, rules, computedSeries, directionStr, strategyMode, effectiveCustomModels, volatileTimer);
 
         if (isTriggered) {
-            const entryPrice = slippageModel === 'NEXT_BAR_OPEN' ? nextCandle.open : currentCandle.close;
-            const entryTime = slippageModel === 'NEXT_BAR_OPEN' ? nextCandle.time : currentCandle.time;
-            const entryBarIndex = slippageModel === 'NEXT_BAR_OPEN' ? i + 1 : i;
+            const entryPrice = slippageModel === 'NEXT_BAR_OPEN' ? (nextCandle ? nextCandle.open : currentCandle.close) : currentCandle.close;
+            const entryTime = slippageModel === 'NEXT_BAR_OPEN' ? (nextCandle ? nextCandle.time : currentCandle.time) : currentCandle.time;
+            const entryBarIndex = (slippageModel === 'NEXT_BAR_OPEN' && nextCandle) ? i + 1 : i;
 
             activeTrade = {
                 id: `trade_${trades.length + 1}`,

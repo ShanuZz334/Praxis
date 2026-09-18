@@ -1,8 +1,8 @@
 import axios from "axios";
 import { io } from "socket.io-client";
 
-const API_URL = "http://localhost:5000/api/v1/upstox";
-const SOCKET_URL = "http://localhost:5000";
+const API_URL = "/api/v1/upstox";
+const SOCKET_URL = typeof window !== "undefined" ? window.location.origin : "http://localhost:5000";
 
 let socket = null;
 

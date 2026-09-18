@@ -36,7 +36,17 @@ export function resolveCard(cardDef, rawData) {
             result = resolveOptions(cardDef, rawData.options);
             break;
         case 'global':
-            result = resolveGlobal(cardDef, rawData.global);
+        case 'foreign':
+            result = resolveGlobal(cardDef, rawData?.global || rawData?.foreign);
+            break;
+        case 'events':
+            result = {
+                id: cardDef.id,
+                status: 'live',
+                hasLiveData: true,
+                value: rawData?.events?.score ?? null,
+                score: rawData?.events?.score ?? null
+            };
             break;
         default:
             result = {

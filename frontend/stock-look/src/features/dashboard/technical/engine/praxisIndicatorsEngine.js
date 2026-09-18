@@ -126,7 +126,9 @@ export function calculatePNCO(candles, context = {}) {
         const techMomentum = (rsiCentered * 0.55) + (macdNorm * 0.45);
 
         let finalValue = techMomentum;
-        if (context.aiBias || context.pcr) {
+        const isCurrentBar = (i === candles.length - 1);
+        if (isCurrentBar && (context.aiBias || context.pcr)) {
+            // Live sentiment only adjusts the active real-time bar (FA-009 Fix)
             finalValue = (techMomentum * 0.45) + (optionsFlowScore * 0.25) + (aiBiasScore * 0.30);
         } else {
             const velocity = i >= 3 ? ((closes[i] - closes[i - 3]) / (currAtr * 3)) * 30 : 0;

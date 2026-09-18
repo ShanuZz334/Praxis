@@ -178,7 +178,7 @@ cron.schedule("*/2 * * * *", () => {
     }).catch(err => {
         console.warn('[PredictionEngine] Cron resolution warning:', err.message);
     });
-});
+}, { timezone: "Asia/Kolkata" });
 
 io.on("connection", (socket) => {
     console.log(`[Socket.io] Client connected: ${socket.id}`);

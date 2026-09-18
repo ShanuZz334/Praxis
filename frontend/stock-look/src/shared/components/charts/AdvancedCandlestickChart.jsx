@@ -172,8 +172,20 @@ export default React.memo(function AdvancedCandlestickChart({
     const [fvPAE, setFvPAE] = useState(null);
     const [fvModel, setFvModel] = useState(null);
     const [fvVisible, setFvVisible] = useState(true);
-    const [fvAutoMode, setFvAutoMode] = useState(false);
+    const [fvAutoMode, setFvAutoMode] = useState(() => {
+        try {
+            return localStorage.getItem('praxis_fv_auto_mode') === 'true';
+        } catch {
+            return false;
+        }
+    });
     const [fvHasFutureCandles, setFvHasFutureCandles] = useState(false);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('praxis_fv_auto_mode', fvAutoMode ? 'true' : 'false');
+        } catch {}
+    }, [fvAutoMode]);
     
     // Probabilistic Ensemble, Friction Drag & Calibration States
     const [fvQuantiles, setFvQuantiles] = useState(null);
@@ -846,10 +858,6 @@ export default React.memo(function AdvancedCandlestickChart({
                     if (ghostCandleSeriesRef.current && session.candles[barIdx]) {
                         _renderGhostCandles(session.candles, session.times, true);
                     }
-
-                    if (fvAutoMode) {
-                        triggerFutureVision();
-                    }
                 }
             }
 
@@ -904,6 +912,68 @@ export default React.memo(function AdvancedCandlestickChart({
 
         lastLiveCandleRef.current = effectiveLiveCandle;
     }, [liveCandle, demoLiveCandle, fvActive, data, demoRealCandles, updateGhostMarkers]);
+
+    // ── Future Vision: Continuous Auto-Generation on Candle Close / Rollover ───────
+    const lastAutoHistoricalCandleRef = useRef(null);
+    const lastAutoLiveCandleTimeRef = useRef(null);
+    const fvTriggerInProgressRef = useRef(false);
+
+    useEffect(() => {
+        if (!fvAutoMode || !data || data.length === 0) return;
+
+        const lastBar = data[data.length - 1];
+        if (!lastBar) return;
+
+        const lastKey = normalizeTimeKey(lastBar.time);
+
+        // Initial setup on mount or instrument/timeframe change
+        if (lastAutoHistoricalCandleRef.current === null) {
+            lastAutoHistoricalCandleRef.current = lastKey;
+            // If future vision is not active or has no future candles left, run initial prediction
+            if (!fvActive || !fvHasFutureCandles) {
+                if (!fvLoading && !fvTriggerInProgressRef.current) {
+                    fvTriggerInProgressRef.current = true;
+                    triggerFutureVision(false).finally(() => {
+                        fvTriggerInProgressRef.current = false;
+                    });
+                }
+            }
+            return;
+        }
+
+        // Detect new historical bar completion (e.g. 5m / 15m / 1D bar closed and new bar added)
+        if (lastKey !== lastAutoHistoricalCandleRef.current) {
+            console.log(`[FutureVision Auto] Candle closed: ${lastAutoHistoricalCandleRef.current} -> ${lastKey}. Triggering auto-prediction.`);
+            lastAutoHistoricalCandleRef.current = lastKey;
+            if (!fvLoading && !fvTriggerInProgressRef.current) {
+                fvTriggerInProgressRef.current = true;
+                triggerFutureVision(false).finally(() => {
+                    fvTriggerInProgressRef.current = false;
+                });
+            }
+        }
+    }, [data?.length, data && data[data.length - 1]?.time, fvAutoMode, fvActive, fvHasFutureCandles, fvLoading]);
+
+    // Detect live streaming bar time rollover (e.g., tick advances to next candle timestamp)
+    useEffect(() => {
+        if (!fvAutoMode) return;
+        const effectiveLive = demoLiveCandle || liveCandle;
+        if (!effectiveLive?.time) return;
+
+        const liveKey = normalizeTimeKey(effectiveLive.time);
+        if (lastAutoLiveCandleTimeRef.current && lastAutoLiveCandleTimeRef.current !== liveKey) {
+            console.log(`[FutureVision Auto] Live streaming bar rolled over: ${lastAutoLiveCandleTimeRef.current} -> ${liveKey}. Triggering auto-prediction.`);
+            lastAutoLiveCandleTimeRef.current = liveKey;
+            if (!fvLoading && !fvTriggerInProgressRef.current) {
+                fvTriggerInProgressRef.current = true;
+                triggerFutureVision(false).finally(() => {
+                    fvTriggerInProgressRef.current = false;
+                });
+            }
+        } else if (!lastAutoLiveCandleTimeRef.current) {
+            lastAutoLiveCandleTimeRef.current = liveKey;
+        }
+    }, [liveCandle?.time, demoLiveCandle?.time, fvAutoMode, fvLoading]);
 
     // ── Ghost Candle & Uncertainty Cone Clean Clearing ───────────────────────────
     const _clearGhostSeries = () => {
@@ -1163,7 +1233,7 @@ export default React.memo(function AdvancedCandlestickChart({
 
         
 
-        if (fvStaleMsg && !fvIgnoreStaleRef.current) {
+        if (fvStaleMsg && !fvIgnoreStaleRef.current && !fvAutoMode) {
             import('sonner').then(({ toast }) => {
                 const lines = fvIssues;
                 toast.warning('Future Vision — AI Summaries Needed', {
@@ -1191,7 +1261,25 @@ export default React.memo(function AdvancedCandlestickChart({
 
             const masterSnapshot = getMasterSnapshot();
             const registryTechnicals = masterSnapshot.technical || {};
-            const registryFundamentals = masterSnapshot.fundamentals || {};
+            let registryFundamentals = masterSnapshot.fundamentals || {};
+
+            // Direct sync of 10-year financial statements for Future Vision
+            try {
+                const cachedScreener = localStorage.getItem(`praxis_screener_${instrumentKey}`) 
+                    || localStorage.getItem(`praxis_screener_${cleanSymbol}`) 
+                    || localStorage.getItem('praxis_screener_latest');
+                if (cachedScreener) {
+                    const parsed = JSON.parse(cachedScreener);
+                    if (parsed.financials10Year) {
+                        registryFundamentals = { 
+                            ...registryFundamentals, 
+                            financials10Year: parsed.financials10Year,
+                            screener: parsed
+                        };
+                    }
+                }
+            } catch (e) {}
+
             const resolvedEvents = events || [];
 
             // Compile active indicator overlays state from chart
@@ -1559,7 +1647,10 @@ export default React.memo(function AdvancedCandlestickChart({
             if (continuousCandles.length === 0) {
                 setFvActive(false);
                 setFvHasFutureCandles(false);
-                setFvAutoMode(false);
+                const isAutoPersisted = (() => {
+                    try { return localStorage.getItem('praxis_fv_auto_mode') === 'true'; } catch { return false; }
+                })();
+                setFvAutoMode(isAutoPersisted);
                 setFvBias(null);
                 setFvRisk('');
                 setFvPAE(null);
@@ -1583,7 +1674,10 @@ export default React.memo(function AdvancedCandlestickChart({
             setFvRisk(latestSession.risk || '');
             setFvModel(latestSession.modelUsed);
             setFvActive(true);
-            setFvAutoMode(latestSession.autoMode || false);
+            const isAutoPersisted = (() => {
+                try { return localStorage.getItem('praxis_fv_auto_mode') === 'true'; } catch { return false; }
+            })();
+            setFvAutoMode(isAutoPersisted || latestSession.autoMode || false);
             
             if (effectiveData.length > 0) {
                 syncFutureVisionWithData(effectiveData, fvSessionRef.current);
@@ -1597,7 +1691,10 @@ export default React.memo(function AdvancedCandlestickChart({
         } else {
             setFvActive(false);
             setFvHasFutureCandles(false);
-            setFvAutoMode(false);
+            const isAutoPersisted = (() => {
+                try { return localStorage.getItem('praxis_fv_auto_mode') === 'true'; } catch { return false; }
+            })();
+            setFvAutoMode(isAutoPersisted);
             setFvBias(null);
             setFvRisk('');
             setFvPAE(null);
@@ -3154,8 +3251,20 @@ export default React.memo(function AdvancedCandlestickChart({
                                                             onClick={() => {
                                                                 setFvAutoMode(p => {
                                                                     const next = !p;
+                                                                    try {
+                                                                        localStorage.setItem('praxis_fv_auto_mode', next ? 'true' : 'false');
+                                                                    } catch {}
                                                                     updatePAEAutoMode(instrumentKey, timeframe, next);
-                                                                    if (next && (!fvActive || !fvHasFutureCandles)) triggerFutureVision(false);
+                                                                    if (next) {
+                                                                        import('sonner').then(({ toast }) => toast.success('Future Vision Auto-Generation Enabled', {
+                                                                            description: 'Continuous predictive forecasts will generate automatically on every candle close.'
+                                                                        }));
+                                                                        if (!fvActive || !fvHasFutureCandles) {
+                                                                            triggerFutureVision(false);
+                                                                        }
+                                                                    } else {
+                                                                        import('sonner').then(({ toast }) => toast.info('Future Vision Auto-Generation Disabled'));
+                                                                    }
                                                                     return next;
                                                                 });
                                                             }}

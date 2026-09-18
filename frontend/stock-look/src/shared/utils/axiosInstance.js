@@ -22,7 +22,7 @@
 // =============================
 
 import axios from "axios";
-import { BASE_URL } from "@/shared/utils/apiPaths";
+import { BASE_URL } from "./apiPaths.js";
 
 // =============================
 // Axios Instance Configuration
