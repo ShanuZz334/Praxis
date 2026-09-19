@@ -27,7 +27,9 @@ const PYTHON_CONSOLE_EXE = path.join(RESEARCH_DIR, '.venv', isWin ? 'Scripts' : 
 const PYTHON_EXE = (isWin && fs.existsSync(PYTHONW_EXE)) ? PYTHONW_EXE : PYTHON_CONSOLE_EXE;
 const RUN_SCRIPT = path.join(RESEARCH_DIR, 'run_ensemble.py');
 
-const LAG_LLAMA_PYTHON = path.join(RESEARCH_DIR, 'lag_llama_venv', isWin ? 'Scripts' : 'bin', isWin ? 'python.exe' : 'python3');
+const LAG_LLAMA_PYTHONW = path.join(RESEARCH_DIR, 'lag_llama_venv', isWin ? 'Scripts' : 'bin', isWin ? 'pythonw.exe' : 'python3');
+const LAG_LLAMA_PYTHON_CONSOLE = path.join(RESEARCH_DIR, 'lag_llama_venv', isWin ? 'Scripts' : 'bin', isWin ? 'python.exe' : 'python3');
+const LAG_LLAMA_PYTHON = (isWin && fs.existsSync(LAG_LLAMA_PYTHONW)) ? LAG_LLAMA_PYTHONW : LAG_LLAMA_PYTHON_CONSOLE;
 const LAG_LLAMA_SCRIPT = path.join(RESEARCH_DIR, 'run_lag_llama.py');
 
 const ENSEMBLE_BASE_URL = process.env.ENSEMBLE_URL || 'http://127.0.0.1:7174';
