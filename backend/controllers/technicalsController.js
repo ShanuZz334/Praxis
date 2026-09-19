@@ -101,18 +101,23 @@ export const getTechnicalIndicators = async (req, res) => {
         }
 
         let beta = null;
-        try {
-            const { yahooFinanceService } = await import('../services/yahooFinanceService.js');
-            const row = db.prepare("SELECT trading_symbol, isin FROM instruments WHERE instrument_key = ?").get(instrument);
-            let symbolForYahoo = row?.trading_symbol;
-            if (!symbolForYahoo && row?.isin) {
-                 symbolForYahoo = await yahooFinanceService.searchByIsin(row.isin);
+        const isIndex = instrument.startsWith('NSE_INDEX|');
+        if (instrument === 'NSE_INDEX|Nifty 50') {
+            beta = 1.0;
+        } else if (!isIndex) {
+            try {
+                const { yahooFinanceService } = await import('../services/yahooFinanceService.js');
+                const row = db.prepare("SELECT trading_symbol, isin FROM instruments WHERE instrument_key = ?").get(instrument);
+                let symbolForYahoo = row?.trading_symbol;
+                if (!symbolForYahoo && row?.isin) {
+                     symbolForYahoo = await yahooFinanceService.searchByIsin(row.isin);
+                }
+                if (symbolForYahoo) {
+                     beta = await yahooFinanceService.getBeta(symbolForYahoo);
+                }
+            } catch (e) {
+                console.error("Failed to fetch Beta from Yahoo:", e.message);
             }
-            if (symbolForYahoo) {
-                 beta = await yahooFinanceService.getBeta(symbolForYahoo);
-            }
-        } catch (e) {
-            console.error("Failed to fetch Beta from Yahoo:", e.message);
         }
 
         // Fallback: Calculate Beta Natively if Yahoo doesn't have it

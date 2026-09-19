@@ -27,6 +27,15 @@ export default function ModelFinetuneCard({
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [message, setMessage] = useState(null);
     const [lastChecked, setLastChecked] = useState(null);
+    const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+    useEffect(() => {
+        if (cooldownSeconds <= 0) return;
+        const timer = setTimeout(() => {
+            setCooldownSeconds(prev => Math.max(0, prev - 1));
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, [cooldownSeconds]);
 
     // Reset expanded history and cache if asset changes
     useEffect(() => {
@@ -76,6 +85,8 @@ export default function ModelFinetuneCard({
     }, [fetchStatus]);
 
     const handleTriggerRetrain = async (modelId) => {
+        if (cooldownSeconds > 0) return;
+        setCooldownSeconds(10);
         try {
             setRetrainingModel(modelId);
             setMessage({ type: 'info', text: `Initiating retraining for ${modelId}...` });
@@ -91,7 +102,10 @@ export default function ModelFinetuneCard({
                 setMessage({ type: 'error', text: res.data?.error || 'Failed to launch retraining.' });
             }
         } catch (err) {
-            setMessage({ type: 'error', text: err.response?.data?.error || err.message });
+            const errorMsg = err.response?.status === 429
+                ? 'Retrain cooldown active. Please wait a few seconds before triggering another job.'
+                : (err.response?.data?.error || err.message);
+            setMessage({ type: 'error', text: errorMsg });
         } finally {
             setRetrainingModel(null);
             setTimeout(() => setMessage(null), 6000);
@@ -447,20 +461,20 @@ export default function ModelFinetuneCard({
                                                 <button
                                                     type="button"
                                                     onClick={() => handleTriggerRetrain(model.model_id)}
-                                                    disabled={!canRetrain || isRetraining}
+                                                    disabled={!canRetrain || isRetraining || cooldownSeconds > 0}
                                                     className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                                                        canRetrain && !isRetraining
+                                                        canRetrain && !isRetraining && cooldownSeconds === 0
                                                             ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-xs'
                                                             : 'bg-background-surface text-text-muted border border-border-subtle cursor-not-allowed opacity-50'
                                                     }`}
-                                                    title={canRetrain ? 'Trigger immediate retraining subprocess' : 'Retraining currently unavailable'}
+                                                    title={cooldownSeconds > 0 ? `Please wait ${cooldownSeconds}s before triggering again` : canRetrain ? 'Trigger immediate retraining subprocess' : 'Retraining currently unavailable'}
                                                 >
                                                     {isRetraining ? (
                                                         <RefreshCw size={11} className="animate-spin" />
                                                     ) : (
                                                         <Play size={11} />
                                                     )}
-                                                    <span>Retrain</span>
+                                                    <span>{cooldownSeconds > 0 ? `Wait (${cooldownSeconds}s)` : 'Retrain'}</span>
                                                 </button>
 
                                                 <button

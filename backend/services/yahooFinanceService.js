@@ -73,6 +73,10 @@ export const yahooFinanceService = {
     _formatSymbol(symbol) {
         if (!symbol) return null;
         let clean = symbol.split('-')[0].trim();
+        // Ignore broad market index strings that cannot have Yahoo .NS equity quotes
+        if (clean.includes(' ') || clean.toUpperCase().startsWith('NIFTY') || clean.toUpperCase().startsWith('BANKNIFTY')) {
+            return null;
+        }
         if (clean === 'HDFC') clean = 'HDFCBANK';
         if (clean.startsWith('^') || clean.endsWith('.NS') || clean.endsWith('.BO')) {
             return clean;
