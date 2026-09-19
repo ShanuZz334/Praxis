@@ -192,6 +192,28 @@ export default React.memo(function AdvancedCandlestickChart({
     const [fvFriction, setFvFriction] = useState(null);
     const [fvEdge, setFvEdge] = useState(null);
     const [fvModelWeights, setFvModelWeights] = useState([]);
+    const [fvActiveModels, setFvActiveModels] = useState(() => {
+        try {
+            const saved = localStorage.getItem('praxis_prediction_config');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed.ensembleModels) && parsed.ensembleModels.length > 0) {
+                    return parsed.ensembleModels;
+                }
+            }
+        } catch (_) {}
+        return null;
+    });
+    const [fvEnsembleWeights, setFvEnsembleWeights] = useState(() => {
+        try {
+            const saved = localStorage.getItem('praxis_prediction_config');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed.ensembleWeights) return parsed.ensembleWeights;
+            }
+        } catch (_) {}
+        return null;
+    });
     const [fvConformalMultiplier, setFvConformalMultiplier] = useState(1.0);
     const [fvRegime, setFvRegime] = useState('CHOPPY');
     
@@ -313,6 +335,8 @@ export default React.memo(function AdvancedCandlestickChart({
                     setFvModelWeights(res.data.weights);
                     if (res.data.edge) setFvEdge(res.data.edge);
                     if (res.data.regime) setFvRegime(res.data.regime);
+                    if (res.data.activeModels) setFvActiveModels(res.data.activeModels);
+                    if (res.data.ensembleWeights) setFvEnsembleWeights(res.data.ensembleWeights);
                 }
             })
             .catch(() => { /* silent */ });
@@ -326,6 +350,35 @@ export default React.memo(function AdvancedCandlestickChart({
             .catch(() => { /* silent */ });
 
     }, [instrumentKey, timeframe]);
+
+    // Realtime synchronization with PAI model configuration changes
+    useEffect(() => {
+        const handleConfigUpdate = (e) => {
+            if (e.detail?.ensembleModels) {
+                setFvActiveModels(e.detail.ensembleModels);
+            }
+            if (e.detail?.ensembleWeights) {
+                setFvEnsembleWeights(e.detail.ensembleWeights);
+            }
+        };
+        window.addEventListener('praxis:prediction-config-updated', handleConfigUpdate);
+
+        // Fetch backend prediction config if not yet loaded from localStorage
+        axiosInstance.get('/api/v1/ai-settings/prediction-models/config')
+            .then(res => {
+                if (res.data?.ensembleModels) {
+                    setFvActiveModels(res.data.ensembleModels);
+                }
+                if (res.data?.ensembleWeights) {
+                    setFvEnsembleWeights(res.data.ensembleWeights);
+                }
+            })
+            .catch(() => { /* silent */ });
+
+        return () => {
+            window.removeEventListener('praxis:prediction-config-updated', handleConfigUpdate);
+        };
+    }, []);
 
     // Reset ephemeral demo candles and live candle when instrument or timeframe changes
     useEffect(() => {
@@ -1506,6 +1559,8 @@ export default React.memo(function AdvancedCandlestickChart({
             if (res.data.friction) setFvFriction(res.data.friction);
             if (res.data.edge) setFvEdge(res.data.edge);
             if (res.data.modelWeights) setFvModelWeights(res.data.modelWeights);
+            if (res.data.activeModels) setFvActiveModels(res.data.activeModels);
+            if (res.data.ensembleConfig?.weights) setFvEnsembleWeights(res.data.ensembleConfig.weights);
             if (res.data.conformalMultiplier) setFvConformalMultiplier(res.data.conformalMultiplier);
             if (res.data.volatility_regime) setFvRegime(res.data.volatility_regime);
 
@@ -3148,10 +3203,17 @@ export default React.memo(function AdvancedCandlestickChart({
                                                             {(() => {
                                                                 const rawWeights = (fvModelWeights || []).filter(mw => mw.model_id !== 'future_vision');
                                                                 const existingMap = new Map(rawWeights.map(w => [w.model_id, w.weight]));
+                                                                const activeModelSet = fvActiveModels ? new Set(fvActiveModels) : null;
                                                                 
-                                                                // Always guarantee all 4 canonical foundation models are displayed
-                                                                const displayList = CANONICAL_ENSEMBLE_MODELS.map(cm => {
-                                                                    const wt = existingMap.has(cm.model_id) ? existingMap.get(cm.model_id) : cm.defaultWeight;
+                                                                // Filter canonical models to only currently selected models
+                                                                const activeCanonical = CANONICAL_ENSEMBLE_MODELS.filter(cm => 
+                                                                    activeModelSet ? activeModelSet.has(cm.model_id) : true
+                                                                );
+
+                                                                const displayList = activeCanonical.map(cm => {
+                                                                    const wt = existingMap.has(cm.model_id) 
+                                                                        ? existingMap.get(cm.model_id) 
+                                                                        : (fvEnsembleWeights?.[cm.model_id] || cm.defaultWeight);
                                                                     return {
                                                                         model_id: cm.model_id,
                                                                         weight: wt,
@@ -3162,7 +3224,7 @@ export default React.memo(function AdvancedCandlestickChart({
                                                                 const totalWt = displayList.reduce((acc, m) => acc + (m.weight || 0), 0);
 
                                                                 return displayList.map((mw, idx) => {
-                                                                    const pct = Math.round((totalWt > 0 ? (mw.weight / totalWt) : 0.25) * 100);
+                                                                    const pct = Math.round((totalWt > 0 ? (mw.weight / totalWt) : (1 / Math.max(displayList.length, 1))) * 100);
                                                                     const isStandby = mw.model_id === 'lag_llama' && pct <= 10;
                                                                     const label = mw.model_id === 'lag_llama' ? (isStandby ? 'Lag-Llama (Standby)' : 'Lag-Llama') : mw.label;
                                                                     const isLeading = fvEdge?.leading_model === mw.model_id;
@@ -3189,18 +3251,25 @@ export default React.memo(function AdvancedCandlestickChart({
                                                                     );
                                                                 });
                                                             })()}
-                                                            {/* Master LLM Agent — fixed 45% synthesis weight */}
-                                                            <div className="flex flex-col gap-0.5 mt-0.5 pt-0.5 border-t border-border-subtle/40">
-                                                                <div className="flex justify-between items-center text-[9px] font-mono">
-                                                                    <span className="truncate text-sky-500 dark:text-sky-400 font-semibold">
-                                                                        🧠 Master LLM (Synthesis)
-                                                                    </span>
-                                                                    <span className="font-bold tabular-nums text-sky-500 dark:text-sky-400">45%</span>
+                                                            {/* Master LLM Agent — only displayed if currently selected */}
+                                                            {(!fvActiveModels || fvActiveModels.includes('master_llm')) && (
+                                                                <div className={`flex flex-col gap-0.5 ${(!fvActiveModels || CANONICAL_ENSEMBLE_MODELS.some(cm => fvActiveModels.includes(cm.model_id))) ? 'mt-0.5 pt-0.5 border-t border-border-subtle/40' : ''}`}>
+                                                                    <div className="flex justify-between items-center text-[9px] font-mono">
+                                                                        <span className="truncate text-sky-500 dark:text-sky-400 font-semibold">
+                                                                            🧠 Master LLM (Synthesis)
+                                                                        </span>
+                                                                        <span className="font-bold tabular-nums text-sky-500 dark:text-sky-400">
+                                                                            {fvEnsembleWeights?.master_llm != null ? `${Math.round(Number(fvEnsembleWeights.master_llm))}%` : '45%'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="h-1 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+                                                                        <div 
+                                                                            className="h-full rounded-full bg-sky-500 dark:bg-sky-400 transition-all duration-500" 
+                                                                            style={{ width: `${fvEnsembleWeights?.master_llm != null ? Math.min(Math.round(Number(fvEnsembleWeights.master_llm)), 100) : 45}%` }} 
+                                                                        />
+                                                                    </div>
                                                                 </div>
-                                                                <div className="h-1 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
-                                                                    <div className="h-full rounded-full bg-sky-500 dark:bg-sky-400 transition-all duration-500" style={{ width: '45%' }} />
-                                                                </div>
-                                                            </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 )}

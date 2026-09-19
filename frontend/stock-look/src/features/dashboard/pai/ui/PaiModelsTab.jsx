@@ -672,11 +672,15 @@ export default function PaiModelsTab() {
         try {
             const res = await axiosInstance.get('/api/v1/ai-settings/prediction-models/config');
             if (res.data) {
-                setPredictionConfig({
+                const config = {
                     ensembleModels: res.data.ensembleModels || ['master_llm', 'kronos', 'chronos_bolt', 'lag_llama', 'naive_baseline'],
                     ensembleWeights: res.data.ensembleWeights || { master_llm: 45, kronos: 25, chronos_bolt: 20, lag_llama: 15, naive_baseline: 10 },
                     autoWeighting: res.data.autoWeighting !== undefined ? res.data.autoWeighting : true
-                });
+                };
+                setPredictionConfig(config);
+                try {
+                    localStorage.setItem('praxis_prediction_config', JSON.stringify(config));
+                } catch (_) {}
             }
         } catch (e) {
             console.error('Failed to fetch prediction config:', e);
@@ -701,6 +705,10 @@ export default function PaiModelsTab() {
             ensembleModels: updatedModels
         };
         setPredictionConfig(newConfig);
+        try {
+            localStorage.setItem('praxis_prediction_config', JSON.stringify(newConfig));
+            window.dispatchEvent(new CustomEvent('praxis:prediction-config-updated', { detail: newConfig }));
+        } catch (_) {}
 
         try {
             await axiosInstance.put('/api/v1/ai-settings/prediction-models/config', newConfig);
@@ -721,6 +729,10 @@ export default function PaiModelsTab() {
             autoWeighting: false
         };
         setPredictionConfig(newConfig);
+        try {
+            localStorage.setItem('praxis_prediction_config', JSON.stringify(newConfig));
+            window.dispatchEvent(new CustomEvent('praxis:prediction-config-updated', { detail: newConfig }));
+        } catch (_) {}
 
         try {
             await axiosInstance.put('/api/v1/ai-settings/prediction-models/config', newConfig);
@@ -738,6 +750,10 @@ export default function PaiModelsTab() {
             ...(newAuto ? { ensembleWeights: defaultWeights } : {})
         };
         setPredictionConfig(newConfig);
+        try {
+            localStorage.setItem('praxis_prediction_config', JSON.stringify(newConfig));
+            window.dispatchEvent(new CustomEvent('praxis:prediction-config-updated', { detail: newConfig }));
+        } catch (_) {}
 
         try {
             await axiosInstance.put('/api/v1/ai-settings/prediction-models/config', newConfig);

@@ -16,6 +16,7 @@ import {
 
 import { ensureEnsembleRunning, getEnsembleReadiness, getEnsembleMembers } from '../services/ensembleService.js';
 import { calculateNseFriction, evaluateNetEdge } from '../engine/frictionEngine.js';
+import AiRouting from '../models/AiRouting.js';
 
 const router = express.Router();
 
@@ -43,12 +44,26 @@ router.get('/weights', optionalProtect, async (req, res) => {
         const weights = getModelWeights(instrument, timeframe, regime);
         const edgeEval = getEdgeEvaluation(instrument, timeframe, regime);
 
+        let activeModels = ['master_llm', 'kronos', 'chronos_bolt', 'lag_llama', 'naive_baseline'];
+        let ensembleWeights = { master_llm: 45, kronos: 25, chronos_bolt: 20, lag_llama: 15, naive_baseline: 10 };
+        try {
+            const routing = await AiRouting.findOne({ isSingleton: true }).lean();
+            if (routing?.futureVision?.ensembleModels?.length > 0) {
+                activeModels = routing.futureVision.ensembleModels;
+            }
+            if (routing?.futureVision?.ensembleWeights) {
+                ensembleWeights = routing.futureVision.ensembleWeights;
+            }
+        } catch (_) {}
+
         return res.json({
             status: 'success',
             instrument,
             timeframe,
             regime,
             weights,
+            activeModels,
+            ensembleWeights,
             edge: edgeEval
         });
     } catch (err) {
