@@ -14,7 +14,7 @@ import {
     getEdgeEvaluation
 } from '../services/predictionResolutionService.js';
 
-import { getEnsembleReadiness, getEnsembleMembers } from '../services/ensembleService.js';
+import { ensureEnsembleRunning, getEnsembleReadiness, getEnsembleMembers } from '../services/ensembleService.js';
 import { calculateNseFriction, evaluateNetEdge } from '../engine/frictionEngine.js';
 
 const router = express.Router();
@@ -151,7 +151,10 @@ router.post('/resolve', protect, async (req, res) => {
  */
 router.get('/readiness', async (req, res) => {
     try {
-        const readiness = await getEnsembleReadiness();
+        let readiness = await getEnsembleReadiness();
+        if (!readiness.online) {
+            readiness = await ensureEnsembleRunning();
+        }
         return res.json({
             ensemble_service: readiness.status,    // 'ok' | 'degraded' | 'offline'
             online: readiness.online,

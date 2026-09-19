@@ -1,16 +1,18 @@
 /**
  * @file testEnsembleIntegration.js
- * @purpose Verification script for Node.js -> Python Ensemble microservice on port 7074
+ * @purpose Verification script for Node.js -> Python Ensemble microservice on port 7174
  */
 
-import { getEnsembleReadiness, getEnsembleMembers, callEnsembleService } from '../services/ensembleService.js';
+import { ensureEnsembleRunning, getEnsembleReadiness, getEnsembleMembers, callEnsembleService } from '../services/ensembleService.js';
 
 async function main() {
     console.log('====================================================');
     console.log('🧪 TESTING NODE.JS -> PYTHON ENSEMBLE INTEGRATION');
     console.log('====================================================');
 
-    console.log('\n[1/3] Testing getEnsembleReadiness()...');
+    console.log('\n[1/3] Ensuring ensemble service is running (ensureEnsembleRunning)...');
+    await ensureEnsembleRunning();
+
     const readiness = await getEnsembleReadiness();
     console.log('  Online:', readiness.online);
     console.log('  Status:', readiness.status);
@@ -19,7 +21,7 @@ async function main() {
         console.log(`    - ${m.model_id}: ready=${m.is_ready}, default_weight=${m.weight}`);
     }
     if (!readiness.online) {
-        throw new Error('Ensemble service is not reachable on port 7074');
+        throw new Error('Ensemble service is not reachable on port 7174');
     }
 
     console.log('\n[2/3] Testing getEnsembleMembers()...');

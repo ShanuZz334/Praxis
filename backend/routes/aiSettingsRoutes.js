@@ -6,7 +6,7 @@ import { encrypt, decrypt } from '../ai-gateway/utils/encryption.js';
 import { providerCache } from '../ai-gateway/cache/providerCache.js';
 import { aiQuotaTracker } from '../ai-gateway/aiQuotaTracker.js';
 import { clearCircuitBreakerState, getCircuitBreakerStatus, recordProviderFailure, recordProviderSuccess } from '../ai-gateway/modelRouter.js';
-import { getEnsembleReadiness, callEnsembleService } from '../services/ensembleService.js';
+import { ensureEnsembleRunning, getEnsembleReadiness, callEnsembleService } from '../services/ensembleService.js';
 import { generateNaiveBaseline } from '../engine/predictionEngine.js';
 import aiGateway from '../ai-gateway/index.js';
 
@@ -345,7 +345,10 @@ router.put('/routing', async (req, res) => {
 
 router.get('/prediction-models', async (req, res) => {
     try {
-        const readiness = await getEnsembleReadiness().catch(() => ({ online: false, members: [] }));
+        let readiness = await getEnsembleReadiness().catch(() => ({ online: false, members: [] }));
+        if (!readiness.online) {
+            readiness = await ensureEnsembleRunning().catch(() => ({ online: false, members: [] }));
+        }
         const memberMap = new Map((readiness.members || []).map(m => [m.model_id, m]));
 
         const models = [
@@ -530,7 +533,10 @@ router.post('/prediction-models/:modelId/test', async (req, res) => {
 
         if (['kronos', 'chronos_bolt', 'lag_llama'].includes(modelId)) {
             // Test connection to Python ensemble service for this specific member
-            const readiness = await getEnsembleReadiness();
+            let readiness = await getEnsembleReadiness();
+            if (!readiness.online) {
+                readiness = await ensureEnsembleRunning();
+            }
             const member = readiness.members?.find(m => m.model_id === modelId);
 
             if (!readiness.online) {
@@ -538,7 +544,7 @@ router.post('/prediction-models/:modelId/test', async (req, res) => {
                     success: false,
                     modelId,
                     latencyMs: Date.now() - startTime,
-                    error: `Python ensemble microservice on port 7074 is offline. Run 'start.bat' or test will auto-start on prediction.`
+                    error: `Python ensemble microservice on port 7174 is offline. Auto-start timed out.`
                 });
             }
 

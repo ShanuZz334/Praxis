@@ -7,7 +7,7 @@ echo =======================================================
 echo.
 
 REM 1. Start Node.js Express API Server (port 5000)
-REM The backend automatically boots and supervises the Python Foundation Models Ensemble (port 7074) in the background.
+REM The backend automatically boots and supervises the Python Foundation Models Ensemble (port 7174) in the background.
 echo [1/2] Launching Backend API Server [Port 5000] (Auto-spawns Python Models)...
 start "Praxis Backend API [Port 5000]" cmd /c "cd /d "%~dp0backend" && npm run dev"
 
@@ -18,6 +18,6 @@ start "Praxis Frontend [Port 5173]" cmd /c "cd /d "%~dp0frontend\stock-look" && 
 echo.
 echo =======================================================
 echo   Services successfully launched!
-echo   - Backend API & Foundation Models: http://localhost:5000 (Models on 7074)
+echo   - Backend API & Foundation Models: http://localhost:5000 (Models on 7174)
 echo   - Frontend Web App:                http://localhost:5173
 echo =======================================================

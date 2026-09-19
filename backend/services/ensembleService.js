@@ -1,6 +1,6 @@
 /**
  * @file ensembleService.js
- * @purpose HTTP client for the Praxis Python Ensemble microservice (port 7074).
+ * @purpose HTTP client for the Praxis Python Ensemble microservice (port 7174).
  *
  * This service is the Node.js bridge that calls the Python ensemble service.
  * It is designed to fail gracefully — if the Python service is down, the caller
@@ -8,9 +8,9 @@
  * futureVisionService.js.
  *
  * Endpoints called:
- *   GET  http://localhost:7074/readiness  — health check
- *   GET  http://localhost:7074/members   — list model readiness
- *   POST http://localhost:7074/forecast  — run full ensemble prediction
+ *   GET  http://localhost:7174/readiness  — health check
+ *   GET  http://localhost:7174/members   — list model readiness
+ *   POST http://localhost:7174/forecast  — run full ensemble prediction
  */
 
 import { spawn } from 'child_process';
@@ -27,7 +27,7 @@ const PYTHON_CONSOLE_EXE = path.join(RESEARCH_DIR, '.venv', isWin ? 'Scripts' : 
 const PYTHON_EXE = (isWin && fs.existsSync(PYTHONW_EXE)) ? PYTHONW_EXE : PYTHON_CONSOLE_EXE;
 const RUN_SCRIPT = path.join(RESEARCH_DIR, 'run_ensemble.py');
 
-const ENSEMBLE_BASE_URL = process.env.ENSEMBLE_URL || 'http://127.0.0.1:7074';
+const ENSEMBLE_BASE_URL = process.env.ENSEMBLE_URL || 'http://127.0.0.1:7174';
 const FORECAST_TIMEOUT_MS = 120_000; // 2 minutes — CPU inference is slow
 
 let _spawnPromise = null;
@@ -55,7 +55,7 @@ export async function ensureEnsembleRunning() {
                 return { online: false, status: 'missing_files', members: [] };
             }
 
-            console.log(`[EnsembleService] Auto-starting Python foundation model ensemble service on port 7074...`);
+            console.log(`[EnsembleService] Auto-starting Python foundation model ensemble service on port 7174...`);
             const logPath = path.join(RESEARCH_DIR, 'ensemble.log');
             const logFd = fs.openSync(logPath, 'a');
 
@@ -67,11 +67,11 @@ export async function ensureEnsembleRunning() {
             });
             child.unref();
 
-            for (let i = 0; i < 25; i++) {
+            for (let i = 0; i < 50; i++) {
                 await new Promise(r => setTimeout(r, 1000));
                 const ready = await getEnsembleReadiness();
                 if (ready.online) {
-                    console.log(`[EnsembleService] Python foundation model ensemble service is ONLINE on port 7074 (${ready.status})`);
+                    console.log(`[EnsembleService] Python foundation model ensemble service is ONLINE on port 7174 (${ready.status})`);
                     return ready;
                 }
             }
