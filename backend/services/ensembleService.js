@@ -27,6 +27,9 @@ const PYTHON_CONSOLE_EXE = path.join(RESEARCH_DIR, '.venv', isWin ? 'Scripts' : 
 const PYTHON_EXE = (isWin && fs.existsSync(PYTHONW_EXE)) ? PYTHONW_EXE : PYTHON_CONSOLE_EXE;
 const RUN_SCRIPT = path.join(RESEARCH_DIR, 'run_ensemble.py');
 
+const LAG_LLAMA_PYTHON = path.join(RESEARCH_DIR, 'lag_llama_venv', isWin ? 'Scripts' : 'bin', isWin ? 'python.exe' : 'python3');
+const LAG_LLAMA_SCRIPT = path.join(RESEARCH_DIR, 'run_lag_llama.py');
+
 const ENSEMBLE_BASE_URL = process.env.ENSEMBLE_URL || 'http://127.0.0.1:7174';
 const FORECAST_TIMEOUT_MS = 120_000; // 2 minutes — CPU inference is slow
 
@@ -34,10 +37,40 @@ let _spawnPromise = null;
 let _lastFailedSpawn = 0;
 
 /**
+ * Ensures the isolated Lag-Llama microservice is running on port 7175.
+ */
+export async function ensureLagLlamaRunning() {
+    try {
+        const res = await fetch('http://127.0.0.1:7175/health', { signal: AbortSignal.timeout(1500) });
+        if (res.ok) return true;
+    } catch {}
+
+    if (fs.existsSync(LAG_LLAMA_PYTHON) && fs.existsSync(LAG_LLAMA_SCRIPT)) {
+        try {
+            console.log('[EnsembleService] Auto-starting Lag-Llama microservice on port 7175...');
+            const logFd = fs.openSync(path.join(RESEARCH_DIR, 'lag_llama.log'), 'a');
+            const child = spawn(LAG_LLAMA_PYTHON, [LAG_LLAMA_SCRIPT], {
+                cwd: RESEARCH_DIR,
+                detached: true,
+                stdio: ['ignore', logFd, logFd],
+                windowsHide: true,
+                env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+            });
+            child.unref();
+        } catch (err) {
+            console.warn('[EnsembleService] Could not auto-start Lag-Llama service:', err.message);
+        }
+    }
+}
+
+/**
  * Ensures the Python ensemble microservice is running.
  * If offline, auto-spawns it and polls until healthy.
  */
 export async function ensureEnsembleRunning() {
+    // Also ensure the isolated Lag-Llama satellite is alive
+    ensureLagLlamaRunning().catch(() => {});
+
     const check = await getEnsembleReadiness();
     if (check.online) return check;
 
