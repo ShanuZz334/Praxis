@@ -565,8 +565,10 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
         // L1 Cache: Only persist scores that this master actually computed correctly.
         if (selectedInstrument) {
             if (techScore !== null && techScore >= 0) saveIntelScore('tech', selectedInstrument, techScore, techEngine?.regime?.label, 'live');
-            if (dbFallbackData?.events?.composite_score !== null && dbFallbackData.events.composite_score !== undefined && dbFallbackData.events.composite_score >= 0)
-                saveIntelScore('evt', 'GLOBAL', dbFallbackData.events.composite_score, null, 'live');
+            const evtScoreToSave = dbFallbackData?.events?.composite_score ?? evtScore;
+            if (evtScoreToSave !== null && evtScoreToSave !== undefined && !isNaN(evtScoreToSave) && evtScoreToSave >= 0) {
+                saveIntelScore('evt', 'GLOBAL', evtScoreToSave, null, 'live');
+            }
         }
 
         const scores = [
@@ -583,9 +585,9 @@ export function useMasterComposite(selectedInstrument, isIndex, selectedExpiry, 
         const moduleScoreMap = { TECH: techScore, OPT: optScore, FUND: fundScore, GLOB: globScore, EVT: evtScore };
         const institutionalData = computeInstitutionalComposite(moduleScoreMap, {
             ...extraData,
-            tradingMode: extraData.tradingMode || 'swing',
-            hasSystemicEvent: extraData.hasSystemicEvent || dbFallbackData?.events?.has_systemic_event || false,
-            volatilityPressure: extraData.volatilityPressure || dbFallbackData?.events?.volatility_pressure || 0
+            tradingMode: extraData?.tradingMode || 'swing',
+            hasSystemicEvent: extraData?.hasSystemicEvent || dbFallbackData?.events?.has_systemic_event || false,
+            volatilityPressure: extraData?.volatilityPressure || dbFallbackData?.events?.volatility_pressure || 0
         });
         let praxisComposite = institutionalData.compositeScore;
 
