@@ -1,43 +1,6 @@
 {
-  "date": "2026-09-18",
-  "usage": {
-    "gemini::gemini-3.5-flash": {
-      "requests": 7,
-      "tokensIn": 10436,
-      "tokensOut": 3060,
-      "lastCalled": "2026-09-18T14:39:57.075Z"
-    },
-    "groq::openai/gpt-oss-120b": {
-      "requests": 3,
-      "tokensIn": 14678,
-      "tokensOut": 12282,
-      "lastCalled": "2026-09-18T05:48:48.785Z"
-    },
-    "groq_2::openai/gpt-oss-120b": {
-      "requests": 1,
-      "tokensIn": 4879,
-      "tokensOut": 3101,
-      "lastCalled": "2026-09-18T05:32:52.504Z"
-    },
-    "groq::groq/compound": {
-      "requests": 8,
-      "tokensIn": 45504,
-      "tokensOut": 12528,
-      "lastCalled": "2026-09-18T21:49:27.612Z"
-    },
-    "ollama::qwen2.5:7b": {
-      "requests": 4,
-      "tokensIn": 2126,
-      "tokensOut": 411,
-      "lastCalled": "2026-09-18T21:29:31.970Z"
-    },
-    "groq::qwen/qwen3.8-27b": {
-      "requests": 1,
-      "tokensIn": 2640,
-      "tokensOut": 1750,
-      "lastCalled": "2026-09-18T17:56:18.379Z"
-    }
-  },
+  "date": "2026-09-19",
+  "usage": {},
   "groqLiveHeaders": {
     "limitRequests": 250,
     "remainingRequests": 249,

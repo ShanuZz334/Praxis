@@ -34,14 +34,14 @@ router.post('/predict', protect, async (req, res) => {
         // Fire-and-forget: log to the PAI Sidebar readonly trace chat
         const userId = req.user._id;
         const symbol = instrumentKey.split('|')[1] || instrumentKey;
-        const userMsg = `**Future Vision Request for ${symbol}**\n\n**Raw Context Payload:**\n\`\`\`json\n${contextPayload.substring(0, 1200)}\n...\n[Payload truncated for UI. Full length: ${contextPayload.length} chars]\n\`\`\``;
+        const userMsg = `**Future Vision Request for ${symbol}**\n\n**Raw Context Payload:**\n\`\`\`text\n${contextPayload.substring(0, 1200)}\n...\n[Payload truncated for UI. Full length: ${contextPayload.length} chars]\n\`\`\``;
 
         const weightsText = (result.modelWeights || [])
             .map(w => {
-                const label = w.model_id === 'chronos_bolt' ? '⚡ Chronos-Bolt (Amazon Distilled T5)'
-                    : w.model_id === 'kronos' ? '🏛️ Kronos-Small (AAAI 2026 Foundation Model)'
-                    : w.model_id === 'naive_baseline' ? '📈 Naive Drift Baseline'
-                    : w.model_id === 'lag_llama' ? '🦙 Lag-Llama'
+                const label = w.model_id === 'chronos_bolt' ? 'Chronos-Bolt (Amazon Distilled T5)'
+                    : w.model_id === 'kronos' ? 'Kronos-Small (AAAI 2026 Foundation Model)'
+                    : w.model_id === 'naive_baseline' ? 'Naive Drift Baseline'
+                    : w.model_id === 'lag_llama' ? 'Lag-Llama'
                     : w.model_id;
                 return `- **${label}**: ${Math.round((w.weight || 0) * 100)}%`;
             }).join('\n');
