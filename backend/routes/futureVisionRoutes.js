@@ -52,24 +52,24 @@ router.post('/predict', protect, async (req, res) => {
                 const kVal = c.kronosQ50 ? `₹${c.kronosQ50.toFixed(1)}` : '—';
                 const cVal = c.chronosQ50 ? `₹${c.chronosQ50.toFixed(1)}` : '—';
                 const cone = (c.q10 && c.q90) ? `[₹${c.q10.toFixed(1)} - ₹${c.q90.toFixed(1)}]` : '—';
-                return `| Bar ${c.bar} | ₹${c.open.toFixed(2)} | ₹${c.close.toFixed(2)} | ${kVal} | ${cVal} | ${cone} | ${c.direction === 'bullish' ? '🟢' : c.direction === 'bearish' ? '🔴' : '⚪'} ${c.direction} (${c.confidence}%) |`;
+                return `| Bar ${c.bar} | ₹${c.open.toFixed(2)} | ₹${c.close.toFixed(2)} | ${kVal} | ${cVal} | ${cone} | ${c.direction.toUpperCase()} (${c.confidence}%) |`;
             }).join('\n');
         }
 
-        const aiMsg = `### 🔮 Praxis Multi-Model Foundation Ensemble [${horizonBars}-Candle Forecast]
+        const aiMsg = `### Praxis Multi-Model Foundation Ensemble [${horizonBars}-Candle Forecast]
 **Instrument**: \`${symbol}\` | **Timeframe**: \`${timeframe}\` | **Regime**: \`${result.regime || 'CHOPPY'}\`
 **Statistical Conformal Multiplier**: \`${result.conformalMultiplier ? Number(result.conformalMultiplier).toFixed(3) : '1.000'}x\`
 
-#### 👥 Active Foundation Models & Allocation:
+#### Active Foundation Models & Allocation:
 ${weightsText || '- Local Foundation Models & AI Gateway'}
-- 🧠 **Context & Reasoning Synthesizer**: \`${result.cloudModelUsed || 'Cloud AI'}\`
+- **Context & Reasoning Synthesizer**: \`${result.cloudModelUsed || 'Cloud AI'}\`
 
-#### 📊 7-Candle Quantitative Consensus:
+#### 7-Candle Quantitative Consensus:
 | Bar | Open | Blended Close | Kronos q50 | Chronos q50 | 80% Cone [q10-q90] | Signal |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 ${tableRows}
 
-#### 🎯 Strategic Outlook:
+#### Strategic Outlook:
 - **Overall Bias**: \`${result.overall_bias?.toUpperCase() || 'NEUTRAL'}\`
 - **Key Support**: \`${result.key_support ? '₹' + result.key_support : 'N/A'}\` | **Key Resistance**: \`${result.key_resistance ? '₹' + result.key_resistance : 'N/A'}\`
 - **Key Risk**: ${result.key_risk || 'N/A'}

@@ -25,7 +25,7 @@ import { blendRollingForecasts } from '../../utils/FutureVisionBlender';
 import { getNextIntradayCandleTime, getNextTradingDay, healFutureCandleTimes, formatDateKey } from '../../utils/tradingCalendar';
 import axiosInstance from '../../utils/axiosInstance';
 import { useDataRegistry } from '../../context/DataRegistryContext';
-import { Telescope, Info, Eye, EyeOff, Microscope, RotateCw } from 'lucide-react';
+import { Telescope, Info, Eye, EyeOff, Microscope, RotateCw, Brain } from 'lucide-react';
 import Loader from '../ui/Loader';
 import OHLCLegend from './OHLCLegend';
 import { getGlobalInsightCache } from '../ui/AiInsightSection';
@@ -3255,8 +3255,9 @@ export default React.memo(function AdvancedCandlestickChart({
                                                             {(!fvActiveModels || fvActiveModels.includes('master_llm')) && (
                                                                 <div className={`flex flex-col gap-0.5 ${(!fvActiveModels || CANONICAL_ENSEMBLE_MODELS.some(cm => fvActiveModels.includes(cm.model_id))) ? 'mt-0.5 pt-0.5 border-t border-border-subtle/40' : ''}`}>
                                                                     <div className="flex justify-between items-center text-[9px] font-mono">
-                                                                        <span className="truncate text-sky-500 dark:text-sky-400 font-semibold">
-                                                                            🧠 Master LLM (Synthesis)
+                                                                        <span className="truncate text-sky-500 dark:text-sky-400 font-semibold flex items-center gap-1">
+                                                                            <Brain size={10} className="shrink-0 text-sky-500 dark:text-sky-400" />
+                                                                            <span>Master LLM (Synthesis)</span>
                                                                         </span>
                                                                         <span className="font-bold tabular-nums text-sky-500 dark:text-sky-400">
                                                                             {fvEnsembleWeights?.master_llm != null ? `${Math.round(Number(fvEnsembleWeights.master_llm))}%` : '45%'}
